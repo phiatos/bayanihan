@@ -1,0 +1,20 @@
+{
+    "name": "Bayanihan",
+    "short_name": "Bayanihan",
+    "start_url": ".",
+    "background_color": "#FFF9F0",
+    "theme_color": "#14AEBB",
+    "display": "standalone",
+    "icons": [
+        {
+            "src": "images/logox192.png",
+            "sizes": "192x108",
+            "type": "image/png"
+        },
+        {
+            "src": "images/logox512.png",
+            "sizes": "512x288",
+            "type": "image/png"
+        }
+    ]
+}
