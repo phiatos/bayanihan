@@ -1,19 +1,32 @@
 {
     "name": "Bayanihan",
     "short_name": "Bayanihan",
-    "start_url": ".",
+    "start_url": "./index.html",
     "background_color": "#FFF9F0",
     "theme_color": "#14AEBB",
     "display": "standalone",
     "icons": [
         {
-            "src": "images/logo192.png",
-            "sizes": "192x108",
+            "src": "images/logox192.png",
+            "sizes": "192x192",
             "type": "image/png"
         },
         {
             "src": "images/logox512.png",
-            "sizes": "512x288",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ],
+    "screenshots": [
+        {
+            "src": "images/screenshot-wide.png",
+            "sizes": "800x600",
+            "type": "image/png",
+            "form_factor": "wide"
+        },
+        {
+            "src": "images/screenshot.png",
+            "sizes": "400x800",
             "type": "image/png"
         }
     ]
