@@ -1,7 +1,8 @@
+// problem hindi siya sa start-url naderetcho kapag igogo live
 {
     "name": "Bayanihan",
     "short_name": "Bayanihan",
-    "start_url": "/index.html",  
+    "start_url": "./index.html",      
     "background_color": "#FFF9F0",
     "theme_color": "#14AEBB",
     "display": "standalone",
