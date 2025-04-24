@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login & Registration Form</title>
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <link rel="stylesheet" href="style.css">
+
+</head>
+<body>
+    <div class="container">
+        <div class="form-box login">
+            <form action="">
+                <h1>Login</h1>
+                <div class="input-box">
+                    <label>Mobile Number</label>
+                    <input type="text" placeholder="Enter Mobile Number" required>
+                    <i class="bx bxs-user"></i>
+                </div>
+                <div class="input-box">
+                    <label>Password</label>
+                    <input type="password" placeholder="Enter Password" required>
+                    <i class="bx bxs-lock-alt"></i>
+                </div>
+                <div class="forgot-link">
+                    <a href="#">Recover Access</a> <!-- Add logic here to transfer to Recovery Page-->
+                </div>
+                <button type="submit" class="btn loginform-btn">Login</button>
+            </form>
+        </div>
+
+        <div class="form-box register">
+            <form action="" class="register-form">
+                <h1>Register</h1>
+                <div class="input-box">
+                    <label>Mobile Number</label>
+                    <input type="text" placeholder="Enter Mobile Number" required>
+                    <i class="bx bxs-user"></i>
+                </div>
+
+                <div class="input-box">
+                    <label>Password</label>
+                    <input type="password" placeholder="Enter Password" required>
+                    <i class="bx bxs-lock-alt"></i>
+                </div>
+
+                <div class="input-box">
+                    <label>Confirm Password</label>
+                    <input type="password" placeholder="Confirm Password" required>
+                    <i class="bx bxs-lock-alt"></i>
+                </div>
+
+                <div class="input-box">
+                    <label>Select Role</label>
+                    <select required>
+                        <option value="" disabled selected>Select Role</option>
+                        <option value="option1">Option 1</option>
+                        <option value="option2">Option 2</option>
+                        <option value="option3">Option 3</option>
+                      </select>
+                    <i class="bx bxs-lock-alt"></i>
+                </div>
+                <button type="button" class="btn registerform-btn">Register</button>
+            </form>
+        </div>
+
+        <!-- Add logic for loginform-btn (must transfer to homepage) and registerform-btn (must transfer to otp verification page) -->
+
+        <div class="toggle-box">
+            <div class="toggle-panel toggle-left">
+                <h1>Hello, Welcome!</h1>
+                <p>Don't have an account?</p>
+                <button class="btn register-btn">Register</button>
+            </div>
+            <div class="toggle-panel toggle-right">
+                <h1>Welcome Back!</h1>
+                <p>Already have an account?</p>
+                <button class="btn login-btn">Login</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
