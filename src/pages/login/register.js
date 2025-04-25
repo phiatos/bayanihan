@@ -1,9 +1,10 @@
+// Firebase imports
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { createUserWithEmailAndPassword, getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
 
-// Firebase configuration
+// Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
   authDomain: "bayanihan-5ce7e.firebaseapp.com",
@@ -17,106 +18,109 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-console.log("Firebase initialized:", app);
 const analytics = getAnalytics(app);
 const auth = getAuth(app);
 const database = getDatabase(app);
 
-// Registration Form
-const registerForm = document.querySelector(".register-form");
-if (!registerForm) console.error("Register form not found");
-registerForm.addEventListener("submit", (e) => {
-  e.preventDefault();
-  console.log("Register form submitted");
+// Toggle forms logic
+document.addEventListener("DOMContentLoaded", () => {
+  const container = document.querySelector(".container");
+  const registerBtn = document.querySelector(".register-btn");
+  const loginBtn = document.querySelector(".login-btn");
+  const registerForm = document.querySelector(".register-form");
+  const loginForm = document.querySelector(".login form");
 
-  const mobile = document.getElementById("register-mobile").value;
-  const password = document.getElementById("register-password").value;
-  const confirmPassword = document.getElementById("register-confirm-password").value;
-  const role = document.getElementById("register-role").value;
-
-  // Basic validation
-  if (password !== confirmPassword) {
-    alert("Passwords do not match!");
-    return;
-  }
-  if (!/^\d{10,15}$/.test(mobile)) {
-    alert("Please enter a valid mobile number (10-15 digits).");
-    return;
+  if (registerBtn) {
+    registerBtn.addEventListener("click", () => {
+      container.classList.add("active");
+      loginForm.reset();
+    });
   }
 
-  // Create email from mobile number
-  const email = `${mobile}@bayanihan.com`;
-  console.log("Registering with email:", email);
+  if (loginBtn) {
+    loginBtn.addEventListener("click", () => {
+      container.classList.remove("active");
+      registerForm.reset();
+    });
+  }
 
-  // Create user with Firebase Authentication
-  createUserWithEmailAndPassword(auth, email, password)
-    .then((userCredential) => {
-      console.log("User created:", userCredential.user);
-      const user = userCredential.user;
+  // Registration Form Submission
+  if (registerForm) {
+    registerForm.addEventListener("submit", (e) => {
+      e.preventDefault();
 
-      // Store user data in Realtime Database
-      set(ref(database, "users/" + user.uid), {
-        mobile: mobile,
-        role: role,
-        createdAt: new Date().toISOString()
-      })
+      const mobile = document.getElementById("register-mobile").value.trim();
+      const password = document.getElementById("register-password").value;
+      const confirmPassword = document.getElementById("register-confirm-password").value;
+      const role = document.getElementById("register-role").value;
+
+      if (password !== confirmPassword) {
+        alert("Passwords do not match!");
+        return;
+      }
+
+      if (!/^\d{10,15}$/.test(mobile)) {
+        alert("Please enter a valid mobile number (10–15 digits).");
+        return;
+      }
+
+      const email = `${mobile}@bayanihan.com`;
+
+      createUserWithEmailAndPassword(auth, email, password)
+        .then((userCredential) => {
+          const user = userCredential.user;
+          return set(ref(database, "users/" + user.uid), {
+            mobile: mobile,
+            role: role,
+            createdAt: new Date().toISOString()
+          });
+        })
         .then(() => {
-          alert("Registration successful!");
-          registerForm.reset();
-          document.querySelector(".container").classList.remove("active");
+  alert("Registration successful!");
+  localStorage.setItem("userMobile", mobile);
+  console.log("Attempting to redirect to: /OTPVerification.html using window.location.assign");
+  window.location.assign("/OTPVerification.html"); // Assigns a new URL
+})
+        .catch((error) => {
+          if (error.code === "auth/email-already-in-use") {
+            alert("This mobile number is already registered!");
+          } else if (error.code === "auth/weak-password") {
+            alert("Password must be at least 6 characters long!");
+          } else {
+            alert("Error: " + error.message);
+          }
+        });
+    });
+  }
+
+  // Login Form Submission
+  if (loginForm) {
+    loginForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+
+      const mobile = document.getElementById("login-mobile").value.trim();
+      const password = document.getElementById("login-password").value;
+
+      if (!/^\d{10,15}$/.test(mobile)) {
+        alert("Please enter a valid mobile number (10–15 digits).");
+        return;
+      }
+
+      const email = `${mobile}@bayanihan.com`;
+
+      signInWithEmailAndPassword(auth, email, password)
+        .then((userCredential) => {
+          alert("Login successful!");
+          loginForm.reset();
+          // Optionally redirect: window.location.href = "/dashboard.html";
         })
         .catch((error) => {
-          console.error("Error saving user data:", error);
-          alert("Error saving user data: " + error.message + ". Check Firebase rules.");
+          if (error.code === "auth/user-not-found" || error.code === "auth/wrong-password") {
+            alert("Invalid mobile number or password!");
+          } else {
+            alert("Login failed: " + error.message);
+          }
         });
-    })
-    .catch((error) => {
-      console.error("Registration error:", error);
-      if (error.code === "auth/email-already-in-use") {
-        alert("This mobile number is already registered!");
-      } else if (error.code === "auth/weak-password") {
-        alert("Password must be at least 6 characters long!");
-      } else {
-        alert("Registration failed: " + error.message);
-      }
     });
-});
-
-// Login Form
-const loginForm = document.querySelector(".login form");
-if (!loginForm) console.error("Login form not found");
-loginForm.addEventListener("submit", (e) => {
-  e.preventDefault();
-  console.log("Login form submitted");
-
-  const mobile = document.getElementById("login-mobile").value;
-  const password = document.getElementById("login-password").value;
-
-  // Basic validation
-  if (!/^\d{10,15}$/.test(mobile)) {
-    alert("Please enter a valid mobile number (10-15 digits).");
-    return;
   }
-
-  // Create email from mobile number
-  const email = `${mobile}@bayanihan.com`;
-  console.log("Logging in with email:", email);
-
-  // Sign in with Firebase Authentication
-  signInWithEmailAndPassword(auth, email, password)
-    .then((userCredential) => {
-      console.log("User logged in:", userCredential.user);
-      alert("Login successful!");
-      loginForm.reset();
-      // Optionally redirect to a dashboard
-      // window.location.href = "dashboard.html";
-    })
-    .catch((error) => {
-      console.error("Login error:", error);
-      if (error.code === "auth/user-not-found" || error.code === "auth/wrong-password") {
-        alert("Invalid mobile number or password!");
-      } else {
-        alert("Login failed: " + error.message);
-      }
-    });
 });

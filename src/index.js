@@ -1,43 +1,35 @@
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    // Register the service worker
-    navigator.serviceWorker.register('./service-worker.js')
+    // Register service worker
+    navigator.serviceWorker.register('/service-worker.js')
       .then(reg => console.log('SW registered!', reg))
       .catch(err => console.error('SW registration failed:', err));
 
-    // Fetch and insert sidebar content after the page loads
-    fetch('/Bayanihan-PWA/src/components/sidebar/sidebar.html')
+    // Load sidebar
+    fetch('/src/components/sidebar/sidebar.html')
       .then(res => {
-        if (!res.ok) {
-          throw new Error('Failed to load sidebar.html: ' + res.statusText);
-        }
+        if (!res.ok) throw new Error(`Failed to load sidebar: ${res.statusText}`);
         return res.text();
       })
-      .then(data => {
+      .then(html => {
         const container = document.getElementById('sidebar-container');
-        if (container) {
-          container.innerHTML = data;
-        } else {
-          console.error('Sidebar container not found');
-        }
+        if (!container) return console.error('Sidebar container not found');
+        
+        container.innerHTML = html;
 
-        // Dynamically load the sidebar's CSS
-        const link = document.createElement('link');
-        link.rel = 'stylesheet';
-        link.href = '/Bayanihan-PWA/src/components/sidebar/sidebar.css';
-        document.head.appendChild(link);
+        // Load sidebar styles
+        const style = document.createElement('link');
+        style.rel = 'stylesheet';
+        style.href = '/src/components/sidebar/sidebar.css';
+        document.head.appendChild(style);
 
-        // Dynamically load the sidebar's JS
+        // Load sidebar script
         const script = document.createElement('script');
-        script.src = '/Bayanihan-PWA/src/components/sidebar/sidebar.js';
-        script.onload = () => {
-          console.log('Sidebar JS loaded successfully');
-        };
-        script.onerror = () => {
-          console.error('Failed to load sidebar.js');
-        };
+        script.src = '/src/components/sidebar/sidebar.js';
+        script.onload = () => console.log('Sidebar script loaded');
+        script.onerror = () => console.error('Failed to load sidebar.js');
         document.body.appendChild(script);
       })
-      .catch(err => console.error('Error loading sidebar:', err));
+      .catch(err => console.error('Sidebar load error:', err));
   });
 }
