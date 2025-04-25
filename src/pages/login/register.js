@@ -10,7 +10,7 @@ const firebaseConfig = {
   authDomain: "bayanihan-5ce7e.firebaseapp.com",
   databaseURL: "https://bayanihan-5ce7e-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "bayanihan-5ce7e",
-  storageBucket: "bayanihan-5ce7e.firebasestorage.app",
+  storageBucket: "bayanihan-5ce7e.appspot.com",
   messagingSenderId: "593123849917",
   appId: "1:593123849917:web:eb85a63a536eeff78ce9d4",
   measurementId: "G-ZTQ9VXXVV0"
@@ -76,11 +76,10 @@ document.addEventListener("DOMContentLoaded", () => {
           });
         })
         .then(() => {
-  alert("Registration successful!");
-  localStorage.setItem("userMobile", mobile);
-  console.log("Attempting to redirect to: /OTPVerification.html using window.location.assign");
-  window.location.assign("/OTPVerification.html"); // Assigns a new URL
-})
+          alert("Registration successful!");
+          localStorage.setItem("userMobile", mobile);
+          window.location.href = "../otp/OTPVerification.html"; // ✅ Correct path
+        })
         .catch((error) => {
           if (error.code === "auth/email-already-in-use") {
             alert("This mobile number is already registered!");
@@ -112,7 +111,8 @@ document.addEventListener("DOMContentLoaded", () => {
         .then((userCredential) => {
           alert("Login successful!");
           loginForm.reset();
-          // Optionally redirect: window.location.href = "/dashboard.html";
+          // Optional redirect
+          // window.location.href = "../../dashboard.html";
         })
         .catch((error) => {
           if (error.code === "auth/user-not-found" || error.code === "auth/wrong-password") {

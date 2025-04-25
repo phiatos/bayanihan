@@ -1,106 +1,126 @@
-const inputs = document.querySelectorAll("input");
-const button = document.querySelector("button");
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+import {
+  getAuth,
+  RecaptchaVerifier,
+  signInWithPhoneNumber
+} from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
-// Show user's number
-document.addEventListener("DOMContentLoaded", () => {
-  const display = document.getElementById("timer");
-  const mobile = localStorage.getItem("userMobile");
-  const displayMobile = document.getElementById("display-mobile");
-  if (mobile) {
-    displayMobile.textContent = `+63${mobile}`;
-  } else {
-    displayMobile.textContent = "[unknown number]";
-  }
+const firebaseConfig = {
+  apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
+  authDomain: "bayanihan-5ce7e.firebaseapp.com",
+  projectId: "bayanihan-5ce7e",
+  storageBucket: "bayanihan-5ce7e.appspot.com",
+  messagingSenderId: "593123849917",
+  appId: "1:593123849917:web:eb85a63a536eeff78ce9d4"
+};
 
-  startTimer(180, display);
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+
+// Elements
+const inputs = document.querySelectorAll(".input-field input");
+const verifyBtn = document.querySelector(".otp-btn");
+const form = document.getElementById("otp-form");
+const mobile = localStorage.getItem("userMobile");
+const displayMobile = document.getElementById("display-mobile");
+let confirmationResult = null;
+
+// Show mobile number
+displayMobile.textContent = `+63${mobile}`;
+
+// Setup reCAPTCHA
+window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+  size: 'invisible',
+  callback: () => {}
+});
+recaptchaVerifier.render().then(() => {
+  sendOTP();
 });
 
+function sendOTP() {
+  const fullPhoneNumber = `+63${mobile}`;
+
+  signInWithPhoneNumber(auth, fullPhoneNumber, window.recaptchaVerifier)
+    .then((result) => {
+      confirmationResult = result;
+      startTimer(180, document.getElementById("timer"));
+      inputs[0].focus();
+    })
+    .catch((error) => {
+      alert("Failed to send OTP: " + error.message);
+    });
+}
+
+// Handle OTP input
+inputs.forEach((input, index) => {
+  input.addEventListener("input", () => {
+    if (input.value.length > 1) input.value = input.value[0];
+
+    if (input.value && index < inputs.length - 1) {
+      inputs[index + 1].removeAttribute("disabled");
+      inputs[index + 1].focus();
+    }
+
+    const allFilled = [...inputs].every(i => i.value);
+    verifyBtn.disabled = !allFilled;
+  });
+
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Backspace" && index > 0 && !input.value) {
+      inputs[index - 1].focus();
+    }
+  });
+});
+
+// Timer
 function startTimer(duration, display) {
-  let timer = duration, minutes, seconds;
+  let timer = duration;
   const interval = setInterval(() => {
-    minutes = String(Math.floor(timer / 60)).padStart(2, '0');
-    seconds = String(timer % 60).padStart(2, '0');
+    const minutes = String(Math.floor(timer / 60)).padStart(2, '0');
+    const seconds = String(timer % 60).padStart(2, '0');
     display.textContent = `${minutes}:${seconds}`;
 
     if (--timer < 0) {
       clearInterval(interval);
       display.textContent = "Expired";
-      document.querySelectorAll("input").forEach(input => input.disabled = true);
-      document.querySelector(".otp-btn").disabled = true;
+      inputs.forEach(input => input.disabled = true);
+      verifyBtn.disabled = true;
     }
   }, 1000);
 }
 
-// Input behavior logic
-inputs.forEach((input, index1) => {
-  input.addEventListener("keyup", (e) => {
-    const currentInput = input;
-    const nextInput = input.nextElementSibling;
-    const prevInput = input.previousElementSibling;
-
-    if (currentInput.value.length > 1) {
-      currentInput.value = "";
-      return;
-    }
-
-    if (nextInput && nextInput.hasAttribute("disabled") && currentInput.value !== "") {
-      nextInput.removeAttribute("disabled");
-      nextInput.focus();
-    }
-
-    if (e.key === "Backspace") {
-      inputs.forEach((input, index2) => {
-        if (index1 <= index2 && prevInput) {
-          input.setAttribute("disabled", true);
-          input.value = "";
-          prevInput.focus();
-        }
-      });
-    }
-
-    // Enable button only if all fields are filled
-    const allFilled = [...inputs].every(inp => inp.value !== "");
-    const verifyBtn = document.querySelector("button");
-    if (allFilled) {
-      verifyBtn.classList.add("active");
-      verifyBtn.disabled = false;
-    } else {
-      verifyBtn.classList.remove("active");
-      verifyBtn.disabled = true;
-    }
-  });
-});
-
-window.addEventListener("load", () => inputs[0].focus());
-
-// OTP form submission
-document.getElementById("otp-form").addEventListener("submit", (e) => {
+// Form submission
+form.addEventListener("submit", (e) => {
   e.preventDefault();
+  const code = [...inputs].map(i => i.value).join("");
 
-  const otpCode = [...inputs].map(input => input.value).join("");
-  console.log("Entered OTP:", otpCode);
-
-  // Dummy validation for now – replace this with Firebase/Backend verification
-  if (otpCode === "1234") {
-    alert("OTP Verified!");
-    // Redirect or proceed
-    // window.location.href = "dashboard.html";
-  } else {
-    alert("Invalid OTP. Please try again.");
+  if (!confirmationResult) {
+    alert("OTP not yet sent.");
+    return;
   }
+
+  confirmationResult.confirm(code)
+    .then((result) => {
+      alert("OTP Verified!");
+      window.location.href = "../login/Login&RegistrationForm.html";
+    })
+    .catch((error) => {
+      alert("Invalid OTP. Try again.");
+    });
 });
 
-// Resend OTP logic
+// Resend OTP
 document.getElementById("resend-otp").addEventListener("click", (e) => {
   e.preventDefault();
-  alert("OTP has been resent to your mobile number.");
-  // Restart timer and reset fields
+
   inputs.forEach((input, index) => {
     input.value = "";
     if (index === 0) input.removeAttribute("disabled");
     else input.setAttribute("disabled", true);
   });
+  verifyBtn.disabled = true;
   inputs[0].focus();
-  document.querySelector("button").disabled = true;
-  startTimer(180, document.getElementById("timer"));
+
+  // Send again
+  sendOTP();
 });
