@@ -2,7 +2,7 @@
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { createUserWithEmailAndPassword, getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
+import { get, getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
 
 // Firebase config
 const firebaseConfig = {
@@ -109,10 +109,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
       signInWithEmailAndPassword(auth, email, password)
         .then((userCredential) => {
-          alert("Login successful!");
-          loginForm.reset();
-          // Optional redirect
-          // window.location.href = "../../dashboard.html";
+          const user = userCredential.user;
+          const userRef = ref(database, "users/" + user.uid);
+
+          // Fetch user data from database
+          return get(userRef).then((snapshot) => {
+            if (snapshot.exists()) {
+              alert("Login successful!");
+              loginForm.reset();
+              localStorage.setItem("userMobile", mobile);
+              window.location.href = "../../../public/index.html";
+            } else {
+              alert("User data not found in the database.");
+            }
+          });
         })
         .catch((error) => {
           if (error.code === "auth/user-not-found" || error.code === "auth/wrong-password") {

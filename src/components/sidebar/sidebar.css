@@ -201,3 +201,7 @@ body {
   text-align: center;
   font-size: 3rem;
 }
+.disabled {
+  pointer-events: none;
+  opacity: 0.5;
+}
