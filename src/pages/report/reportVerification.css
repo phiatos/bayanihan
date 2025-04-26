@@ -1,0 +1,79 @@
+/* General body */
+body {
+    font-family: 'Poppins', sans-serif;
+    background-color: #ffffff;
+    margin: 0;
+    padding: 2rem;
+    min-height: 100vh;
+    box-sizing: border-box;
+}
+
+/* Heading */
+h2 {
+    color: #405AA5;
+    margin-bottom: 2rem;
+    font-size: 2rem;
+    text-align: start;
+}
+
+/* Table Styles */
+#reportsTable {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+}
+
+#reportsTable th, #reportsTable td {
+    padding: 1rem;
+    text-align: left;
+    border: 1px solid #ddd;
+}
+
+#reportsTable th {
+    background-color: #4059A5;
+    color: white;
+    font-size: 1.1rem;
+}
+
+#reportsTable td {
+    font-size: 0.95rem;
+}
+
+button {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    cursor: pointer;
+}
+
+button:first-of-type {
+    background-color: #4CAF50; /* Green for Approve */
+    color: white;
+}
+
+button:last-of-type {
+    background-color: #f44336; /* Red for Reject */
+    color: white;
+}
+
+button:hover {
+    opacity: 0.8;
+}
+
+/* RESPONSIVE BEHAVIOR */
+@media (min-width: 600px) {
+    #reportsTable {
+        font-size: 1.1rem;
+    }
+
+    #reportsTable th, #reportsTable td {
+        padding: 1.2rem;
+    }
+}
+
+@media (min-width: 900px) {
+    h2 {
+        font-size: 2.5rem;
+    }
+}

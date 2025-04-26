@@ -1,0 +1,84 @@
+<!--  -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Submitted Reports</title>
+    <link rel="stylesheet" href="reportVerification.css">
+</head>
+<body>
+    <h2>List of Reports</h2>
+    <table id="reportsTable">
+        <thead>
+            <tr>
+                <th>Report #</th>
+                <th>Details</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="submittedReportsContainer">
+            <!-- Reports will be populated here by JavaScript -->
+        </tbody>
+    </table>
+
+    <script>
+        const submittedReports = JSON.parse(localStorage.getItem("submittedReports")) || [];
+        const reviewedReports = JSON.parse(localStorage.getItem("reviewedReports")) || [];
+        const container = document.getElementById("submittedReportsContainer");
+
+        if (submittedReports.length === 0) {
+            container.innerHTML = "<tr><td colspan='3'>No reports submitted yet.</td></tr>";
+        } else {
+            submittedReports.forEach((report, index) => {
+                const reportRow = document.createElement("tr");
+
+                // Report number cell
+                const reportNumberCell = document.createElement("td");
+                reportNumberCell.textContent = `Report #${index + 1}`;
+                reportRow.appendChild(reportNumberCell);
+
+                // Details cell
+                const detailsCell = document.createElement("td");
+                let reportDetails = "<ul>";
+                for (let key in report) {
+                    reportDetails += `<li><strong>${key}:</strong> ${report[key]}</li>`;
+                }
+                reportDetails += "</ul>";
+                detailsCell.innerHTML = reportDetails;
+                reportRow.appendChild(detailsCell);
+
+                // Actions cell (Approve/Reject buttons)
+                const actionsCell = document.createElement("td");
+                const approveBtn = document.createElement("button");
+                approveBtn.textContent = "Approve ✅";
+                approveBtn.style.marginRight = "10px";
+                approveBtn.addEventListener("click", () => {
+                    reviewedReports.push(report);
+                    localStorage.setItem("reviewedReports", JSON.stringify(reviewedReports));
+
+                    submittedReports.splice(index, 1);
+                    localStorage.setItem("submittedReports", JSON.stringify(submittedReports));
+
+                    location.reload();
+                });
+
+                const rejectBtn = document.createElement("button");
+                rejectBtn.textContent = "Reject ❌";
+                rejectBtn.addEventListener("click", () => {
+                    submittedReports.splice(index, 1);
+                    localStorage.setItem("submittedReports", JSON.stringify(submittedReports));
+
+                    location.reload();
+                });
+
+                actionsCell.appendChild(approveBtn);
+                actionsCell.appendChild(rejectBtn);
+                reportRow.appendChild(actionsCell);
+
+                container.appendChild(reportRow);
+            });
+        }
+    </script>
+</body>
+</html>
