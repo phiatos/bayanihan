@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report Submission</title>
+    <link rel="stylesheet" href="reportSubmission.css">
+</head>
+<body>
+
+    <form id="form-page-1">
+        <h2>Basic Information</h2>
+        <div class="form-grid">
+            <p> Location of Operation <input type="text" placeholder="Enter Location"></p>
+            <p> Time of Intervention <input type="text" placeholder="Time of Intervention"></p>
+            <p> Volunteer Group Name <input type="text" placeholder="Volunteer Group Name"></p>
+            <p> Submitted by <input type="text" placeholder="Submitted by"></p>
+            <p> Date of Report <input type="text" placeholder="Date of Report"></p>
+            <p> Report ID <input type="text" placeholder="Report ID"></p>
+        </div>
+
+        <h2>Relief Operations</h2>
+        <div class="form-grid">
+            <p> Date <input type="text" placeholder="Date"></p>
+            <p> No. of Organizations Activated <input type="text" placeholder="No. of Organizations Activated"></p>
+            <p> No. of Individuals or Families <input type="text" placeholder="No. of Individuals or Families"></p>
+            <p> No. of Food Packs <input type="text" placeholder="No. of Food Packs"></p>
+            <p> No. of Hot Meals <input type="text" placeholder="No. of Hot Meals"></p>
+            <p> Liters of Water <input type="text" placeholder="Liters of Water"></p>
+            <p> No. of Volunteers Mobilized <input type="text" placeholder="No. of Volunteers Mobilized"></p>
+            <p> Total Amount Raised <input type="text" placeholder="Total Amount Raised"></p>
+            <p> Total Value of In-Kind Donations <input type="text" placeholder="Total Value of In-Kind Donations"></p>
+        </div>
+
+        <button type="button" class="next-btn" id="nextBtn">Next</button>
+    </form>
+
+    <form id="form-page-2" style="display: none;">
+        <h2>Additional Updates</h2>
+        <div>
+            <p> Urgent Needs <input type="text" required></p>
+            <p> Remarks <textarea rows="6" required></textarea></p>
+        </div>
+        <div class="button-group">
+            <button type="button" class="next-btn" id="backBtn">Back</button>
+            <button type="submit" class="next-btn">Submit</button>
+        </div>
+    </form>
+
+    <script src="reportSubmission.js"></script>
+</body>
+</html>
