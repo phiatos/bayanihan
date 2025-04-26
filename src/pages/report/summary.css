@@ -1,0 +1,45 @@
+/* General body */
+body {
+    font-family: 'Poppins', sans-serif;
+    background-color: #fdf6f3;
+    margin: 0;
+    padding: 2rem;
+    min-height: 100vh;
+}
+
+/* Heading */
+h2 {
+    color: #4059A5;
+    margin-bottom: 2rem;
+    font-size: 2rem;
+    text-align: center;
+}
+
+/* Container for summaries */
+#summaryContainer {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+/* Each summary box */
+.summary-box {
+    background: #ffffff;
+    border-left: 4px solid #00b4c6;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Text inside summary */
+.summary-box strong {
+    display: block;
+    font-size: 1.1rem;
+    color: #4059A5;
+    margin-bottom: 0.25rem;
+}
+
+.summary-box {
+    font-size: 1rem;
+    color: #333;
+}

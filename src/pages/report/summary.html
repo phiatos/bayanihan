@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="summary.css">
+    <title>Report Summary</title>
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            padding: 2rem;
+            background-color: #fdf6f3;
+        }
+        h2 {
+            color: #4059A5;
+        }
+        .summary-box {
+            margin-bottom: 1rem;
+            padding: 1rem;
+            background: #fff;
+            border-left: 4px solid #00b4c6;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <h2>Report Summary</h2>
+    <div id="summaryContainer"></div>
+
+    <script>
+        const summaryData = JSON.parse(localStorage.getItem("reportData"));
+        const container = document.getElementById("summaryContainer");
+
+        for (let key in summaryData) {
+            const div = document.createElement("div");
+            div.className = "summary-box";
+            div.innerHTML = `<strong>${key}</strong>: ${summaryData[key]}`;
+            container.appendChild(div);
+        }
+
+        // Optional: Clear data after displaying
+        // localStorage.removeItem("reportData");
+    </script>
+</body>
+</html>
