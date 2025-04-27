@@ -4,14 +4,20 @@
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
     <!-- ICONS -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+
     <!-- STYLESHEET -->
     <link rel="stylesheet" href="/Bayanihan-PWA/src/components/sidebar.css" />
+
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
+
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <title>Sidebar</title>
   </head>
@@ -23,16 +29,16 @@
         </div>
         <div class="head">
           <div class="user-img">
-            <img src="../../../public/images/user.jpg" alt="User Image"/>
+            <img src="../../../public/images/user.jpg" alt="User Image" />
           </div>
-          <!-- User details are now clickable -->
           <a href="#" id="load-profile">
             <div class="user-details">
               <p class="title">web developer</p>
               <p id="user-name" class="name">John Doe</p>
             </div>
-          </a>          
+          </a>
         </div>
+
         <div class="nav">
           <div class="menu">
             <p class="title">Main</p>
@@ -51,12 +57,8 @@
                   <i class="arrow ph-bold ph-caret-down"></i>
                 </a>
                 <ul class="sub-menu">
-                  <li>
-                    <a href="#"><span class="text">Request Donation</span></a>
-                  </li>
-                  <li>
-                    <a href="#"><span class="text">View Donation List</span></a>
-                  </li>
+                  <li><a href="#"><span class="text">Request Donation</span></a></li>
+                  <li><a href="#"><span class="text">View Donation List</span></a></li>
                 </ul>
               </li>
 
@@ -103,6 +105,7 @@
             </ul>
           </div>
         </div>
+
         <div class="menu">
           <p class="title">Account</p>
           <ul>
@@ -112,7 +115,7 @@
                 <span class="text">Help</span>
               </a>
             </li>
-            <li>
+            <li id="logout-btn">
               <a href="#">
                 <span class="material-symbols-outlined">logout</span>
                 <span class="text">Logout</span>
@@ -122,18 +125,13 @@
         </div>
       </div>
 
-      <!-- This is the dynamic main content area -->
       <div id="main-content" class="credits">
         <h5>not yet integrated</h5>
       </div>
     </div>
 
     <!-- Jquery -->
-    <script
-      src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.0/jquery.js"
-      integrity="sha512-8Z5++K1rB3U+USaLKG6oO8uWWBhdYsM3hmdirnOEWp8h2B1aOikj5zBzlXs8QOrvY9OxEnD2QDkbSKKpfqcIWw=="
-      crossorigin="anonymous"
-    ></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.0/jquery.js"></script>
     <script src="sidebar.js"></script>
   </body>
 </html>
