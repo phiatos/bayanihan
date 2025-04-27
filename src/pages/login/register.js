@@ -22,7 +22,16 @@ const analytics = getAnalytics(app);
 const auth = getAuth(app);
 const database = getDatabase(app);
 
-// Toggle forms logic
+// Helper function to format mobile numbers
+function formatMobileNumber(mobile) {
+  const cleaned = mobile.replace(/\D/g, ''); // Remove non-digit characters
+  if (/^\d{10,15}$/.test(cleaned)) {
+    return cleaned;
+  }
+  return null;
+}
+
+// Main logic
 document.addEventListener("DOMContentLoaded", () => {
   const container = document.querySelector(".container");
   const registerBtn = document.querySelector(".register-btn");
@@ -30,107 +39,116 @@ document.addEventListener("DOMContentLoaded", () => {
   const registerForm = document.querySelector(".register-form");
   const loginForm = document.querySelector(".login form");
 
+  // Switch to Register form
   if (registerBtn) {
     registerBtn.addEventListener("click", () => {
       container.classList.add("active");
-      loginForm.reset();
+      if (loginForm) loginForm.reset();
     });
   }
 
+  // Switch to Login form
   if (loginBtn) {
     loginBtn.addEventListener("click", () => {
       container.classList.remove("active");
-      registerForm.reset();
+      if (registerForm) registerForm.reset();
     });
   }
 
-  // Registration Form Submission
+  // Handle Registration
   if (registerForm) {
-    registerForm.addEventListener("submit", (e) => {
+    registerForm.addEventListener("submit", async (e) => {
       e.preventDefault();
 
-      const mobile = document.getElementById("register-mobile").value.trim();
+      const mobileInput = document.getElementById("register-mobile").value.trim();
       const password = document.getElementById("register-password").value;
       const confirmPassword = document.getElementById("register-confirm-password").value;
       const role = document.getElementById("register-role").value;
 
-      if (password !== confirmPassword) {
-        alert("Passwords do not match!");
+      const mobile = formatMobileNumber(mobileInput);
+
+      if (!mobile) {
+        alert("Please enter a valid mobile number (10-15 digits).");
         return;
       }
 
-      if (!/^\d{10,15}$/.test(mobile)) {
-        alert("Please enter a valid mobile number (10–15 digits).");
+      if (password !== confirmPassword) {
+        alert("Passwords do not match.");
         return;
       }
 
       const email = `${mobile}@bayanihan.com`;
 
-      createUserWithEmailAndPassword(auth, email, password)
-        .then((userCredential) => {
-          const user = userCredential.user;
-          return set(ref(database, "users/" + user.uid), {
-            mobile: mobile,
-            role: role,
-            createdAt: new Date().toISOString()
-          });
-        })
-        .then(() => {
-          alert("Registration successful!");
-          localStorage.setItem("userMobile", mobile);
-          window.location.href = "../otp/OTPVerification.html"; // ✅ Correct path
-        })
-        .catch((error) => {
-          if (error.code === "auth/email-already-in-use") {
-            alert("This mobile number is already registered!");
-          } else if (error.code === "auth/weak-password") {
-            alert("Password must be at least 6 characters long!");
-          } else {
-            alert("Error: " + error.message);
-          }
+      try {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+
+        // Save user info to Database
+        await set(ref(database, "users/" + user.uid), {
+          mobile: mobile,
+          role: role,
+          createdAt: new Date().toISOString()
         });
+
+        // Save mobile and role locally
+        localStorage.setItem("userMobile", mobile);
+        localStorage.setItem("userRole", role);
+
+        alert("Registration successful!");
+        window.location.href = "../otp/OTPVerification.html"; // Go to OTP page
+      } catch (error) {
+        if (error.code === "auth/email-already-in-use") {
+          alert("Mobile number already registered.");
+        } else if (error.code === "auth/weak-password") {
+          alert("Password must be at least 6 characters.");
+        } else {
+          alert("Registration error: " + error.message);
+        }
+      }
     });
   }
 
-  // Login Form Submission
+  // Handle Login
   if (loginForm) {
-    loginForm.addEventListener("submit", (e) => {
+    loginForm.addEventListener("submit", async (e) => {
       e.preventDefault();
 
-      const mobile = document.getElementById("login-mobile").value.trim();
+      const mobileInput = document.getElementById("login-mobile").value.trim();
       const password = document.getElementById("login-password").value;
 
-      if (!/^\d{10,15}$/.test(mobile)) {
-        alert("Please enter a valid mobile number (10–15 digits).");
+      const mobile = formatMobileNumber(mobileInput);
+
+      if (!mobile) {
+        alert("Please enter a valid mobile number (10-15 digits).");
         return;
       }
 
       const email = `${mobile}@bayanihan.com`;
 
-      signInWithEmailAndPassword(auth, email, password)
-        .then((userCredential) => {
-          const user = userCredential.user;
-          const userRef = ref(database, "users/" + user.uid);
+      try {
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
 
-          // Fetch user data from database
-          return get(userRef).then((snapshot) => {
-            if (snapshot.exists()) {
-              alert("Login successful!");
-              loginForm.reset();
-              localStorage.setItem("userMobile", mobile);
-              window.location.href = "../../../public/index.html";
-            } else {
-              alert("User data not found in the database.");
-            }
-          });
-        })
-        .catch((error) => {
-          if (error.code === "auth/user-not-found" || error.code === "auth/wrong-password") {
-            alert("Invalid mobile number or password!");
-          } else {
-            alert("Login failed: " + error.message);
-          }
-        });
+        const userRef = ref(database, "users/" + user.uid);
+        const snapshot = await get(userRef);
+
+        if (snapshot.exists()) {
+          const userData = snapshot.val();
+          localStorage.setItem("userMobile", mobile);
+          localStorage.setItem("userRole", userData.role);
+
+          alert("Login successful!");
+          window.location.href = "../../../public/index.html"; // Redirect to homepage
+        } else {
+          alert("User data not found. Contact support.");
+        }
+      } catch (error) {
+        if (error.code === "auth/user-not-found" || error.code === "auth/wrong-password") {
+          alert("Invalid mobile number or password.");
+        } else {
+          alert("Login failed: " + error.message);
+        }
+      }
     });
   }
 });
