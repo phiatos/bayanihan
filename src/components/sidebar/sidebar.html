@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- ICONS -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+    <!-- STYLESHEET -->
+    <link rel="stylesheet" href="/Bayanihan-PWA/src/components/sidebar.css" />
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
+
+    <title>Sidebar</title>
+  </head>
+  <body>
+    <div class="container">
+      <div class="sidebar">
+        <div class="menu-btn">
+          <span class="material-symbols-outlined">keyboard_arrow_left</span>
+        </div>
+        <div class="head">
+          <div class="user-img">
+            <img src="../../../public/images/user.jpg" alt="User Image"/>
+          </div>
+          <!-- User details are now clickable -->
+          <a href="#" id="load-profile">
+            <div class="user-details">
+              <p class="title">web developer</p>
+              <p id="user-name" class="name">John Doe</p>
+            </div>
+          </a>          
+        </div>
+        <div class="nav">
+          <div class="menu">
+            <p class="title">Main</p>
+            <ul>
+              <li>
+                <a href="#">
+                  <span class="material-symbols-outlined">dashboard</span>
+                  <span class="text">Dashboard</span>
+                </a>
+              </li>
+
+              <li>
+                <a href="#">
+                  <span class="material-symbols-outlined">volunteer_activism</span>
+                  <span class="text">Donation Matching</span>
+                  <i class="arrow ph-bold ph-caret-down"></i>
+                </a>
+                <ul class="sub-menu">
+                  <li>
+                    <a href="#"><span class="text">Request Donation</span></a>
+                  </li>
+                  <li>
+                    <a href="#"><span class="text">View Donation List</span></a>
+                  </li>
+                </ul>
+              </li>
+
+              <li id="history-item" class="active">
+                <a href="#">
+                  <span class="material-symbols-outlined">history</span>
+                  <span class="text">History</span>
+                </a>
+              </li>
+
+              <li>
+                <a href="#">
+                  <span class="material-symbols-outlined">monitoring</span>
+                  <span class="text">Relief Reports</span>
+                </a>
+              </li>
+
+              <li>
+                <a href="#">
+                  <span class="material-symbols-outlined">add_notes</span>
+                  <span class="text">Submit Reports</span>
+                </a>
+              </li>
+
+              <li>
+                <a href="#">
+                  <span class="material-symbols-outlined">groups</span>
+                  <span class="text">Volunteer Groups</span>
+                  <i class="arrow ph-bold ph-caret-down"></i>
+                </a>
+                <ul class="sub-menu">
+                  <li><a href="#"><span class="text">Activation</span></a></li>
+                  <li><a href="#"><span class="text">Activation Request</span></a></li>
+                  <li><a href="#"><span class="text">Activated</span></a></li>
+                </ul>
+              </li>
+
+              <li>
+                <a href="#">
+                  <span class="material-symbols-outlined">touch_app</span>
+                  <span class="text">User Verification</span>
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div class="menu">
+          <p class="title">Account</p>
+          <ul>
+            <li>
+              <a href="#">
+                <span class="material-symbols-outlined">help</span>
+                <span class="text">Help</span>
+              </a>
+            </li>
+            <li>
+              <a href="#">
+                <span class="material-symbols-outlined">logout</span>
+                <span class="text">Logout</span>
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- This is the dynamic main content area -->
+      <div id="main-content" class="credits">
+        <h5>not yet integrated</h5>
+      </div>
+    </div>
+
+    <!-- Jquery -->
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.0/jquery.js"
+      integrity="sha512-8Z5++K1rB3U+USaLKG6oO8uWWBhdYsM3hmdirnOEWp8h2B1aOikj5zBzlXs8QOrvY9OxEnD2QDkbSKKpfqcIWw=="
+      crossorigin="anonymous"
+    ></script>
+    <script src="sidebar.js"></script>
+  </body>
+</html>
