@@ -13,7 +13,7 @@ const firebaseConfig = {
   storageBucket: "bayanihan-5ce7e.appspot.com",
   messagingSenderId: "593123849917",
   appId: "1:593123849917:web:eb85a63a536eeff78ce9d4",
-  measurementId: "G-ZTQ9VXXVV0"
+  measurementId: "G-ZTQ9VXXVV0",
 };
 
 // Initialize Firebase
@@ -24,7 +24,7 @@ const database = getDatabase(app);
 
 // Helper function to format mobile numbers
 function formatMobileNumber(mobile) {
-  const cleaned = mobile.replace(/\D/g, ''); // Remove non-digit characters
+  const cleaned = mobile.replace(/\D/g, ""); // Remove non-digit characters
   if (/^\d{10,15}$/.test(cleaned)) {
     return cleaned;
   }
@@ -87,7 +87,7 @@ document.addEventListener("DOMContentLoaded", () => {
         await set(ref(database, "users/" + user.uid), {
           mobile: mobile,
           role: role,
-          createdAt: new Date().toISOString()
+          createdAt: new Date().toISOString(),
         });
 
         // Save mobile and role locally
@@ -95,7 +95,7 @@ document.addEventListener("DOMContentLoaded", () => {
         localStorage.setItem("userRole", role);
 
         alert("Registration successful!");
-        window.location.href = "../otp/OTPVerification.html"; // Go to OTP page
+        window.location.href = "/Bayanihan-PWA/otp/OTPVerification.html";
       } catch (error) {
         if (error.code === "auth/email-already-in-use") {
           alert("Mobile number already registered.");
@@ -138,7 +138,31 @@ document.addEventListener("DOMContentLoaded", () => {
           localStorage.setItem("userRole", userData.role);
 
           alert("Login successful!");
-          window.location.href = "../../../public/index.html"; // Redirect to homepage
+
+          // Dispatch a custom event to update the sidebar
+          const event = new Event("updateSidebar");
+          window.dispatchEvent(event);
+
+          // Notify service worker to update cache
+          if ("serviceWorker" in navigator) {
+            navigator.serviceWorker.ready.then((registration) => {
+              registration.active.postMessage({ type: "UPDATE_CACHE" });
+            });
+          }
+
+          // Redirect to homepage with robust handling
+          try {
+            const absolutePath = "/Bayanihan-PWA/public/index.html";
+            console.log("Attempting redirect to absolute path after login:", absolutePath);
+            // Force a full page reload to avoid caching issues
+            window.location.replace(absolutePath);
+          } catch (err) {
+            console.error("Absolute path redirect failed:", err);
+            // Fallback to relative path
+            const relativePath = "../../../public/index.html";
+            console.log("Falling back to relative path after login:", relativePath);
+            window.location.replace(relativePath);
+          }
         } else {
           alert("User data not found. Contact support.");
         }
