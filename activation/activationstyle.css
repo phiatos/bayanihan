@@ -38,16 +38,9 @@ i{
     margin-top: 10px;
     text-align: left;
     padding: 0 20px;
+    color: #4059A5;
     margin-bottom: 2px;
     font-size: 28px;
-  }
-
-  .details{
-    text-align: left;
-    padding: 20px;
-    margin-bottom: 10px;
-    font-size: 15px;
-    color: #16C098;
   }
   
   /* Controls (Search and Sort) */
@@ -67,7 +60,7 @@ i{
     width: 100%;
     background-color: #F9FBFF;
     border: 1px solid #ccc;
-    border-radius: 6px;
+    border-radius: 20px;
     box-sizing: border-box;
   }
   
@@ -92,9 +85,9 @@ i{
   
   th, td {
     border: 1px solid #e0e0e0;
+    padding: 14px 12px;
     border-left: none;
     border-right: none;
-    padding: 14px 12px;
     font-weight: 500    ;
     text-align: center;
     vertical-align: middle;
@@ -106,18 +99,18 @@ i{
   
   th {
     background-color: #FFF;
-    border: none ;
     color: #aaa;
+    border: none;
     font-weight: 600;
   }
   
   /* Inputs inside Table */
   td input[type="text"],
   td select {
-    width: 100%;
-    padding: 6px 8px;
-    margin: 5px;
-    text-align: center;
+    width: 90%; /* Slightly smaller to fit nicely */
+    padding: 5px;
+    margin: 5px auto; /* Center horizontally */
+    display: inline-block;
     font-size: 12px;
     background-color: #e7e7e7;
     border: none;
@@ -184,6 +177,36 @@ i{
     color: #6c757d;
   }
 
+  #pagination button {
+    display: flex;
+    flex-wrap: wrap;
+    margin: 0 3px;
+    padding: 6px 12px;
+    font-size: 14px;
+    color: #4D5874;
+    background-color: #FFF;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    cursor: pointer;
+  }
+  
+  #pagination button.active-page {
+    background-color: #EBEBFF;
+    color: #2222E6;
+  }
+  
+  #pagination button:disabled {
+    background-color: #ffffff;
+    cursor: not-allowed;
+  }
+  
+  #pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
   .edit-btn {
     padding: 6px 12px;
     font-size: 13px;
@@ -202,12 +225,60 @@ i{
   td.editing {
     background-color: rgba(250, 225, 3, 0.356); /* highlight editable fields */
   }
+
+  .area-dropdown {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+  }
+  
+  .area-dropbtn {
+    width: 100%;
+    background-color: #e7e7e7;
+    color: black;
+    padding: 6px;
+    font-size: 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
+  .area-dropdown-content {
+    display: none;
+    position: absolute;
+    background-color: #e7e7e7;
+    min-width: 160px;
+    border: 1px solid #ddd;
+    text-align: left;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    z-index: 1;
+    padding: 10px;
+    border-radius: 4px;
+    max-height: 150px;
+    overflow-y: auto;
+  }
+  
+  .area-dropdown-content label {
+    display: block;
+    font-size: 12px;
+    margin-bottom: 5px;
+  }
+  
+  .area-dropdown-content input[type="checkbox"] {
+    margin-right: 6px;
+  }
+  
+  /* Show dropdown on button click */
+  .area-dropdown.show .area-dropdown-content {
+    display: block;
+  }
+  
+  
   
   
   /* Responsive Tweaks */
   @media (max-width: 1024px) {
-    .controls,
-    .pagination {
+    .controls{
       flex-direction: column;
       align-items: stretch;
     }
@@ -231,32 +302,46 @@ i{
   
   @media (max-width: 768px) {
     h1 {
+      text-align: center;
       font-size: 24px;
+      margin: 10px;
     }
   
     .controls input[type="text"],
     .controls select {
-      font-size: 13px;
-      padding: 18px;
+      font-size: 12px;
+      padding: 8px;
+      max-width: 100%;
     }
   
     th, td {
-      font-size: 13px;
-      padding: 12px 10px;
+      font-size: 12px;
+      padding: 12px 15px;
     }
   
     .table-container {
-      max-height: 55vh;
+      max-height: 65vh;
+      min-width: auto;
     }
   
     table {
-      min-width: 800px;
+      display: block;
+      width: 100%;
+      overflow-x: auto;
+      white-space: wrap;
+      min-width: 200px;
     }
+
+    button{
+      font-size: 12px;
+      padding: 5px 8px;
+  }
   }
   
   @media (max-width: 480px) {
     h1 {
       font-size: 20px;
+      text-align: center;
     }
   
     .controls input[type="text"],

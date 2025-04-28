@@ -10,7 +10,6 @@
 <body>
   <div class="container">
     <h1>Volunteer Group Activation</h1>
-    <span class="details">Active Members</span>
     <div class="controls">
       <input type="text" id="searchInput" placeholder="Search..." />
       <select id="sortSelect">
@@ -34,7 +33,6 @@
           <th>Calamity Type</th>
           <th>Activation</th>
           <th>Status</th>
-          <th>Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -43,10 +41,11 @@
     </table>
     <div class="pagination-info">
       <span id="entriesInfo">Showing 0 to 0 of 0 entries</span>
-      <div class="pagination-controls">
+      <!-- <div class="pagination-controls">
         <button id="prevPage">Previous</button>
         <button id="nextPage">Next</button>
-      </div>
+      </div> -->
+      <div id="pagination" class="pagination"></div>
     </div>
   </div>
   <script src="activationscript.js"></script>
