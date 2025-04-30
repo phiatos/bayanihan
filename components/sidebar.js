@@ -11,6 +11,21 @@ function initSidebar() {
     console.log("Menu button or sidebar element NOT found (from within sidebar.js).");
   }
 
+  // Sub Menu Toggle
+  document.querySelectorAll(".menu ul li.has-dropdown > a").forEach(link => {
+    link.addEventListener("click", function (e) {
+      e.preventDefault();
+      const parentLi = this.parentElement;
+      parentLi.classList.toggle("active");
+  
+      const subMenu = parentLi.querySelector(".sub-menu");
+      if (subMenu) {
+        const isVisible = subMenu.style.display === "block";
+        subMenu.style.display = isVisible ? "none" : "block";
+      }
+    });
+  });
+
   if (logoutBtn) {
     logoutBtn.addEventListener("click", function (e) {
       e.preventDefault();
