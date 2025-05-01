@@ -82,7 +82,22 @@ tr {
     justify-content: right;
 }
 
+.heading_input select {
+  padding: 8px 12px;
+  font-size: 12px;
+  max-width: 130px;
+  font-weight: 500;
+  color: #4D5874;
+  width: 100%;
+  background-color: #F9FBFF;
+  border: 1px solid #E0E3EB;
+  border-radius: 12px;
+  box-sizing: border-box;
+}
+
 .controls {
+  position: relative;
+  left: 950px;
   display: flex;
   justify-content: space-between;
   padding: 10px; 
@@ -95,30 +110,19 @@ tr {
   gap: 10px; 
 }
 
-.controls_right #addNew{
+.controls #addNew{
   background-color: #4059A5;
-  padding: 10px 15px;
+  padding: 12px 15px;
   border-radius: 8px;
+  border-radius: 100%;
 }
 
-.controls select {
-    padding: 8px 12px;
-    font-size: 12px;
-    max-width: 130px;
-    font-weight: 500;
-    color: #4D5874;
-    width: 100%;
-    background-color: #F9FBFF;
-    border: 1px solid #E0E3EB;
-    border-radius: 12px;
-    box-sizing: border-box;
-}
+
 
 .controls #updateSelected{
   background-color: transparent;
   border: 1px solid #4059A5;
   font-weight: 600;
-  color: #4059A5;
   width: 100%;
   padding: 10px 5px;
 }
@@ -195,6 +199,11 @@ td select {
     box-sizing: border-box;
 }
 
+td[contenteditable="true"] {
+  background-color: rgba(255, 207, 35, 0.21);
+}
+
+
 button {
     padding: 8px 15px;
     background-color: #14AEBB;
@@ -210,26 +219,6 @@ button:hover {
     background-color: #0e7781;
 }
 
-button:disabled {
-    background-color: #aaa;
-    cursor: not-allowed;
-}
-
-.green-btn {
-  background-color: green;
-  color: white;
-  border: none;
-  padding: 5px 10px;
-  border-radius: 5px;
-}
-
-.red-btn {
-  background-color: red;
-  color: white;
-  border: none;
-  padding: 5px 10px;
-  border-radius: 5px;
-}
 
 .status-circle {
     display: inline-block;

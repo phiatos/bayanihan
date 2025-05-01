@@ -1,4 +1,4 @@
-  const calamityOptions = [
+const calamityOptions = [
     "Typhoon", "Earthquake", "Flood", "Volcanic Eruption", "Landslide", "Tsunami"
   ];
 
@@ -7,11 +7,11 @@
     { no: 2, organization: "Doctors Without Borders", hq: "Geneva, Switzerland", areaOfOperations: "Global", contactPerson: "Carlos Ruiz", email: "cruiz@msf.org", mobileNumber: "+41 22 987 6543", socialMedia: "@msf_intl"},
     { no: 3, organization: "UNICEF", hq: "New York, USA", areaOfOperations: "Global", contactPerson: "Emily Chen", email: "echen@unicef.org", mobileNumber: "+1 212 123 4567", socialMedia: "@unicef"},
     { no: 4, organization: "Habitat for Humanity", hq: "Atlanta, USA", areaOfOperations: "Worldwide", contactPerson: "Michael Santos", email: "msantos@habitat.org", mobileNumber: "+1 404 123 7890", socialMedia: "@habitatforhumanity"},
-    { no: 5, organization: "World Food Programme", hq: "Rome, Italy", areaOfOperations: "Global", contactPerson: "Giulia Romano", email: "giulia.romano@wfp.org", mobileNumber: "+39 06 6513 3456", socialMedia: "@wfp" },
+    { no: 5, organization: "World Food Programme", hq: "Rome, Italy", areaOfOperations: "Global", contactPerson: "Giulia Romano", email: "giulia.romano@wfp.org", mobileNumber: "+39 06 6513 3456", socialMedia: "@wfp"},
     { no: 6, organization: "Greenpeace", hq: "Amsterdam, Netherlands", areaOfOperations: "Global", contactPerson: "Lars van Dijk", email: "lars.vd@greenpeace.org", mobileNumber: "+31 20 718 2000", socialMedia: "@greenpeace"},
     { no: 7, organization: "Amnesty International", hq: "London, UK", areaOfOperations: "Global", contactPerson: "Rebecca Shaw", email: "rshaw@amnesty.org", mobileNumber: "+44 20 7413 5500", socialMedia: "@amnesty"},
     { no: 8, organization: "Oxfam", hq: "Oxford, UK", areaOfOperations: "Global", contactPerson: "Tom Bennett", email: "tbennett@oxfam.org", mobileNumber: "+44 1865 473727", socialMedia: "@oxfam"},
-    { no: 9, organization: "World Wildlife Fund", hq: "Gland, Switzerland", areaOfOperations: "Global", contactPerson: "Nina Keller", email: "nkeller@wwf.org", mobileNumber: "+41 22 364 9111", socialMedia: "@wwf" }
+    { no: 9, organization: "World Wildlife Fund", hq: "Gland, Switzerland", areaOfOperations: "Global", contactPerson: "Nina Keller", email: "nkeller@wwf.org", mobileNumber: "+41 22 364 9111", socialMedia: "@wwf"}
   ];
   
 
@@ -67,7 +67,7 @@
   const tableBody = document.querySelector("#orgTable tbody");
   const entriesInfo = document.querySelector("#entriesInfo");
   const paginationContainer = document.querySelector("#pagination");
-  const updateButton = document.querySelector("#editButton"); 
+  const updateButton = document.querySelector("#updateSelected"); 
   const addNew = document.getElementById('addNew');
     const addOrgModal = document.getElementById('addOrgModal');
     
@@ -83,18 +83,22 @@
     pageData.forEach(row => {
       const tr = document.createElement("tr");
       tr.innerHTML = `
-        <td contenteditable="false">${row.no}</td>
-        <td contenteditable="false">${row.organization}</td>      
-        <td contenteditable="false">${row.hq}</td>
-        <td contenteditable="false">${row.areaOfOperations}</td>
-        <td contenteditable="false">${row.contactPerson} </td>
-        <td contenteditable="false">${row.email}</td>
-        <td contenteditable="false">${row.mobileNumber}<button class="copy-btn" data-content="${row.mobileNumber}"><i class='bx bx-copy-alt'></i>
-        </button></td>
-        <td contenteditable="false">${row.socialMedia}</td>
-        <td><button class="editButton">Edit</button></td>
-
-  
+        <td>${row.no}</td>
+        <td contenteditable="false">${row.organization}</td>
+        <td contenteditable="false">${row.address}</td>      
+        <td contenteditable="false">${row.location}</td>
+        <td contenteditable="false">${row.contact}</td>
+        <td contenteditable="false">${row.mobile}<button class="copy-btn" data-content="${row.mobile}">
+            <i class='bx bx-copy-alt'></i>
+          </button></td>
+        <td contenteditable="false">${row.link}</td>
+        <td contenteditable="false">${row.needs}</td>
+        <td>
+        <button class="activation-btn ${row.update.toLowerCase() ===      'active' ? 'green-btn' : 'red-btn'}">
+      ${row.update.toLowerCase() === 'active' ? 'Active' : 'Inactive'}
+        </button>
+      </td>
+      <td contenteditable="false">${row.status}</td>
 
       `;
       tableBody.appendChild(tr);
@@ -103,14 +107,11 @@
     entriesInfo.textContent = `Showing ${start + 1} to ${Math.min(end, filteredData.length)} of ${filteredData.length} entries`;
 
     renderPagination(filteredData.length);
+    attachCheckboxListeners();
     attachAddressClickListeners();
 
-      document.querySelectorAll('.editButton').forEach((button, index) => {
-        button.addEventListener('click', () => toggleEditableCells(index));
-      });
   }
 
-    //Provinces
   function populateProvinces() {
     const provinceInput = document.getElementById('provinceOptions');
     provinces.forEach(province => {
@@ -120,7 +121,7 @@
     });
   }
   
-  //City
+  // Populating the City
   function populateCities(province) {
     const cityInput = document.getElementById('cityOptions');
     cityInput.innerHTML = ''; // Clear previous cities
@@ -133,7 +134,7 @@
     }
   }
   
-  //Barangay 
+  // Populating Barangay 
   function populateBarangays(city) {
     const barangayInput = document.getElementById('barangayOptions');
     barangayInput.innerHTML = ''; 
@@ -147,6 +148,16 @@
   }
   
 
+  tableBody.addEventListener('click', (e) => {
+    const row = e.target.closest('tr');
+    if (!row || e.target.classList.contains('row-checkbox')) return;
+
+    const checkbox = row.querySelector('.row-checkbox');
+    if (!checkbox.checked || !isEditing) {
+      e.preventDefault();
+    }
+  });
+
   // Copy phone no.
   tableBody.addEventListener('click', (e) => {
     if (e.target.closest('.copy-btn')) {
@@ -159,25 +170,6 @@
       });
     }
   });
-
-// Editable Button for Row
-function toggleEditableCells(rowIndex) {
-  const row = document.querySelectorAll('#orgTable tbody tr')[rowIndex];
-  const cells = row.querySelectorAll('td');
-  const isEditable = cells[0].getAttribute('contenteditable') === 'true';
-
-  for (let i = 0; i < cells.length - 1; i++) {
-    cells[i].setAttribute('contenteditable', isEditable ? 'false' : 'true');
-  }
-    if (!isEditable) {
-    row.classList.add('editable-row');
-  } else {
-    row.classList.remove('editable-row');
-  }
-
-  const editButton = row.querySelector('.editButton');
-  editButton.textContent = isEditable ? 'Edit' : 'Save';
-}
 
   
   // Modal functions
@@ -234,6 +226,7 @@ function toggleEditableCells(rowIndex) {
   }
   
   function clearInputs() {
+    // Clear Address inputs
     document.getElementById('provinceInput').value = '';
     document.getElementById('cityInput').value = '';
     document.getElementById('barangayInput').value = '';
@@ -268,9 +261,119 @@ function toggleEditableCells(rowIndex) {
   });
   
   
+  // filtering/sorting
+
+  updateButton.addEventListener('click', () => {
+    const selectedCheckboxes = document.querySelectorAll('.row-checkbox:checked');
   
- 
+    if (selectedCheckboxes.length === 0) {
+      alert('Please select at least one row to edit.');
+      return;
+    }
   
+    selectedCheckboxes.forEach(checkbox => {
+      const row = checkbox.closest('tr');
+      const cells = row.querySelectorAll('td:not(:last-child)');
+      cells.forEach(cell => {
+        if (isEditing) {
+          cell.contentEditable = false;
+          cell.classList.remove('editable');
+        } else {
+          cell.contentEditable = true;
+          cell.classList.add('editable');
+        }
+      });
+    });
+  
+    isEditing = !isEditing; 
+    alert(isEditing ? 'Selected rows are now editable.' : 'Editing finished!');
+  });
+
+  // Pagination
+  function renderPagination(totalRows) {
+    paginationContainer.innerHTML = "";
+    const totalPages = Math.ceil(totalRows / rowsPerPage);
+
+    const createButton = (label, page = null, disabled = false, active = false) => {
+      const btn = document.createElement("button");
+      btn.textContent = label;
+      if (disabled) btn.disabled = true;
+      if (active) btn.classList.add("active-page");
+      if (page !== null) {
+        btn.addEventListener("click", () => {
+          currentPage = page;
+          renderTable();
+        });
+      }
+      return btn;
+    };
+
+    paginationContainer.appendChild(createButton("Prev", currentPage - 1, currentPage === 1));
+
+    for (let i = 1; i <= totalPages; i++) {
+      paginationContainer.appendChild(createButton(i, i, false, i === currentPage));
+    }
+
+    paginationContainer.appendChild(createButton("Next", currentPage + 1, currentPage === totalPages));
+  }
+
+  function filterAndSort() {
+    let filtered = data.filter(row => {
+      const q = searchInput.value.toLowerCase();
+      return Object.values(row).some(v => v.toString().toLowerCase().includes(q));
+    });
+
+    if (sortSelect.value) {
+      filtered.sort((a, b) =>
+        a[sortSelect.value].toString().localeCompare(b[sortSelect.value].toString())
+      );
+    }
+
+    return filtered;
+  }
+
+  // Event Listeners
+
+  searchInput.addEventListener("input", () => {
+    currentPage = 1;
+    renderTable(filterAndSort());
+  });
+
+  sortSelect.addEventListener("change", () => {
+    currentPage = 1;
+    renderTable(filterAndSort());
+  });
+
+  document.addEventListener("click", e => {
+    const btn = e.target;
+
+    if (btn.classList.contains("edit-btn")) {
+      const row = btn.closest("tr");
+      const editing = btn.textContent === "Save";
+
+      row.querySelectorAll("td[contenteditable]").forEach(cell => {
+        cell.contentEditable = editing ? "false" : "true";
+        cell.classList.toggle("editing", !editing);
+      });
+
+      const select = row.querySelector("select");
+      const input = row.querySelector("input");
+      select.disabled = editing;
+      input.disabled = editing;
+
+      btn.textContent = editing ? "Edit" : "Save";
+    }
+
+    if (btn.classList.contains("activation-btn")) {
+      const rowEl = btn.closest("tr");
+      const idx = parseInt(rowEl.cells[0].textContent, 10) - 1;
+      const record = data[idx];
+
+      record.status = record.status === "Active" ? "Inactive" : "Active";
+      renderTable(filterAndSort());
+    }
+  });
+
   function attachAddressClickListeners() {
     const rows = tableBody.querySelectorAll("tr");
   
@@ -366,62 +469,7 @@ function toggleEditableCells(rowIndex) {
     document.getElementById('addOrgForm').reset(); 
     
   });
-   // Pagination
-   function renderPagination(totalRows) {
-    paginationContainer.innerHTML = "";
-    const totalPages = Math.ceil(totalRows / rowsPerPage);
-
-    const createButton = (label, page = null, disabled = false, active = false) => {
-      const btn = document.createElement("button");
-      btn.textContent = label;
-      if (disabled) btn.disabled = true;
-      if (active) btn.classList.add("active-page");
-      if (page !== null) {
-        btn.addEventListener("click", () => {
-          currentPage = page;
-          renderTable();
-        });
-      }
-      return btn;
-    };
-
-    paginationContainer.appendChild(createButton("Prev", currentPage - 1, currentPage === 1));
-
-    for (let i = 1; i <= totalPages; i++) {
-      paginationContainer.appendChild(createButton(i, i, false, i === currentPage));
-    }
-
-    paginationContainer.appendChild(createButton("Next", currentPage + 1, currentPage === totalPages));
-  }
-
-
-  //filtering
-  function filterAndSort() {
-    let filtered = data.filter(row => {
-      const q = searchInput.value.toLowerCase();
-      return Object.values(row).some(v => v.toString().toLowerCase().includes(q));
-    });
-
-    if (sortSelect.value) {
-      filtered.sort((a, b) =>
-        a[sortSelect.value].toString().localeCompare(b[sortSelect.value].toString())
-      );
-    }
-
-    return filtered;
-  }
-
-  // search 
-  searchInput.addEventListener("input", () => {
-    currentPage = 1;
-    renderTable(filterAndSort());
-  });
-
-  sortSelect.addEventListener("change", () => {
-    currentPage = 1;
-    renderTable(filterAndSort());
-  });
-
+  
   
   // Initial render
   renderTable();

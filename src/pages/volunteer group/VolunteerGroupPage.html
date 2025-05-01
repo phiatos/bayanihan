@@ -13,52 +13,43 @@
     <div class="heading_title">
     <h1 >Volunteer Group Management</h1></div>
     <div class="heading_input">
-    <input type="text" id="searchInput" placeholder="Search..." /></div>
-  
+    <input type="text" id="searchInput" placeholder="Search..." />
+    <select id="sortSelect">
+      <option value="">Sort by</option>
+      <option value="organization">Organization</option>
+      <option value="address">Address</option>
+      <option value="status">Status</option> 
+    </select>
   </div>
-    <div class="controls">
-      <div class="controls_left">
-      <button id="updateSelected"><i class='bx bx-loader-alt' style=""></i> Update</button>
-      <span id="selectedCount">0 Selected</span>
-      <select id="sortSelect">
-        <option value="">Sort by</option>
-        <option value="organization">Organization</option>
-        <option value="address">Address</option>
-        <option value="status">Status</option> 
-      </select>
-      <span id="totalCount">0 results</span> 
-    </div>
-    <div class="controls_right">
-      <button id="addNew"><i class='bx bx-plus' style="color: white; padding-right: 5px;"></i>Add New</button>
-
-    </div>
-    </div>
+  </div>
 
     <table id="orgTable">
       <thead>
         <tr>
-          <th><input type="checkbox" class="row-checkbox"></th>
+          <th>No.</th>
           <th>Organization</th>
-          <th>Address</th>
-          <th>Location</th>
+          <th>HQ</th>
+          <th>Area of Operations</th>
           <th>Contact Person</th>
-          <th>Number</th>
-          <th>Link to Facebook Post</th>
-          <th>Needs/Intervention</th>
-          <th>Update</th>
-          <th>Status</th>
+          <th>Email</th>
+          <th>Mobile Number</th>
+          <th>Social Media</th>
+          <th>Actions</th>
         </tr>
       </thead>
       <tbody>
         <!-- Rows will be injected here by JS -->
       </tbody>
     </table>
+
+    <div class="controls">
+      <div class="controlsbtn">
+        <button id="addNew"><i class='bx bx-plus' style="color: white; font-size: 30px;"></i></button>
+      </div>
+      </div>
     <div class="pagination-info">
       <span id="entriesInfo">Showing 0 to 0 of 0 entries</span>
-      <!-- <div class="pagination-controls">
-        <button id="prevPage">Previous</button>
-        <button id="nextPage">Next</button>
-      </div> -->
+    
       <div id="pagination" class="pagination"></div>
     </div>
 
@@ -91,11 +82,11 @@
   </div>
 </div>
 
-<div class="add-org-modal" id="addOrgModal">
+<div class="add-org-modal" id="addOrgModal" style="display: none;">
   <div class="add-org-modal-content">
     
     <div class="add-org-header">
-      <h2 style="color: #4059A5; font-size: 20px;">Add Volunteer New Group</h2>
+      <h2 style="color: #4059A5; font-size: 20px; justify-content: center;">Add Volunteer New Group</h2>
     <span class="close" onclick="closeAModal()" style="display: flex; justify-content: right;">
       <i class='bx bx-x' style="font-size: 25px "></i>
     </span>
@@ -105,35 +96,28 @@
 
       <!-- Your fixed input fields -->
       <label>Organization</label>
-      <input type="text" name="organization" required>
+      <input type="text" name="organization" placeholder="Enter Organization's Name" required>
 
-      <label>Address</label>
-      <input type="text" name="address" required>
+      <label>HQ Location (Barangay)</label>
+      <input type="text" name="hq-barangay" placeholder="Enter HQ's Barangay Location" required>
 
-      <label>Location</label>
-      <input type="text" name="location" required>
+      <label>HQ Location (City/ Municipality)</label>
+      <input type="text" name="hq-city" placeholder="Enter HQ's City Location" required>
+      
+      <label>HQ Location (Province)</label>
+      <input type="text" name="hq-province" placeholder="Enter HQ's Province Location" required>
 
       <label>Contact Person</label>
-      <input type="text" name="contact" required>
+      <input type="text" name="contactPerson" placeholder="Enter the name" required>
 
-      <label>Number</label>
-      <input type="text" name="mobile" required>
+      <label>Email</label>
+      <input type="email" name="email" placeholder="Enter the email of the organization of the contact person" required>
 
-      <label>Link to Facebook Post</label>
-      <input type="text" name="link">
+      <label>Mobile Number</label>
+      <input type="text" name="mobileNumber" placeholder="Enter mobile number of the contact person" required>
 
-      <label>Needs/Intervention</label>
-      <input type="text" name="needs">
-
-      <label>Update</label>
-      <select id="update" name="update">
-        <option value="" disabled selected></option>
-        <option value="active">Active</option>
-        <option value="inactive">Inactive</option>
-      </select>
-
-      <label>Status</label>
-      <input type="text" name="status" required>
+      <label>Social Media</label>
+      <input type="text" name="socialMedia">
 
       <h2 style="color: #4059A5; font-size: 20px; padding-top: 20px;">Area of Operation</h2>
 
