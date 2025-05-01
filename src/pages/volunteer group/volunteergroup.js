@@ -114,8 +114,6 @@
 
   }
 
-
-
   function attachCheckboxListeners() {
     const checkboxes = document.querySelectorAll('.row-checkbox');
     checkboxes.forEach(checkbox => {
@@ -236,13 +234,11 @@
   
     if (firstRow) {
       const addressCell = firstRow.querySelector('.addressCell');
-      const locationCell = firstRow.querySelector('.locationCell');
   
       if (addressCell) addressCell.textContent = fullAddress;
-      if (locationCell) locationCell.textContent = fullLocation;
     }
   
-    closeModal(); // Close modal after updating
+    closeModal(); 
   }
   
   function clearInputs() {
@@ -251,10 +247,6 @@
     document.getElementById('cityInput').value = '';
     document.getElementById('barangayInput').value = '';
   
-    // Clear Location inputs
-    document.getElementById('provinceLocationInput').value = '';
-    document.getElementById('cityLocationInput').value = '';
-    document.getElementById('barangayLocationInput').value = '';
   }
 
   addNew.addEventListener('click', () => {
@@ -411,11 +403,11 @@
   
     rows.forEach(row => {
       const checkbox = row.querySelector(".row-checkbox");
-      const addressCell = row.children[2]; // Address is the 3rd column (index 2)
+      const addressCell = row.children[2]; 
   
       addressCell.addEventListener("click", function () {
         if (checkbox.checked) {
-          currentAddressCell = addressCell; // save which cell we're editing
+          currentAddressCell = addressCell;
           openModal();
         }
       });
@@ -424,12 +416,12 @@
 
   document.getElementById('provinceInput').addEventListener('input', (e) => {
     const province = e.target.value;
-    populateCities(province);  // Update cities dropdown
+    populateCities(province);  
   });
   
   document.getElementById('cityInput').addEventListener('input', (e) => {
     const city = e.target.value;
-    populateBarangays(city);  // Update barangays dropdown
+    populateBarangays(city); 
   });
   
 

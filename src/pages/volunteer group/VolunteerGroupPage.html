@@ -70,9 +70,9 @@
     </span>
 
     <div class="addressModal">
-      <div style="display: flex; justify-content: space-between;">
-      <label>Address</label>
-      <button onclick="clearInputs()" id="clear">Clear</button>  
+      <div class="addressHeader">
+      <label style="padding-left: 5px;">Address</label>
+      <button style="padding-left: 170px;" onclick="clearInputs()" id="clear">Clear</button>  
       </div>   
        <div class="input-group">
         <input list="provinceOptions" id="provinceInput" placeholder="Province">
@@ -86,27 +86,10 @@
         <input list="barangayOptions" id="barangayInput" placeholder="Barangay">
         <datalist id="barangayOptions"></datalist>
       </div>
-      <div style="display: flex; justify-content: space-between;">
-      <label style="margin-top: 10px;">Location</label></div>
-      
-      <div class="input-group">
-        <input list="provinceLocationOptions" id="provinceLocationInput" placeholder="Province">
-        <datalist id="provinceLocationOptions"></datalist>
-      </div>
-      <div class="input-group">
-        <input list="cityLocationOptions" id="cityLocationInput" placeholder="City/Municipality">
-        <datalist id="cityLocationOptions"></datalist>
-      </div>
-      <div class="input-group">
-        <input list="barangayLocationOptions" id="barangayLocationInput" placeholder="Barangay">
-        <datalist id="barangayLocationOptions"></datalist>
-      </div>
     </div>
-
-    <button onclick="applyChanges()">Apply Now</button>
+    <button onclick="applyChanges()">Submit</button>
   </div>
 </div>
-
 
 <div class="add-org-modal" id="addOrgModal">
   <div class="add-org-modal-content">
@@ -116,7 +99,7 @@
     <span class="close" onclick="closeAModal()" style="display: flex; justify-content: right;">
       <i class='bx bx-x' style="font-size: 25px "></i>
     </span>
-    
+
     </div>
     <form id="addOrgForm">
 
