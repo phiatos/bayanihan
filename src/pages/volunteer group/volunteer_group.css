@@ -621,10 +621,10 @@ select::placeholder {
   position: fixed;
   inset: 0;                
   z-index: 1500;
-  background-color: rgba(0, 0, 0, 0.16);
   display: flex;
   align-items: center;
   justify-content: center;
+  margin: 10% 40%;
 }
 
 .operation-modal-content{
@@ -715,8 +715,8 @@ select::placeholder {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.5); /* Dark background */
   display: flex;
+  margin: 10% 35%;
   align-items: center;
   justify-content: center;
   z-index: 1006; /* higher than other modals */
