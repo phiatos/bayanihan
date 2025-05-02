@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../components/sidebar.css" />
+    <link rel="stylesheet" href="../css/reportslog.css" />
+    <link rel='stylesheet' href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css'/>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
+
+     <!-- SweetAlert2 -->
+     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <title>Reports Log</title>
+</head>
+<body>
+    <body>
+        <div class="main-container">
+            <div class="sidebar-placeholder">
+                
+            </div>
+            <div id="main-content">
+                <h1>Report Log!</h1>
+                <p>This is where your main content will go.</p>
+            </div>
+        </div>
+    
+        <script>
+            // Fetch the sidebar HTML and inject it into the page
+            fetch('../components/sidebar.html')
+            .then(response => response.text())
+            .then(data => {
+                document.querySelector('.sidebar-placeholder').innerHTML = data;
+    
+                // Create a new script element
+                const sidebarScript = document.createElement('script');
+                sidebarScript.src = '../components/sidebar.js'; 
+    
+                // Call initSidebar when the script has loaded and executed
+                sidebarScript.onload = function() {
+                };
+    
+                // Append the script element to the sidebar-placeholder
+                document.querySelector('.sidebar-placeholder').appendChild(sidebarScript);
+            })
+            .catch(error => {
+                console.error('Error loading sidebar:', error);
+            });
+        </script>
+    
+        <script src="../js/reportslog.js"></script> 
+</body>
+</html>

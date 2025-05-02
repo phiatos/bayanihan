@@ -1,0 +1,12 @@
+.main-container {
+    display: flex;
+    min-height: 100vh;
+}
+
+  
+/* Main content takes up the rest */
+#main-content {
+    flex: 1;
+    padding: 20px;
+    background-color: #FFF9F0;
+}

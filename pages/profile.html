@@ -7,7 +7,6 @@
     <link rel="stylesheet" href="../components/sidebar.css" />
     <link rel="stylesheet" href="../css/profile.css">
     <link rel='stylesheet' href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css'/>
-    <link rel="stylesheet" href="https://unicons.iconsout.com/release/v4.0.0/css/line.css">
 
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
@@ -20,168 +19,94 @@
 </head>
 <body>
     <div class="container">
-        <div class="sidebar-placeholder">
-            
-        </div>
+        <div class="sidebar-placeholder"></div>
+
         <div id="main-content">
-            <h1>Welcome to the Profile!</h1>
+            <header>Volunteer Group Information</header>
             <form action="">
                 <div class="form first">
-                    <div class="details personnel">
-    
+                    <div class="volunteer-group-info">
                         <span class="title">Basic Information</span>
                         <div class="fields">
-    
                             <div class="input-field">
-                                <label>First Name</label>
-                                <input type="text" placeholder="Enter your first name" required>
+                                <label>Organization Name</label>
+                                <p id="org-name">Loading...</p>
                             </div>
-    
+                        
                             <div class="input-field">
-                                <label>Last Name</label>
-                                <input type="text" placeholder="Enter your last name" required>
+                                <label>HQ</label>
+                                <p id="hq">Loading...</p>
                             </div>
-    
+                        
                             <div class="input-field">
-                                <label>Middle Initial</label>
-                                <input type="text" placeholder="Enter your middle initial" required>
+                                <label>Contact Person</label>
+                                <p id="contact-person">Loading...</p>
                             </div>
-    
-                            <div class="input-field">
-                                <label>Suffix</label>
-                                <input type="text" placeholder="Enter suffix" required>
-                            </div>
-    
-                            <div class="input-field">
-                                <label>Mobile Number</label>
-                                <input type="text" placeholder="Enter your mobile number" required>
-                            </div>
-    
+                        
                             <div class="input-field">
                                 <label>Email Address</label>
-                                <input type="email" placeholder="Enter email address" required>
+                                <p id="email">Loading...</p>
                             </div>
-    
+
+                            <div class="input-field">
+                                <label>Mobile Number</label>
+                                <p id="email">Loading...</p>
+                            </div>
+                        
+                            <div class="input-field">
+                                <label>Area of Operation</label>
+                                <p id="area">Loading...</p>
+                            </div>
                         </div>
                     </div>
-    
-                    <div class="details address">
-                        <span class="title">Address Information</span>
+
+                    <div class="change-password">
+                        <span class="title">Change Password</span>
                         <div class="fields">
     
                             <div class="input-field">
-                                <label>House No./Building/Street</label>
-                                <input type="text" placeholder="Enter your street address" required>
+                                <label>Current Password</label>
+                                <input type="password" placeholder="Enter your temporary password" required>
                             </div>
     
                             <div class="input-field">
-                                <label>Barangay</label>
-                                <input type="text" placeholder="Enter your barangay" required>
+                                <label>New Password</label>
+                                <input type="password" placeholder="Enter your new password" required>
                             </div>
     
                             <div class="input-field">
-                                <label>City/Municipality</label>
-                                <input type="text" placeholder="Select City" required> <!--Make this into dropdown-->
+                                <label>Confirm New Password</label>
+                                <input type="password" placeholder="Confirm your new password" required>
                             </div>
-    
-                            <div class="input-field">
-                                <label>Province</label>
-                                <input type="text" placeholder="Select Province" required> <!--Make this into dropdown-->
-                            </div>
-    
-                            <div class="input-field">
-                                <label>Region (e.g., NCR, Region IV-A)</label>
-                                <input type="text" placeholder="Enter your mobile number" required> <!--Make this into dropdown-->
-                            </div>
-    
-                            <div class="input-field">
-                                <label>Zip Code</label>
-                                <input type="number" placeholder="Enter ZIP Code" required>
-                            </div>
+                        </div> 
+                    </div>
+
+                    <div class="otp-verification">
+                        <span class="title">Verify Your Mobile Number</span>
+                        <p id="otp-info">Sending OTP to your registered mobile number...</p>
+                    
+                        <div id="recaptcha-container"></div> <!-- Required by Firebase -->
+                    
+                        <div class="input-field">
+                            <label>Enter OTP</label>
+                            <input type="text" id="otp-code" placeholder="6-digit code" maxlength="6" required>
                         </div>
-    
+
+                        <div class="input-field">
+                            <input type="checkbox" id="terms" required>
+                            <label for="terms">I agree to the <a href="terms.html" target="_blank">terms and privacy policy</a></label>
+                        </div>
+                        
+                        <div class="input-field">
+                            <input type="checkbox" id="data-consent" required>
+                            <label for="data-consent">I consent to Bayanihan collecting and storing my data for disaster response purposes</label>
+                        </div>
+                    
                         <button class="nextBtn">
-                            <span class="btnText">Next</span>
-                            <i class="uil uil-navigator"></i>
+                            <span class="btnText">Submit</span>
                         </button>
-                    </div>
-    
+                    </div>      
                 </div>
-    
-                <div class="form second">
-                    <div class="details additional">
-    
-                        <span class="title">Additional Details</span>
-                        <div class="fields">
-    
-                            <div class="input-field">
-                                <label>Assigned Region/Area</label>
-                                <input type="text" placeholder="Enter Assigned Regions/Areas" required>
-                            </div>
-    
-                            <div class="input-field">
-                                <label>Volunteer Group (if part)</label>
-                                <input type="text" placeholder="Enter Volunteer Group Name" required>
-                            </div>
-    
-                            <div class="input-field">
-                                <label>Select Role</label>
-                                <input type="text" placeholder="Enter Role/Designation" required>
-                            </div>
-    
-                            
-                            <div class="input-field">
-                                <label>Assigned Other Region/Area (if any)</label>
-                                <input type="text" placeholder="Enter Assigned Regions/Areas" required>
-                            </div>
-    
-                            <div class="input-field">
-                                <label>Volunteer other Group (if any)</label>
-                                <input type="text" placeholder="Enter Volunteer Group Name" required>
-                            </div>
-    
-                            
-                        </div>
-                    </div>
-    
-                    <div class="details emergency contact">
-                        <span class="title">Emergency Contact</span>
-                        <div class="fields">
-    
-                            <div class="input-field">
-                                <label>Full Name</label>
-                                <input type="text" placeholder="Enter Full Name" required>
-                            </div>
-    
-                            <div class="input-field">
-                                <label>Phone Number</label>
-                                <input type="text" placeholder="Enter Phone Number" required>
-                            </div>
-    
-                            <div class="input-field">
-                                <label>Relationship</label>
-                                <input type="text" placeholder="Select Relationship" required> 
-                            </div>
-                        </div>
-                     
-                        <div class="buttons">
-                               
-                        <div class="backBtn">
-                            <i class="uil uil-navigator"></i>
-                            <span class="btnText">Back</span>
-                        </div>
-    
-                        <button class="nextBtn">
-                            <span class="btnText">Next</span>
-                            <i class="uil uil-navigator"></i>
-                        </button>
-    
-                        </div>
-    
-                    </div>
-    
-                </div>
-    
             </form>
         </div>
     </div>
