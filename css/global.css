@@ -1,0 +1,96 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Poppins', sans-serif;
+}
+
+.sidebar-placeholder {
+  background-color: #FFF9F0;
+}
+
+header {
+  position: relative;
+  font-size: 28px;
+  font-weight: 600;
+  color: #FB3B9A;
+}
+  
+header::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -2px;
+  height: 3px;
+  width: 27px;
+  border-radius: 8px;
+  background-color: #14AEBB;
+}
+
+.heading {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px; 
+}
+
+.heading_title,
+.heading_input {
+  display: flex;
+  align-items: center;
+  gap: 10px; 
+}
+
+/* .heading_title #searchInput{
+  justify-content: right;
+  padding: 8px 12px;
+  font-size: 12px;
+  max-width: 230px;
+  height: 20%;
+  width: 100%;
+  background-color: #F9FBFF;
+  border: 1px solid #FB3B9A;
+  border-radius: 12px;
+  box-sizing: border-box;
+} */
+
+tr {
+  transition: background-color 0.3s ease;
+}
+
+.heading_input input[type="text"] {
+  padding: 10px;
+  font-size: 14px;
+  max-width: 150px;
+  width: 100%;
+  background-color: rgba(20, 174, 187, 0.1);
+  border: 1px solid #14AEBB; 
+  border-radius: 100px;
+  box-sizing: border-box;
+  margin: 10px 0;
+  justify-content: right;
+}
+
+#sortSelect {
+  padding: 8px 12px;
+  font-size: 12px;
+  max-width: 230px;
+  width: 100%;
+  background-color: rgba(20, 174, 187, 0.1);
+  border: 1px solid #14AEBB; 
+  border-radius: 12px;
+  box-sizing: border-box;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url('data:image/svg+xml;utf8,<svg fill="currentColor" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>');
+  background-repeat: no-repeat;
+  background-position: right 8px center; /* Adjust position for better alignment */
+  padding-right: 25px; /* Adjust padding to accommodate the arrow */
+}
+
+#sortSelect option {
+  padding: 8px;
+  font-size: 12px;
+}

@@ -18,7 +18,7 @@
   gap: 20px;
   background-color: #14AEBB;
   padding: 24px;
-  border-radius: 30px;
+  border-radius: 0 30px 30px 0;
   transition: width 0.3s;
   padding: 24px;
 }

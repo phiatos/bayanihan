@@ -24,27 +24,8 @@
   box-shadow: 0 0 30px rgba(0, 0, 0, .2);
   margin: 50px;
   overflow-y: hidden;
-
-  max-height: calc(100vh - 100px); /* Adjust 100px based on your header/footer needs */
+  max-height: calc(100vh - 100px);
   overflow-y: auto;
-}
-
-header {
-  position: relative;
-  font-size: 28px;
-  font-weight: 600;
-  color: #FB3B9A;
-}
-
-header::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  bottom: -2px;
-  height: 3px;
-  width: 27px;
-  border-radius: 8px;
-  background-color: #14AEBB;
 }
 
 .activation-container {
@@ -56,9 +37,8 @@ header::before {
   flex-direction: column;
 }
 
-
 /* Controls (Search and Sort) */
-.controls {
+/* .controls {
   display: flex;
   flex-wrap: wrap;
   justify-content: right;
@@ -76,7 +56,7 @@ header::before {
   border: 1px solid #ccc;
   border-radius: 20px;
   box-sizing: border-box;
-}
+} */
 
 /* Scrollable Table Container */
 .table-container {

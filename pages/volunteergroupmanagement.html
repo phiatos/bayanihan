@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../components/sidebar.css" />
-    <link rel="stylesheet" href="../css/dashboard.css" />
+    <link rel="stylesheet" href="../css/volunteergroupmanagement.css" />
+    <link rel="stylesheet" href="../css/global.css" />
     <link rel='stylesheet' href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css'/>
 
     <!-- Firebase SDK -->
@@ -17,41 +18,199 @@
     <title>Volunteer Group Management</title>
 </head>
 <body>
-    <body>
-        <div class="main-container">
-            <div class="sidebar-placeholder">
-                
+    <div class="main-container">
+        <div class="sidebar-placeholder">
+            
+        </div>
+        <!-- container kay mika -->
+        <div id="main-content">
+            <div class="heading">
+                <div class="heading_title">
+                    <header>Volunteer Group Management</header>
+                </div>
+                <div class="heading_input">
+                    <input type="text" id="searchInput" placeholder="Search..." />
+                </div>
             </div>
-            <div id="main-content">
-                <h1>Welcome to the Volunteer Group Management!</h1>
-                <p>This is where your main content will go.</p>
+
+            <div class="controls">
+                <div class="controls_left">
+                <button id="updateSelected"><i class='bx bx-loader-alt' style=""></i> Update</button>
+                <span id="selectedCount">0 Selected</span>
+                <select id="sortSelect">
+                    <option value="">Sort by</option>
+                    <option value="organization">Organization</option>
+                    <option value="address">Address</option>
+                    <option value="status">Status</option> 
+                </select>
+                <span id="totalCount">0 results</span> 
+                </div>
+                <div class="controls_right">
+                <button id="addNew"><i class='bx bx-plus' style="color: white; padding-right: 5px;"></i>Add New</button>
+                </div>
+            </div>
+
+            <table id="orgTable">
+                <thead>
+                    <tr>
+                    <th><input type="checkbox" class="row-checkbox"></th>
+                    <th>Organization</th>
+                    <th>Address</th>
+                    <th>Location</th>
+                    <th>Contact Person</th>
+                    <th>Number</th>
+                    <th>Link to Facebook Post</th>
+                    <th>Needs/Intervention</th>
+                    <th>Update</th>
+                    <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Rows will be injected here by JS -->
+                </tbody>
+                </table>
+                <div class="pagination-info">
+                <span id="entriesInfo">Showing 0 to 0 of 0 entries</span>
+                <!-- <div class="pagination-controls">
+                    <button id="prevPage">Previous</button>
+                    <button id="nextPage">Next</button>
+                </div> -->
+                <div id="pagination" class="pagination"></div>
+                </div>
+
+                <div id="addressModal" class="modal" style="display:none;">
+                <div class="modal-content">
+                    <span class="close" onclick="closeModal()" style="display: flex; justify-content: right;">
+                    <i class='bx bx-x' style="font-size: 25px"></i>
+                    </span>
+
+                    <div class="addressModal">
+                        <div class="addressHeader">
+                            <label style="padding-left: 5px;">Address</label>
+                            <button style="padding-left: 170px;" onclick="clearInputs()" id="clear">Clear</button>  
+                        </div>   
+                        <div class="input-group">
+                            <input list="provinceOptions" id="provinceInput" placeholder="Province">
+                            <datalist id="provinceOptions"></datalist>
+                        </div>
+                        <div class="input-group">
+                            <input list="cityOptions" id="cityInput" placeholder="City/Municipality">
+                            <datalist id="cityOptions"></datalist>
+                        </div>
+                        <div class="input-group">
+                            <input list="barangayOptions" id="barangayInput" placeholder="Barangay">
+                            <datalist id="barangayOptions"></datalist>
+                        </div>
+                    </div>
+                    <button onclick="applyChanges()">Submit</button>
+                </div>
+            </div>
+
+            <div class="add-org-modal" id="addOrgModal">
+                <div class="add-org-modal-content">
+                    
+                    <div class="add-org-header">
+                        <h2 style="color: #4059A5; font-size: 20px;">Add Volunteer New Group</h2>
+                        <span class="close" onclick="closeAModal()" style="display: flex; justify-content: right;">
+                        <i class='bx bx-x' style="font-size: 25px "></i>
+                        </span>
+                    </div>
+
+                    <form id="addOrgForm">
+                        <!-- Your fixed input fields -->
+                        <label>Organization</label>
+                        <input type="text" name="organization" required>
+                
+                        <label>Address</label>
+                        <input type="text" name="address" required>
+                
+                        <label>Location</label>
+                        <input type="text" name="location" required>
+                
+                        <label>Contact Person</label>
+                        <input type="text" name="contact" required>
+                
+                        <label>Number</label>
+                        <input type="text" name="mobile" required>
+                
+                        <label>Link to Facebook Post</label>
+                        <input type="text" name="link">
+                
+                        <label>Needs/Intervention</label>
+                        <input type="text" name="needs">
+                
+                        <label>Update</label>
+                        <select id="update" name="update">
+                        <option value="" disabled selected></option>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                        </select>
+                
+                        <label>Status</label>
+                        <input type="text" name="status" required>
+                
+                        <h2 style="color: #4059A5; font-size: 20px; padding-top: 20px;">Area of Operation</h2>
+                
+                        <div id="areaOperationContainer">
+                        <!-- New inputs will appear here -->
+                        </div>
+                        <button type="button" id="addOperationArea" style="margin-top: 10px;">+ Add Area of Operation</button>
+                
+                        <div style="margin-top: 20px;">
+                    
+                        <button type="submit" style="width: 25%;">Next</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="confirm-modal" id="confirmModal" style="display: none;">
+                <div class="confirm-modal-content">
+                    <h2 style="color: #4059A5; font-size: 20px;">Confirm Details</h2>
+                    <div id="confirmDetails"></div>
+                
+                    <div style="margin-top: 20px;">
+                    <button type="button" id="editDetailsBtn">Back</button>
+                    <button type="button" id="confirmSaveBtn">Submit</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="success-modal" id="successModal" style="display:none;">
+                <div class="success-modal-content">
+                    <h2 style="color: #4059A5; font-size: 18px;">Account Successfully Added</h2>
+                    <p style="font-weight: 500; color: #8E8E93;">A temporary password has been sent to the newly added volunteer group.</p>
+                    <p><i class='bx bxs-check-circle'></i></p>
+                    <button id="closeSuccessBtn" >Done</button>
+                </div>
             </div>
         </div>
+    </div>
     
-        <script>
-            // Fetch the sidebar HTML and inject it into the page
-            fetch('../components/sidebar.html')
-            .then(response => response.text())
-            .then(data => {
-                document.querySelector('.sidebar-placeholder').innerHTML = data;
+    <script>
+        // Fetch the sidebar HTML and inject it into the page
+        fetch('../components/sidebar.html')
+        .then(response => response.text())
+        .then(data => {
+            document.querySelector('.sidebar-placeholder').innerHTML = data;
+
+            // Create a new script element
+            const sidebarScript = document.createElement('script');
+            sidebarScript.src = '../components/sidebar.js'; 
+
+            // Call initSidebar when the script has loaded and executed
+            sidebarScript.onload = function() {
+            };
+
+            // Append the script element to the sidebar-placeholder
+            document.querySelector('.sidebar-placeholder').appendChild(sidebarScript);
+        })
+        .catch(error => {
+            console.error('Error loading sidebar:', error);
+        });
+    </script>
     
-                // Create a new script element
-                const sidebarScript = document.createElement('script');
-                sidebarScript.src = '../components/sidebar.js'; 
-    
-                // Call initSidebar when the script has loaded and executed
-                sidebarScript.onload = function() {
-                };
-    
-                // Append the script element to the sidebar-placeholder
-                document.querySelector('.sidebar-placeholder').appendChild(sidebarScript);
-            })
-            .catch(error => {
-                console.error('Error loading sidebar:', error);
-            });
-        </script>
-    
-        <script src="../js/volunteergroupmanagement.js"></script>
+    <script src="../js/volunteergroupmanagement.js"></script>
     
         
 </body>
