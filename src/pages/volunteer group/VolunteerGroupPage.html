@@ -11,23 +11,28 @@
 <body>
   <div class="container">    
     <div class="controls">
-      <h1>Volunteer Group Activation</h1>
+      <div class="controls_left">
+        <h1>Volunteer Group Activation</h1>
+      </div>
       <div class="controls_right">
         <div class="search-wrapper">
           <i class="fa fa-search"></i>
           <input type="text" placeholder="Search" id="searchInput" />
           <i class="fa fa-times clear-btn" onclick="document.getElementById('searchInput').value=''"></i>
         </div>
-        <select id="sortSelect">
-          <option value="">Sort by</option>
-          <option value="organization">Organization</option>
-          <option value="address">Address</option>
-          <option value="status">Status</option>
-        </select>
+        <div class="custom-select-wrapper">
+          <select id="sortSelect">
+            <option value="">Sort by</option>
+            <option value="organization">Organization</option>
+            <option value="address">Address</option>
+            <option value="status">Status</option>
+          </select>
+          <i class='bx bx-chevron-down'></i>
+        </div>
+        
       </div>
     </div>
     
-
     <table id="orgTable">
       <thead>
         <tr>
@@ -53,7 +58,6 @@
       
     <div class="pagination-info">
       <span id="entriesInfo">Showing 0 to 0 of 0 entries</span>
-    
       <div id="pagination" class="pagination"></div>
     </div>
   </div>
@@ -72,15 +76,17 @@
       </div>
 
       <div class="input-group">
-        <input list="hqProvinceOptions" id="hqProvinceInput" placeholder="Province" required>
+        <input list="hqProvinceOptions" id="hqProvinceInput" placeholder="Province" required> <i class='bx bx-chevron-down'></i>
         <datalist id="hqProvinceOptions"></datalist>
       </div>
       <div class="input-group">
         <input list="hqCityOptions" id="hqCityInput" placeholder="City/Municipality (optional)" required>
+        <i class='bx bx-chevron-down'></i>
         <datalist id="hqCityOptions"></datalist>
       </div>
       <div class="input-group">
         <input list="hqBarangayOptions" id="hqBarangayInput" placeholder="Barangay (optional)" required>
+        <i class='bx bx-chevron-down'></i>
         <datalist id="hqBarangayOptions"></datalist>
       </div>
 
@@ -90,15 +96,15 @@
         </div>
 
       <div class="input-group">
-        <input list="locProvinceOptions" id="locProvinceInput" placeholder="Province" required>
+        <input list="locProvinceOptions" id="locProvinceInput" placeholder="Province" required><i class='bx bx-chevron-down'></i>
         <datalist id="locProvinceOptions"></datalist>
       </div>
       <div class="input-group">
-        <input list="locCityOptions" id="locCityInput" placeholder="City/Municipality (optional)" required>
+        <input list="locCityOptions" id="locCityInput" placeholder="City/Municipality (optional)" required><i class='bx bx-chevron-down'></i>
         <datalist id="locCityOptions"></datalist>
       </div>
       <div class="input-group">
-        <input list="locBarangayOptions" id="locBarangayInput" placeholder="Barangay (optional)" required>
+        <input list="locBarangayOptions" id="locBarangayInput" placeholder="Barangay (optional)" required><i class='bx bx-chevron-down'></i>
         <datalist id="locBarangayOptions"></datalist>
       </div>
     </div>
@@ -129,7 +135,7 @@
       <input type="text" name="hq-barangay" placeholder="Enter HQ's Barangay" required>
 
       <label>HQ Location (City/ Municipality)</label>
-      <input type="text" name="hq-city" placeholder="Enter HQ's City" required>
+      <input type="text" name="hq-city" placeholder="Enter HQ's City/ Municipality" required>
       
       <label>HQ Location (Province)</label>
       <input type="text" name="hq-province" placeholder="Enter HQ's Province" required>
@@ -141,7 +147,7 @@
       <input type="email" name="email" placeholder="Enter the email of the organization of the Contact Person" required>
 
       <label>Mobile Number</label>
-      <input type="number" name="mobileNumber" placeholder="Enter mobile number of the Contact Person" required>
+      <input type="number" name="mobileNumber" placeholder="Enter the mobile number of the Contact Person" required>
 
       <label>Social Media</label>
       <input type="text" name="socialMedia" placeholder="Enter Social Media Link (Optional)">
@@ -151,7 +157,7 @@
       <div id="areaOperationContainer">
         <!-- New inputs will appear here -->
       </div>
-      <button type="button" id="addOperationArea" style="margin-top: 10px;">+ Add Area of Operation</button>
+      <button type="button" id="addOperationArea" style="margin-top: 10px;">Add Area of Operation</button>
 
       <div style="margin-top: 20px;">
     
@@ -167,11 +173,11 @@
     <h2>Add Area of Operation</h2>
     <form id="areaOperationForm">
       
-      <label for="barangayInput">Barangay:</label>
+      <label for="barangayInput">Barangay</label>
       <input list="barangayList" id="barangayInput" name="barangay" placeholder="Enter Barangay" required>
       <datalist id="barangayList"></datalist>
 
-      <label for="cityInput">City:</label>
+      <label for="cityInput">City/ Municipality</label>
       <input list="cityList" id="cityInput" name="city" placeholder="Enter City/ Municipality" required>
       <datalist id="cityList"></datalist>
 
@@ -179,7 +185,7 @@
       <input list="provinceList" id="provinceInput" name="province" placeholder="Enter Province" required>
       <datalist id="provinceList"></datalist>
 
-      <button type="submit">Add Area Operation</button>
+      <button type="submit">Add Area of Operation</button>
     </form>
   </div>
 </div>

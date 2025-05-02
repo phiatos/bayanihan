@@ -27,6 +27,7 @@ i {
     border-radius: 20px;
     padding: 25px 15px;
     background-color: #FFF;
+    position: relative;
 }
 
 .controls {
@@ -35,9 +36,10 @@ i {
   align-items: center;
   flex-wrap: wrap;
   padding: 16px;
+  overflow-x: auto;
 }
 
-.controls h1 {
+.controls_left h1 {
   font-size: 18px;
   font-weight: 600;
   color: #4059A5;
@@ -47,35 +49,33 @@ i {
 .controls_right {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 1rem;
+    flex-wrap: wrap;
+
 }
 
 .search-wrapper {
-  position: relative;
   display: flex;
   align-items: center;
+  padding: 6px 10px;
+  border-radius: 6px;
+  width: 300px; /* Make this larger if needed */
+  background-color: #fff;
 }
 
 .search-wrapper input {
-  padding: 8px 32px 8px 28px;
-  border-radius: 24px;
-  border: 1px solid #4059A5;
+  border: none;
+  outline: none;
+  flex: 1;
+  margin-left: 8px;
   font-size: 14px;
-
+  width: 100%;
+  background-color: transparent;
 }
 
-.search-wrapper .fa-search {
-  position: absolute;
-  left: 10px;
-  color: #4059A5;
-  font-size: 14px;
-}
-
+.search-wrapper .fa-search,
 .search-wrapper .clear-btn {
-  position: absolute;
-  right: 10px;
-  color: #999;
-  font-size: 14px;
+  color: #888;
   cursor: pointer;
 }
 
@@ -87,6 +87,30 @@ i {
   font-size: 14px;
   appearance: none;
 }
+
+.custom-select-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.custom-select-wrapper select {
+  padding-right: 30px; /* Leave space for icon */
+  height: 36px;
+  font-size: 14px;
+  appearance: none; /* Remove default arrow */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+
+.custom-select-wrapper i {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: #666;
+}
+
  
 tr {
   transition: background-color 0.3s ease;
@@ -124,9 +148,8 @@ tr {
   border-radius: 8px;
   border-radius: 100%;
   justify-content: right;
-  position: relative;
-  left: 950px;
-  top: 10px;
+  margin: 2% 90%;
+  
 }
 
 .controls #addNew:hover{
@@ -283,6 +306,26 @@ td.editing {
 }
 
 @media (max-width: 768px) {
+  @media (max-width: 768px) {
+    .controls {
+      flex-direction: column;
+      align-items: stretch;
+    }
+  
+    .controls_right {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 10px;
+    }
+  
+    .search-wrapper input {
+      width: 100%;
+    }
+  
+    #sortSelect {
+      width: 100%;
+    }
+  }
   h1 {
     text-align: center;
     font-size: 24px;
@@ -419,24 +462,41 @@ td.editing {
 }
 
 .input-group {
+  position: relative;
   margin-bottom: 16px;
 }
 
-.input-group label {
-  display: block;
-  font-size: 13px;
-  font-weight: 600;
-  color: #605D67;
-  margin-bottom: 6px;
-}
-
-.input-group input {
+.input-group input[list] {
   width: 100%;
-  padding: 10px 40px 10px 12px;
+  padding: 10px 40px 10px 12px;  
   border: 1px solid #605D67;
   border-radius: 24px;
-  box-sizing: border-box;
   font-size: 14px;
+  box-sizing: border-box;
+}
+
+.input-group i {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 18px;
+  color: #605D67;
+  pointer-events: none; 
+}
+
+/* General Reset */
+.input-group select {
+  -webkit-appearance: none;  /* Safari & Chrome */
+  -moz-appearance: none;     /* Firefox */
+  appearance: none;          /* Standard */
+  background: none;
+  border: none;
+}
+
+/* Optional: Remove default styling */
+.input-group select::-ms-expand { /* IE10+ */
+  display: none;
 }
 
 .modal-content button[type="button"],
@@ -772,9 +832,10 @@ select::placeholder {
   inset: 0;
   z-index: 1001;
   display: flex;
-  justify-content: center;
   align-items: center;
-  padding: 20px;
+  justify-content: center;
+  padding: 1rem;
+  overflow-y: auto;
 }
 
 .confirm-modal-content {
@@ -783,6 +844,7 @@ select::placeholder {
   padding: 24px;
   border-radius: 30px;
   width: 100%;
+  margin: 10% 30% ;
   max-width: 450px;
   border: 2px solid #4059A5;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
@@ -840,17 +902,19 @@ select::placeholder {
   display: none;
   position: absolute;
   inset: 0;
-  z-index: 1006;
+  z-index: 1007;
   display: flex;
-  justify-content: center;
   align-items: center;
-  padding: 20px;
+  justify-content: center;
+  padding: 1rem;
+  overflow-y: auto;
 }
 
 .success-modal-content {
+  margin: 10% 30% ;
   background: #FFF9F0;
   position: relative;
-  padding: 30px 40px;
+  padding: 24px;
   border-radius: 20px;
   text-align: center;
   width: 100%;

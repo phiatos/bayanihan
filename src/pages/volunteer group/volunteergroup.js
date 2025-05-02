@@ -408,7 +408,9 @@
     orgData = {
       organization: form.organization.value,
       hq: `${form['hq-barangay'].value}, ${form['hq-city'].value}, ${form['hq-province'].value}`,
-      areaOps: Array.from(document.querySelectorAll('#areaOperationContainer input')).map(input => input.value),
+      hqBarangay: form['hq-barangay'].value,
+      hqCity: form['hq-city'].value,
+      hqProvince: form['hq-province'].value,      areaOps: Array.from(document.querySelectorAll('#areaOperationContainer input')).map(input => input.value),
       contactPerson: form.contactPerson.value,
       email: form.email.value,
       mobileNumber: form.mobileNumber.value,
@@ -417,15 +419,21 @@
   
     // Update confirmation details
     const confirmDetails = document.getElementById('confirmDetails');
-    confirmDetails.innerHTML = `
-      <p><strong style="color: #4059A5;">Organization:</strong> ${orgData.organization}</p>
-      <p><strong style="color: #4059A5;">HQ:</strong> ${orgData.hq}</p>
-      <p><strong style="color: #4059A5;">Contact Person:</strong> ${orgData.contactPerson}</p>
-      <p><strong style="color: #4059A5;">Email:</strong> ${orgData.email}</p>
-      <p><strong style="color: #4059A5;">Mobile:</strong> ${orgData.mobileNumber}</p>
-      <p><strong style="color: #4059A5;">Social Media:</strong> ${orgData.socialMedia}</p>
-      <p><strong style="color: #4059A5;">Area of Operations:</strong> ${orgData.areaOps.join(', ')}</p>
-    `;
+confirmDetails.innerHTML = `
+  <p><strong style="color: #4059A5;">Organization</strong> ${orgData.organization}</p>
+  <p><strong style="color: #4059A5;">HQ Location (Barangay)</strong> ${orgData.hqBarangay}</p>
+  <p><strong style="color: #4059A5;">HQ Location (City/ Municipality)</strong> ${orgData.hqCity}</p>
+  <p><strong style="color: #4059A5;">HQ Location (Province)</strong> ${orgData.hqProvince}</p>
+  <p><strong style="color: #4059A5;">Contact Person</strong> ${orgData.contactPerson}</p>
+  <p><strong style="color: #4059A5;">Email</strong> ${orgData.email}</p>
+  <p><strong style="color: #4059A5;">Mobile</strong> ${orgData.mobileNumber}</p>
+  <p><strong style="color: #4059A5;">Social Media</strong> ${orgData.socialMedia}</p>
+  <p><strong style="color: #4059A5;">Area of Operations</strong></p>
+  <ul style="padding-left:20px;">
+    ${orgData.areaOps.map(area => `<li>${area}</li>`).join('')}
+  </ul>
+`;
+
   
     document.getElementById('addOrgModal').style.display = 'none';
     document.getElementById('confirmModal').style.display = 'block';
