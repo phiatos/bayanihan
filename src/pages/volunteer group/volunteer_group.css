@@ -29,47 +29,73 @@ i {
     background-color: #FFF;
 }
 
-h1 {
-    margin-top: 10px;
-    text-align: left;
-    padding: 0 20px;
-    color: #4059A5;
-    margin-bottom: 2px;
-    font-size: 20px;
-    justify-content: left;
-}
-
-.heading {
+.controls {
   display: flex;
   justify-content: space-between;
-  padding: 10px; 
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 16px;
 }
 
-.heading_title,
-.heading_input {
+.controls h1 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #4059A5;
+  margin: 0;
+}
+
+.controls_right {
   display: flex;
   align-items: center;
-  gap: 10px; 
+  gap: 10px;
 }
 
-.heading_title #searchInput {
-  justify-content: right;
+.search-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-wrapper input {
+  padding: 8px 32px 8px 28px;
+  border-radius: 24px;
+  border: 1px solid #4059A5;
+  font-size: 14px;
+
+}
+
+.search-wrapper .fa-search {
+  position: absolute;
+  left: 10px;
+  color: #4059A5;
+  font-size: 14px;
+}
+
+.search-wrapper .clear-btn {
+  position: absolute;
+  right: 10px;
+  color: #999;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+#sortSelect {
+  border-radius: 24px;
   padding: 8px 12px;
-  font-size: 12px;
-  max-width: 230px;
-  height: 20%;
-  width: 100%;
-  background-color: #F9FBFF;
   border: 1px solid #ccc;
-  border-radius: 12px;
-  box-sizing: border-box;
+  background-color: white;
+  font-size: 14px;
+  appearance: none;
 }
 
+ 
 tr {
   transition: background-color 0.3s ease;
 }
 
-.heading_input input[type="text"] {
+
+
+.controls_right input[type="text"], .controls select {
     padding: 10px;
     font-size: 14px;
     max-width: 150px;
@@ -82,7 +108,7 @@ tr {
     justify-content: right;
 }
 
-.heading_input select {
+.controls select {
   padding: 8px 12px;
   font-size: 12px;
   max-width: 130px;
@@ -95,19 +121,15 @@ tr {
   box-sizing: border-box;
 }
 
-.controls {
-  position: relative;
-  left: 950px;
-  display: flex;
-  justify-content: space-between;
-  padding: 10px; 
-}
-
-.controls #addNew {
+ #addNew {
   background-color: #4059A5;
   padding: 12px 15px;
   border-radius: 8px;
   border-radius: 100%;
+  justify-content: right;
+  position: relative;
+  left: 950px;
+  top: 10px;
 }
 
 .controls #addNew:hover{
@@ -479,7 +501,7 @@ td.editing {
   top: 0;
   left: 0;
   align-items: center;
-    padding: 1rem;
+  padding: 1rem;
   }
 
   .modal-content {
@@ -525,8 +547,7 @@ td.editing {
 
 .add-org-modal-content {
   background: #FFF9F0;
-  position: absolute;
-  left: 20px;
+  position: relative;
   z-index: 1001;
   border-radius: 30px;
   width: 100%;
@@ -749,7 +770,8 @@ select::placeholder {
 
 /* Confirm Modal */
 .confirm-modal {
-  position: fixed;
+  display: none;
+  position: absolute;
   inset: 0;
   z-index: 1001;
   display: flex;
@@ -760,6 +782,7 @@ select::placeholder {
 
 .confirm-modal-content {
   background: #FFF9F0;
+  position: relative;
   padding: 24px;
   border-radius: 30px;
   width: 100%;
@@ -784,9 +807,14 @@ select::placeholder {
 }
 
 @media (max-width: 768px) {
-  .confirm-modal-content {
+  .confirm-modal{
     position: absolute;
-    top: 100px;
+    top: 0;
+    right: 0;
+    align-items: center;
+    padding: 1rem;
+  }
+  .confirm-modal-content {
     padding: 20px;
     border-radius: 24px;
     font-size: 10px;
@@ -810,21 +838,21 @@ select::placeholder {
   }
 }
 
+/* Success Modal */
 .success-modal {
-  position: fixed;
+  display: none;
+  position: absolute;
   inset: 0;
   z-index: 1006;
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: rgba(0, 0, 0, 0.2); /* dim background for focus */
-  padding: 20px; /* add padding for small screens */
+  padding: 20px;
 }
 
-
-/* Success Modal */
 .success-modal-content {
   background: #FFF9F0;
+  position: relative;
   padding: 30px 40px;
   border-radius: 20px;
   text-align: center;
@@ -862,6 +890,13 @@ select::placeholder {
 }
 
 @media (max-width: 768px) {
+  .success-modal{
+    position: absolute;
+    top: 0;
+    right: 0;
+    align-items: center;
+    padding: 1rem;
+  }
   .success-modal-content {
     padding: 24px 30px;
     border-radius: 18px;

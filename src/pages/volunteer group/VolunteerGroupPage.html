@@ -5,23 +5,28 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Volunteer Group Management</title>
   <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
+  
   <link rel="stylesheet" href="volunteer_group.css" />
 </head>
 <body>
-  <div class="container">
-    <div class="heading">
-    <div class="heading_title">
-    <h1 >Volunteer Group Management</h1></div>
-    <div class="heading_input">
-    <input type="text" id="searchInput" placeholder="Search..." />
-    <select id="sortSelect">
-      <option value="">Sort by</option>
-      <option value="organization">Organization</option>
-      <option value="address">Address</option>
-      <option value="status">Status</option> 
-    </select>
-  </div>
-  </div>
+  <div class="container">    
+    <div class="controls">
+      <h1>Volunteer Group Activation</h1>
+      <div class="controls_right">
+        <div class="search-wrapper">
+          <i class="fa fa-search"></i>
+          <input type="text" placeholder="Search" id="searchInput" />
+          <i class="fa fa-times clear-btn" onclick="document.getElementById('searchInput').value=''"></i>
+        </div>
+        <select id="sortSelect">
+          <option value="">Sort by</option>
+          <option value="organization">Organization</option>
+          <option value="address">Address</option>
+          <option value="status">Status</option>
+        </select>
+      </div>
+    </div>
+    
 
     <table id="orgTable">
       <thead>
@@ -42,25 +47,24 @@
       </tbody>
     </table>
 
-    <div class="controls">
-      <div class="controlsbtn">
+      <div>
         <button id="addNew"><i class='bx bx-plus' style="color: white; font-size: 30px;"></i></button>
       </div>
-      </div>
+      
     <div class="pagination-info">
       <span id="entriesInfo">Showing 0 to 0 of 0 entries</span>
     
       <div id="pagination" class="pagination"></div>
     </div>
+  </div>
 
-    
+<!-- Edit HQ and Location -->
 <div id="addressModal" class="modal" style="display:none;">
   <div class="modal-content">
     <span class="close" onclick="closeModal()" style="display: flex; justify-content: right;">  
       <i class='bx bx-x' style="font-size: 25px"></i>
     </span>
 
-    <!-- Edit HQ and Location -->
     <div class="addressModal">
       <div class="addressHeader">
         <label for="hqProvinceInput">HQ</label>
@@ -158,7 +162,7 @@
 </div>
 
 <!-- Area of Operation -->
-<div id="areaOperationModal" class="operation-modal" style="display: none;">
+<div id="areaOperationModal" class="operation-modal" style="display:none;">
   <div class="operation-modal-content">
     <h2>Add Area of Operation</h2>
     <form id="areaOperationForm">
@@ -181,7 +185,7 @@
 </div>
 
 <!-- Confirm Modal -->
-<div class="confirm-modal" id="confirmModal" style="display: none;">
+<div class="confirm-modal" id="confirmModal" style="display:none;">
   <div class="confirm-modal-content">
     <h2 style="color: #4059A5; font-size: 20px;">Confirm Details</h2>
     <div id="confirmDetails"></div>
