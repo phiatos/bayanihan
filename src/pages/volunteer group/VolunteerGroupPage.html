@@ -159,14 +159,18 @@
   <div class="operation-modal-content">
     <h2>Add Area of Operation</h2>
     <form id="areaOperationForm">
+
       <label for="provinceInput">Province:</label>
-      <input type="text" id="provinceInput" name="province" required />
+      <input list="provinceList" id="provinceInput" name="province" placeholder="Type or select…" required>
+      <datalist id="provinceList"></datalist>
 
       <label for="cityInput">City:</label>
-      <input type="text" id="cityInput" name="city" required />
+      <input list="cityList" id="cityInput" name="city" placeholder="Type or select…" required disabled>
+      <datalist id="cityList"></datalist>
 
       <label for="barangayInput">Barangay:</label>
-      <input type="text" id="barangayInput" name="barangay" required />
+      <input list="barangayList" id="barangayInput" name="barangay" placeholder="Type or select…" required disabled>
+      <datalist id="barangayList"></datalist>
 
       <button type="submit">Add Area Operation</button>
     </form>

@@ -313,88 +313,89 @@
   });
 
 
+  function populateProvinceList() {
+    const list = document.getElementById('provinceList');
+    list.innerHTML = '';
+    provinces.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p;
+      list.appendChild(opt);
+    });
+
+    document.getElementById('cityInput').value = '';
+    document.getElementById('cityInput').disabled = true;
+    document.getElementById('barangayInput').value = '';
+    document.getElementById('barangayInput').disabled = true;
+  }
+
+  document.getElementById('provinceInput').addEventListener('input', function () {
+    const prov = this.value;
+    const cityInput = document.getElementById('cityInput');
+    const cityList = document.getElementById('cityList');
+    cityList.innerHTML = '';
+
+    (cities[prov] || []).forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c;
+      cityList.appendChild(opt);
+    });
+
+    cityInput.disabled = false;
+    document.getElementById('barangayInput').value = '';
+    document.getElementById('barangayInput').disabled = true;
+  });
+
+  document.getElementById('cityInput').addEventListener('input', function () {
+    const city = this.value;
+    const brgyInput = document.getElementById('barangayInput');
+    const brgyList = document.getElementById('barangayList');
+    brgyList.innerHTML = '';
+
+    (barangays[city] || []).forEach(b => {
+      const opt = document.createElement('option');
+      opt.value = b;
+      brgyList.appendChild(opt);
+    });
+
+    brgyInput.disabled = false;
+  });
+
   document.getElementById('addOperationArea').addEventListener('click', function () {
+    populateProvinceList();
     document.getElementById('areaOperationModal').style.display = 'flex';
   });
-  
-  // Handle area operation form submission with dropdowns
-document.getElementById('areaOperationForm').addEventListener('submit', function (e) {
-  e.preventDefault();
 
-  // Get selected values from the dropdowns
-  const province = document.getElementById('provinceSelect').value.trim();
-  const city = document.getElementById('citySelect').value.trim();
-  const barangay = document.getElementById('barangaySelect').value.trim();
+  document.getElementById('areaOperationForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    const province = document.getElementById('provinceInput').value.trim();
+    const city = document.getElementById('cityInput').value.trim();
+    const barangay = document.getElementById('barangayInput').value.trim();
 
-  // Ensure that all dropdowns have selected values
-  if (!province || !city || !barangay) return;
+    if (!province || !city || !barangay) return;
 
-  // Create a new input for displaying the area operation
-  const newInput = document.createElement('input');
-  newInput.type = 'text';
-  newInput.name = 'Area Operation';
-  newInput.value = `${province}, ${city}, ${barangay}`;
-  newInput.readOnly = true;
-  newInput.style.marginTop = '10px';
-  newInput.style.width = '100%';
-  newInput.style.maxWidth = '520px';
-  newInput.style.padding = '10px 14px';
-  newInput.style.border = '#605D67 1px solid';
-  newInput.style.borderRadius = '12px';
-  newInput.style.display = 'flex';
-  newInput.style.marginLeft = 'auto';
-  newInput.style.marginRight = 'auto';
+    const newInput = document.createElement('input');
+    newInput.type = 'text';
+    newInput.name = 'Area Operation';
+    newInput.value = `${province}, ${city}, ${barangay}`;
+    newInput.readOnly = true;
+    newInput.style.marginTop = '10px';
+    newInput.style.width = '100%';
+    newInput.style.maxWidth = '520px';
+    newInput.style.padding = '10px 14px';
+    newInput.style.border = '#605D67 1px solid';
+    newInput.style.borderRadius = '12px';
+    newInput.style.display = 'flex';
+    newInput.style.marginLeft = 'auto';
+    newInput.style.marginRight = 'auto';
 
-  // Append the new input to the areaOperationContainer
-  document.getElementById('areaOperationContainer').appendChild(newInput);
+    document.getElementById('areaOperationContainer').appendChild(newInput);
 
-  // Close the area operation modal
-  document.getElementById('areaOperationModal').style.display = 'none';
-
-  // Reset the dropdowns
-  document.getElementById('provinceSelect').selectedIndex = 0;
-  document.getElementById('citySelect').selectedIndex = 0;
-  document.getElementById('barangaySelect').selectedIndex = 0;
-});
-
-// Example of how to populate the dropdowns (you would likely load these dynamically)
-function populateDropdowns() {
-  const provinceSelect = document.getElementById('provinceSelect');
-  const citySelect = document.getElementById('citySelect');
-  const barangaySelect = document.getElementById('barangaySelect');
-
-  // Example data (replace this with actual data from your backend or other sources)
-  const provinces = ['Province 1', 'Province 2', 'Province 3'];
-  const cities = ['City 1', 'City 2', 'City 3'];
-  const barangays = ['Barangay 1', 'Barangay 2', 'Barangay 3'];
-
-  // Populate province dropdown
-  provinces.forEach(province => {
-    const option = document.createElement('option');
-    option.value = province;
-    option.textContent = province;
-    provinceSelect.appendChild(option);
+    // Reset form and close modal
+    document.getElementById('areaOperationForm').reset();
+    document.getElementById('cityInput').disabled = true;
+    document.getElementById('barangayInput').disabled = true;
+    document.getElementById('areaOperationModal').style.display = 'none';
   });
-
-  // Populate city dropdown
-  cities.forEach(city => {
-    const option = document.createElement('option');
-    option.value = city;
-    option.textContent = city;
-    citySelect.appendChild(option);
-  });
-
-  // Populate barangay dropdown
-  barangays.forEach(barangay => {
-    const option = document.createElement('option');
-    option.value = barangay;
-    option.textContent = barangay;
-    barangaySelect.appendChild(option);
-  });
-}
-
-// Call the function to populate dropdowns when the page loads or when needed
-populateDropdowns();
   
   document.getElementById('addOrgForm').addEventListener('submit', function (event) {
     event.preventDefault();
