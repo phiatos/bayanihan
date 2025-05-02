@@ -22,170 +22,214 @@
         <div class="sidebar-placeholder">
             
         </div>
-        <!-- container kay mika -->
         <div id="main-content">
-            <div class="heading">
-                <div class="heading_title">
-                    <header>Volunteer Group Management</header>
-                </div>
-                <div class="heading_input">
-                    <input type="text" id="searchInput" placeholder="Search..." />
-                </div>
-            </div>
-
             <div class="controls">
                 <div class="controls_left">
-                <button id="updateSelected"><i class='bx bx-loader-alt' style=""></i> Update</button>
-                <span id="selectedCount">0 Selected</span>
-                <select id="sortSelect">
-                    <option value="">Sort by</option>
-                    <option value="organization">Organization</option>
-                    <option value="address">Address</option>
-                    <option value="status">Status</option> 
-                </select>
-                <span id="totalCount">0 results</span> 
+                    <header>Volunteer Group Management</header>
                 </div>
                 <div class="controls_right">
-                <button id="addNew"><i class='bx bx-plus' style="color: white; padding-right: 5px;"></i>Add New</button>
+                  <div class="search-wrapper">
+                    <i class="fa fa-search"></i>
+                    <input type="text" placeholder="Search" id="searchInput" />
+                    <button onclick="clearDInputs()" class="clear-btn">
+                      <i class='bx bx-x'></i>
+                    </button>
+                  </div>
+                  
+                  <div class="custom-select-wrapper">
+                    <select id="sortSelect">
+                      <option value="">Sort by</option>
+                      <option value="organization">Organization</option>
+                      <option value="address">Address</option>
+                      <option value="status">Status</option>
+                    </select>
+                    <i class='bx bx-chevron-down'></i>
+                  </div>
                 </div>
             </div>
 
             <table id="orgTable">
                 <thead>
-                    <tr>
-                    <th><input type="checkbox" class="row-checkbox"></th>
+                  <tr>
+                    <th>No.</th>
                     <th>Organization</th>
-                    <th>Address</th>
-                    <th>Location</th>
+                    <th>HQ</th>
+                    <th>Area of Operations</th>
                     <th>Contact Person</th>
-                    <th>Number</th>
-                    <th>Link to Facebook Post</th>
-                    <th>Needs/Intervention</th>
-                    <th>Update</th>
-                    <th>Status</th>
-                    </tr>
+                    <th>Email</th>
+                    <th>Mobile Number</th>
+                    <th>Social Media</th>
+                    <th>Actions</th>
+                  </tr>
                 </thead>
                 <tbody>
-                    <!-- Rows will be injected here by JS -->
+                  <!-- Rows will be injected here by JS -->
                 </tbody>
-                </table>
-                <div class="pagination-info">
-                <span id="entriesInfo">Showing 0 to 0 of 0 entries</span>
-                <!-- <div class="pagination-controls">
-                    <button id="prevPage">Previous</button>
-                    <button id="nextPage">Next</button>
-                </div> -->
-                <div id="pagination" class="pagination"></div>
-                </div>
+            </table>
 
-                <div id="addressModal" class="modal" style="display:none;">
-                <div class="modal-content">
-                    <span class="close" onclick="closeModal()" style="display: flex; justify-content: right;">
-                    <i class='bx bx-x' style="font-size: 25px"></i>
-                    </span>
-
-                    <div class="addressModal">
-                        <div class="addressHeader">
-                            <label style="padding-left: 5px;">Address</label>
-                            <button style="padding-left: 170px;" onclick="clearInputs()" id="clear">Clear</button>  
-                        </div>   
-                        <div class="input-group">
-                            <input list="provinceOptions" id="provinceInput" placeholder="Province">
-                            <datalist id="provinceOptions"></datalist>
-                        </div>
-                        <div class="input-group">
-                            <input list="cityOptions" id="cityInput" placeholder="City/Municipality">
-                            <datalist id="cityOptions"></datalist>
-                        </div>
-                        <div class="input-group">
-                            <input list="barangayOptions" id="barangayInput" placeholder="Barangay">
-                            <datalist id="barangayOptions"></datalist>
-                        </div>
-                    </div>
-                    <button onclick="applyChanges()">Submit</button>
-                </div>
+            <div>
+                <button id="addNew"><i class='bx bx-plus' style="color: white; font-size: 30px;"></i></button>
+              </div>
+              
+            <div class="pagination-info">
+              <span id="entriesInfo">Showing 0 to 0 of 0 entries</span>
+            
+              <div id="pagination" class="pagination"></div>
             </div>
+        </div>    
+    </div>
 
-            <div class="add-org-modal" id="addOrgModal">
-                <div class="add-org-modal-content">
-                    
-                    <div class="add-org-header">
-                        <h2 style="color: #4059A5; font-size: 20px;">Add Volunteer New Group</h2>
-                        <span class="close" onclick="closeAModal()" style="display: flex; justify-content: right;">
-                        <i class='bx bx-x' style="font-size: 25px "></i>
-                        </span>
-                    </div>
-
-                    <form id="addOrgForm">
-                        <!-- Your fixed input fields -->
-                        <label>Organization</label>
-                        <input type="text" name="organization" required>
-                
-                        <label>Address</label>
-                        <input type="text" name="address" required>
-                
-                        <label>Location</label>
-                        <input type="text" name="location" required>
-                
-                        <label>Contact Person</label>
-                        <input type="text" name="contact" required>
-                
-                        <label>Number</label>
-                        <input type="text" name="mobile" required>
-                
-                        <label>Link to Facebook Post</label>
-                        <input type="text" name="link">
-                
-                        <label>Needs/Intervention</label>
-                        <input type="text" name="needs">
-                
-                        <label>Update</label>
-                        <select id="update" name="update">
-                        <option value="" disabled selected></option>
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
-                        </select>
-                
-                        <label>Status</label>
-                        <input type="text" name="status" required>
-                
-                        <h2 style="color: #4059A5; font-size: 20px; padding-top: 20px;">Area of Operation</h2>
-                
-                        <div id="areaOperationContainer">
-                        <!-- New inputs will appear here -->
-                        </div>
-                        <button type="button" id="addOperationArea" style="margin-top: 10px;">+ Add Area of Operation</button>
-                
-                        <div style="margin-top: 20px;">
-                    
-                        <button type="submit" style="width: 25%;">Next</button>
-                        </div>
-                    </form>
-                </div>
+    <!-- Edit HQ and Location -->
+    <div id="addressModal" class="modal" style="display:none;">
+        <div class="modal-content">
+        <span class="close" onclick="closeModal()" style="display: flex; justify-content: right;">  
+            <i class='bx bx-x' style="font-size: 25px"></i>
+        </span>
+    
+        <div class="addressModal">
+            <div class="addressHeader">
+            <label for="hqProvinceInput">HQ</label>
+            <button onclick="clearInputs()" id="clear">Clear</button>  
             </div>
-
-            <div class="confirm-modal" id="confirmModal" style="display: none;">
-                <div class="confirm-modal-content">
-                    <h2 style="color: #4059A5; font-size: 20px;">Confirm Details</h2>
-                    <div id="confirmDetails"></div>
-                
-                    <div style="margin-top: 20px;">
-                    <button type="button" id="editDetailsBtn">Back</button>
-                    <button type="button" id="confirmSaveBtn">Submit</button>
-                    </div>
-                </div>
+    
+            <div class="input-group">
+            <input list="hqProvinceOptions" id="hqProvinceInput" placeholder="Province" required> <i class='bx bx-chevron-down'></i>
+            <datalist id="hqProvinceOptions"></datalist>
             </div>
-
-            <div class="success-modal" id="successModal" style="display:none;">
-                <div class="success-modal-content">
-                    <h2 style="color: #4059A5; font-size: 18px;">Account Successfully Added</h2>
-                    <p style="font-weight: 500; color: #8E8E93;">A temporary password has been sent to the newly added volunteer group.</p>
-                    <p><i class='bx bxs-check-circle'></i></p>
-                    <button id="closeSuccessBtn" >Done</button>
-                </div>
+            <div class="input-group">
+            <input list="hqCityOptions" id="hqCityInput" placeholder="City/Municipality (optional)" required>
+            <i class='bx bx-chevron-down'></i>
+            <datalist id="hqCityOptions"></datalist>
+            </div>
+            <div class="input-group">
+            <input list="hqBarangayOptions" id="hqBarangayInput" placeholder="Barangay (optional)" required>
+            <i class='bx bx-chevron-down'></i>
+            <datalist id="hqBarangayOptions"></datalist>
+            </div>
+    
+            <div class="addressHeader">
+                <label for="locProvinceInput">Location</label>
+                <button onclick="clearInputs()" id="clear">Clear</button>  
+            </div>
+    
+            <div class="input-group">
+            <input list="locProvinceOptions" id="locProvinceInput" placeholder="Province" required><i class='bx bx-chevron-down'></i>
+            <datalist id="locProvinceOptions"></datalist>
+            </div>
+            <div class="input-group">
+            <input list="locCityOptions" id="locCityInput" placeholder="City/Municipality (optional)" required><i class='bx bx-chevron-down'></i>
+            <datalist id="locCityOptions"></datalist>
+            </div>
+            <div class="input-group">
+            <input list="locBarangayOptions" id="locBarangayInput" placeholder="Barangay (optional)" required><i class='bx bx-chevron-down'></i>
+            <datalist id="locBarangayOptions"></datalist>
             </div>
         </div>
+    
+        <div style="text-align: center;">
+            <button onclick="applyChanges()">Save</button>
+        </div>
+        </div>
     </div>
+
+    <!-- New Volunteer Group -->
+    <div class="add-org-modal" id="addOrgModal" style="display: none;">
+        <div class="add-org-modal-content">
+        
+        <div class="add-org-header">
+            <h2 style="color: #4059A5; font-size: 20px; justify-content: center;">Add Volunteer New Group</h2>
+        <span class="close" onclick="closeAModal()" style="display: flex; justify-content: right; ">
+            <i class='bx bx-x' style="font-size: 25px "></i>
+        </span>
+    
+        </div>
+        <form id="addOrgForm">
+    
+            <label>Organization</label>
+            <input type="text" name="organization" placeholder="Enter Organization" required>
+    
+            <label>HQ Location (Barangay)</label>
+            <input type="text" name="hq-barangay" placeholder="Enter HQ's Barangay" required>
+    
+            <label>HQ Location (City/ Municipality)</label>
+            <input type="text" name="hq-city" placeholder="Enter HQ's City/ Municipality" required>
+            
+            <label>HQ Location (Province)</label>
+            <input type="text" name="hq-province" placeholder="Enter HQ's Province" required>
+    
+            <label>Contact Person</label>
+            <input type="text" name="contactPerson" placeholder="Enter Contact Person" required>
+    
+            <label>Email</label>
+            <input type="email" name="email" placeholder="Enter the email of the organization of the Contact Person" required>
+    
+            <label>Mobile Number</label>
+            <input type="number" name="mobileNumber" placeholder="Enter the mobile number of the Contact Person" required>
+    
+            <label>Social Media</label>
+            <input type="text" name="socialMedia" placeholder="Enter Social Media Link (Optional)">
+    
+            <h2 style="color: #4059A5; font-size: 20px; padding-top: 20px;">Area of Operations</h2>
+    
+            <div id="areaOperationContainer">
+            <!-- New inputs will appear here -->
+            </div>
+            <button type="button" id="addOperationArea" style="margin-top: 10px;">Add Area of Operation</button>
+    
+            <div style="margin-top: 20px;">
+        
+            <button type="submit" style="width: 25%;">Next</button>
+            </div>
+        </form>
+        </div>
+    </div>
+
+    <!-- Area of Operation -->
+    <div id="areaOperationModal" class="operation-modal" style="display:none;">
+        <div class="operation-modal-content">
+        <h2>Area of Operation</h2>
+        <hr>
+        <form id="areaOperationForm">
+            
+            <label for="barangayInput">Barangay</label>
+            <input list="barangayList" id="barangayInput" name="barangay" placeholder="Enter Barangay" required>
+            <datalist id="barangayList"></datalist>
+    
+            <label for="cityInput">City/ Municipality</label>
+            <input list="cityList" id="cityInput" name="city" placeholder="Enter City/ Municipality" required>
+            <datalist id="cityList"></datalist>
+    
+            <label for="provinceInput">Province:</label>
+            <input list="provinceList" id="provinceInput" name="province" placeholder="Enter Province" required>
+            <datalist id="provinceList"></datalist>
+    
+            <button type="submit">Add Area of Operation</button>
+        </form>
+        </div>
+    </div>
+    
+    <!-- Confirm Modal -->
+    <div class="confirm-modal" id="confirmModal" style="display:none;">
+        <div class="confirm-modal-content">
+        <h2 style="color: #4059A5; font-size: 20px;">Confirm Details</h2>
+        <div id="confirmDetails"></div>
+    
+        <div style="margin-top: 20px;">
+            <button type="button" id="editDetailsBtn">Return</button>
+            <button type="button" id="confirmSaveBtn">Confirm</button>
+        </div>
+        </div>
+    </div>
+    
+    <!-- Success Modal -->
+    <div class="success-modal" id="successModal" style="display:none;">
+        <div class="success-modal-content">
+        <h2 style="color: #4059A5; font-size: 18px;">Volunteer Group Successfully Added</h2>
+        <p style="font-weight: 500; color: #8E8E93;">A temporary password has been sent to the newly added volunteer group.</p>
+        <p><i class='bx bxs-check-circle'></i></p>
+        <button id="closeSuccessBtn" >Continue</button>
+        </div>
+    </div>  
     
     <script>
         // Fetch the sidebar HTML and inject it into the page
