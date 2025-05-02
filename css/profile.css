@@ -46,7 +46,7 @@ header::before {
 
 .container form{
     position: relative;
-    min-height: 510px; /* Keep this, but the overflow on #main-content will handle cases where it's exceeded */
+    min-height: 510px; 
     height: 100%;
     margin-top: 10px;
     display: flex;
