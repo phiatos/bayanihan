@@ -50,7 +50,7 @@ i {
   display: flex;
   align-items: center;
   gap: 1rem;
-    flex-wrap: wrap;
+  flex-wrap: wrap;
 
 }
 
@@ -117,16 +117,16 @@ tr {
 }
 
 .controls_right input[type="text"], .controls select {
-    padding: 10px;
-    font-size: 14px;
-    max-width: 150px;
-    width: 100%;
-    background-color: #F9FBFF;
-    border: 1px solid #2d2d2d; 
-    border-radius: 100px;
-    box-sizing: border-box;
-    margin: 10px 0;
-    justify-content: right;
+  padding: 10px;
+  font-size: 14px;
+  max-width: 150px;
+  width: 100%;
+  background-color: #F9FBFF;
+  border: 1px solid #2d2d2d; 
+  border-radius: 100px;
+  box-sizing: border-box;
+  margin: 10px 0;
+  justify-content: right;
 }
 
 .controls select {
@@ -149,7 +149,6 @@ tr {
   border-radius: 100%;
   justify-content: right;
   margin: 2% 90%;
-  
 }
 
 .controls #addNew:hover{
