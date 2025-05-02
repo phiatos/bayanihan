@@ -67,86 +67,43 @@
   const tableBody = document.querySelector("#orgTable tbody");
   const entriesInfo = document.querySelector("#entriesInfo");
   const paginationContainer = document.querySelector("#pagination");
-  const updateButton = document.querySelector("#editButton"); 
+  const updateButton = document.querySelector("#editButton");
   const addNew = document.getElementById('addNew');
-    const addOrgModal = document.getElementById('addOrgModal');
-    
-    const addOrgForm = document.getElementById('addOrgForm');
-    
-
+  const addOrgModal = document.getElementById('addOrgModal');
+  const addOrgForm = document.getElementById('addOrgForm');
+  
   function renderTable(filteredData = data) {
     tableBody.innerHTML = "";
     const start = (currentPage - 1) * rowsPerPage;
     const end = start + rowsPerPage;
     const pageData = filteredData.slice(start, end);
-
+  
     pageData.forEach(row => {
       const tr = document.createElement("tr");
       tr.innerHTML = `
         <td contenteditable="false">${row.no}</td>
-        <td contenteditable="false">${row.organization}</td>      
-        <td contenteditable="false">${row.hq}</td>
-        <td contenteditable="false">${row.areaOfOperations}</td>
+        <td contenteditable="false">${row.organization}</td>
+        <td contenteditable="false" class="hqCell">${row.hq}</td> 
+        <td contenteditable="false" class="locationCell">${row.areaOfOperations}</td> 
         <td contenteditable="false">${row.contactPerson} </td>
         <td contenteditable="false">${row.email}</td>
-        <td contenteditable="false">${row.mobileNumber}<button class="copy-btn" data-content="${row.mobileNumber}"><i class='bx bx-copy-alt'></i>
-        </button></td>
+        <td contenteditable="false">${row.mobileNumber}<button class="copy-btn" data-content="${row.mobileNumber}"><i class='bx bx-copy-alt'></i></button></td>
         <td contenteditable="false">${row.socialMedia}</td>
         <td><button class="editButton">Edit</button></td>
-
-  
-
       `;
       tableBody.appendChild(tr);
     });
-
+  
     entriesInfo.textContent = `Showing ${start + 1} to ${Math.min(end, filteredData.length)} of ${filteredData.length} entries`;
-
+  
     renderPagination(filteredData.length);
-    attachAddressClickListeners();
-
-      document.querySelectorAll('.editButton').forEach((button, index) => {
-        button.addEventListener('click', () => toggleEditableCells(index));
-      });
-  }
-
-    //Provinces
-  function populateProvinces() {
-    const provinceInput = document.getElementById('provinceOptions');
-    provinces.forEach(province => {
-      const option = document.createElement('option');
-      option.value = province;
-      provinceInput.appendChild(option);
+    attachRowHandlers();
+  
+    document.querySelectorAll('.editButton').forEach((button, index) => {
+      button.addEventListener('click', () => toggleEditableCells(index));
     });
   }
   
-  //City
-  function populateCities(province) {
-    const cityInput = document.getElementById('cityOptions');
-    cityInput.innerHTML = ''; // Clear previous cities
-    if (cities[province]) {
-      cities[province].forEach(city => {
-        const option = document.createElement('option');
-        option.value = city;
-        cityInput.appendChild(option);
-      });
-    }
-  }
-  
-  //Barangay 
-  function populateBarangays(city) {
-    const barangayInput = document.getElementById('barangayOptions');
-    barangayInput.innerHTML = ''; 
-    if (barangays[city]) {
-      barangays[city].forEach(barangay => {
-        const option = document.createElement('option');
-        option.value = barangay;
-        barangayInput.appendChild(option);
-      });
-    }
-  }
-  
-
   // Copy phone no.
   tableBody.addEventListener('click', (e) => {
     if (e.target.closest('.copy-btn')) {
@@ -159,152 +116,221 @@
       });
     }
   });
-
-// Editable Button for Row
-function toggleEditableCells(rowIndex) {
-  const row = document.querySelectorAll('#orgTable tbody tr')[rowIndex];
-  const cells = row.querySelectorAll('td');
-  const isEditable = cells[0].getAttribute('contenteditable') === 'true';
-
-  for (let i = 0; i < cells.length - 1; i++) {
-    cells[i].setAttribute('contenteditable', isEditable ? 'false' : 'true');
-  }
+  
+  // Editable Button for Row
+  function toggleEditableCells(rowIndex) {
+    const row = document.querySelectorAll('#orgTable tbody tr')[rowIndex];
+    const cells = row.querySelectorAll('td');
+    const isEditable = cells[0].getAttribute('contenteditable') === 'true';
+  
+    for (let i = 0; i < cells.length - 1; i++) {
+      cells[i].setAttribute('contenteditable', isEditable ? 'false' : 'true');
+    }
     if (!isEditable) {
-    row.classList.add('editable-row');
-  } else {
-    row.classList.remove('editable-row');
-  }
-
-  const editButton = row.querySelector('.editButton');
-  editButton.textContent = isEditable ? 'Edit' : 'Save';
-}
-
-  
-  // Modal functions
-  function openModal() {
-    if (!currentAddressCell) return;
-    document.getElementById('addressModal').style.display = 'flex';
-    
-    const parts = currentAddressCell.textContent.split(',').map(p => p.trim());
-    const province = parts[2] || '';
-    const city = parts[1] || '';
-    const barangay = parts[0] || '';
-  
-    document.getElementById('provinceInput').value = province;
-    document.getElementById('cityInput').value = city;
-    document.getElementById('barangayInput').value = barangay;
-  
-    populateProvinces();
-    populateCities(province);
-    populateBarangays(city);
-  }
-
-  function closeModal() {
-    document.getElementById('addressModal').style.display = 'none';
-  } 
-
-  function closeAModal() {
-    document.getElementById('addOrgModal').style.display = 'none';
-  } 
-  
-  function applyChanges() {
-    // Get Address input values
-    const addressProvince = document.getElementById('provinceInput').value.trim();
-    const addressCity = document.getElementById('cityInput').value.trim();
-    const addressBarangay = document.getElementById('barangayInput').value.trim();
-    const fullAddress = `${addressBarangay}, ${addressCity}, ${addressProvince}`;
-  
-    // Get Location input values
-    const locationProvince = document.getElementById('provinceLocationInput').value.trim();
-    const locationCity = document.getElementById('cityLocationInput').value.trim();
-    const locationBarangay = document.getElementById('barangayLocationInput').value.trim();
-    const fullLocation = `${locationBarangay}, ${locationCity}, ${locationProvince}`;
-  
-    // Update table
-    const table = document.getElementById('myTable');
-    const firstRow = table.querySelector('tbody tr');
-  
-    if (firstRow) {
-      const addressCell = firstRow.querySelector('.addressCell');
-  
-      if (addressCell) addressCell.textContent = fullAddress;
+      row.classList.add('editing');  
+    } else {
+      row.classList.remove('editing');
     }
   
-    closeModal(); 
+    const editButton = row.querySelector('.editButton');
+    editButton.textContent = isEditable ? 'Edit' : 'Save';
+  }
+  
+  function populateProvinces() {
+    const provinceList = document.getElementById('hqProvinceOptions');
+    const locProvinceList = document.getElementById('locProvinceOptions');
+    provinceList.innerHTML = '';
+    locProvinceList.innerHTML = '';
+  
+    provinces.forEach(p => {
+      const option1 = document.createElement('option');
+      const option2 = document.createElement('option');
+      option1.value = p;
+      option2.value = p;
+      provinceList.appendChild(option1);
+      locProvinceList.appendChild(option2);
+    });
+  }
+  
+  function populateCities(province, isLocation = false) {
+    const cityList = isLocation ? document.getElementById('locCityOptions') : document.getElementById('hqCityOptions');
+    cityList.innerHTML = '';
+    if (cities[province]) {
+      cities[province].forEach(c => {
+        const option = document.createElement('option');
+        option.value = c;
+        cityList.appendChild(option);
+      });
+    }
+  }
+  
+  function populateBarangays(city, isLocation = false) {
+    const brgyList = isLocation ? document.getElementById('locBarangayOptions') : document.getElementById('hqBarangayOptions');
+    brgyList.innerHTML = '';
+    if (barangays[city]) {
+      barangays[city].forEach(b => {
+        const option = document.createElement('option');
+        option.value = b;
+        brgyList.appendChild(option);
+      });
+    }
+  }
+  
+  function openModal() {
+    if (!currentAddressCell) return;
+  
+    const row = currentAddressCell.closest('tr');
+    const hqCell = row.querySelector('.hqCell');
+    const locCell = row.querySelector('.locationCell');
+  
+    if (hqCell) {
+      const hqParts = hqCell.textContent.split(',').map(p => p.trim());
+      document.getElementById('hqProvinceInput').value = hqParts[2] || '';
+      document.getElementById('hqCityInput').value = hqParts[1] || '';
+      document.getElementById('hqBarangayInput').value = hqParts[0] || '';
+    }
+  
+    if (locCell) {
+      const locParts = locCell.textContent.split(',').map(p => p.trim());
+      document.getElementById('locProvinceInput').value = locParts[2] || '';
+      document.getElementById('locCityInput').value = locParts[1] || '';
+      document.getElementById('locBarangayInput').value = locParts[0] || '';
+    }
+  
+    populateProvinces(); 
+    populateCities(document.getElementById('hqProvinceInput').value, false);
+    populateCities(document.getElementById('locProvinceInput').value, true);
+    populateBarangays(document.getElementById('hqCityInput').value, false);
+    populateBarangays(document.getElementById('locCityInput').value, true);
+  
+    document.getElementById('addressModal').style.display = 'flex';
+  }
+  
+  function closeModal() {
+    document.getElementById('addressModal').style.display = 'none';
+    currentAddressCell = null;
+    clearInputs();
+  }
+  
+  function applyChanges() {
+    const hqProvince = document.getElementById('hqProvinceInput').value.trim();
+    const hqCity = document.getElementById('hqCityInput').value.trim();
+    const hqBarangay = document.getElementById('hqBarangayInput').value.trim();
+    const locProvince = document.getElementById('locProvinceInput').value.trim();
+    const locCity = document.getElementById('locCityInput').value.trim();
+    const locBarangay = document.getElementById('locBarangayInput').value.trim();
+  
+    const hqFullAddress = `${hqBarangay}, ${hqCity}, ${hqProvince}`;
+    const locFullAddress = `${locBarangay}, ${locCity}, ${locProvince}`;
+  
+    if (currentAddressCell) {
+      const row = currentAddressCell.closest('tr');
+      const hqCell = row.querySelector('.hqCell');
+      const locCell = row.querySelector('.locationCell');
+  
+      if (hqCell) {
+        hqCell.textContent = hqFullAddress;
+      }
+  
+      if (locCell) {
+        locCell.textContent = locFullAddress;
+      }
+    }
+  
+    closeModal();
   }
   
   function clearInputs() {
-    document.getElementById('provinceInput').value = '';
-    document.getElementById('cityInput').value = '';
-    document.getElementById('barangayInput').value = '';
-  
+    document.getElementById('hqProvinceInput').value = '';
+    document.getElementById('hqCityInput').value = '';
+    document.getElementById('hqBarangayInput').value = '';
+    document.getElementById('locProvinceInput').value = '';
+    document.getElementById('locCityInput').value = '';
+    document.getElementById('locBarangayInput').value = '';
   }
+  
 
+  document.getElementById('hqProvinceInput').addEventListener('input', e => {
+    populateCities(e.target.value, false);
+  });
+  
+  document.getElementById('locProvinceInput').addEventListener('input', e => {
+    populateCities(e.target.value, true);
+  });
+  
+  document.getElementById('hqCityInput').addEventListener('input', e => {
+    populateBarangays(e.target.value, false);
+  });
+  
+  document.getElementById('locCityInput').addEventListener('input', e => {
+    populateBarangays(e.target.value, true);
+  });
+  
+
+  function attachRowHandlers() {
+    const rows = document.querySelectorAll("#orgTable tbody tr");
+  
+    rows.forEach(row => {
+      const editBtn = row.querySelector(".editButton");
+      
+  
+      if (editBtn) {
+        editBtn.addEventListener("click", () => {
+          row.classList.add("editing");
+  
+
+          const hqCell = row.querySelector(".hqCell");
+          const locCell = row.querySelector(".locationCell");
+  
+          if (hqCell) {
+            hqCell.addEventListener("click", () => {
+              if (row.classList.contains("editing")) {
+                currentAddressCell = hqCell;
+                openModal();
+              }
+            });
+          }
+  
+          if (locCell) {
+            locCell.addEventListener("click", () => {
+              if (row.classList.contains("editing")) {
+                currentAddressCell = locCell;
+                openModal();
+              }
+            });
+          }
+        });
+      }
+    });
+  }
+  
+  document.addEventListener("DOMContentLoaded", () => {
+    attachRowHandlers();
+  });
+  
   addNew.addEventListener('click', () => {
     addOrgModal.style.display = 'flex';
   });
 
-  addOrgForm.addEventListener('submit', (e) => {
+
+  document.getElementById('addOperationArea').addEventListener('click', function () {
+    document.getElementById('areaOperationModal').style.display = 'flex';
+  });
+  
+  document.getElementById('areaOperationForm').addEventListener('submit', function (e) {
     e.preventDefault();
-
-    const formData = new FormData(addOrgForm);
-    const newEntry = {
-      organization: formData.get('organization'),
-      address: formData.get('address'),
-      location: formData.get('location'),
-      contact: formData.get('contact'),
-      mobile: formData.get('mobile'),
-      link: formData.get('link'),
-      needs: formData.get('needs'),
-      update: formData.get('update'),
-      status: formData.get('status')
-    };
-
-    data.push(newEntry);
-    addRowToTable(newEntry);
-
-    addOrgModal.style.display = 'none';
-    addOrgForm.reset();
-  });
   
+    const province = document.getElementById('provinceInput').value.trim();
+    const city = document.getElementById('cityInput').value.trim();
+    const barangay = document.getElementById('barangayInput').value.trim();
   
+    if (!province || !city || !barangay) return;
   
- 
-  
-  function attachAddressClickListeners() {
-    const rows = tableBody.querySelectorAll("tr");
-  
-    rows.forEach(row => {
-      const checkbox = row.querySelector(".row-checkbox");
-      const addressCell = row.children[2]; 
-  
-      addressCell.addEventListener("click", function () {
-        if (checkbox.checked) {
-          currentAddressCell = addressCell;
-          openModal();
-        }
-      });
-    });
-  }
-
-  document.getElementById('provinceInput').addEventListener('input', (e) => {
-    const province = e.target.value;
-    populateCities(province);  
-  });
-  
-  document.getElementById('cityInput').addEventListener('input', (e) => {
-    const city = e.target.value;
-    populateBarangays(city); 
-  });
-  
-
-  document.getElementById('addOperationArea').addEventListener('click', function() {
-    const container = document.getElementById('areaOperationContainer');
     const newInput = document.createElement('input');
-  
     newInput.type = 'text';
-    newInput.name = 'Area Operation'; 
-    newInput.placeholder = 'Enter Area';
+    newInput.name = 'Area Operation';
+    newInput.value = `${province}, ${city}, ${barangay}`;
+    newInput.readOnly = true;
     newInput.style.marginTop = '10px';
     newInput.style.width = '100%';
     newInput.style.maxWidth = '520px';
@@ -315,57 +341,96 @@ function toggleEditableCells(rowIndex) {
     newInput.style.marginLeft = 'auto';
     newInput.style.marginRight = 'auto';
   
-    container.appendChild(newInput);
-  });
+    document.getElementById('areaOperationContainer').appendChild(newInput);
+    document.getElementById('areaOperationModal').style.display = 'none';
+    document.getElementById('provinceInput').value = '';
+    document.getElementById('cityInput').value = '';
+    document.getElementById('barangayInput').value = '';
 
-  document.getElementById('addOrgForm').addEventListener('submit', function(event) {
-    event.preventDefault(); // Always prevent default first
+
+  });
+  
+  document.getElementById('addOrgForm').addEventListener('submit', function (event) {
+    event.preventDefault();
   
     const form = this;
-  
-    // Manual form validation
     if (!form.checkValidity()) {
       form.reportValidity();
       return;
     }
   
-    const formElements = form.elements;
-    let detailsHTML = '<ul style="list-style: none; padding: 0; >';
+    orgData = {
+      organization: form.organization.value,
+      hq: `${form['hq-barangay'].value}, ${form['hq-city'].value}, ${form['hq-province'].value}`,
+      areaOps: Array.from(document.querySelectorAll('#areaOperationContainer input')).map(input => input.value),
+      contactPerson: form.contactPerson.value,
+      email: form.email.value,
+      mobileNumber: form.mobileNumber.value,
+      socialMedia: form.socialMedia.value
+    };
   
-    for (let element of formElements) {
-      if ((element.tagName === 'INPUT' || element.tagName === 'SELECT') && element.type !== 'submit' && element.type !== 'button') {
-        const label = element.previousElementSibling ? element.previousElementSibling.innerText : element.name;
-        const value = element.value.trim() !== '' ? element.value.trim() : 'N/A';
-    
-        detailsHTML += `<li><strong style="color: #4059A5;">${label}:</strong> ${value}</li>`;
-
-      }
-    }
-  
-    detailsHTML += '</ul>';
-  
-    document.getElementById('confirmDetails').innerHTML = detailsHTML;
+    // Update confirmation details
+    const confirmDetails = document.getElementById('confirmDetails');
+    confirmDetails.innerHTML = `
+      <p><strong style="color: #4059A5;">Organization:</strong> ${orgData.organization}</p>
+      <p><strong style="color: #4059A5;">HQ:</strong> ${orgData.hq}</p>
+      <p><strong style="color: #4059A5;">Contact Person:</strong> ${orgData.contactPerson}</p>
+      <p><strong style="color: #4059A5;">Email:</strong> ${orgData.email}</p>
+      <p><strong style="color: #4059A5;">Mobile:</strong> ${orgData.mobileNumber}</p>
+      <p><strong style="color: #4059A5;">Social Media:</strong> ${orgData.socialMedia}</p>
+      <p><strong style="color: #4059A5;">Area of Operations:</strong> ${orgData.areaOps.join(', ')}</p>
+    `;
   
     document.getElementById('addOrgModal').style.display = 'none';
     document.getElementById('confirmModal').style.display = 'block';
   });
   
-  document.getElementById('editDetailsBtn').addEventListener('click', function() {
-    document.getElementById('confirmModal').style.display = 'none'; 
-    document.getElementById('addOrgModal').style.display = 'block'; 
-   
+  document.getElementById('editDetailsBtn').addEventListener('click', function () {
+    document.getElementById('confirmModal').style.display = 'none';
+    document.getElementById('addOrgModal').style.display = 'block';
   });
   
-  document.getElementById('confirmSaveBtn').addEventListener('click', function() {
-    document.getElementById('confirmModal').style.display = 'none'; 
-    document.getElementById('successModal').style.display = 'flex'; 
+  document.getElementById('confirmSaveBtn').addEventListener('click', function () {
+    if (!orgData) return;
+  
+    const table = document.querySelector('#orgTable tbody');
+    const rowCount = table.rows.length + 1;
+  
+    const row = table.insertRow();
+    row.innerHTML = `
+      <td>${rowCount}</td>
+      <td>${orgData.organization}</td>
+      <td>${orgData.hq}</td>
+      <td>${orgData.areaOps.join(', ')}</td>
+      <td>${orgData.contactPerson}</td>
+      <td>${orgData.email}</td>
+      <td>${orgData.mobileNumber}</td>
+      <td>${orgData.socialMedia}</td>
+      <td><button>Edit</button></td>
+    `;
+  
+    orgData = null;
+    document.getElementById('confirmModal').style.display = 'none';
+    document.getElementById('successModal').style.display = 'block';
   });
+  
+  document.getElementById('closeSuccessBtn').addEventListener('click', () => {
+    clearInputs();
+    document.getElementById('successModal').style.display = 'none';
+  });
+  
+  function clearInputs() {
+    const form = document.getElementById('addOrgForm');
+    form.reset(); // This will reset all form inputs
+    document.getElementById('areaOperationContainer').innerHTML = ''; 
+  }
+  
+  function closeAModal() {
+    document.getElementById('addOrgModal').style.display = 'none';
+    clearInputs();
+  }
+  
 
-  document.getElementById('closeSuccessBtn').addEventListener('click', function() {
-    document.getElementById('successModal').style.display = 'none'; 
-    document.getElementById('addOrgForm').reset(); 
-    
-  });
    // Pagination
    function renderPagination(totalRows) {
     paginationContainer.innerHTML = "";
@@ -410,6 +475,7 @@ function toggleEditableCells(rowIndex) {
 
     return filtered;
   }
+
 
   // search 
   searchInput.addEventListener("input", () => {

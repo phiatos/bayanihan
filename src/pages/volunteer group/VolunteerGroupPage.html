@@ -54,7 +54,7 @@
     </div>
 
     
-    <div id="addressModal" class="modal" style="display:none;">
+<div id="addressModal" class="modal" style="display:none;">
   <div class="modal-content">
     <span class="close" onclick="closeModal()" style="display: flex; justify-content: right;">
       <i class='bx bx-x' style="font-size: 25px"></i>
@@ -62,23 +62,45 @@
 
     <div class="addressModal">
       <div class="addressHeader">
-      <label style="padding-left: 5px;">Address</label>
-      <button style="padding-left: 170px;" onclick="clearInputs()" id="clear">Clear</button>  
-      </div>   
-       <div class="input-group">
-        <input list="provinceOptions" id="provinceInput" placeholder="Province">
-        <datalist id="provinceOptions"></datalist>
+        <label for="hqProvinceInput">HQ</label>
+        <button onclick="clearInputs()" id="clear">Clear</button>  
+      </div>
+
+      <div class="input-group">
+        <input list="hqProvinceOptions" id="hqProvinceInput" placeholder="Province" required>
+        <datalist id="hqProvinceOptions"></datalist>
       </div>
       <div class="input-group">
-        <input list="cityOptions" id="cityInput" placeholder="City/Municipality">
-        <datalist id="cityOptions"></datalist>
+        <input list="hqCityOptions" id="hqCityInput" placeholder="City/Municipality" required>
+        <datalist id="hqCityOptions"></datalist>
       </div>
       <div class="input-group">
-        <input list="barangayOptions" id="barangayInput" placeholder="Barangay">
-        <datalist id="barangayOptions"></datalist>
+        <input list="hqBarangayOptions" id="hqBarangayInput" placeholder="Barangay" required>
+        <datalist id="hqBarangayOptions"></datalist>
+      </div>
+
+        <div class="addressHeader">
+          <label for="locProvinceInput">Location</label>
+          <button onclick="clearInputs()" id="clear">Clear</button>  
+        </div>
+
+      <div class="input-group">
+        <input list="locProvinceOptions" id="locProvinceInput" placeholder="Province" required>
+        <datalist id="locProvinceOptions"></datalist>
+      </div>
+      <div class="input-group">
+        <input list="locCityOptions" id="locCityInput" placeholder="City/Municipality" required>
+        <datalist id="locCityOptions"></datalist>
+      </div>
+      <div class="input-group">
+        <input list="locBarangayOptions" id="locBarangayInput" placeholder="Barangay" required>
+        <datalist id="locBarangayOptions"></datalist>
       </div>
     </div>
-    <button onclick="applyChanges()">Submit</button>
+
+    <div style="text-align: center;">
+      <button onclick="applyChanges()">Submit</button>
+    </div>
   </div>
 </div>
 
@@ -108,16 +130,16 @@
       <input type="text" name="hq-province" placeholder="Enter HQ's Province Location" required>
 
       <label>Contact Person</label>
-      <input type="text" name="contactPerson" placeholder="Enter the name" required>
+      <input type="text" name="contactPerson" placeholder="Enter the name of the Contact Person" required>
 
       <label>Email</label>
-      <input type="email" name="email" placeholder="Enter the email of the organization of the contact person" required>
+      <input type="email" name="email" placeholder="Enter the email of the organization of the Contact Person" required>
 
       <label>Mobile Number</label>
-      <input type="text" name="mobileNumber" placeholder="Enter mobile number of the contact person" required>
+      <input type="number" name="mobileNumber" placeholder="Enter mobile number of the Contact Person" required>
 
       <label>Social Media</label>
-      <input type="text" name="socialMedia">
+      <input type="text" name="socialMedia" placeholder="Enter Social Media Link (Optional)">
 
       <h2 style="color: #4059A5; font-size: 20px; padding-top: 20px;">Area of Operation</h2>
 
@@ -134,6 +156,25 @@
   </div>
 </div>
 
+<div id="areaOperationModal" class="operation-modal" style="display: none;">
+  <div class="operation-modal-content">
+    <h2>Add Area of Operation</h2>
+    <form id="areaOperationForm">
+      <label for="provinceInput">Province:</label>
+      <input type="text" id="provinceInput" name="province" required />
+
+      <label for="cityInput">City:</label>
+      <input type="text" id="cityInput" name="city" required />
+
+      <label for="barangayInput">Barangay:</label>
+      <input type="text" id="barangayInput" name="barangay" required />
+
+      <button type="submit">Add Area Operation</button>
+    </form>
+  </div>
+</div>
+
+
 <div class="confirm-modal" id="confirmModal" style="display: none;">
   <div class="confirm-modal-content">
     <h2 style="color: #4059A5; font-size: 20px;">Confirm Details</h2>
@@ -148,7 +189,7 @@
 
 <div class="success-modal" id="successModal" style="display:none;">
   <div class="success-modal-content">
-    <h2 style="color: #4059A5; font-size: 18px;">Account Successfully Added</h2>
+    <h2 style="color: #4059A5; font-size: 18px;">Volunteer Group Successfully Added</h2>
     <p style="font-weight: 500; color: #8E8E93;">A temporary password has been sent to the newly added volunteer group.</p>
     <p><i class='bx bxs-check-circle'></i></p>
     <button id="closeSuccessBtn" >Done</button>
