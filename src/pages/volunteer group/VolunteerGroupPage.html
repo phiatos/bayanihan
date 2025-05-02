@@ -18,8 +18,11 @@
         <div class="search-wrapper">
           <i class="fa fa-search"></i>
           <input type="text" placeholder="Search" id="searchInput" />
-          <i class="fa fa-times clear-btn" onclick="document.getElementById('searchInput').value=''"></i>
+          <button onclick="clearDInputs()" class="clear-btn">
+            <i class='bx bx-x'></i>
+          </button>
         </div>
+        
         <div class="custom-select-wrapper">
           <select id="sortSelect">
             <option value="">Sort by</option>
@@ -113,7 +116,7 @@
     </div>
 
     <div style="text-align: center;">
-      <button onclick="applyChanges()">Submit</button>
+      <button onclick="applyChanges()">Save</button>
     </div>
   </div>
 </div>
@@ -155,12 +158,12 @@
       <label>Social Media</label>
       <input type="text" name="socialMedia" placeholder="Enter Social Media Link (Optional)">
 
-      <h2 style="color: #4059A5; font-size: 20px; padding-top: 20px;">Area of Operation</h2>
+      <h2 style="color: #4059A5; font-size: 20px; padding-top: 20px;">Area of Operations</h2>
 
       <div id="areaOperationContainer">
         <!-- New inputs will appear here -->
       </div>
-      <button type="button" id="addOperationArea" style="margin-top: 10px;">+ Add Area of Operation</button>
+      <button type="button" id="addOperationArea" style="margin-top: 10px;">Add Area of Operation</button>
 
       <div style="margin-top: 20px;">
     
@@ -200,8 +203,8 @@
     <div id="confirmDetails"></div>
 
     <div style="margin-top: 20px;">
-      <button type="button" id="editDetailsBtn">Back</button>
-      <button type="button" id="confirmSaveBtn">Submit</button>
+      <button type="button" id="editDetailsBtn">Return</button>
+      <button type="button" id="confirmSaveBtn">Confirm</button>
     </div>
   </div>
 </div>
@@ -212,7 +215,7 @@
     <h2 style="color: #4059A5; font-size: 18px;">Volunteer Group Successfully Added</h2>
     <p style="font-weight: 500; color: #8E8E93;">A temporary password has been sent to the newly added volunteer group.</p>
     <p><i class='bx bxs-check-circle'></i></p>
-    <button id="closeSuccessBtn" >Done</button>
+    <button id="closeSuccessBtn" >Continue</button>
   </div>
 </div>  
 

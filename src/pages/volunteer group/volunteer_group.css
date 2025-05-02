@@ -39,38 +39,79 @@ i {
   overflow-x: auto;
 }
 
+.controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center; /* Align items inline vertically */
+  padding: 16px;
+  flex-wrap: wrap;
+}
+
 .controls_left h1 {
   font-size: 18px;
   font-weight: 600;
   color: #4059A5;
   margin: 0;
+  line-height: 1.2;
 }
 
 .controls_right {
   display: flex;
-  align-items: center;
-  gap: 1rem;
-  flex-wrap: wrap;
-
+  align-items: flex-start;
+  gap: 0.7rem;
+  margin-top: 2px; 
+  flex-wrap: nowrap; 
+}
+.controls_right input[type="text"], .controls select {
+  padding: 10px;
+  font-size: 14px;
+  width: 100%;
+  background-color: #F9FBFF;
+  border: 1px solid #2d2d2d; 
+  border-radius: 100px;
+  box-sizing: border-box;
+  margin: 10px 0;
+  justify-content: right;
 }
 
 .search-wrapper {
   display: flex;
+  position: relative;
+
   align-items: center;
-  padding: 6px 10px;
   border-radius: 6px;
-  width: 300px; /* Make this larger if needed */
-  background-color: #fff;
+  max-width: 100%;
 }
 
 .search-wrapper input {
   border: none;
   outline: none;
+  max-height: 35px;
+  padding-right: 30px;
   flex: 1;
-  margin-left: 8px;
   font-size: 14px;
   width: 100%;
   background-color: transparent;
+}
+
+.clear-btn {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 25px;
+}
+
+.controls_right i:hover, .controls_right button:hover {
+  color: rgba(0, 0, 0, 0.6);
+  border: none;
+  background-color: transparent;
+  color: #4059A5;
 }
 
 .search-wrapper .fa-search,
@@ -79,25 +120,20 @@ i {
   cursor: pointer;
 }
 
-#sortSelect {
-  border-radius: 24px;
-  padding: 8px 12px;
-  border: 1px solid #ccc;
-  background-color: white;
-  font-size: 14px;
-  appearance: none;
-}
-
 .custom-select-wrapper {
   position: relative;
   display: inline-block;
 }
 
 .custom-select-wrapper select {
-  padding-right: 30px; /* Leave space for icon */
+  padding: 8px 12px;
+  padding-right: 30px;
   height: 36px;
   font-size: 14px;
-  appearance: none; /* Remove default arrow */
+  border: 1px solid #ccc;
+  border-radius: 24px;
+  background-color: #fff;
+  appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
 }
@@ -105,7 +141,7 @@ i {
 .custom-select-wrapper i {
   position: absolute;
   top: 50%;
-  right: 10px;
+  right: 12px;
   transform: translateY(-50%);
   pointer-events: none;
   color: #666;
@@ -116,18 +152,7 @@ tr {
   transition: background-color 0.3s ease;
 }
 
-.controls_right input[type="text"], .controls select {
-  padding: 10px;
-  font-size: 14px;
-  max-width: 150px;
-  width: 100%;
-  background-color: #F9FBFF;
-  border: 1px solid #2d2d2d; 
-  border-radius: 100px;
-  box-sizing: border-box;
-  margin: 10px 0;
-  justify-content: right;
-}
+
 
 .controls select {
   padding: 8px 12px;
@@ -302,6 +327,10 @@ td.editing {
   table {
     min-width: 900px;
   }
+
+  .controls_right{
+
+  }
 }
 
 @media (max-width: 768px) {
@@ -410,23 +439,25 @@ td.editing {
   position: absolute;
   inset: 0;
   z-index: 1000;
-  display: flex;
   align-items: center;
   justify-content: center;
   padding: 1rem;
   overflow-y: auto;
+
 }
 
 .modal-content {
   position: relative;
   background-color: #fff; 
-  width: 100%;
+  width: 80%;
+  height: 70%;
   max-width: 350px;
   padding: 24px;
   border-radius: 30px;
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
   animation: fadeIn 0.3s;
   box-sizing: border-box;
+  font-size: 12px;
 }
 
 .modal-content .close,
@@ -443,11 +474,10 @@ td.editing {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-top: 15px;
+  padding-top: 5px;
 }
 
 .addressHeader label {
-  font-size: 14px;
   font-weight: 600;
   color: #605D67;
 }
@@ -467,7 +497,7 @@ td.editing {
 
 .input-group input[list] {
   width: 100%;
-  padding: 10px 40px 10px 12px;  
+  padding: 10px 20px 10px 12px;  
   border: 1px solid #605D67;
   border-radius: 24px;
   font-size: 14px;
@@ -523,22 +553,21 @@ td.editing {
   .modal {
     justify-content: center;
     align-items: center;
-    padding: 1rem;
-  }
+    margin: auto; 
+ }
 
   .modal-content {
     padding: 16px;
     border-radius: 20px;
-    width: 100%;
-    max-width: 95vw;
-    max-height: 90vh;
     overflow-y: auto;
+    width: 50%;
   }
 
   .modal-content .close {
     font-size: 20px;
     top: 12px;
     right: 12px;
+    
   }
 
   .input-group input {
@@ -553,20 +582,17 @@ td.editing {
 
 @media (max-width: 768px) {
   .modal {
-  position: absolute;  
-  top: 0;
-  left: 0;
-  align-items: center;
-  padding: 1rem;
+      justify-content: center;
+      align-items: center;
   }
 
   .modal-content {
     padding: 20px;
     border-radius: 24px;
-    width: 100%;
-    max-width: 90vw;
-    max-height: 90vh;
+    /* width: 60%;
+    height: 78%; */
     overflow-y: auto;
+    font-size: 10px;
   }
 
   .input-group label {
@@ -575,6 +601,7 @@ td.editing {
 
   .input-group input {
     font-size: 14px;
+    width: 30%;
   }
 
   .modal-content button {
@@ -590,15 +617,12 @@ td.editing {
 
 /* New Volunteer Group */
 .add-org-modal {
-  display: none; 
+  display: none;
   position: absolute;
   inset: 0;
-  z-index: 909;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  overflow-y: auto;
-  padding: 20px;
+  z-index: 1007;
+  padding: 1rem;
+
 }
 
 .add-org-modal-content {
@@ -685,11 +709,18 @@ select::placeholder {
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
+  .add-org-modal {
+    justify-content: center;
+    align-items: center;
+    padding: 1rem;
+  }
   .add-org-modal-content {
     padding: 20px;
-    max-width: 75vw;
-    max-height: 95vh;
     border-radius: 20px;
+    justify-content: center;
+    align-items: center;
+    margin:  40% auto;
+
   }
 
   .add-org-modal-content input[type="text"],
@@ -735,7 +766,6 @@ select::placeholder {
   position: absolute;
   inset: 0;
   z-index: 1500;
-  display: flex;
   align-items: center;
   justify-content: center;
   padding: 20px;
@@ -830,7 +860,6 @@ select::placeholder {
   position: absolute;
   inset: 0;
   z-index: 1001;
-  display: flex;
   align-items: center;
   justify-content: center;
   padding: 1rem;
@@ -875,12 +904,15 @@ select::placeholder {
   .confirm-modal-content {
     padding: 20px;
     border-radius: 24px;
-    font-size: 10px;
-    width: 30%;
-  }
-
-  .confirm-modal-content #editDetailsBtn {
     font-size: 14px;
+    width: 80%;
+    margin: 10% auto;
+  }
+  .confirm-modal-content #editDetailsBtn{
+    padding: 10px 14px;
+  }
+  .confirm-modal-content #confirmSaveBtn{
+    padding: 8px 14px;
   }
 }
 
@@ -888,6 +920,9 @@ select::placeholder {
   .confirm-modal-content {
     padding: 16px;
     border-radius: 20px;
+    width: 80%;
+    margin: 30% auto;
+
   }
 
   .confirm-modal-content #editDetailsBtn {
@@ -902,15 +937,10 @@ select::placeholder {
   position: absolute;
   inset: 0;
   z-index: 1007;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   padding: 1rem;
-  overflow-y: auto;
 }
 
 .success-modal-content {
-  margin: 10% 30% ;
   background: #FFF9F0;
   position: relative;
   padding: 24px;
@@ -922,12 +952,13 @@ select::placeholder {
   box-sizing: border-box;
   align-items: center;
   justify-content: center;
+  margin: 10% auto ;
+
 }
 
 .success-modal-content i {
   color: #14AEBB;
   font-size: 80px;
-  margin: 20px auto;
   display: block;
 }
 
@@ -950,21 +981,26 @@ select::placeholder {
 }
 
 @media (max-width: 768px) {
-  .success-modal{
-    position: absolute;
-    top: 0;
-    right: 0;
-    align-items: center;
-    padding: 1rem;
-  }
-  .success-modal-content {
-    padding: 24px 30px;
-    border-radius: 18px;
-  }
+    .success-modal {
+      display: flex;
+      padding: 1rem;
+    }
+  
+    .success-modal-content {
+      padding: 24px 30px;
+      border-radius: 18px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
 
-  .success-modal-content i {
-    font-size: 70px;
-  }
+    }
+  
+    .success-modal-content i {
+      font-size: 70px;
+    }
+  
 
   .success-modal-content button {
     font-size: 15px;
@@ -975,6 +1011,7 @@ select::placeholder {
   .success-modal-content {
     padding: 20px;
     border-radius: 16px;
+    width: 70%;
   }
 
   .success-modal-content i {

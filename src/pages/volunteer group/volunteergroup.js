@@ -103,7 +103,28 @@
       button.addEventListener('click', () => toggleEditableCells(index));
     });
   }
-  
+
+  const searchInput = document.getElementById('searchInput');
+  const clearBtn = document.querySelector('.clear-btn');
+
+  // Show/hide clear button based on input value
+  searchInput.addEventListener('input', () => {
+    if (searchInput.value.trim() !== '') {
+      clearBtn.style.display = 'flex';
+    } else {
+      clearBtn.style.display = 'none';
+    }
+  });
+
+  // Clear input and hide button
+  function clearDInputs() {
+    searchInput.value = '';
+    clearBtn.style.display = 'none';
+    searchInput.focus();
+  }
+
+  // Initially hide the clear button
+  clearBtn.style.display = 'none';
 
   // Editable Button for Row
   function toggleEditableCells(rowIndex) {
