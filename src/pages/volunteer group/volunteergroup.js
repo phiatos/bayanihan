@@ -301,6 +301,32 @@
   });
 
 
+  function filterAndPopulateList(inputId, listId, dataArray) {
+    const input = document.getElementById(inputId);
+    const list = document.getElementById(listId);
+  
+    input.addEventListener('input', function () {
+      const val = this.value.toLowerCase();
+      const filtered = dataArray.filter(item => item.toLowerCase().includes(val));
+      list.innerHTML = '';
+      filtered.forEach(item => {
+        const opt = document.createElement('option');
+        opt.value = item;
+        list.appendChild(opt);
+      });
+    });
+  }
+  
+  // Combine all options from cities and barangays
+  const allCities = Object.values(cities).flat();
+  const allBarangays = Object.values(barangays).flat();
+  
+  // Apply filtering
+  filterAndPopulateList('provinceInput', 'provinceList', provinces);
+  filterAndPopulateList('cityInput', 'cityList', allCities);
+  filterAndPopulateList('barangayInput', 'barangayList', allBarangays);
+  
+
   function populateProvinceList() {
     const list = document.getElementById('provinceList');
     list.innerHTML = '';
@@ -309,48 +335,38 @@
       opt.value = p;
       list.appendChild(opt);
     });
-  
-    document.getElementById('cityInput').value = '';
-    document.getElementById('barangayInput').value = '';
   }
   
-  document.getElementById('provinceInput').addEventListener('input', function () {
-    const prov = this.value;
-    const cityList = document.getElementById('cityList');
-    cityList.innerHTML = '';
-  
-    (cities[prov] || []).forEach(c => {
+  function populateCityList() {
+    const list = document.getElementById('cityList');
+    list.innerHTML = '';
+    Object.values(cities).flat().forEach(c => {
       const opt = document.createElement('option');
       opt.value = c;
-      cityList.appendChild(opt);
+      list.appendChild(opt);
     });
+  }
   
-    // Just reset the value but do not disable inputs
-    document.getElementById('cityInput').value = '';
-    document.getElementById('barangayInput').value = '';
-  });
-  
-  document.getElementById('cityInput').addEventListener('input', function () {
-    const city = this.value;
-    const brgyList = document.getElementById('barangayList');
-    brgyList.innerHTML = '';
-  
-    (barangays[city] || []).forEach(b => {
+  function populateBarangayList() {
+    const list = document.getElementById('barangayList');
+    list.innerHTML = '';
+    Object.values(barangays).flat().forEach(b => {
       const opt = document.createElement('option');
       opt.value = b;
-      brgyList.appendChild(opt);
+      list.appendChild(opt);
     });
-  
-    document.getElementById('barangayInput').value = '';
-  });
+  }
   
   document.getElementById('addOperationArea').addEventListener('click', function () {
     populateProvinceList();
+    populateCityList();
+    populateBarangayList();
     document.getElementById('areaOperationModal').style.display = 'flex';
   });
   
   document.getElementById('areaOperationForm').addEventListener('submit', function (e) {
     e.preventDefault();
+  
     const province = document.getElementById('provinceInput').value.trim();
     const city = document.getElementById('cityInput').value.trim();
     const barangay = document.getElementById('barangayInput').value.trim();
@@ -445,7 +461,7 @@
   });
   
   document.getElementById('closeSuccessBtn').addEventListener('click', () => {
-    clearInputs();
+    clearAInputs();
     document.getElementById('successModal').style.display = 'none';
   });
   
@@ -453,7 +469,7 @@
   
   function closeAModal() {
     document.getElementById('addOrgModal').style.display = 'none';
-    clearInputs();
+    clearAInputs();
   }
 
   function clearAInputs() {
