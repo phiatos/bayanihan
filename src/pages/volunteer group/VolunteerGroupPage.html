@@ -71,11 +71,11 @@
         <datalist id="hqProvinceOptions"></datalist>
       </div>
       <div class="input-group">
-        <input list="hqCityOptions" id="hqCityInput" placeholder="City/Municipality" required>
+        <input list="hqCityOptions" id="hqCityInput" placeholder="City/Municipality (optional)" required>
         <datalist id="hqCityOptions"></datalist>
       </div>
       <div class="input-group">
-        <input list="hqBarangayOptions" id="hqBarangayInput" placeholder="Barangay" required>
+        <input list="hqBarangayOptions" id="hqBarangayInput" placeholder="Barangay (optional)" required>
         <datalist id="hqBarangayOptions"></datalist>
       </div>
 
@@ -89,11 +89,11 @@
         <datalist id="locProvinceOptions"></datalist>
       </div>
       <div class="input-group">
-        <input list="locCityOptions" id="locCityInput" placeholder="City/Municipality" required>
+        <input list="locCityOptions" id="locCityInput" placeholder="City/Municipality (optional)" required>
         <datalist id="locCityOptions"></datalist>
       </div>
       <div class="input-group">
-        <input list="locBarangayOptions" id="locBarangayInput" placeholder="Barangay" required>
+        <input list="locBarangayOptions" id="locBarangayInput" placeholder="Barangay (optional)" required>
         <datalist id="locBarangayOptions"></datalist>
       </div>
     </div>
@@ -117,19 +117,19 @@
     <form id="addOrgForm">
 
       <label>Organization</label>
-      <input type="text" name="organization" placeholder="Enter Organization's Name" required>
+      <input type="text" name="organization" placeholder="Enter Organization" required>
 
       <label>HQ Location (Barangay)</label>
-      <input type="text" name="hq-barangay" placeholder="Enter HQ's Barangay Location" required>
+      <input type="text" name="hq-barangay" placeholder="Enter HQ's Barangay" required>
 
       <label>HQ Location (City/ Municipality)</label>
-      <input type="text" name="hq-city" placeholder="Enter HQ's City Location" required>
+      <input type="text" name="hq-city" placeholder="Enter HQ's City" required>
       
       <label>HQ Location (Province)</label>
-      <input type="text" name="hq-province" placeholder="Enter HQ's Province Location" required>
+      <input type="text" name="hq-province" placeholder="Enter HQ's Province" required>
 
       <label>Contact Person</label>
-      <input type="text" name="contactPerson" placeholder="Enter the name of the Contact Person" required>
+      <input type="text" name="contactPerson" placeholder="Enter Contact Person" required>
 
       <label>Email</label>
       <input type="email" name="email" placeholder="Enter the email of the organization of the Contact Person" required>
@@ -159,18 +159,20 @@
   <div class="operation-modal-content">
     <h2>Add Area of Operation</h2>
     <form id="areaOperationForm">
-
-      <label for="provinceInput">Province:</label>
-      <input list="provinceList" id="provinceInput" name="province" placeholder="Type or select…" required>
-      <datalist id="provinceList"></datalist>
+      
+      <label for="barangayInput">Barangay:</label>
+      <input list="barangayList" id="barangayInput" name="barangay" placeholder="Type or select…" required>
+      <datalist id="barangayList"></datalist>
 
       <label for="cityInput">City:</label>
-      <input list="cityList" id="cityInput" name="city" placeholder="Type or select…" required disabled>
+      <input list="cityList" id="cityInput" name="city" placeholder="Type or select…" required>
       <datalist id="cityList"></datalist>
 
-      <label for="barangayInput">Barangay:</label>
-      <input list="barangayList" id="barangayInput" name="barangay" placeholder="Type or select…" required disabled>
-      <datalist id="barangayList"></datalist>
+      <label for="provinceInput">Province:</label>
+      <input list="provinceList" id="provinceInput" name="province" placeholder="Enter " required>
+      <datalist id="provinceList"></datalist>
+
+      
 
       <button type="submit">Add Area Operation</button>
     </form>

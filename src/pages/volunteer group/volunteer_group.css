@@ -13,8 +13,7 @@ body {
     padding: 30px;
     background-color: #FFF9F0;
     color: #333;
-    overflow-y: scroll;
-    width: 100%;
+    overflow-x:hidden;
 }
 
 i {
@@ -104,47 +103,17 @@ tr {
   padding: 10px; 
 }
 
-.controls_left,
-.controls_right {
-  display: flex;
-  align-items: center;
-  gap: 10px; 
-}
-
-.controls #addNew{
+.controls #addNew {
   background-color: #4059A5;
   padding: 12px 15px;
   border-radius: 8px;
   border-radius: 100%;
 }
 
-
-
-.controls #updateSelected{
-  background-color: transparent;
-  border: 1px solid #4059A5;
-  font-weight: 600;
-  width: 100%;
-  padding: 10px 5px;
+.controls #addNew:hover{
+  background-color: #142452;
 }
 
-.controls #selectedCount{
-  color: #4D5874;
-  font-size: 13px;
-  border: 1px solid #E0E3EB;
-  border-radius: 8px;
-  font-weight: 500;
-  padding: 10px;
-  width: 100%;
-}
-
-.controls #totalCount{
-  color: #4D5874;
-  padding: 10px;
-  font-size: 13px;
-  width: 100%;
-
-}
 
 .table-container {
     width: 100%;
@@ -220,19 +189,6 @@ button:hover {
     background-color: #0e7781;
 }
 
-
-.status-circle {
-    display: inline-block;
-    align-items: center;
-    width: 25px;
-    height: 25px;
-    border-radius: 50%;
-}
-
-.status-circle.green { background-color: #34c579; }
-.status-circle.red { background-color: red; }
-.status-circle.gray { background-color: #e7e7e7; }
-
 .pagination-info {
     display: flex;
     flex-wrap: wrap;
@@ -279,21 +235,6 @@ button:hover {
     flex-wrap: wrap;
 }
 
-.edit-btn {
-    padding: 6px 12px;
-    font-size: 13px;
-    background-color: #28a745;
-    border: none;
-    color: white;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background-color 0.3s;
-}
-
-.edit-btn:hover {
-    background-color: #218838;
-}
-
 td.editing {
     background-color: rgba(250, 225, 3, 0.356);
 }
@@ -303,8 +244,6 @@ td.editing {
     display: inline-block;
     width: 100%;
 }
-
-
   .area-dropdown {
     position: relative;
     display: inline-block;
@@ -350,25 +289,7 @@ td.editing {
   .area-dropdown.show .area-dropdown-content {
     display: block;
   }
-  
-  .copy-btn {
-    background: none;       
-    border: none;            
-    color: #A6ADBF;          
-    font: inherit;          
-    cursor: pointer;       
-    padding: 0;      
-    width: 20%;
-    height: 20%;        
-    text-decoration: underline; 
-  }
-  
 
-  .copy-btn:hover {
-    text-decoration: none;
-    background-color: transparent;  
-    
-  }
 
 .modal {
   display: none;
@@ -393,7 +314,8 @@ td.editing {
   box-sizing: border-box;
 }
 
-.modal-content .close {
+.modal-content .close, 
+.add-org-modal .close {
   position: absolute;
   top: 16px;
   right: 16px;
@@ -785,10 +707,10 @@ select::placeholder {
       margin: 10px;
     }
   
-    .heading_title input[type="text"] {
+    .heading input[type="text"], .heading select{
       font-size: 12px;
       padding: 8px;
-      max-width: 80%;
+      max-width: 100%;
     }
 
     .controls select {
@@ -827,8 +749,8 @@ select::placeholder {
       text-align: center;
     }
   
-    .controls input[type="text"],
-    .controls select {
+    .heading input[type="text"],
+    .heading select {
       font-size: 12px;
       padding: 8px;
       max-width: 100%;

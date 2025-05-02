@@ -87,7 +87,7 @@
         <td contenteditable="false" class="locationCell">${row.areaOfOperations}</td> 
         <td contenteditable="false">${row.contactPerson} </td>
         <td contenteditable="false">${row.email}</td>
-        <td contenteditable="false">${row.mobileNumber}<button class="copy-btn" data-content="${row.mobileNumber}"><i class='bx bx-copy-alt'></i></button></td>
+        <td contenteditable="false">${row.mobileNumber}</td>
         <td contenteditable="false">${row.socialMedia}</td>
         <td><button class="editButton">Edit</button></td>
       `;
@@ -104,19 +104,7 @@
     });
   }
   
-  // Copy phone no.
-  tableBody.addEventListener('click', (e) => {
-    if (e.target.closest('.copy-btn')) {
-      const btn = e.target.closest('.copy-btn');
-      const content = btn.getAttribute('data-content');
-      navigator.clipboard.writeText(content).then(() => {
-        alert(`Copied to clipboard: ${content}`);
-      }).catch(err => {
-        console.error("Error copying text: ", err);
-      });
-    }
-  });
-  
+
   // Editable Button for Row
   function toggleEditableCells(rowIndex) {
     const row = document.querySelectorAll('#orgTable tbody tr')[rowIndex];
@@ -321,58 +309,54 @@
       opt.value = p;
       list.appendChild(opt);
     });
-
+  
     document.getElementById('cityInput').value = '';
-    document.getElementById('cityInput').disabled = true;
     document.getElementById('barangayInput').value = '';
-    document.getElementById('barangayInput').disabled = true;
   }
-
+  
   document.getElementById('provinceInput').addEventListener('input', function () {
     const prov = this.value;
-    const cityInput = document.getElementById('cityInput');
     const cityList = document.getElementById('cityList');
     cityList.innerHTML = '';
-
+  
     (cities[prov] || []).forEach(c => {
       const opt = document.createElement('option');
       opt.value = c;
       cityList.appendChild(opt);
     });
-
-    cityInput.disabled = false;
+  
+    // Just reset the value but do not disable inputs
+    document.getElementById('cityInput').value = '';
     document.getElementById('barangayInput').value = '';
-    document.getElementById('barangayInput').disabled = true;
   });
-
+  
   document.getElementById('cityInput').addEventListener('input', function () {
     const city = this.value;
-    const brgyInput = document.getElementById('barangayInput');
     const brgyList = document.getElementById('barangayList');
     brgyList.innerHTML = '';
-
+  
     (barangays[city] || []).forEach(b => {
       const opt = document.createElement('option');
       opt.value = b;
       brgyList.appendChild(opt);
     });
-
-    brgyInput.disabled = false;
+  
+    document.getElementById('barangayInput').value = '';
   });
-
+  
   document.getElementById('addOperationArea').addEventListener('click', function () {
     populateProvinceList();
     document.getElementById('areaOperationModal').style.display = 'flex';
   });
-
+  
   document.getElementById('areaOperationForm').addEventListener('submit', function (e) {
     e.preventDefault();
     const province = document.getElementById('provinceInput').value.trim();
     const city = document.getElementById('cityInput').value.trim();
     const barangay = document.getElementById('barangayInput').value.trim();
-
+  
     if (!province || !city || !barangay) return;
-
+  
     const newInput = document.createElement('input');
     newInput.type = 'text';
     newInput.name = 'Area Operation';
@@ -387,15 +371,14 @@
     newInput.style.display = 'flex';
     newInput.style.marginLeft = 'auto';
     newInput.style.marginRight = 'auto';
-
+  
     document.getElementById('areaOperationContainer').appendChild(newInput);
-
+  
     // Reset form and close modal
     document.getElementById('areaOperationForm').reset();
-    document.getElementById('cityInput').disabled = true;
-    document.getElementById('barangayInput').disabled = true;
     document.getElementById('areaOperationModal').style.display = 'none';
   });
+  
   
   document.getElementById('addOrgForm').addEventListener('submit', function (event) {
     event.preventDefault();
@@ -466,15 +449,17 @@
     document.getElementById('successModal').style.display = 'none';
   });
   
-  function clearInputs() {
-    const form = document.getElementById('addOrgForm');
-    form.reset(); // This will reset all form inputs
-    document.getElementById('areaOperationContainer').innerHTML = ''; 
-  }
+ 
   
   function closeAModal() {
     document.getElementById('addOrgModal').style.display = 'none';
     clearInputs();
+  }
+
+  function clearAInputs() {
+    const form = document.getElementById('addOrgForm');
+    form.reset(); // This will reset all form inputs
+    document.getElementById('areaOperationContainer').innerHTML = ''; 
   }
   
 
