@@ -41,12 +41,13 @@ header::before {
   gap: 10px; 
 }
 
+/* Controls (Search and Sort) */
 .controls {
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
-  padding: 16px;
+  padding-bottom: 16px;
 }
 
 .controls_right {
@@ -68,6 +69,10 @@ header::before {
   box-sizing: border-box;
   margin: 10px 0;
   justify-content: right;
+}
+
+.controls #addNew:hover{
+  background-color: #142452;
 }
 
 .search-wrapper {

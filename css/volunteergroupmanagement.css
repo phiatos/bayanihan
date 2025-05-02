@@ -7,24 +7,10 @@
     font-family: 'Poppins', sans-serif;
 }
 
-/* .heading_input input[type="text"] {
-  padding: 8px 12px;
-  font-size: 12px;
-  max-width: 150px;
-  width: 100%;
-  background-color: rgba(20, 174, 187, 0.1);
-  border: 1px solid #14AEBB; 
-  border-radius: 12px;
-  box-sizing: border-box;
-  margin: 10px 0;
-  justify-content: right;
+i {
+    align-self: right;    
 }
 
-.heading_input input[type="text"]:focus {
-  border-color: #14AEBB; 
-  outline: none; 
-} */
- 
 .main-container{
     display: flex;
     min-height: 100vh; 
@@ -41,23 +27,22 @@
     border-radius: 30px;
     box-shadow: 0 0 30px rgba(0, 0, 0, .2);
     margin: 50px;
+    overflow-y: hidden;
+    max-height: calc(100vh - 100px);
     overflow-y: auto;
 }
 
-#addNew {
-    background-color: #4059A5;
-    padding: 12px 15px;
-    border-radius: 8px;
-    border-radius: 100%;
-    justify-content: right;
-    margin: 2% 90%;
-}
+/* .container {
+    max-width: 1100px;
+    max-height: 100%;
+    margin: 0 auto;
+    border-radius: 20px;
+    padding: 25px 15px;
+    background-color: #FFF;
+    position: relative;
+} */
 
-.controls #addNew:hover{
-background-color: #142452;
-}
-  
-.table-container {
+/* .table-container {
     width: 100%;
     max-height: 65vh;
     overflow-x: auto;
@@ -65,6 +50,16 @@ background-color: #142452;
     background: #ffffff;
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+} */
+
+/* Table Styling */
+#addNew {
+    background-color: #FB3B9A;
+    padding: 12px 15px;
+    border-radius: 8px;
+    border-radius: 100%;
+    justify-content: right;
+    margin: 2% 90%;
 }
 
 table {
