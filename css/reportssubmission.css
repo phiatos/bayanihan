@@ -7,7 +7,7 @@
     font-family: 'Poppins', sans-serif;
 }
 
-.main-container {
+.container {
     display: flex;
     min-height: 100vh; 
     margin: 0 auto;
@@ -27,6 +27,15 @@
     overflow-y: auto;
 }
 
+.container form{
+    position: relative;
+    min-height: 510px; 
+    height: 100%;
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+}
+
 /* Form transitions */
 .container form .form{
     position: absolute;
@@ -39,3 +48,148 @@ form.secActive .form.first{
     opacity: 0;
     pointer-events: none;
 }
+
+/* Card blocks */
+.form-container-1, .form-container-2{
+    border: 2px solid #14AEBB; 
+    background-color: rgba(20, 174, 187, 0.1);
+    border-radius: 8px;
+    padding: 20px;
+    margin: 20px 0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+/* Titles */
+.container form .title, 
+.title{
+    display: block;
+    margin-bottom: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    margin: 6px 0;
+    color: #14AEBB;
+}
+
+/* Fields grid */
+.container form .fields{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+form .fields .input-field{
+    display: flex;
+    flex-direction: column;
+    width: calc(100% / 3 - 10px);
+    margin: 4px 0;
+}
+
+/* Labels */
+.input-field label{
+    font-size: 12px;
+    font-weight: 700;
+    color: #14AEBB;
+}
+
+/* Inputs */
+.input-field input{
+    font-size: 14px;
+    font-weight: 400;
+    color: #333;
+    padding: 10px 15px;
+    background-color: #FFFFFF;
+    border-radius: 5px;
+    margin-top: 6px;
+    border: 1px solid #aaa;
+}
+
+.input-field input:is(:focus, :valid){
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.13);
+}
+
+.input-field input[type="date"]{
+    color: #707070;
+}
+
+.input-field input[type="date"]:valid{
+    color: #000;
+}
+
+/* Display-only text (p tags) */
+.input-field p {
+    font-size: 14px;
+    font-weight: 400;
+    color: #333;
+    padding: 10px 15px;
+    background-color: #FFFFFF;
+    border-radius: 5px;
+    margin-top: 6px;
+    border: 1px solid #aaa;
+    word-wrap: break-word;
+}
+
+/* Buttons */
+.container form button,
+.container form .backBtn{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 45px;
+    max-width: 200px;
+    width: 100%;
+    border: none;
+    outline: none;
+    color: #FFF;
+    border-radius: 5px;
+    margin: 15px 0;
+    background-color: #14AEBB;
+    transition: all 0.3s linear;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 400;
+}
+
+form button:hover{
+    background-color: #14AEBB;
+}
+
+form button i,
+form .backBtn i{
+    margin: 0 6px;
+}
+
+/* Buttons container */
+form .buttons{
+    display: flex;
+    align-items: center;
+    margin-top: 20px;
+}
+
+form .buttons button,
+form .buttons .backBtn {
+    margin-right: 14px;
+}
+
+/* Responsive layout */
+@media (max-width: 750px) {
+    form .fields .input-field{
+        width: calc(100% /2 - 15px);
+    }
+
+    .container form{
+        overflow-y: scroll;
+    }
+
+    .container form::-webkit-scrollbar{
+        display: none;
+        
+    }
+}
+
+@media (max-width: 550px){
+    form .fields .input-field{
+        width: 100%;
+    }
+}
+
+

@@ -49,7 +49,7 @@ form.secActive .form.first{
 }
 
 /* Card blocks */
-.volunteer-group-info, .change-password, .otp-verification{
+.form-container-1, .form-container-2, .otp-verification{
     border: 2px solid #14AEBB; 
     background-color: rgba(20, 174, 187, 0.1);
     border-radius: 8px;
