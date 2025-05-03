@@ -28,28 +28,61 @@ document.addEventListener('DOMContentLoaded', () => {
     itemsTable.style.display = 'none';
   
     addItemBtn.addEventListener('click', () => {
-      const name     = itemNameInput.value.trim();
-      const quantity = quantityInput.value.trim();
-      const notes    = notesInput.value.trim();
-  
-      if (!name || !quantity) {
-        return Swal.fire("Please enter both item name and quantity.");
+        const name = itemNameInput.value.trim();
+        const quantity = quantityInput.value.trim();
+        const notes = notesInput.value.trim();
+      
+        if (!name || !quantity) {
+          return Swal.fire("Please enter both item name and quantity.");
+        }
+      
+        const itemIndex = addedItems.length;
+        addedItems.push({ name, quantity, notes });
+      
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${name}</td>
+          <td>${quantity}</td>
+          <td>${notes}</td>
+          <td><button type="button" class="delete-btn" data-index="${itemIndex}">Delete</button></td>
+        `;
+        itemsTableBody.appendChild(tr);
+      
+        // show the table
+        itemsTable.style.display = 'table';
+      
+        // clear inputs
+        itemNameInput.value = '';
+        quantityInput.value = '';
+        notesInput.value = '';
+      });
+
+      itemsTableBody.addEventListener('click', (e) => {
+        if (e.target.classList.contains('delete-btn')) {
+          const index = parseInt(e.target.getAttribute('data-index'));
+          addedItems.splice(index, 1);
+      
+          // re-render table
+          renderItemsTable();
+        }
+      });
+      
+      function renderItemsTable() {
+        itemsTableBody.innerHTML = '';
+        addedItems.forEach((item, index) => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${item.name}</td>
+            <td>${item.quantity}</td>
+            <td>${item.notes}</td>
+            <td><button type="button" class="delete-btn" data-index="${index}">Delete</button></td>
+          `;
+          itemsTableBody.appendChild(tr);
+        });
+      
+        itemsTable.style.display = addedItems.length > 0 ? 'table' : 'none';
       }
-  
-      addedItems.push({ name, quantity, notes });
-  
-      const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${name}</td><td>${quantity}</td><td>${notes}</td>`;
-      itemsTableBody.appendChild(tr);
-  
-      // show the table
-      itemsTable.style.display = 'table';
-  
-      // clear fields
-      itemNameInput.value = '';
-      quantityInput.value = '';
-      notesInput.value = '';
-    });
+      
   
     nextBtn.addEventListener('click', () => {
       const contactPerson    = contactPersonInput.value.trim();
