@@ -166,8 +166,14 @@ form .buttons{
 }
 
 form .buttons button,
-form .buttons .backBtn {
+form .buttons .backBtn{
     margin-right: 14px;
+}
+.button-group{
+    display: flex;
+    align-items: center;
+    margin-top: 20px;
+    gap: 10px;
 }
 
 /* Responsive layout */
