@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../components/sidebar.css" />
+    <link rel="stylesheet" href="../css/profile.css" />
+    <link rel="stylesheet" href="../css/global.css" />
+    <link rel='stylesheet' href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css'/>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
+
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <title>Profile Page</title>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar-placeholder">
+
+        </div>
+        <div id="main-content">
+            <header>Volunteer Group Information</header>
+            <form action="">
+                <div class="form first">
+                    <div class="volunteer-group-info">
+                        <span class="title">Basic Information</span>
+                        <div class="fields">
+                            <div class="input-field">
+                                <label>Organization Name</label>
+                                <p id="org-name">Loading...</p>
+                            </div>
+                        
+                            <div class="input-field">
+                                <label>HQ</label>
+                                <p id="hq">Loading...</p>
+                            </div>
+                        
+                            <div class="input-field">
+                                <label>Contact Person</label>
+                                <p id="contact-person">Loading...</p>
+                            </div>
+                        
+                            <div class="input-field">
+                                <label>Email Address</label>
+                                <p id="email">Loading...</p>
+                            </div>
+
+                            <div class="input-field">
+                                <label>Mobile Number</label>
+                                <p id="email">Loading...</p>
+                            </div>
+                        
+                            <div class="input-field">
+                                <label>Area of Operation</label>
+                                <p id="area">Loading...</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="change-password">
+                        <span class="title">Change Password</span>
+                        <div class="fields">
+    
+                            <div class="input-field">
+                                <label>Current Password</label>
+                                <input type="password" placeholder="Enter your temporary password" required>
+                            </div>
+    
+                            <div class="input-field">
+                                <label>New Password</label>
+                                <input type="password" placeholder="Enter your new password" required>
+                            </div>
+    
+                            <div class="input-field">
+                                <label>Confirm New Password</label>
+                                <input type="password" placeholder="Confirm your new password" required>
+                            </div>
+                        </div> 
+                    </div>
+
+                    <div class="otp-verification">
+                        <span class="title">Verify Your Mobile Number</span>
+                        <p id="otp-info">Sending OTP to your registered mobile number...</p>
+                    
+                        <div id="recaptcha-container"></div> <!-- Required by Firebase -->
+                    
+                        <div class="fields"> 
+                            <div class="input-field">
+                                <label>Enter OTP</label>
+                                <input type="text" id="otp-code" placeholder="6-digit code" maxlength="6" required>
+                            </div>
+                        </div>
+
+                        <div class="input-field">
+                            <input type="checkbox" id="terms" required>
+                            <label for="terms">I agree to the <a href="terms.html" target="_blank">terms and privacy policy</a></label>
+                        </div>
+                        
+                        <div class="input-field">
+                            <input type="checkbox" id="data-consent" required>
+                            <label for="data-consent">I consent to Bayanihan collecting and storing my data for disaster response purposes</label>
+                        </div>
+                    
+                        <button class="nextBtn">
+                            <span class="btnText">Submit</span>
+                        </button>
+                    </div>      
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+            // Fetch the sidebar HTML and inject it into the page
+            fetch('../components/sidebar.html')
+            .then(response => response.text())
+            .then(data => {
+                document.querySelector('.sidebar-placeholder').innerHTML = data;
+    
+                // Create a new script element
+                const sidebarScript = document.createElement('script');
+                sidebarScript.src = '../components/sidebar.js'; 
+    
+                // Call initSidebar when the script has loaded and executed
+                sidebarScript.onload = function() {
+                };
+    
+                // Append the script element to the sidebar-placeholder
+                document.querySelector('.sidebar-placeholder').appendChild(sidebarScript);
+            })
+            .catch(error => {
+                console.error('Error loading sidebar:', error);
+            });
+        </script>
+
+    <script src="../js/profile.js"></script>
+    
+</body>
+</html>

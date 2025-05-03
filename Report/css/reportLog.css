@@ -1,0 +1,124 @@
+
+body {
+    font-family: 'Poppins', sans-serif;
+    margin: 0;
+    padding: 2rem;
+    background: #f9f9f9;
+    color: #333;
+}
+
+.main-container {
+    display: flex;
+    min-height: 100vh;
+    }
+    
+    #main-content {
+        flex: 1;
+        padding: 20px;
+        background-color: #ffffff;
+    }
+
+h2 {
+    font-size: 1.8rem;
+    margin-bottom: 1rem;
+    color: #1E1E1E;
+}
+
+.table-container {
+    background: #ffffff;
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 800px;
+}
+
+th, td {
+    padding: 1rem;
+    text-align: left;
+    font-size: 0.95rem;
+    border-bottom: 1px solid #eee;
+}
+
+th {
+    background: #f2f4f8;
+    font-weight: 600;
+    color: #333;
+    font-size: 0.95rem;
+}
+
+tr:hover {
+    background: #f9fafb;
+}
+
+.status-icon {
+    font-size: 1.2rem;
+    text-align: center;
+}
+
+.status-icon.approved {
+    color: green;
+}
+
+.status-icon.rejected {
+    color: red;
+}
+
+.controls {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.pagination {
+    margin-top: 1rem;
+    text-align: center;
+    font-size: 0.85rem;
+    color: #555;
+}
+h4{
+    color: green;
+}
+  /* Controls (Search and Sort) */
+.controls {
+display: flex;
+flex-wrap: wrap;
+justify-content: right;
+gap: 12px;
+margin-bottom: 20px;
+}
+
+.controls input[type="text"],
+.controls select {
+padding: 10px;
+font-size: 14px;
+max-width: 300px;
+width: 100%;
+background-color: #F9FBFF;
+border: 1px solid #ccc;
+border-radius: 6px;
+box-sizing: border-box;
+}
+/* Pagination */
+.pagination-info{
+display: flex;
+flex-wrap: wrap;
+justify-content: space-between;
+align-items: center;
+margin-top: 20px;
+gap: 20px;
+}
+
+.pagination-info span {
+flex: 1 1 auto;
+text-align: left;
+font-size: 12px;
+color: #6c757d;
+}
