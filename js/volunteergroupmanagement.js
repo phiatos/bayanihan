@@ -1,40 +1,45 @@
+// Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
+  authDomain: "bayanihan-5ce7e.firebaseapp.com",
+  databaseURL: "https://bayanihan-5ce7e-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "bayanihan-5ce7e",
+  storageBucket: "bayanihan-5ce7e.appspot.com",
+  messagingSenderId: "593123849917",
+  appId: "1:593123849917:web:eb85a63a536eeff78ce9d4",
+  measurementId: "G-ZTQ9VXXVV0"
+};
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const database = firebase.database();
+
+// Data array to store fetched data
+let data = [];
+
 const calamityOptions = [
   "Typhoon", "Earthquake", "Flood", "Volcanic Eruption", "Landslide", "Tsunami"
 ];
 
-const data = [
-  { no: 1, organization: "Red Cross", hq: "Geneva, Switzerland", areaOfOperations: "Global", contactPerson: "Anna Meyer", email: "anna.meyer@redcross.org", mobileNumber: "+41 22 123 4567", socialMedia: "@redcross" },
-  { no: 2, organization: "Doctors Without Borders", hq: "Geneva, Switzerland", areaOfOperations: "Global", contactPerson: "Carlos Ruiz", email: "cruiz@msf.org", mobileNumber: "+41 22 987 6543", socialMedia: "@msf_intl"},
-  { no: 3, organization: "UNICEF", hq: "New York, USA", areaOfOperations: "Global", contactPerson: "Emily Chen", email: "echen@unicef.org", mobileNumber: "+1 212 123 4567", socialMedia: "@unicef"},
-  { no: 4, organization: "Habitat for Humanity", hq: "Atlanta, USA", areaOfOperations: "Worldwide", contactPerson: "Michael Santos", email: "msantos@habitat.org", mobileNumber: "+1 404 123 7890", socialMedia: "@habitatforhumanity"},
-  { no: 5, organization: "World Food Programme", hq: "Rome, Italy", areaOfOperations: "Global", contactPerson: "Giulia Romano", email: "giulia.romano@wfp.org", mobileNumber: "+39 06 6513 3456", socialMedia: "@wfp" },
-  { no: 6, organization: "Greenpeace", hq: "Amsterdam, Netherlands", areaOfOperations: "Global", contactPerson: "Lars van Dijk", email: "lars.vd@greenpeace.org", mobileNumber: "+31 20 718 2000", socialMedia: "@greenpeace"},
-  { no: 7, organization: "Amnesty International", hq: "London, UK", areaOfOperations: "Global", contactPerson: "Rebecca Shaw", email: "rshaw@amnesty.org", mobileNumber: "+44 20 7413 5500", socialMedia: "@amnesty"},
-  { no: 8, organization: "Oxfam", hq: "Oxford, UK", areaOfOperations: "Global", contactPerson: "Tom Bennett", email: "tbennett@oxfam.org", mobileNumber: "+44 1865 473727", socialMedia: "@oxfam"},
-  { no: 9, organization: "World Wildlife Fund", hq: "Gland, Switzerland", areaOfOperations: "Global", contactPerson: "Nina Keller", email: "nkeller@wwf.org", mobileNumber: "+41 22 364 9111", socialMedia: "@wwf" }
-];
-
-
 const provinces = [
   "Abra", "Agusan del Norte", "Agusan del Sur", "Aklan", "Albay", "Antique", "Apayao", "Aurora",
   "Basilan", "Bataan", "Batanes", "Batangas", "Benguet", "Biliran", "Bohol", "Bukidnon", "Bulacan",
-  "Cagayan", "Camarines Norte", "Camarines Sur", "Camiguin", "Capiz", "Catanduanes", "Cavite", 
-  "Cebu", "Cotabato", "Davao del Norte", "Davao del Sur", "Davao Oriental", "Dinagat Islands", 
+  "Cagayan", "Camarines Norte", "Camarines Sur", "Camiguin", "Capiz", "Catanduanes", "Cavite",
+  "Cebu", "Cotabato", "Davao del Norte", "Davao del Sur", "Davao Oriental", "Dinagat Islands",
   "Eastern Samar", "Guimaras", "Ifugao", "Ilocos Norte", "Ilocos Sur", "Iloilo", "Isabela", "Kalinga",
-  "La Union", "Laguna", "Lanao del Norte", "Lanao del Sur", "Leyte", "Maguindanao", "Marinduque", 
-  "Masbate", "Mindoro Occidental", "Mindoro Oriental", "Misamis Occidental", "Misamis Oriental", 
-  "Mountain Province", "Negros Occidental", "Negros Oriental", "Northern Samar", "Nueva Ecija", 
-  "Nueva Vizcaya", "Palawan", "Pampanga", "Pangasinan", "Quezon", "Quirino", "Rizal", "Romblon", 
-  "Samar", "Sarangani", "Siquijor", "Sorsogon", "South Cotabato", "Southern Leyte", "Sultan Kudarat", 
-  "Sulu", "Surigao del Norte", "Surigao del Sur", "Tarlac", "Tawi-Tawi", "Zambales", "Zamboanga del Norte", 
+  "La Union", "Laguna", "Lanao del Norte", "Lanao del Sur", "Leyte", "Maguindanao", "Marinduque",
+  "Masbate", "Mindoro Occidental", "Mindoro Oriental", "Misamis Occidental", "Misamis Oriental",
+  "Mountain Province", "Negros Occidental", "Negros Oriental", "Northern Samar", "Nueva Ecija",
+  "Nueva Vizcaya", "Palawan", "Pampanga", "Pangasinan", "Quezon", "Quirino", "Rizal", "Romblon",
+  "Samar", "Sarangani", "Siquijor", "Sorsogon", "South Cotabato", "Southern Leyte", "Sultan Kudarat",
+  "Sulu", "Surigao del Norte", "Surigao del Sur", "Tarlac", "Tawi-Tawi", "Zambales", "Zamboanga del Norte",
   "Zamboanga del Sur", "Zamboanga Sibugay"
 ];
 
-
 const cities = {
-  "Metro Manila": ["Quezon City", "Makati", "Manila", "Taguig", "Pasig", "Caloocan", "Parañaque", 
-                    "Muntinlupa", "Marikina", "Pasay", "Malabon", "Navotas", "Valenzuela", "Las Piñas", 
-                    "San Juan", "Manila", "Mandaluyong", "Pateros", "Taguig", "Quezon City"],
+  "Metro Manila": ["Quezon City", "Makati", "Manila", "Taguig", "Pasig", "Caloocan", "Parañaque",
+                   "Muntinlupa", "Marikina", "Pasay", "Malabon", "Navotas", "Valenzuela", "Las Piñas",
+                   "San Juan", "Manila", "Mandaluyong", "Pateros", "Taguig", "Quezon City"],
   "Cebu": ["Cebu City", "Mandaue", "Lapu-Lapu", "Toledo", "Danao", "Talisay", "Carcar", "Naga", "Bogo"],
   "Davao": ["Davao City", "Tagum", "Panabo", "Digos", "Samal", "Carmen", "Hagonoy", "Magsaysay"],
   "Iloilo": ["Iloilo City", "Passi", "Arevalo", "Leganes", "Pavia", "Oton", "Bingawan", "Dingle", "San Miguel"],
@@ -42,54 +47,104 @@ const cities = {
   "Batangas": ["Batangas City", "Tanauan", "Lipa", "Nasugbu", "Lian", "San Juan", "Balayan", "Taal"]
 };
 
-
 const barangays = {
-  "Quezon City": ["Barangay Holy Spirit", "Barangay Commonwealth", "Barangay Diliman", "Barangay San Isidro", 
+  "Quezon City": ["Barangay Holy Spirit", "Barangay Commonwealth", "Barangay Diliman", "Barangay San Isidro",
                   "Barangay Loyola Heights", "Barangay Payatas", "Barangay Bagumbayan", "Barangay San Martin de Porres"],
-  "Cebu City": ["Barangay Guadalupe", "Barangay Lahug", "Barangay Mabolo", "Barangay Apas", 
+  "Cebu City": ["Barangay Guadalupe", "Barangay Lahug", "Barangay Mabolo", "Barangay Apas",
                 "Barangay Kalunasan", "Barangay Tinago", "Barangay Tejero", "Barangay Kamputhaw"],
-  "Davao City": ["Barangay Buhangin", "Barangay Talomo", "Barangay Calinan", "Barangay Baguio", 
+  "Davao City": ["Barangay Buhangin", "Barangay Talomo", "Barangay Calinan", "Barangay Baguio",
                  "Barangay Lasang", "Barangay Panabo", "Barangay Paquibato", "Barangay Tigatto"],
-  "Iloilo City": ["Barangay City Proper", "Barangay Arevalo", "Barangay Mandurriao", "Barangay Jaro", 
+  "Iloilo City": ["Barangay City Proper", "Barangay Arevalo", "Barangay Mandurriao", "Barangay Jaro",
                   "Barangay Lapuz", "Barangay Molo", "Barangay Villa Arevalo", "Barangay San Jose"],
-  "Zamboanga City": ["Barangay Santa Catalina", "Barangay Pasonanca", "Barangay San Roque", "Barangay Baliwasan", 
+  "Zamboanga City": ["Barangay Santa Catalina", "Barangay Pasonanca", "Barangay San Roque", "Barangay Baliwasan",
                      "Barangay Tumaga", "Barangay Recodo", "Barangay Zambowood", "Barangay Talisayan"],
-  "Batangas City": ["Barangay Poblacion", "Barangay Sta. Clara", "Barangay Poblacion II", "Barangay Alangilan", 
+  "Batangas City": ["Barangay Poblacion", "Barangay Sta. Clara", "Barangay Poblacion II", "Barangay Alangilan",
                     "Barangay Balagtas", "Barangay Tinga", "Barangay Luntal", "Barangay San Pascual"]
 };
-
 
 const rowsPerPage = 5;
 let currentPage = 1;
 let isEditing = false;
 let currentAddressCell = null;
-let currentLocationCell = null;
+let editingRowId = null;
 const tableBody = document.querySelector("#orgTable tbody");
 const entriesInfo = document.querySelector("#entriesInfo");
 const paginationContainer = document.querySelector("#pagination");
-const updateButton = document.querySelector("#editButton");
 const addNew = document.getElementById('addNew');
 const addOrgModal = document.getElementById('addOrgModal');
 const addOrgForm = document.getElementById('addOrgForm');
+const sortSelect = document.getElementById('sortSelect');
+const searchInput = document.getElementById('searchInput');
+const clearBtn = document.querySelector('.clear-btn');
+let orgData = null;
+
+// Fetch data from Firebase and render the table
+function fetchAndRenderTable() {
+  console.log("Fetching data from Firebase...");
+  database.ref("volunteerGroups").once("value", snapshot => {
+    const fetchedData = snapshot.val();
+    console.log("Fetched data:", fetchedData);
+
+    if (!fetchedData) {
+      console.log("No data found in volunteerGroups node.");
+      Swal.fire({
+        icon: 'info',
+        title: 'No Data',
+        text: 'No volunteer groups found in the database.'
+      });
+      data = [];
+      renderTable();
+      return;
+    }
+
+    data = [];
+    for (let key in fetchedData) {
+      data.push({
+        no: parseInt(key),
+        organization: fetchedData[key].organization,
+        hq: fetchedData[key].hq,
+        areaOfOperation: fetchedData[key].areaOfOperation,
+        contactPerson: fetchedData[key].contactPerson,
+        email: fetchedData[key].email,
+        mobileNumber: fetchedData[key].mobileNumber,
+        socialMedia: fetchedData[key].socialMedia
+      });
+    }
+
+    console.log("Processed data:", data);
+    data.sort((a, b) => a.no - b.no);
+    renderTable();
+  }).catch(error => {
+    console.error("Error fetching data from Firebase:", error);
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: `Failed to fetch data from the database: ${error.message}`
+    });
+  });
+}
 
 function renderTable(filteredData = data) {
+  console.log("Rendering table with data:", filteredData);
   tableBody.innerHTML = "";
   const start = (currentPage - 1) * rowsPerPage;
   const end = start + rowsPerPage;
   const pageData = filteredData.slice(start, end);
+  console.log("Page data:", pageData);
 
   pageData.forEach(row => {
+    console.log("Rendering row:", row);
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td contenteditable="false">${row.no}</td>
       <td contenteditable="false">${row.organization}</td>
-      <td contenteditable="false" class="hqCell">${row.hq}</td> 
-      <td contenteditable="false" class="locationCell">${row.areaOfOperations}</td> 
-      <td contenteditable="false">${row.contactPerson} </td>
+      <td contenteditable="false" class="hqCell">${row.hq}</td>
+      <td contenteditable="false" class="locationCell">${row.areaOfOperation}</td>
+      <td contenteditable="false">${row.contactPerson}</td>
       <td contenteditable="false">${row.email}</td>
       <td contenteditable="false">${row.mobileNumber}</td>
       <td contenteditable="false">${row.socialMedia}</td>
-      <td><button class="editButton">Edit</button></td>
+      <td><button class="editButton" data-id="${row.no}">Edit</button></td>
     `;
     tableBody.appendChild(tr);
   });
@@ -104,45 +159,80 @@ function renderTable(filteredData = data) {
   });
 }
 
-const searchInput = document.getElementById('searchInput');
-const clearBtn = document.querySelector('.clear-btn');
+// Enhanced Search Functionality
+function handleSearch() {
+  const query = searchInput.value.trim().toLowerCase();
+  clearBtn.style.display = query ? 'flex' : 'none';
 
-// Show/hide clear button based on input value
-searchInput.addEventListener('input', () => {
-  if (searchInput.value.trim() !== '') {
-    clearBtn.style.display = 'flex';
-  } else {
-    clearBtn.style.display = 'none';
-  }
-});
+  currentPage = 1; // Reset to first page on search
+  renderTable(filterAndSort());
+}
 
-// Clear input and hide button
+// Clear search input and reset table
 function clearDInputs() {
   searchInput.value = '';
   clearBtn.style.display = 'none';
+  currentPage = 1;
+  renderTable(filterAndSort());
   searchInput.focus();
 }
 
-// Initially hide the clear button
+// Initialize clear button visibility
 clearBtn.style.display = 'none';
+
+// Attach search input event listener
+searchInput.addEventListener('input', handleSearch);
 
 // Editable Button for Row
 function toggleEditableCells(rowIndex) {
   const row = document.querySelectorAll('#orgTable tbody tr')[rowIndex];
   const cells = row.querySelectorAll('td');
   const isEditable = cells[0].getAttribute('contenteditable') === 'true';
-
-  for (let i = 0; i < cells.length - 1; i++) {
-    cells[i].setAttribute('contenteditable', isEditable ? 'false' : 'true');
-  }
-  if (!isEditable) {
-    row.classList.add('editing');  
-  } else {
-    row.classList.remove('editing');
-  }
-
   const editButton = row.querySelector('.editButton');
-  editButton.textContent = isEditable ? 'Edit' : 'Save';
+  const rowId = editButton.getAttribute('data-id');
+
+  if (!isEditable) {
+    for (let i = 0; i < cells.length - 1; i++) {
+      cells[i].setAttribute('contenteditable', 'true');
+    }
+    row.classList.add('editing');
+    editButton.textContent = 'Save';
+    editingRowId = rowId;
+  } else {
+    const updatedData = {
+      organization: cells[1].textContent.trim(),
+      hq: cells[2].textContent.trim(),
+      areaOfOperation: cells[3].textContent.trim(),
+      contactPerson: cells[4].textContent.trim(),
+      email: cells[5].textContent.trim(),
+      mobileNumber: cells[6].textContent.trim(),
+      socialMedia: cells[7].textContent.trim()
+    };
+
+    database.ref(`volunteerGroups/${rowId}`).update(updatedData)
+      .then(() => {
+        for (let i = 0; i < cells.length - 1; i++) {
+          cells[i].setAttribute('contenteditable', 'false');
+        }
+        row.classList.remove('editing');
+        editButton.textContent = 'Edit';
+        editingRowId = null;
+        fetchAndRenderTable();
+        Swal.fire({
+          icon: 'success',
+          title: 'Success',
+          text: 'Volunteer group updated successfully!'
+        });
+      })
+      .catch(error => {
+        console.error("Error updating data in Firebase:", error);
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'Failed to update data in the database. Please try again.'
+        });
+      });
+  }
 }
 
 function populateProvinces() {
@@ -206,7 +296,7 @@ function openModal() {
     document.getElementById('locBarangayInput').value = locParts[0] || '';
   }
 
-  populateProvinces(); 
+  populateProvinces();
   populateCities(document.getElementById('hqProvinceInput').value, false);
   populateCities(document.getElementById('locProvinceInput').value, true);
   populateBarangays(document.getElementById('hqCityInput').value, false);
@@ -258,7 +348,6 @@ function clearInputs() {
   document.getElementById('locBarangayInput').value = '';
 }
 
-
 document.getElementById('hqProvinceInput').addEventListener('input', e => {
   populateCities(e.target.value, false);
 });
@@ -275,19 +364,15 @@ document.getElementById('locCityInput').addEventListener('input', e => {
   populateBarangays(e.target.value, true);
 });
 
-
 function attachRowHandlers() {
   const rows = document.querySelectorAll("#orgTable tbody tr");
 
   rows.forEach(row => {
     const editBtn = row.querySelector(".editButton");
-    
 
     if (editBtn) {
       editBtn.addEventListener("click", () => {
         row.classList.add("editing");
-
-
         const hqCell = row.querySelector(".hqCell");
         const locCell = row.querySelector(".locationCell");
 
@@ -313,14 +398,9 @@ function attachRowHandlers() {
   });
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  attachRowHandlers();
-});
-
 addNew.addEventListener('click', () => {
   addOrgModal.style.display = 'flex';
 });
-
 
 function filterAndPopulateList(inputId, listId, dataArray) {
   const input = document.getElementById(inputId);
@@ -338,15 +418,12 @@ function filterAndPopulateList(inputId, listId, dataArray) {
   });
 }
 
-// Combine all options from cities and barangays
 const allCities = Object.values(cities).flat();
 const allBarangays = Object.values(barangays).flat();
 
-// Apply filtering
 filterAndPopulateList('provinceInput', 'provinceList', provinces);
 filterAndPopulateList('cityInput', 'cityList', allCities);
 filterAndPopulateList('barangayInput', 'barangayList', allBarangays);
-
 
 function populateProvinceList() {
   const list = document.getElementById('provinceList');
@@ -411,11 +488,9 @@ document.getElementById('areaOperationForm').addEventListener('submit', function
 
   document.getElementById('areaOperationContainer').appendChild(newInput);
 
-  // Reset form and close modal
   document.getElementById('areaOperationForm').reset();
   document.getElementById('areaOperationModal').style.display = 'none';
 });
-
 
 document.getElementById('addOrgForm').addEventListener('submit', function (event) {
   event.preventDefault();
@@ -431,30 +506,29 @@ document.getElementById('addOrgForm').addEventListener('submit', function (event
     hq: `${form['hq-barangay'].value}, ${form['hq-city'].value}, ${form['hq-province'].value}`,
     hqBarangay: form['hq-barangay'].value,
     hqCity: form['hq-city'].value,
-    hqProvince: form['hq-province'].value,      areaOps: Array.from(document.querySelectorAll('#areaOperationContainer input')).map(input => input.value),
+    hqProvince: form['hq-province'].value,
+    areaOps: Array.from(document.querySelectorAll('#areaOperationContainer input')).map(input => input.value),
     contactPerson: form.contactPerson.value,
     email: form.email.value,
     mobileNumber: form.mobileNumber.value,
     socialMedia: form.socialMedia.value
   };
 
-  // Update confirmation details
   const confirmDetails = document.getElementById('confirmDetails');
-confirmDetails.innerHTML = `
-<p><strong style="color: #4059A5;">Organization</strong> ${orgData.organization}</p>
-<p><strong style="color: #4059A5;">HQ Location (Barangay)</strong> ${orgData.hqBarangay}</p>
-<p><strong style="color: #4059A5;">HQ Location (City/ Municipality)</strong> ${orgData.hqCity}</p>
-<p><strong style="color: #4059A5;">HQ Location (Province)</strong> ${orgData.hqProvince}</p>
-<p><strong style="color: #4059A5;">Contact Person</strong> ${orgData.contactPerson}</p>
-<p><strong style="color: #4059A5;">Email</strong> ${orgData.email}</p>
-<p><strong style="color: #4059A5;">Mobile</strong> ${orgData.mobileNumber}</p>
-<p><strong style="color: #4059A5;">Social Media</strong> ${orgData.socialMedia}</p>
-<p><strong style="color: #4059A5;">Area of Operations</strong></p>
-<ul style="padding-left:20px;">
-  ${orgData.areaOps.map(area => `<li>${area}</li>`).join('')}
-</ul>
-`;
-
+  confirmDetails.innerHTML = `
+    <p><strong style="color: #4059A5;">Organization</strong> ${orgData.organization}</p>
+    <p><strong style="color: #4059A5;">HQ Location (Barangay)</strong> ${orgData.hqBarangay}</p>
+    <p><strong style="color: #4059A5;">HQ Location (City/ Municipality)</strong> ${orgData.hqCity}</p>
+    <p><strong style="color: #4059A5;">HQ Location (Province)</strong> ${orgData.hqProvince}</p>
+    <p><strong style="color: #4059A5;">Contact Person</strong> ${orgData.contactPerson}</p>
+    <p><strong style="color: #4059A5;">Email</strong> ${orgData.email}</p>
+    <p><strong style="color: #4059A5;">Mobile</strong> ${orgData.mobileNumber}</p>
+    <p><strong style="color: #4059A5;">Social Media</strong> ${orgData.socialMedia}</p>
+    <p><strong style="color: #4059A5;">Area of Operations</strong></p>
+    <ul style="padding-left:20px;">
+      ${orgData.areaOps.map(area => `<li>${area}</li>`).join('')}
+    </ul>
+  `;
 
   document.getElementById('addOrgModal').style.display = 'none';
   document.getElementById('confirmModal').style.display = 'block';
@@ -468,33 +542,48 @@ document.getElementById('editDetailsBtn').addEventListener('click', function () 
 document.getElementById('confirmSaveBtn').addEventListener('click', function () {
   if (!orgData) return;
 
-  const table = document.querySelector('#orgTable tbody');
-  const rowCount = table.rows.length + 1;
+  const newVolunteerGroup = {
+    organization: orgData.organization,
+    hq: orgData.hq,
+    areaOfOperation: orgData.areaOps.join(', '),
+    contactPerson: orgData.contactPerson,
+    email: orgData.email,
+    mobileNumber: orgData.mobileNumber,
+    socialMedia: orgData.socialMedia
+  };
 
-  const row = table.insertRow();
-  row.innerHTML = `
-    <td>${rowCount}</td>
-    <td>${orgData.organization}</td>
-    <td>${orgData.hq}</td>
-    <td>${orgData.areaOps.join(', ')}</td>
-    <td>${orgData.contactPerson}</td>
-    <td>${orgData.email}</td>
-    <td>${orgData.mobileNumber}</td>
-    <td>${orgData.socialMedia}</td>
-    <td><button>Edit</button></td>
-  `;
+  database.ref("volunteerGroups").once("value", snapshot => {
+    const groups = snapshot.val();
+    const keys = groups ? Object.keys(groups).map(Number) : [];
+    const nextKey = keys.length > 0 ? Math.max(...keys) + 1 : 1;
 
-  orgData = null;
-  document.getElementById('confirmModal').style.display = 'none';
-  document.getElementById('successModal').style.display = 'block';
+    database.ref(`volunteerGroups/${nextKey}`).set(newVolunteerGroup)
+      .then(() => {
+        orgData = null;
+        document.getElementById('confirmModal').style.display = 'none';
+        document.getElementById('successModal').style.display = 'block';
+        fetchAndRenderTable();
+        Swal.fire({
+          icon: 'success',
+          title: 'Success',
+          text: 'New volunteer group added successfully!'
+        });
+      })
+      .catch(error => {
+        console.error("Error adding new volunteer group to Firebase:", error);
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'Failed to add new volunteer group to the database. Please try again.'
+        });
+      });
+  });
 });
 
 document.getElementById('closeSuccessBtn').addEventListener('click', () => {
   clearAInputs();
   document.getElementById('successModal').style.display = 'none';
 });
-
-
 
 function closeAModal() {
   document.getElementById('addOrgModal').style.display = 'none';
@@ -503,13 +592,11 @@ function closeAModal() {
 
 function clearAInputs() {
   const form = document.getElementById('addOrgForm');
-  form.reset(); // This will reset all form inputs
-  document.getElementById('areaOperationContainer').innerHTML = ''; 
+  form.reset();
+  document.getElementById('areaOperationContainer').innerHTML = '';
 }
 
-
- // Pagination
- function renderPagination(totalRows) {
+function renderPagination(totalRows) {
   paginationContainer.innerHTML = "";
   const totalPages = Math.ceil(totalRows / rowsPerPage);
 
@@ -536,12 +623,16 @@ function clearAInputs() {
   paginationContainer.appendChild(createButton("Next", currentPage + 1, currentPage === totalPages));
 }
 
-
-//filtering
 function filterAndSort() {
   let filtered = data.filter(row => {
-    const q = searchInput.value.toLowerCase();
-    return Object.values(row).some(v => v.toString().toLowerCase().includes(q));
+    const query = searchInput.value.trim().toLowerCase();
+    // Enhanced filtering to handle edge cases and search across all fields
+    return Object.values(row).some(val => {
+      if (typeof val === 'string' || typeof val === 'number') {
+        return val.toString().toLowerCase().includes(query);
+      }
+      return false;
+    });
   });
 
   if (sortSelect.value) {
@@ -553,18 +644,12 @@ function filterAndSort() {
   return filtered;
 }
 
-
-// search 
-searchInput.addEventListener("input", () => {
-  currentPage = 1;
-  renderTable(filterAndSort());
-});
-
 sortSelect.addEventListener("change", () => {
   currentPage = 1;
   renderTable(filterAndSort());
 });
 
-
-// Initial render
-renderTable();
+document.addEventListener("DOMContentLoaded", () => {
+  fetchAndRenderTable();
+  attachRowHandlers();
+});
