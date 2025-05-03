@@ -7,7 +7,7 @@
     font-family: 'Poppins', sans-serif;
 }
 
-.main-container {
+.container {
     display: flex;
     min-height: 100vh; 
     margin: 0 auto;
@@ -15,7 +15,6 @@
     background-color: #FFF9F0;
 }
 
-  
 /* Main content takes up the rest */
 #main-content {
     flex: 1;
@@ -27,3 +26,337 @@
     margin: 50px;
     overflow-y: auto;
 }
+
+h2, h3{
+    color: #4059A5;
+}
+.container form{
+    position: relative;
+    min-height: 510px; 
+    height: 100%;
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Form transitions */
+.container form .form{
+    position: absolute;
+    width: 100%;
+    transition: 0.3s ease;
+    background-color: #FFF;
+}
+
+form.secActive .form.first{
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Card blocks */
+.form-container-1, .form-container-2{
+    border: 2px solid #14AEBB; 
+    background-color: rgba(20, 174, 187, 0.1);
+    border-radius: 8px;
+    padding: 20px;
+    margin: 20px 0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+/* Titles */
+.container form .title, 
+.title{
+    display: block;
+    margin-bottom: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    margin: 6px 0;
+    color: #14AEBB;
+}
+
+/* Fields grid */
+.container form .fields{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+form .fields .input-field{
+    display: flex;
+    flex-direction: column;
+    width: calc(100% / 3 - 10px);
+    margin: 4px 0;
+}
+
+/* Labels */
+.input-field label{
+    font-size: 12px;
+    font-weight: 700;
+    color: #14AEBB;
+}
+
+/* Inputs */
+.input-field input{
+    font-size: 14px;
+    font-weight: 400;
+    color: #333;
+    padding: 10px 15px;
+    background-color: #FFFFFF;
+    border-radius: 5px;
+    margin-top: 6px;
+    border: 1px solid #aaa;
+}
+
+.input-field input:is(:focus, :valid){
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.13);
+}
+
+.input-field input[type="date"]{
+    color: #707070;
+}
+
+.input-field input[type="date"]:valid{
+    color: #000;
+}
+
+/* Display-only text (p tags) */
+.input-field p {
+    font-size: 14px;
+    font-weight: 400;
+    color: #333;
+    padding: 10px 15px;
+    background-color: #FFFFFF;
+    border-radius: 5px;
+    margin-top: 6px;
+    border: 1px solid #aaa;
+    word-wrap: break-word;
+}
+
+/* Buttons */
+.container form button,
+.container form .backBtn{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 45px;
+    max-width: 200px;
+    width: 100%;
+    border: none;
+    outline: none;
+    color: #FFF;
+    border-radius: 5px;
+    margin: 15px 0;
+    background-color: #14AEBB;
+    transition: all 0.3s linear;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 400;
+}
+
+form button:hover{
+    background-color: #14AEBB;
+}
+
+form button i,
+form .backBtn i{
+    margin: 0 6px;
+}
+
+/* Buttons container */
+form .buttons{
+    display: flex;
+    align-items: center;
+    margin-top: 20px;
+}
+
+form .buttons button,
+form .buttons .backBtn{
+    margin-right: 14px;
+}
+.button-group{
+    display: flex;
+    align-items: center;
+    margin-top: 20px;
+    gap: 10px;
+}
+
+/* Dropdown styling to match text inputs */
+.input-field select {
+    font-size: 14px;
+    font-weight: 400;
+    color: #333;
+    padding: 10px 15px;
+    background-color: #FFFFFF;
+    border-radius: 5px;
+    margin-top: 6px;
+    border: 1px solid #aaa;
+    appearance: none;            /* remove native arrow */
+    background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2210%22%20height%3D%227%22%20viewBox%3D%220%200%2010%207%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cpath%20d%3D%22M0%200l5%207%205-7z%22%20fill%3D%22%23666%22/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 15px center;
+    background-size: 10px 7px;
+  }
+  
+  .input-field select:is(:focus, :valid) {
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.13);
+  }
+  
+  /* Ensure the arrow doesn’t overlap the text on small widths */
+  .input-field select {
+    padding-right: 40px;
+  }
+  
+  /* push the add-item button to top right */
+#addItemBtn {
+    position: absolute;
+    top: 10px;    /* match the container’s padding */
+    right: 20px;  /* match the container’s padding */
+    background-color: #14AEBB;
+    color: white;
+    font-size: 13px;
+    height: 30px;
+    width: fit-content;
+    padding: 15px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+  
+  #addItemBtn:hover {
+    background-color: #128C99;
+  }
+  
+  .form-container-2 {
+    position: relative;      /* enable absolute children */
+    border: 2px solid #14AEBB; 
+    background-color: rgba(20, 174, 187, 0.1);
+    border-radius: 8px;
+    padding: 20px;
+    margin: 20px 0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  }
+
+  #itemsTable {
+    display: none;  /* Hide the table initially */
+    width: 100%;
+    margin-top: 20px;
+    border-collapse: collapse;
+  }
+  
+  #itemsTable.show {
+    display: table;  /* Display the table when an item is added */
+  }
+  
+  #itemsTable th, #itemsTable td {
+    padding: 8px 12px;
+    text-align: left;
+    border: 1px solid #ddd;
+  }
+  
+  #itemsTable th {
+    background-color: #14AEBB;
+    color: white;
+  }
+
+  /* Submission Overview Container */
+#form-page-2 {
+    animation: fadeIn 0.3s ease;
+  }
+  
+  #previewContact {
+    background: rgba(20, 174, 187, 0.1);
+    border: 2px solid #14AEBB;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  }
+  
+  #previewContact p {
+    font-size: 14px;
+    line-height: 1.4;
+    color: #333;
+    margin: 6px 0;
+  }
+  
+  #previewContact strong {
+    color: #14AEBB;
+  }
+  
+  /* Preview Items Table */
+  #form-page-2 table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+  }
+  
+  #form-page-2 th,
+  #form-page-2 td {
+    padding: 12px;
+    border: 1px solid #e0e0e0;
+    text-align: left;
+    font-size: 13px;
+    background-color: #fff;
+  }
+  
+  #form-page-2 th {
+    background-color: #f7f7f7;
+    color: #555;
+    font-weight: 600;
+  }
+  
+  #form-page-2 tbody tr:nth-child(even) {
+    background-color: #fafafa;
+  }
+  
+  #form-page-2 tbody tr:hover {
+    background-color: #f0f8ff;
+  }
+  
+  /* Button group */
+  #form-page-2 .button-group {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 10px;
+  }
+  
+  #form-page-2 .button-group .next-btn {
+    min-width: 120px;
+    background-color: #14AEBB;
+  }
+  
+  #form-page-2 .button-group .next-btn:hover {
+    background-color: #128C99;
+  }
+  
+  /* Simple fade-in animation */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  
+
+/* Responsive layout */
+@media (max-width: 750px) {
+    form .fields .input-field{
+        width: calc(100% /2 - 15px);
+    }
+
+    .container form{
+        overflow-y: scroll;
+    }
+
+    .container form::-webkit-scrollbar{
+        display: none;
+        
+    }
+}
+
+@media (max-width: 550px){
+    form .fields .input-field{
+        width: 100%;
+    }
+}
+
+
