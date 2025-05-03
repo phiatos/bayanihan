@@ -11,6 +11,7 @@
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
      <!-- SweetAlert2 -->
      <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -20,32 +21,56 @@
 <body>
     <body>
         <div class="main-container">
-            <div class="sidebar-placeholder">
-                
-            </div>
+            <div class="sidebar-placeholder"></div>
             <div id="main-content">
-                <header>Reports Verification</header>
-                <div>
-                    <table id="reportsTable">
-                        <thead>
-                            <tr>
-                                <th>No.</th>
-                                <th>Report ID</th>
-                                <th>Barangay</th>
-                                <th>City/Municipality</th>
-                                <th>Time of Intervention</th>
-                                <th>Report Date</th>
-                                <th>Submitted By</th>
-                                <th>Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="submittedReportsContainer">
-                            <!-- Reports will be populated here by JavaScript -->
-                            <button id="viewApprovedBtn">View Approved Reports</button>
-                        </tbody>
-                    </table>
-        
+                <div class="controls">
+                    <div class="controls_left">
+                        <header>Reports Verification</header>
+                    </div>
+                    <div class="controls_right">
+                        <div class="search-wrapper">
+                            <i class="fa fa-search"></i>
+                            <input type="text" placeholder="Search" id="searchInput" />
+                            <button onclick="clearDInputs()" class="clear-btn">
+                                <i class='bx bx-x'></i>
+                            </button>
+                        </div>
+                        <div class="custom-select-wrapper">
+                            <select id="sortSelect">
+                                <option value="">Sort by</option>
+                                <option value="organization">Organization</option>
+                                <option value="hq">HQ</option>
+                                <option value="status">Status</option>
+                                <option value="calamity">Calamity</option>  
+                            </select>
+                            <i class='bx bx-chevron-down'></i>
+                        </div>
+                    </div>
+                </div>
+
+                
+                <table id="reportsTable">
+                    <thead>
+                        <tr>
+                            <th>No.</th>
+                            <th>Report ID</th>
+                            <th>Barangay</th>
+                            <th>City/Municipality</th>
+                            <th>Time of Intervention</th>
+                            <th>Report Date</th>
+                            <th>Submitted By</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="submittedReportsContainer">
+                        <!-- Reports will be populated here by JavaScript -->
+                        <button id="viewApprovedBtn">View Approved Reports</button>
+                    </tbody>
+                </table>
+                <div class="pagination-info">
+                    <span id="entriesInfo">Showing 0 to 0 of 0 entries</span>
+                    <div id="pagination" class="pagination"></div>
                 </div>
             </div>
         </div>
