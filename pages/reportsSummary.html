@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../components/sidebar.css" />
+    <link rel="stylesheet" href="../css/profile.css" />
     <link rel="stylesheet" href="../css/reportsummary.css" />
     <link rel="stylesheet" href="../css/global.css" />
     <link rel='stylesheet' href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css'/>
@@ -15,7 +16,7 @@
      <!-- SweetAlert2 -->
      <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
-    <title>History</title>
+    <title>Report Summary</title>
 </head>
 <body>
     <body>
@@ -25,14 +26,18 @@
             </div>
             <div id="main-content">
                 <header>Report Submission Preview</header>
-                <div id="summaryContainer"></div>
+                <div >
+                    <div id="summaryContainer"></div>
+                </div>
+                
                 <div class="button-group">
                     <button id="backBtn">Back</button>
                     <button id="submitBtn">Submit Report</button>
                 </div>            
             </div>
         </div>
-    
+
+        <script src="../js/reportsSummary.js"></script>
         <script>
             // Fetch the sidebar HTML and inject it into the page
             fetch('../components/sidebar.html')
@@ -56,7 +61,7 @@
             });
         </script>
     
-        <script src="../js/history.js"></script>
+        
     
         
 </body>

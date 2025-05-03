@@ -1,34 +1,80 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap');
-
-*{
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    font-family: 'Poppins', sans-serif;
-}
-
 .main-container {
     display: flex;
-    min-height: 100vh; 
-    margin: 0 auto;
-    justify-content: center; 
-    background-color: #FFF9F0;
+    min-height: 100vh;
+    }
+    
+    #main-content {
+        flex: 1;
+        padding: 20px;
+        background-color: #ffffff;
+    }
+
+/* Heading */
+h2 {
+    color: #405AA5;
+    margin-bottom: 2rem;
+    font-size: 2rem;
+    text-align: start;
 }
 
-
-#main-content {
-    flex: 1;
-    padding: 20px;
-    position: relative;
-    background: #FFFFFF;
-    border-radius: 30px;
-    box-shadow: 0 0 30px rgba(0, 0, 0, .2);
-    margin: 50px;
-    overflow-y: auto;
+/* Table Styles */
+#reportsTable {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
 }
 
-.heading_input {
-  display: flex;
-  align-items: center;
-  gap: 10px; 
+#reportsTable th, #reportsTable td {
+    padding: 1rem;
+    text-align: left;
+    border: 1px solid #ddd;
+}
+
+#reportsTable th {
+    background-color: #ffffff;
+    color: #000000;
+    font-size: 1.1rem;
+}
+
+#reportsTable td {
+    font-size: 0.95rem;
+}
+
+button {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    cursor: pointer;
+}
+
+button:first-of-type {
+    background-color: #4CAF50; /* Green for Approve */
+    color: white;
+}
+
+button:last-of-type {
+    background-color: #f44336; /* Red for Reject */
+    color: white;
+}
+
+button:hover {
+    opacity: 0.8;
+}
+
+/* RESPONSIVE BEHAVIOR */
+@media (min-width: 600px) {
+    #reportsTable {
+        font-size: 1.1rem;
+    }
+
+    #reportsTable th, #reportsTable td {
+        padding: 1.2rem;
+    }
+}
+
+@media (min-width: 900px) {
+    h2 {
+        font-size: 2.5rem;
+    }
 }

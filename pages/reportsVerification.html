@@ -25,10 +25,32 @@
             </div>
             <div id="main-content">
                 <header>Reports Verification</header>
-                <p>This is where your main content will go.</p>
+                <div>
+                    <table id="reportsTable">
+                        <thead>
+                            <tr>
+                                <th>No.</th>
+                                <th>Report ID</th>
+                                <th>Barangay</th>
+                                <th>City/Municipality</th>
+                                <th>Time of Intervention</th>
+                                <th>Report Date</th>
+                                <th>Submitted By</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="submittedReportsContainer">
+                            <!-- Reports will be populated here by JavaScript -->
+                            <button id="viewApprovedBtn">View Approved Reports</button>
+                        </tbody>
+                    </table>
+        
+                </div>
             </div>
         </div>
-    
+
+        <script src="../js/reportsverification.js"></script>
         <script>
             // Fetch the sidebar HTML and inject it into the page
             fetch('../components/sidebar.html')
@@ -52,6 +74,5 @@
             });
         </script>
     
-        <script src="../js/reportsverification.js"></script> 
 </body>
 </html>
