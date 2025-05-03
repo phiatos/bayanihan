@@ -58,5 +58,5 @@ formPage2.addEventListener("submit", function (e) {
     localStorage.setItem("reportData", JSON.stringify(formData));
 
     // Redirect to summary page
-    window.location.href = "../pages/reportSummary.html";
+    window.location.href = "../pages/reportsSummary.html";
 });
