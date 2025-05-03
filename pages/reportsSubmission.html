@@ -19,13 +19,104 @@
 </head>
 <body>
     <body>
-        <div class="main-container">
+        <div class="container">
             <div class="sidebar-placeholder">
                 
             </div>
             <div id="main-content">
-                <header>Submit a Report now!</header>
-                <p>This is where your main content will go.</p>
+                <header>Reports Submission</header>
+                <form id="form-page-1">
+                    <div class="form first">
+                        <div class="form-container-1">
+                            <span class="title">Basic Information</span>
+                            <div class="fields">
+                                <div class="input-field">
+                                    <label>Barangay</label>
+                                    <input type="text" placeholder="Barangay" required>
+                                </div>
+                                <div class="input-field">
+                                    <label>City/Municipality</label>
+                                    <input type="text" placeholder="City/Municipality" required>
+                                </div>
+                                <div class="input-field">
+                                    <label>Time of Intervention</label>
+                                    <input type="text" placeholder="Time of Intervention" required>
+                                </div>
+                                <div class="input-field">
+                                    <label>Submitted by</label>
+                                    <input type="text" placeholder="Submitted by" required>
+                                </div>
+                                <div class="input-field">
+                                    <label>Date of Report</label>
+                                    <input type="text" id="dateOfReport" placeholder="Date of Report" readonly/>
+                                </div>
+                                <div class="input-field">
+                                    <label>Report ID</label>
+                                    <input type="text" id="reportId" placeholder="Report ID" readonly />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-container-2">
+                            <span class="title">Relief Operations</span>
+                            <div class="fields">
+                                <div class="input-field">
+                                    <label>Date</label>
+                                    <input type="date" placeholder="Date" required>
+                                </div>
+
+                                <div class="input-field">
+                                    <label>No. of Individuals or Families</label>
+                                    <input type="number" placeholder="No. of Individuals or Families" min="1" required>
+                                </div>
+
+                                <div class="input-field">
+                                    <label>No. of Food Packs</label>
+                                    <input type="number" placeholder="No. of Food Packs" min="1" required>
+                                </div>
+
+                                <div class="input-field">
+                                    <label>No. of Hot Meals/Ready-to-eat food</label>
+                                    <input type="number" placeholder="No. of Hot Meals" min="1" required>
+                                </div>
+
+                                <div class="input-field">
+                                    <label>Liters of Water</label>
+                                    <input type="number" placeholder="Liters of Water" min="1" required>
+                                </div>
+
+                                <div class="input-field">
+                                    <label>No. of Volunteers Mobilized</label>
+                                    <input type="number" placeholder="No. of Volunteers Mobilized" min="1" required>
+                                </div>
+
+                                <div class="input-field">
+                                    <label>No. of Organizations Activated</label>
+                                    <input type="number" placeholder="No. of Organizations Activated" min="1" required>
+                                </div>
+
+                                <div class="input-field">
+                                    <label>Total Value of In-Kind Donations</label>
+                                    <input type="number" placeholder="No. of Organizations Activated" min="1" required>
+                                </div>
+                            </div>
+                    
+                            <button type="button" class="next-btn" id="nextBtn">Next</button>
+                        </div>
+                    </div>
+                </form>
+            
+                <form id="form-page-2" style="display: none;">
+                    <h2>Additional Updates</h2>
+                    <div>
+                        <!-- <p> Urgent Needs <input type="text" placeholder="Urgent Needs" required ></p> -->
+                        <p> Notes/additional information <textarea rows="6" placeholder="Notes/additional information" required></textarea></p>
+                    </div>
+                    <div class="button-group">
+                        <button type="button" class="next-btn" id="backBtn">Back</button>
+                        <button type="submit" class="next-btn">Next</button>
+                    </div>
+                </form>
             </div>
         </div>
     
@@ -52,6 +143,6 @@
             });
         </script>
     
-        <script src="../js/reliefsrequest.js"></script> 
+        <script src="../js/reportssubmission.js"></script> 
 </body>
 </html>

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Approved Reports Log</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/reportLog.css" />
+    <link rel="stylesheet" href="../components/sidebar.css" />
+    <link rel='stylesheet' href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css'/>
+    <link rel="stylesheet" href="https://unicons.iconsout.com/release/v4.0.0/css/line.css">
+     
+    <!-- Firebase SDK -->
+     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
+ 
+     <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+</head>
+
+<body>
+    <div class="main-container">
+        <div class="sidebar-placeholder">
+        </div>
+        <div id="main-content">
+<h2>Approved Reports Log</h2>
+<h4>Active Members</h4>
+<div class="controls">
+    <input type="text" id="searchInput" placeholder="Search..." />
+    <select id="sortSelect">
+      <option value="">Sort by</option>
+      <option value="organization">Organization</option>
+      <option value="hq">HQ</option>
+      <option value="status">Status</option>
+      <option value="calamity">Calamity</option>  
+    </select>
+  </div>
+    <table id="reportsTable">
+        <thead>
+            <tr>
+                <th>No.</th>
+                <th>Report ID</th>
+                <th>Barangay</th>
+                <th>City/Municipality</th>
+                <th>Report Date</th> 
+                <th>Submitted by</th>
+                <th>No. of Hot Meals</th>
+                <th>Liters of Water</th>
+                <th>Full Report</th>
+            </tr>
+        </thead>
+        <tbody id="reportsBody">
+            <!-- Approved reports will be displayed here -->
+        </tbody>
+    </table>
+    <hr>
+
+
+    <div class="pagination-info">
+        <span id="entriesInfo">Showing 0 to 0 of 0 entries</span>
+        <div class="pagination-controls">
+          <button id="prevPage">Previous</button>
+          <button id="nextPage">Next</button>
+        </div>
+      </div>
+    </div>
+</div>
+<script src="../js/reportLog.js"></script>
+<script>
+    // Fetch the sidebar HTML and inject it into the page
+    fetch('../components/sidebar.html')
+    .then(response => response.text())
+    .then(data => {
+        document.querySelector('.sidebar-placeholder').innerHTML = data;
+
+        // Create a new script element
+        const sidebarScript = document.createElement('script');
+        sidebarScript.src = '../components/sidebar.js'; 
+
+        // Call initSidebar when the script has loaded and executed
+        sidebarScript.onload = function() {
+        };
+
+        // Append the script element to the sidebar-placeholder
+        document.querySelector('.sidebar-placeholder').appendChild(sidebarScript);
+    })
+    .catch(error => {
+        console.error('Error loading sidebar:', error);
+    });
+</script>
+
+</body>
+</html>

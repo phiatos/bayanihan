@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <link rel="stylesheet" href="../../Report/css/reportSubmission.css" />
+    <link rel="stylesheet" href="../css/reportSubmission.css">
+    <link rel='stylesheet' href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css'/>
+    <link rel="stylesheet" href="https://unicons.iconsout.com/release/v4.0.0/css/line.css">
+     
+    <!-- Firebase SDK -->
+     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
+ 
+     <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <title>Report Submission</title>
+</head>
+<body>
+    <div class="main-container">
+        <div class="sidebar-placeholder">
+        </div>
+        <div id="main-content">
+            <form id="form-page-1">
+                <h2>Basic Information</h2>
+                <div class="form-grid">
+                    <p> Barangay <input type="text" placeholder="Barangay" required></p>
+                    <p> City/Municipality <input type="text" placeholder="City/Municipality" required></p>
+                    <p> Time of Intervention <input type="text" placeholder="Time of Intervention" required></p>
+                    <p> Submitted by <input type="text" placeholder="Submitted by" required></p>
+                    <p> Date of Report <input type="text" id="dateOfReport" placeholder="Date of Report" readonly /></p>
+                    <p> Report ID <input type="text" id="reportId" placeholder="Report ID" readonly />
+                    </p>
+                </div>
+        
+                <h2>Relief Operations</h2>
+                <div class="form-grid">
+                    <p> Date <input type="date" placeholder="Date" required></p> 
+                    <p> No. of Individuals or Families <input type="number" placeholder="No. of Individuals or Families" min="1" required></p>
+                    <p> No. of Food Packs <input type="number" placeholder="No. of Food Packs" min="1" required></p>
+                    <p> No. of Hot Meals/Ready-to-eat food <input type="number" placeholder="No. of Hot Meals" min="1" required></p>
+                    <p> Liters of Water <input type="number" placeholder="Liters of Water" min="1" required></p>
+                    <p> No. of Volunteers Mobilized <input type="number" placeholder="No. of Volunteers Mobilized" min="1" required></p>
+                    <p> No. of Organizations Activated <input type="number" placeholder="No. of Organizations Activated" min="1" required></p>
+                    <p> Total Value of In-Kind Donations <input type="number" placeholder="Total Value of In-Kind Donations" min="1" required></p>
+                </div>
+        
+                <button type="button" class="next-btn" id="nextBtn">Next</button>
+            </form>
+        
+            <form id="form-page-2" style="display: none;">
+                <h2>Additional Updates</h2>
+                <div>
+                    <!-- <p> Urgent Needs <input type="text" placeholder="Urgent Needs" required ></p> -->
+                    <p> Notes/additional information <textarea rows="6" placeholder="Notes/additional information" required></textarea></p>
+                </div>
+                <div class="button-group">
+                    <button type="button" class="next-btn" id="backBtn">Back</button>
+                    <button type="submit" class="next-btn">Next</button>
+                </div>
+            </form>
+        </div>
+    </div>       
+
+
+    <script>
+        // Fetch the sidebar HTML and inject it into the page
+        fetch('../components/sidebar.html')
+        .then(response => response.text())
+        .then(data => {
+            document.querySelector('.sidebar-placeholder').innerHTML = data;
+
+            // Create a new script element
+            const sidebarScript = document.createElement('script');
+            sidebarScript.src = '../components/sidebar.js'; 
+
+            // Call initSidebar when the script has loaded and executed
+            sidebarScript.onload = function() {
+            };
+
+            // Append the script element to the sidebar-placeholder
+            document.querySelector('.sidebar-placeholder').appendChild(sidebarScript);
+        })
+        .catch(error => {
+            console.error('Error loading sidebar:', error);
+        });
+    </script>
+
+    <script src="../js/reportSubmission.js"></script>
+</body>
+</html>
