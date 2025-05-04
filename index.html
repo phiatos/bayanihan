@@ -9,11 +9,36 @@
   <link rel="manifest" href="./manifest.json" />
   <link rel="icon" href="./assets/images/logox192.png" />
   <link rel="apple-touch-icon" href="./assets/images/logox192.png" />
-  <link rel="stylesheet" href="./css/global.css" />
+  <link rel="stylesheet" href="./index.css" />
 </head>
 <body>
-  <header>Disaster Relief and Rehabilitation Management Portal</header>
-  <button id="loginButton">Go to Login</button>
+  <!-- <header>Disaster Relief and Rehabilitation Management Portal</header> -->
+
+  <header>
+    <div class="logo">
+      <img src="./assets/images/logox192.png" alt="Logo" />
+    </div>
+    <h1>Disaster Relief and Rehabilitation Management Portal</h1>
+  </header>
+
+  <section class="content">
+    <ul class="accordion">
+      <li>
+        <input type="radio" name="accordion" id="first"/>
+        <label for="first">Products</label>
+        <div class="content">
+          <p>Lorem ipsum dolor, sit amet consectetur adipisicing elit. Sapiente, inventore. Veniam ab, iure magni praesentium quia voluptatem dignissimos sunt itaque doloribus consequuntur nostrum quisquam ratione culpa atque modi ipsum odio.</p>
+        </div>
+      </li>
+    </ul>
+
+    <p>Welcome to the portal designed to streamline disaster relief and rehabilitation efforts. Get started by logging into your account.</p>
+    <button id="loginButton">Go to Login</button>
+  </section>
+
+  <footer>
+    <p>&copy; 2025 Disaster Relief Portal. All Rights Reserved.</p>
+  </footer>
 
   <script>
     document.getElementById('loginButton').addEventListener('click', () => {
