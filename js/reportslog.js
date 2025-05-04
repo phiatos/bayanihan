@@ -2,6 +2,7 @@
 const reviewedReports = JSON.parse(localStorage.getItem("reviewedReports")) || [];
 const reportsBody = document.getElementById("reportsBody");
 const paginationContainer = document.getElementById("pagination");
+
 let currentPage = 1;
 const rowsPerPage = 5; // Or any number you prefer
 
