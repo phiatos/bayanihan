@@ -1,0 +1,132 @@
+/* Heading */
+h2 {
+    color: #405AA5;
+    margin-bottom: 2rem;
+    font-size: 2rem;
+    text-align: start;
+}
+
+.main-container {
+    display: flex;
+    min-height: 100vh;
+    }
+    
+#main-content {
+    flex: 1;
+    padding: 20px;
+    position: relative;
+    background: #FFFFFF;
+    border-radius: 30px;
+    box-shadow: 0 0 30px rgba(0, 0, 0, .2);
+    margin: 50px;
+    overflow-y: auto;
+    max-height: calc(100vh - 100px);
+}
+
+/* Container for summaries */
+#summaryContainer {
+    width: 100%;
+    margin: 0 auto;
+    padding: 0 1rem;
+    
+}
+
+/* Category section (like Basic Information box) */
+.category-section {
+    border: 2px solid #14AEBB; 
+    background-color: rgba(20, 174, 187, 0.1);
+    border-radius: 8px;
+    padding: 20px;
+    margin: 20px 0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+/* Category title (Basic Info, Relief Ops, etc.) */
+.category-title {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    margin: 6px 0;
+    color: #14AEBB;
+}
+
+/* Each field inside the category */
+.summary-box {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+/* Field name */
+.summary-box strong {
+    font-size: 12px;
+    font-weight: 700;
+    color: #14AEBB;
+}
+
+/* Field value */
+.summary-box span {
+    font-size: 0.95rem;
+    color: #555;
+}
+
+
+#submitBtn, #backBtn{
+    background-color: #4059A5;
+    color: white;
+    padding: 0.75rem 2rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    cursor: pointer;
+    margin-top: 2rem;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    align-items: start;
+}
+
+#submitBtn:hover {
+    background-color: #2c3e75;
+}
+.button-group {
+    display: flex;
+    margin-top: 20px;
+    gap: 10px;
+    flex-direction: row;
+}
+
+
+/* RESPONSIVE BEHAVIOR */
+@media (min-width: 600px) {
+    .summary-box {
+        flex-direction: row;
+        align-items: center;
+    }
+
+    .summary-box strong {
+        width: 220px;
+        margin-bottom: 0; /* Remove bottom margin in row layout */
+        flex-shrink: 0;
+    }
+
+    .summary-box span {
+        flex: 1;
+    }
+}
+
+/* Even better on big screens */
+@media (min-width: 900px) {
+    h2 {
+        font-size: 2.5rem;
+    }
+
+    .category-title {
+        font-size: 1.75rem;
+    }
+
+    #summaryContainer {
+        padding: 0 2rem;
+    }
+}
