@@ -18,7 +18,7 @@
 /* Main content takes up the rest */
 #main-content {
     flex: 1;
-    padding: 20px;
+    padding: 50px;
     position: relative;
     background: #FFFFFF;
     border-radius: 30px;
@@ -135,8 +135,7 @@ form .fields .input-field{
     align-items: center;
     justify-content: center;
     height: 45px;
-    max-width: 200px;
-    width: 100%;
+    width: 200px;
     border: none;
     outline: none;
     color: #FFF;
@@ -176,14 +175,63 @@ form .buttons .backBtn{
     gap: 10px;
 }
 
+/* Section Heading */
+h2 {
+    font-size: 20px;
+    font-weight: 600;
+    color: #14AEBB;
+    margin-bottom: 15px;
+  }
+  
+  /* Label/Paragraph */
+  div > p {
+    font-size: 14px;
+    font-weight: 500;
+    color: #14AEBB;
+    margin-bottom: 8px;
+  }
+  
+  /* Styled Textarea */
+  textarea {
+    width: 100%;
+    padding: 12px;
+    font-size: 13px;
+    font-family: 'Poppins', sans-serif;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    resize: vertical;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+    background-color: #f9f9f9;
+    transition: border 0.3s, box-shadow 0.3s;
+  }
+  
+  textarea:focus {
+    outline: none;
+    border-color: #14AEBB;
+    box-shadow: 0 0 5px rgba(20, 174, 187, 0.5);
+  }
+  
+
 /* Responsive layout */
-@media (max-width: 750px) {
+@media (max-width: 768px) {
     form .fields .input-field{
-        width: calc(100% /2 - 15px);
+        width: calc(100% /2 - 100px);
+        width: 100%;
+        
     }
 
     .container form{
         overflow-y: scroll;
+    }
+
+    .input-field label{
+        font-size: 10px;
+    }
+
+    .container form button{
+        align-self: center;
+        width: 100%;
+        
     }
 
     .container form::-webkit-scrollbar{
@@ -196,6 +244,7 @@ form .buttons .backBtn{
     form .fields .input-field{
         width: 100%;
     }
+    
 }
 
 

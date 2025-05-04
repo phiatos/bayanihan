@@ -17,7 +17,7 @@
   
 #main-content {
   flex: 1;
-  padding: 20px;
+  padding: 50px;
   position: relative;
   background: #FFFFFF;
   border-radius: 30px;
@@ -83,6 +83,10 @@ button {
   transition: background-color 0.3s;
 }
 
+button:hover {
+  background-color: #0e7781;
+}
+
 /* Pagination */
 .pagination-info{
   display: flex;
@@ -128,4 +132,63 @@ button {
   justify-content: center;
   align-items: center;
   flex-wrap: wrap;
+}
+
+
+@media (max-width: 1024px) {
+  #main-content {
+    padding: 30px;
+    margin: 30px 20px;
+  }
+
+  table {
+    min-width: 800px;
+  }
+}
+
+@media (max-width: 768px) {
+
+  table {
+    min-width: 100%;
+    font-size: 10px;
+    overflow-x: auto;
+    display: block;
+  }
+
+  .pagination-info {
+    flex-direction: column;
+    gap: 10px;
+    text-align: center;
+  }
+
+  .pagination-info span {
+    text-align: center;
+  }
+}
+
+@media (max-width: 480px) {
+
+  button, .edit-btn {
+    font-size: 11px;
+    padding: 6px 10px;
+  }
+
+  .pagination-info {
+    flex-direction: column;
+    font-size: 1px;
+    text-align: center;
+  }
+
+  #pagination button {
+    padding: 8px;
+    font-size: 12px;
+   
+  }
+
+  td input[type="text"],
+  td select,
+  .area-dropbtn {
+    font-size: 11px;
+    padding: 4px;
+  }
 }
