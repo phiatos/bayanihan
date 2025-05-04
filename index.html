@@ -4,14 +4,22 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#14AEBB" />
-  <title>Bayanihan - Progressive Web App</title>
+  <title>Disaster Relief and Rehabilitation Management Portal</title>
 
   <link rel="manifest" href="./manifest.json" />
   <link rel="icon" href="./assets/images/logox192.png" />
   <link rel="apple-touch-icon" href="./assets/images/logox192.png" />
+  <link rel="stylesheet" href="./css/global.css" />
 </head>
 <body>
-  <h1>Welcome to Bayanihan</h1>
+  <header>Disaster Relief and Rehabilitation Management Portal</header>
+  <button id="loginButton">Go to Login</button>
+
+  <script>
+    document.getElementById('loginButton').addEventListener('click', () => {
+        window.location.href = './pages/login.html'; // Redirect to login 
+    });
+</script>
   <script src="./index.js"></script>
 </body>
 </html>

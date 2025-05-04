@@ -181,7 +181,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const sidebar = document.getElementById('sidebar');
     
     // Fetch the sidebar content and insert it into the page
-    fetch('./components/sidebar.html')
+    fetch('../components/sidebar.html')
       .then(response => response.text())
       .then(data => {
         sidebar.innerHTML = data;
@@ -190,10 +190,4 @@ document.addEventListener("DOMContentLoaded", () => {
         console.error('Error loading sidebar:', error);
       });
   });
-
-  
-  
-
-
-
 });

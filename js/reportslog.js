@@ -4,12 +4,11 @@ const reportsBody = document.getElementById("reportsBody");
 const paginationContainer = document.getElementById("pagination");
 
 let currentPage = 1;
-const rowsPerPage = 5; // Or any number you prefer
+const rowsPerPage = 5; 
 
-// Format date (e.g., "2025-05-02" -> "May 2, 2025")
 function formatDate(dateStr) {
   const date = new Date(dateStr);
-  if (isNaN(date)) return dateStr; // return original if invalid
+  if (isNaN(date)) return dateStr; 
   return date.toLocaleDateString("en-US", {
     year: "numeric",
     month: "long",
