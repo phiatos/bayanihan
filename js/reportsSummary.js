@@ -1,70 +1,154 @@
-const summaryData = JSON.parse(localStorage.getItem("reportData"));
-const container = document.getElementById("summaryContainer");
+document.addEventListener('DOMContentLoaded', () => {
+    // Firebase configuration
+    const firebaseConfig = {
+        apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
+        authDomain: "bayanihan-5ce7e.firebaseapp.com",
+        databaseURL: "https://bayanihan-5ce7e-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "bayanihan-5ce7e",
+        storageBucket: "bayanihan-5ce7e.appspot.com",
+        messagingSenderId: "593123849917",
+        appId: "1:593123849917:web:eb85a63a536eeff78ce9d4",
+        measurementId: "G-ZTQ9VXXVV0",
+    };
 
-const categories = {
-    "Basic Information": [
-        "Barangay",
-        "City/Municipality",
-        "Time of Intervention",
-        "Submitted by",
-        "Date of Report"
-    ],
-    "Relief Operations": [
-        "Date",
-        "No. of Organizations Activated",
-        "No. of Individuals or Families",
-        "No. of Food Packs",
-        "No. of Hot Meals",
-        "Liters of Water",
-        "No. of Volunteers Mobilized",
-        "Total Amount Raised",
-        "Total Value of In-Kind Donations"
-    ],
-    "Notes/additional information": [
-        "Notes/additional information"
-    ]
-};
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const database = firebase.database();
 
-for (let category in categories) {
-    const section = document.createElement("div");
-    section.className = "category-section";
+    // Retrieve the report data from localStorage
+    const summaryData = JSON.parse(localStorage.getItem("reportData"));
+    const container = document.getElementById("summaryContainer");
 
-    const title = document.createElement("div");
-    title.className = "category-title";
-    title.textContent = category;
-    section.appendChild(title);
+    // Check if summaryData exists
+    if (!summaryData) {
+        Swal.fire({
+            icon: 'error',
+            title: 'No Report Data',
+            text: 'No report data found. Please go back and submit the form again.',
+        }).then(() => {
+            window.location.href = '../pages/reportsSubmission.html';
+        });
+        return;
+    }
 
-    categories[category].forEach(item => {
-        if (summaryData[item]) {
-            const fieldDiv = document.createElement("div");
-            fieldDiv.className = "summary-box";
-            // FIX: wrap value inside <span>
-            fieldDiv.innerHTML = `<strong>${item}:</strong> <span>${summaryData[item]}</span>`;
-            section.appendChild(fieldDiv);
-        }
+    const categories = {
+        "Basic Information": [
+            "Barangay",
+            "CityMunicipality",
+            "TimeOfIntervention",
+            "SubmittedBy",
+            "DateOfReport"
+        ],
+        "Relief Operations": [
+            "Date",
+            "NoOfOrganizationsActivated",
+            "NoOfIndividualsOrFamilies",
+            "NoOfFoodPacks",
+            "NoOfHotMeals",
+            "LitersOfWater",
+            "NoOfVolunteersMobilized",
+            "TotalValueOfInKindDonations"
+        ],
+        "Notes/Additional Information": [
+            "NotesAdditionalInformation"
+        ]
+    };
+
+    // Display the summary
+    for (let category in categories) {
+        const section = document.createElement("div");
+        section.className = "category-section";
+
+        const title = document.createElement("div");
+        title.className = "category-title";
+        title.textContent = category;
+        section.appendChild(title);
+
+        categories[category].forEach(item => {
+            if (summaryData[item]) {
+                // Convert the sanitized key back to a readable format for display
+                let displayKey = item
+                    .replace(/([A-Z])/g, ' $1') // Add space before capital letters
+                    .replace(/^./, str => str.toUpperCase()); // Capitalize first letter
+                displayKey = displayKey
+                    .replace('CityMunicipality', 'City/Municipality')
+                    .replace('TimeOfIntervention', 'Time of Intervention')
+                    .replace('SubmittedBy', 'Submitted by')
+                    .replace('DateOfReport', 'Date of Report')
+                    .replace('ReportID', 'Report ID')
+                    .replace('NoOfIndividualsOrFamilies', 'No. of Individuals or Families')
+                    .replace('NoOfFoodPacks', 'No. of Food Packs')
+                    .replace('NoOfHotMeals', 'No. of Hot Meals')
+                    .replace('LitersOfWater', 'Liters of Water')
+                    .replace('NoOfVolunteersMobilized', 'No. of Volunteers Mobilized')
+                    .replace('NoOfOrganizationsActivated', 'No. of Organizations Activated')
+                    .replace('TotalValueOfInKindDonations', 'Total Value of In-Kind Donations')
+                    .replace('NotesAdditionalInformation', 'Notes/additional information');
+
+                const fieldDiv = document.createElement("div");
+                fieldDiv.className = "summary-box";
+                fieldDiv.innerHTML = `<strong>${displayKey}:</strong> <span>${summaryData[item]}</span>`;
+                section.appendChild(fieldDiv);
+            }
+        });
+
+        container.appendChild(section);
+    }
+
+    // Back button
+    document.getElementById('backBtn').addEventListener('click', () => {
+        window.location.href = '../pages/reportsSubmission.html';
     });
 
-    container.appendChild(section);
-}
+    // Submit button
+    const submitBtn = document.getElementById("submitBtn");
+    submitBtn.addEventListener("click", () => {
+        // Check if user is authenticated
+        auth.onAuthStateChanged(user => {
+            if (!user) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Authentication Required',
+                    text: 'Please sign in to submit a report.',
+                }).then(() => {
+                    window.location.href = "../pages/login.html"; // Adjust to your login page
+                });
+                return;
+            }
 
-document.getElementById('backBtn').addEventListener('click', () => {
-    // Option A: Go to a specific page
-    window.location.href = '../pages/reportsSubmission.html';
+            console.log("Submitting to Firebase:", summaryData);
 
-    // Option B (alternative): Just go back in browser history
-    // window.history.back();
-  });
+            // Add timestamp and status
+            summaryData["Status"] = "Pending";
+            summaryData["Timestamp"] = firebase.database.ServerValue.TIMESTAMP;
 
-// Submit button logic
-const submitBtn = document.getElementById("submitBtn");
-submitBtn.addEventListener("click", () => {
-const submittedReports = JSON.parse(localStorage.getItem("submittedReports")) || [];
-submittedReports.push(summaryData);
-localStorage.setItem("submittedReports", JSON.stringify(submittedReports));
+            // Save to Firebase under reports/submitted
+            database.ref("reports/submitted").push(summaryData)
+                .then(() => {
+                    console.log("Report successfully saved to Firebase");
 
-// Optionally clear the draft report
-localStorage.removeItem("reportData");
+                    // Clear the draft report from localStorage
+                    localStorage.removeItem("reportData");
 
-// Redirect to submitted.html
-window.location.href = "../pages/reportsVerification.html";
+                    // Show success message
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Report Submitted',
+                        text: 'Your report has been successfully submitted for verification!',
+                    }).then(() => {
+                        // Redirect to Reports Verification page (admins can access it)
+                        window.location.href = "../pages/reportsVerification.html";
+                    });
+                })
+                .catch((error) => {
+                    console.error("Error saving report to Firebase:", error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Failed to submit report: ' + error.message,
+                    });
+                });
+        });
+    });
 });
