@@ -1,18 +1,19 @@
 // Fetch submitted reports from localStorage
 let submittedReports = JSON.parse(localStorage.getItem("submittedReports")) || [];
 
-// Sort by "No." if it exists, otherwise default to index
+// Sort initially by "No." if available
 submittedReports.sort((a, b) => (a["No."] || 0) - (b["No."] || 0));
 
 const submittedReportsContainer = document.getElementById("submittedReportsContainer");
 const paginationContainer = document.getElementById("pagination");
 let currentPage = 1;
-const rowsPerPage = 5; // Or any number you prefer
+const rowsPerPage = 5;
 
-// Format date (e.g., "2025-05-02" -> "May 2, 2025")
+// Format date to readable string
 function formatDate(dateStr) {
     const date = new Date(dateStr);
-    if (isNaN(date)) return dateStr; // return original if invalid
+    console.log("Parsing date:", dateStr, "→", date);
+    if (isNaN(date)) return dateStr; // return raw string if invalid
     return date.toLocaleDateString("en-US", {
         year: "numeric",
         month: "long",
@@ -20,7 +21,7 @@ function formatDate(dateStr) {
     });
 }
 
-// Function to render the table for the current page
+// Render current page of reports
 function renderReportsTable(reports) {
     submittedReportsContainer.innerHTML = '';
 
@@ -31,7 +32,7 @@ function renderReportsTable(reports) {
 
     reports.forEach((report, index) => {
         const tr = document.createElement('tr');
-        const displayIndex = (currentPage - 1) * rowsPerPage + index + 1; // Calculate index for the current page
+        const displayIndex = (currentPage - 1) * rowsPerPage + index + 1;
 
         tr.innerHTML = `
             <td>${report["No."] || displayIndex}</td>
@@ -39,7 +40,7 @@ function renderReportsTable(reports) {
             <td>${report["Barangay"] || "-"}</td>
             <td>${report["City/Municipality"] || "-"}</td>
             <td>${report["Time of Intervention"] || "-"}</td>
-            <td>${report["Date of Report"] || "-"}</td>
+            <td>${report["Date of Report"] ? formatDate(report["Date of Report"]) : "-"}</td>
             <td>${report["Submitted by"] || "-"}</td>
             <td>Pending</td>
             <td>
@@ -49,9 +50,8 @@ function renderReportsTable(reports) {
             </td>
         `;
 
-        // View button logic (remains the same)
-        const viewBtn = tr.querySelector('.viewBtn');
-        viewBtn.addEventListener('click', () => {
+        // View details
+        tr.querySelector('.viewBtn').addEventListener('click', () => {
             let readableReport = "";
             for (let key in report) {
                 readableReport += `• ${key}: ${report[key]}\n`;
@@ -65,27 +65,27 @@ function renderReportsTable(reports) {
             });
         });
 
-        // Approve action (remains the same)
+        // Approve report
         tr.querySelector('.approveBtn').addEventListener('click', () => {
             const reviewedReports = JSON.parse(localStorage.getItem("reviewedReports")) || [];
             reviewedReports.push({ ...report, status: "Approved" });
             localStorage.setItem("reviewedReports", JSON.stringify(reviewedReports));
 
-            const reportIndex = submittedReports.findIndex(r => r["Report ID"] === report["Report ID"]); // Find the correct index
+            const reportIndex = submittedReports.findIndex(r => r["Report ID"] === report["Report ID"]);
             if (reportIndex > -1) {
                 submittedReports.splice(reportIndex, 1);
                 localStorage.setItem("submittedReports", JSON.stringify(submittedReports));
-                loadReports(); // Reload the paginated view
+                loadReports();
             }
         });
 
-        // Reject button logic (remains the same)
+        // Reject report
         tr.querySelector('.rejectBtn').addEventListener('click', () => {
-            const reportIndex = submittedReports.findIndex(r => r["Report ID"] === report["Report ID"]); // Find the correct index
+            const reportIndex = submittedReports.findIndex(r => r["Report ID"] === report["Report ID"]);
             if (reportIndex > -1) {
                 submittedReports.splice(reportIndex, 1);
                 localStorage.setItem("submittedReports", JSON.stringify(submittedReports));
-                loadReports(); // Reload the paginated view
+                loadReports();
             }
         });
 
@@ -93,6 +93,7 @@ function renderReportsTable(reports) {
     });
 }
 
+// Create pagination buttons
 function renderPagination(totalRows) {
     paginationContainer.innerHTML = "";
     const totalPages = Math.ceil(totalRows / rowsPerPage);
@@ -105,7 +106,7 @@ function renderPagination(totalRows) {
         if (page !== null) {
             btn.addEventListener("click", () => {
                 currentPage = page;
-                loadReports(); // Re-load reports for the new page
+                loadReports();
             });
         }
         return btn;
@@ -120,101 +121,63 @@ function renderPagination(totalRows) {
     paginationContainer.appendChild(createButton("Next", currentPage + 1, currentPage === totalPages));
 }
 
-// Load and display the reports for the current page
+// Load reports with filtering and sorting
 function loadReports() {
+    const searchQuery = document.getElementById('searchInput').value.toLowerCase();
+    const sortValue = document.getElementById('sortSelect').value;
+    const [sortBy, direction] = sortValue.split("-");
+
+    let filteredReports = submittedReports.filter(report => {
+        return Object.values(report).some(value =>
+            value.toString().toLowerCase().includes(searchQuery)
+        );
+    });
+
+    if (sortBy) {
+        filteredReports.sort((a, b) => {
+            const valA = a[sortBy] || "";
+            const valB = b[sortBy] || "";
+
+            // Handle Date sorting specifically
+            if (sortBy === "Date of Report") {
+                const dateA = new Date(valA);
+                const dateB = new Date(valB);
+                if (isNaN(dateA) || isNaN(dateB)) return 0;
+                return direction === "asc" ? dateA - dateB : dateB - dateA;
+            }
+
+            return direction === "asc"
+                ? valA.toString().localeCompare(valB.toString())
+                : valB.toString().localeCompare(valA.toString());
+        });
+    }
+
     const startIndex = (currentPage - 1) * rowsPerPage;
     const endIndex = startIndex + rowsPerPage;
-    const currentPageReports = submittedReports.slice(startIndex, endIndex);
+    const currentPageReports = filteredReports.slice(startIndex, endIndex);
 
     renderReportsTable(currentPageReports);
-    renderPagination(submittedReports.length);
+    renderPagination(filteredReports.length);
 }
 
-// Load reports when the page loads
+// Attach listeners for search and sort
+document.getElementById('searchInput').addEventListener('input', () => {
+    currentPage = 1;
+    loadReports();
+});
+
+document.getElementById('sortSelect').addEventListener('change', () => {
+    currentPage = 1;
+    loadReports();
+});
+
+// Initialize table
 loadReports();
 
-// Optional: handle "View Approved" button if exists
+// Optional button to view approved reports
 const viewApprovedBtn = document.getElementById("viewApprovedBtn");
 if (viewApprovedBtn) {
     viewApprovedBtn.addEventListener("click", () => {
         window.location.href = "../pages/reportslog.html";
     });
 }
-
-// // Fetch submitted reports from localStorage
-// let submittedReports = JSON.parse(localStorage.getItem("submittedReports")) || [];
-
-// // Sort by "No." if it exists, otherwise default to index
-// submittedReports.sort((a, b) => (a["No."] || 0) - (b["No."] || 0));
-
-// // Get container element
-// const container = document.getElementById("submittedReportsContainer");
-
-// if (!container) {
-//   console.error("submittedReportsContainer element not found!");
-// } else if (submittedReports.length === 0) {
-//   container.innerHTML = "<tr><td colspan='9'>No reports submitted yet.</td></tr>";
-// } else {
-//   submittedReports.forEach((report, index) => {
-//     const row = document.createElement("tr");
-
-//     row.innerHTML = `
-//       <td>${report["No."] || index + 1}</td>
-//       <td>${report["Report ID"] || "-"}</td>
-//       <td>${report["Barangay"] || "-"}</td>
-//       <td>${report["City/Municipality"] || "-"}</td>
-//       <td>${report["Time of Intervention"] || "-"}</td>
-//       <td>${report["Date of Report"] || "-"}</td>
-//       <td>${report["Submitted by"] || "-"}</td>
-//       <td>Pending</td>
-//       <td>
-//         <button class="viewBtn">View</button>
-//         <button class="approveBtn">Approve</button>
-//         <button class="rejectBtn">Reject</button>
-//       </td>
-//     `;
-
-//     // Approve action
-//     row.querySelector('.approveBtn').addEventListener('click', () => {
-//       const reviewedReports = JSON.parse(localStorage.getItem("reviewedReports")) || [];
-//       reviewedReports.push({ ...report, status: "Approved" });
-//       localStorage.setItem("reviewedReports", JSON.stringify(reviewedReports));
-
-//       submittedReports.splice(index, 1);
-//       localStorage.setItem("submittedReports", JSON.stringify(submittedReports));
-//       location.reload();
-//     });
-
-//     // Reject button logic
-//     row.querySelector('.rejectBtn').addEventListener('click', () => {
-//       submittedReports.splice(index, 1); // Just remove from submittedReports
-//       localStorage.setItem("submittedReports", JSON.stringify(submittedReports));
-//       location.reload(); // Refresh the table
-//     });
-
-//     // View button - human-readable format with SweetAlert2
-//     row.querySelector('.viewBtn').addEventListener('click', () => {
-//       let readableReport = "";
-//       for (let key in report) {
-//         readableReport += `• ${key}: ${report[key]}\n`;
-//       }
-
-//       Swal.fire({
-//         title: 'Report Details',
-//         icon: 'info',
-//         html: `<pre style="text-align:left; white-space:pre-wrap">${readableReport}</pre>`,
-//         confirmButtonText: 'Close'
-//       });
-//     });
-
-//     container.appendChild(row);
-//   });
-// }
-
-// // Optional: handle "View Approved" button if exists
-// const viewApprovedBtn = document.getElementById("viewApprovedBtn");
-// if (viewApprovedBtn) {
-//   viewApprovedBtn.addEventListener("click", () => {
-//     window.location.href = "../pages/reportslog.html";
-//   });
-// }

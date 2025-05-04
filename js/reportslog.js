@@ -1,14 +1,15 @@
-// Retrieve the reviewed reports from localStorage
-const reviewedReports = JSON.parse(localStorage.getItem("reviewedReports")) || [];
+let reviewedReports = JSON.parse(localStorage.getItem("reviewedReports")) || [];
 const reportsBody = document.getElementById("reportsBody");
 const paginationContainer = document.getElementById("pagination");
+const searchInput = document.getElementById("searchInput");
+const sortSelect = document.getElementById("sortSelect");
 
 let currentPage = 1;
-const rowsPerPage = 5; 
+const rowsPerPage = 5;
 
 function formatDate(dateStr) {
   const date = new Date(dateStr);
-  if (isNaN(date)) return dateStr; 
+  if (isNaN(date)) return dateStr;
   return date.toLocaleDateString("en-US", {
     year: "numeric",
     month: "long",
@@ -16,136 +17,152 @@ function formatDate(dateStr) {
   });
 }
 
-// Function to render the table for the current page
+// Filter and sort reports
+function getFilteredAndSortedReports() {
+  const keyword = searchInput.value.trim().toLowerCase();
+  const sortValue = sortSelect.value;
+
+  let [sortBy, sortDirection] = sortValue.split("-");
+
+  let filtered = reviewedReports.filter(report => {
+    return Object.values(report).some(val =>
+      (val + "").toLowerCase().includes(keyword)
+    );
+  });
+
+  if (sortBy) {
+    filtered.sort((a, b) => {
+      const valA = a[sortBy] ?? "";
+      const valB = b[sortBy] ?? "";
+
+      const numA = parseFloat(valA);
+      const numB = parseFloat(valB);
+      const isNumeric = !isNaN(numA) && !isNaN(numB);
+
+      if (isNumeric) {
+        return sortDirection === "asc" ? numA - numB : numB - numA;
+      } else {
+        const strA = valA.toString().toLowerCase();
+        const strB = valB.toString().toLowerCase();
+        if (strA < strB) return sortDirection === "asc" ? -1 : 1;
+        if (strA > strB) return sortDirection === "asc" ? 1 : -1;
+        return 0;
+      }
+    });
+  }
+
+  return filtered;
+}
+
+// Render table
 function renderReportsTable(reports) {
   reportsBody.innerHTML = '';
 
   if (reports.length === 0) {
-      reportsBody.innerHTML = "<tr><td colspan='10'>No approved reports found on this page.</td></tr>";
-      return;
+    reportsBody.innerHTML = "<tr><td colspan='10'>No approved reports found on this page.</td></tr>";
+    return;
   }
 
   reports.forEach((report, index) => {
-      const tr = document.createElement('tr');
-      const displayIndex = (currentPage - 1) * rowsPerPage + index + 1; // Calculate index for the current page
+    const tr = document.createElement('tr');
+    const displayIndex = (currentPage - 1) * rowsPerPage + index + 1;
 
-      tr.innerHTML = `
-          <td>${report["No."] || displayIndex}</td>
-          <td>${report["Report ID"] || "-"}</td>
-          <td>${report["Barangay"] || "-"}</td>
-          <td>${report["City/Municipality"] || "-"}</td>
-          <td>${formatDate(report["Date of Report"]) || "-"}</td>
-          <td>${report["Submitted by"] || "-"}</td>
-          <td>${report["No. of Hot Meals"] || "-"}</td>
-          <td>${report["Liters of Water"] || "-"}</td>
-          <td><button class="viewBtn">View</button></td>
-      `;
+    tr.innerHTML = `
+      <td>${report["No."] || displayIndex}</td>
+      <td>${report["Report ID"] || "-"}</td>
+      <td>${report["Barangay"] || "-"}</td>
+      <td>${report["City/Municipality"] || "-"}</td>
+      <td>${formatDate(report["Date of Report"]) || "-"}</td>
+      <td>${report["Submitted by"] || "-"}</td>
+      <td>${report["No. of Hot Meals"] || "-"}</td>
+      <td>${report["Liters of Water"] || "-"}</td>
+      <td><button class="viewBtn">View</button></td>
+    `;
 
-      // SweetAlert2 View button logic (remains the same)
-      const viewBtn = tr.querySelector('.viewBtn');
-      viewBtn.addEventListener('click', () => {
-          let readableReport = "";
-          for (let key in report) {
-              const value = key === "Date of Report" ? formatDate(report[key]) : report[key];
-              readableReport += `• ${key}: ${value}\n`;
-          }
+    const viewBtn = tr.querySelector('.viewBtn');
+    viewBtn.addEventListener('click', () => {
+      let readableReport = "";
+      for (let key in report) {
+        const value = key === "Date of Report" ? formatDate(report[key]) : report[key];
+        readableReport += `• ${key}: ${value}\n`;
+      }
 
-          Swal.fire({
-              title: 'Approved Report Details',
-              icon: 'info',
-              html: `<pre style="text-align:left; white-space:pre-wrap">${readableReport}</pre>`,
-              confirmButtonText: 'Close'
-          });
+      Swal.fire({
+        title: 'Approved Report Details',
+        icon: 'info',
+        html: `<pre style="text-align:left; white-space:pre-wrap">${readableReport}</pre>`,
+        confirmButtonText: 'Close'
       });
+    });
 
-      reportsBody.appendChild(tr);
+    reportsBody.appendChild(tr);
   });
 }
 
+// Pagination
 function renderPagination(totalRows) {
   paginationContainer.innerHTML = "";
   const totalPages = Math.ceil(totalRows / rowsPerPage);
 
   const createButton = (label, page = null, disabled = false, active = false) => {
-      const btn = document.createElement("button");
-      btn.textContent = label;
-      if (disabled) btn.disabled = true;
-      if (active) btn.classList.add("active-page");
-      if (page !== null) {
-          btn.addEventListener("click", () => {
-              currentPage = page;
-              loadReports(); // Re-load reports for the new page
-          });
-      }
-      return btn;
+    const btn = document.createElement("button");
+    btn.textContent = label;
+    if (disabled) btn.disabled = true;
+    if (active) btn.classList.add("active-page");
+    if (page !== null) {
+      btn.addEventListener("click", () => {
+        currentPage = page;
+        loadReports();
+      });
+    }
+    return btn;
   };
 
   paginationContainer.appendChild(createButton("Prev", currentPage - 1, currentPage === 1));
 
   for (let i = 1; i <= totalPages; i++) {
-      paginationContainer.appendChild(createButton(i, i, false, i === currentPage));
+    paginationContainer.appendChild(createButton(i, i, false, i === currentPage));
   }
 
   paginationContainer.appendChild(createButton("Next", currentPage + 1, currentPage === totalPages));
 }
 
-// Load and display the reports for the current page
+// Load and display
 function loadReports() {
+  const filtered = getFilteredAndSortedReports();
   const startIndex = (currentPage - 1) * rowsPerPage;
   const endIndex = startIndex + rowsPerPage;
-  const currentPageReports = reviewedReports.slice(startIndex, endIndex);
+  const currentPageReports = filtered.slice(startIndex, endIndex);
 
   renderReportsTable(currentPageReports);
-  renderPagination(reviewedReports.length);
+  renderPagination(filtered.length);
+
+  // Update entries info
+  const entriesInfo = document.getElementById("entriesInfo");
+  const showingStart = filtered.length === 0 ? 0 : startIndex + 1;
+  const showingEnd = Math.min(endIndex, filtered.length);
+  entriesInfo.textContent = `Showing ${showingStart} to ${showingEnd} of ${filtered.length} entries`;
 }
 
-// Load reports when the page loads
-loadReports();
+// Event Listeners
+searchInput.addEventListener("input", () => {
+  currentPage = 1;
+  loadReports();
+});
 
+sortSelect.addEventListener("change", () => {
+  currentPage = 1;
+  loadReports();
+});
 
-// Load and display the reports without pagination
-// function loadReports() {
-//   reportsBody.innerHTML = '';
+// Clear search input
+window.clearDInputs = function () {
+  searchInput.value = "";
+  currentPage = 1;
+  loadReports();
+};
 
-//   if (reviewedReports.length === 0) {
-//     reportsBody.innerHTML = "<tr><td colspan='10'>No approved reports found.</td></tr>";
-//   } else {
-//     reviewedReports.forEach((report, index) => {
-//       const tr = document.createElement('tr');
-
-//       tr.innerHTML = `
-//         <td>${report["No."] || index + 1}</td>
-//         <td>${report["Report ID"] || "-"}</td>
-//         <td>${report["Barangay"] || "-"}</td>
-//         <td>${report["City/Municipality"] || "-"}</td>
-//         <td>${formatDate(report["Date of Report"]) || "-"}</td>
-//         <td>${report["Submitted by"] || "-"}</td>
-//         <td>${report["No. of Hot Meals"] || "-"}</td>
-//         <td>${report["Liters of Water"] || "-"}</td>
-//         <td><button class="viewBtn">View</button></td>
-//       `;
-
-//       // SweetAlert2 View button logic
-//       const viewBtn = tr.querySelector('.viewBtn');
-//       viewBtn.addEventListener('click', () => {
-//         let readableReport = "";
-//         for (let key in report) {
-//           const value = key === "Date of Report" ? formatDate(report[key]) : report[key];
-//           readableReport += `• ${key}: ${value}\n`;
-//         }
-
-//         Swal.fire({
-//           title: 'Approved Report Details',
-//           icon: 'info',
-//           html: `<pre style="text-align:left; white-space:pre-wrap">${readableReport}</pre>`,
-//           confirmButtonText: 'Close'
-//         });
-//       });
-
-//       reportsBody.appendChild(tr);
-//     });
-//   }
-// }
-
-// Load reports when the page loads
-// loadReports();
+// Initial load
+document.addEventListener("DOMContentLoaded", () => {
+  loadReports();
+});
