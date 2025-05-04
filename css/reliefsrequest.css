@@ -205,21 +205,33 @@ form .buttons .backBtn{
     padding-right: 40px;
   }
   
-  /* push the add-item button to top right */
-#addItemBtn {
-    position: absolute;
-    top: 10px;    /* match the container’s padding */
-    right: 20px;  /* match the container’s padding */
+  .top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  
+  #addItemBtn {
     background-color: #14AEBB;
     color: white;
-    font-size: 13px;
-    height: 30px;
-    width: fit-content;
+    font-size: 12px;
     padding: 15px;
+    height: 30px;
+    width: auto;
     border: none;
     border-radius: 5px;
     cursor: pointer;
     transition: background-color 0.3s;
+  }
+  
+  #addItemBtn:hover {
+    background-color: #0e7781;
+  }
+  
+  
+  #addItemBtn:hover {
+    background-color: #128C99;
   }
   
   #addItemBtn:hover {
@@ -249,8 +261,8 @@ form .buttons .backBtn{
   
   #itemsTable th, #itemsTable td {
     padding: 8px 12px;
-    text-align: left;
-    border: 1px solid #ddd;
+    text-align: center;
+    border: 1px solid #c5c5c5;
   }
   
   #itemsTable th {
@@ -287,14 +299,15 @@ form .buttons .backBtn{
   #form-page-2 table {
     width: 100%;
     border-collapse: collapse;
-    margin-bottom: 20px;
+    margin-top: 10px;
+    margin-bottom: 10px;
   }
   
   #form-page-2 th,
   #form-page-2 td {
     padding: 12px;
     border: 1px solid #e0e0e0;
-    text-align: left;
+    text-align: center;
     font-size: 13px;
     background-color: #fff;
   }
@@ -338,9 +351,13 @@ form .buttons .backBtn{
   
 
 /* Responsive layout */
-@media (max-width: 750px) {
+@media (max-width: 768px) {
     form .fields .input-field{
         width: calc(100% /2 - 15px);
+    }
+
+    .input-field label{
+      font-size: 10px;
     }
 
     .container form{
@@ -351,11 +368,25 @@ form .buttons .backBtn{
         display: none;
         
     }
+    #itemsTable th, #itemsTable td, #itemsTable .delete-btn {
+      padding: 5px 10px;
+      font-size: 12px;
+    }
+    #form-page-2 .button-group {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 10px;
+    }
 }
 
 @media (max-width: 550px){
     form .fields .input-field{
         width: 100%;
+    }
+
+    .top-bar{
+      display: block;
     }
 }
 
