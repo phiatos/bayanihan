@@ -116,6 +116,7 @@
 .menu .sub-menu li a {
   padding: 10px 8px;
   font-size: 12px;
+  color: #000;
 }
 
 /* Menu Styling */
@@ -136,7 +137,7 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #ffffff;
+  color: #000;
   background-color: #4059A5;
 }
 
