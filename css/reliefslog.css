@@ -17,7 +17,7 @@
 
 #main-content {
   flex: 1;
-  padding: 20px;
+  padding: 50px;
   position: relative;
   background: #FFFFFF;
   border-radius: 30px;
@@ -184,7 +184,7 @@ button:disabled {
     width: 100%;
     border-collapse: collapse;
     margin-top: 20px;
-    min-width: 100px;
+    min-width: 200px;
     table-layout: fixed;
   }
   
@@ -218,20 +218,56 @@ button:disabled {
   #reliefModal .modal-content table tbody tr:hover {
     background-color: #f0f8ff;
   }
+
+  @media (max-width: 768px) {
+
+    table {
+      min-width: 100%;
+      font-size: 10px;
+      overflow-x: auto;
+      display: block;
+    }
+  
+    .pagination-info {
+      flex-direction: column;
+      gap: 10px;
+      text-align: center;
+    }
+  
+    .pagination-info span {
+      text-align: center;
+    }
+    #reliefModal .modal-content {
+      padding: 50px;
+      font-size: 15px;
+    }
+  
+    #reliefModal .modal-content table {
+      width: 100%;
+      display: table;
+      align-self: center;
+    }
+  
+    #reliefModal .modal-content table th,
+    #reliefModal .modal-content table td {
+      padding: 6px;
+      font-size: 15px;
+    }
+  }
   
   /* Responsive overflow for narrow screens */
   @media (max-width: 480px) {
     #reliefModal .modal-content {
-      padding: 10px;
+      padding: 50px;
     }
     #reliefModal .modal-content table {
-      display: block;
+      display: table;
       overflow-x: auto;
-      white-space: nowrap;
+      word-wrap: break-word;
     }
     #reliefModal .modal-content table th,
     #reliefModal .modal-content table td {
       padding: 8px 6px;
-      font-size: 12px;
+      font-size: 15px;
     }
   }

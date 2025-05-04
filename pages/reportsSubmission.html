@@ -8,144 +8,125 @@
     <link rel="stylesheet" href="../css/global.css" />
     <link rel='stylesheet' href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css'/>
 
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
+    <!-- Firebase Compat SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
-     <!-- SweetAlert2 -->
-     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
     <title>Submit a Report</title>
 </head>
 <body>
-    <body>
-        <div class="container">
-            <div class="sidebar-placeholder">
-                
-            </div>
-            <div id="main-content">
-                <header>Reports Submission</header>
-                <form id="form-page-1">
-                    <div class="form first">
-                        <div class="form-container-1">
-                            <span class="title">Basic Information</span>
-                            <div class="fields">
-                                <div class="input-field">
-                                    <label>Barangay</label>
-                                    <input type="text" placeholder="Barangay" required>
-                                </div>
-                                <div class="input-field">
-                                    <label>City/Municipality</label>
-                                    <input type="text" placeholder="City/Municipality" required>
-                                </div>
-                                <div class="input-field">
-                                    <label>Time of Intervention</label>
-                                    <input type="text" placeholder="Time of Intervention" required>
-                                </div>
-                                <div class="input-field">
-                                    <label>Submitted by</label>
-                                    <input type="text" placeholder="Submitted by" required>
-                                </div>
-                                <div class="input-field">
-                                    <label>Date of Report</label>
-                                    <input type="text" id="dateOfReport" placeholder="Date of Report" readonly/>
-                                </div>
-                                <div class="input-field">
-                                    <label>Report ID</label>
-                                    <input type="text" id="reportId" placeholder="Report ID" readonly />
-                                </div>
+    <div class="container">
+        <div class="sidebar-placeholder"></div>
+        <div id="main-content">
+            <header>Reports Submission</header>
+            <form id="form-page-1">
+                <div class="form first">
+                    <div class="form-container-1">
+                        <span class="title">Basic Information</span>
+                        <div class="fields">
+                            <div class="input-field">
+                                <label>Barangay</label>
+                                <input type="text" placeholder="Barangay" required>
+                            </div>
+                            <div class="input-field">
+                                <label>City/Municipality</label>
+                                <input type="text" placeholder="City/Municipality" required>
+                            </div>
+                            <div class="input-field">
+                                <label>Time of Intervention</label>
+                                <input type="text" placeholder="Time of Intervention" required>
+                            </div>
+                            <div class="input-field">
+                                <label>Submitted by</label>
+                                <input type="text" placeholder="Submitted by" required>
+                            </div>
+                            <div class="input-field">
+                                <label>Date of Report</label>
+                                <input type="text" id="dateOfReport" placeholder="Date of Report" readonly/>
+                            </div>
+                            <div class="input-field">
+                                <label>Report ID</label>
+                                <input type="text" id="reportId" placeholder="Report ID" readonly />
                             </div>
                         </div>
+                    </div>
 
-                        <div class="form-container-2">
-                            <span class="title">Relief Operations</span>
-                            <div class="fields">
-                                <div class="input-field">
-                                    <label>Date</label>
-                                    <input type="date" placeholder="Date" required>
-                                </div>
-
-                                <div class="input-field">
-                                    <label>No. of Individuals or Families</label>
-                                    <input type="number" placeholder="No. of Individuals or Families" min="1" required>
-                                </div>
-
-                                <div class="input-field">
-                                    <label>No. of Food Packs</label>
-                                    <input type="number" placeholder="No. of Food Packs" min="1" required>
-                                </div>
-
-                                <div class="input-field">
-                                    <label>No. of Hot Meals/Ready-to-eat food</label>
-                                    <input type="number" placeholder="No. of Hot Meals" min="1" required>
-                                </div>
-
-                                <div class="input-field">
-                                    <label>Liters of Water</label>
-                                    <input type="number" placeholder="Liters of Water" min="1" required>
-                                </div>
-
-                                <div class="input-field">
-                                    <label>No. of Volunteers Mobilized</label>
-                                    <input type="number" placeholder="No. of Volunteers Mobilized" min="1" required>
-                                </div>
-
-                                <div class="input-field">
-                                    <label>No. of Organizations Activated</label>
-                                    <input type="number" placeholder="No. of Organizations Activated" min="1" required>
-                                </div>
-
-                                <div class="input-field">
-                                    <label>Total Value of In-Kind Donations</label>
-                                    <input type="number" placeholder="No. of Organizations Activated" min="1" required>
-                                </div>
+                    <div class="form-container-2">
+                        <span class="title">Relief Operations</span>
+                        <div class="fields">
+                            <div class="input-field">
+                                <label>Date</label>
+                                <input type="date" placeholder="Date" required>
                             </div>
-                            
-                            
-                            <button type="button" class="next-btn" id="nextBtn">Next</button>
-                            
+                            <div class="input-field">
+                                <label>No. of Individuals or Families</label>
+                                <input type="number" placeholder="No. of Individuals or Families" min="1" required>
+                            </div>
+                            <div class="input-field">
+                                <label>No. of Food Packs</label>
+                                <input type="number" placeholder="No. of Food Packs" min="1" required>
+                            </div>
+                            <div class="input-field">
+                                <label>No. of Hot Meals/Ready-to-eat food</label>
+                                <input type="number" placeholder="No. of Hot Meals" min="1" required>
+                            </div>
+                            <div class="input-field">
+                                <label>Liters of Water</label>
+                                <input type="number" placeholder="Liters of Water" min="1" required>
+                            </div>
+                            <div class="input-field">
+                                <label>No. of Volunteers Mobilized</label>
+                                <input type="number" placeholder="No. of Volunteers Mobilized" min="1" required>
+                            </div>
+                            <div class="input-field">
+                                <label>No. of Organizations Activated</label>
+                                <input type="number" placeholder="No. of Organizations Activated" min="1" required>
+                            </div>
+                            <div class="input-field">
+                                <label>Total Value of In-Kind Donations</label>
+                                <input type="number" placeholder="Total Value of In-Kind Donations" min="1" required>
+                            </div>
                         </div>
+                        <button type="button" class="next-btn" id="nextBtn">Next</button>
                     </div>
-                </form>
-            
-                <form id="form-page-2" style="display: none;">
-                    <h2>Additional Updates</h2>
-                    <div>
-                        <!-- <p> Urgent Needs <input type="text" placeholder="Urgent Needs" required ></p> -->
-                        <p> Notes/additional information </p>
-                        <textarea rows="6" cols="100" placeholder="Notes/additional information"></textarea>
-                    </div>
-                    <div class="button-group">
-                        <button type="button" class="next-btn" id="backBtn">Back</button>
-                        <button type="submit" class="next-btn">Next</button>
-                    </div>
-                </form>
+                </div>
+            </form>
+        
+            <form id="form-page-2" style="display: none;">
+            <div class="form-container-1">
+                <h2>Additional Updates</h2>
+                <div>
+                    <p>Notes/Additional Information</p>
+                    <textarea rows="6" cols="100" placeholder="Notes/additional information"></textarea>
+                </div>
             </div>
+                <div class="button-group">
+                    <button type="button" class="next-btn" id="backBtn">Back</button>
+                    <button type="submit" class="next-btn">Next</button>
+                </div>
+            </form>
         </div>
+    </div>
+
+    <script>
+        fetch('../components/sidebar.html')
+        .then(response => response.text())
+        .then(data => {
+            document.querySelector('.sidebar-placeholder').innerHTML = data;
+            const sidebarScript = document.createElement('script');
+            sidebarScript.src = '../components/sidebar.js';
+            sidebarScript.onload = function() {};
+            document.querySelector('.sidebar-placeholder').appendChild(sidebarScript);
+        })
+        .catch(error => {
+            console.error('Error loading sidebar:', error);
+        });
+    </script>
     
-        <script>
-            // Fetch the sidebar HTML and inject it into the page
-            fetch('../components/sidebar.html')
-            .then(response => response.text())
-            .then(data => {
-                document.querySelector('.sidebar-placeholder').innerHTML = data;
-    
-                // Create a new script element
-                const sidebarScript = document.createElement('script');
-                sidebarScript.src = '../components/sidebar.js'; 
-    
-                // Call initSidebar when the script has loaded and executed
-                sidebarScript.onload = function() {
-                };
-    
-                // Append the script element to the sidebar-placeholder
-                document.querySelector('.sidebar-placeholder').appendChild(sidebarScript);
-            })
-            .catch(error => {
-                console.error('Error loading sidebar:', error);
-            });
-        </script>
-    
-        <script src="../js/reportssubmission.js"></script> 
+    <script src="../js/reportssubmission.js"></script> 
 </body>
 </html>

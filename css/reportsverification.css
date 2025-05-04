@@ -17,7 +17,7 @@
   
 #main-content {
   flex: 1;
-  padding: 20px;
+  padding: 50px;
   position: relative;
   background: #FFFFFF;
   border-radius: 30px;
@@ -79,20 +79,33 @@ button {
   border: none;
   border-radius: 8px;
   cursor: pointer;
-  font-size: 12px;
+  font-size: 10px;
   transition: background-color 0.3s;
 }
 
 .viewBtn {
-  background-color: #4059A5;
+  width: 80%;
+  background-color: #4059A5; 
+}
+.viewBtn:hover {
+  background-color: #32488a;
 }
 
 .approveBtn {
+    width: 80%;
     background-color: #34C759;
 }
+.approveBtn:hover {
+  background-color: #2fa84e;
+}
+
 
 .rejectBtn {
+    width: 80%;
     background-color: #FF3B30;
+}
+.rejectBtn:hover {
+  background-color: #d63128;
 }
 
 /* Pagination */
@@ -140,4 +153,62 @@ button {
   justify-content: center;
   align-items: center;
   flex-wrap: wrap;
+}
+
+@media (max-width: 1024px) {
+  #main-content {
+    padding: 30px;
+    margin: 30px 20px;
+  }
+
+  table {
+    min-width: 800px;
+  }
+}
+
+@media (max-width: 768px) {
+
+  table {
+    min-width: 100%;
+    font-size: 10px;
+    overflow-x: auto;
+    display: block;
+  }
+
+  .pagination-info {
+    flex-direction: column;
+    gap: 10px;
+    text-align: center;
+  }
+
+  .pagination-info span {
+    text-align: center;
+  }
+}
+
+@media (max-width: 480px) {
+
+  button, .edit-btn {
+    font-size: 11px;
+    padding: 5px 10px;
+  }
+
+  .pagination-info {
+    flex-direction: column;
+    font-size: 1px;
+    text-align: center;
+  }
+
+  #pagination button {
+    padding: 8px;
+    font-size: 12px;
+   
+  }
+
+  td input[type="text"],
+  td select,
+  .area-dropbtn {
+    font-size: 11px;
+    padding: 4px;
+  }
 }
