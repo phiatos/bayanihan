@@ -1,89 +1,88 @@
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM fully loaded, initializing reliefslog script'); // Debug log
+
+    // Firebase configuration
+    const firebaseConfig = {
+        apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
+        authDomain: "bayanihan-5ce7e.firebaseapp.com",
+        databaseURL: "https://bayanihan-5ce7e-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "bayanihan-5ce7e",
+        storageBucket: "bayanihan-5ce7e.appspot.com",
+        messagingSenderId: "593123849917",
+        appId: "1:593123849917:web:eb85a63a536eeff78ce9d4",
+        measurementId: "G-ZTQ9VXXVV0",
+    };
+
+    // Initialize Firebase
+    try {
+        firebase.initializeApp(firebaseConfig);
+        console.log('Firebase initialized successfully');
+    } catch (error) {
+        console.error('Firebase initialization failed:', error);
+    }
+    const database = firebase.database();
+
     const tableBody = document.querySelector('#orgTable tbody');
     const searchInput = document.getElementById('searchInput');
     const sortSelect = document.getElementById('sortSelect');
     const entriesInfo = document.getElementById('entriesInfo');
     const pagination = document.getElementById('pagination');
 
-    const data = [
-        {
-            id: 'RR001',
-            group: 'HelpHands',
-            city: 'Quezon City',
-            address: '123 St.',
-            contact: 'Anna Cruz',
-            number: '09171234567',
-            email: 'anna@helphands.org',
-            category: 'Food',
-            items: [
-                { name: 'Rice', qty: 50, note: '5kg sacks' },
-                { name: 'Canned Goods', qty: 100, note: 'Any variety' }
-            ]
-        },
-        {
-            id: 'RR002',
-            group: 'Hope Foundation',
-            city: 'Manila',
-            address: '456 Avenue',
-            contact: 'Carlos Garcia',
-            number: '09181234567',
-            email: 'carlos@hopefoundation.org',
-            category: 'Clothing',
-            items: [
-                { name: 'T-Shirts', qty: 200, note: 'Any size' },
-                { name: 'Jackets', qty: 50, note: 'L and XL' }
-            ]
-        },
-        {
-            id: 'RR003',
-            group: 'Care4All',
-            city: 'Cebu City',
-            address: '789 Blvd.',
-            contact: 'Mia Santos',
-            number: '09191234567',
-            email: 'mia@care4all.org',
-            category: 'Medical Supplies',
-            items: [
-                { name: 'Masks', qty: 500, note: 'Surgical masks' },
-                { name: 'Gloves', qty: 200, note: 'Latex, small and medium' }
-            ]
-        },
-        {
-            id: 'RR004',
-            group: 'HandsOfHope',
-            city: 'Davao',
-            address: '101 St. Road',
-            contact: 'John Reyes',
-            number: '09201234567',
-            email: 'john@handsofhope.org',
-            category: 'Food',
-            items: [
-                { name: 'Sugar', qty: 40, note: '10kg bags' },
-                { name: 'Flour', qty: 60, note: '5kg packs' }
-            ]
-        },
-        {
-            id: 'RR005',
-            group: 'GiveBack Foundation',
-            city: 'Iloilo City',
-            address: '202 Main St.',
-            contact: 'Elena Lopez',
-            number: '09211234567',
-            email: 'elena@giveback.org',
-            category: 'Educational Materials',
-            items: [
-                { name: 'Books', qty: 300, note: 'Children’s books' },
-                { name: 'Notebooks', qty: 500, note: 'Wide rule' }
-            ]
-        }
-    ];
-    
+    // Verify DOM elements exist
+    if (!tableBody || !searchInput || !sortSelect || !entriesInfo || !pagination) {
+        console.error('One or more DOM elements are missing:', {
+            tableBody: !!tableBody,
+            searchInput: !!searchInput,
+            sortSelect: !!sortSelect,
+            entriesInfo: !!entriesInfo,
+            pagination: !!pagination
+        });
+        return;
+    }
 
-    let filteredData = [...data];
+    let data = [];
+    let filteredData = [];
     const rowsPerPage = 5;
     let currentPage = 1;
 
+    // Fetch data from Firebase
+    database.ref('requestRelief/requests').on('value', (snapshot) => {
+        console.log('Fetching data from Firebase');
+        data = [];
+        const requests = snapshot.val();
+        if (requests) {
+            Object.keys(requests).forEach((key, index) => {
+                const request = requests[key];
+                data.push({
+                    id: `RR${String(index + 1).padStart(3, '0')}`,
+                    group: request.volunteerOrganization || '[Your Org]',
+                    city: request.city,
+                    address: request.address,
+                    contact: request.contactPerson,
+                    number: request.contactNumber,
+                    email: request.email,
+                    category: request.category,
+                    items: request.items || [],
+                    firebaseKey: key
+                });
+            });
+            console.log('Data fetched successfully:', data);
+        } else {
+            console.log('No data found in requestRelief/requests');
+        }
+        filteredData = [...data];
+        renderTable();
+    }, (error) => {
+        console.error('Error fetching data from Firebase:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Failed to load relief requests: ' + error.message,
+        });
+    });
+
     function renderTable() {
+        console.log('Rendering table');
         tableBody.innerHTML = '';
         const start = (currentPage - 1) * rowsPerPage;
         const end = start + rowsPerPage;
@@ -110,6 +109,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderPagination() {
+        console.log('Rendering pagination');
         pagination.innerHTML = '';
         const totalPages = Math.ceil(filteredData.length / rowsPerPage);
 
@@ -126,6 +126,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function applySearchAndSort() {
+        console.log('Applying search and sort');
         const query = searchInput.value.toLowerCase();
         const sortBy = sortSelect.value;
 
@@ -147,6 +148,7 @@ document.addEventListener('DOMContentLoaded', () => {
     sortSelect.addEventListener('change', applySearchAndSort);
 
     window.clearDInputs = () => {
+        console.log('Clearing search input');
         searchInput.value = '';
         applySearchAndSort();
     };
@@ -154,6 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Show modal with details
     document.addEventListener('click', (e) => {
         if (e.target.classList.contains('view-btn')) {
+            console.log('View button clicked');
             const idx = parseInt(e.target.dataset.index);
             const item = data[idx];
 
@@ -168,7 +171,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const itemsTableBody = document.querySelector('#itemsTable tbody');
             itemsTableBody.innerHTML = '';
             (item.items || []).forEach(i => {
-                itemsTableBody.insertAdjacentHTML('beforeend', `<tr><td>${i.name}</td><td>${i.qty}</td><td>${i.note}</td></tr>`);
+                itemsTableBody.insertAdjacentHTML('beforeend', `<tr><td>${i.name}</td><td>${i.quantity}</td><td>${i.notes}</td></tr>`);
             });
 
             document.getElementById('reliefModal').classList.remove('hidden');
@@ -176,6 +179,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById('closeModal').addEventListener('click', () => {
+        console.log('Close modal button clicked');
         document.getElementById('reliefModal').classList.add('hidden');
     });
 
