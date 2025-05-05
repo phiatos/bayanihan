@@ -41,8 +41,8 @@
                             <option value="CityMunicipality-desc">City/Municipality (Z–A)</option>
                             <option value="NoOfHotMeals-asc">Hot Meals (Low–High)</option>
                             <option value="NoOfHotMeals-desc">Hot Meals (High–Low)</option>
-                            <option value="LitersOfWater-asc">Liters of Water (A–Z)</option>
-                            <option value="LitersOfWater-desc">Liters of Water (Z–A)</option>
+                            <option value="LitersOfWater-asc">Liters of Water (Low–High)</option>
+                            <option value="LitersOfWater-desc">Liters of Water (High–Low)</option>
                           </select>                          
                         <i class='bx bx-chevron-down'></i>
                     </div>
@@ -74,9 +74,11 @@
 
     <div id="reportModal" class="modal hidden">
         <div class="modal-content">
-          <span class="close-button">&times;</span>
-          <h2>Report Details</h2>
-          <pre id="modalReportDetails" style="white-space: pre-wrap; text-align: left;"></pre>
+            <div class="modal-header"> 
+                <h2>Report Details</h2>
+                <span class="close-button">&times;</span>
+             </div>
+          <p id="modalReportDetails"></p>
         </div>
     </div>
 
