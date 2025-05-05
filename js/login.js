@@ -1,28 +1,37 @@
 document.addEventListener("DOMContentLoaded", () => {
     const container = document.querySelector(".container");
-    const registerBtn = document.querySelector(".register-btn");
     const loginBtn = document.querySelector(".login-btn");
-    const registerForm = document.querySelector(".register-form");
+    const assistBtn = document.querySelector(".assist-btn");
     const loginForm = document.querySelector(".login form");
-  
+    const assistanceBox = document.querySelector(".assistance");
+    const backBtn = document.querySelector(".back-btn");
+    
     if (!container) console.error("Container not found");
-    if (!registerBtn) console.error("Register button not found");
     if (!loginBtn) console.error("Login button not found");
-    if (!registerForm) console.error("Register form not found");
+    if (!assistBtn) console.error("Assistance button not found");
     if (!loginForm) console.error("Login form not found");
-  
-    if (registerBtn && loginForm) {
-      registerBtn.addEventListener("click", () => {
+    if (!assistanceBox) console.error("Assistance box not found");
+    if (!backBtn) console.error("Back button not found");
+    
+    // Toggle between login form and assistance box
+    if (assistanceBox && loginForm) {
+      assistBtn.addEventListener("click", () => {
         container.classList.add("active");
         loginForm.reset();
       });
     }
   
-    if (loginBtn && registerForm) {
+    if (loginBtn && assistanceBox) {
       loginBtn.addEventListener("click", () => {
         container.classList.remove("active");
-        registerForm.reset();
       });
     }    
+
+    if (backBtn) {
+      backBtn.addEventListener("click", () => {
+        window.location.href = '../index.html';
+      });
+    }
   });
+
   
