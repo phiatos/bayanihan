@@ -1,9 +1,3 @@
-:root {
-    --primary-color: #14AEBB;
-    --accent-color: #FA3B99;
-    --light-bg: #FFF9F0;
-}
-
 body {
     display: flex;
     justify-content: center;

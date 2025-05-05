@@ -1,5 +1,13 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Poppins', sans-serif;
+}
+
 body {
-    font-family: Arial, sans-serif;
     background: linear-gradient(to right, #FFF9F0, #EAE0CF);
     color: #333;
     display: flex;
@@ -98,7 +106,6 @@ footer {
                 -6px -6px 10px -1px rgba(255, 255, 255, 0.2);
 }
 
-/* button */
 #loginButton {
     margin-top: 10px;
     padding: 12px 30px;
@@ -118,6 +125,9 @@ footer {
     width: 40%;
     padding-top: 1rem;
     margin-left: 60px;
+    /* margin: 10px 10px;
+    border: 2px solid #14AEBB; 
+    border-radius: 20px; */
 }
 
 .faq-sections {

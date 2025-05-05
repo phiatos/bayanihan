@@ -174,8 +174,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-
-  
   // global.js
   window.addEventListener('DOMContentLoaded', () => {
     const sidebar = document.getElementById('sidebar');
