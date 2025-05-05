@@ -260,7 +260,10 @@ th {
   }
   
   @media (max-width: 480px) {
-    
+    #main-content{
+      padding: 0;
+      margin: 10px;
+    }
     .container{
       overflow-x: scroll;
     }
@@ -305,9 +308,15 @@ th {
   }
 
   @media (max-width: 400px) {
+    #main-content{
+      margin: 10px;
+      padding: 0;
+    }
     .container{
       overflow-x: auto;
       padding: 10px 0;
+      width: 85%;
+      margin: 10px;
     }
     .controls header{
       font-size: 20px;
