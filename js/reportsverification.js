@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
+    
     // Firebase configuration
     const firebaseConfig = {
         apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
@@ -147,11 +148,51 @@ document.addEventListener('DOMContentLoaded', () => {
                     readableReport += `• ${displayKey}: ${value}\n`;
                 }
 
-                Swal.fire({
-                    title: 'Report Details',
-                    icon: 'info',
-                    html: `<pre style="text-align:left; white-space:pre-wrap">${readableReport}</pre>`,
-                    confirmButtonText: 'Close'
+                const modal = document.getElementById("reportModal");
+                const modalDetails = document.getElementById("modalReportDetails");
+                const closeModal = document.querySelector(".close-button");
+                
+            
+                modalDetails.innerHTML = `
+                  
+                  <div class="report-section">
+                    <div>
+                    <h2>Basic Information</h2>
+                        <p><strong>Reporty ID:</strong> ${report.ReportID || "-"}</p>
+                        <p><strong>Volunteer Group:</strong> ${report.volunteerGroup || "For Now ABVN"}</p>
+                        <p><strong>Location of Operation:</strong> ${report.Barangay|| "-"}, ${report.CityMunicipality || "-"}</p>
+                        <p><strong>Submitted By:</strong> ${report.SubmittedBy || "-"}</p>
+                        <p><strong>Date of Report Submitted:</strong> ${formatDate(report.DateOfReport) || "-"}</p>
+                    </div>
+                    <div>
+                    <h2>Relief Operations</h2>
+                      <p><strong>Date of Relief Operation:</strong> ${formatDate(report.Date) || "-"}</p>
+                      <p><strong>No. of Individuals or Families:</strong> ${report.NoOfIndividualsOrFamilies || "-"}</p>
+                      <p><strong>No. of Food Packs:</strong> ${report.NoOfFoodPacks || "-"}</p>
+                      <p><strong>No. of Hot Meals/Ready-to-eat food:</strong> ${report.NoOfHotMeals || "-"}</p>
+                      <p><strong>Liters of Water:</strong> ${report.LitersOfWater || "-"}</p>
+                      <p><strong>No. of Volunteers Mobilized:</strong> ${report.NoOfVolunteersMobilized || "-"}</p>
+                      <p><strong>No. of Organizations Activated:</strong> ${report.NoOfOrganizationsActivated || "-"}</p>
+                      <p><strong>Total Value of In-Kind Donations:</strong> ${report.TotalValueOfInKindDonations || "-"}</p>
+                    </div>
+                     <div>
+                    <h2>Additional Updates</h2>
+                      <p><strong>Notes/Additional Information:</strong> ${formatDate(report.NotesAdditionalInformation) || "-"}</p>
+                    </div>
+                  </div>
+                    
+                `;
+
+                modal.classList.remove("hidden");
+
+                closeModal.addEventListener("click", () => {
+                    modal.classList.add("hidden");
+                });
+
+                window.addEventListener("click", function (event) {
+                    if (event.target === modal) {
+                        modal.classList.add("hidden");
+                    }
                 });
             });
 
@@ -233,27 +274,35 @@ document.addEventListener('DOMContentLoaded', () => {
         paginationContainer.appendChild(createButton("Next", currentPage + 1, currentPage === totalPages));
     }
 
+    
     // Search and sort functionality
     function applySearchAndSort() {
-        let filteredReports = [...submittedReports];
-        const query = searchInput.value.trim().toLowerCase();
-        const sortBy = sortSelect.value;
+        const searchQuery = document.getElementById('searchInput').value.toLowerCase();
+        const sortValue = document.getElementById('sortSelect').value;
+        const [sortBy, direction] = sortValue.split("-");
 
-        // Search
-        if (query) {
-            filteredReports = filteredReports.filter(report =>
-                Object.values(report).some(val =>
-                    typeof val === 'string' && val.toLowerCase().includes(query)
-                )
-            );
-        }
-
+    let filteredReports = submittedReports.filter(report => {
+        return Object.values(report).some(value =>
+            value.toString().toLowerCase().includes(searchQuery)
+        );
+    });
         // Sort
         if (sortBy) {
             filteredReports.sort((a, b) => {
                 const valA = a[sortBy] || "";
                 const valB = b[sortBy] || "";
-                return valA.toString().localeCompare(valB.toString());
+    
+                // Handle Date sorting specifically
+                if (sortBy === "DateOfReport") {
+                    const dateA = new Date(valA);
+                    const dateB = new Date(valB);
+                    if (isNaN(dateA) || isNaN(dateB)) return 0;
+                    return direction === "asc" ? dateA - dateB : dateB - dateA;
+                }
+    
+                return direction === "asc"
+                    ? valA.toString().localeCompare(valB.toString())
+                    : valB.toString().localeCompare(valA.toString());
             });
         }
 

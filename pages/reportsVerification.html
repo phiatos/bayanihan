@@ -37,10 +37,12 @@
                     <div class="custom-select-wrapper">
                         <select id="sortSelect">
                             <option value="">Sort by</option>
-                            <option value="organization">Organization</option>
-                            <option value="hq">HQ</option>
-                            <option value="status">Status</option>
-                            <option value="calamity">Calamity</option>  
+                            <option value="Barangay-asc">Barangay (A–Z)</option>
+                            <option value="Barangay-desc">Barangay (Z–A)</option>
+                            <option value="CityMunicipality-asc">City/Municipality (A–Z)</option>
+                            <option value="CityMunicipality-desc">City/Municipality (Z–A)</option>
+                            <option value="DateOfReport-asc">Report Date (Low–High)</option>
+                            <option value="DateOfReport-desc">Report Date (High–Low)</option>
                         </select>
                         <i class='bx bx-chevron-down'></i>
                     </div>
@@ -69,6 +71,14 @@
                 <span id="entriesInfo">Showing 0 to 0 of 0 entries</span>
                 <div id="pagination" class="pagination"></div>
             </div>
+        </div>
+    </div>
+
+    <div id="reportModal" class="modal hidden">
+        <div class="modal-content">
+          <span class="close-button">&times;</span>
+          <h2>Report Details</h2>
+          <pre id="modalReportDetails" style="white-space: pre-wrap; text-align: left;"></pre>
         </div>
     </div>
 
