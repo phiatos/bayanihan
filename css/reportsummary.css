@@ -13,7 +13,7 @@ h2 {
     
 #main-content {
     flex: 1;
-    padding: 20px;
+    padding: 50px;
     position: relative;
     background: #FFFFFF;
     border-radius: 30px;
@@ -60,7 +60,7 @@ h2 {
 
 /* Field name */
 .summary-box strong {
-    font-size: 12px;
+    font-size: 15px;
     font-weight: 700;
     color: #14AEBB;
 }
@@ -99,14 +99,21 @@ h2 {
 
 
 /* RESPONSIVE BEHAVIOR */
-@media (min-width: 600px) {
+@media (max-width: 480px) {
     .summary-box {
+        font-size: 10px;
         flex-direction: row;
         align-items: center;
     }
 
+    .category-section {
+        padding: 10px;
+        margin: 20px 0;
+    }
+
     .summary-box strong {
         width: 220px;
+        font-size: 10px;
         margin-bottom: 0; /* Remove bottom margin in row layout */
         flex-shrink: 0;
     }
@@ -114,12 +121,20 @@ h2 {
     .summary-box span {
         flex: 1;
     }
+
+    #submitBtn, #backBtn{
+        width: 100%;
+        padding: 10px;
+        border-radius: 8px;
+        font-size: 14px;
+        align-items: center;
+    }
 }
 
 /* Even better on big screens */
 @media (min-width: 900px) {
     h2 {
-        font-size: 2.5rem;
+        font-size: 1.5rem;
     }
 
     .category-title {
