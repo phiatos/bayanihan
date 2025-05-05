@@ -32,123 +32,147 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-    const categories = {
-        "Basic Information": [
-            "Barangay",
-            "CityMunicipality",
-            "TimeOfIntervention",
-            "SubmittedBy",
-            "DateOfReport"
-        ],
-        "Relief Operations": [
-            "Date",
-            "NoOfOrganizationsActivated",
-            "NoOfIndividualsOrFamilies",
-            "NoOfFoodPacks",
-            "NoOfHotMeals",
-            "LitersOfWater",
-            "NoOfVolunteersMobilized",
-            "TotalValueOfInKindDonations"
-        ],
-        "Notes/Additional Information": [
-            "NotesAdditionalInformation"
-        ]
-    };
+    // Remove the specific report with key -OPTGsB_vPQd5MNQPtpv from Firebase
+    const reportKeyToRemove = "-OPTGsB_vPQd5MNQPtpv";
+    const pendingRef = database.ref(`reports/pending/${reportKeyToRemove}`);
+    const approvedRef = database.ref(`reports/approved/${reportKeyToRemove}`);
 
-    // Display the summary
-    for (let category in categories) {
-        const section = document.createElement("div");
-        section.className = "category-section";
+    Promise.all([
+        pendingRef.remove().catch(error => {
+            console.error(`Error removing report from pending: ${error.message}`);
+        }),
+        approvedRef.remove().catch(error => {
+            console.error(`Error removing report from approved: ${error.message}`);
+        })
+    ]).then(() => {
+        console.log(`Report with key ${reportKeyToRemove} has been removed from the database.`);
 
-        const title = document.createElement("div");
-        title.className = "category-title";
-        title.textContent = category;
-        section.appendChild(title);
+        // Proceed to display the summary after removal
+        const categories = {
+            "Basic Information": [
+                "Barangay",
+                "CityMunicipality",
+                "TimeOfIntervention",
+                "SubmittedBy",
+                "DateOfReport"
+            ],
+            "Relief Operations": [
+                "Date",
+                "NoOfOrganizationsActivated",
+                "NoOfIndividualsOrFamilies",
+                "NoOfFoodPacks",
+                "NoOfHotMeals",
+                "LitersOfWater",
+                "NoOfVolunteersMobilized",
+                "TotalValueOfInKindDonations"
+            ],
+            "Notes/Additional Information": [
+                "NotesAdditionalInformation"
+            ]
+        };
 
-        categories[category].forEach(item => {
-            if (summaryData[item]) {
-                // Convert the sanitized key back to a readable format for display
-                let displayKey = item
-                    .replace(/([A-Z])/g, ' $1') // Add space before capital letters
-                    .replace(/^./, str => str.toUpperCase()); // Capitalize first letter
-                displayKey = displayKey
-                    .replace('CityMunicipality', 'City/Municipality')
-                    .replace('TimeOfIntervention', 'Time of Intervention')
-                    .replace('SubmittedBy', 'Submitted by')
-                    .replace('DateOfReport', 'Date of Report')
-                    .replace('ReportID', 'Report ID')
-                    .replace('NoOfIndividualsOrFamilies', 'No. of Individuals or Families')
-                    .replace('NoOfFoodPacks', 'No. of Food Packs')
-                    .replace('NoOfHotMeals', 'No. of Hot Meals')
-                    .replace('LitersOfWater', 'Liters of Water')
-                    .replace('NoOfVolunteersMobilized', 'No. of Volunteers Mobilized')
-                    .replace('NoOfOrganizationsActivated', 'No. of Organizations Activated')
-                    .replace('TotalValueOfInKindDonations', 'Total Value of In-Kind Donations')
-                    .replace('NotesAdditionalInformation', 'Notes/additional information');
+        // Display the summary
+        for (let category in categories) {
+            const section = document.createElement("div");
+            section.className = "category-section";
 
-                const fieldDiv = document.createElement("div");
-                fieldDiv.className = "summary-box";
-                fieldDiv.innerHTML = `<strong>${displayKey}:</strong> <span>${summaryData[item]}</span>`;
-                section.appendChild(fieldDiv);
-            }
+            const title = document.createElement("div");
+            title.className = "category-title";
+            title.textContent = category;
+            section.appendChild(title);
+
+            categories[category].forEach(item => {
+                if (summaryData[item]) {
+                    // Convert the sanitized key back to a readable format for display
+                    let displayKey = item
+                        .replace(/([A-Z])/g, ' $1') // Add space before capital letters
+                        .replace(/^./, str => str.toUpperCase()); // Capitalize first letter
+                    displayKey = displayKey
+                        .replace('CityMunicipality', 'City/Municipality')
+                        .replace('TimeOfIntervention', 'Time of Intervention')
+                        .replace('SubmittedBy', 'Submitted by')
+                        .replace('DateOfReport', 'Date of Report')
+                        .replace('ReportID', 'Report ID')
+                        .replace('NoOfIndividualsOrFamilies', 'No. of Individuals or Families')
+                        .replace('NoOfFoodPacks', 'No. of Food Packs')
+                        .replace('NoOfHotMeals', 'No. of Hot Meals')
+                        .replace('LitersOfWater', 'Liters of Water')
+                        .replace('NoOfVolunteersMobilized', 'No. of Volunteers Mobilized')
+                        .replace('NoOfOrganizationsActivated', 'No. of Organizations Activated')
+                        .replace('TotalValueOfInKindDonations', 'Total Value of In-Kind Donations')
+                        .replace('NotesAdditionalInformation', 'Notes/additional information');
+
+                    const fieldDiv = document.createElement("div");
+                    fieldDiv.className = "summary-box";
+                    fieldDiv.innerHTML = `<strong>${displayKey}:</strong> <span>${summaryData[item]}</span>`;
+                    section.appendChild(fieldDiv);
+                }
+            });
+
+            container.appendChild(section);
+        }
+
+        // Back button
+        document.getElementById('backBtn').addEventListener('click', () => {
+            window.location.href = '../pages/reportsSubmission.html';
         });
 
-        container.appendChild(section);
-    }
-
-    // Back button
-    document.getElementById('backBtn').addEventListener('click', () => {
-        window.location.href = '../pages/reportsSubmission.html';
-    });
-
-    // Submit button
-    const submitBtn = document.getElementById("submitBtn");
-    submitBtn.addEventListener("click", () => {
-        // Check if user is authenticated
-        auth.onAuthStateChanged(user => {
-            if (!user) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Authentication Required',
-                    text: 'Please sign in to submit a report.',
-                }).then(() => {
-                    window.location.href = "../pages/login.html"; // Adjust to your login page
-                });
-                return;
-            }
-
-            console.log("Submitting to Firebase:", summaryData);
-
-            // Add timestamp and status
-            summaryData["Status"] = "Pending";
-            summaryData["Timestamp"] = firebase.database.ServerValue.TIMESTAMP;
-
-            // Save to Firebase under reports/submitted
-            database.ref("reports/submitted").push(summaryData)
-                .then(() => {
-                    console.log("Report successfully saved to Firebase");
-
-                    // Clear the draft report from localStorage
-                    localStorage.removeItem("reportData");
-
-                    // Show success message
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Report Submitted',
-                        text: 'Your report has been successfully submitted for verification!',
-                    }).then(() => {
-                        // Redirect to Reports Verification page (admins can access it)
-                        window.location.href = "../pages/reportsVerification.html";
-                    });
-                })
-                .catch((error) => {
-                    console.error("Error saving report to Firebase:", error);
+        // Submit button
+        const submitBtn = document.getElementById("submitBtn");
+        submitBtn.addEventListener("click", () => {
+            // Check if user is authenticated
+            auth.onAuthStateChanged(user => {
+                if (!user) {
                     Swal.fire({
                         icon: 'error',
-                        title: 'Error',
-                        text: 'Failed to submit report: ' + error.message,
+                        title: 'Authentication Required',
+                        text: 'Please sign in to submit a report.',
+                    }).then(() => {
+                        window.location.href = "../pages/login.html";
                     });
-                });
+                    return;
+                }
+
+                console.log("Submitting to Firebase:", summaryData);
+
+                // Add timestamp and status
+                summaryData["Status"] = "Pending";
+                summaryData["Timestamp"] = firebase.database.ServerValue.TIMESTAMP;
+
+                // Save to Firebase under reports/submitted
+                database.ref("reports/submitted").push(summaryData)
+                    .then(() => {
+                        console.log("Report successfully saved to Firebase");
+
+                        // Clear the draft report from localStorage
+                        localStorage.removeItem("reportData");
+
+                        // Show success message
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Report Submitted',
+                            text: 'Your report has been successfully submitted for verification!',
+                        }).then(() => {
+                            // Redirect to the single dashboard for both roles
+                            window.location.href = "../pages/dashboard.html";
+                        });
+                    })
+                    .catch((error) => {
+                        console.error("Error saving report to Firebase:", error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Failed to submit report: ' + error.message,
+                        });
+                    });
+            });
+        });
+    }).catch(error => {
+        console.error("Error during report removal process:", error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Failed to process report removal. Please try again.',
         });
     });
 });
