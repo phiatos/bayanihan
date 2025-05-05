@@ -70,8 +70,11 @@
                 </table>
 
                 <div>
-                    <button id="addNew"><i class='bx bx-plus' style="color: white; font-size: 30px;"></i></button>
-                </div>
+                    <button id="addNew" aria-label="Add New Volunteer Group">
+                      <i class='bx bx-plus' style="color: white; font-size: 30px;"></i>
+                    </button>
+                  </div>
+                  
                 
                 <div class="pagination-info">
                     <span id="entriesInfo">Showing 0 to 0 of 0 entries</span>
@@ -135,7 +138,7 @@
             <div class="add-org-modal" id="addOrgModal" style="display: none;">
                 <div class="add-org-modal-content">
                     <div class="add-org-header">
-                        <h2 style="color: #4059A5; font-size: 20px; justify-content: center;">Add Volunteer New Group</h2>
+                        <h2 style="color: #4059A5; font-size: 20px; justify-content: center; text-align: center;">Add Volunteer New Group</h2>
                         <span class="close" onclick="closeAModal()" style="display: flex; justify-content: right;">
                             <i class='bx bx-x' style="font-size: 25px "></i>
                         </span>
@@ -172,6 +175,9 @@
             <!-- Area of Operation -->
             <div id="areaOperationModal" class="operation-modal" style="display:none;">
                 <div class="operation-modal-content">
+                    <span class="close" onclick="closeAOOModal()" style="display: flex; justify-content: right;">
+                        <i class='bx bx-x' style="font-size: 25px "></i>
+                    </span>
                     <h2>Area of Operation</h2>
                     <hr>
                     <form id="areaOperationForm">

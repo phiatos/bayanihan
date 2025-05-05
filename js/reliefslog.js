@@ -42,8 +42,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let data = [];
     let filteredData = [];
-    const rowsPerPage = 5;
     let currentPage = 1;
+    const rowsPerPage = 5;
 
     // Fetch data from Firebase
     database.ref('requestRelief/requests').on('value', (snapshot) => {
@@ -109,9 +109,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderPagination() {
-        console.log('Rendering pagination');
         pagination.innerHTML = '';
         const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+
+        // Preventing generation of pagination buttons if no data
+        if (totalPages === 0) {
+            pagination.innerHTML = '<span>No entries to display</span>';
+            return;
+        }
 
         for (let i = 1; i <= totalPages; i++) {
             const btn = document.createElement('button');
