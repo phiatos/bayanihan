@@ -12,7 +12,11 @@ const firebaseConfig = {
 
 // Initialize Firebase
 firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
 const database = firebase.database();
+
+// Initialize EmailJS with the correct Public Key
+emailjs.init('X4kCYg2glUhqW6738');
 
 // Data array to store fetched data
 let data = [];
@@ -77,42 +81,131 @@ const sortSelect = document.getElementById('sortSelect');
 const searchInput = document.getElementById('searchInput');
 const clearBtn = document.querySelector('.clear-btn');
 let orgData = null;
+let isProcessing = false;
 
-// Fetch data from Firebase and render the table
+// Helper function to format mobile numbers (consistent with global.js)
+function formatMobileNumber(mobile) {
+  const cleaned = mobile.replace(/\D/g, "");
+  if (/^\d{10,15}$/.test(cleaned)) {
+    return cleaned;
+  }
+  return null;
+}
+
+// Function to generate a random temporary password
+function generateTempPassword(length = 10) {
+  const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+";
+  let password = "";
+  for (let i = 0; i < length; i++) {
+    const randomIndex = Math.floor(Math.random() * charset.length);
+    password += charset[randomIndex];
+  }
+  return password;
+}
+
+// Fetch data from Firebase and include logged-in ABVN data
 function fetchAndRenderTable() {
   console.log("Fetching data from Firebase...");
+  
+  // First, check for logged-in ABVN data in localStorage
+  const loggedInVolunteerGroup = localStorage.getItem('loggedInVolunteerGroup');
+  let abvnData = null;
+  if (loggedInVolunteerGroup) {
+    abvnData = JSON.parse(loggedInVolunteerGroup);
+    console.log("Logged-in ABVN data from localStorage:", abvnData);
+  } else {
+    console.log("No logged-in ABVN data found in localStorage. Attempting to fetch from Firebase...");
+    
+    const userMobile = localStorage.getItem("userMobile");
+    if (!userMobile) {
+      console.error("No userMobile found in localStorage.");
+      // Proceed to fetch other volunteer groups without ABVN data
+    } else {
+      // Fetch ABVN data directly from Firebase if not in localStorage
+      database.ref('users').orderByChild('mobile').equalTo(userMobile).once('value')
+        .then(snapshot => {
+          if (snapshot.exists()) {
+            let userData = null;
+            snapshot.forEach(childSnapshot => {
+              userData = childSnapshot.val();
+            });
+            if (userData && userData.volunteerGroupId) {
+              return database.ref(`volunteerGroups/${userData.volunteerGroupId}`).once('value');
+            }
+          }
+          throw new Error("No user or volunteerGroupId found.");
+        })
+        .then(groupSnapshot => {
+          if (groupSnapshot.exists()) {
+            const groupData = groupSnapshot.val();
+            abvnData = {
+              no: userData.volunteerGroupId,
+              organization: groupData.organization,
+              hq: groupData.hq,
+              areaOfOperation: groupData.areaOfOperation,
+              contactPerson: groupData.contactPerson,
+              email: groupData.email,
+              mobileNumber: groupData.mobileNumber || userMobile,
+              socialMedia: groupData.socialMedia || ''
+            };
+            localStorage.setItem('loggedInVolunteerGroup', JSON.stringify(abvnData));
+            console.log("Fetched ABVN data from Firebase:", abvnData);
+          }
+        })
+        .catch(error => {
+          console.error("Error fetching ABVN data from Firebase:", error);
+        });
+    }
+  }
+
+  // Fetch all volunteer groups from Firebase
   database.ref("volunteerGroups").once("value", snapshot => {
     const fetchedData = snapshot.val();
-    console.log("Fetched data:", fetchedData);
+    console.log("Fetched volunteer groups data:", fetchedData);
 
     if (!fetchedData) {
       console.log("No data found in volunteerGroups node.");
-      Swal.fire({
-        icon: 'info',
-        title: 'No Data',
-        text: 'No volunteer groups found in the database.'
-      });
       data = [];
+      if (abvnData) {
+        data.push(abvnData); // Include ABVN data even if no other groups exist
+      }
       renderTable();
       return;
     }
 
     data = [];
     for (let key in fetchedData) {
-      data.push({
-        no: parseInt(key),
-        organization: fetchedData[key].organization,
-        hq: fetchedData[key].hq,
-        areaOfOperation: fetchedData[key].areaOfOperation,
-        contactPerson: fetchedData[key].contactPerson,
-        email: fetchedData[key].email,
-        mobileNumber: fetchedData[key].mobileNumber,
-        socialMedia: fetchedData[key].socialMedia
-      });
+      const entry = fetchedData[key];
+      const requiredFields = ['organization', 'hq', 'areaOfOperation', 'contactPerson', 'email', 'mobileNumber', 'socialMedia'];
+      const hasAllFields = requiredFields.every(field => entry[field] !== undefined && entry[field] !== null);
+
+      if (hasAllFields) {
+        const groupEntry = {
+          no: parseInt(key),
+          organization: entry.organization,
+          hq: entry.hq,
+          areaOfOperation: entry.areaOfOperation,
+          contactPerson: entry.contactPerson,
+          email: entry.email,
+          mobileNumber: entry.mobileNumber,
+          socialMedia: entry.socialMedia
+        };
+        // Add to data array only if it's not the logged-in ABVN's group (to avoid duplicates)
+        if (!abvnData || parseInt(key) !== parseInt(abvnData.no)) {
+          data.push(groupEntry);
+        }
+      } else {
+        console.warn(`Skipping entry with key ${key}: Missing or invalid required fields`, entry);
+      }
     }
 
-    console.log("Processed data:", data);
-    data.sort((a, b) => a.no - b.no);
+    // Add the logged-in ABVN's data to the top of the list
+    if (abvnData) {
+      data.unshift(abvnData); // Add ABVN data at the beginning
+    }
+
+    console.log("Processed data with ABVN included:", data);
+    data.sort((a, b) => a.no - b.no); // Sort by 'no' field
     renderTable();
   }).catch(error => {
     console.error("Error fetching data from Firebase:", error);
@@ -121,6 +214,11 @@ function fetchAndRenderTable() {
       title: 'Error',
       text: `Failed to fetch data from the database: ${error.message}`
     });
+    // If Firebase fetch fails, still display ABVN data if available
+    if (abvnData) {
+      data = [abvnData];
+      renderTable();
+    }
   });
 }
 
@@ -137,13 +235,13 @@ function renderTable(filteredData = data) {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td contenteditable="false">${row.no}</td>
-      <td contenteditable="false">${row.organization}</td>
-      <td contenteditable="false" class="hqCell">${row.hq}</td>
-      <td contenteditable="false" class="locationCell">${row.areaOfOperation}</td>
-      <td contenteditable="false">${row.contactPerson}</td>
-      <td contenteditable="false">${row.email}</td>
-      <td contenteditable="false">${row.mobileNumber}</td>
-      <td contenteditable="false">${row.socialMedia}</td>
+      <td contenteditable="false">${row.organization || 'N/A'}</td>
+      <td contenteditable="false" class="hqCell">${row.hq || 'N/A'}</td>
+      <td contenteditable="false" class="locationCell">${row.areaOfOperation || 'N/A'}</td>
+      <td contenteditable="false">${row.contactPerson || 'N/A'}</td>
+      <td contenteditable="false">${row.email || 'N/A'}</td>
+      <td contenteditable="false">${row.mobileNumber || 'N/A'}</td>
+      <td contenteditable="false">${row.socialMedia || 'N/A'}</td>
       <td><button class="editButton" data-id="${row.no}">Edit</button></td>
     `;
     tableBody.appendChild(tr);
@@ -496,6 +594,31 @@ document.getElementById('addOrgForm').addEventListener('submit', function (event
   event.preventDefault();
 
   const form = this;
+  const email = form.email.value.trim();
+  const mobileNumber = form.mobileNumber.value.trim();
+
+  // Custom validation for email and mobile number
+  const isValidEmail = email => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  const formattedMobile = formatMobileNumber(mobileNumber);
+
+  if (!isValidEmail(email)) {
+    Swal.fire({
+      icon: 'error',
+      title: 'Invalid Email',
+      text: 'Please enter a valid email address.'
+    });
+    return;
+  }
+
+  if (!formattedMobile) {
+    Swal.fire({
+      icon: 'error',
+      title: 'Invalid Mobile Number',
+      text: 'Please enter a valid mobile number (10-15 digits, numbers only).'
+    });
+    return;
+  }
+
   if (!form.checkValidity()) {
     form.reportValidity();
     return;
@@ -509,8 +632,8 @@ document.getElementById('addOrgForm').addEventListener('submit', function (event
     hqProvince: form['hq-province'].value,
     areaOps: Array.from(document.querySelectorAll('#areaOperationContainer input')).map(input => input.value),
     contactPerson: form.contactPerson.value,
-    email: form.email.value,
-    mobileNumber: form.mobileNumber.value,
+    email: email,
+    mobileNumber: formattedMobile,
     socialMedia: form.socialMedia.value
   };
 
@@ -539,8 +662,27 @@ document.getElementById('editDetailsBtn').addEventListener('click', function () 
   document.getElementById('addOrgModal').style.display = 'block';
 });
 
-document.getElementById('confirmSaveBtn').addEventListener('click', function () {
-  if (!orgData) return;
+document.getElementById('confirmSaveBtn').addEventListener('click', async function () {
+  if (isProcessing) return;
+  isProcessing = true;
+  this.disabled = true;
+
+  console.log('orgData:', orgData);
+
+  if (!orgData) {
+    console.log('orgData is null or undefined');
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: 'No organization data found. Please fill out the form again.'
+    });
+    isProcessing = false;
+    this.disabled = false;
+    return;
+  }
+
+  console.log('orgData.email:', orgData.email);
+  console.log('orgData.mobileNumber:', orgData.mobileNumber);
 
   const newVolunteerGroup = {
     organization: orgData.organization,
@@ -552,32 +694,136 @@ document.getElementById('confirmSaveBtn').addEventListener('click', function () 
     socialMedia: orgData.socialMedia
   };
 
-  database.ref("volunteerGroups").once("value", snapshot => {
+  const tempPassword = generateTempPassword();
+
+  const isValidEmail = email => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  const formattedMobile = formatMobileNumber(orgData.mobileNumber);
+
+  if (!orgData.email || !isValidEmail(orgData.email)) {
+    console.log('Invalid or missing email in orgData:', orgData.email);
+    Swal.fire({
+      icon: 'error',
+      title: 'Invalid Email',
+      text: 'Please enter a valid email address.'
+    });
+    isProcessing = false;
+    this.disabled = false;
+    return;
+  }
+
+  if (!formattedMobile) {
+    console.log('Invalid or missing mobile number in orgData:', orgData.mobileNumber);
+    Swal.fire({
+      icon: 'error',
+      title: 'Invalid Mobile Number',
+      text: 'Please enter a valid mobile number (10-15 digits, numbers only).'
+    });
+    isProcessing = false;
+    this.disabled = false;
+    return;
+  }
+
+  let createdUser = null;
+
+  try {
+    const syntheticEmail = `${orgData.mobileNumber}@bayanihan.com`;
+    console.log('Synthetic email for Firebase Auth:', syntheticEmail);
+
+    const signInMethods = await auth.fetchSignInMethodsForEmail(syntheticEmail);
+    if (signInMethods.length > 0) {
+      throw new Error('The mobile number is already in use by another account.');
+    }
+
+    const userCredential = await auth.createUserWithEmailAndPassword(syntheticEmail, tempPassword);
+    createdUser = userCredential.user;
+
+    const userData = {
+      email: orgData.email,
+      role: 'ABVN',
+      createdAt: new Date().toISOString(),
+      mobile: orgData.mobileNumber,
+      organization: orgData.organization
+    };
+
+    await database.ref(`users/${createdUser.uid}`).set(userData);
+
+    const emailParams = {
+      email: orgData.email,
+      organization: orgData.organization,
+      tempPassword: tempPassword,
+      mobileNumber: orgData.mobileNumber
+    };
+    console.log('Sending email with params:', emailParams);
+    const emailResponse = await emailjs.send('service_gebyrih', 'template_fa31b56', emailParams);
+    console.log('EmailJS response:', emailResponse);
+
+    const snapshot = await database.ref('volunteerGroups').once('value');
     const groups = snapshot.val();
     const keys = groups ? Object.keys(groups).map(Number) : [];
     const nextKey = keys.length > 0 ? Math.max(...keys) + 1 : 1;
 
-    database.ref(`volunteerGroups/${nextKey}`).set(newVolunteerGroup)
-      .then(() => {
-        orgData = null;
-        document.getElementById('confirmModal').style.display = 'none';
-        document.getElementById('successModal').style.display = 'block';
-        fetchAndRenderTable();
-        Swal.fire({
-          icon: 'success',
-          title: 'Success',
-          text: 'New volunteer group added successfully!'
-        });
-      })
-      .catch(error => {
-        console.error("Error adding new volunteer group to Firebase:", error);
-        Swal.fire({
-          icon: 'error',
-          title: 'Error',
-          text: 'Failed to add new volunteer group to the database. Please try again.'
-        });
-      });
-  });
+    await database.ref(`volunteerGroups/${nextKey}`).set(newVolunteerGroup);
+
+    const successEmail = orgData.email;
+    Swal.fire({
+      icon: 'success',
+      title: 'Success',
+      text: `Volunteer group added successfully!`
+    });
+    orgData = null;
+    document.getElementById('confirmModal').style.display = 'none';
+    document.getElementById('successModal').style.display = 'block';
+    fetchAndRenderTable();
+  } catch (error) {
+    console.error('Error adding volunteer group:', error);
+    console.log('Full error object:', JSON.stringify(error, null, 2));
+
+    if (createdUser) {
+      try {
+        await createdUser.delete();
+        console.log('Cleaned up: Firebase user deleted due to registration failure.');
+      } catch (deleteError) {
+        console.error('Failed to delete Firebase user during cleanup:', deleteError);
+      }
+    }
+
+    let errorMessageText = 'An unexpected error occurred.';
+    if (error.message) {
+      errorMessageText = error.message;
+    } else if (error.text) {
+      errorMessageText = error.text;
+    } else if (error.status && error.statusText) {
+      errorMessageText = `HTTP ${error.status}: ${error.statusText}`;
+    } else if (typeof error === 'object') {
+      errorMessageText = JSON.stringify(error);
+    } else {
+      errorMessageText = String(error);
+    }
+
+    let errorMessage = 'Failed to add volunteer group. ';
+    if (errorMessageText.includes('email-already-in-use') || errorMessageText.includes('mobile number is already in use')) {
+      errorMessage += 'The mobile number is already in use by another account.';
+    } else if (errorMessageText.includes('auth/invalid-email')) {
+      errorMessage += 'The email address is not valid.';
+    } else if (errorMessageText.includes('404')) {
+      errorMessage += 'Failed to send email with temporary password. The EmailJS Template ID or Service ID may be incorrect. Please verify your EmailJS configuration.';
+    } else if (errorMessageText.includes('Account not found')) {
+      errorMessage += 'Account not found. Please verify your EmailJS Public Key and account status.';
+    } else if (errorMessageText.includes('The recipients address is empty')) {
+      errorMessage += 'The recipient email address is missing. Please ensure the email address is provided.';
+    } else {
+      errorMessage += errorMessageText;
+    }
+
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: errorMessage
+    });
+  } finally {
+    isProcessing = false;
+    this.disabled = false;
+  }
 });
 
 document.getElementById('closeSuccessBtn').addEventListener('click', () => {
@@ -626,7 +872,6 @@ function renderPagination(totalRows) {
 function filterAndSort() {
   let filtered = data.filter(row => {
     const query = searchInput.value.trim().toLowerCase();
-    // Enhanced filtering to handle edge cases and search across all fields
     return Object.values(row).some(val => {
       if (typeof val === 'string' || typeof val === 'number') {
         return val.toString().toLowerCase().includes(query);

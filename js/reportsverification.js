@@ -121,6 +121,9 @@ document.addEventListener('DOMContentLoaded', () => {
             viewBtn.addEventListener('click', () => {
                 let readableReport = "";
                 for (let key in report) {
+                    // Skip firebaseKey
+                    if (key === "firebaseKey") continue;
+
                     // Convert sanitized keys to readable format for display
                     let displayKey = key
                         .replace(/([A-Z])/g, ' $1')
