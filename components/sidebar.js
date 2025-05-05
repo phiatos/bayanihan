@@ -11,16 +11,27 @@ function initSidebar() {
     console.log("Menu button or sidebar element NOT found (from within sidebar.js).");
   }
 
-  // Sub Menu Toggle
+  // Sub Menu Toggle (updated logic)
   document.querySelectorAll(".menu ul li.has-dropdown > a").forEach(link => {
     link.addEventListener("click", function (e) {
       e.preventDefault();
       const parentLi = this.parentElement;
-      parentLi.classList.toggle("active");
   
+      // Deactivate all other dropdowns
+      document.querySelectorAll(".menu ul li.has-dropdown").forEach(li => {
+        if (li !== parentLi) {
+          li.classList.remove("active");
+          const sub = li.querySelector(".sub-menu");
+          if (sub) sub.style.display = "none";
+        }
+      });
+  
+      // Toggle current dropdown
       const subMenu = parentLi.querySelector(".sub-menu");
+      const isVisible = subMenu && subMenu.style.display === "block";
+  
+      parentLi.classList.toggle("active", !isVisible);
       if (subMenu) {
-        const isVisible = subMenu.style.display === "block";
         subMenu.style.display = isVisible ? "none" : "block";
       }
     });
