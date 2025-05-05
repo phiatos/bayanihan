@@ -138,7 +138,19 @@ function renderTable(filteredData = data) {
       <td contenteditable="false">${row.email}</td>
       <td contenteditable="false">${row.mobileNumber}</td>
       <td>
-        <select class="calamity-select" data-id="${row.no}">${calamitySelect}</select>
+         <div class="calamity-container">
+          <select class="calamity-select" data-id="${row.no}" data-row="${row.no}">
+            ${calamitySelect}
+          </select>
+          <input 
+            type="text" 
+            class="typhoon-name-input" 
+            data-row="${row.no}" 
+            placeholder="Enter typhoon name" 
+            style="display: ${row.calamity === "Typhoon" ? "inline-block" : "none"};" 
+            value="${row.typhoonName || ""}"
+          />
+        </div>
       </td>
       <td>
         <button class="activation-btn ${row.status === "active" ? "green-btn" : "red-btn"}" data-id="${row.no}">

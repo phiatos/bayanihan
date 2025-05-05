@@ -8,6 +8,7 @@
   
   <link rel="manifest" href="../manifest.json"/>
   <link rel="stylesheet" href="../css/login.css" />
+  <link rel="stylesheet" href="../css/global.css" />
   <script defer type="module" src="../js/global.js"></script>
   <script defer src="../js/login.js"></script>
 </head>
@@ -17,7 +18,7 @@
     <!-- Login Form -->
     <div class="form-box login">
       <form action="">
-        <h1>Login</h1>
+        <h1 class="title">Login</h1>
         <div class="input-box">
           <label>Mobile Number</label>
           <input type="text" id="login-mobile" placeholder="Enter Mobile Number" required />
@@ -35,13 +36,12 @@
       </form>
     </div>
 
-    <!-- Disaster Relief and Rehabilitation Management note -->
-    <div class="form-box register">
+    <div class="form-box assistance">
       <div class="contact-info">
-        <h2>Need Assistance?</h2>
+        <h1 class="title">Need Assistance?</h1>
         <p>If you have any questions or need support, feel free to contact us:</p>
         <ul>
-          <li>Email: support@bayanihanrelief.org</li>
+          <li>Email: info@angatbuhay.ph</li>
           <li>Phone: (02) 123-4567</li>
         </ul>
         <p>For technical support, you can also visit our <a href="#">Help Center</a> for troubleshooting and FAQs.</p>
@@ -51,13 +51,12 @@
     <!-- Toggle Panel -->
     <div class="toggle-box">
       <div class="toggle-panel toggle-left">
+        <button class="back-btn">back</button>
         <h1>Need Assistance?</h1>
-        <p>Contact us at: info@angatbuhay.ph</p>
-        <button class="btn register-btn">Contact Support</button>
+        <button class="btn assist-btn">Contact Support</button>
       </div>
       <div class="toggle-panel toggle-right">
-        <h1>Welcome Back!</h1>
-        <p>Already have an account?</p>
+        <h1>Welcome back!</h1>
         <button class="btn login-btn">Login</button>
       </div>
     </div>

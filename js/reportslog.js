@@ -143,13 +143,53 @@ document.addEventListener('DOMContentLoaded', () => {
                     readableReport += `• ${displayKey}: ${value}\n`;
                 }
 
-                Swal.fire({
-                    title: 'Approved Report Details',
-                    icon: 'info',
-                    html: `<pre style="text-align:left; white-space:pre-wrap">${readableReport}</pre>`,
-                    confirmButtonText: 'Close'
-                });
-            });
+                const modal = document.getElementById("reportModal");
+                const modalDetails = document.getElementById("modalReportDetails");
+                const closeModal = document.querySelector(".close-button");
+
+                modalDetails.innerHTML = `
+                  
+                <div class="report-section">
+                  <div>
+                  <h2>Basic Information</h2>
+                      <p><strong>Reporty ID:</strong> ${report.ReportID || "-"}</p>
+                      <p><strong>Volunteer Group:</strong> ${report.volunteerGroup || "For Now ABVN"}</p>
+                      <p><strong>Location of Operation:</strong> ${report.Barangay|| "-"}, ${report.CityMunicipality || "-"}</p>
+                      <p><strong>Submitted By:</strong> ${report.SubmittedBy || "-"}</p>
+                      <p><strong>Date of Report Submitted:</strong> ${formatDate(report.DateOfReport) || "-"}</p>
+                  </div>
+                  <div>
+                  <h2>Relief Operations</h2>
+                    <p><strong>Date of Relief Operation:</strong> ${formatDate(report.Date) || "-"}</p>
+                    <p><strong>No. of Individuals or Families:</strong> ${report.NoOfIndividualsOrFamilies || "-"}</p>
+                    <p><strong>No. of Food Packs:</strong> ${report.NoOfFoodPacks || "-"}</p>
+                    <p><strong>No. of Hot Meals/Ready-to-eat food:</strong> ${report.NoOfHotMeals || "-"}</p>
+                    <p><strong>Liters of Water:</strong> ${report.LitersOfWater || "-"}</p>
+                    <p><strong>No. of Volunteers Mobilized:</strong> ${report.NoOfVolunteersMobilized || "-"}</p>
+                    <p><strong>No. of Organizations Activated:</strong> ${report.NoOfOrganizationsActivated || "-"}</p>
+                    <p><strong>Total Value of In-Kind Donations:</strong> ${report.TotalValueOfInKindDonations || "-"}</p>
+                  </div>
+                   <div>
+                  <h2>Additional Updates</h2>
+                    <p><strong>Notes/Additional Information:</strong> ${formatDate(report.NotesAdditionalInformation) || "-"}</p>
+                  </div>
+                </div>
+                  
+              `;
+
+              modal.classList.remove("hidden");
+
+              closeModal.addEventListener("click", () => {
+                  modal.classList.add("hidden");
+              });
+
+              window.addEventListener("click", function (event) {
+                  if (event.target === modal) {
+                      modal.classList.add("hidden");
+                  }
+              });
+          });
+
 
             reportsBody.appendChild(tr);
         });
@@ -188,30 +228,57 @@ document.addEventListener('DOMContentLoaded', () => {
     function applySearchAndSort() {
         let filteredReports = [...reviewedReports];
         const query = searchInput.value.trim().toLowerCase();
-        const sortBy = sortSelect.value;
-
-        // Search
+        const sortValue = sortSelect.value;
+        
+        // Search - corrected version
         if (query) {
             filteredReports = filteredReports.filter(report =>
                 Object.values(report).some(val =>
-                    typeof val === 'string' && val.toLowerCase().includes(query)
+                    val && typeof val === 'string' && val.toLowerCase().includes(query)
                 )
             );
         }
-
+    
         // Sort
-        if (sortBy) {
+        if (sortValue) {
+            const [sortField, direction] = sortValue.split('-');
+            
             filteredReports.sort((a, b) => {
-                const valA = a[sortBy] || "";
-                const valB = b[sortBy] || "";
-                return valA.toString().localeCompare(valB.toString());
+                let valA = a[sortField] || "";
+                let valB = b[sortField] || "";
+    
+                // Handle Date sorting
+                if (sortField === "DateOfReport" || sortField === "Date") {
+                    const dateA = new Date(valA);
+                    const dateB = new Date(valB);
+                    
+                    if (isNaN(dateA)) return direction === "asc" ? 1 : -1;
+                    if (isNaN(dateB)) return direction === "asc" ? -1 : 1;
+                    
+                    return direction === "asc" ? dateA - dateB : dateB - dateA;
+                }
+    
+                // Handle numeric fields
+                if (sortField.includes("NoOf") || sortField.includes("Liters")) {
+                    valA = isNaN(Number(valA)) ? 0 : Number(valA);
+                    valB = isNaN(Number(valB)) ? 0 : Number(valB);
+                    return direction === "asc" ? valA - valB : valB - valA;
+                }
+    
+                // Default string comparison
+                valA = valA.toString().toLowerCase();
+                valB = valB.toString().toLowerCase();
+                return direction === "asc" 
+                    ? valA.localeCompare(valB) 
+                    : valB.localeCompare(valA);
             });
         }
-
+    
+        // Pagination
         const startIndex = (currentPage - 1) * rowsPerPage;
         const endIndex = startIndex + rowsPerPage;
         const currentPageReports = filteredReports.slice(startIndex, endIndex);
-
+    
         renderReportsTable(currentPageReports);
         renderPagination(filteredReports.length);
     }
