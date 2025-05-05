@@ -1,25 +1,16 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap');
-
-*{
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    font-family: 'Poppins', sans-serif;
-}
-
 .container{
     display: flex;
     min-height: 100vh; 
     margin: 0 auto;
     justify-content: center; 
-    background-color: #FFF9F0;
+    background-color: var(--light-bg);
 }
 
 #main-content {
     flex: 1;
     padding: 20px;
     position: relative;
-    background: #FFFFFF;
+    background: var(--white);
     border-radius: 30px;
     box-shadow: 0 0 30px rgba(0, 0, 0, .2);
     margin: 50px;
@@ -40,7 +31,7 @@
     position: absolute;
     width: 100%;
     transition: 0.3s ease;
-    background-color: #FFF;
+    background-color: var(--white);
 }
 
 form.secActive .form.first{
@@ -50,7 +41,7 @@ form.secActive .form.first{
 
 /* Card blocks */
 .form-container-1, .form-container-2, .otp-verification{
-    border: 2px solid #14AEBB; 
+    border: 2px solid var(--primary-color); 
     background-color: rgba(20, 174, 187, 0.1);
     border-radius: 8px;
     padding: 20px;
@@ -66,7 +57,7 @@ form.secActive .form.first{
     font-size: 16px;
     font-weight: bold;
     margin: 6px 0;
-    color: #14AEBB;
+    color: var(--primary-color);
 }
 
 /* Fields grid */
@@ -87,7 +78,7 @@ form .fields .input-field{
 .input-field label{
     font-size: 12px;
     font-weight: 700;
-    color: #14AEBB;
+    color: var(--primary-color);
 }
 
 /* Inputs */
@@ -96,7 +87,7 @@ form .fields .input-field{
     font-weight: 400;
     color: #333;
     padding: 10px 15px;
-    background-color: #FFFFFF;
+    background-color: var(--white);
     border-radius: 5px;
     margin-top: 6px;
     border: 1px solid #aaa;
@@ -120,7 +111,7 @@ form .fields .input-field{
     font-weight: 400;
     color: #333;
     padding: 10px 15px;
-    background-color: #FFFFFF;
+    background-color: var(--white);
     border-radius: 5px;
     margin-top: 6px;
     border: 1px solid #aaa;
@@ -138,10 +129,10 @@ form .fields .input-field{
     width: 100%;
     border: none;
     outline: none;
-    color: #FFF;
+    color: var(--white);
     border-radius: 5px;
     margin: 15px 0;
-    background-color: #14AEBB;
+    background-color: var(--primary-color);
     transition: all 0.3s linear;
     cursor: pointer;
     font-size: 14px;
@@ -149,7 +140,7 @@ form .fields .input-field{
 }
 
 form button:hover{
-    background-color: #14AEBB;
+    background-color: var(--primary-color);
 }
 
 form button i,

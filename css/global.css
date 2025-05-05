@@ -1,5 +1,12 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap');
 
+:root {
+  --primary-color: #14AEBB;
+  --accent-color: #FA3B99;
+  --light-bg: #FFF9F0;
+  --white: #FFFFFF;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -7,6 +14,27 @@
   font-family: 'Poppins', sans-serif;
 }
 
+.main-container{
+  display: flex;
+  min-height: 100vh; 
+  margin: 0 auto;
+  justify-content: center; 
+  background-color: var(--light-bg);
+}
+
+#main-content {
+  flex: 1;
+  padding: 20px;
+  position: relative;
+  background: var(--white);
+  border-radius: 30px;
+  box-shadow: 0 0 30px rgba(0, 0, 0, .2);
+  margin: 50px;
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
+}
+
+/* ----------------------------------------------------- */
 .sidebar-placeholder {
   background-color: #FFF9F0;
 }
@@ -193,5 +221,293 @@ tr {
   border-color: #14AEBB; 
   outline: none; 
 }
+/* ==========================================================================
+ Pagination
+========================================================================== */
+.pagination-info{
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 20px;
+  gap: 20px;
+}
 
-/* index css */
+.pagination-info span {
+  flex: 1 1 auto;
+  text-align: left;
+  font-size: 12px;
+  color: #6c757d;
+}
+
+#pagination button {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0 3px;
+  padding: 6px 12px;
+  font-size: 14px;
+  color: #4D5874;
+  background-color: var(--white);
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+#pagination button.active-page {
+  background-color: rgba(20, 174, 187, 0.1);
+  color: var(--primary-color);
+}
+
+#pagination button:disabled {
+  background-color: var(--white);
+  cursor: not-allowed;
+}
+
+#pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* ==========================================================================
+  Table Styling (reliefslog, reportslog, activation)
+========================================================================== */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 1000px;
+  table-layout: fixed;
+}
+
+th, td {
+  border: 1px solid #e0e0e0;
+  padding: 14px 12px;
+  border-left: none;
+  border-right: none;
+  font-weight: 500    ;
+  text-align: center;
+  vertical-align: middle;
+  font-size: 11px;
+  background-color: var(--white);
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+th {
+  background-color: var(--white);
+  color: #aaa;
+  border: none;
+  font-weight: 600;
+}
+
+/* Inputs inside Table */
+td input[type="text"],
+td select {
+  width: 90%; 
+  padding: 5px;
+  margin: 5px auto; 
+  display: inline-block;
+  font-size: 12px;
+  background-color: #e7e7e7;
+  border: none;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+/* Button Styling */
+button {
+  padding: 8px 15px;
+  background-color: var(--primary-color);
+  color: var(--white);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background-color 0.3s;
+}
+
+button:hover {
+  background-color: var(--primary-color);
+}
+
+button:disabled {
+  background-color: #aaa;
+  cursor: not-allowed;
+}
+
+/* ==========================================================================
+  Forms Styles (reliefsRequest & reportsSubmission)
+========================================================================== */
+.form-page-container {
+  display: flex;
+  min-height: 100vh; 
+  margin: 0 auto;
+  justify-content: center; 
+  background-color: var(--light-bg);
+}
+
+#form-main-content {
+  flex: 1;
+  padding: 20px;
+  position: relative;
+  background: var(--white);
+  border-radius: 30px;
+  box-shadow: 0 0 30px rgba(0, 0, 0, .2);
+  margin: 50px;
+  overflow-y: auto;
+}
+
+.form-page-container form{
+  position: relative;
+  min-height: 510px; 
+  height: 100%;
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Form transitions */
+.form-page-container form .form{
+  position: absolute;
+  width: 100%;
+  transition: 0.3s ease;
+  background-color: var(--white);
+}
+
+.form-page-container form.secActive .form.first{
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Card blocks */
+.form-page-container .form-container-1, .form-page-container .form-container-2{
+  border: 2px solid var(--primary-color); 
+  background-color: rgba(20, 174, 187, 0.1);
+  border-radius: 8px;
+  padding: 20px;
+  margin: 20px 0;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+/* Titles */
+.form-page-container form .title {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 16px;
+  font-weight: bold;
+  margin: 6px 0;
+  color: var(--primary-color);
+}
+
+/* Fields grid */
+.form-page-container .fields{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.form-page-container .input-field{
+  display: flex;
+  flex-direction: column;
+  width: calc(100% / 3 - 10px);
+  margin: 4px 0;
+}
+
+/* Labels */
+.form-page-container label{
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--primary-color);
+}
+
+/* Inputs */
+.form-page-container .input-field input{
+  font-size: 14px;
+  font-weight: 400;
+  color: #333;
+  padding: 10px 15px;
+  background-color: var(--white);
+  border-radius: 5px;
+  margin-top: 6px;
+  border: 1px solid #aaa;
+}
+
+.form-page-container .input-field input:is(:focus, :valid){
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.13);
+}
+
+.form-page-container .input-field input[type="date"]{
+  color: #707070;
+}
+
+.form-page-container .input-field input[type="date"]:valid{
+  color: #000;
+}
+
+/* Display-only text (p tags) */
+.form-page-container .input-field p {
+  font-size: 14px;
+  font-weight: 400;
+  color: #333;
+  padding: 10px 15px;
+  background-color: var(--white);
+  border-radius: 5px;
+  margin-top: 6px;
+  border: 1px solid #aaa;
+  word-wrap: break-word;
+}
+
+/* Buttons */
+.form-page-container form button,
+.form-page-container form .backBtn{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 45px;
+  max-width: 200px;
+  width: 100%;
+  border: none;
+  outline: none;
+  color: var(--white);
+  border-radius: 5px;
+  margin: 15px 0;
+  background-color: var(--primary-color);
+  transition: all 0.3s linear;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.form-page-container form button:hover{
+  background-color: var(--primary-color);
+}
+
+.form-page-container form button i,
+.form-page-container form .backBtn i{
+  margin: 0 6px;
+}
+
+/* Buttons container */
+.form-page-container form .buttons{
+  display: flex;
+  align-items: center;
+  margin-top: 20px;
+}
+
+.form-page-container form .buttons button,
+.form-page-container form .buttons .backBtn{
+  margin-right: 14px;
+}
+.form-page-container .button-group{
+  display: flex;
+  align-items: center;
+  margin-top: 20px;
+  gap: 10px;
+}
+
+
+
+
+
+
