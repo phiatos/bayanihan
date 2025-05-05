@@ -83,8 +83,24 @@ const clearBtn = document.querySelector('.clear-btn');
 let orgData = null;
 let isProcessing = false;
 
-// Helper function to format mobile numbers (consistent with global.js)
-function formatMobileNumber(mobile) {
+const addNewBtn = document.getElementById('addNew');
+
+  document.addEventListener('mousemove', (e) => {
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+    
+    const distanceX = windowWidth - e.clientX;
+    const distanceY = windowHeight - e.clientY;
+    
+    if (distanceX < 200 && distanceY < 200) {
+      addNewBtn.classList.add('visible');
+    } else {
+      addNewBtn.classList.remove('visible');
+    }
+  });
+
+
+  function formatMobileNumber(mobile) {
   const cleaned = mobile.replace(/\D/g, "");
   if (/^\d{10,15}$/.test(cleaned)) {
     return cleaned;
@@ -833,7 +849,18 @@ document.getElementById('closeSuccessBtn').addEventListener('click', () => {
 
 function closeAModal() {
   document.getElementById('addOrgModal').style.display = 'none';
+  document.getElementById('areaOperationModal').style.display = 'none';
   clearAInputs();
+}
+
+function closeAOOModal() {
+  document.getElementById('areaOperationModal').style.display = 'none';
+  clearAOOInputs();
+}
+
+function clearAOOInputs() {
+  const form = document.getElementById('areaOperationForm');
+  form.reset();
 }
 
 function clearAInputs() {
