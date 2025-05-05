@@ -122,7 +122,9 @@ form{
     transform: translateY(-50%);
     font-size: 20px;
     color: #888;
+    cursor: default;
 }
+
 
 /* Assistance Form Styles */
 .form-box.assistance .contact-info {
