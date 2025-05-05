@@ -12,7 +12,7 @@ body {
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    background: #FFF9F0;
+    background: linear-gradient(to top, rgba(250, 59, 153, 0.3), #FFF9F0);
 }
 
 .container{
@@ -45,7 +45,6 @@ body {
     right: 50%;
 }
 
-
 .form-box.register{
     visibility: hidden;
 }
@@ -58,9 +57,10 @@ form{
     width: 100%;
 }
 
-.container h1{
+.container .title{
     font-size: 36px;
     margin: -10px 0;
+    color: #FA3B99;
 }
 
 .input-box{
@@ -71,48 +71,29 @@ form{
 }
 
 .input-box label {
-    font-size: 16px; /* Optional: adjust label font size */
-    margin-bottom: 5px; /* Adds spacing between label and input */
-    color: #333; /* Optional: change label color */
-    text-align: left; /* Ensure label is aligned to the left */
+    font-size: 16px; 
+    font-weight: bold;
+    margin-bottom: 5px;
+    color: #14AEBB;
+    text-align: left; 
 }
 
-.input-box input, .input-box select{
-     width: 100%;
-     padding: 13px 20px;
-     background: #eee;
-     border-radius: 8px;
-     border: none;
-     outline: none;
-     font-size: 16px;
-     color: #333;
-     font-weight: 500;
+.input-box input{
+    width: 100%;
+    padding: 13px 20px;
+    border-radius: 10px;
+    border: none;
+    outline: none;
+    font-size: 16px;
+    color: #333;
+    font-weight: 500;
+    background-color: rgba(20, 174, 187, 0.1); /* light teal bg */
 }
 
-.input-box input::placeholder{
-    color: #888;
-    font-weight: 400;
-}
-
-.input-box select {
-    color: #333; 
-}
-
-.input-box select option {
-    color: #333; 
-}
-  
-.input-box select:invalid {
-    color: #888; 
-}
-  
-.input-box select option:disabled {
-    color: #888; 
-    font-style: italic; 
-}
-
-.input-box select option:hover {
-    background-color: #f0f0f0; 
+.input-box input:-webkit-autofill {
+    -webkit-box-shadow: 0 0 0 1000px rgba(20, 174, 187, 0.1) inset !important;
+    -webkit-text-fill-color: #333 !important;
+    transition: background-color 5000s ease-in-out 0s;
 }
 
 .input-box i{
@@ -131,20 +112,25 @@ form{
 .forgot-link a{
     font-size: 14.5px;
     color: #14AEBB;
-    text-decoration: none;
+    text-decoration: underline;
 }
 
 .btn{
     width: 100%;
     height: 48px;
     background: #14AEBB;
-    border-radius: 8px;
+    border-radius: 10px;
     box-shadow: 0 0 10px rgba(0, 0, 0, .1);
     border: none;
     cursor: pointer;
     font-size: 16px;
     color: #FFF;
     font-weight: 600;
+}
+
+.btn:hover{
+    background: #FA3B99;
+    box-shadow: 0 0 20px rgba(0, 0, 0, .2);
 }
 
 .container p{
@@ -173,7 +159,6 @@ form{
 
 .container.active .toggle-box::before{
     left: 50%;
-
 }
 
 .toggle-panel{
@@ -196,7 +181,6 @@ form{
 .container.active .toggle-panel.toggle-left{
     left: -50%;
     transition-delay: .6s;
-
 }
 
 .toggle-panel.toggle-right{

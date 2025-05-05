@@ -104,6 +104,7 @@ footer {
                 -6px -6px 10px -1px rgba(255, 255, 255, 0.2);
 }
 
+/* button */
 #loginButton {
     margin-top: 10px;
     padding: 12px 30px;
@@ -123,9 +124,6 @@ footer {
     width: 40%;
     padding-top: 1rem;
     margin-left: 60px;
-    /* margin: 10px 10px;
-    border: 2px solid #14AEBB; 
-    border-radius: 20px; */
 }
 
 .faq-sections {
