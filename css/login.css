@@ -289,6 +289,13 @@ form{
     background: var(--accent-color);
 }
 
+.input-box .error-message {
+    color: red;
+    font-size: 0.8em;
+    margin-top: 5px;
+    text-align: left; /* Align error message to the left */
+}
+
 /* .otp-container {
     padding: 50px 75px;
   }
