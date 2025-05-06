@@ -17,13 +17,83 @@ document.addEventListener('DOMContentLoaded', () => {
     const database = firebase.database();
 
     // Elements to display metrics
-    const headerEl = document.querySelector('header'); // Header element to update dynamically
+    const headerEl = document.querySelector('header');
     const foodPacksEl = document.getElementById('food-packs');
     const hotMealsEl = document.getElementById('hot-meals');
     const waterLitersEl = document.getElementById('water-liters');
     const volunteersEl = document.getElementById('volunteers');
     const amountRaisedEl = document.getElementById('amount-raised');
     const inkeyindDonationsEl = document.getElementById('inkind-donations');
+
+    // Map Initialization
+    const map = L.map('map').setView([14.5995, 120.9842], 10); // Default to Manila, Philippines
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 19, // Increased max zoom for finer detail
+    }).addTo(map);
+
+    // Get user's location with high accuracy
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const userLocation = {
+                    latitude: position.coords.latitude,
+                    longitude: position.coords.longitude,
+                    accuracy: position.coords.accuracy, // Log accuracy for debugging
+                };
+
+                // Update map view to user's location
+                map.setView([userLocation.latitude, userLocation.longitude], 16); // Zoom closer for precision
+
+                // Add marker for user's location
+                L.marker([userLocation.latitude, userLocation.longitude])
+                    .addTo(map)
+                    .bindPopup('You are here')
+                    .openPopup();
+
+                console.log('User location:', userLocation);
+                console.log(`Location accuracy: ${userLocation.accuracy} meters`);
+            },
+            (error) => {
+                console.error('Geolocation error:', error);
+                let errorMessage = 'Unable to retrieve your location.';
+                switch (error.code) {
+                    case error.PERMISSION_DENIED:
+                        errorMessage = 'Location access denied. Please allow location access in your browser settings.';
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        errorMessage = 'Location information is unavailable. Ensure your device has a working GPS or network connection.';
+                        break;
+                    case error.TIMEOUT:
+                        errorMessage = 'Location request timed out. Please try again.';
+                        break;
+                }
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Location Error',
+                    text: errorMessage,
+                });
+            },
+            {
+                enableHighAccuracy: true, // Request GPS-level accuracy
+                timeout: 10000, // Wait up to 10 seconds
+                maximumAge: 0, // No cached location
+            }
+        );
+    } else {
+        Swal.fire({
+            icon: 'error',
+            title: 'Geolocation Not Supported',
+            text: 'Your browser does not support geolocation. Please use a modern browser.',
+        });
+    }
+
+    // Search bar (placeholder, no functionality yet)
+    const searchInput = document.getElementById('search-input');
+    searchInput.addEventListener('input', (e) => {
+        console.log('Search query:', e.target.value);
+        // Add search functionality here if needed
+    });
 
     // Check user authentication
     auth.onAuthStateChanged(user => {
@@ -58,7 +128,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const role = userData.role;
-            const userEmail = user.email; // Use email to match SubmittedBy
+            const userEmail = user.email;
 
             // Debug: Log the role of the logged-in user
             console.log(`Role of logged-in user (UID: ${user.uid}): ${role}`);
@@ -82,18 +152,18 @@ document.addEventListener('DOMContentLoaded', () => {
                         // Debug: Log each report's SubmittedBy field
                         console.log(`Report SubmittedBy: ${report.SubmittedBy}, Report Data:`, report);
 
-                        // For ABVN, only include reports submitted by this user (match email case-insensitively)
+                        // For ABVN, only include reports submitted by this user
                         if (role === "ABVN") {
                             const reportSubmittedBy = report.SubmittedBy ? report.SubmittedBy.toLowerCase() : "";
                             const currentUserEmail = userEmail ? userEmail.toLowerCase() : "";
                             
                             if (reportSubmittedBy !== currentUserEmail) {
                                 console.log(`Skipping report for ABVN - SubmittedBy (${report.SubmittedBy}) does not match user email (${userEmail})`);
-                                return; // Skip reports not submitted by this ABVN user
+                                return;
                             }
                         }
 
-                        // Aggregate data (convert strings to numbers, default to 0 if undefined)
+                        // Aggregate data
                         totalFoodPacks += Number(report.NoOfFoodPacks) || 0;
                         totalHotMeals += Number(report.NoOfHotMeals) || 0;
                         totalWaterLiters += Number(report.LitersOfWater) || 0;
