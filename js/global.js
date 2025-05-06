@@ -55,59 +55,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Handle Registration
-  if (registerForm) {
-    registerForm.addEventListener("submit", async (e) => {
-      e.preventDefault();
-
-      const mobileInput = document.getElementById("register-mobile").value.trim();
-      const password = document.getElementById("register-password").value;
-      const confirmPassword = document.getElementById("register-confirm-password").value;
-      const role = document.getElementById("register-role").value;
-
-      const mobile = formatMobileNumber(mobileInput);
-
-      if (!mobile) {
-        alert("Please enter a valid mobile number (10-15 digits).");
-        return;
-      }
-
-      if (password !== confirmPassword) {
-        alert("Passwords do not match.");
-        return;
-      }
-
-      const email = `${mobile}@bayanihan.com`;
-
-      try {
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
-
-        // Save user info to Database
-        await set(ref(database, "users/" + user.uid), {
-          mobile: mobile,
-          role: role,
-          createdAt: new Date().toISOString(),
-        });
-
-        // Save mobile and role locally
-        localStorage.setItem("userMobile", mobile);
-        localStorage.setItem("userRole", role);
-
-        alert("Registration successful!");
-        window.location.href = "/Bayanihan-PWA/otp/OTPVerification.html";
-      } catch (error) {
-        if (error.code === "auth/email-already-in-use") {
-          alert("Mobile number already registered.");
-        } else if (error.code === "auth/weak-password") {
-          alert("Password must be at least 6 characters.");
-        } else {
-          alert("Registration error: " + error.message);
-        }
-      }
-    });
-  }
-
  // Handle Login
   if (loginForm) {
     loginForm.addEventListener("submit", async (e) => {
@@ -173,19 +120,4 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   }
-
-  // global.js
-  window.addEventListener('DOMContentLoaded', () => {
-    const sidebar = document.getElementById('sidebar');
-    
-    // Fetch the sidebar content and insert it into the page
-    fetch('../components/sidebar.html')
-      .then(response => response.text())
-      .then(data => {
-        sidebar.innerHTML = data;
-      })
-      .catch(error => {
-        console.error('Error loading sidebar:', error);
-      });
-  });
 });
