@@ -76,7 +76,7 @@ form{
     color: var(--accent-color);
 }
 
-.input-box{
+.input-box {
     position: relative;
     margin: 30px 0;
     display: flex;
@@ -91,7 +91,13 @@ form{
     text-align: left; 
 }
 
-.input-box input{
+.input-box-input-with-icon { 
+    display: flex;
+    align-items: center; 
+}
+
+.input-box input {
+    flex-grow: 1;
     width: 100%;
     padding: 13px 20px;
     border-radius: 10px;
@@ -111,12 +117,27 @@ form{
 
 .input-box i{
     position: absolute;
-    right: 20px;
-    top: 65%;
-    transform: translateY(-50%);
+    right: 15px;
+    margin-left: 10px; 
     font-size: 20px;
     color: #888;
-    cursor: default;
+    cursor: pointer;
+    z-index: 2; 
+}
+
+.error-message {
+    color: red;
+    font-size: 0.875rem;
+    margin-top: 5px;
+    position: absolute;
+    bottom: -20px;  /* Adjust this value to position the error below the input */
+    left: 0;
+    width: 100%;
+    z-index: 10;  /* Ensure it takes up the full width of the input */
+}
+
+.error-message {
+  transition: opacity 0.3s ease;
 }
 
 
@@ -289,12 +310,7 @@ form{
     background: var(--accent-color);
 }
 
-.input-box .error-message {
-    color: red;
-    font-size: 0.8em;
-    margin-top: 5px;
-    text-align: left; /* Align error message to the left */
-}
+
 
 /* .otp-container {
     padding: 50px 75px;
