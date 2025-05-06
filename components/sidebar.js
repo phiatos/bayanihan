@@ -3,6 +3,7 @@ function initSidebar() {
   const sidebar = document.querySelector(".sidebar");
   const logoutBtn = document.querySelector("#logout-btn");
 
+  // Menu button toggle logic
   if (menuBtn && sidebar) {
     menuBtn.addEventListener("click", function() {
       sidebar.classList.toggle("active");
@@ -11,7 +12,7 @@ function initSidebar() {
     console.log("Menu button or sidebar element NOT found (from within sidebar.js).");
   }
 
-  // Sub Menu Toggle (updated logic)
+  // Sub-menu toggle logic
   document.querySelectorAll(".menu ul li.has-dropdown > a").forEach(link => {
     link.addEventListener("click", function (e) {
       e.preventDefault();
@@ -37,6 +38,7 @@ function initSidebar() {
     });
   });
 
+  // Logout button logic
   if (logoutBtn) {
     logoutBtn.addEventListener("click", function (e) {
       e.preventDefault();
@@ -70,10 +72,48 @@ function initSidebar() {
         }
       });
     });
+  } else {
+    console.log("Logout button element NOT found (from within sidebar.js).");
+  }
+
+  // Logic to populate user details
+  function populateUserDetails() {
+    const userRoleElement = document.querySelector("#user-role");
+    const userNameElement = document.querySelector("#user-name");
+
+    // Retrieve user data from localStorage (or fallback to defaults)
+    const user = JSON.parse(localStorage.getItem("userData")) || {
+      name: "John Doe",
+      role: "web developer",
+      group: "Unknown",
+      contactPerson: "N/A"
+    };
+
+    // Determine group/role display for user-role
+    let roleDisplay = "";
+    if (user.role === "admin") {
+      roleDisplay = "Admin";
+    } else if (user.group === "ABVN") {
+      roleDisplay = "ABVN Group";
     } else {
-      console.log("Logout button element NOT found (from within sidebar.js).");
+      roleDisplay = `Volunteer Group: ${user.group || "None"}`;
+    }
+
+    // Update DOM elements
+    if (userRoleElement) {
+      userRoleElement.textContent = roleDisplay;
+    }
+    if (userNameElement) {
+      const contactInfo = user.contactPerson && user.contactPerson !== "N/A" 
+        ? ` (Contact: ${user.contactPerson})` 
+        : "";
+      userNameElement.textContent = `${user.name || "John Doe"}${contactInfo}`;
     }
   }
+
+  // Call the function to populate user details
+  populateUserDetails();
+}
 
 // Call initSidebar when the script loads
 initSidebar();
