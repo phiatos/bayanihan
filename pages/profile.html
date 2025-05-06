@@ -7,14 +7,16 @@
     <link rel="stylesheet" href="../css/profile.css" />
     <link rel="stylesheet" href="../css/global.css" />
     <link rel='stylesheet' href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css'/>
-
     <!-- Firebase SDK (v9.22.0 Compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+
+
+
 
     <title>Profile Page</title>
 </head>
@@ -23,6 +25,11 @@
         <div class="sidebar-placeholder"></div>
         <div id="main-content">
             <header>Profile</header>
+            <!-- Group Information Section -->
+            <div class="group-info">
+                <h2 id="group-title">Loading Group Information...</h2>
+                <p id="group-description">Fetching group details...</p>
+            </div>
             <form action="">
                 <div class="form first">
                     <div class="form-container-1">
@@ -54,7 +61,6 @@
                             </div>
                         </div>
                     </div>
-
                     <div class="form-container-2">
                         <span class="title">Change Password</span>
                         <div class="fields">
@@ -75,7 +81,6 @@
                             <span class="btnText">Change Password</span>
                         </button>
                     </div>
-
                     <div class="otp-verification">
                         <span class="title">Verify Your Mobile Number</span>
                         <p id="otp-info">Sending OTP to your registered mobile number...</p>
@@ -117,7 +122,6 @@
                 console.error('Error loading sidebar:', error);
             });
     </script>
-
     <script src="../js/profile.js"></script>
 </body>
 </html>
