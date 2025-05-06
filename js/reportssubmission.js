@@ -21,29 +21,77 @@ document.addEventListener('DOMContentLoaded', () => {
     const nextBtn = document.getElementById('nextBtn');
     const backBtn = document.getElementById('backBtn');
 
-    // Debug: Check if elements are found
     if (!formPage1 || !formPage2 || !nextBtn || !backBtn) {
-        console.error("One or more form elements not found:", { formPage1, formPage2, nextBtn, backBtn });
+        console.error("Form elements not found");
         return;
     }
 
-    // Set date today as default value
+    // Auto-set today's date
     const dateInput = document.getElementById('dateOfReport');
     if (dateInput) {
         const today = new Date();
         const formatted = today.toLocaleDateString('en-CA'); // YYYY-MM-DD
         dateInput.value = formatted;
-    } else {
-        console.error("dateOfReport input not found");
     }
 
-    // Generate a random report ID
+    // Generate random report ID
     const idInput = document.getElementById('reportId');
     if (idInput) {
         const randomId = 'ABRN' + Math.floor(10000 + Math.random() * 9000000000);
         idInput.value = randomId;
-    } else {
-        console.error("reportId input not found");
+    }
+
+    // Populate city and barangay dropdowns
+    const citySelect = document.querySelector('select[name="city"]');
+    const barangaySelect = document.querySelector('select[name="barangay"]');
+
+    const locationData = {
+        "Batangas": ["Batangas City", "Lipa", "Nasugbu", "Tanauan"],
+        "Caloocan": ["Bagong Silang", "Longos", "San Agustin", "San Jose"],
+        "Cavite": ["Bacoor", "Dasmariñas", "Imus", "Tagaytay"],
+        "Cebu City": ["Guadalupe", "Lahug", "Mabolo", "Talamban"],
+        "Davao City": ["Agdao", "Buhangin", "Poblacion", "Toril"],
+        "Las Piñas": ["BF International", "CAA", "Pamplona", "Talon"],
+        "Malabon": ["Hulong Duhat", "Longos", "San Agustin", "Tanza"],
+        "Makati": ["Bel-Air", "Dasmariñas", "Pio del Pilar", "San Lorenzo"],
+        "Mandaluyong": ["Barangka", "Hulo", "Plainview", "Wack-Wack"],
+        "Manila": ["Ermita", "Malate", "Sampaloc", "Tondo"],
+        "Marikina": ["Calumpang", "Concepcion Uno", "San Roque", "Santo Niño"],
+        "Navotas": ["North Bay Boulevard", "San Jose", "San Roque", "Tangos"],
+        "Nagas": ["Baao", "Bula", "Iriga", "Naga City"],
+        "Parañaque": ["Baclaran", "BF Homes", "San Dionisio", "San Isidro"],
+        "Pasay": ["Baclaran", "Malibay", "San Isidro", "San Nicolas"],
+        "Pasig": ["Bambang", "Kapitolyo", "Manggahan", "Santolan"],
+        "Pateros": ["San Juan Bautista", "San Mateo", "San Pedro", "San Roque"],
+        "Quezon City": ["Batasan Hills", "Commonwealth", "Diliman", "Novaliches"],
+        "Quezon Province": ["Candelaria", "Lucena", "Sariaya", "Tayabas"],
+        "San Juan": ["Balong Bato", "Corazon de Jesus", "Little Baguio", "San Perfecto"],
+        "Taguig": ["Bagumbayan", "Fort Bonifacio", "North Signal Village", "Ususan"],
+        "Valenzuela": ["Bagong Silang", "Gen. T. De Leon", "Karuhatan", "Malanday"],
+    };
+
+    if (citySelect && barangaySelect) {
+        // Populate cities
+        Object.keys(locationData).forEach(city => {
+            const option = document.createElement('option');
+            option.value = city;
+            option.textContent = city;
+            citySelect.appendChild(option);
+        });
+
+        // On city change, update barangays
+        citySelect.addEventListener('change', () => {
+            const selectedCity = citySelect.value;
+            barangaySelect.innerHTML = '<option value="">Select Barangay</option>';
+            if (locationData[selectedCity]) {
+                locationData[selectedCity].forEach(barangay => {
+                    const option = document.createElement('option');
+                    option.value = barangay;
+                    option.textContent = barangay;
+                    barangaySelect.appendChild(option);
+                });
+            }
+        });
     }
 
     // Go to next form only if valid
@@ -56,27 +104,24 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Go back to first form
+    // Back to first form
     backBtn.addEventListener('click', function () {
         formPage2.style.display = "none";
         formPage1.style.display = "block";
     });
 
-    // Submit second form
+    // Submit final form
     formPage2.addEventListener("submit", function (e) {
         e.preventDefault();
 
-        console.log("Form submission triggered");
-
-        // Collect form data with sanitized keys
         const formData = {
-            "Barangay": document.querySelector('input[placeholder="Barangay"]').value,
-            "CityMunicipality": document.querySelector('input[placeholder="City/Municipality"]').value,
+            "Barangay": barangaySelect.value,
+            "CityMunicipality": citySelect.value,
             "TimeOfIntervention": document.querySelector('input[placeholder="Time of Intervention"]').value,
             "SubmittedBy": document.querySelector('input[placeholder="Submitted by"]').value,
-            "DateOfReport": document.getElementById('dateOfReport').value,
-            "ReportID": document.getElementById('reportId').value,
-            "Date": document.querySelector('input[placeholder="Date"]').value,
+            "DateOfReport": dateInput.value,
+            "ReportID": idInput.value,
+            "Date": document.querySelector('input[type="date"]').value,
             "NoOfIndividualsOrFamilies": document.querySelector('input[placeholder="No. of Individuals or Families"]').value,
             "NoOfFoodPacks": document.querySelector('input[placeholder="No. of Food Packs"]').value,
             "NoOfHotMeals": document.querySelector('input[placeholder="No. of Hot Meals"]').value,
@@ -84,20 +129,11 @@ document.addEventListener('DOMContentLoaded', () => {
             "NoOfVolunteersMobilized": document.querySelector('input[placeholder="No. of Volunteers Mobilized"]').value,
             "NoOfOrganizationsActivated": document.querySelector('input[placeholder="No. of Organizations Activated"]').value,
             "TotalValueOfInKindDonations": document.querySelector('input[placeholder="Total Value of In-Kind Donations"]').value,
-            "NotesAdditionalInformation": document.querySelector('textarea[placeholder="Notes/additional information"]').value,
+            "NotesAdditionalInformation": document.querySelector('textarea').value,
             "Status": "Pending"
         };
 
-        console.log("Form Data Collected:", formData);
-
-        // Save to localStorage for the summary page
         localStorage.setItem("reportData", JSON.stringify(formData));
-
-        // Verify localStorage
-        const savedData = localStorage.getItem("reportData");
-        console.log("Data saved to localStorage:", JSON.parse(savedData));
-
-        // Redirect to summary page
         window.location.href = "../pages/reportsSummary.html";
     });
 });
