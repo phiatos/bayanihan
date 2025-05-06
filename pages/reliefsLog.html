@@ -38,8 +38,28 @@
                     <div class="custom-select-wrapper">
                         <select id="sortSelect">
                             <option value="">Sort by</option>
-                            <option value="city">City</option>
-                            <option value="category">Category</option>
+                            <optgroup label="Identification">
+                                <option value="ReliefID-asc">Relief ID (Ascending)</option>
+                                <option value="ReliefID-desc">Relief ID (Descending)</option>
+                            </optgroup>
+                            <optgroup label="Group Info">
+                                <option value="VolunteerGroupName-asc">Volunteer Group Name (A–Z)</option>
+                                <option value="VolunteerGroupName-desc">Volunteer Group Name (Z–A)</option>
+                            </optgroup>
+                            <optgroup label="Location">
+                                <option value="City-asc">City (A–Z)</option>
+                                <option value="City-desc">City (Z–A)</option>
+                                <option value="DropoffAddress-asc">Drop-off Address (A–Z)</option>
+                                <option value="DropoffAddress-desc">Drop-off Address (Z–A)</option>
+                            </optgroup>
+                            <optgroup label="Contact Info">
+                                <option value="ContactPerson-asc">Contact Person (A–Z)</option>
+                                <option value="ContactPerson-desc">Contact Person (Z–A)</option>
+                            </optgroup>
+                            <optgroup label="Request Details">
+                                <option value="RequestCategory-asc">Request Category (A–Z)</option>
+                                <option value="RequestCategory-desc">Request Category (Z–A)</option>
+                            </optgroup>
                         </select>
                         <i class='bx bx-chevron-down'></i>
                     </div>
@@ -57,7 +77,7 @@
                         <th>Contact Person</th>
                         <th>Contact Number</th>
                         <th>Request Category</th>
-                        <th>Full Report</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>

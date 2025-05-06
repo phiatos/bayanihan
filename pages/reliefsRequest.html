@@ -28,42 +28,42 @@
       <!-- Page 1 -->
       <form id="form-page-1">
         <div class="form first">
-          <div class="form-container-1">
-            <span class="title">Contact Information</span>
-            <div class="fields">
-              <div class="input-field">
-                <label>Contact Person</label>
-                <input type="text" id="contactPerson" placeholder="Enter Name" required />
-              </div>
-              <div class="input-field">
-                <label>Contact Number</label>
-                <input type="tel" id="contactNumber" placeholder="Enter Mobile Number" required />
-              </div>
-              <div class="input-field">
-                <label>Email</label>
-                <input type="email" id="email" placeholder="Enter Email" required />
-              </div>
-              <div class="input-field">
-                <label>Exact Drop-off Address</label>
-                <input type="text" id="address" placeholder="Enter Drop-off Address" required />
-              </div>
-              <div class="input-field">
-                <label>City</label>
-                <input type="text" id="city" placeholder="Enter City" required />
-              </div>
-              <div class="input-field">
-                <label>Request Category</label>
-                <select id="category" required>
-                  <option value="" disabled selected>Select Category</option>
-                  <option value="Food">Food</option>
-                  <option value="Clothing">Clothing</option>
-                  <option value="Medicine">Medicine</option>
-                  <option value="Hygiene">Hygiene</option>
-                  <option value="Others">Others</option>
-                </select>
-              </div>
+            <div class="form-container-1">
+                <span class="title">Contact Information</span>
+                <div class="fields">
+                    <div class="input-field">
+                        <label for="contactPerson">Contact Person</label>
+                        <input type="text" id="contactPerson" placeholder="Enter Name" required />
+                    </div>
+                    <div class="input-field">
+                        <label for="contactNumber">Contact Number</label>
+                        <input type="tel" id="contactNumber" placeholder="Enter Mobile Number" required />
+                    </div>
+                    <div class="input-field">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" placeholder="Enter Email" required />
+                    </div>
+                    <div class="input-field">
+                        <label for="address">Exact Drop-off Address</label>
+                        <input type="text" id="address" placeholder="Enter Drop-off Address" required />
+                    </div>
+                    <div class="input-field">
+                        <label for="city">City</label>
+                        <input type="text" id="city" placeholder="Enter City" required />
+                    </div>
+                    <div class="input-field">
+                        <label for="category">Request Category</label>
+                        <select id="category" required>
+                            <option value="" disabled selected>Select Category</option>
+                            <option value="Food">Food</option>
+                            <option value="Clothing">Clothing</option>
+                            <option value="Medicine">Medicine</option>
+                            <option value="Hygiene">Hygiene</option>
+                            <option value="Others">Others</option>
+                        </select>
+                    </div>
+                </div>
             </div>
-          </div>
 
           <div class="form-container-2">
             <div class="top-bar">
@@ -72,50 +72,53 @@
             </div>
             
             <div class="fields" id="itemsContainer">
-                  
-                <div class="input-field">
-                    <label for="itemName">Item Name</label>
-                    <input 
-                      list="itemNameList" 
-                      id="itemName" 
-                      name="itemName" 
-                      placeholder="Select or type item" 
-                      required 
-                    />
-                    <datalist id="itemNameList">
-                      <option value="Rice">
-                      <option value="Canned Goods">
-                      <option value="Water Bottles">
-                      <option value="Blankets">
-                      <option value="Medicine Kits">
-                      <option value="Hygiene Packs">
-                      <option value="Others">
-                    </datalist>
-                  </div>
+                    
+              <div class="input-field">
+                  <label for="itemName">Item Name</label>
+                  <input 
+                    list="itemNameList" 
+                    id="itemName" 
+                    name="itemName" 
+                    placeholder="Select or type item" 
+                    required 
+                    disabled
+                  />
+                  <datalist id="itemNameList">
+                    <option value="Rice">
+                    <option value="Canned Goods">
+                    <option value="Water Bottles">
+                    <option value="Blankets">
+                    <option value="Medicine Kits">
+                    <option value="Hygiene Packs">
+                    <option value="Others">
+                  </datalist>
+                </div>
 
-              <div class="input-field">
-                <label>Quantity</label>
-                <input type="number" id="quantity" placeholder="Enter Quantity" min="1" required />
-              </div>
-              <div class="input-field">
-                <label>Additional Notes</label>
-                <input type="text" id="notes" placeholder="Enter Notes" />
-              </div>
+            <div class="input-field">
+              <label>Quantity</label>
+              <input type="number" id="quantity" placeholder="Enter Quantity" min="1" required disabled />
             </div>
+            <div class="input-field">
+              <label>Additional Notes</label>
+              <input type="text" id="notes" placeholder="Enter Notes" disabled />
+            </div>
+          </div>
 
-            <table id="itemsTable" style="width: 100%; margin-top: 20px; border-collapse: collapse;">
-                <thead>
-                    <tr>
-                      <th>Item Name</th>
-                      <th>Quantity</th>
-                      <th>Notes</th>
-                      <th>Action</th>
-                    </tr>
-                  </thead>                  
+          <div class="table-responsive">
+            <table id="itemsTable">
+              <thead>
+                <tr>
+                  <th>Item Name</th>
+                  <th>Quantity</th>
+                  <th>Notes</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
               <tbody>
                 <!-- Items will be appended here -->
               </tbody>
             </table>
+          </div>
 
             <button type="button" class="next-btn" id="nextBtn">Proceed</button>
           </div>
@@ -127,18 +130,21 @@
         <h2>Submission Overview</h2>
         <div id="previewContact"></div>
         <h3>Requested Items</h3>
-        <table style="width: 100%; border-collapse: collapse; text-align: center;">
-          <thead>
-            <tr>
-              <th>Item Name</th>
-              <th>Quantity</th>
-              <th>Notes</th>
-            </tr>
-          </thead>
-          <tbody id="previewItemsTable">
-            <!-- Preview items will be added here -->
-          </tbody>
-        </table>
+        <div class="table-preview-container">
+          <table class="preview-table">
+            <thead>
+              <tr>
+                <th id="itemname">Item Name</th>
+                <th id="qty">Quantity</th>
+                <th id="notes">Notes</th>
+              </tr>
+            </thead>
+            <tbody id="previewItemsTable">
+              <!-- Preview items will be added here -->
+            </tbody>
+          </table>
+        </div>
+        
 
         <div class="button-group">
           <button type="button" class="next-btn" id="backBtn">Back</button>

@@ -2,6 +2,18 @@ h2, h3{
   color: var(--primary-color);
 }
 
+#main-content {
+  flex: 1;
+  padding: 40px;
+  position: relative;
+  background: var(--white);
+  border-radius: 30px;
+  box-shadow: 0 0 30px rgba(0, 0, 0, .2);
+  margin: 50px;
+  max-height: calc(100vh - 100px);
+  
+}
+
 /* Dropdown styling to match text inputs */
 .input-field select {
   font-size: 14px;
@@ -35,9 +47,12 @@ h2, h3{
 }
 
 #addItemBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background-color: var(--primary-color);
   color: var(--white);
-  font-size: 12px;
+  font-size: 13px;
   padding: 15px;
   height: 30px;
   width: auto;
@@ -49,38 +64,6 @@ h2, h3{
 
 #addItemBtn:hover {
   background-color: #0e7781;
-}
-
-.form-container-2 {
-  position: relative;      /* enable absolute children */
-  border: 2px solid var(--primary-color); 
-  background-color: rgba(20, 174, 187, 0.1);
-  border-radius: 8px;
-  padding: 20px;
-  margin: 20px 0;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-}
-
-#itemsTable {
-  display: none;  /* Hide the table initially */
-  width: 100%;
-  margin-top: 20px;
-  border-collapse: collapse;
-}
-
-#itemsTable.show {
-  display: table;  /* Display the table when an item is added */
-}
-
-#itemsTable th, #itemsTable td {
-  padding: 8px 12px;
-  text-align: center;
-  border: 1px solid #c5c5c5;
-}
-
-#itemsTable th {
-  background-color: var(--primary-color);
-  color: var(--white);
 }
 
 /* Submission Overview Container */
@@ -108,47 +91,60 @@ h2, h3{
   color: var(--primary-color);
 }
 
-/* Preview Items Table */
-#form-page-2 table {
+.table-preview-container {
+  overflow-x: auto;
+  margin-top: 20px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.preview-table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 10px;
-  margin-bottom: 10px;
-}
-
-#form-page-2 th,
-#form-page-2 td {
-  padding: 12px;
-  border: 1px solid #e0e0e0;
+  min-width: 500px;
+  background-color: #fff;
   text-align: center;
-  font-size: 13px;
-  background-color: var(--white);
 }
 
-#form-page-2 th {
-  background-color: #f7f7f7;
-  color: #555;
+.preview-table #itemname, .preview-table #qty, .preview-table #notes,
+.preview-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #e0e0e0;
+  font-size: 15px;
+}
+
+.preview-table th {
+  background-color: #f8f9fa;
   font-weight: 600;
+  color: #333;
 }
 
-#form-page-2 tbody tr:nth-child(even) {
-  background-color: #fafafa;
+.preview-table tbody tr:hover {
+  background-color: #f1f1f1;
+  transition: background-color 0.2s;
 }
 
-#form-page-2 tbody tr:hover {
-  background-color: #f0f8ff;
+/* Responsive adjustments */
+@media screen and (max-width: 600px) {
+  .preview-table th, 
+  .preview-table td {
+    font-size: 13px;
+    padding: 10px 12px;
+  }
 }
+
 
 /* Button group */
 #form-page-2 .button-group {
   display: flex;
-  justify-content: flex-end;
+  justify-content: flex-start;
   gap: 12px;
-  margin-top: 10px;
+  margin-top: 15px;
 }
 
 #form-page-2 .button-group .next-btn {
-  min-width: 120px;
+  min-width: 10px;
   background-color: var(--primary-color);
 }
 
@@ -156,25 +152,81 @@ h2, h3{
   background-color: #128C99;
 }
 
-table {
+
+
+.input-field input, .input-field select {
+  border: 1px solid #ccc;
+  padding: 10px;
+  margin: 5px 0;
   width: 100%;
+}
+
+/* Disabled form fields styling */
+input:disabled,
+select:disabled {
+  background-color: #f0f0f0;
+  border: 1px solid #ddd;
+  color: #999;
+  cursor: not-allowed;
+}
+
+input:disabled::placeholder,
+select:disabled {
+  color: #bbb;
+}
+
+/* When a field is enabled */
+input:enabled,
+select:enabled {
+  background-color: white;
+  border: 1px solid #ccc;
+  color: #333;
+  cursor: pointer;
+}
+
+.table-responsive {
   overflow-x: auto;
-  display: block;
+  -webkit-overflow-scrolling: touch;
+  margin-top: 10px;
+  margin-bottom: 20px;
+  border-radius: 6px;
 }
 
-table th, table td {
-  word-wrap: break-word;
-  text-align: left;
-  padding: 8px;
-  font-size: 0.9rem;
+#itemsTable {
+  display: none;  /* Hide the table initially */
+  width: 100%;
+  margin-top: 20px;
+  border-collapse: collapse;
+  min-width: 600px; /* ensures the table doesn't shrink too much */
+
 }
 
-#addItemBtn {
-  padding: 8px 12px;
-  font-size: 0.9rem;
-  flex-shrink: 0;
-  max-width: 100%;
+#itemsTable.show {
+  display: table;  /* Display the table when an item is added */
 }
+
+#itemsTable th {
+  background-color: var(--primary-color);
+  color: var(--white);
+}
+
+#itemsTable th,
+#itemsTable td {
+  align-content: center;
+  padding: 12px 15px;
+  border: 1px solid #c5c5c5;
+  text-align: center;
+}
+
+/* Optional: Make table look cleaner on small screens */
+@media screen and (max-width: 600px) {
+  #itemsTable th, 
+  #itemsTable td {
+    font-size: 14px;
+    padding: 10px;
+  }
+}
+
 
 
 /* Simple fade-in animation */
@@ -217,16 +269,36 @@ table th, table td {
 
   #form-page-2 .button-group {
     display: flex;
-    justify-content: center;
+    justify-content: space-evenly;
     gap: 12px;
     margin-top: 10px;
   }
 }
 
-  @media (max-width: 550px){
+  @media (max-width: 468px){
   form .fields .input-field{
     width: 100%;
   }
+  #form-page-2 .button-group {
+    display: flex;
+    justify-content: space-evenly;
+    gap: 12px;
+    margin-top: 10px;
+    font-size: 10px;
+  }
+  #previewContact p{
+    font-size: 10px;
+    text-align: left  ;
+  }
+  h2, h3{
+    font-size: 15px;
+    text-align: center;
+    margin-bottom: 10px;
+  }
+  .preview-table #itemname, .preview-table #qty, .preview-table #notes,
+  .preview-table td {
+  font-size: 10px;
+}
 }
 
 

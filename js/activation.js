@@ -340,6 +340,7 @@ document.addEventListener("click", e => {
 function renderPagination(totalRows) {
   paginationContainer.innerHTML = "";
   const totalPages = Math.ceil(totalRows / rowsPerPage);
+  const maxVisible = 5;
 
   const createButton = (label, page = null, disabled = false, active = false) => {
     const btn = document.createElement("button");
@@ -355,14 +356,27 @@ function renderPagination(totalRows) {
     return btn;
   };
 
+  if (totalPages === 0) {
+    paginationContainer.textContent = "No entries to display";
+    return;
+  }
+
   paginationContainer.appendChild(createButton("Prev", currentPage - 1, currentPage === 1));
 
-  for (let i = 1; i <= totalPages; i++) {
+  let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+  let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+
+  if (endPage - startPage < maxVisible - 1) {
+    startPage = Math.max(1, endPage - maxVisible + 1);
+  }
+
+  for (let i = startPage; i <= endPage; i++) {
     paginationContainer.appendChild(createButton(i, i, false, i === currentPage));
   }
 
   paginationContainer.appendChild(createButton("Next", currentPage + 1, currentPage === totalPages));
 }
+
 
 function filterAndSort() {
   let filtered = data.filter(row => {
