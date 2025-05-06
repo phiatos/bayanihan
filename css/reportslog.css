@@ -1,75 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap');
-
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  font-family: 'Poppins', sans-serif;
-}
-
-.main-container {
-  display: flex;
-  min-height: 100vh;
-  margin: 0 auto;
-  justify-content: center;
-  background-color: #FFF9F0;
-}
-
-#main-content {
-  flex: 1;
-  padding: 50px;
-  position: relative;
-  background: #FFFFFF;
-  border-radius: 30px;
-  box-shadow: 0 0 30px rgba(0, 0, 0, .2);
-  margin: 50px;
-  max-height: calc(100vh - 100px);
-  overflow-y: auto;
-}
-
-/* Table Styling */
-table {
-  width: 100%;
-  border-collapse: collapse;
-  min-width: 1000px;
-  table-layout: fixed;
-}
-
-th, td {
-  border: 1px solid #e0e0e0;
-  padding: 14px 12px;
-  text-align: center;
-  vertical-align: middle;
-  font-size: 11px;
-  font-weight: 500;
-  background-color: #fff;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-}
-
-th {
-  background-color: #FFF;
-  color: #aaa;
-  border: none;
-  font-weight: 600;
-}
-
-/* Inputs inside Table */
-td input[type="text"],
-td select {
-  width: 90%;
-  padding: 5px;
-  margin: 5px auto;
-  font-size: 12px;
-  background-color: #e7e7e7;
-  border: none;
-  border-radius: 4px;
-  box-sizing: border-box;
-  display: inline-block;
-}
-
-/* Buttons */
-button, .edit-btn {
+.edit-btn {
   padding: 8px 15px;
   background-color: #14AEBB;
   color: #fff;
@@ -102,49 +31,6 @@ button, .edit-btn {
 }
 .rejectBtn:hover {
   background-color: #d63128;
-}
-
-/* Pagination */
-.pagination-info {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 20px;
-  gap: 20px;
-}
-
-.pagination-info span {
-  font-size: 12px;
-  color: #6c757d;
-}
-
-#pagination {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-#pagination button {
-  margin: 0 3px;
-  padding: 6px 12px;
-  font-size: 14px;
-  color: #4D5874;
-  background-color: #FFF;
-  border: 1px solid #ccc;
-  border-radius: 10px;
-  cursor: pointer;
-}
-
-#pagination button.active-page {
-  background-color: #EBEBFF;
-  color: #2222E6;
-}
-
-#pagination button:disabled {
-  background-color: #ffffff;
-  cursor: not-allowed;
 }
 
 /* Modal */
@@ -267,7 +153,7 @@ table td {
     gap: 40px;
   }
 }
-
+/* 
 @media (max-width: 768px) {
   .main-container {
     flex-direction: column;
@@ -371,4 +257,4 @@ table td {
   .modal-content {
     padding: 15px;
   }
-}
+} */
