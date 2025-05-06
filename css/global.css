@@ -328,10 +328,6 @@ button {
   transition: background-color 0.3s;
 }
 
-button:hover {
-  background-color: #0e7781;
-}
-
 button:disabled {
   background-color: #aaa;
   cursor: not-allowed;

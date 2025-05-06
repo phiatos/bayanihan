@@ -15,9 +15,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const otpInputs       = document.querySelectorAll('#step2 .otp');
   const newPwdInput     = document.getElementById('new-password');
   const confirmPwdIn    = document.getElementById('confirm-password');
-  const lockIcon = document.querySelector('.bxs-lock-alt');
-  const openLockIcon = document.querySelector('.bxs-lock-open-alt');
+  const backButton = document.querySelector('.back-btn');
 
+  if (backButton) {
+    backButton.addEventListener('click', () => {
+      window.history.back();
+    });
+  }
   // Show only one step
   function showStep(idx) {
     steps.forEach((id,i) => {
