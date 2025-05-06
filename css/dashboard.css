@@ -62,22 +62,60 @@ header {
     margin: 0;
 }
 
-  .map-placeholder {
-    align-content: center;
+/* Search Bar Styles */
+.search-container {
+    margin: 1rem 0;
+    padding: 0 1rem;
+}
+
+.input-container {
+    display: flex;
+    align-items: center;
+    background-color: #fff;
+    border-radius: 12px;
+    padding: 0.5rem 1rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.search-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 1rem;
+    color: #333;
+    padding: 0.5rem;
+}
+
+.search-input::placeholder {
+    color: #656079;
+}
+
+.search-icon {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.5rem;
+}
+
+/* Map Container Styles */
+.map-container {
     margin: 10px 0;
-    padding: 90px; 
-    border: 2px dashed #aaa; 
-    text-align: center; 
-    color: #666;
-  }
-  
+    padding: 10px;
+    border: 2px dashed #aaa;
+    height: 500px; /* Increased from 400px to 500px */
+    position: relative;
+}
+
 @media (max-width: 1024px) {
     .metrics-container {
         grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     }
-    .map-placeholder {
+    .map-container {
         margin: 1rem;
-        padding: 1.5rem;
+        padding: 1rem;
+    }
+    .search-container {
+        padding: 0 0.8rem;
     }
 }
 
@@ -106,8 +144,11 @@ header {
         color: #2980b9;
         margin: 0;
     }
-    .map-placeholder {
-        padding: 1.2rem;
+    .map-container {
+        padding: 0.8rem;
+    }
+    .search-container {
+        padding: 0 0.6rem;
     }
 }
 
@@ -121,7 +162,6 @@ header {
         width: 100%; 
         padding: 8px; 
         display: flex;
- 
     }
 
     .metric-card h3 {
@@ -137,14 +177,14 @@ header {
         margin: 0;
     }
 
-    .map-placeholder {
-        padding: 0.5rem; 
-        font-size: 0.8rem; 
+    .map-container {
+        padding: 0.5rem;
+        height: 350px; /* Increased from 300px to 350px */
+    }
+    .search-container {
+        padding: 0 0.4rem;
+    }
+    .search-input {
+        font-size: 0.9rem;
     }
 }
-
-
-
-
-
-  
