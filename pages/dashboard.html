@@ -22,35 +22,48 @@
     <div class="main-container">
         <div class="sidebar-placeholder"></div>
         <div id="main-content">
-            <header>Dashboard</header>
-            <div class="metrics-container">
-                <div class="metric-card">
-                    <h3>No. of Food Packs</h3>
-                    <p id="food-packs">0</p>
-                </div>
-                <div class="metric-card">
-                    <h3>No. of Hot Meals</h3>
-                    <p id="hot-meals">0</p>
-                </div>
-                <div class="metric-card">
-                    <h3>Liters of Water</h3>
-                    <p id="water-liters">0</p>
-                </div>
-                <div class="metric-card">
-                    <h3>No. of Volunteers Mobilized</h3>
-                    <p id="volunteers">0</p>
-                </div>
-                <div class="metric-card">
-                    <h3>Total Amount Raised</h3>
-                    <p id="amount-raised">0</p>
-                </div>
-                <div class="metric-card">
-                    <h3>Total Value of In-Kind Donations</h3>
-                    <p id="inkind-donations">0</p>
-                </div>
-            </div>
-        </div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+    <header>Dashboard</header>
+    <div style="position: relative; cursor: pointer;">
+        <i class='bx bx-bell' style="font-size: 1.8rem;"></i>
+        <span style="position: absolute; top: 0; right: 10; width: 8px; height: 8px; background: red; border-radius: 50%; display: inline-block;"></span>
     </div>
+</div>
+            <!-- Dashboard Metrics -->
+      <div class="metrics-container" style="padding: 1.5rem;">
+        <div class="metric-card">
+          <h3>No. of Food Packs</h3>
+          <p id="food-packs">0</p>
+        </div>
+        <div class="metric-card">
+          <h3>No. of Hot Meals</h3>
+          <p id="hot-meals">0</p>
+        </div>
+        <div class="metric-card">
+          <h3>Liters of Water</h3>
+          <p id="water-liters">0</p>
+        </div>
+        <div class="metric-card">
+          <h3>No. of Volunteers Mobilized</h3>
+          <p id="volunteers">0</p>
+        </div>
+        <div class="metric-card">
+          <h3>Total Amount Raised</h3>
+          <p id="amount-raised">0</p>
+        </div>
+        <div class="metric-card">
+          <h3>Total Value of In-Kind Donations</h3>
+          <p id="inkind-donations">0</p>
+        </div>
+      </div>
+
+      <!-- Placeholder for future mapping feature -->
+      <div class="map-placeholder">
+        <p><strong>📍 Map Feature Placeholder:</strong> A future map visualization for relief efforts will appear here.</p>
+      </div>
+
+    </div>
+  </div>
 
     <script>
         // Fetch the sidebar HTML and inject it into the page

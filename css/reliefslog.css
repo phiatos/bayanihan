@@ -35,6 +35,23 @@
 
 }
 
+.viewBtn {
+  background-color: #4059A5;
+  width: 80%;
+  margin-bottom: 5px;
+}
+.viewBtn:hover {
+  background-color: #32488a;
+}
+
+.deleteBtn {
+  background-color: #FF3B30;
+  width: 80%;
+}
+.deleteBtn:hover {
+  background-color: #d63128;
+}
+
 /* Modal Table Styling */
 #reliefModal .modal-content table {
   width: 100%;

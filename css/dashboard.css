@@ -1,27 +1,150 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap');
-
-*{
+body {
     margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    font-family: 'Poppins', sans-serif;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f4f6f9;
+    color: #333;
 }
 
 .main-container {
     display: flex;
-    min-height: 100vh; 
-    margin: 0 auto;
-    justify-content: center; 
-    background-color: #FFF9F0;
+    height: 100vh;
 }
 
 #main-content {
     flex: 1;
-    padding: 20px;
-    position: relative;
-    background: #FFFFFF;
-    border-radius: 30px;
-    box-shadow: 0 0 30px rgba(0, 0, 0, .2);
-    margin: 50px;
+    padding: 2rem;
     overflow-y: auto;
+    background: #fff;
+    border-radius: 1rem 0 0 1rem;
+    box-shadow: -4px 0 10px rgba(0, 0, 0, 0.05);
 }
+
+header {
+    font-size: 2rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    color: #2c3e50;
+}
+
+.metrics-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+}
+
+.metric-card {
+    background-color: #ffffff;
+    border-radius: 16px;
+    padding: 1.5rem;
+    border: 1px solid #0fbaba;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.06);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.metric-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+}
+
+.metric-card h3 {
+    text-align: center;
+    font-size: 15px;
+    font-weight: 500;
+    color: #7f8c8d;
+    margin-bottom: 0.5rem;
+}
+
+.metric-card p {
+    text-align: center;
+    font-size: 2rem;
+    font-weight: bold;
+    color: #2980b9;
+    margin: 0;
+}
+
+  .map-placeholder {
+    align-content: center;
+    margin: 10px 0;
+    padding: 90px; 
+    border: 2px dashed #aaa; 
+    text-align: center; 
+    color: #666;
+  }
+  
+@media (max-width: 1024px) {
+    .metrics-container {
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    }
+    .map-placeholder {
+        margin: 1rem;
+        padding: 1.5rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .metrics-container {
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); 
+    }
+
+    .metric-card {
+        width: 100%; 
+        padding: 16px; 
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between; 
+        text-align: center; 
+    }
+
+    .metric-card h3 {
+        font-size: 14px; 
+        color: #7f8c8d; 
+    }
+
+    .metric-card p {
+        font-size: 18px; 
+        font-weight: bold;
+        color: #2980b9;
+        margin: 0;
+    }
+    .map-placeholder {
+        padding: 1.2rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .metrics-container {
+        grid-template-columns: repeat(2, 1fr); 
+        gap: 1rem; 
+    }
+
+    .metric-card {
+        width: 100%; 
+        padding: 8px; 
+        display: flex;
+ 
+    }
+
+    .metric-card h3 {
+        font-size: 10px;
+        color: #7f8c8d;
+        margin-bottom: 0.25rem; 
+    }
+
+    .metric-card p {
+        font-size: 14px; 
+        font-weight: bold;
+        color: #2980b9;
+        margin: 0;
+    }
+
+    .map-placeholder {
+        padding: 0.5rem; 
+        font-size: 0.8rem; 
+    }
+}
+
+
+
+
+
+  

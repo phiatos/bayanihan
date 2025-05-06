@@ -77,6 +77,70 @@ document.addEventListener('DOMContentLoaded', () => {
   // Hide items table initially
   itemsTable.style.display = 'none';
 
+    // Event listeners for real-time validation
+    document.getElementById('contactPerson').addEventListener('input', function(e) {
+        this.value = this.value.replace(/[^a-zA-Z\s]/g, '');  // Only allows letters and spaces
+    });
+
+    document.getElementById('contactNumber').addEventListener('input', function(e) {
+        this.value = this.value.replace(/[^0-9+\-\s()]/g, '');  // Only allows numbers, plus, hyphens, spaces, and parentheses
+    });
+
+    document.getElementById('email').addEventListener('input', function(e) {
+        // Email already validates input type, but we can prevent spaces as well
+        this.value = this.value.replace(/\s/g, '');  // Remove spaces
+    });
+
+    document.getElementById('address').addEventListener('input', function(e) {
+        this.value = this.value.replace(/[^a-zA-Z0-9\s,.'-]/g, '');  // Allows letters, numbers, spaces, commas, periods, and hyphens
+    });
+
+    document.getElementById('city').addEventListener('input', function(e) {
+        this.value = this.value.replace(/[^a-zA-Z\s]/g, '');  // Only allows letters and spaces
+    });
+
+    document.getElementById("category").addEventListener("change", function() {
+        const selectedCategory = this.value;
+        const itemName = document.getElementById("itemName");
+        const quantity = document.getElementById("quantity");
+        const notes = document.getElementById("notes");
+  
+        // Enable the item fields
+        itemName.disabled = false;
+        quantity.disabled = false;
+        notes.disabled = false;
+  
+        // Adjust the items list based on the selected category
+        const itemNameList = document.getElementById("itemNameList");
+        const options = itemNameList.getElementsByTagName("option");
+  
+        // Remove all existing options
+        while (itemNameList.firstChild) {
+          itemNameList.removeChild(itemNameList.firstChild);
+        }
+  
+        // Add relevant items for the selected category
+        let items = [];
+        if (selectedCategory === "Food") {
+          items = ["Rice", "Canned Goods", "Water Bottles"];
+        } else if (selectedCategory === "Clothing") {
+          items = ["Blankets"];
+        } else if (selectedCategory === "Medicine") {
+          items = ["Medicine Kits"];
+        } else if (selectedCategory === "Hygiene") {
+          items = ["Hygiene Packs"];
+        } else {
+          items = ["Others"];
+        }
+  
+        items.forEach(item => {
+          const option = document.createElement("option");
+          option.value = item;
+          itemNameList.appendChild(option);
+        });
+      });
+  
+
   // Function to fetch volunteer group based on contact person
   function fetchVolunteerGroup(contactPerson) {
       console.log('Fetching volunteer group for contact person:', contactPerson);
@@ -155,10 +219,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const tr = document.createElement('tr');
       tr.innerHTML = `
-          <td>${name}</td>
-          <td>${quantity}</td>
-          <td>${notes}</td>
-          <td><button type="button" class="delete-btn" data-index="${itemIndex}">Delete</button></td>
+          <td id="prevItmName">${name}</td>
+          <td id="prevQty">${quantity}</td>
+          <td id="prevNotes">${notes}</td>
+          <td><button type="button" class="delete-btn" id= "deleteItmBtn" data-index="${itemIndex}">Delete</button></td>
       `;
       itemsTableBody.appendChild(tr);
 

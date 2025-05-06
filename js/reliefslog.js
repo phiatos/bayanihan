@@ -91,15 +91,18 @@ document.addEventListener('DOMContentLoaded', () => {
         currentRows.forEach((item, index) => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td>${start + index + 1}</td>
-                <td>${item.id}</td>
-                <td>${item.group}</td>
-                <td>${item.city}</td>
-                <td>${item.address}</td>
-                <td>${item.contact}</td>
-                <td>${item.number}</td>
-                <td>${item.category}</td>
-                <td><button class="view-btn" data-index="${data.indexOf(item)}">View</button></td>
+                <td data-key="No">${start + index + 1}</td>
+                <td data-key="ReliefID">${item.id}</td>
+                <td data-key="VolunteerGroupName">${item.group}</td>
+                <td data-key="City">${item.city}</td>
+                <td data-key="DropoffAddress">${item.address}</td>
+                <td data-key="ContactPerson">${item.contact}</td>
+                <td data-key="ContactNumber">${item.number}</td>
+                <td data-key="RequestCategory">${item.category}</td>
+                <td>
+                    <button class="viewBtn" data-index="${data.indexOf(item)}">View</button>
+                    <button class="deleteBtn" data-key="${item.firebaseKey}">Delete</button>
+                </td>
             `;
             tableBody.appendChild(tr);
         });
@@ -108,86 +111,145 @@ document.addEventListener('DOMContentLoaded', () => {
         renderPagination();
     }
 
+    document.getElementById('closeModal').addEventListener('click', () => {
+        document.getElementById('reliefModal').classList.add('hidden');
+    });
+    
+
     function renderPagination() {
         pagination.innerHTML = '';
         const totalPages = Math.ceil(filteredData.length / rowsPerPage);
-
-        // Preventing generation of pagination buttons if no data
+    
         if (totalPages === 0) {
             pagination.innerHTML = '<span>No entries to display</span>';
             return;
         }
-
-        for (let i = 1; i <= totalPages; i++) {
+    
+        const createButton = (label, page, disabled = false, isActive = false) => {
             const btn = document.createElement('button');
-            btn.textContent = i;
-            if (i === currentPage) btn.classList.add('active');
+            btn.textContent = label;
+            if (disabled) btn.disabled = true;
+            if (isActive) btn.classList.add('active');
             btn.addEventListener('click', () => {
-                currentPage = i;
+                currentPage = page;
                 renderTable();
             });
-            pagination.appendChild(btn);
+            return btn;
+        };
+    
+        // Previous Button
+        pagination.appendChild(createButton('Prev', currentPage - 1, currentPage === 1));
+    
+        const maxVisible = 5;
+        let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+        let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+        if (endPage - startPage < maxVisible - 1) {
+            startPage = Math.max(1, endPage - maxVisible + 1);
         }
+    
+        for (let i = startPage; i <= endPage; i++) {
+            pagination.appendChild(createButton(i, i, false, i === currentPage));
+        }
+    
+        // Next Button
+        pagination.appendChild(createButton('Next', currentPage + 1, currentPage === totalPages));
     }
 
-    function applySearchAndSort() {
-        console.log('Applying search and sort');
-        const query = searchInput.value.toLowerCase();
-        const sortBy = sortSelect.value;
-
-        filteredData = data.filter(item =>
-            Object.values(item).some(val =>
-                typeof val === 'string' && val.toLowerCase().includes(query)
-            )
-        );
-
-        if (sortBy) {
-            filteredData.sort((a, b) => a[sortBy].localeCompare(b[sortBy]));
-        }
-
+    document.getElementById("sortSelect").addEventListener("change", function () {
+        const selectedValue = this.value;
+        if (!selectedValue) return;
+    
+        const [key, order] = selectedValue.split("-");
+        sortTableData(key, order);
+    });
+    
+    function sortTableData(key, order = "asc") {
+        filteredData.sort((a, b) => {
+            const map = {
+                No: (item, i) => i + 1,
+                ReliefID: item => item.id,
+                VolunteerGroupName: item => item.group,
+                City: item => item.city,
+                DropoffAddress: item => item.address,
+                ContactPerson: item => item.contact,
+                ContactNumber: item => item.number,
+                RequestCategory: item => item.category
+            };
+    
+            const valA = typeof map[key] === "function" ? map[key](a, data.indexOf(a)) : "";
+            const valB = typeof map[key] === "function" ? map[key](b, data.indexOf(b)) : "";
+    
+            const compA = isNaN(valA) ? String(valA).toLowerCase() : parseFloat(valA);
+            const compB = isNaN(valB) ? String(valB).toLowerCase() : parseFloat(valB);
+    
+            if (compA < compB) return order === "asc" ? -1 : 1;
+            if (compA > compB) return order === "asc" ? 1 : -1;
+            return 0;
+        });
+    
         currentPage = 1;
         renderTable();
     }
 
-    searchInput.addEventListener('input', applySearchAndSort);
-    sortSelect.addEventListener('change', applySearchAndSort);
+// Show modal with details and handle delete
+document.addEventListener('click', (e) => {
+    if (e.target.classList.contains('viewBtn')) {
+        console.log('View button clicked');
+        const idx = parseInt(e.target.dataset.index);
+        const item = data[idx];
 
-    window.clearDInputs = () => {
-        console.log('Clearing search input');
-        searchInput.value = '';
-        applySearchAndSort();
-    };
+        document.getElementById('modalTitle').textContent = `Relief Request of ${item.group}`;
+        document.getElementById('modalContact').textContent = item.contact;
+        document.getElementById('modalNumber').textContent = item.number;
+        document.getElementById('modalEmail').textContent = item.email || 'N/A';
+        document.getElementById('modalAddress').textContent = item.address;
+        document.getElementById('modalCategory').textContent = item.category;
+        document.getElementById('modalGroup').textContent = item.group;
 
-    // Show modal with details
-    document.addEventListener('click', (e) => {
-        if (e.target.classList.contains('view-btn')) {
-            console.log('View button clicked');
-            const idx = parseInt(e.target.dataset.index);
-            const item = data[idx];
+        const itemsTableBody = document.querySelector('#itemsTable tbody');
+        itemsTableBody.innerHTML = '';
+        (item.items || []).forEach(i => {
+            itemsTableBody.insertAdjacentHTML('beforeend', `<tr><td>${i.name}</td><td>${i.quantity}</td><td>${i.notes}</td></tr>`);
+        });
 
-            document.getElementById('modalTitle').textContent = `Relief Request of ${item.group}`;
-            document.getElementById('modalContact').textContent = item.contact;
-            document.getElementById('modalNumber').textContent = item.number;
-            document.getElementById('modalEmail').textContent = item.email || 'N/A';
-            document.getElementById('modalAddress').textContent = item.address;
-            document.getElementById('modalCategory').textContent = item.category;
-            document.getElementById('modalGroup').textContent = item.group;
+        document.getElementById('reliefModal').classList.remove('hidden');
+    }
 
-            const itemsTableBody = document.querySelector('#itemsTable tbody');
-            itemsTableBody.innerHTML = '';
-            (item.items || []).forEach(i => {
-                itemsTableBody.insertAdjacentHTML('beforeend', `<tr><td>${i.name}</td><td>${i.quantity}</td><td>${i.notes}</td></tr>`);
-            });
+    // ✅ Handle delete button click with corrected class
+    if (e.target.classList.contains('deleteBtn')) {
+        const firebaseKey = e.target.dataset.key;
+        console.log('Delete button clicked for ID:', firebaseKey);
 
-            document.getElementById('reliefModal').classList.remove('hidden');
-        }
-    });
+        Swal.fire({
+            title: 'Are you sure?',
+            text: "You will not be able to recover this request!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, delete it!',
+            cancelButtonText: 'No, cancel!',
+        }).then((result) => {
+            if (result.isConfirmed) {
+                database.ref('requestRelief/requests/' + firebaseKey).remove()
+                    .then(() => {
+                        Swal.fire(
+                            'Deleted!',
+                            'The request has been deleted.',
+                            'success'
+                        );
+                        data = data.filter(item => item.firebaseKey !== firebaseKey);
+                        filteredData = [...data];
+                        renderTable();
+                    }).catch((error) => {
+                        Swal.fire(
+                            'Error!',
+                            'Failed to delete the request. Please try again.',
+                            'error'
+                        );
+                        console.error('Delete failed:', error);
+                    });
+            }
+        });
+    }
+});
 
-    document.getElementById('closeModal').addEventListener('click', () => {
-        console.log('Close modal button clicked');
-        document.getElementById('reliefModal').classList.add('hidden');
-    });
-
-    // Initial render
-    renderTable();
 });
