@@ -147,35 +147,34 @@ document.addEventListener('DOMContentLoaded', () => {
                 const modalDetails = document.getElementById("modalReportDetails");
                 const closeModal = document.querySelector(".close-button");
 
-                modalDetails.innerHTML = `
-                  
+                modalDetails.innerHTML = `  
                 <div class="report-section">
-                  <div>
-                  <h2>Basic Information</h2>
-                      <p><strong>Reporty ID:</strong> ${report.ReportID || "-"}</p>
-                      <p><strong>Volunteer Group:</strong> ${report.volunteerGroup || "For Now ABVN"}</p>
-                      <p><strong>Location of Operation:</strong> ${report.Barangay|| "-"}, ${report.CityMunicipality || "-"}</p>
-                      <p><strong>Submitted By:</strong> ${report.SubmittedBy || "-"}</p>
-                      <p><strong>Date of Report Submitted:</strong> ${formatDate(report.DateOfReport) || "-"}</p>
-                  </div>
-                  <div>
-                  <h2>Relief Operations</h2>
-                    <p><strong>Date of Relief Operation:</strong> ${formatDate(report.Date) || "-"}</p>
-                    <p><strong>No. of Individuals or Families:</strong> ${report.NoOfIndividualsOrFamilies || "-"}</p>
-                    <p><strong>No. of Food Packs:</strong> ${report.NoOfFoodPacks || "-"}</p>
-                    <p><strong>No. of Hot Meals/Ready-to-eat food:</strong> ${report.NoOfHotMeals || "-"}</p>
-                    <p><strong>Liters of Water:</strong> ${report.LitersOfWater || "-"}</p>
-                    <p><strong>No. of Volunteers Mobilized:</strong> ${report.NoOfVolunteersMobilized || "-"}</p>
-                    <p><strong>No. of Organizations Activated:</strong> ${report.NoOfOrganizationsActivated || "-"}</p>
-                    <p><strong>Total Value of In-Kind Donations:</strong> ${report.TotalValueOfInKindDonations || "-"}</p>
-                  </div>
-                   <div>
-                  <h2>Additional Updates</h2>
-                    <p><strong>Notes/Additional Information:</strong> ${formatDate(report.NotesAdditionalInformation) || "-"}</p>
-                  </div>
+                    <div class="form-1">
+                        <h2>Basic Information</h2>
+                        <p><strong>Report ID:</strong>${report.ReportID || "-"}<p>
+                        <p><strong>Volunteer Group: </strong>${report.volunteerGroup || "For Now ABVN"}</p>
+                        <p class="cell"><strong>Location of Operation: </strong>${report.Barangay || "-"}, ${report.CityMunicipality || "-"}</p>
+                        <p><strong>Submitted By: </strong>${report.SubmittedBy || "-"}<p>
+                        <p><strong>Date of Report Submitted: </strong>${formatDate(report.DateOfReport) || "-"}</p>
+                    </div>
+                    <div class="form-2">
+                        <h2>Relief Operations</h2>
+                        <p><strong>Date of Relief Operation:</strong>${formatDate(report.Date) || "-"}</p>
+                        <p><strong>No. of Individuals or Families:</strong>${report.NoOfIndividualsOrFamilies || "-"}</p>
+                        <p><strong>No. of Food Packs:</strong>${report.NoOfFoodPacks || "-"}</p>
+                        <p><strong>No. of Hot Meals/Ready-to-eat food: </strong>${report.NoOfHotMeals || "-"}</p>
+                        <p><strong>Liters of Water:</strong>${report.LitersOfWater || "-"} </p>
+                        <p><strong>No. of Volunteers Mobilized: </strong>${report.NoOfVolunteersMobilized || "-"}</p>
+                        <p><strong>No. of Organizations Activated:</strong>${report.NoOfOrganizationsActivated || "-"}</p>
+                        <p><strong>Total Value of In-Kind Donations:</strong>${report.TotalValueOfInKindDonations || "-"}</p>
+                    </div>
                 </div>
+                    <div class="form-3">
+                        <h2>Additional Updates</h2>
+                        <p><strong>Notes/Additional Information:</strong> ${formatDate(report.NotesAdditionalInformation) || "-"}</p>
+                    </div>
                   
-              `;
+                `;
 
               modal.classList.remove("hidden");
 

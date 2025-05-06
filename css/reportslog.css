@@ -1,64 +1,153 @@
-@media (max-width: 1024px) {
-  #main-content {
-    padding: 30px;
-    margin: 30px 20px;
-  }
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap');
 
-  table {
-    min-width: 800px;
-  }
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Poppins', sans-serif;
 }
 
-@media (max-width: 768px) {
-
-  table {
-    min-width: 100%;
-    font-size: 10px;
-    overflow-x: auto;
-    display: block;
-  }
-
-  .pagination-info {
-    flex-direction: column;
-    gap: 10px;
-    text-align: center;
-  }
-
-  .pagination-info span {
-    text-align: center;
-  }
+.main-container {
+  display: flex;
+  min-height: 100vh;
+  margin: 0 auto;
+  justify-content: center;
+  background-color: #FFF9F0;
 }
 
-@media (max-width: 480px) {
-
-  button, .edit-btn {
-    font-size: 11px;
-    padding: 6px 10px;
-  }
-
-  .pagination-info {
-    flex-direction: column;
-    font-size: 1px;
-    text-align: center;
-  }
-
-  #pagination button {
-    padding: 8px;
-    font-size: 12px;
-   
-  }
-
-  td input[type="text"],
-  td select,
-  .area-dropbtn {
-    font-size: 11px;
-    padding: 4px;
-  }
+#main-content {
+  flex: 1;
+  padding: 50px;
+  position: relative;
+  background: #FFFFFF;
+  border-radius: 30px;
+  box-shadow: 0 0 30px rgba(0, 0, 0, .2);
+  margin: 50px;
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
 }
 
+/* Table Styling */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 1000px;
+  table-layout: fixed;
+}
 
+th, td {
+  border: 1px solid #e0e0e0;
+  padding: 14px 12px;
+  text-align: center;
+  vertical-align: middle;
+  font-size: 11px;
+  font-weight: 500;
+  background-color: #fff;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
 
-/* modal */
+th {
+  background-color: #FFF;
+  color: #aaa;
+  border: none;
+  font-weight: 600;
+}
+
+/* Inputs inside Table */
+td input[type="text"],
+td select {
+  width: 90%;
+  padding: 5px;
+  margin: 5px auto;
+  font-size: 12px;
+  background-color: #e7e7e7;
+  border: none;
+  border-radius: 4px;
+  box-sizing: border-box;
+  display: inline-block;
+}
+
+/* Buttons */
+button, .edit-btn {
+  padding: 8px 15px;
+  background-color: #14AEBB;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 10px;
+  transition: background-color 0.3s;
+}
+
+.viewBtn {
+  background-color: #4059A5;
+  width: 80%;
+}
+.viewBtn:hover {
+  background-color: #32488a;
+}
+
+.approveBtn {
+  background-color: #34C759;
+  width: 80%;
+}
+.approveBtn:hover {
+  background-color: #2fa84e;
+}
+
+.rejectBtn {
+  background-color: #FF3B30;
+  width: 80%;
+}
+.rejectBtn:hover {
+  background-color: #d63128;
+}
+
+/* Pagination */
+.pagination-info {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 20px;
+  gap: 20px;
+}
+
+.pagination-info span {
+  font-size: 12px;
+  color: #6c757d;
+}
+
+#pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+#pagination button {
+  margin: 0 3px;
+  padding: 6px 12px;
+  font-size: 14px;
+  color: #4D5874;
+  background-color: #FFF;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+#pagination button.active-page {
+  background-color: #EBEBFF;
+  color: #2222E6;
+}
+
+#pagination button:disabled {
+  background-color: #ffffff;
+  cursor: not-allowed;
+}
+
+/* Modal */
 .modal {
   position: fixed;
   top: 0; left: 0;
@@ -69,7 +158,9 @@
   align-items: center;
   z-index: 999;
 }
-.modal.hidden { display: none; }
+.modal.hidden {
+  display: none;
+}
 
 .modal-content {
   background: white;
@@ -84,7 +175,8 @@
 
 .close {
   position: absolute;
-  top: 10px; right: 15px;
+  top: 10px;
+  right: 15px;
   font-size: 24px;
   cursor: pointer;
 }
@@ -94,9 +186,189 @@
   font-size: 22px;
   font-weight: 600;
 }
+h2{
+  color:#32488a;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: rgb(0, 0, 0);
+  margin-bottom: 0px;
+}
+.modal-header span {
+  font-size: 40px;
+  color: #6c757d;
+}
 
 .details p {
   margin-top: 20px;
   font-size: 14px;
   color: #333;
+}
+
+.report-section {
+  display: flex;
+  flex-direction: row;
+  gap: 120px;
+}
+
+.form-1, .form-2 {
+  box-sizing: border-box;
+  padding: 10px;
+}
+.form-1 table, .form-2 table {
+  table-layout: auto;
+  word-wrap: break-word;
+}
+.form-3 {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px;
+  margin: 20px;
+}
+
+table td {
+  padding: 10px 0 10px 10px;
+  text-align: left;
+  font-size: 12px;
+  vertical-align: top;
+}
+
+.info-table {
+  width: 10%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+.info-table td {
+  text-align: left;
+  padding-right: 0px;
+  font-size: 12px;
+}
+
+/* Responsive Media Queries */
+@media (max-width: 1024px) {
+  #main-content {
+    padding: 30px;
+    margin: 30px 20px;
+  }
+
+  table {
+    min-width: 800px;
+  }
+
+  .modal-content {
+    width: 90%;
+    padding: 30px;
+  }
+
+  .report-section {
+    gap: 40px;
+  }
+}
+
+@media (max-width: 768px) {
+  .main-container {
+    flex-direction: column;
+    padding: 10px;
+  }
+
+  #main-content {
+    padding: 20px;
+    margin: 20px 10px;
+    max-height: none;
+  }
+
+  table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+    min-width: 100%;
+    font-size: 10px;
+  }
+
+  th, td {
+    font-size: 10px;
+    padding: 10px;
+  }
+
+  .pagination-info {
+    flex-direction: column;
+    gap: 10px;
+    text-align: center;
+  }
+
+  .pagination-info span {
+    text-align: center;
+  }
+
+  .modal-content {
+    width: 95%;
+    padding: 20px;
+  }
+
+  .report-section {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .form-1, .form-2, .form-3 {
+    width: 100%;
+  }
+
+  #modalTitle {
+    font-size: 18px;
+  }
+
+  .details p {
+    font-size: 12px;
+  }
+
+  .modal-header span {
+    font-size: 30px;
+  }
+}
+
+@media (max-width: 480px) {
+  .report-section {
+    flex: 1;
+    flex-direction: column;
+    gap: 20px;
+  }
+  button, .edit-btn {
+    font-size: 11px;
+    padding: 6px 10px;
+  }
+  
+
+  td input[type="text"],
+  td select,
+  .area-dropbtn {
+    font-size: 11px;
+    padding: 4px;
+  }
+
+  .pagination-info {
+    flex-direction: column;
+    font-size: 11px;
+    text-align: center;
+  }
+
+  #pagination button {
+    padding: 8px;
+    font-size: 12px;
+  }
+
+  .modal-header span {
+    font-size: 24px;
+  }
+
+  #modalTitle {
+    font-size: 16px;
+  }
+
+  .modal-content {
+    padding: 15px;
+  }
 }
