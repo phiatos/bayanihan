@@ -229,13 +229,19 @@ document.addEventListener('DOMContentLoaded', () => {
         const query = searchInput.value.trim().toLowerCase();
         const sortValue = sortSelect.value;
         
-        // Search - corrected version
+        
+        // Search 
         if (query) {
-            filteredReports = filteredReports.filter(report =>
-                Object.values(report).some(val =>
-                    val && typeof val === 'string' && val.toLowerCase().includes(query)
-                )
-            );
+            filteredReports = filteredReports.filter(report => {
+                const dateStr = report.DateOfReport;
+                const formattedDate = formatDate(dateStr).toLowerCase(); // Convert formatted date to string
+                return (
+                    formattedDate.includes(query) || // Search by formatted date string
+                    Object.values(report).some(val =>
+                        val && typeof val === 'string' && val.toLowerCase().includes(query)
+                    )
+                );
+            });
         }
     
         // Sort
@@ -247,7 +253,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 let valB = b[sortField] || "";
     
                 // Handle Date sorting
-                if (sortField === "DateOfReport" || sortField === "Date") {
+                if (sortField === "Date of Report" || sortField === "DateOfReport") {
                     const dateA = new Date(valA);
                     const dateB = new Date(valB);
                     
@@ -258,7 +264,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
     
                 // Handle numeric fields
-                if (sortField.includes("NoOf") || sortField.includes("Liters")) {
+                if (sortField.includes("LitersOfWater") || sortField.includes("LitersOfWater")) {
                     valA = isNaN(Number(valA)) ? 0 : Number(valA);
                     valB = isNaN(Number(valB)) ? 0 : Number(valB);
                     return direction === "asc" ? valA - valB : valB - valA;

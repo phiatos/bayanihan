@@ -104,6 +104,7 @@ document.addEventListener('DOMContentLoaded', () => {
             tr.innerHTML = `
                 <td>${displayIndex}</td>
                 <td>${report["ReportID"] || "-"}</td>
+                <td>${report["VolunteerGroupName"] || "[Org_Name]"}</td>
                 <td>${report["Barangay"] || "-"}</td>
                 <td>${report["CityMunicipality"] || "-"}</td>
                 <td>${report["TimeOfIntervention"] || "-"}</td>
@@ -158,7 +159,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="form-1">
                         <h2>Basic Information</h2>
                         <p><strong>Report ID:</strong>${report.ReportID || "-"}<p>
-                        <p><strong>Volunteer Group: </strong>${report.volunteerGroup || "For Now ABVN"}</p>
+                        <p><strong>Volunteer Group: </strong>${report.volunteerGroup || "[Organization_Name]"}</p>
                         <p class="cell"><strong>Location of Operation: </strong>${report.Barangay || "-"}, ${report.CityMunicipality || "-"}</p>
                         <p><strong>Submitted By: </strong>${report.SubmittedBy || "-"}<p>
                         <p><strong>Date of Report Submitted: </strong>${formatDate(report.DateOfReport) || "-"}</p>
@@ -280,11 +281,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const sortValue = document.getElementById('sortSelect').value;
         const [sortBy, direction] = sortValue.split("-");
 
-    let filteredReports = submittedReports.filter(report => {
-        return Object.values(report).some(value =>
-            value.toString().toLowerCase().includes(searchQuery)
-        );
-    });
+        let filteredReports = submittedReports.filter(report => {
+            return Object.entries(report).some(([key, value]) => {
+                if (key === "DateOfReport") {
+                    const formattedDate = formatDate(value).toLowerCase(); // Format and convert to lowercase
+                    return formattedDate.includes(searchQuery);
+                }
+                return value?.toString().toLowerCase().includes(searchQuery);
+            });
+        });
         // Sort
         if (sortBy) {
             filteredReports.sort((a, b) => {

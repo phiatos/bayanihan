@@ -7,6 +7,23 @@
     flex-direction: column;
 }
 
+/* Dropdown styling to match text inputs */
+.input-field select {
+    font-size: 14px;
+    font-weight: 400;
+    color: #333;
+    padding: 10px 15px;
+    background-color: var(--white);
+    border-radius: 5px;
+    margin-top: 6px;
+    border: 1px solid #aaa;
+    appearance: none;            /* remove native arrow */
+    background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2210%22%20height%3D%227%22%20viewBox%3D%220%200%2010%207%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cpath%20d%3D%22M0%200l5%207%205-7z%22%20fill%3D%22%23666%22/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 15px center;
+    background-size: 10px 7px;
+}
+
 /* Section Heading */
 h2 {
     font-size: 20px;

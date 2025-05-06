@@ -23,7 +23,7 @@
     <div class="form-page-container">
         <div class="sidebar-placeholder"></div>
         <div id="form-main-content">
-            <header>Reports Submission</header>
+            <header>Reports Submission of [Organization_Name]</header>
 
              <!-- Page 1 -->
             <form id="form-page-1">
@@ -32,12 +32,16 @@
                         <span class="title">Basic Information</span>
                         <div class="fields">
                             <div class="input-field">
-                                <label>Barangay</label>
-                                <input type="text" placeholder="Barangay" required>
+                                <label>City/Municipality</label>
+                                <select id="category" name="city" required>
+                                    <option value="">Select City/Municipality</option>
+                                </select>
                             </div>
                             <div class="input-field">
-                                <label>City/Municipality</label>
-                                <input type="text" placeholder="City/Municipality" required>
+                                <label>Barangay</label>
+                                <select name="barangay" required>
+                                    <option value="">Select Barangay</option>
+                                </select>
                             </div>
                             <div class="input-field">
                                 <label>Time of Intervention</label>

@@ -26,7 +26,7 @@
 </head>
 <body>
     <div class="main-container">
-        <div id="sidebar"></div>
+        <div class="sidebar-placeholder"></div>
         <div id="main-content">
             <h2>Report Submission Preview</h2>
             <div>
@@ -38,7 +38,22 @@
             </div>
         </div>
     </div>
-
+    
     <script src="../js/reportsSummary.js"></script>
+    <script>
+        fetch('../components/sidebar.html')
+        .then(response => response.text())
+        .then(data => {
+            document.querySelector('.sidebar-placeholder').innerHTML = data;
+            const sidebarScript = document.createElement('script');
+            sidebarScript.src = '../components/sidebar.js';
+            sidebarScript.onload = function() {};
+            document.querySelector('.sidebar-placeholder').appendChild(sidebarScript);
+        })
+        .catch(error => {
+            console.error('Error loading sidebar:', error);
+        });
+    </script>
+    
 </body>
 </html>
