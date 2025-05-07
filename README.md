@@ -40,7 +40,7 @@ Password: abcdefg
 
 ABVN Account
 Mobile Number: 09499894578
-Password: 3xgbgylvU(
+Password: 3xgbgylvU
 ⚠️ Limited access setup (not fully working)
 You can register a new ABVN in VGM or use this account
 
