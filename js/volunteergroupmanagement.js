@@ -246,11 +246,12 @@ function renderTable(filteredData = data) {
   const pageData = filteredData.slice(start, end);
   console.log("Page data:", pageData);
 
-  pageData.forEach(row => {
+  pageData.forEach((row, index) => {
+    const rowNumber = start + index + 1;
     console.log("Rendering row:", row);
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td contenteditable="false">${row.no}</td>
+      <td contenteditable="false">${rowNumber}</td>
       <td contenteditable="false">${row.organization || 'N/A'}</td>
       <td contenteditable="false" class="hqCell">${row.hq || 'N/A'}</td>
       <td contenteditable="false" class="locationCell">${row.areaOfOperation || 'N/A'}</td>
