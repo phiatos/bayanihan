@@ -234,17 +234,19 @@ function renderTable(filteredData = data) {
   const pageData = filteredData.slice(start, end);
   console.log("Page data:", pageData);
 
-  pageData.forEach(row => {
+  pageData.forEach((row, index) => {
+    const rowNumber = start + index + 1;
+    console.log("Rendering row:", row);
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${row.no}</td>
-      <td>${row.organization}</td>
-      <td class="hqCell">${row.hq}</td>
-      <td class="locationCell">${row.areaOfOperation}</td>
-      <td>${row.contactPerson}</td>
-      <td>${row.email}</td>
-      <td>${row.mobileNumber}</td>
-      <td>${row.socialMedia}</td>
+      <td contenteditable="false">${rowNumber}</td>
+      <td contenteditable="false">${row.organization || 'N/A'}</td>
+      <td contenteditable="false" class="hqCell">${row.hq || 'N/A'}</td>
+      <td contenteditable="false" class="locationCell">${row.areaOfOperation || 'N/A'}</td>
+      <td contenteditable="false">${row.contactPerson || 'N/A'}</td>
+      <td contenteditable="false">${row.email || 'N/A'}</td>
+      <td contenteditable="false">${row.mobileNumber || 'N/A'}</td>
+      <td contenteditable="false">${row.socialMedia || 'N/A'}</td>
       <td><button class="editButton" data-id="${row.no}">Edit</button></td>
     `;
     tableBody.appendChild(tr);
@@ -342,47 +344,48 @@ function attachRowHandlers() {
       const cells = row.querySelectorAll('td');
       const isEditable = cells[0].getAttribute('contenteditable') === 'true';
 
-      if (!isEditable) {
-        cells.forEach((cell, i) => {
-          if (i < cells.length - 1) cell.setAttribute('contenteditable', 'true');
+  if (!isEditable) {
+    for (let i = 1; i < cells.length - 1; i++) {
+      cells[i].setAttribute('contenteditable', 'true');
+    }
+    row.classList.add('editing');
+    editButton.textContent = 'Save';
+    editingRowId = rowId;
+  } else {
+    const updatedData = {
+      organization: cells[1].textContent.trim(),
+      hq: cells[2].textContent.trim(),
+      areaOfOperation: cells[3].textContent.trim(),
+      contactPerson: cells[4].textContent.trim(),
+      email: cells[5].textContent.trim(),
+      mobileNumber: cells[6].textContent.trim(),
+      socialMedia: cells[7].textContent.trim()
+    };
+
+    database.ref(`volunteerGroups/${rowId}`).update(updatedData)
+      .then(() => {
+        for (let i = 1; i < cells.length - 1; i++) {
+          cells[i].setAttribute('contenteditable', 'false');
+        }
+        row.classList.remove('editing');
+        editButton.textContent = 'Edit';
+        editingRowId = null;
+        fetchAndRenderTable();
+        Swal.fire({
+          icon: 'success',
+          title: 'Success',
+          text: 'Volunteer group updated successfully!'
         });
-        button.textContent = 'Save';
-        editingRowId = rowId;
-      } else {
-        const updatedData = {
-          organization: cells[1].textContent.trim() || "N/A",
-          hq: cells[2].textContent.trim() || "N/A",
-          areaOfOperation: cells[3].textContent.trim() || "N/A",
-          contactPerson: cells[4].textContent.trim() || "N/A",
-          email: cells[5].textContent.trim() || "N/A",
-          mobileNumber: cells[6].textContent.trim() || "N/A",
-          socialMedia: cells[7].textContent.trim() || "N/A"
-        };
-        database.ref(`volunteerGroups/${rowId}`).update(updatedData)
-          .then(() => {
-            cells.forEach((cell, i) => {
-              if (i < cells.length - 1) cell.setAttribute('contenteditable', 'false');
-            });
-            button.textContent = 'Edit';
-            editingRowId = null;
-            Swal.fire({
-              icon: 'success',
-              title: 'Updated',
-              text: 'Volunteer group updated successfully!'
-            });
-            fetchAndRenderTable();
-          })
-          .catch(error => {
-            console.error("Update error:", error);
-            Swal.fire({
-              icon: 'error',
-              title: 'Update Error',
-              text: error.message
-            });
-          });
-      }
-    });
-  });
+      })
+      .catch(error => {
+        console.error("Error updating data in Firebase:", error);
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'Failed to update data in the database. Please try again.'
+        });
+      });
+  }
 }
 
 // Address modal
@@ -496,46 +499,122 @@ function clearInputs() {
   if (input) input.addEventListener('input', e => populateBarangays(e.target.value, id.includes('loc')));
 });
 
-// Add new organization
-if (addNew) {
-  addNew.addEventListener('click', () => {
-    if (addOrgModal) addOrgModal.style.display = 'flex';
+function attachRowHandlers() {
+  const rows = document.querySelectorAll("#orgTable tbody tr");
+
+  rows.forEach(row => {
+    const editBtn = row.querySelector(".editButton");
+
+    if (editBtn) {
+      editBtn.addEventListener("click", () => {
+        const rowId = editBtn.getAttribute("data-id");
+        const cells = row.querySelectorAll("td");
+        const isEditable = cells[1].getAttribute("contenteditable") === "true"; // skip row number (index 0)
+
+        if (!isEditable) {
+          // Enable editing (skip first column and last button column)
+          cells.forEach((cell, i) => {
+            if (i > 0 && i < cells.length - 1) {
+              cell.setAttribute("contenteditable", "true");
+            }
+          });
+          row.classList.add("editing");
+          editBtn.textContent = "Save";
+          editingRowId = rowId;
+
+          // Attach click listeners for modal-opening cells
+          const hqCell = row.querySelector(".hqCell");
+          const locCell = row.querySelector(".locationCell");
+
+          if (hqCell) {
+            hqCell.addEventListener("click", () => {
+              if (row.classList.contains("editing")) {
+                currentAddressCell = hqCell;
+                openModal();
+              }
+            });
+          }
+
+          if (locCell) {
+            locCell.addEventListener("click", () => {
+              if (row.classList.contains("editing")) {
+                currentAddressCell = locCell;
+                openModal();
+              }
+            });
+          }
+
+        } else {
+          // Save updates
+          const updatedData = {
+            organization: cells[1].textContent.trim() || "N/A",
+            hq: cells[2].textContent.trim() || "N/A",
+            areaOfOperation: cells[3].textContent.trim() || "N/A",
+            contactPerson: cells[4].textContent.trim() || "N/A",
+            email: cells[5].textContent.trim() || "N/A",
+            mobileNumber: cells[6].textContent.trim() || "N/A",
+            socialMedia: cells[7].textContent.trim() || "N/A"
+          };
+
+          database.ref(`volunteerGroups/${rowId}`).update(updatedData)
+            .then(() => {
+              // Disable editing
+              cells.forEach((cell, i) => {
+                if (i > 0 && i < cells.length - 1) {
+                  cell.setAttribute("contenteditable", "false");
+                }
+              });
+              row.classList.remove("editing");
+              editBtn.textContent = "Edit";
+              editingRowId = null;
+              Swal.fire({
+                icon: 'success',
+                title: 'Updated',
+                text: 'Volunteer group updated successfully!'
+              });
+              fetchAndRenderTable();
+            })
+            .catch(error => {
+              console.error("Update error:", error);
+              Swal.fire({
+                icon: 'error',
+                title: 'Update Error',
+                text: error.message
+              });
+            });
+        }
+      });
+    }
   });
 }
 
-function closeAModal() {
-  if (addOrgModal) addOrgModal.style.display = 'none';
-  clearAInputs();
-}
 
-function closeAOOModal() {
-  const areaOperationModal = document.getElementById('areaOperationModal');
-  if (areaOperationModal) areaOperationModal.style.display = 'none';
-  clearAOOInputs();
-}
+addNew.addEventListener('click', () => {
+  addOrgModal.style.display = 'flex';
+});
 
-function clearAOOInputs() {
-  const form = document.getElementById('areaOperationForm');
-  if (form) form.reset();
-}
+function filterAndPopulateList(inputId, listId, dataArray) {
+  const input = document.getElementById(inputId);
+  const list = document.getElementById(listId);
 
-function clearAInputs() {
-  const form = document.getElementById('addOrgForm');
-  const container = document.getElementById('areaOperationContainer');
-  if (form) form.reset();
-  if (container) container.innerHTML = '';
-}
-
-const addOperationArea = document.getElementById('addOperationArea');
-if (addOperationArea) {
-  addOperationArea.addEventListener('click', () => {
-    populateProvinceList();
-    populateCityList();
-    populateBarangayList();
-    const modal = document.getElementById('areaOperationModal');
-    if (modal) modal.style.display = 'flex';
+  input.addEventListener('input', function () {
+    const val = this.value.toLowerCase();
+    const filtered = dataArray.filter(item => item.toLowerCase().includes(val));
+    list.innerHTML = '';
+    filtered.forEach(item => {
+      const opt = document.createElement('option');
+      opt.value = item;
+      list.appendChild(opt);
+    });
   });
 }
+
+const allCities = Object.values(cities).flat();
+const allBarangays = Object.values(barangays).flat();
+
+filterAndPopulateList('provinceInput', 'provinceList', provinces);
+filterAndPopulateList('cityInput', 'cityList', allCities);
+filterAndPopulateList('barangayInput', 'barangayList', allBarangays);
 
 function populateProvinceList() {
   const list = document.getElementById('provinceList');
@@ -799,16 +878,85 @@ if (confirmSaveBtn) {
   });
 }
 
-const closeSuccessBtn = document.getElementById('closeSuccessBtn');
-if (closeSuccessBtn) {
-  closeSuccessBtn.addEventListener('click', () => {
-    clearAInputs();
-    const successModal = document.getElementById('successModal');
-    if (successModal) successModal.style.display = 'none';
-  });
+document.getElementById('closeSuccessBtn').addEventListener('click', () => {
+  clearAInputs();
+  document.getElementById('successModal').style.display = 'none';
+});
+
+function closeAModal() {
+  document.getElementById('addOrgModal').style.display = 'none';
+  document.getElementById('areaOperationModal').style.display = 'none';
+  clearAInputs();
 }
 
-// Initialize
+function closeAOOModal() {
+  document.getElementById('areaOperationModal').style.display = 'none';
+  clearAOOInputs();
+}
+
+function clearAOOInputs() {
+  const form = document.getElementById('areaOperationForm');
+  form.reset();
+}
+
+function clearAInputs() {
+  const form = document.getElementById('addOrgForm');
+  form.reset();
+  document.getElementById('areaOperationContainer').innerHTML = '';
+}
+
+function renderPagination(totalRows) {
+  paginationContainer.innerHTML = "";
+  const totalPages = Math.ceil(totalRows / rowsPerPage);
+
+  const createButton = (label, page = null, disabled = false, active = false) => {
+    const btn = document.createElement("button");
+    btn.textContent = label;
+    if (disabled) btn.disabled = true;
+    if (active) btn.classList.add("active-page");
+    if (page !== null) {
+      btn.addEventListener("click", () => {
+        currentPage = page;
+        renderTable();
+      });
+    }
+    return btn;
+  };
+
+  paginationContainer.appendChild(createButton("Prev", currentPage - 1, currentPage === 1));
+
+  for (let i = 1; i <= totalPages; i++) {
+    paginationContainer.appendChild(createButton(i, i, false, i === currentPage));
+  }
+
+  paginationContainer.appendChild(createButton("Next", currentPage + 1, currentPage === totalPages));
+}
+
+function filterAndSort() {
+  let filtered = data.filter(row => {
+    const query = searchInput.value.trim().toLowerCase();
+    return Object.values(row).some(val => {
+      if (typeof val === 'string' || typeof val === 'number') {
+        return val.toString().toLowerCase().includes(query);
+      }
+      return false;
+    });
+  });
+
+  if (sortSelect.value) {
+    filtered.sort((a, b) =>
+      a[sortSelect.value].toString().localeCompare(b[sortSelect.value].toString())
+    );
+  }
+
+  return filtered;
+}
+
+sortSelect.addEventListener("change", () => {
+  currentPage = 1;
+  renderTable(filterAndSort());
+});
+
 document.addEventListener("DOMContentLoaded", () => {
   console.log("DOM loaded, fetching data...");
   fetchAndRenderTable();
