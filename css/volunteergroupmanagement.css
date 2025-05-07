@@ -339,6 +339,7 @@ td[contenteditable="true"] {
   z-index: 1007;
   padding: 1rem;
   margin: auto 25% ;
+  animation: fadeIn 0.3s;
 }
 
 .add-org-modal-content {
@@ -528,7 +529,6 @@ select::placeholder {
   border: none;
   padding: 10px 16px;
   border-radius: 20px;
-  /* font-size: 15px; */
   cursor: pointer;
 }
 
