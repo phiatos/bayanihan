@@ -103,6 +103,7 @@ Admin Side:
 📝 Notes
 - Validations and overall UI improvements are still in progress.
 - Role-based access control is currently being implemented.
+- Responsivess still in progress.
 - Data binding between components and tables is still ongoing.
 - CSS and JS cleanup in progress — sorry po
 - Notifications and SMS/Email integrations are not yet active in this version.
