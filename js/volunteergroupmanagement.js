@@ -1,4 +1,9 @@
-// Firebase configuration
+// Firebase imports
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+import { createUserWithEmailAndPassword, fetchSignInMethodsForEmail, getAuth } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { get, getDatabase, push, ref, remove, set } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
+
+// Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
   authDomain: "bayanihan-5ce7e.firebaseapp.com",
@@ -7,24 +12,24 @@ const firebaseConfig = {
   storageBucket: "bayanihan-5ce7e.appspot.com",
   messagingSenderId: "593123849917",
   appId: "1:593123849917:web:eb85a63a536eeff78ce9d4",
-  measurementId: "G-ZTQ9VXXVV0"
+  measurementId: "G-ZTQ9VXXVV0",
 };
 
-// Initialize Firebase
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const database = firebase.database();
+// Initialize Firebase apps
+const primaryApp = initializeApp(firebaseConfig, "PrimaryApp");
+const secondaryApp = initializeApp(firebaseConfig, "SecondaryApp");
+const primaryAuth = getAuth(primaryApp);
+const secondaryAuth = getAuth(secondaryApp);
+const database = getDatabase(primaryApp);
 
-// Initialize EmailJS with the correct Public Key
+// Initialize EmailJS
 emailjs.init('X4kCYg2glUhqW6738');
 
-// Data array to store fetched data
+// Data and constants
 let data = [];
-
 const calamityOptions = [
   "Typhoon", "Earthquake", "Flood", "Volcanic Eruption", "Landslide", "Tsunami"
 ];
-
 const provinces = [
   "Abra", "Agusan del Norte", "Agusan del Sur", "Aklan", "Albay", "Antique", "Apayao", "Aurora",
   "Basilan", "Bataan", "Batanes", "Batangas", "Benguet", "Biliran", "Bohol", "Bukidnon", "Bulacan",
@@ -39,7 +44,6 @@ const provinces = [
   "Sulu", "Surigao del Norte", "Surigao del Sur", "Tarlac", "Tawi-Tawi", "Zambales", "Zamboanga del Norte",
   "Zamboanga del Sur", "Zamboanga Sibugay"
 ];
-
 const cities = {
   "Metro Manila": ["Quezon City", "Makati", "Manila", "Taguig", "Pasig", "Caloocan", "Parañaque",
                    "Muntinlupa", "Marikina", "Pasay", "Malabon", "Navotas", "Valenzuela", "Las Piñas",
@@ -50,7 +54,6 @@ const cities = {
   "Zamboanga": ["Zamboanga City", "Dipolog", "Dapitan", "Pagadian", "Molave", "Lakewood", "Sominot"],
   "Batangas": ["Batangas City", "Tanauan", "Lipa", "Nasugbu", "Lian", "San Juan", "Balayan", "Taal"]
 };
-
 const barangays = {
   "Quezon City": ["Barangay Holy Spirit", "Barangay Commonwealth", "Barangay Diliman", "Barangay San Isidro",
                   "Barangay Loyola Heights", "Barangay Payatas", "Barangay Bagumbayan", "Barangay San Martin de Porres"],
@@ -85,22 +88,8 @@ let isProcessing = false;
 
 const addNewBtn = document.getElementById('addNew');
 
-  document.addEventListener('mousemove', (e) => {
-    const windowWidth = window.innerWidth;
-    const windowHeight = window.innerHeight;
-    
-    const distanceX = windowWidth - e.clientX;
-    const distanceY = windowHeight - e.clientY;
-    
-    if (distanceX < 200 && distanceY < 200) {
-      addNewBtn.classList.add('visible');
-    } else {
-      addNewBtn.classList.remove('visible');
-    }
-  });
-
-
-  function formatMobileNumber(mobile) {
+// Helper functions
+function formatMobileNumber(mobile) {
   const cleaned = mobile.replace(/\D/g, "");
   if (/^\d{10,15}$/.test(cleaned)) {
     return cleaned;
@@ -108,7 +97,6 @@ const addNewBtn = document.getElementById('addNew');
   return null;
 }
 
-// Function to generate a random temporary password
 function generateTempPassword(length = 10) {
   const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+";
   let password = "";
@@ -119,72 +107,136 @@ function generateTempPassword(length = 10) {
   return password;
 }
 
-// Fetch data from Firebase and include logged-in ABVN data
-function fetchAndRenderTable() {
-  console.log("Fetching data from Firebase...");
-  
-  // First, check for logged-in ABVN data in localStorage
-  const loggedInVolunteerGroup = localStorage.getItem('loggedInVolunteerGroup');
+// Authentication and role check
+document.addEventListener("DOMContentLoaded", () => {
+  const userMobile = localStorage.getItem("userMobile");
+  if (!userMobile) {
+    Swal.fire({
+      icon: 'error',
+      title: 'Access Denied',
+      text: 'You must be logged in to access this page.',
+      timer: 1500,
+      showConfirmButton: false
+    });
+    setTimeout(() => {
+      window.location.replace("../pages/login.html");
+    }, 1600);
+    return;
+  }
+
+  get(query(ref(database, 'users'), orderByChild('mobile'), equalTo(userMobile)))
+    .then(snapshot => {
+      if (!snapshot.exists()) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Access Denied',
+          text: 'User not found.',
+          timer: 1500,
+          showConfirmButton: false
+        });
+        setTimeout(() => {
+          window.location.replace("../pages/login.html");
+        }, 1600);
+        return;
+      }
+
+      let userData = null;
+      snapshot.forEach(childSnapshot => {
+        userData = childSnapshot.val();
+      });
+
+      if (userData.role !== 'AB ADMIN') {
+        Swal.fire({
+          icon: 'error',
+          title: 'Access Denied',
+          text: 'This page is restricted to AB ADMIN users only.',
+          timer: 1500,
+          showConfirmButton: false
+        });
+        setTimeout(() => {
+          window.location.replace("../pages/volunteer-dashboard.html");
+        }, 1600);
+        return;
+      }
+
+      // Clean up any 'undefined' keys
+      remove(ref(database, 'volunteerGroups/undefined'))
+        .then(() => {
+          console.log("Cleaned up 'undefined' key in volunteerGroups.");
+          listenForDataUpdates();
+          attachRowHandlers();
+        })
+        .catch(error => {
+          console.error("Error cleaning up 'undefined' key:", error);
+          listenForDataUpdates();
+          attachRowHandlers();
+        });
+    })
+    .catch(error => {
+      console.error("Error checking user role:", error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Failed to verify user access.',
+        timer: 1500,
+        showConfirmButton: false
+      });
+      setTimeout(() => {
+        window.location.replace("../pages/login.html");
+      }, 1600);
+    });
+});
+
+// Floating button visibility
+document.addEventListener('mousemove', (e) => {
+  const windowWidth = window.innerWidth;
+  const windowHeight = window.innerHeight;
+  const distanceX = windowWidth - e.clientX;
+  const distanceY = windowHeight - e.clientY;
+  if (distanceX < 200 && distanceY < 200) {
+    addNewBtn.classList.add('visible');
+  } else {
+    addNewBtn.classList.remove('visible');
+  }
+});
+
+// Get next ID for volunteer group
+async function getNextId() {
+  const snapshot = await get(ref(database, "volunteerGroups"));
+  const fetchedData = snapshot.val();
+  const ids = fetchedData
+    ? Object.values(fetchedData)
+        .map(entry => parseInt(entry.id || '0'))
+        .filter(id => !isNaN(id))
+    : [];
+  const maxId = ids.length > 0 ? Math.max(...ids) : 0;
+  return maxId + 1;
+}
+
+// Real-time data listener
+function listenForDataUpdates() {
+  console.log("Setting up real-time listener for volunteerGroups...");
+  const userMobile = localStorage.getItem("userMobile");
   let abvnData = null;
+  const loggedInVolunteerGroup = localStorage.getItem('loggedInVolunteerGroup');
   if (loggedInVolunteerGroup) {
     abvnData = JSON.parse(loggedInVolunteerGroup);
     console.log("Logged-in ABVN data from localStorage:", abvnData);
-  } else {
-    console.log("No logged-in ABVN data found in localStorage. Attempting to fetch from Firebase...");
-    
-    const userMobile = localStorage.getItem("userMobile");
-    if (!userMobile) {
-      console.error("No userMobile found in localStorage.");
-      // Proceed to fetch other volunteer groups without ABVN data
-    } else {
-      // Fetch ABVN data directly from Firebase if not in localStorage
-      database.ref('users').orderByChild('mobile').equalTo(userMobile).once('value')
-        .then(snapshot => {
-          if (snapshot.exists()) {
-            let userData = null;
-            snapshot.forEach(childSnapshot => {
-              userData = childSnapshot.val();
-            });
-            if (userData && userData.volunteerGroupId) {
-              return database.ref(`volunteerGroups/${userData.volunteerGroupId}`).once('value');
-            }
-          }
-          throw new Error("No user or volunteerGroupId found.");
-        })
-        .then(groupSnapshot => {
-          if (groupSnapshot.exists()) {
-            const groupData = groupSnapshot.val();
-            abvnData = {
-              no: userData.volunteerGroupId,
-              organization: groupData.organization,
-              hq: groupData.hq,
-              areaOfOperation: groupData.areaOfOperation,
-              contactPerson: groupData.contactPerson,
-              email: groupData.email,
-              mobileNumber: groupData.mobileNumber || userMobile,
-              socialMedia: groupData.socialMedia || ''
-            };
-            localStorage.setItem('loggedInVolunteerGroup', JSON.stringify(abvnData));
-            console.log("Fetched ABVN data from Firebase:", abvnData);
-          }
-        })
-        .catch(error => {
-          console.error("Error fetching ABVN data from Firebase:", error);
-        });
-    }
   }
 
-  // Fetch all volunteer groups from Firebase
-  database.ref("volunteerGroups").once("value", snapshot => {
+  ref(database, "volunteerGroups").on("value", snapshot => {
     const fetchedData = snapshot.val();
-    console.log("Fetched volunteer groups data:", fetchedData);
+    console.log("Real-time data update received:", fetchedData);
+    console.log("Total entries fetched:", Object.keys(fetchedData || {}).length);
 
     if (!fetchedData) {
       console.log("No data found in volunteerGroups node.");
-      data = [];
-      if (abvnData) {
-        data.push(abvnData); // Include ABVN data even if no other groups exist
-      }
+      Swal.fire({
+        icon: 'info',
+        title: 'No Data',
+        text: 'No volunteer groups found in the database.'
+      });
+      data = abvnData ? [abvnData] : [];
       renderTable();
       return;
     }
@@ -192,45 +244,39 @@ function fetchAndRenderTable() {
     data = [];
     for (let key in fetchedData) {
       const entry = fetchedData[key];
-      const requiredFields = ['organization', 'hq', 'areaOfOperation', 'contactPerson', 'email', 'mobileNumber', 'socialMedia'];
-      const hasAllFields = requiredFields.every(field => entry[field] !== undefined && entry[field] !== null);
+      if (!entry || key === 'undefined') continue;
 
-      if (hasAllFields) {
-        const groupEntry = {
-          no: parseInt(key),
-          organization: entry.organization,
-          hq: entry.hq,
-          areaOfOperation: entry.areaOfOperation,
-          contactPerson: entry.contactPerson,
-          email: entry.email,
-          mobileNumber: entry.mobileNumber,
-          socialMedia: entry.socialMedia
-        };
-        // Add to data array only if it's not the logged-in ABVN's group (to avoid duplicates)
-        if (!abvnData || parseInt(key) !== parseInt(abvnData.no)) {
-          data.push(groupEntry);
-        }
-      } else {
-        console.warn(`Skipping entry with key ${key}: Missing or invalid required fields`, entry);
-      }
+      const groupEntry = {
+        no: parseInt(entry.id) || 0,
+        organization: entry.organization || 'Not specified',
+        hq: entry.hq || 'Not specified',
+        areaOfOperation: entry.areaOfOperation || 'Not specified',
+        contactPerson: entry.contactPerson || 'Not specified',
+        email: entry.email || 'Not specified',
+        mobileNumber: entry.mobileNumber || 'Not specified',
+        socialMedia: entry.socialMedia || 'Not specified',
+        status: entry.activation || 'inactive',
+        firebaseKey: key
+      };
+      data.push(groupEntry);
     }
 
-    // Add the logged-in ABVN's data to the top of the list
-    if (abvnData) {
-      data.unshift(abvnData); // Add ABVN data at the beginning
+    if (abvnData && !data.some(d => d.firebaseKey === abvnData.firebaseKey)) {
+      abvnData.no = parseInt(abvnData.id) || 0;
+      data.unshift(abvnData);
     }
 
     console.log("Processed data with ABVN included:", data);
-    data.sort((a, b) => a.no - b.no); // Sort by 'no' field
+    console.log("Total entries after processing:", data.length);
+    data.sort((a, b) => a.no - b.no);
     renderTable();
-  }).catch(error => {
-    console.error("Error fetching data from Firebase:", error);
+  }, error => {
+    console.error("Error listening for data updates from Firebase:", error);
     Swal.fire({
       icon: 'error',
       title: 'Error',
-      text: `Failed to fetch data from the database: ${error.message}`
+      text: `Failed to listen for data updates: ${error.message}`
     });
-    // If Firebase fetch fails, still display ABVN data if available
     if (abvnData) {
       data = [abvnData];
       renderTable();
@@ -238,6 +284,7 @@ function fetchAndRenderTable() {
   });
 }
 
+// Render table with pagination
 function renderTable(filteredData = data) {
   console.log("Rendering table with data:", filteredData);
   tableBody.innerHTML = "";
@@ -250,39 +297,83 @@ function renderTable(filteredData = data) {
     console.log("Rendering row:", row);
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td contenteditable="false">${row.no}</td>
-      <td contenteditable="false">${row.organization || 'N/A'}</td>
-      <td contenteditable="false" class="hqCell">${row.hq || 'N/A'}</td>
-      <td contenteditable="false" class="locationCell">${row.areaOfOperation || 'N/A'}</td>
-      <td contenteditable="false">${row.contactPerson || 'N/A'}</td>
-      <td contenteditable="false">${row.email || 'N/A'}</td>
-      <td contenteditable="false">${row.mobileNumber || 'N/A'}</td>
-      <td contenteditable="false">${row.socialMedia || 'N/A'}</td>
-      <td><button class="editButton" data-id="${row.no}">Edit</button></td>
+      <td>${row.no}</td>
+      <td contenteditable="false">${row.organization}</td>
+      <td contenteditable="false" class="hqCell">${row.hq}</td>
+      <td contenteditable="false" class="locationCell">${row.areaOfOperation}</td>
+      <td contenteditable="false">${row.contactPerson}</td>
+      <td contenteditable="false">${row.email}</td>
+      <td contenteditable="false">${row.mobileNumber}</td>
+      <td contenteditable="false">${row.socialMedia}</td>
+      <td>
+        <button class="activation-btn ${row.status === "active" ? "green-btn" : "red-btn"}" data-id="${row.firebaseKey}">
+          ${row.status === "active" ? "Deactivate" : "Activate"}
+        </button>
+      </td>
+      <td>
+        <span class="status-circle ${row.status === "active" ? "green" : "red"}"></span>
+      </td>
+      <td><button class="editButton" data-id="${row.firebaseKey}">Edit</button></td>
     `;
     tableBody.appendChild(tr);
   });
 
   entriesInfo.textContent = `Showing ${start + 1} to ${Math.min(end, filteredData.length)} of ${filteredData.length} entries`;
-
   renderPagination(filteredData.length);
   attachRowHandlers();
 
   document.querySelectorAll('.editButton').forEach((button, index) => {
     button.addEventListener('click', () => toggleEditableCells(index));
   });
+
+  document.querySelectorAll('.activation-btn').forEach(button => {
+    button.addEventListener('click', () => {
+      const rowId = button.getAttribute('data-id');
+      const record = data.find(row => row.firebaseKey === rowId);
+
+      if (!record) {
+        console.error(`Record with Firebase Key ${rowId} not found in local data`);
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'Volunteer group not found. Please refresh the page and try again.'
+        });
+        return;
+      }
+
+      const newStatus = record.status === "active" ? "inactive" : "active";
+      record.status = newStatus;
+
+      console.log(`Updating activation for volunteerGroups/${rowId} to: ${newStatus}`);
+      set(ref(database, `volunteerGroups/${rowId}/activation`), newStatus)
+        .then(() => {
+          console.log(`Successfully updated activation for volunteerGroups/${rowId}`);
+          Swal.fire({
+            icon: 'success',
+            title: 'Success',
+            text: `Volunteer group ${newStatus === "active" ? "activated" : "deactivated"} successfully!`
+          });
+        })
+        .catch(error => {
+          console.error("Error updating activation in Firebase:", error);
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: `Failed to update activation: ${error.message}`
+          });
+        });
+    });
+  });
 }
 
-// Enhanced Search Functionality
+// Search and clear inputs
 function handleSearch() {
   const query = searchInput.value.trim().toLowerCase();
   clearBtn.style.display = query ? 'flex' : 'none';
-
-  currentPage = 1; // Reset to first page on search
+  currentPage = 1;
   renderTable(filterAndSort());
 }
 
-// Clear search input and reset table
 function clearDInputs() {
   searchInput.value = '';
   clearBtn.style.display = 'none';
@@ -291,13 +382,10 @@ function clearDInputs() {
   searchInput.focus();
 }
 
-// Initialize clear button visibility
 clearBtn.style.display = 'none';
-
-// Attach search input event listener
 searchInput.addEventListener('input', handleSearch);
 
-// Editable Button for Row
+// Toggle editable cells for editing
 function toggleEditableCells(rowIndex) {
   const row = document.querySelectorAll('#orgTable tbody tr')[rowIndex];
   const cells = row.querySelectorAll('td');
@@ -306,7 +394,7 @@ function toggleEditableCells(rowIndex) {
   const rowId = editButton.getAttribute('data-id');
 
   if (!isEditable) {
-    for (let i = 0; i < cells.length - 1; i++) {
+    for (let i = 0; i < cells.length - 3; i++) {
       cells[i].setAttribute('contenteditable', 'true');
     }
     row.classList.add('editing');
@@ -314,24 +402,24 @@ function toggleEditableCells(rowIndex) {
     editingRowId = rowId;
   } else {
     const updatedData = {
-      organization: cells[1].textContent.trim(),
-      hq: cells[2].textContent.trim(),
-      areaOfOperation: cells[3].textContent.trim(),
-      contactPerson: cells[4].textContent.trim(),
-      email: cells[5].textContent.trim(),
-      mobileNumber: cells[6].textContent.trim(),
-      socialMedia: cells[7].textContent.trim()
+      id: cells[0].textContent.trim() || data.find(d => d.firebaseKey === rowId).no,
+      organization: cells[1].textContent.trim() || 'Not specified',
+      hq: cells[2].textContent.trim() || 'Not specified',
+      areaOfOperation: cells[3].textContent.trim() || 'Not specified',
+      contactPerson: cells[4].textContent.trim() || 'Not specified',
+      email: cells[5].textContent.trim() || 'Not specified',
+      mobileNumber: cells[6].textContent.trim() || 'Not specified',
+      socialMedia: cells[7].textContent.trim() || 'Not specified'
     };
 
-    database.ref(`volunteerGroups/${rowId}`).update(updatedData)
+    set(ref(database, `volunteerGroups/${rowId}`), updatedData)
       .then(() => {
-        for (let i = 0; i < cells.length - 1; i++) {
+        for (let i = 0; i < cells.length - 3; i++) {
           cells[i].setAttribute('contenteditable', 'false');
         }
         row.classList.remove('editing');
         editButton.textContent = 'Edit';
         editingRowId = null;
-        fetchAndRenderTable();
         Swal.fire({
           icon: 'success',
           title: 'Success',
@@ -349,17 +437,19 @@ function toggleEditableCells(rowIndex) {
   }
 }
 
+// Populate location dropdowns
 function populateProvinces() {
   const provinceList = document.getElementById('hqProvinceOptions');
   const locProvinceList = document.getElementById('locProvinceOptions');
   provinceList.innerHTML = '';
   locProvinceList.innerHTML = '';
-
   provinces.forEach(p => {
     const option1 = document.createElement('option');
     const option2 = document.createElement('option');
     option1.value = p;
+    option1.textContent = p;
     option2.value = p;
+    option2.textContent = p;
     provinceList.appendChild(option1);
     locProvinceList.appendChild(option2);
   });
@@ -372,6 +462,7 @@ function populateCities(province, isLocation = false) {
     cities[province].forEach(c => {
       const option = document.createElement('option');
       option.value = c;
+      option.textContent = c;
       cityList.appendChild(option);
     });
   }
@@ -384,38 +475,35 @@ function populateBarangays(city, isLocation = false) {
     barangays[city].forEach(b => {
       const option = document.createElement('option');
       option.value = b;
+      option.textContent = b;
       brgyList.appendChild(option);
     });
   }
 }
 
+// Address modal handling
 function openModal() {
   if (!currentAddressCell) return;
-
   const row = currentAddressCell.closest('tr');
   const hqCell = row.querySelector('.hqCell');
   const locCell = row.querySelector('.locationCell');
-
   if (hqCell) {
     const hqParts = hqCell.textContent.split(',').map(p => p.trim());
     document.getElementById('hqProvinceInput').value = hqParts[2] || '';
     document.getElementById('hqCityInput').value = hqParts[1] || '';
     document.getElementById('hqBarangayInput').value = hqParts[0] || '';
   }
-
   if (locCell) {
     const locParts = locCell.textContent.split(',').map(p => p.trim());
     document.getElementById('locProvinceInput').value = locParts[2] || '';
     document.getElementById('locCityInput').value = locParts[1] || '';
     document.getElementById('locBarangayInput').value = locParts[0] || '';
   }
-
   populateProvinces();
   populateCities(document.getElementById('hqProvinceInput').value, false);
   populateCities(document.getElementById('locProvinceInput').value, true);
   populateBarangays(document.getElementById('hqCityInput').value, false);
   populateBarangays(document.getElementById('locCityInput').value, true);
-
   document.getElementById('addressModal').style.display = 'flex';
 }
 
@@ -432,24 +520,15 @@ function applyChanges() {
   const locProvince = document.getElementById('locProvinceInput').value.trim();
   const locCity = document.getElementById('locCityInput').value.trim();
   const locBarangay = document.getElementById('locBarangayInput').value.trim();
-
   const hqFullAddress = `${hqBarangay}, ${hqCity}, ${hqProvince}`;
   const locFullAddress = `${locBarangay}, ${locCity}, ${locProvince}`;
-
   if (currentAddressCell) {
     const row = currentAddressCell.closest('tr');
     const hqCell = row.querySelector('.hqCell');
     const locCell = row.querySelector('.locationCell');
-
-    if (hqCell) {
-      hqCell.textContent = hqFullAddress;
-    }
-
-    if (locCell) {
-      locCell.textContent = locFullAddress;
-    }
+    if (hqCell) hqCell.textContent = hqFullAddress;
+    if (locCell) locCell.textContent = locFullAddress;
   }
-
   closeModal();
 }
 
@@ -465,31 +544,26 @@ function clearInputs() {
 document.getElementById('hqProvinceInput').addEventListener('input', e => {
   populateCities(e.target.value, false);
 });
-
 document.getElementById('locProvinceInput').addEventListener('input', e => {
   populateCities(e.target.value, true);
 });
-
 document.getElementById('hqCityInput').addEventListener('input', e => {
   populateBarangays(e.target.value, false);
 });
-
 document.getElementById('locCityInput').addEventListener('input', e => {
   populateBarangays(e.target.value, true);
 });
 
+// Attach row handlers for editing
 function attachRowHandlers() {
   const rows = document.querySelectorAll("#orgTable tbody tr");
-
   rows.forEach(row => {
     const editBtn = row.querySelector(".editButton");
-
     if (editBtn) {
       editBtn.addEventListener("click", () => {
         row.classList.add("editing");
         const hqCell = row.querySelector(".hqCell");
         const locCell = row.querySelector(".locationCell");
-
         if (hqCell) {
           hqCell.addEventListener("click", () => {
             if (row.classList.contains("editing")) {
@@ -498,7 +572,6 @@ function attachRowHandlers() {
             }
           });
         }
-
         if (locCell) {
           locCell.addEventListener("click", () => {
             if (row.classList.contains("editing")) {
@@ -512,14 +585,15 @@ function attachRowHandlers() {
   });
 }
 
+// Add new volunteer group modal
 addNew.addEventListener('click', () => {
   addOrgModal.style.display = 'flex';
 });
 
+// Populate location lists for area of operation
 function filterAndPopulateList(inputId, listId, dataArray) {
   const input = document.getElementById(inputId);
   const list = document.getElementById(listId);
-
   input.addEventListener('input', function () {
     const val = this.value.toLowerCase();
     const filtered = dataArray.filter(item => item.toLowerCase().includes(val));
@@ -578,13 +652,10 @@ document.getElementById('addOperationArea').addEventListener('click', function (
 
 document.getElementById('areaOperationForm').addEventListener('submit', function (e) {
   e.preventDefault();
-
   const province = document.getElementById('provinceInput').value.trim();
   const city = document.getElementById('cityInput').value.trim();
   const barangay = document.getElementById('barangayInput').value.trim();
-
   if (!province || !city || !barangay) return;
-
   const newInput = document.createElement('input');
   newInput.type = 'text';
   newInput.name = 'Area Operation';
@@ -599,21 +670,17 @@ document.getElementById('areaOperationForm').addEventListener('submit', function
   newInput.style.display = 'flex';
   newInput.style.marginLeft = 'auto';
   newInput.style.marginRight = 'auto';
-
   document.getElementById('areaOperationContainer').appendChild(newInput);
-
   document.getElementById('areaOperationForm').reset();
   document.getElementById('areaOperationModal').style.display = 'none';
 });
 
-document.getElementById('addOrgForm').addEventListener('submit', function (event) {
+// Handle form submission for new volunteer group
+document.getElementById('addOrgForm').addEventListener('submit', async function (event) {
   event.preventDefault();
-
   const form = this;
   const email = form.email.value.trim();
   const mobileNumber = form.mobileNumber.value.trim();
-
-  // Custom validation for email and mobile number
   const isValidEmail = email => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   const formattedMobile = formatMobileNumber(mobileNumber);
 
@@ -640,21 +707,25 @@ document.getElementById('addOrgForm').addEventListener('submit', function (event
     return;
   }
 
+  const nextId = await getNextId();
+
   orgData = {
-    organization: form.organization.value,
+    id: nextId.toString(),
+    organization: form.organization.value || 'Not specified',
     hq: `${form['hq-barangay'].value}, ${form['hq-city'].value}, ${form['hq-province'].value}`,
-    hqBarangay: form['hq-barangay'].value,
-    hqCity: form['hq-city'].value,
-    hqProvince: form['hq-province'].value,
+    hqBarangay: form['hq-barangay'].value || 'Not specified',
+    hqCity: form['hq-city'].value || 'Not specified',
+    hqProvince: form['hq-province'].value || 'Not specified',
     areaOps: Array.from(document.querySelectorAll('#areaOperationContainer input')).map(input => input.value),
-    contactPerson: form.contactPerson.value,
+    contactPerson: form.contactPerson.value || 'Not specified',
     email: email,
     mobileNumber: formattedMobile,
-    socialMedia: form.socialMedia.value
+    socialMedia: form.socialMedia.value || 'Not specified'
   };
 
   const confirmDetails = document.getElementById('confirmDetails');
   confirmDetails.innerHTML = `
+    <p><strong style="color: #4059A5;">ID</strong> ${orgData.id}</p>
     <p><strong style="color: #4059A5;">Organization</strong> ${orgData.organization}</p>
     <p><strong style="color: #4059A5;">HQ Location (Barangay)</strong> ${orgData.hqBarangay}</p>
     <p><strong style="color: #4059A5;">HQ Location (City/ Municipality)</strong> ${orgData.hqCity}</p>
@@ -673,6 +744,7 @@ document.getElementById('addOrgForm').addEventListener('submit', function (event
   document.getElementById('confirmModal').style.display = 'block';
 });
 
+// Edit and save buttons
 document.getElementById('editDetailsBtn').addEventListener('click', function () {
   document.getElementById('confirmModal').style.display = 'none';
   document.getElementById('addOrgModal').style.display = 'block';
@@ -683,10 +755,7 @@ document.getElementById('confirmSaveBtn').addEventListener('click', async functi
   isProcessing = true;
   this.disabled = true;
 
-  console.log('orgData:', orgData);
-
   if (!orgData) {
-    console.log('orgData is null or undefined');
     Swal.fire({
       icon: 'error',
       title: 'Error',
@@ -697,26 +766,24 @@ document.getElementById('confirmSaveBtn').addEventListener('click', async functi
     return;
   }
 
-  console.log('orgData.email:', orgData.email);
-  console.log('orgData.mobileNumber:', orgData.mobileNumber);
-
   const newVolunteerGroup = {
+    id: orgData.id,
     organization: orgData.organization,
     hq: orgData.hq,
     areaOfOperation: orgData.areaOps.join(', '),
     contactPerson: orgData.contactPerson,
     email: orgData.email,
     mobileNumber: orgData.mobileNumber,
-    socialMedia: orgData.socialMedia
+    socialMedia: orgData.socialMedia,
+    activation: 'inactive',
+    calamityType: 'Typhoon'
   };
 
   const tempPassword = generateTempPassword();
-
   const isValidEmail = email => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   const formattedMobile = formatMobileNumber(orgData.mobileNumber);
 
   if (!orgData.email || !isValidEmail(orgData.email)) {
-    console.log('Invalid or missing email in orgData:', orgData.email);
     Swal.fire({
       icon: 'error',
       title: 'Invalid Email',
@@ -728,7 +795,6 @@ document.getElementById('confirmSaveBtn').addEventListener('click', async functi
   }
 
   if (!formattedMobile) {
-    console.log('Invalid or missing mobile number in orgData:', orgData.mobileNumber);
     Swal.fire({
       icon: 'error',
       title: 'Invalid Mobile Number',
@@ -740,97 +806,111 @@ document.getElementById('confirmSaveBtn').addEventListener('click', async functi
   }
 
   let createdUser = null;
+  let groupKey = null;
 
   try {
-    const syntheticEmail = `${orgData.mobileNumber}@bayanihan.com`;
+    const syntheticEmail = `${formattedMobile}@bayanihan.com`;
     console.log('Synthetic email for Firebase Auth:', syntheticEmail);
 
-    const signInMethods = await auth.fetchSignInMethodsForEmail(syntheticEmail);
+    // Check for existing user
+    const signInMethods = await fetchSignInMethodsForEmail(secondaryAuth, syntheticEmail);
     if (signInMethods.length > 0) {
       throw new Error('The mobile number is already in use by another account.');
     }
 
-    const userCredential = await auth.createUserWithEmailAndPassword(syntheticEmail, tempPassword);
+    // Create Authentication user
+    const userCredential = await createUserWithEmailAndPassword(secondaryAuth, syntheticEmail, tempPassword);
     createdUser = userCredential.user;
+    console.log('Firebase Auth user created with UID:', createdUser.uid);
 
     const userData = {
       email: orgData.email,
       role: 'ABVN',
       createdAt: new Date().toISOString(),
-      mobile: orgData.mobileNumber,
-      organization: orgData.organization
+      mobile: formattedMobile,
+      organization: orgData.organization,
+      volunteerGroupId: null
     };
 
-    await database.ref(`users/${createdUser.uid}`).set(userData);
+    // Generate group key
+    groupKey = push(ref(database, 'volunteerGroups')).key;
+    userData.volunteerGroupId = groupKey;
 
+    // Write to database
+    await Promise.all([
+      set(ref(database, `users/${createdUser.uid}`), userData),
+      set(ref(database, `volunteerGroups/${groupKey}`), newVolunteerGroup)
+    ]);
+
+    // Verify database writes
+    const [userSnapshot, groupSnapshot] = await Promise.all([
+      get(ref(database, `users/${createdUser.uid}`)),
+      get(ref(database, `volunteerGroups/${groupKey}`))
+    ]);
+
+    if (!userSnapshot.exists()) {
+      throw new Error('Failed to write user data to database.');
+    }
+    if (!groupSnapshot.exists()) {
+      throw new Error('Failed to write volunteer group data to database.');
+    }
+
+    // Send email
     const emailParams = {
       email: orgData.email,
       organization: orgData.organization,
       tempPassword: tempPassword,
-      mobileNumber: orgData.mobileNumber
+      mobileNumber: formattedMobile
     };
     console.log('Sending email with params:', emailParams);
-    const emailResponse = await emailjs.send('service_gebyrih', 'template_fa31b56', emailParams);
-    console.log('EmailJS response:', emailResponse);
 
-    const snapshot = await database.ref('volunteerGroups').once('value');
-    const groups = snapshot.val();
-    const keys = groups ? Object.keys(groups).map(Number) : [];
-    const nextKey = keys.length > 0 ? Math.max(...keys) + 1 : 1;
+    try {
+      const emailResponse = await emailjs.send('service_gebyrih', 'template_fa31b56', emailParams);
+      console.log('EmailJS response:', emailResponse);
+    } catch (emailError) {
+      console.error('EmailJS failed:', emailError);
+      let emailErrorMessage = 'Failed to send email. ';
+      if (emailError.status === 429) {
+        emailErrorMessage += 'EmailJS free tier limit reached. Please upgrade your plan or wait for the limit to reset.';
+      } else {
+        emailErrorMessage += emailError.text || emailError.message;
+      }
+      throw new Error(emailErrorMessage);
+    }
 
-    await database.ref(`volunteerGroups/${nextKey}`).set(newVolunteerGroup);
-
-    const successEmail = orgData.email;
     Swal.fire({
       icon: 'success',
       title: 'Success',
-      text: `Volunteer group added successfully!`
+      text: `Volunteer group added successfully with ID ${orgData.id}!`
     });
     orgData = null;
     document.getElementById('confirmModal').style.display = 'none';
     document.getElementById('successModal').style.display = 'block';
-    fetchAndRenderTable();
   } catch (error) {
     console.error('Error adding volunteer group:', error);
-    console.log('Full error object:', JSON.stringify(error, null, 2));
-
+    // Cleanup on failure
     if (createdUser) {
       try {
         await createdUser.delete();
-        console.log('Cleaned up: Firebase user deleted due to registration failure.');
+        if (groupKey) {
+          await remove(ref(database, `volunteerGroups/${groupKey}`));
+        }
+        await remove(ref(database, `users/${createdUser.uid}`));
+        console.log('Cleaned up: Firebase user and database entries deleted.');
       } catch (deleteError) {
-        console.error('Failed to delete Firebase user during cleanup:', deleteError);
+        console.error('Failed to cleanup:', deleteError);
       }
     }
-
-    let errorMessageText = 'An unexpected error occurred.';
-    if (error.message) {
-      errorMessageText = error.message;
-    } else if (error.text) {
-      errorMessageText = error.text;
-    } else if (error.status && error.statusText) {
-      errorMessageText = `HTTP ${error.status}: ${error.statusText}`;
-    } else if (typeof error === 'object') {
-      errorMessageText = JSON.stringify(error);
-    } else {
-      errorMessageText = String(error);
-    }
-
     let errorMessage = 'Failed to add volunteer group. ';
-    if (errorMessageText.includes('email-already-in-use') || errorMessageText.includes('mobile number is already in use')) {
-      errorMessage += 'The mobile number is already in use by another account.';
-    } else if (errorMessageText.includes('auth/invalid-email')) {
+    if (error.message.includes('mobile number is already in use')) {
+      errorMessage += 'The mobile number is already registered. Please use a different mobile number or contact support.';
+    } else if (error.message.includes('auth/invalid-email')) {
       errorMessage += 'The email address is not valid.';
-    } else if (errorMessageText.includes('404')) {
-      errorMessage += 'Failed to send email with temporary password. The EmailJS Template ID or Service ID may be incorrect. Please verify your EmailJS configuration.';
-    } else if (errorMessageText.includes('Account not found')) {
-      errorMessage += 'Account not found. Please verify your EmailJS Public Key and account status.';
-    } else if (errorMessageText.includes('The recipients address is empty')) {
-      errorMessage += 'The recipient email address is missing. Please ensure the email address is provided.';
+    } else if (error.message.includes('database')) {
+      errorMessage += 'Failed to save data. Please check database permissions or try again.';
     } else {
-      errorMessage += errorMessageText;
+      errorMessage += error.message;
     }
-
     Swal.fire({
       icon: 'error',
       title: 'Error',
@@ -839,9 +919,12 @@ document.getElementById('confirmSaveBtn').addEventListener('click', async functi
   } finally {
     isProcessing = false;
     this.disabled = false;
+    await secondaryAuth.signOut();
+    console.log('Secondary auth signed out successfully');
   }
 });
 
+// Modal close and clear
 document.getElementById('closeSuccessBtn').addEventListener('click', () => {
   clearAInputs();
   document.getElementById('successModal').style.display = 'none';
@@ -869,11 +952,11 @@ function clearAInputs() {
   document.getElementById('areaOperationContainer').innerHTML = '';
 }
 
+// Pagination
 function renderPagination(totalRows) {
   paginationContainer.innerHTML = "";
   const totalPages = Math.ceil(totalRows / rowsPerPage);
   const maxVisible = 5;
-
   const createButton = (label, page = null, disabled = false, active = false) => {
     const btn = document.createElement("button");
     btn.textContent = label;
@@ -887,28 +970,23 @@ function renderPagination(totalRows) {
     }
     return btn;
   };
-
   if (totalPages === 0) {
     paginationContainer.textContent = "No entries to display";
     return;
   }
-
   paginationContainer.appendChild(createButton("Prev", currentPage - 1, currentPage === 1));
-
   let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
   let endPage = Math.min(totalPages, startPage + maxVisible - 1);
-
   if (endPage - startPage < maxVisible - 1) {
     startPage = Math.max(1, endPage - maxVisible + 1);
   }
-
   for (let i = startPage; i <= endPage; i++) {
     paginationContainer.appendChild(createButton(i, i, false, i === currentPage));
   }
-
   paginationContainer.appendChild(createButton("Next", currentPage + 1, currentPage === totalPages));
 }
 
+// Filter and sort data
 function filterAndSort() {
   let filtered = data.filter(row => {
     const query = searchInput.value.trim().toLowerCase();
@@ -919,13 +997,11 @@ function filterAndSort() {
       return false;
     });
   });
-
   if (sortSelect.value) {
     filtered.sort((a, b) =>
       a[sortSelect.value].toString().localeCompare(b[sortSelect.value].toString())
     );
   }
-
   return filtered;
 }
 
@@ -933,10 +1009,3 @@ sortSelect.addEventListener("change", () => {
   currentPage = 1;
   renderTable(filterAndSort());
 });
-
-document.addEventListener("DOMContentLoaded", () => {
-  fetchAndRenderTable();
-  attachRowHandlers();
-});
-
-//  hello
