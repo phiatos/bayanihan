@@ -82,25 +82,25 @@ const searchInput = document.getElementById('searchInput');
 const clearBtn = document.querySelector('.clear-btn');
 let orgData = null;
 let isProcessing = false;
+let processingLock = false; // Added lock mechanism
 
 const addNewBtn = document.getElementById('addNew');
 
-  document.addEventListener('mousemove', (e) => {
+document.addEventListener('mousemove', (e) => {
     const windowWidth = window.innerWidth;
     const windowHeight = window.innerHeight;
-    
+
     const distanceX = windowWidth - e.clientX;
     const distanceY = windowHeight - e.clientY;
-    
+
     if (distanceX < 200 && distanceY < 200) {
       addNewBtn.classList.add('visible');
     } else {
       addNewBtn.classList.remove('visible');
     }
-  });
+});
 
-
-  function formatMobileNumber(mobile) {
+function formatMobileNumber(mobile) {
   const cleaned = mobile.replace(/\D/g, "");
   if (/^\d{10,15}$/.test(cleaned)) {
     return cleaned;
@@ -108,7 +108,6 @@ const addNewBtn = document.getElementById('addNew');
   return null;
 }
 
-// Function to generate a random temporary password
 function generateTempPassword(length = 10) {
   const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+";
   let password = "";
@@ -119,11 +118,8 @@ function generateTempPassword(length = 10) {
   return password;
 }
 
-// Fetch data from Firebase and include logged-in ABVN data
 function fetchAndRenderTable() {
   console.log("Fetching data from Firebase...");
-  
-  // First, check for logged-in ABVN data in localStorage
   const loggedInVolunteerGroup = localStorage.getItem('loggedInVolunteerGroup');
   let abvnData = null;
   if (loggedInVolunteerGroup) {
@@ -131,13 +127,10 @@ function fetchAndRenderTable() {
     console.log("Logged-in ABVN data from localStorage:", abvnData);
   } else {
     console.log("No logged-in ABVN data found in localStorage. Attempting to fetch from Firebase...");
-    
     const userMobile = localStorage.getItem("userMobile");
     if (!userMobile) {
       console.error("No userMobile found in localStorage.");
-      // Proceed to fetch other volunteer groups without ABVN data
     } else {
-      // Fetch ABVN data directly from Firebase if not in localStorage
       database.ref('users').orderByChild('mobile').equalTo(userMobile).once('value')
         .then(snapshot => {
           if (snapshot.exists()) {
@@ -174,7 +167,6 @@ function fetchAndRenderTable() {
     }
   }
 
-  // Fetch all volunteer groups from Firebase
   database.ref("volunteerGroups").once("value", snapshot => {
     const fetchedData = snapshot.val();
     console.log("Fetched volunteer groups data:", fetchedData);
@@ -183,7 +175,7 @@ function fetchAndRenderTable() {
       console.log("No data found in volunteerGroups node.");
       data = [];
       if (abvnData) {
-        data.push(abvnData); // Include ABVN data even if no other groups exist
+        data.push(abvnData);
       }
       renderTable();
       return;
@@ -206,7 +198,6 @@ function fetchAndRenderTable() {
           mobileNumber: entry.mobileNumber,
           socialMedia: entry.socialMedia
         };
-        // Add to data array only if it's not the logged-in ABVN's group (to avoid duplicates)
         if (!abvnData || parseInt(key) !== parseInt(abvnData.no)) {
           data.push(groupEntry);
         }
@@ -215,13 +206,12 @@ function fetchAndRenderTable() {
       }
     }
 
-    // Add the logged-in ABVN's data to the top of the list
     if (abvnData) {
-      data.unshift(abvnData); // Add ABVN data at the beginning
+      data.unshift(abvnData);
     }
 
     console.log("Processed data with ABVN included:", data);
-    data.sort((a, b) => a.no - b.no); // Sort by 'no' field
+    data.sort((a, b) => a.no - b.no);
     renderTable();
   }).catch(error => {
     console.error("Error fetching data from Firebase:", error);
@@ -230,7 +220,6 @@ function fetchAndRenderTable() {
       title: 'Error',
       text: `Failed to fetch data from the database: ${error.message}`
     });
-    // If Firebase fetch fails, still display ABVN data if available
     if (abvnData) {
       data = [abvnData];
       renderTable();
@@ -265,7 +254,6 @@ function renderTable(filteredData = data) {
   });
 
   entriesInfo.textContent = `Showing ${start + 1} to ${Math.min(end, filteredData.length)} of ${filteredData.length} entries`;
-
   renderPagination(filteredData.length);
   attachRowHandlers();
 
@@ -274,16 +262,13 @@ function renderTable(filteredData = data) {
   });
 }
 
-// Enhanced Search Functionality
 function handleSearch() {
   const query = searchInput.value.trim().toLowerCase();
   clearBtn.style.display = query ? 'flex' : 'none';
-
-  currentPage = 1; // Reset to first page on search
+  currentPage = 1;
   renderTable(filterAndSort());
 }
 
-// Clear search input and reset table
 function clearDInputs() {
   searchInput.value = '';
   clearBtn.style.display = 'none';
@@ -292,13 +277,9 @@ function clearDInputs() {
   searchInput.focus();
 }
 
-// Initialize clear button visibility
 clearBtn.style.display = 'none';
-
-// Attach search input event listener
 searchInput.addEventListener('input', handleSearch);
 
-// Editable Button for Row
 function toggleEditableCells(rowIndex) {
   const row = document.querySelectorAll('#orgTable tbody tr')[rowIndex];
   const cells = row.querySelectorAll('td');
@@ -392,7 +373,6 @@ function populateBarangays(city, isLocation = false) {
 
 function openModal() {
   if (!currentAddressCell) return;
-
   const row = currentAddressCell.closest('tr');
   const hqCell = row.querySelector('.hqCell');
   const locCell = row.querySelector('.locationCell');
@@ -489,10 +469,9 @@ function attachRowHandlers() {
       editBtn.addEventListener("click", () => {
         const rowId = editBtn.getAttribute("data-id");
         const cells = row.querySelectorAll("td");
-        const isEditable = cells[1].getAttribute("contenteditable") === "true"; // skip row number (index 0)
+        const isEditable = cells[1].getAttribute("contenteditable") === "true";
 
         if (!isEditable) {
-          // Enable editing (skip first column and last button column)
           cells.forEach((cell, i) => {
             if (i > 0 && i < cells.length - 1) {
               cell.setAttribute("contenteditable", "true");
@@ -502,7 +481,6 @@ function attachRowHandlers() {
           editBtn.textContent = "Save";
           editingRowId = rowId;
 
-          // Attach click listeners for modal-opening cells
           const hqCell = row.querySelector(".hqCell");
           const locCell = row.querySelector(".locationCell");
 
@@ -523,9 +501,7 @@ function attachRowHandlers() {
               }
             });
           }
-
         } else {
-          // Save updates
           const updatedData = {
             organization: cells[1].textContent.trim() || "N/A",
             hq: cells[2].textContent.trim() || "N/A",
@@ -538,7 +514,6 @@ function attachRowHandlers() {
 
           database.ref(`volunteerGroups/${rowId}`).update(updatedData)
             .then(() => {
-              // Disable editing
               cells.forEach((cell, i) => {
                 if (i > 0 && i < cells.length - 1) {
                   cell.setAttribute("contenteditable", "false");
@@ -567,7 +542,6 @@ function attachRowHandlers() {
     }
   });
 }
-
 
 addNew.addEventListener('click', () => {
   addOrgModal.style.display = 'flex';
@@ -670,7 +644,6 @@ document.getElementById('addOrgForm').addEventListener('submit', function (event
   const email = form.email.value.trim();
   const mobileNumber = form.mobileNumber.value.trim();
 
-  // Custom validation for email and mobile number
   const isValidEmail = email => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   const formattedMobile = formatMobileNumber(mobileNumber);
 
@@ -736,112 +709,115 @@ document.getElementById('editDetailsBtn').addEventListener('click', function () 
 });
 
 document.getElementById('confirmSaveBtn').addEventListener('click', async function () {
-  if (isProcessing) return;
+  if (isProcessing || processingLock) return; // Prevent multiple executions
   isProcessing = true;
+  processingLock = true; // Set lock
   this.disabled = true;
 
-  console.log('orgData:', orgData);
-
   if (!orgData) {
-    console.log('orgData is null or undefined');
     Swal.fire({
       icon: 'error',
       title: 'Error',
-      text: 'No organization data found. Please fill out the form again.'
+      text: 'No organization data found. Please fill out the form again.',
     });
     isProcessing = false;
+    processingLock = false;
     this.disabled = false;
     return;
   }
 
-  console.log('orgData.email:', orgData.email);
-  console.log('orgData.mobileNumber:', orgData.mobileNumber);
-
-  const newVolunteerGroup = {
-    organization: orgData.organization,
-    hq: orgData.hq,
-    areaOfOperation: orgData.areaOps.join(', '),
-    contactPerson: orgData.contactPerson,
-    email: orgData.email,
-    mobileNumber: orgData.mobileNumber,
-    socialMedia: orgData.socialMedia
-  };
-
-  const tempPassword = generateTempPassword();
-
-  const isValidEmail = email => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  const formattedMobile = formatMobileNumber(orgData.mobileNumber);
+  const syntheticEmail = `${orgData.mobileNumber}@bayanihan.com`;
+  const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
   if (!orgData.email || !isValidEmail(orgData.email)) {
-    console.log('Invalid or missing email in orgData:', orgData.email);
     Swal.fire({
       icon: 'error',
       title: 'Invalid Email',
-      text: 'Please enter a valid email address.'
+      text: 'Please enter a valid email address.',
     });
     isProcessing = false;
-    this.disabled = false;
-    return;
-  }
-
-  if (!formattedMobile) {
-    console.log('Invalid or missing mobile number in orgData:', orgData.mobileNumber);
-    Swal.fire({
-      icon: 'error',
-      title: 'Invalid Mobile Number',
-      text: 'Please enter a valid mobile number (10-15 digits, numbers only).'
-    });
-    isProcessing = false;
+    processingLock = false;
     this.disabled = false;
     return;
   }
 
   let createdUser = null;
-
   try {
-    const syntheticEmail = `${orgData.mobileNumber}@bayanihan.com`;
-    console.log('Synthetic email for Firebase Auth:', syntheticEmail);
+    // Step 1: Check for duplicates in Realtime Database and Authentication
+    const userSnapshot = await database
+      .ref('users')
+      .orderByChild('mobile')
+      .equalTo(orgData.mobileNumber)
+      .once('value');
+
+    if (userSnapshot.exists()) {
+      throw new Error('This mobile number is already registered.');
+    }
 
     const signInMethods = await auth.fetchSignInMethodsForEmail(syntheticEmail);
     if (signInMethods.length > 0) {
       throw new Error('The mobile number is already in use by another account.');
     }
 
+    // Step 2: Create new user in Firebase Authentication
+    const tempPassword = generateTempPassword();
     const userCredential = await auth.createUserWithEmailAndPassword(syntheticEmail, tempPassword);
     createdUser = userCredential.user;
 
+    // Step 3: Save user data to Realtime Database
     const userData = {
       email: orgData.email,
       role: 'ABVN',
       createdAt: new Date().toISOString(),
       mobile: orgData.mobileNumber,
-      organization: orgData.organization
+      organization: orgData.organization,
+      volunteerGroupId: null,
     };
 
     await database.ref(`users/${createdUser.uid}`).set(userData);
 
+    // Step 4: Save volunteer group data with a transaction for the key
+    const newVolunteerGroup = {
+      organization: orgData.organization,
+      hq: orgData.hq,
+      areaOfOperation: orgData.areaOps.join(', '),
+      contactPerson: orgData.contactPerson,
+      email: orgData.email,
+      mobileNumber: orgData.mobileNumber,
+      socialMedia: orgData.socialMedia,
+    };
+
+    let nextKey;
+    await database.ref('volunteerGroups').transaction(current => {
+      const groups = current || {};
+      const keys = Object.keys(groups).map(Number);
+      nextKey = keys.length > 0 ? Math.max(...keys) + 1 : 1;
+      return current; // Return unchanged for now
+    });
+
+    await database.ref(`volunteerGroups/${nextKey}`).set(newVolunteerGroup);
+
+    // Step 5: Update user with volunteer group ID
+    await database.ref(`users/${createdUser.uid}`).update({
+      volunteerGroupId: nextKey,
+    });
+
+    // Step 6: Send email with temporary password
     const emailParams = {
       email: orgData.email,
       organization: orgData.organization,
       tempPassword: tempPassword,
-      mobileNumber: orgData.mobileNumber
+      mobileNumber: orgData.mobileNumber,
     };
-    console.log('Sending email with params:', emailParams);
+
     const emailResponse = await emailjs.send('service_gebyrih', 'template_fa31b56', emailParams);
     console.log('EmailJS response:', emailResponse);
 
-    const snapshot = await database.ref('volunteerGroups').once('value');
-    const groups = snapshot.val();
-    const keys = groups ? Object.keys(groups).map(Number) : [];
-    const nextKey = keys.length > 0 ? Math.max(...keys) + 1 : 1;
-
-    await database.ref(`volunteerGroups/${nextKey}`).set(newVolunteerGroup);
-
-    const successEmail = orgData.email;
+    // Step 7: Show success message and reset
     Swal.fire({
       icon: 'success',
       title: 'Success',
-      text: `Volunteer group added successfully!`
+      text: `Volunteer group added successfully!`,
     });
     orgData = null;
     document.getElementById('confirmModal').style.display = 'none';
@@ -849,8 +825,8 @@ document.getElementById('confirmSaveBtn').addEventListener('click', async functi
     fetchAndRenderTable();
   } catch (error) {
     console.error('Error adding volunteer group:', error);
-    console.log('Full error object:', JSON.stringify(error, null, 2));
 
+    // Clean up Firebase Authentication user if created
     if (createdUser) {
       try {
         await createdUser.delete();
@@ -860,41 +836,29 @@ document.getElementById('confirmSaveBtn').addEventListener('click', async functi
       }
     }
 
-    let errorMessageText = 'An unexpected error occurred.';
-    if (error.message) {
-      errorMessageText = error.message;
-    } else if (error.text) {
-      errorMessageText = error.text;
-    } else if (error.status && error.statusText) {
-      errorMessageText = `HTTP ${error.status}: ${error.statusText}`;
-    } else if (typeof error === 'object') {
-      errorMessageText = JSON.stringify(error);
-    } else {
-      errorMessageText = String(error);
-    }
-
     let errorMessage = 'Failed to add volunteer group. ';
-    if (errorMessageText.includes('email-already-in-use') || errorMessageText.includes('mobile number is already in use')) {
+    if (error.message.includes('email-already-in-use') || error.message.includes('mobile number is already in use')) {
       errorMessage += 'The mobile number is already in use by another account.';
-    } else if (errorMessageText.includes('auth/invalid-email')) {
+    } else if (error.message.includes('auth/invalid-email')) {
       errorMessage += 'The email address is not valid.';
-    } else if (errorMessageText.includes('404')) {
+    } else if (error.message.includes('404')) {
       errorMessage += 'Failed to send email with temporary password. The EmailJS Template ID or Service ID may be incorrect. Please verify your EmailJS configuration.';
-    } else if (errorMessageText.includes('Account not found')) {
+    } else if (error.message.includes('Account not found')) {
       errorMessage += 'Account not found. Please verify your EmailJS Public Key and account status.';
-    } else if (errorMessageText.includes('The recipients address is empty')) {
+    } else if (error.message.includes('The recipients address is empty')) {
       errorMessage += 'The recipient email address is missing. Please ensure the email address is provided.';
     } else {
-      errorMessage += errorMessageText;
+      errorMessage += error.message || 'An unexpected error occurred.';
     }
 
     Swal.fire({
       icon: 'error',
       title: 'Error',
-      text: errorMessage
+      text: errorMessage,
     });
   } finally {
     isProcessing = false;
+    processingLock = false; // Release lock
     this.disabled = false;
   }
 });
