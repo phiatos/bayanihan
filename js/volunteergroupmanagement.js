@@ -82,22 +82,21 @@ const searchInput = document.getElementById('searchInput');
 const clearBtn = document.querySelector('.clear-btn');
 let orgData = null;
 let isProcessing = false;
-let processingLock = false; // Added lock mechanism
+let processingLock = false;
 
 const addNewBtn = document.getElementById('addNew');
 
 document.addEventListener('mousemove', (e) => {
-    const windowWidth = window.innerWidth;
-    const windowHeight = window.innerHeight;
+  const windowWidth = window.innerWidth;
+  const windowHeight = window.innerHeight;
+  const distanceX = windowWidth - e.clientX;
+  const distanceY = windowHeight - e.clientY;
 
-    const distanceX = windowWidth - e.clientX;
-    const distanceY = windowHeight - e.clientY;
-
-    if (distanceX < 200 && distanceY < 200) {
-      addNewBtn.classList.add('visible');
-    } else {
-      addNewBtn.classList.remove('visible');
-    }
+  if (distanceX < 200 && distanceY < 200) {
+    addNewBtn.classList.add('visible');
+  } else {
+    addNewBtn.classList.remove('visible');
+  }
 });
 
 function formatMobileNumber(mobile) {
@@ -116,6 +115,35 @@ function generateTempPassword(length = 10) {
     password += charset[randomIndex];
   }
   return password;
+}
+
+function checkPendingOrgData() {
+  const pendingData = localStorage.getItem('pendingOrgData');
+  if (pendingData) {
+    orgData = JSON.parse(pendingData);
+    document.getElementById('addOrgModal').style.display = 'none';
+    document.getElementById('confirmModal').style.display = 'block';
+    populateConfirmModal();
+  }
+}
+
+function populateConfirmModal() {
+  if (!orgData) return;
+  const confirmDetails = document.getElementById('confirmDetails');
+  confirmDetails.innerHTML = `
+    <p><strong style="color: #4059A5;">Organization</strong> ${orgData.organization}</p>
+    <p><strong style="color: #4059A5;">HQ Location (Barangay)</strong> ${orgData.hqBarangay}</p>
+    <p><strong style="color: #4059A5;">HQ Location (City/ Municipality)</strong> ${orgData.hqCity}</p>
+    <p><strong style="color: #4059A5;">HQ Location (Province)</strong> ${orgData.hqProvince}</p>
+    <p><strong style="color: #4059A5;">Contact Person</strong> ${orgData.contactPerson}</p>
+    <p><strong style="color: #4059A5;">Email</strong> ${orgData.email}</p>
+    <p><strong style="color: #4059A5;">Mobile</strong> ${orgData.mobileNumber}</p>
+    <p><strong style="color: #4059A5;">Social Media</strong> ${orgData.socialMedia}</p>
+    <p><strong style="color: #4059A5;">Area of Operations</strong></p>
+    <ul style="padding-left:20px;">
+      ${orgData.areaOps.map(area => `<li>${area}</li>`).join('')}
+    </ul>
+  `;
 }
 
 function fetchAndRenderTable() {
@@ -683,22 +711,10 @@ document.getElementById('addOrgForm').addEventListener('submit', function (event
     socialMedia: form.socialMedia.value
   };
 
-  const confirmDetails = document.getElementById('confirmDetails');
-  confirmDetails.innerHTML = `
-    <p><strong style="color: #4059A5;">Organization</strong> ${orgData.organization}</p>
-    <p><strong style="color: #4059A5;">HQ Location (Barangay)</strong> ${orgData.hqBarangay}</p>
-    <p><strong style="color: #4059A5;">HQ Location (City/ Municipality)</strong> ${orgData.hqCity}</p>
-    <p><strong style="color: #4059A5;">HQ Location (Province)</strong> ${orgData.hqProvince}</p>
-    <p><strong style="color: #4059A5;">Contact Person</strong> ${orgData.contactPerson}</p>
-    <p><strong style="color: #4059A5;">Email</strong> ${orgData.email}</p>
-    <p><strong style="color: #4059A5;">Mobile</strong> ${orgData.mobileNumber}</p>
-    <p><strong style="color: #4059A5;">Social Media</strong> ${orgData.socialMedia}</p>
-    <p><strong style="color: #4059A5;">Area of Operations</strong></p>
-    <ul style="padding-left:20px;">
-      ${orgData.areaOps.map(area => `<li>${area}</li>`).join('')}
-    </ul>
-  `;
+  // Store orgData in localStorage
+  localStorage.setItem('pendingOrgData', JSON.stringify(orgData));
 
+  populateConfirmModal();
   document.getElementById('addOrgModal').style.display = 'none';
   document.getElementById('confirmModal').style.display = 'block';
 });
@@ -709,31 +725,36 @@ document.getElementById('editDetailsBtn').addEventListener('click', function () 
 });
 
 document.getElementById('confirmSaveBtn').addEventListener('click', async function () {
-  if (isProcessing || processingLock) return; // Prevent multiple executions
+  if (isProcessing || processingLock) return;
   isProcessing = true;
-  processingLock = true; // Set lock
+  processingLock = true;
   this.disabled = true;
 
+  // Retrieve orgData from localStorage if not in memory
   if (!orgData) {
-    Swal.fire({
-      icon: 'error',
-      title: 'Error',
-      text: 'No organization data found. Please fill out the form again.',
-    });
-    isProcessing = false;
-    processingLock = false;
-    this.disabled = false;
-    return;
+    const pendingData = localStorage.getItem('pendingOrgData');
+    if (!pendingData) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'No organization data found. Please fill out the form again.'
+      });
+      isProcessing = false;
+      processingLock = false;
+      this.disabled = false;
+      return;
+    }
+    orgData = JSON.parse(pendingData);
   }
 
   const syntheticEmail = `${orgData.mobileNumber}@bayanihan.com`;
-  const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  const isValidEmail = email => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
   if (!orgData.email || !isValidEmail(orgData.email)) {
     Swal.fire({
       icon: 'error',
       title: 'Invalid Email',
-      text: 'Please enter a valid email address.',
+      text: 'Please enter a valid email address.'
     });
     isProcessing = false;
     processingLock = false;
@@ -743,7 +764,7 @@ document.getElementById('confirmSaveBtn').addEventListener('click', async functi
 
   let createdUser = null;
   try {
-    // Step 1: Check for duplicates in Realtime Database and Authentication
+    // Step 1: Check for duplicates
     const userSnapshot = await database
       .ref('users')
       .orderByChild('mobile')
@@ -759,24 +780,24 @@ document.getElementById('confirmSaveBtn').addEventListener('click', async functi
       throw new Error('The mobile number is already in use by another account.');
     }
 
-    // Step 2: Create new user in Firebase Authentication
+    // Step 2: Create new user
     const tempPassword = generateTempPassword();
     const userCredential = await auth.createUserWithEmailAndPassword(syntheticEmail, tempPassword);
     createdUser = userCredential.user;
 
-    // Step 3: Save user data to Realtime Database
+    // Step 3: Save user data
     const userData = {
       email: orgData.email,
       role: 'ABVN',
       createdAt: new Date().toISOString(),
       mobile: orgData.mobileNumber,
       organization: orgData.organization,
-      volunteerGroupId: null,
+      volunteerGroupId: null
     };
 
     await database.ref(`users/${createdUser.uid}`).set(userData);
 
-    // Step 4: Save volunteer group data with a transaction for the key
+    // Step 4: Save volunteer group data
     const newVolunteerGroup = {
       organization: orgData.organization,
       hq: orgData.hq,
@@ -784,7 +805,7 @@ document.getElementById('confirmSaveBtn').addEventListener('click', async functi
       contactPerson: orgData.contactPerson,
       email: orgData.email,
       mobileNumber: orgData.mobileNumber,
-      socialMedia: orgData.socialMedia,
+      socialMedia: orgData.socialMedia
     };
 
     let nextKey;
@@ -792,32 +813,33 @@ document.getElementById('confirmSaveBtn').addEventListener('click', async functi
       const groups = current || {};
       const keys = Object.keys(groups).map(Number);
       nextKey = keys.length > 0 ? Math.max(...keys) + 1 : 1;
-      return current; // Return unchanged for now
+      return current;
     });
 
     await database.ref(`volunteerGroups/${nextKey}`).set(newVolunteerGroup);
 
     // Step 5: Update user with volunteer group ID
     await database.ref(`users/${createdUser.uid}`).update({
-      volunteerGroupId: nextKey,
+      volunteerGroupId: nextKey
     });
 
-    // Step 6: Send email with temporary password
+    // Step 6: Send email
     const emailParams = {
       email: orgData.email,
       organization: orgData.organization,
       tempPassword: tempPassword,
-      mobileNumber: orgData.mobileNumber,
+      mobileNumber: orgData.mobileNumber
     };
 
     const emailResponse = await emailjs.send('service_gebyrih', 'template_fa31b56', emailParams);
     console.log('EmailJS response:', emailResponse);
 
-    // Step 7: Show success message and reset
+    // Step 7: Clear localStorage and show success
+    localStorage.removeItem('pendingOrgData');
     Swal.fire({
       icon: 'success',
       title: 'Success',
-      text: `Volunteer group added successfully!`,
+      text: `Volunteer group added successfully!`
     });
     orgData = null;
     document.getElementById('confirmModal').style.display = 'none';
@@ -826,13 +848,13 @@ document.getElementById('confirmSaveBtn').addEventListener('click', async functi
   } catch (error) {
     console.error('Error adding volunteer group:', error);
 
-    // Clean up Firebase Authentication user if created
+    // Clean up if user was created
     if (createdUser) {
       try {
         await createdUser.delete();
-        console.log('Cleaned up: Firebase user deleted due to registration failure.');
+        console.log('Cleaned up: Firebase user deleted.');
       } catch (deleteError) {
-        console.error('Failed to delete Firebase user during cleanup:', deleteError);
+        console.error('Failed to delete Firebase user:', deleteError);
       }
     }
 
@@ -842,11 +864,11 @@ document.getElementById('confirmSaveBtn').addEventListener('click', async functi
     } else if (error.message.includes('auth/invalid-email')) {
       errorMessage += 'The email address is not valid.';
     } else if (error.message.includes('404')) {
-      errorMessage += 'Failed to send email with temporary password. The EmailJS Template ID or Service ID may be incorrect. Please verify your EmailJS configuration.';
+      errorMessage += 'Failed to send email with temporary password. The EmailJS Template ID or Service ID may be incorrect.';
     } else if (error.message.includes('Account not found')) {
       errorMessage += 'Account not found. Please verify your EmailJS Public Key and account status.';
     } else if (error.message.includes('The recipients address is empty')) {
-      errorMessage += 'The recipient email address is missing. Please ensure the email address is provided.';
+      errorMessage += 'The recipient email address is missing.';
     } else {
       errorMessage += error.message || 'An unexpected error occurred.';
     }
@@ -854,11 +876,11 @@ document.getElementById('confirmSaveBtn').addEventListener('click', async functi
     Swal.fire({
       icon: 'error',
       title: 'Error',
-      text: errorMessage,
+      text: errorMessage
     });
   } finally {
     isProcessing = false;
-    processingLock = false; // Release lock
+    processingLock = false;
     this.disabled = false;
   }
 });
@@ -888,6 +910,7 @@ function clearAInputs() {
   const form = document.getElementById('addOrgForm');
   form.reset();
   document.getElementById('areaOperationContainer').innerHTML = '';
+  localStorage.removeItem('pendingOrgData');
 }
 
 function renderPagination(totalRows) {
@@ -943,6 +966,7 @@ sortSelect.addEventListener("change", () => {
 });
 
 document.addEventListener("DOMContentLoaded", () => {
+  checkPendingOrgData();
   fetchAndRenderTable();
   attachRowHandlers();
 });
