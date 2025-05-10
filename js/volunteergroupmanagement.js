@@ -14,9 +14,7 @@ const firebaseConfig = {
 
 // Initialize primary Firebase app
 try {
-  if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
-  }
+  firebase.initializeApp(firebaseConfig);
   console.log("Firebase initialized successfully:", firebase.app().name);
 } catch (error) {
   console.error("Firebase initialization failed:", error);
@@ -30,18 +28,17 @@ const auth = firebase.auth();
 const database = firebase.database();
 
 // Initialize secondary Firebase app for creating users
-let secondaryAuth = null;
 try {
-  const secondaryApp = firebase.initializeApp(firebaseConfig, "SecondaryApp");
-  secondaryAuth = secondaryApp.auth();
+  firebase.initializeApp(firebaseConfig, "SecondaryApp");
   console.log("Secondary Firebase app initialized successfully");
 } catch (error) {
   console.error("Secondary Firebase initialization failed:", error);
 }
+const secondaryAuth = firebase.auth(firebase.app("SecondaryApp"));
 
-// Initialize EmailJS
+// Initialize EmailJS with updated public key
 try {
-  emailjs.init('X4kCYg2glUhqW6738');
+  emailjs.init('ULA8rmn7VM-3fZ7ik'); // Updated to your new public key
   console.log("EmailJS initialized successfully");
 } catch (error) {
   console.error("EmailJS initialization failed:", error);
@@ -62,7 +59,7 @@ let data = [];
 const provinces = [
   "Abra", "Agusan del Norte", "Agusan del Sur", "Aklan", "Albay", "Antique", "Apayao", "Aurora",
   "Basilan", "Bataan", "Batanes", "Batangas", "Benguet", "Biliran", "Bohol", "Bukidnon", "Bulacan",
-  "Cagayan", "Camarines Norte", "Camarines Sur", "Camiguin W", "Capiz", "Catanduanes", "Cavite",
+  "Cagayan", "Camarines Norte", "Camarines Sur", "Camiguin", "Capiz", "Catanduanes", "Cavite",
   "Cebu", "Cotabato", "Davao del Norte", "Davao del Sur", "Davao Oriental", "Dinagat Islands",
   "Eastern Samar", "Guimaras", "Ifugao", "Ilocos Norte", "Ilocos Sur", "Iloilo", "Isabela", "Kalinga",
   "La Union", "Laguna", "Lanao del Norte", "Lanao del Sur", "Leyte", "Maguindanao", "Marinduque",
@@ -185,25 +182,19 @@ function fetchAndRenderTable() {
               });
               return;
             }
-            // Process data with proper key handling
-            data = Object.entries(fetchedData).map(([key, entry]) => {
-              const parsedKey = parseInt(key);
-              return {
-                no: isNaN(parsedKey) ? 0 : parsedKey, // Default to 0 if key is invalid
-                organization: entry.organization || "N/A",
-                hq: entry.hq || "N/A",
-                areaOfOperation: entry.areaOfOperation || "N/A",
-                contactPerson: entry.contactPerson || "N/A",
-                email: entry.email || "N/A",
-                mobileNumber: entry.mobileNumber || "N/A",
-                socialMedia: entry.socialMedia || "N/A",
-                activation: entry.activation || "N/A",
-                calamityType: entry.calamityType || "N/A",
-                userId: entry.userId || "N/A"
-              };
-            });
+            data = Object.entries(fetchedData).map(([key, entry]) => ({
+              no: parseInt(key),
+              organization: entry.organization || "N/A",
+              hq: entry.hq || "N/A",
+              areaOfOperation: entry.areaOfOperation || "N/A",
+              contactPerson: entry.contactPerson || "N/A",
+              email: entry.email || "N/A",
+              mobileNumber: entry.mobileNumber || "N/A",
+              socialMedia: entry.socialMedia || "N/A",
+              activation: entry.activation || "N/A",
+              calamityType: entry.calamityType || "N/A"
+            }));
             console.log("Processed Data:", data);
-            // Sort by 'no' to maintain consistent order
             data.sort((a, b) => a.no - b.no);
             renderTable();
           })
@@ -394,7 +385,7 @@ function attachRowHandlers() {
   });
 }
 
-// Address modal functions
+// Address modal
 function populateProvinces() {
   ['hqProvinceOptions', 'locProvinceOptions'].forEach(id => {
     const list = document.getElementById(id);
@@ -442,15 +433,15 @@ function openModal() {
   const locCell = row.querySelector('.locationCell');
   if (hqCell) {
     const hqParts = hqCell.textContent.split(',').map(p => p.trim());
-    document.getElementById('hqProvinceInput').value = hqParts[2] || '';
-    document.getElementById('hqCityInput').value = hqParts[1] || '';
-    document.getElementById('hqBarangayInput').value = hqParts[0] || '';
+    document.getElementById('hqProvinceInput').value = hqParts[1] || '';
+    document.getElementById('hqCityInput').value = hqParts[0] || '';
+    document.getElementById('hqBarangayInput').value = hqParts[2] || '';
   }
   if (locCell) {
     const locParts = locCell.textContent.split(',').map(p => p.trim());
-    document.getElementById('locProvinceInput').value = locParts[2] || '';
-    document.getElementById('locCityInput').value = locParts[1] || '';
-    document.getElementById('locBarangayInput').value = locParts[0] || '';
+    document.getElementById('locProvinceInput').value = locParts[1] || '';
+    document.getElementById('locCityInput').value = locParts[0] || '';
+    document.getElementById('locBarangayInput').value = locParts[2] || '';
   }
   populateProvinces();
   populateCities(document.getElementById('hqProvinceInput').value, false);
@@ -677,34 +668,36 @@ if (addOrgForm) {
         <ul style="padding-left:20px;">${orgData.areaOps.map(area => `<li>${area}</li>`).join('')}</ul>
       `;
     }
-    if (addOrgForm) addOrgForm.style.display = 'none';
+    if (addOrgModal) addOrgModal.style.display = 'none';
     const confirmModal = document.getElementById('confirmModal');
     if (confirmModal) confirmModal.style.display = 'block';
   });
 }
 
+const editDetailsBtn = document.getElementById('editDetailsBtn');
+if (editDetailsBtn) {
+  editDetailsBtn.addEventListener('click', () => {
+    const confirmModal = document.getElementById('confirmModal');
+    if (confirmModal) confirmModal.style.display = 'none';
+    if (addOrgModal) addOrgModal.style.display = 'block';
+  });
+}
+
 const confirmSaveBtn = document.getElementById('confirmSaveBtn');
 if (confirmSaveBtn) {
-  // Ensure single event listener by replacing the element
-  const oldElement = confirmSaveBtn.cloneNode(true);
-  confirmSaveBtn.parentNode.replaceChild(oldElement, confirmSaveBtn);
-  const newConfirmSaveBtn = oldElement;
-
-  newConfirmSaveBtn.addEventListener('click', async (e) => {
-    e.preventDefault(); // Prevent default button behavior
+  confirmSaveBtn.addEventListener('click', async () => {
     if (isProcessing) return;
     isProcessing = true;
-    newConfirmSaveBtn.disabled = true;
+    confirmSaveBtn.disabled = true;
 
     if (!orgData) {
-      console.error('No organization data found.');
       Swal.fire({
         icon: 'error',
         title: 'Error',
         text: 'No organization data found.'
       });
       isProcessing = false;
-      newConfirmSaveBtn.disabled = false;
+      confirmSaveBtn.disabled = false;
       return;
     }
 
@@ -720,63 +713,35 @@ if (confirmSaveBtn) {
       calamityType: ""
     };
 
-    console.log('Starting user creation process:', { orgData, newVolunteerGroup });
-
     try {
+      // Verify admin is signed in
       const adminUser = auth.currentUser;
       if (!adminUser) {
         throw new Error("No admin signed in. Please sign in again.");
       }
       console.log("Current admin:", adminUser.uid);
 
+      // Verify admin role
       const adminSnapshot = await database.ref(`users/${adminUser.uid}`).once("value");
       const adminData = adminSnapshot.val();
       if (!adminData || adminData.role !== "AB ADMIN") {
         throw new Error("Current user is not an admin.");
       }
-      console.log("Admin role verified:", adminData.role);
 
+      // Check if mobile number already exists
       const usersSnapshot = await database.ref('users').once('value');
       const users = usersSnapshot.val();
       if (users && Object.values(users).some(user => user.mobile === orgData.mobileNumber)) {
         throw new Error("Mobile number already registered.");
       }
-      console.log("Mobile number is unique");
 
-      if (secondaryAuth) {
-        await secondaryAuth.signOut();
-        console.log("Secondary auth signed out before user creation");
-      } else {
-        throw new Error("Secondary Firebase app not initialized.");
-      }
-
+      // Create Firebase Authentication account
       const tempPassword = generateTempPassword();
       const syntheticEmail = `${orgData.mobileNumber}@bayanihan.com`;
-
-      // Check for existing user with lock
-      const lockKey = `userCreationLock_${syntheticEmail}`;
-      const existingLock = sessionStorage.getItem(lockKey);
-      if (existingLock) {
-        throw new Error("User creation already in progress or completed for this email.");
-      }
-      sessionStorage.setItem(lockKey, 'locked');
-      console.log("Lock set for:", syntheticEmail);
-
-      const signInMethods = await secondaryAuth.fetchSignInMethodsForEmail(syntheticEmail);
-      if (signInMethods.length > 0) {
-        throw new Error("An account with this mobile number already exists.");
-      }
-      console.log("Synthetic email is unique:", syntheticEmail);
-
-      let newUser = null;
       const userCredential = await secondaryAuth.createUserWithEmailAndPassword(syntheticEmail, tempPassword);
-      newUser = userCredential.user;
-      console.log("New user created with UID:", newUser.uid);
+      const newUser = userCredential.user;
 
-      if (!newUser) {
-        throw new Error("Failed to create new user.");
-      }
-
+      // Save user data to users/<uid>
       await database.ref(`users/${newUser.uid}`).set({
         role: "ABVN",
         group: orgData.organization,
@@ -786,39 +751,24 @@ if (confirmSaveBtn) {
         contactPerson: orgData.contactPerson,
         createdAt: new Date().toISOString()
       });
-      console.log("User data saved to Realtime Database");
 
+      // Save volunteer group
       const snapshot = await database.ref('volunteerGroups').once('value');
       const groups = snapshot.val();
-      let nextKey = 1;
-      if (groups) {
-        const keys = Object.keys(groups)
-          .map(key => {
-            const parsed = parseInt(key, 10);
-            return isNaN(parsed) ? -Infinity : parsed;
-          })
-          .filter(key => key !== -Infinity);
-        if (keys.length > 0) {
-          const maxKey = Math.max(...keys);
-          nextKey = maxKey >= 1 ? maxKey + 1 : 1;
-        }
-      }
-      console.log("Generated next key for volunteerGroups:", nextKey);
+      const nextKey = groups ? Math.max(...Object.keys(groups).map(Number)) + 1 : 1;
       await database.ref(`volunteerGroups/${nextKey}`).set({
         ...newVolunteerGroup,
         userId: newUser.uid
       });
-      console.log("Volunteer group saved with key:", nextKey);
 
-      // Send email only once after successful user creation
-      await emailjs.send('service_gebyrih', 'template_fa31b56', {
+      // Send EmailJS confirmation with temporary password using updated service and template IDs
+      await emailjs.send('service_g5f0erj', 'template_0yk865p', { // Updated to your new service ID and template ID
         email: orgData.email,
         organization: orgData.organization,
         tempPassword: tempPassword,
         mobileNumber: orgData.mobileNumber,
         message: `Your volunteer group "${orgData.organization}" has been successfully registered with Bayanihan. Please use the credentials below to log in.`
       });
-      console.log("EmailJS confirmation sent");
 
       Swal.fire({
         icon: 'success',
@@ -831,6 +781,9 @@ if (confirmSaveBtn) {
       if (confirmModal) confirmModal.style.display = 'none';
       if (successModal) successModal.style.display = 'block';
       fetchAndRenderTable();
+
+      // Sign out secondary app
+      await secondaryAuth.signOut();
     } catch (error) {
       console.error('Error adding volunteer group:', error);
       Swal.fire({
@@ -839,20 +792,12 @@ if (confirmSaveBtn) {
         text: `Failed to add group: ${error.message}`
       });
     } finally {
-      if (secondaryAuth) {
-        await secondaryAuth.signOut();
-        console.log("Secondary auth signed out after operation");
-      }
-      sessionStorage.removeItem(`userCreationLock_${syntheticEmail}`);
-      console.log("Lock removed for:", syntheticEmail);
       isProcessing = false;
-      newConfirmSaveBtn.disabled = false;
+      confirmSaveBtn.disabled = false;
       console.log("Admin still signed in:", auth.currentUser?.uid);
     }
   });
 }
-
-// HANGGANG DITO SA CONFIRM BUTTON
 
 const closeSuccessBtn = document.getElementById('closeSuccessBtn');
 if (closeSuccessBtn) {
