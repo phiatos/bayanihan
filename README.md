@@ -31,7 +31,7 @@ planned system flow: https://docs.google.com/document/d/15CWf6rDFmi5rI86DARh8CFW
 <!-- // ================================================== // -->
 Test Walkthrough (For Review)
 Admin Account
-Mobile Number: 09166605432
+Mobile Number: 09166605231
 Password: abcdefg
 ✅ Full page access
 ✅ Can create ABVN accounts in VGM
@@ -39,10 +39,10 @@ Password: abcdefg
 ⚠️ Activation status not yet linked to dashboard view
 
 ABVN Account
-Mobile Number: 09166606745
-Password: aBmPU5Nvvl
+Mobile Number: 09499894578
+Password: 3xgbgylvU(
 ⚠️ Limited access setup (not fully working)
-You can register a new ABVN in VGM or use this account - there's a problem here.
+You can register a new ABVN in VGM or use this account
 
 <!-- // ================================================== // -->
 Key Module Status:
@@ -103,6 +103,7 @@ Admin Side:
 📝 Notes
 - Validations and overall UI improvements are still in progress.
 - Role-based access control is currently being implemented.
+- Responsivess still in progress.
 - Data binding between components and tables is still ongoing.
 - CSS and JS cleanup in progress — sorry po
 - Notifications and SMS/Email integrations are not yet active in this version.

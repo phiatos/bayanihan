@@ -56,6 +56,7 @@ function initSidebar() {
         if (result.isConfirmed) {
           localStorage.removeItem("userMobile");
           localStorage.removeItem("userRole");
+          localStorage.removeItem("userData"); // Clear userData on logout
 
           Swal.fire({
             title: "Logged out!",
@@ -81,38 +82,51 @@ function initSidebar() {
     const userRoleElement = document.querySelector("#user-role");
     const userNameElement = document.querySelector("#user-name");
 
-    // Retrieve user data from localStorage (or fallback to defaults)
-    const user = JSON.parse(localStorage.getItem("userData")) || {
-      name: "John Doe",
-      role: "web developer",
-      group: "Unknown",
-      contactPerson: "N/A"
-    };
+    // Retrieve user data from localStorage
+    const user = JSON.parse(localStorage.getItem("userData")) || {};
 
-    // Determine group/role display for user-role
+    // Debug: Log the user data and role display
+    console.log("User Data retrieved in sidebar:", user);
+
+    // Extract group, contact person, and role, default to empty strings if not available
+    const group = user.group || "";
+    const contactPerson = user.contactPerson || "";
+    const role = user.role || "";
+
+    // Determine group display for user-role
     let roleDisplay = "";
-    if (user.role === "admin") {
+    if (role === "admin") {
       roleDisplay = "Admin";
-    } else if (user.group === "ABVN") {
-      roleDisplay = "ABVN Group";
+    } else if (role === "ABVN") {
+      roleDisplay = group; // Show the specific volunteer group name, e.g., "Sample 26 Organization"
     } else {
-      roleDisplay = `Volunteer Group: ${user.group || "None"}`;
+      roleDisplay = ""; // Empty if no matching role
     }
+
+    // Debug: Log the role display value
+    console.log("Role Display for #user-role:", roleDisplay);
 
     // Update DOM elements
     if (userRoleElement) {
       userRoleElement.textContent = roleDisplay;
+    } else {
+      console.log("#user-role element not found in DOM");
     }
+
     if (userNameElement) {
-      const contactInfo = user.contactPerson && user.contactPerson !== "N/A" 
-        ? ` (Contact: ${user.contactPerson})` 
-        : "";
-      userNameElement.textContent = `${user.name || "John Doe"}${contactInfo}`;
+      userNameElement.textContent = contactPerson; // Show the contact person's name
+    } else {
+      console.log("#user-name element not found in DOM");
     }
   }
 
-  // Call the function to populate user details
+  // Call the function to populate user details initially
   populateUserDetails();
+
+  // Listen for sidebar update event after login
+  window.addEventListener("updateSidebar", () => {
+    populateUserDetails();
+  });
 }
 
 // Call initSidebar when the script loads
