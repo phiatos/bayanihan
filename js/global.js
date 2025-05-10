@@ -31,6 +31,9 @@ function formatMobileNumber(mobile) {
   return null;
 }
 
+// Base path for redirects
+const BASE_PATH = "/Bayanihan-PWA";
+
 // Main logic
 document.addEventListener("DOMContentLoaded", () => {
   const container = document.querySelector(".container");
@@ -55,7 +58,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
- // Handle Login
+  // Handle Login
   if (loginForm) {
     loginForm.addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -81,6 +84,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (snapshot.exists()) {
           const userData = snapshot.val();
+          // Ensure all necessary fields are included in userData
+          const updatedUserData = {
+            name: userData.name || "",
+            role: userData.role || "",
+            group: userData.group || "", // Ensure group is stored
+            contactPerson: userData.contactPerson || "",
+          };
+
+          // Debug: Log the user data to verify the group field
+          console.log("User Data being stored in localStorage:", updatedUserData);
+
+          // Store the full userData in localStorage
+          localStorage.setItem("userData", JSON.stringify(updatedUserData));
           localStorage.setItem("userMobile", mobile);
           localStorage.setItem("userRole", userData.role);
 
@@ -93,19 +109,21 @@ document.addEventListener("DOMContentLoaded", () => {
           // Notify service worker to update cache
           if ("serviceWorker" in navigator) {
             navigator.serviceWorker.ready.then((registration) => {
-              registration.active.postMessage({ type: "UPDATE_CACHE" });
+              registration.active?.postMessage({ type: "UPDATE_CACHE" });
+            }).catch((error) => {
+              console.error("Service Worker error:", error);
             });
           }
 
           // Role-based Redirection
-          const userRole = userData.role; // Get the role from the database
+          const userRole = userData.role;
 
           if (userRole === "admin") {
-            window.location.replace("/Bayanihan-PWA/pages/dashboard.html"); // Redirect to admin dashboard
+            window.location.replace(`${BASE_PATH}/pages/dashboard.html`);
           } else if (userRole === "volunteer") {
-            window.location.replace("/Bayanihan-PWA/volunteer-dashboard.html"); // Redirect to volunteer dashboard
+            window.location.replace(`${BASE_PATH}/volunteer-dashboard.html`);
           } else {
-            window.location.replace("/Bayanihan-PWA/pages/dashboard.html"); // Default home page if no role
+            window.location.replace(`${BASE_PATH}/pages/dashboard.html`);
           }
           
         } else {
@@ -115,7 +133,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (error.code === "auth/user-not-found" || error.code === "auth/wrong-password") {
           alert("Invalid mobile number or password.");
         } else {
-          alert("Login failed: " + error.message);
+          alert("An error occurred during login. Please try again or contact support.");
         }
       }
     });
