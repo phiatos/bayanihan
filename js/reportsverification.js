@@ -1,5 +1,4 @@
 document.addEventListener('DOMContentLoaded', () => {
-    
     // Firebase configuration
     const firebaseConfig = {
         apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
@@ -14,7 +13,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
     const database = firebase.database();
 
     let submittedReports = [];
@@ -25,40 +23,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const sortSelect = document.getElementById("sortSelect");
     let currentPage = 1;
     const rowsPerPage = 5;
-
-    // Check user authentication and role
-    auth.onAuthStateChanged(user => {
-        if (!user) {
-            // Redirect to login if not authenticated
-            Swal.fire({
-                icon: 'error',
-                title: 'Authentication Required',
-                text: 'Please sign in to access this page.',
-            }).then(() => {
-                window.location.href = "../pages/login.html"; // Adjust to your login page
-            });
-            return;
-        }
-
-        // Check user role
-        database.ref(`users/${user.uid}/role`).once('value', snapshot => {
-            const role = snapshot.val();
-            if (role !== "AB ADMIN") {
-                // Deny access if not AB ADMIN
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Access Denied',
-                    text: 'You do not have permission to access this page.',
-                }).then(() => {
-                    window.location.href = "../pages/dashboard.html"; // Redirect to a safe page
-                });
-                return;
-            }
-
-            // If AB ADMIN, load reports
-            loadReportsFromFirebase();
-        });
-    });
 
     // Format date
     function formatDate(dateStr) {
@@ -123,10 +87,8 @@ document.addEventListener('DOMContentLoaded', () => {
             viewBtn.addEventListener('click', () => {
                 let readableReport = "";
                 for (let key in report) {
-                    // Skip firebaseKey
                     if (key === "firebaseKey") continue;
 
-                    // Convert sanitized keys to readable format for display
                     let displayKey = key
                         .replace(/([A-Z])/g, ' $1')
                         .replace(/^./, str => str.toUpperCase());
@@ -152,14 +114,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 const modal = document.getElementById("reportModal");
                 const modalDetails = document.getElementById("modalReportDetails");
                 const closeModal = document.querySelector(".close-button");
-                
-            
+
                 modalDetails.innerHTML = `  
                 <div class="report-section">
                     <div class="form-1">
                         <h2>Basic Information</h2>
                         <p><strong>Report ID:</strong>${report.ReportID || "-"}<p>
-                        <p><strong>Volunteer Group: </strong>${report.volunteerGroup || "[Organization_Name]"}</p>
+                        <p><strong>Volunteer Group: </strong>${report.VolunteerGroupName || "[Org_Name]"}</p>
                         <p class="cell"><strong>Location of Operation: </strong>${report.Barangay || "-"}, ${report.CityMunicipality || "-"}</p>
                         <p><strong>Submitted By: </strong>${report.SubmittedBy || "-"}<p>
                         <p><strong>Date of Report Submitted: </strong>${formatDate(report.DateOfReport) || "-"}</p>
@@ -178,9 +139,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                     <div class="form-3">
                         <h2>Additional Updates</h2>
-                        <p><strong>Notes/Additional Information:</strong> ${formatDate(report.NotesAdditionalInformation) || "-"}</p>
+                        <p><strong>Notes/Additional Information:</strong> ${report.NotesAdditionalInformation || "-"}</p>
                     </div>
-                  
                 `;
 
                 modal.classList.remove("hidden");
@@ -198,11 +158,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Approve action
             tr.querySelector('.approveBtn').addEventListener('click', () => {
-                // Move report to approved node
                 report["Status"] = "Approved";
                 database.ref(`reports/approved`).push(report)
                     .then(() => {
-                        // Remove from submitted node
                         database.ref(`reports/submitted/${report.firebaseKey}`).remove()
                             .then(() => {
                                 Swal.fire({
@@ -223,7 +181,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Reject action
             tr.querySelector('.rejectBtn').addEventListener('click', () => {
-                // Remove from submitted node
                 database.ref(`reports/submitted/${report.firebaseKey}`).remove()
                     .then(() => {
                         Swal.fire({
@@ -274,7 +231,6 @@ document.addEventListener('DOMContentLoaded', () => {
         paginationContainer.appendChild(createButton("Next", currentPage + 1, currentPage === totalPages));
     }
 
-    
     // Search and sort functionality
     function applySearchAndSort() {
         const searchQuery = document.getElementById('searchInput').value.toLowerCase();
@@ -284,26 +240,26 @@ document.addEventListener('DOMContentLoaded', () => {
         let filteredReports = submittedReports.filter(report => {
             return Object.entries(report).some(([key, value]) => {
                 if (key === "DateOfReport") {
-                    const formattedDate = formatDate(value).toLowerCase(); // Format and convert to lowercase
+                    const formattedDate = formatDate(value).toLowerCase();
                     return formattedDate.includes(searchQuery);
                 }
                 return value?.toString().toLowerCase().includes(searchQuery);
             });
         });
+
         // Sort
         if (sortBy) {
             filteredReports.sort((a, b) => {
                 const valA = a[sortBy] || "";
                 const valB = b[sortBy] || "";
-    
-                // Handle Date sorting specifically
+
                 if (sortBy === "DateOfReport") {
                     const dateA = new Date(valA);
                     const dateB = new Date(valB);
                     if (isNaN(dateA) || isNaN(dateB)) return 0;
                     return direction === "asc" ? dateA - dateB : dateB - dateA;
                 }
-    
+
                 return direction === "asc"
                     ? valA.toString().localeCompare(valB.toString())
                     : valB.toString().localeCompare(valA.toString());
@@ -335,4 +291,7 @@ document.addEventListener('DOMContentLoaded', () => {
             window.location.href = "../pages/reportslog.html";
         });
     }
+
+    // Load reports
+    loadReportsFromFirebase();
 });

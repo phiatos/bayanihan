@@ -1,36 +1,42 @@
+// Flag to prevent multiple restriction alerts
+let isRestricted = false;
+
 function initSidebar() {
+  // Prevent multiple executions of initSidebar
+  if (window.sidebarInitialized) {
+    console.log("initSidebar already executed, skipping.");
+    return;
+  }
+  window.sidebarInitialized = true;
+
   const menuBtn = document.querySelector(".menu-btn");
   const sidebar = document.querySelector(".sidebar");
   const logoutBtn = document.querySelector("#logout-btn");
 
-  // Menu button toggle logic
   if (menuBtn && sidebar) {
-    menuBtn.addEventListener("click", function() {
+    menuBtn.addEventListener("click", function () {
       sidebar.classList.toggle("active");
     });
   } else {
     console.log("Menu button or sidebar element NOT found (from within sidebar.js).");
   }
 
-  // Sub-menu toggle logic
-  document.querySelectorAll(".menu ul li.has-dropdown > a").forEach(link => {
+  document.querySelectorAll(".menu ul li.has-dropdown > a").forEach((link) => {
     link.addEventListener("click", function (e) {
       e.preventDefault();
       const parentLi = this.parentElement;
-  
-      // Deactivate all other dropdowns
-      document.querySelectorAll(".menu ul li.has-dropdown").forEach(li => {
+
+      document.querySelectorAll(".menu ul li.has-dropdown").forEach((li) => {
         if (li !== parentLi) {
           li.classList.remove("active");
           const sub = li.querySelector(".sub-menu");
           if (sub) sub.style.display = "none";
         }
       });
-  
-      // Toggle current dropdown
+
       const subMenu = parentLi.querySelector(".sub-menu");
       const isVisible = subMenu && subMenu.style.display === "block";
-  
+
       parentLi.classList.toggle("active", !isVisible);
       if (subMenu) {
         subMenu.style.display = isVisible ? "none" : "block";
@@ -38,7 +44,6 @@ function initSidebar() {
     });
   });
 
-  // Logout button logic
   if (logoutBtn) {
     logoutBtn.addEventListener("click", function (e) {
       e.preventDefault();
@@ -56,6 +61,7 @@ function initSidebar() {
         if (result.isConfirmed) {
           localStorage.removeItem("userMobile");
           localStorage.removeItem("userRole");
+          localStorage.removeItem("userData");
 
           Swal.fire({
             title: "Logged out!",
@@ -67,7 +73,7 @@ function initSidebar() {
 
           setTimeout(() => {
             const absolutePath = "../pages/login.html";
-            window.location.replace(absolutePath); // Redirect to login
+            window.location.replace(absolutePath);
           }, 1600);
         }
       });
@@ -76,44 +82,133 @@ function initSidebar() {
     console.log("Logout button element NOT found (from within sidebar.js).");
   }
 
-  // Logic to populate user details
+  // Restrict ABVN access to specific pages
+  function restrictPageAccess() {
+    // Skip if already restricted
+    if (isRestricted) {
+      console.log("Page access already restricted, skipping.");
+      return;
+    }
+
+    const restrictedPages = [
+      'volunteergroupmanagement.html',
+      'reportsVerification.html',
+      'reportsLog.html',
+      'activation.html',
+      'reliefsLog.html'
+    ];
+    const currentPath = window.location.pathname;
+    const isRestrictedPage = restrictedPages.some(page => currentPath.includes(page));
+
+    if (isRestrictedPage) {
+      const userRole = localStorage.getItem("userRole");
+      if (!userRole) {
+        console.log("No user role found in localStorage, redirecting to login.");
+        isRestricted = true; // Set flag to prevent further triggers
+        Swal.fire({
+          icon: "warning",
+          title: "Authentication Required",
+          text: "Please sign in to continue.",
+          timer: 2000,
+          showConfirmButton: false
+        });
+        setTimeout(() => {
+          window.location.replace("/Bayanihan-PWA/pages/login.html");
+        }, 2000);
+        return;
+      }
+      if (userRole === "ABVN") {
+        console.log("ABVN user attempted to access restricted page:", currentPath);
+        isRestricted = true; // Set flag to prevent further triggers
+        Swal.fire({
+          icon: "error",
+          title: "Access Denied",
+          text: "This page is for admins only.",
+          timer: 2000,
+          showConfirmButton: false
+        });
+        setTimeout(() => {
+          window.location.replace("/Bayanihan-PWA/pages/dashboard.html");
+        }, 2000);
+      }
+    }
+  }
+
   function populateUserDetails() {
     const userRoleElement = document.querySelector("#user-role");
     const userNameElement = document.querySelector("#user-name");
 
-    // Retrieve user data from localStorage (or fallback to defaults)
-    const user = JSON.parse(localStorage.getItem("userData")) || {
-      name: "John Doe",
-      role: "web developer",
-      group: "Unknown",
-      contactPerson: "N/A"
-    };
+    const user = JSON.parse(localStorage.getItem("userData")) || {};
 
-    // Determine group/role display for user-role
+    console.log("User Data retrieved in sidebar:", user);
+
+    const group = user.group || "";
+    const contactPerson = user.contactPerson || "";
+    const role = user.role || "";
+
     let roleDisplay = "";
-    if (user.role === "admin") {
+    if (role === "AB ADMIN") {
       roleDisplay = "Admin";
-    } else if (user.group === "ABVN") {
-      roleDisplay = "ABVN Group";
+    } else if (role === "ABVN") {
+      roleDisplay = group;
     } else {
-      roleDisplay = `Volunteer Group: ${user.group || "None"}`;
+      roleDisplay = "";
     }
 
-    // Update DOM elements
+    console.log("Role Display for #user-role:", roleDisplay);
+
     if (userRoleElement) {
       userRoleElement.textContent = roleDisplay;
+    } else {
+      console.log("#user-role element not found in DOM");
     }
+
     if (userNameElement) {
-      const contactInfo = user.contactPerson && user.contactPerson !== "N/A" 
-        ? ` (Contact: ${user.contactPerson})` 
-        : "";
-      userNameElement.textContent = `${user.name || "John Doe"}${contactInfo}`;
+      userNameElement.textContent = contactPerson;
+    } else {
+      console.log("#user-name element not found in DOM");
+    }
+
+    restrictMenuAccess(role);
+  }
+
+  function restrictMenuAccess(role) {
+    const restrictedItems = [
+      ".menu-activation",
+      ".menu-reports",
+      ".menu-reliefs-log",
+    ];
+
+    console.log("Restricting menu access for role:", role);
+
+    if (role === "ABVN") {
+      restrictedItems.forEach((selector) => {
+        const parentLi = document.querySelector(selector);
+        if (parentLi) {
+          parentLi.style.display = "none";
+          console.log(`Hid menu item: ${selector}`);
+        } else {
+          console.log(`Menu item not found: ${selector}`);
+        }
+      });
+    } else {
+      restrictedItems.forEach((selector) => {
+        const parentLi = document.querySelector(selector);
+        if (parentLi) {
+          parentLi.style.display = "block";
+          console.log(`Showed menu item: ${selector}`);
+        }
+      });
     }
   }
 
-  // Call the function to populate user details
+  // Call restrictPageAccess on page load
+  restrictPageAccess();
   populateUserDetails();
+
+  window.addEventListener("updateSidebar", () => {
+    populateUserDetails();
+  });
 }
 
-// Call initSidebar when the script loads
 initSidebar();

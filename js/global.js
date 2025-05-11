@@ -31,6 +31,7 @@ function formatMobileNumber(mobile) {
   return null;
 }
 
+<<<<<<< HEAD
 function generateTempPassword(length = 10) {
   const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+";
   let password = "";
@@ -58,6 +59,12 @@ function showAlert(icon, title, text) {
 }
 
 // Login logic
+=======
+// Base path for redirects
+const BASE_PATH = "/Bayanihan-PWA";
+
+// Main logic
+>>>>>>> 47542607496c29c4264373a23319286868a6706b
 document.addEventListener("DOMContentLoaded", () => {
   const container = document.querySelector(".container");
   const registerBtn = document.querySelector(".register-btn");
@@ -107,6 +114,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (snapshot.exists()) {
           const userData = snapshot.val();
+          // Ensure all necessary fields are included in userData
+          const updatedUserData = {
+            name: userData.name || "",
+            role: userData.role || "",
+            group: userData.group || "", // Ensure group is stored
+            contactPerson: userData.contactPerson || "",
+          };
+
+          // Debug: Log the user data to verify the group field
+          console.log("User Data being stored in localStorage:", updatedUserData);
+
+          // Store the full userData in localStorage
+          localStorage.setItem("userData", JSON.stringify(updatedUserData));
           localStorage.setItem("userMobile", mobile);
           localStorage.setItem("userRole", userData.role);
           console.log(`User data retrieved:`, userData);
@@ -120,6 +140,7 @@ document.addEventListener("DOMContentLoaded", () => {
           if ("serviceWorker" in navigator) {
             navigator.serviceWorker.ready.then((registration) => {
               registration.active?.postMessage({ type: "UPDATE_CACHE" });
+<<<<<<< HEAD
             });
           }
 
@@ -133,6 +154,22 @@ document.addEventListener("DOMContentLoaded", () => {
           } else {
             console.warn(`Unknown role: ${userRole}, redirecting to default dashboard`);
             window.location.replace("/Bayanihan-PWA/pages/dashboard.html");
+=======
+            }).catch((error) => {
+              console.error("Service Worker error:", error);
+            });
+          }
+
+          // Role-based Redirection
+          const userRole = userData.role;
+
+          if (userRole === "admin") {
+            window.location.replace(`${BASE_PATH}/pages/dashboard.html`);
+          } else if (userRole === "volunteer") {
+            window.location.replace(`${BASE_PATH}/volunteer-dashboard.html`);
+          } else {
+            window.location.replace(`${BASE_PATH}/pages/dashboard.html`);
+>>>>>>> 47542607496c29c4264373a23319286868a6706b
           }
         } else {
           console.error(`No user data found for UID: ${user.uid}`);
@@ -155,7 +192,11 @@ document.addEventListener("DOMContentLoaded", () => {
         } else if (error.code === "auth/too-many-requests") {
           errorMessage += 'Too many login attempts. Please try again later.';
         } else {
+<<<<<<< HEAD
           errorMessage += error.message;
+=======
+          alert("An error occurred during login. Please try again or contact support.");
+>>>>>>> 47542607496c29c4264373a23319286868a6706b
         }
         showAlert('error', 'Login Failed', errorMessage);
       }
