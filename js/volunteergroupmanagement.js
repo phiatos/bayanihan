@@ -139,87 +139,60 @@ function fetchAndRenderTable() {
       Swal.fire({
         icon: "warning",
         title: "Authentication Required",
-        text: "Please sign in as an admin to view volunteer groups."
+        text: "Please sign in as an admin to view volunteer groups.",
+        timer: 2000,
+        showConfirmButton: false
       });
+      setTimeout(() => {
+        window.location.replace("/Bayanihan-PWA/pages/login.html");
+      }, 2000);
       return;
     }
-    console.log("Fetching user data for UID:", user.uid);
-    database.ref(`users/${user.uid}`).once("value")
+    console.log("Fetching volunteerGroups...");
+    database.ref("volunteerGroups").once("value")
       .then(snapshot => {
-        const userData = snapshot.val();
-        console.log("User data:", userData);
-        if (!userData) {
-          console.warn("No user data found for UID:", user.uid);
+        const fetchedData = snapshot.val();
+        console.log("Fetched volunteerGroups:", fetchedData);
+        if (!fetchedData) {
+          console.warn("No data found in volunteerGroups node.");
+          data = [];
+          renderTable();
           Swal.fire({
-            icon: "error",
-            title: "User Not Found",
-            text: `User data not found in the database. Contact support with UID: ${user.uid}`
+            icon: "info",
+            title: "No Data",
+            text: "No volunteer groups found in the database."
           });
           return;
         }
-        if (userData.role !== "AB ADMIN") {
-          console.warn("User is not an admin:", userData);
-          Swal.fire({
-            icon: "error",
-            title: "Access Denied",
-            text: "Only admins can access this page."
-          });
-          return;
-        }
-        console.log("Fetching volunteerGroups...");
-        database.ref("volunteerGroups").once("value")
-          .then(snapshot => {
-            const fetchedData = snapshot.val();
-            console.log("Fetched volunteerGroups:", fetchedData);
-            if (!fetchedData) {
-              console.warn("No data found in volunteerGroups node.");
-              data = [];
-              renderTable();
-              Swal.fire({
-                icon: "info",
-                title: "No Data",
-                text: "No volunteer groups found in the database."
-              });
-              return;
-            }
-            data = Object.entries(fetchedData).map(([key, entry]) => ({
-              no: parseInt(key),
-              organization: entry.organization || "N/A",
-              hq: entry.hq || "N/A",
-              areaOfOperation: entry.areaOfOperation || "N/A",
-              contactPerson: entry.contactPerson || "N/A",
-              email: entry.email || "N/A",
-              mobileNumber: entry.mobileNumber || "N/A",
-              socialMedia: entry.socialMedia || "N/A",
-              activation: entry.activation || "N/A",
-              calamityType: entry.calamityType || "N/A"
-            }));
-            console.log("Processed Data:", data);
-            data.sort((a, b) => a.no - b.no);
-            renderTable();
-          })
-          .catch(error => {
-            console.error("Error fetching volunteerGroups:", error);
-            let errorMessage = "Failed to fetch data. Check network or database.";
-            if (error.code === "PERMISSION_DENIED") {
-              errorMessage = "Permission denied. Ensure database rules allow admin read access.";
-            }
-            Swal.fire({
-              icon: "error",
-              title: "Fetch Error",
-              text: errorMessage
-            });
-            data = [];
-            renderTable();
-          });
+        data = Object.entries(fetchedData).map(([key, entry]) => ({
+          no: parseInt(key),
+          organization: entry.organization || "N/A",
+          hq: entry.hq || "N/A",
+          areaOfOperation: entry.areaOfOperation || "N/A",
+          contactPerson: entry.contactPerson || "N/A",
+          email: entry.email || "N/A",
+          mobileNumber: entry.mobileNumber || "N/A",
+          socialMedia: entry.socialMedia || "N/A",
+          activation: entry.activation || "N/A",
+          calamityType: entry.calamityType || "N/A"
+        }));
+        console.log("Processed Data:", data);
+        data.sort((a, b) => a.no - b.no);
+        renderTable();
       })
       .catch(error => {
-        console.error("Error fetching user data:", error);
+        console.error("Error fetching volunteerGroups:", error);
+        let errorMessage = "Failed to fetch data. Check network or database.";
+        if (error.code === "PERMISSION_DENIED") {
+          errorMessage = "Permission denied. Ensure database rules allow read access.";
+        }
         Swal.fire({
           icon: "error",
-          title: "Error",
-          text: `Failed to verify admin status: ${error.message}`
+          title: "Fetch Error",
+          text: errorMessage
         });
+        data = [];
+        renderTable();
       });
   });
 }
@@ -720,13 +693,6 @@ if (confirmSaveBtn) {
         throw new Error("No admin signed in. Please sign in again.");
       }
       console.log("Current admin:", adminUser.uid);
-
-      // Verify admin role
-      const adminSnapshot = await database.ref(`users/${adminUser.uid}`).once("value");
-      const adminData = adminSnapshot.val();
-      if (!adminData || adminData.role !== "AB ADMIN") {
-        throw new Error("Current user is not an admin.");
-      }
 
       // Check if mobile number already exists
       const usersSnapshot = await database.ref('users').once('value');
