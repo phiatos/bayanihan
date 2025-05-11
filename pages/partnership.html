@@ -6,7 +6,7 @@
     <link rel="stylesheet" href="../components/sidebar.css" />
     <link rel="stylesheet" href="../css/partnership.css" />
     <link rel="stylesheet" href="../css/global.css" />
-    <link rel='stylesheet' href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css'/>
+    <link rel='stylesheet' href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css'/>    
 
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
@@ -14,139 +14,133 @@
 
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-     
-    
+
     <title>Partnership</title>
 </head>
 <body>
-    <div class="form-page-container">
+    <div class="main-container">
         <div class="sidebar-placeholder"></div>
-        <div id="form-main-content">
-            <header>Partnership</header>
-        
-                <!-- Page 1 -->
-            <form id="form-page-1">
-                <div class="form first">
-                    <div class="form-container-1">
-                        <div class="fields">
-                            <div class="input-field">
-                                <label for="partnerName">Name of the Partner/Donor</label>
-                                <input type="text" id="partnerName" placeholder="Enter Partner/Donor Name" required />
-                            </div>
-                            <div class="input-field">
-                                <label for="partnerType">Partner Type</label>
-                                <input type="text" id="partnerType" placeholder="Enter Partner Type" required />
-                            </div>
-                            <div class="input-field">
-                                <label for="partnerAddress">Address or Usual Location</label>
-                                <input type="text" id="partnerAddress" placeholder="Enter Address" required />
-                            </div>
-                            <div class="input-field">
-                                <label for="contactPerson">Contact Person</label>
-                                <input type="text" id="contactPerson" placeholder="Enter Contact Person" required />
-                            </div>
-                            <div class="input-field">
-                                <label for="contactNumber">Contact Number</label>
-                                <input type="tel" id="contactNumber" placeholder="Enter Mobile Number" required />
-                            </div>
-                            <div class="input-field">
-                                <label for="email">Email</label>
-                                <input type="email" id="email" placeholder="Enter Email Address" required />
-                            </div>
-                        </div>
+        <div id="main-content">
+            <div class="controls">
+                <div class="controls_left">
+                    <header>Partnership Tracker</header>
+                </div>
+                <div class="controls_right">
+                    <div class="search-wrapper">
+                        <i class="fa fa-search"></i>
+                        <input type="text" placeholder="Search" id="searchInput" />
+                        <button onclick="clearDInputs()" class="clear-btn">
+                            <i class='bx bx-x'></i>
+                        </button>
                     </div>
-
-                    <div class="form-container-2">
-                        <div class="fields">
-                            <div class="input-field">
-                                <label for="assistanceType">Type of Assistance</label>
-                                <select id="assistanceType" required>
-                                    <option value="" disabled selected>Select Type of Assistance</option>
-                                    <option value="assistanceType1">Assistance Type 1</option>
-                                    <option value="assistanceType2">Assistance Type 2</option>
-                                    <option value="assistanceType3">Assistance Type 3</option>
-                                    <option value="assistanceType4">Assistance Type 4</option>
-                                    <option value="Others">Others</option>
-                                </select>
-                            </div>
-                            <div>
-                                <p>Notes/Additional Information</p>
-                                <textarea id="notes" rows="6" cols="100" placeholder="Notes/additional information"></textarea>
-                            </div>
-                            <div class="input-field">
-                                <label for="valuation">Valuation</label>
-                                <input type="number" placeholder="Enter Valuation" min="1" required>
-                            </div>
-                            <div class="input-field">
-                                <label for="endorsedTo">Endorsed to</label>
-                                <select id="endorsedTo" required>
-                                    <option value="" disabled selected>Endorse to</option>
-                                    <option value="endorsedTo1">Endorsed 1</option>
-                                    <option value="endorsedTo2">Endorsed 2</option>
-                                    <option value="endorsedTo3">Endorsed 3</option>
-                                    <option value="Others">Others</option>
-                                </select>
-                            </div>
-                            <div class="input-field">
-                                <label for="staffIncharge">Staff-In charge</label>
-                                <input type="text" id="staffIncharge" placeholder="Enter Staff In-Charge" required />
-                            </div>
-                        </div>     
-                        <button type="button" class="next-btn" id="nextBtn">Proceed</button>
+                    <div class="custom-select-wrapper">
+                        <select id="sortSelect">
+                            <option value="">Sort by</option>
+                            <option value="organization">Organization</option>
+                            <option value="hq">HQ</option>
+                            <option value="status">Status</option>
+                            <option value="calamity">Calamity</option>
+                        </select>
+                        <i class='bx bx-chevron-down'></i>
                     </div>
                 </div>
-            </form>
+            </div>
 
-                <!-- Page 2 -->
-            <form id="form-page-2" style="display: none;">
-                <h2>Submission Preview</h2>
-                    <div id="previewContact">
-                    <p><strong>Name of the Partner/Donor:</strong> <span id="previewPartnerName"></span></p>
-                    <p><strong>Partner Type:</strong> <span id="previewPartnerType"></span></p>
-                    <p><strong>Address or Usual Location:</strong> <span id="previewPartnerAddress"></span></p>
-                    <p><strong>Contact Person:</strong> <span id="previewContactPerson"></span></p>
-                    <p><strong>Contact Number:</strong> <span id="previewContactNumber"></span></p>
-                    <p><strong>Email:</strong> <span id="previewEmail"></span></p>
-                    <p><strong>Type of Assistance:</strong> <span id="previewAssistanceType"></span></p>
-                    <p><strong>Notes/Additional Information:</strong> <span id="previewNotes"></span></p>
-                    <p><strong>Valuation:</strong> <span id="previewValuation"></span></p>
-                    <p><strong>Endorsed To:</strong> <span id="previewEndorsedTo"></span></p>
-                    <p><strong>Staff-In Charge:</strong> <span id="previewStaffIncharge"></span></p>
-                    </div>
-        
-                    <div class="button-group">
-                        <button type="button" class="next-btn" id="backBtn">Back</button>
-                        <button type="submit" class="next-btn">Submit</button>
-                    </div>
-            </form>
+            <!-- Editable Table -->
+            <table id="partnershipTable">
+                <thead>
+                    <tr>
+                        <th>No.</th>
+                        <th>Encoder</th>
+                        <th>Partner/Donor Name</th>
+                        <th>Partner Type</th>
+                        <th>Address</th>
+                        <th>Contact Person</th>
+                        <th>Number</th>
+                        <th>Email</th>
+                        <th>Assistance Type</th>
+                        <th>Additional Notes</th>
+                        <th>Valuation</th>
+                        <th>Status</th>
+                        <th>Endorsed To</th>
+                        <th>Staff In-charge</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1</td>
+                        <td><input type="text" placeholder="Enter Encoder"></td>
+                        <td><input type="text" placeholder="Enter Name"></td>
+                        <td><input type="text" placeholder="Enter Type"></td>
+                        <td><input type="text" placeholder="Enter Address"></td>
+                        <td><input type="text" placeholder="Enter Contact Person"></td>
+                        <td><input type="tel" placeholder="Enter Mobile Number"></td>
+                        <td><input type="email" placeholder="Enter Email Address"></td>
+                        <td>
+                            <select>
+                                <option disabled selected>Select Assistance Type</option>
+                                <option value="Cash">Cash</option>
+                                <option value="Relief Goods">Relief Goods</option>
+                                <option value="Services">Services</option>
+                            </select>
+                        </td>
+                        <td><textarea placeholder="Enter Additional Notes" rows="2"></textarea></td>
+                        <td><input type="number" placeholder="Enter Valuation" min="1"></td>
+                        <td>
+                            <select>
+                                <option disabled selected>Select Status</option>
+                                <option value="Close">Close</option>
+                                <option value="Closed Successful">Closed Successful</option>
+                                <option value="Pending">Pending</option>
+                            </select>
+                        </td>
+                        <td>
+                            <select>
+                                <option disabled selected>Select Endorsee</option>
+                                <option value="Team A">Team A</option>
+                                <option value="Team B">Team B</option>
+                                <option value="External Partner">External Partner</option>
+                            </select>
+                        </td>
+                        <td><input type="text" placeholder="Enter Staff In-Charge"></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <button class="add-row-btn" onclick="addRow()">Add Row</button>
+            <button class="save-table-btn" onclick="saveTable()">Save Table</button>
+
+
+            <div class="pagination-info">
+                <span id="entriesInfo">Showing 0 to 0 of 0 entries</span>
+                <div id="pagination" class="pagination"></div>
+            </div>
         </div>
     </div>
 
-        <script>
-            // Fetch the sidebar HTML and inject it into the page
-            fetch('../components/sidebar.html')
-            .then(response => response.text())
-            .then(data => {
-                document.querySelector('.sidebar-placeholder').innerHTML = data;
+    <script>
+        // Fetch the sidebar HTML and inject it into the page
+        fetch('../components/sidebar.html')
+        .then(response => response.text())
+        .then(data => {
+            document.querySelector('.sidebar-placeholder').innerHTML = data;
 
-                // Create a new script element
-                const sidebarScript = document.createElement('script');
-                sidebarScript.src = '../components/sidebar.js'; 
+            // Create a new script element
+            const sidebarScript = document.createElement('script');
+            sidebarScript.src = '../components/sidebar.js'; 
 
-                // Call initSidebar when the script has loaded and executed
-                sidebarScript.onload = function() {
-                };
+            // Call initSidebar when the script has loaded and executed
+            sidebarScript.onload = function() {
+            };
 
-                // Append the script element to the sidebar-placeholder
-                document.querySelector('.sidebar-placeholder').appendChild(sidebarScript);
-            })
-            .catch(error => {
-                console.error('Error loading sidebar:', error);
-            });
-        </script>
+            // Append the script element to the sidebar-placeholder
+            document.querySelector('.sidebar-placeholder').appendChild(sidebarScript);
+        })
+        .catch(error => {
+            console.error('Error loading sidebar:', error);
+        });
+    </script>
 
-        <script src="../js/partnership.js"></script>
-
-        
-    </body>
+    <script src="../js/partnership.js"></script>
+</body>
 </html>
