@@ -1,57 +1,3 @@
-.modal {
-  position: fixed;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  background: rgba(0,0,0,0.6);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 999;
-}
-.modal.hidden { display: none; }
-.modal-content {
-  background: var(--white);
-  padding: 50px;
-  width: 1000px;
-  height: auto;
-  overflow-y: auto;
-  border: 5px solid var(--primary-color);
-  border-radius: 18px;
-  position: relative;
-}
-.close {
-  position: absolute;
-  top: 10px; right: 15px;
-  font-size: 24px;
-  cursor: pointer;
-}
-
-#modalTitle{
-  color: #4059A5;
-}
-.details p { 
-  margin-top: 20px;
-  padding: 2px;
-
-}
-
-.viewBtn {
-  background-color: #4059A5;
-  width: 80%;
-  margin-bottom: 5px;
-}
-.viewBtn:hover {
-  background-color: #32488a;
-}
-
-.deleteBtn {
-  background-color: #FF3B30;
-  width: 80%;
-}
-.deleteBtn:hover {
-  background-color: #d63128;
-}
-
 /* Modal Table Styling */
 #reliefModal .modal-content table {
   width: 100%;
@@ -71,25 +17,25 @@
   text-align: center;
   vertical-align: middle;
   font-size: 15px;
-  background-color: var(--white);
+  background-color: var(--light-bg);
   word-wrap: break-word;
   overflow-wrap: break-word;
 }
 
 #reliefModal .modal-content table th {
-  background-color: var(--white);
+  background-color: var(--light-bg);
   color: #aaa;
   border: none;
   font-weight: 600;
 }
 
 #reliefModal .modal-content table tbody tr:nth-child(even) {
-  background-color: #fafafa;
+  background-color: var(--light-bg);
 }
 
 /* Optional hover effect */
 #reliefModal .modal-content table tbody tr:hover {
-  background-color: #f0f8ff;
+  background-color: var(--light-bg);
 }
 
 @media (max-width: 768px) {

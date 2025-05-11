@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../components/sidebar.css" />
-    <link rel="stylesheet" href="../css/reportsverification.css" />
+    <link rel="stylesheet" href="../css/reports.css" />
     <link rel="stylesheet" href="../css/global.css" />
     <link rel='stylesheet' href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css'/>
 
@@ -15,7 +15,6 @@
 
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    
     
     <title>Reports Verification</title>
 </head>
@@ -82,15 +81,14 @@
 
     <div id="reportModal" class="modal hidden">
         <div class="modal-content">
+            <span id="closeModal" class="close">&times;</span>
             <div class="modal-header"> 
                 <h2>Report Details</h2>
-                <span class="close-button">&times;</span>
              </div>
           <p id="modalReportDetails"></p>
         </div>
     </div>
 
-    <script src="../js/reportsverification.js"></script>
     <script>
         fetch('../components/sidebar.html')
         .then(response => response.text())
@@ -105,5 +103,6 @@
             console.error('Error loading sidebar:', error);
         });
     </script>
+    <script src="../js/reportsverification.js"></script>
 </body>
 </html>
