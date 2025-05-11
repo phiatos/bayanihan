@@ -1,14 +1,8 @@
-@import url(https://fonts.googleapis.com/css?family=Inter:100,200,300,regular,500,600,700,800,900);
-
-/* Reset CSS */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  font-family: "Inter", sans-serif;
+/* Sidebar Styles */
+a {
+  text-decoration: none;
 }
 
-/* Sidebar Styles */
 .sidebar {
   position: relative;
   width: 256px;
@@ -16,7 +10,7 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
-  background-color: #14AEBB;
+  background-color: var(--primary-color);
   padding: 14px;
   border-radius: 0 30px 30px 0;
   transition: width 0.3s;
@@ -24,11 +18,12 @@
   z-index: 1000;
   overflow: visible;
 }
+
 .sidebar .head {
   display: flex;
   gap: 20px;
   padding-bottom: 20px;
-  border-bottom: 1px solid #f6f6f6;
+  border-bottom: 1px solid var(--white);
 }
 
 .user-img {
@@ -47,21 +42,21 @@
 .menu .title {
   font-size: 10px;
   font-weight: 500;
-  color: #ffffff;
+  color: var(--white);
   text-transform: uppercase;
   margin-bottom: 5px;
 }
 
 .user-details .name {
-  color: #4059A5;
+  color: var(--white);
   font-size: 14px;
   font-weight: bold;
 }
 
 /* Navigation Styles */
-.nav {
-  /* flex: 1; */
-}
+/* .nav {
+  flex: 1;
+} */
 
 .menu ul li {
   position: relative;
@@ -74,7 +69,7 @@
   gap: 10px;
   font-size: 12px;
   font-weight: 500;
-  color: #ffffff;
+  color: var(--white);
   text-decoration: none;
   padding: 12px 8px;
   border-radius: 8px;
@@ -83,8 +78,8 @@
 
 .menu ul li > a:hover,
 .menu ul li.active > a {
-  color: #000;
-  background-color: #f6f6f6;
+  color: var(--accent-color);
+  background-color: var(--white);
 }
 
 .menu ul li i{
@@ -109,7 +104,7 @@
   margin-left: 20px;
   padding-left: 20px;
   padding-top: 5px;
-  border-left: 1px solid #f6f6f6;
+  border-left: 1px solid var(--white);
 }
 
 .menu .sub-menu li a {
@@ -118,13 +113,10 @@
 }
 
 /* Menu Styling */
-
-
-
 .menu:not(:last-child) {
   padding-bottom: 10px;
   margin-bottom: 20px;
-  border-bottom: 2px solid #f6f6f6;
+  border-bottom: 2px solid var(--white);
 }
 
 .menu-btn {
@@ -138,13 +130,13 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #000;
-  background-color: #4059A5;
+  color: var(--white);
+  background-color: var(--accent-color);
   z-index: 2100;
 }
 
 .menu-btn:hover i {
-  color: #000;
+  color: var(--white);
 }
 
 .menu-btn i {
@@ -187,8 +179,8 @@
   transform: translateY(-50%);
   padding: 10px;
   border-radius: 4px;
-  color: #fff;
-  background-color: #000;
+  color: var(--white);
+  background-color: var(--accent-color);
   opacity: 0;
   visibility: hidden;
   transition: all 0.3s;
@@ -202,10 +194,9 @@
   width: 20px;
   height: 20px;
   border-radius: 2px;
-  background-color: #000;
+  background-color: var(--accent-color);
   transform: rotate(45deg);
   z-index: -1;
-  
 }
 
 .sidebar.active .menu > ul > li > a:hover .text {
@@ -222,31 +213,26 @@
   width: 200px;
   border-radius: 20px;
   padding: 10px 20px;
-  border: 1px solid #f6f6f6;
   background-color: #fff;
   box-shadow: 0px 10px 8px rgba(0, 0, 0, 0.1);
 }
 
 .sidebar.active .has-dropdown.active a[href*="reliefs"] .text {
-  color: #000;
+  color: var(--primary-color);
 }
 
 .sidebar.active .has-dropdown.active a[href*="reports"] .text {
-  color: #000;
+  color: var(--primary-color);
 }
 
-/* Miscellaneous */
-.credits {
-  margin: 0 auto;
-  color: #000;
-  text-align: center;
-  font-size: 3rem;
+.sidebar.active .has-dropdown.active a[href*="reliefs"]:hover .text {
+  color: var(--accent-color); /* or any color you want */
 }
 
-.disabled {
-  pointer-events: none;
-  opacity: 0.5;
+.sidebar.active .has-dropdown.active a[href*="reports"]:hover .text {
+  color: var(--accent-color);
 }
+
 
 
 @media (min-width: 1200px) {
