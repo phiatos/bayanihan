@@ -304,6 +304,9 @@ th {
 
 /* Inputs inside Table */
 td input[type="text"],
+td input[type="tel"],
+td input[type="email"],
+td input[type="number"],
 td select {
   width: 90%; 
   padding: 5px;

@@ -402,5 +402,3 @@ sortSelect.addEventListener("change", () => {
   currentPage = 1;
   renderTable(filterAndSort());
 });
-
-// tryy
