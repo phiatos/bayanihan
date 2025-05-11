@@ -1,6 +1,4 @@
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('DOM fully loaded, initializing script'); // Debug log
-
   // Firebase configuration
   const firebaseConfig = {
       apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
@@ -49,24 +47,24 @@ document.addEventListener('DOMContentLoaded', () => {
   // Verify DOM elements exist
   if (!formPage1 || !formPage2 || !nextBtn || !backBtn || !addItemBtn || !itemsTable || !itemsTableBody || !previewContact || !previewItemsTable || !contactPersonInput || !contactNumberInput || !emailInput || !addressInput || !cityInput || !donationCategoryInput || !itemNameInput || !quantityInput || !notesInput) {
       console.error('One or more DOM elements are missing:', {
-          formPage1: !!formPage1,
-          formPage2: !!formPage2,
-          nextBtn: !!nextBtn,
-          backBtn: !!backBtn,
-          addItemBtn: !!addItemBtn,
-          itemsTable: !!itemsTable,
-          itemsTableBody: !!itemsTableBody,
-          previewContact: !!previewContact,
-          previewItemsTable: !!previewItemsTable,
-          contactPersonInput: !!contactPersonInput,
-          contactNumberInput: !!contactNumberInput,
-          emailInput: !!emailInput,
-          addressInput: !!addressInput,
-          cityInput: !!cityInput,
-          donationCategoryInput: !!donationCategoryInput,
-          itemNameInput: !!itemNameInput,
-          quantityInput: !!quantityInput,
-          notesInput: !!notesInput
+        formPage1: !!formPage1,
+        formPage2: !!formPage2,
+        nextBtn: !!nextBtn,
+        backBtn: !!backBtn,
+        addItemBtn: !!addItemBtn,
+        itemsTable: !!itemsTable,
+        itemsTableBody: !!itemsTableBody,
+        previewContact: !!previewContact,
+        previewItemsTable: !!previewItemsTable,
+        contactPersonInput: !!contactPersonInput,
+        contactNumberInput: !!contactNumberInput,
+        emailInput: !!emailInput,
+        addressInput: !!addressInput,
+        cityInput: !!cityInput,
+        donationCategoryInput: !!donationCategoryInput,
+        itemNameInput: !!itemNameInput,
+        quantityInput: !!quantityInput,
+        notesInput: !!notesInput
       });
       return;
   }
