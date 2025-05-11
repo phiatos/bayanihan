@@ -91,6 +91,28 @@
         </div>
     </div>
 
+    <div id="reliefModal" class="modal hidden">
+        <div class="modal-content">
+          <span id="closeModal" class="close">&times;</span>
+          <h2 id="modalTitle"></h2>
+          <h4>Table of Requested Items:</h4>
+          <table id="itemsTable">
+            <thead>
+              <tr><th>Item Name</th><th>Quantity</th><th>Notes</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+          <div class="details">
+            <p><strong>Contact Person:</strong> <span id="modalContact"></span></p>
+            <p><strong>Contact Number:</strong> <span id="modalNumber"></span></p>
+            <p><strong>Email:</strong> <span id="modalEmail"></span></p>
+            <p><strong>Drop-off Address:</strong> <span id="modalAddress"></span></p>
+            <p><strong>Donation Category:</strong> <span id="modalCategory"></span></p>
+            <p><strong>Volunteer Group:</strong> <span id="modalGroup"></span></p>
+          </div>
+        </div>
+    </div>
+
     <script>
         // Fetch the sidebar HTML and inject it into the page
         fetch('../components/sidebar.html')
@@ -114,28 +136,5 @@
     </script>
 
     <script src="../js/reliefslog.js"></script>
-
-    <div id="reliefModal" class="modal hidden">
-        <div class="modal-content">
-          <span id="closeModal" class="close">×</span>
-          <h2 id="modalTitle"></h2>
-          <h4>Table of Requested Items:</h4>
-          <table id="itemsTable">
-            <thead>
-              <tr><th>Item Name</th><th>Quantity</th><th>Notes</th></tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-          <div class="details">
-            <p><strong>Contact Person:</strong> <span id="modalContact"></span></p>
-            <p><strong>Contact Number:</strong> <span id="modalNumber"></span></p>
-            <p><strong>Email:</strong> <span id="modalEmail"></span></p>
-            <p><strong>Drop-off Address:</strong> <span id="modalAddress"></span></p>
-            <p><strong>Donation Category:</strong> <span id="modalCategory"></span></p>
-            <p><strong>Volunteer Group:</strong> <span id="modalGroup"></span></p>
-          </div>
-        </div>
-      </div>
-      
 </body>
 </html>
