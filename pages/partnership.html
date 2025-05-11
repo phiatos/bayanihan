@@ -6,55 +6,141 @@
     <link rel="stylesheet" href="../components/sidebar.css" />
     <link rel="stylesheet" href="../css/partnership.css" />
     <link rel="stylesheet" href="../css/global.css" />
-    <link rel='stylesheet' href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css'/>
+    <link rel='stylesheet' href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css'/>    
 
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
 
-     <!-- SweetAlert2 -->
-     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-     
-    
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <title>Partnership</title>
 </head>
 <body>
-    <body>
-        <div class="main-container">
-            <div class="sidebar-placeholder">
-                
+    <div class="main-container">
+        <div class="sidebar-placeholder"></div>
+        <div id="main-content">
+            <div class="controls">
+                <div class="controls_left">
+                    <header>Partnership Tracker</header>
+                </div>
+                <div class="controls_right">
+                    <div class="search-wrapper">
+                        <i class="fa fa-search"></i>
+                        <input type="text" placeholder="Search" id="searchInput" />
+                        <button onclick="clearDInputs()" class="clear-btn">
+                            <i class='bx bx-x'></i>
+                        </button>
+                    </div>
+                    <div class="custom-select-wrapper">
+                        <select id="sortSelect">
+                            <option value="">Sort by</option>
+                            <option value="organization">Organization</option>
+                            <option value="hq">HQ</option>
+                            <option value="status">Status</option>
+                            <option value="calamity">Calamity</option>
+                        </select>
+                        <i class='bx bx-chevron-down'></i>
+                    </div>
+                </div>
             </div>
-            <div id="main-content">
-                <header>Partnership</header>
-                <p>This is where your main content will go.</p>
+
+            <!-- Editable Table -->
+            <table id="partnershipTable">
+                <thead>
+                    <tr>
+                        <th>No.</th>
+                        <th>Encoder</th>
+                        <th>Partner/Donor Name</th>
+                        <th>Partner Type</th>
+                        <th>Address</th>
+                        <th>Contact Person</th>
+                        <th>Number</th>
+                        <th>Email</th>
+                        <th>Assistance Type</th>
+                        <th>Additional Notes</th>
+                        <th>Valuation</th>
+                        <th>Status</th>
+                        <th>Endorsed To</th>
+                        <th>Staff In-charge</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1</td>
+                        <td><input type="text" placeholder="Enter Encoder"></td>
+                        <td><input type="text" placeholder="Enter Name"></td>
+                        <td><input type="text" placeholder="Enter Type"></td>
+                        <td><input type="text" placeholder="Enter Address"></td>
+                        <td><input type="text" placeholder="Enter Contact Person"></td>
+                        <td><input type="tel" placeholder="Enter Mobile Number"></td>
+                        <td><input type="email" placeholder="Enter Email Address"></td>
+                        <td>
+                            <select>
+                                <option disabled selected>Select Assistance Type</option>
+                                <option value="Cash">Cash</option>
+                                <option value="Relief Goods">Relief Goods</option>
+                                <option value="Services">Services</option>
+                            </select>
+                        </td>
+                        <td><textarea placeholder="Enter Additional Notes" rows="2"></textarea></td>
+                        <td><input type="number" placeholder="Enter Valuation" min="1"></td>
+                        <td>
+                            <select>
+                                <option disabled selected>Select Status</option>
+                                <option value="Close">Close</option>
+                                <option value="Closed Successful">Closed Successful</option>
+                                <option value="Pending">Pending</option>
+                            </select>
+                        </td>
+                        <td>
+                            <select>
+                                <option disabled selected>Select Endorsee</option>
+                                <option value="Team A">Team A</option>
+                                <option value="Team B">Team B</option>
+                                <option value="External Partner">External Partner</option>
+                            </select>
+                        </td>
+                        <td><input type="text" placeholder="Enter Staff In-Charge"></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <button class="add-row-btn" onclick="addRow()">Add Row</button>
+            <button class="save-table-btn" onclick="saveTable()">Save Table</button>
+
+
+            <div class="pagination-info">
+                <span id="entriesInfo">Showing 0 to 0 of 0 entries</span>
+                <div id="pagination" class="pagination"></div>
             </div>
         </div>
-    
-        <script>
-            // Fetch the sidebar HTML and inject it into the page
-            fetch('../components/sidebar.html')
-            .then(response => response.text())
-            .then(data => {
-                document.querySelector('.sidebar-placeholder').innerHTML = data;
-    
-                // Create a new script element
-                const sidebarScript = document.createElement('script');
-                sidebarScript.src = '../components/sidebar.js'; 
-    
-                // Call initSidebar when the script has loaded and executed
-                sidebarScript.onload = function() {
-                };
-    
-                // Append the script element to the sidebar-placeholder
-                document.querySelector('.sidebar-placeholder').appendChild(sidebarScript);
-            })
-            .catch(error => {
-                console.error('Error loading sidebar:', error);
-            });
-        </script>
-    
-        <script src="../js/partnership.js"></script>
-    
-        
+    </div>
+
+    <script>
+        // Fetch the sidebar HTML and inject it into the page
+        fetch('../components/sidebar.html')
+        .then(response => response.text())
+        .then(data => {
+            document.querySelector('.sidebar-placeholder').innerHTML = data;
+
+            // Create a new script element
+            const sidebarScript = document.createElement('script');
+            sidebarScript.src = '../components/sidebar.js'; 
+
+            // Call initSidebar when the script has loaded and executed
+            sidebarScript.onload = function() {
+            };
+
+            // Append the script element to the sidebar-placeholder
+            document.querySelector('.sidebar-placeholder').appendChild(sidebarScript);
+        })
+        .catch(error => {
+            console.error('Error loading sidebar:', error);
+        });
+    </script>
+
+    <script src="../js/partnership.js"></script>
 </body>
 </html>
