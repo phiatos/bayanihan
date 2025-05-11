@@ -34,17 +34,16 @@
 
 /* Field name */
 .summary-box strong {
-    font-size: 12px;
+    font-size: 0.75rem;
     font-weight: bold;
     color: var(--primary-color);
 }
 
 /* Field value */
 .summary-box span {
-    font-size: 0.95rem;
+    font-size: 0.75rem;
     color: #555;
 }
-
 
 #submitBtn, #backBtn{
     background-color: var(--primary-color);
