@@ -2,7 +2,7 @@
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { get, getDatabase, ref } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
+import { equalTo, get, getDatabase, orderByChild, query, ref } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
 
 // Firebase config
 const firebaseConfig = {
@@ -22,19 +22,49 @@ const analytics = getAnalytics(app);
 const auth = getAuth(app);
 const database = getDatabase(app);
 
-// Helper function to format mobile numbers
+// Helper functions
 function formatMobileNumber(mobile) {
-  const cleaned = mobile.replace(/\D/g, ""); // Remove non-digit characters
+  const cleaned = mobile.replace(/\D/g, "");
   if (/^\d{10,15}$/.test(cleaned)) {
     return cleaned;
   }
   return null;
 }
 
+<<<<<<< HEAD
+function generateTempPassword(length = 10) {
+  const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+";
+  let password = "";
+  for (let i = 0; i < length; i++) {
+    const randomIndex = Math.floor(Math.random() * charset.length);
+    password += charset[randomIndex];
+  }
+  return password;
+}
+
+// Alert fallback if Swal is not defined
+function showAlert(icon, title, text) {
+  if (typeof Swal !== 'undefined') {
+    Swal.fire({
+      icon,
+      title,
+      text,
+      timer: icon === 'success' ? 1500 : undefined,
+      showConfirmButton: icon !== 'success'
+    });
+  } else {
+    console.warn('SweetAlert2 not loaded, using native alert');
+    alert(`${title}: ${text}`);
+  }
+}
+
+// Login logic
+=======
 // Base path for redirects
 const BASE_PATH = "/Bayanihan-PWA";
 
 // Main logic
+>>>>>>> 47542607496c29c4264373a23319286868a6706b
 document.addEventListener("DOMContentLoaded", () => {
   const container = document.querySelector(".container");
   const registerBtn = document.querySelector(".register-btn");
@@ -46,7 +76,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (registerBtn) {
     registerBtn.addEventListener("click", () => {
       container.classList.add("active");
-      loginForm.reset();
+      loginForm?.reset();
     });
   }
 
@@ -54,7 +84,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (loginBtn) {
     loginBtn.addEventListener("click", () => {
       container.classList.remove("active");
-      registerForm.reset();
+      registerForm?.reset();
     });
   }
 
@@ -62,24 +92,24 @@ document.addEventListener("DOMContentLoaded", () => {
   if (loginForm) {
     loginForm.addEventListener("submit", async (e) => {
       e.preventDefault();
-
-      const mobileInput = document.getElementById("login-mobile").value.trim();
-      const password = document.getElementById("login-password").value;
-
+      const mobileInput = document.getElementById("login-mobile")?.value.trim();
+      const password = document.getElementById("login-password")?.value;
       const mobile = formatMobileNumber(mobileInput);
 
       if (!mobile) {
-        alert("Please enter a valid mobile number (10-15 digits).");
+        showAlert('error', 'Invalid Mobile Number', 'Please enter a valid mobile number (10-15 digits, numbers only).');
         return;
       }
 
       const email = `${mobile}@bayanihan.com`;
+      console.log(`Attempting login with email: ${email}`);
 
       try {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
+        console.log(`User logged in with UID: ${user.uid}`);
 
-        const userRef = ref(database, "users/" + user.uid);
+        const userRef = ref(database, `users/${user.uid}`);
         const snapshot = await get(userRef);
 
         if (snapshot.exists()) {
@@ -99,17 +129,32 @@ document.addEventListener("DOMContentLoaded", () => {
           localStorage.setItem("userData", JSON.stringify(updatedUserData));
           localStorage.setItem("userMobile", mobile);
           localStorage.setItem("userRole", userData.role);
+          console.log(`User data retrieved:`, userData);
 
-          alert("Login successful!");
+          showAlert('success', 'Login Successful', 'You have been logged in successfully!');
 
-          // Dispatch a custom event to update the sidebar
-          const event = new Event("updateSidebar");
-          window.dispatchEvent(event);
+          // Dispatch custom event to update sidebar
+          window.dispatchEvent(new Event("updateSidebar"));
 
           // Notify service worker to update cache
           if ("serviceWorker" in navigator) {
             navigator.serviceWorker.ready.then((registration) => {
               registration.active?.postMessage({ type: "UPDATE_CACHE" });
+<<<<<<< HEAD
+            });
+          }
+
+          // Role-based redirection
+          const userRole = userData.role;
+          console.log(`Redirecting based on role: ${userRole}`);
+          if (userRole === "AB ADMIN") {
+            window.location.replace("/Bayanihan-PWA/pages/dashboard.html");
+          } else if (userRole === "ABVN") {
+            window.location.replace("/Bayanihan-PWA/pages/dashboard.html");
+          } else {
+            console.warn(`Unknown role: ${userRole}, redirecting to default dashboard`);
+            window.location.replace("/Bayanihan-PWA/pages/dashboard.html");
+=======
             }).catch((error) => {
               console.error("Service Worker error:", error);
             });
@@ -124,18 +169,41 @@ document.addEventListener("DOMContentLoaded", () => {
             window.location.replace(`${BASE_PATH}/volunteer-dashboard.html`);
           } else {
             window.location.replace(`${BASE_PATH}/pages/dashboard.html`);
+>>>>>>> 47542607496c29c4264373a23319286868a6706b
           }
-          
         } else {
-          alert("User data not found. Contact support.");
+          console.error(`No user data found for UID: ${user.uid}`);
+          // Check for duplicate mobile number
+          const usersQuery = query(ref(database, 'users'), orderByChild('mobile'), equalTo(mobile));
+          const usersSnapshot = await get(usersQuery);
+          if (usersSnapshot.exists()) {
+            const userData = Object.entries(usersSnapshot.val())[0];
+            console.warn(`Found user data for mobile ${mobile} with UID: ${userData[0]}`, userData[1]);
+            showAlert('error', 'Account Mismatch', `An account with mobile ${mobile} exists but is not linked correctly. Contact an admin to fix your account or try registering again with a different mobile number.`);
+          } else {
+            showAlert('error', 'User Data Not Found', 'Your account is not fully registered. Please contact an admin to complete registration.');
+          }
         }
       } catch (error) {
+        console.error("Login error:", error);
+        let errorMessage = 'Login failed. ';
         if (error.code === "auth/user-not-found" || error.code === "auth/wrong-password") {
-          alert("Invalid mobile number or password.");
+          errorMessage += 'Invalid mobile number or password.';
+        } else if (error.code === "auth/too-many-requests") {
+          errorMessage += 'Too many login attempts. Please try again later.';
         } else {
+<<<<<<< HEAD
+          errorMessage += error.message;
+=======
           alert("An error occurred during login. Please try again or contact support.");
+>>>>>>> 47542607496c29c4264373a23319286868a6706b
         }
+        showAlert('error', 'Login Failed', errorMessage);
       }
     });
   }
 });
+
+// Export Firebase instances and utilities
+export { analytics, app, auth, database, formatMobileNumber, generateTempPassword };
+

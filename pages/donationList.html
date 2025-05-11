@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Donation Drives List</title>
+    <link rel="stylesheet" href="../css/global.css">
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 0.5rem;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <div class="sidebar-placeholder"></div>
+        <div id="main-content">
+            <header>Donation Drives Submitted</header>
+            <table id="donationTable">
+                <thead>
+                    <tr>
+                        <th>Donation Drive</th>
+                        <th>Contact</th>
+                        <th>GCash Info</th>
+                        <th>Drop-off Location</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+<script>
+     const donations = JSON.parse(localStorage.getItem('donationData')) || [];
+
+    const tbody = document.querySelector('#donationTable tbody');
+
+    donations.forEach(d => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${d.donationDrive}</td>
+            <td>${d.contactPerson}<br>${d.contactNumber}</td>
+            <td>${d.accountName}<br>${d.accountNumber}</td>
+            <td>${d.address}<br>${d.barangay}, ${d.city}, ${d.province}</td>
+        `;
+        tbody.appendChild(row);
+    });
+</script>
+</body>
+</html>

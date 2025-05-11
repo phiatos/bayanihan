@@ -114,59 +114,60 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Back button
         document.getElementById('backBtn').addEventListener('click', () => {
-            window.location.href = '../pages/reportsSubmission.html';
+            localStorage.setItem("returnToStep", "form-container-2");
+            window.location.href = "reportssubmission.html";
         });
 
         // Submit button
         const submitBtn = document.getElementById("submitBtn");
-        submitBtn.addEventListener("click", () => {
-            // Check if user is authenticated
-            auth.onAuthStateChanged(user => {
-                if (!user) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Authentication Required',
-                        text: 'Please sign in to submit a report.',
-                    }).then(() => {
-                        window.location.href = "../pages/login.html";
-                    });
-                    return;
-                }
-
-                console.log("Submitting to Firebase:", summaryData);
-
-                // Add timestamp and status
-                summaryData["Status"] = "Pending";
-                summaryData["Timestamp"] = firebase.database.ServerValue.TIMESTAMP;
-
-                // Save to Firebase under reports/submitted
-                database.ref("reports/submitted").push(summaryData)
-                    .then(() => {
-                        console.log("Report successfully saved to Firebase");
-
-                        // Clear the draft report from localStorage
-                        localStorage.removeItem("reportData");
-
-                        // Show success message
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Report Submitted',
-                            text: 'Your report has been successfully submitted for verification!',
-                        }).then(() => {
-                            // Redirect to the single dashboard for both roles
-                            window.location.href = "../pages/dashboard.html";
-                        });
-                    })
-                    .catch((error) => {
-                        console.error("Error saving report to Firebase:", error);
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: 'Failed to submit report: ' + error.message,
-                        });
-                    });
+    submitBtn.addEventListener("click", () => {
+    auth.onAuthStateChanged(user => {
+        if (!user) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Authentication Required',
+                text: 'Please sign in to submit a report.',
+            }).then(() => {
+                window.location.href = "../pages/login.html";
             });
-        });
+            return;
+        }
+
+        console.log("Submitting to Firebase:", summaryData);
+
+        summaryData["Status"] = "Pending";
+        summaryData["Timestamp"] = firebase.database.ServerValue.TIMESTAMP;
+
+        database.ref("reports/submitted").push(summaryData)
+            .then(() => {
+                console.log("Report successfully saved to Firebase");
+
+                // 🔥 Clear localStorage data
+                localStorage.removeItem("reportData");
+                localStorage.removeItem("returnToStep"); // Also clear step memory if needed
+
+                // ✅ Show success, then redirect to form page 1
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Report Submitted',
+                    text: 'Your report has been successfully submitted for verification!',
+                }).then(() => {
+                    // 👇 Redirect to form page 1
+                    window.location.href = "../pages/dashboard.html";
+                });
+            })
+            .catch((error) => {
+                console.error("Error saving report to Firebase:", error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Failed to submit report: ' + error.message,
+                });
+            });
+    });
+});
+
+
     }).catch(error => {
         console.error("Error during report removal process:", error);
         Swal.fire({

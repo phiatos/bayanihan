@@ -11,11 +11,9 @@ document.addEventListener('DOMContentLoaded', () => {
         measurementId: "G-ZTQ9VXXVV0",
     };
 
-    // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
 
-    // Get elements
     const formPage1 = document.getElementById('form-page-1');
     const formPage2 = document.getElementById('form-page-2');
     const nextBtn = document.getElementById('nextBtn');
@@ -30,7 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const dateInput = document.getElementById('dateOfReport');
     if (dateInput) {
         const today = new Date();
-        const formatted = today.toLocaleDateString('en-CA'); // YYYY-MM-DD
+        const formatted = today.toLocaleDateString('en-CA');
         dateInput.value = formatted;
     }
 
@@ -41,7 +39,14 @@ document.addEventListener('DOMContentLoaded', () => {
         idInput.value = randomId;
     }
 
-    // Populate city and barangay dropdowns
+const submittedByInput  = document.getElementById('SubmittedBy');
+if (submittedByInput ) {
+    const groupName = localStorage.getItem("VolunteerGroupName") || "Unknown Volunteer";
+    submittedByInput.value = groupName;
+    submittedByInput.readOnly = true; // Optional: make it non-editable
+}
+
+    // Populate dropdowns
     const citySelect = document.querySelector('select[name="city"]');
     const barangaySelect = document.querySelector('select[name="barangay"]');
 
@@ -71,7 +76,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     if (citySelect && barangaySelect) {
-        // Populate cities
         Object.keys(locationData).forEach(city => {
             const option = document.createElement('option');
             option.value = city;
@@ -79,7 +83,6 @@ document.addEventListener('DOMContentLoaded', () => {
             citySelect.appendChild(option);
         });
 
-        // On city change, update barangays
         citySelect.addEventListener('change', () => {
             const selectedCity = citySelect.value;
             barangaySelect.innerHTML = '<option value="">Select Barangay</option>';
@@ -94,8 +97,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Go to next form only if valid
-    nextBtn.addEventListener('click', function () {
+    // Handle navigation
+    nextBtn.addEventListener('click', () => {
         if (formPage1.checkValidity()) {
             formPage1.style.display = "none";
             formPage2.style.display = "block";
@@ -104,13 +107,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Back to first form
-    backBtn.addEventListener('click', function () {
+    backBtn.addEventListener('click', () => {
         formPage2.style.display = "none";
         formPage1.style.display = "block";
     });
 
-    // Submit final form
+    // Submit
     formPage2.addEventListener("submit", function (e) {
         e.preventDefault();
 
@@ -118,7 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
             "Barangay": barangaySelect.value,
             "CityMunicipality": citySelect.value,
             "TimeOfIntervention": document.querySelector('input[placeholder="Time of Intervention"]').value,
-            "SubmittedBy": document.querySelector('input[placeholder="Submitted by"]').value,
+            "SubmittedBy": document.querySelector.value,
             "DateOfReport": dateInput.value,
             "ReportID": idInput.value,
             "Date": document.querySelector('input[type="date"]').value,
@@ -134,6 +136,44 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         localStorage.setItem("reportData", JSON.stringify(formData));
+        localStorage.setItem("returnToStep", "form-container-2"); // Flag to go back
         window.location.href = "../pages/reportsSummary.html";
     });
+
+    // Handle returning from reportsSummary.html
+    const returnTo = localStorage.getItem("returnToStep");
+    if (returnTo === "form-container-2") {
+        formPage1.style.display = "none";
+        formPage2.style.display = "block";
+
+        setTimeout(() => {
+            const target = document.querySelector(".form-container-2");
+            if (target) target.scrollIntoView({ behavior: "smooth" });
+        }, 100);
+
+        // Restore form data if available
+        const savedData = JSON.parse(localStorage.getItem("reportData"));
+        if (savedData) {
+            citySelect.value = savedData.CityMunicipality;
+            citySelect.dispatchEvent(new Event('change')); // To repopulate barangays
+
+            setTimeout(() => {
+                barangaySelect.value = savedData.Barangay;
+            }, 100);
+
+            document.querySelector('input[placeholder="Time of Intervention"]').value = savedData.TimeOfIntervention;
+            document.querySelector('input[placeholder="Submitted by"]').value = savedData.SubmittedBy;
+            document.querySelector('input[type="date"]').value = savedData.Date;
+            document.querySelector('input[placeholder="No. of Individuals or Families"]').value = savedData.NoOfIndividualsOrFamilies;
+            document.querySelector('input[placeholder="No. of Food Packs"]').value = savedData.NoOfFoodPacks;
+            document.querySelector('input[placeholder="No. of Hot Meals"]').value = savedData.NoOfHotMeals;
+            document.querySelector('input[placeholder="Liters of Water"]').value = savedData.LitersOfWater;
+            document.querySelector('input[placeholder="No. of Volunteers Mobilized"]').value = savedData.NoOfVolunteersMobilized;
+            document.querySelector('input[placeholder="No. of Organizations Activated"]').value = savedData.NoOfOrganizationsActivated;
+            document.querySelector('input[placeholder="Total Value of In-Kind Donations"]').value = savedData.TotalValueOfInKindDonations;
+            document.querySelector('textarea').value = savedData.NotesAdditionalInformation;
+        }
+
+        localStorage.removeItem("returnToStep");
+    }
 });
