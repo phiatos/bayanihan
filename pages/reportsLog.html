@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="../css/reportslog.css" />
+    <link rel="stylesheet" href="../css/reports.css" />
     <link rel="stylesheet" href="../components/sidebar.css" />
     <link rel="stylesheet" href="../css/global.css" />
     <link rel='stylesheet' href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css'/>
@@ -38,12 +38,18 @@
                     <div class="custom-select-wrapper">
                         <select id="sortSelect">
                             <option value="">Sort by</option>
-                            <option value="CityMunicipality-asc">City/Municipality (A–Z)</option>
-                            <option value="CityMunicipality-desc">City/Municipality (Z–A)</option>
-                            <option value="NoOfHotMeals-asc">Hot Meals (Low–High)</option>
-                            <option value="NoOfHotMeals-desc">Hot Meals (High–Low)</option>
-                            <option value="LitersOfWater-asc">Liters of Water (Low–High)</option>
-                            <option value="LitersOfWater-desc">Liters of Water (High–Low)</option>
+                            <optgroup label="Location">
+                                <option value="CityMunicipality-asc">City/Municipality (A–Z)</option>
+                                <option value="CityMunicipality-desc">City/Municipality (Z–A)</option>
+                            </optgroup>
+                            <optgroup label="Hot Meals">
+                                <option value="NoOfHotMeals-asc">Hot Meals (Low–High)</option>
+                                <option value="NoOfHotMeals-desc">Hot Meals (High–Low)</option>
+                            </optgroup>
+                            <optgroup label="Liters of Water">
+                                <option value="LitersOfWater-asc">Liters of Water (Low–High)</option>
+                                <option value="LitersOfWater-desc">Liters of Water (High–Low)</option>
+                            </optgroup>
                           </select>                          
                         <i class='bx bx-chevron-down'></i>
                     </div>
@@ -75,10 +81,10 @@
 
     <div id="reportModal" class="modal hidden">
         <div class="modal-content">
+            <span id="closeModal" class="close">&times;</span>
             <div class="modal-header"> 
                 <h2>Report Details</h2>
-                <span class="close-button">&times;</span>
-             </div>
+            </div>
           <p id="modalReportDetails"></p>
         </div>
     </div>
