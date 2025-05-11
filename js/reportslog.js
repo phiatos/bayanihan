@@ -77,8 +77,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td><button class="viewBtn">View</button></td>
             `;
 
-            // View button logic
-            const viewBtn = tr.query mld tr.querySelector('.viewBtn');
+            // View button
+            const viewBtn = tr.querySelector('.viewBtn');
             viewBtn.addEventListener('click', () => {
                 let readableReport = "";
                 for (let key in report) {
@@ -108,7 +108,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const modal = document.getElementById("reportModal");
                 const modalDetails = document.getElementById("modalReportDetails");
-                const closeModal = document.querySelector(".close-button");
+                const closeModal = document.getElementById("closeModal");
 
                 modalDetails.innerHTML = `  
                 <div class="report-section">
@@ -239,7 +239,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        // Pagination
         const startIndex = (currentPage - 1) * rowsPerPage;
         const endIndex = startIndex + rowsPerPage;
         const currentPageReports = filteredReports.slice(startIndex, endIndex);
