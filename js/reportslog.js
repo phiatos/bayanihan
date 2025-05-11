@@ -78,7 +78,7 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
 
             // View button logic
-            const viewBtn = tr.query mld tr.querySelector('.viewBtn');
+            const viewBtn = tr.querySelector('.viewBtn');
             viewBtn.addEventListener('click', () => {
                 let readableReport = "";
                 for (let key in report) {
