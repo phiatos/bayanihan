@@ -163,30 +163,14 @@ table td {
     gap: 40px;
   }
 }
-/* 
-@media (max-width: 768px) {
-  .main-container {
-    flex-direction: column;
-    padding: 10px;
-  }
 
-  #main-content {
-    padding: 20px;
-    margin: 20px 10px;
-    max-height: none;
-  }
+@media (max-width: 768px) {
 
   table {
-    display: block;
-    overflow-x: auto;
-    white-space: nowrap;
     min-width: 100%;
     font-size: 10px;
-  }
-
-  th, td {
-    font-size: 10px;
-    padding: 10px;
+    overflow-x: auto;
+    display: block;
   }
 
   .pagination-info {
@@ -198,73 +182,26 @@ table td {
   .pagination-info span {
     text-align: center;
   }
-
-  .modal-content {
-    width: 95%;
-    padding: 20px;
+  #reportModal .modal-content {
+    padding: 50px;
+    font-size: 15px;
   }
 
-  .report-section {
-    flex-direction: column;
-    gap: 20px;
-  }
-
-  .form-1, .form-2, .form-3 {
+  #reportModal .modal-content table {
     width: 100%;
-  }
-
-  #modalTitle {
-    font-size: 18px;
-  }
-
-  .details p {
-    font-size: 12px;
-  }
-
-  .modal-header span {
-    font-size: 30px;
+    display: table;
+    align-self: center;
   }
 }
 
+/* Responsive overflow for narrow screens */
 @media (max-width: 480px) {
-  .report-section {
-    flex: 1;
-    flex-direction: column;
-    gap: 20px;
+  #reportModal .modal-content {
+    padding: 50px;
   }
-  button, .edit-btn {
-    font-size: 11px;
-    padding: 6px 10px;
+  #reportModal .modal-content table {
+    display: table;
+    overflow-x: auto;
+    word-wrap: break-word;
   }
-  
-
-  td input[type="text"],
-  td select,
-  .area-dropbtn {
-    font-size: 11px;
-    padding: 4px;
-  }
-
-  .pagination-info {
-    flex-direction: column;
-    font-size: 11px;
-    text-align: center;
-  }
-
-  #pagination button {
-    padding: 8px;
-    font-size: 12px;
-  }
-
-  .modal-header span {
-    font-size: 24px;
-  }
-
-  #modalTitle {
-    font-size: 16px;
-  }
-
-  .modal-content {
-    padding: 15px;
-  }
-} */
+}

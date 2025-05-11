@@ -121,113 +121,44 @@ table td {
   font-size: 12px;
 }
 
-/* --- Responsive Styles --- */
-/* @media (max-width: 1024px) {
-  #main-content {
-    padding: 30px;
-    margin: 30px 20px;
-  }
-
-  .modal-content {
-    width: 90%;
-    padding: 30px;
-  }
-
-  .report-section {
-    gap: 40px;
-  }
-}
-
 @media (max-width: 768px) {
-  .main-container {
-    flex-direction: column;
-    padding: 10px;
-  }
-
-  #main-content {
-    padding: 20px;
-    margin: 20px 10px;
-    max-height: none;
-  }
 
   table {
-    display: block;
-    overflow-x: auto;
-    white-space: nowrap;
-    min-width: unset;
-  }
-
-  th, td {
+    min-width: 100%;
     font-size: 10px;
-    padding: 10px;
+    overflow-x: auto;
+    display: block;
   }
 
   .pagination-info {
     flex-direction: column;
-    align-items: center;
     gap: 10px;
     text-align: center;
   }
 
-  .modal-content {
-    width: 95%;
-    padding: 20px;
+  .pagination-info span {
+    text-align: center;
+  }
+  #reportModal .modal-content {
+    padding: 50px;
+    font-size: 15px;
   }
 
-  .form-1, .form-2, .form-3 {
+  #reportModal .modal-content table {
     width: 100%;
-  }
-
-  #modalTitle {
-    font-size: 18px;
-  }
-
-  .details p {
-    font-size: 12px;
-  }
-
-  .modal-header span {
-    font-size: 30px;
+    display: table;
+    align-self: center;
   }
 }
 
+/* Responsive overflow for narrow screens */
 @media (max-width: 480px) {
-  button, .edit-btn {
-    font-size: 10px;
-    padding: 6px 10px;
+  #reportModal .modal-content {
+    padding: 50px;
   }
-  .report-section {
-    flex: 1;
-    flex-direction: column;
-    gap: 20px;
+  #reportModal .modal-content table {
+    display: table;
+    overflow-x: auto;
+    word-wrap: break-word;
   }
-
-  td input[type="text"],
-  td select {
-    font-size: 10px;
-    padding: 4px;
-  }
-
-  #pagination button {
-    padding: 6px;
-    font-size: 11px;
-  }
-
-  .pagination-info {
-    flex-direction: column;
-    font-size: 11px;
-    text-align: center;
-  }
-
-  .modal-header span {
-    font-size: 24px;
-  }
-
-  #modalTitle {
-    font-size: 16px;
-  }
-
-  .modal-content {
-    padding: 15px;
-  }
-} */
+}

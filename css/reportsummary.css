@@ -1,39 +1,21 @@
 /* Heading */
 h2 {
-    color: #405AA5;
+    color: var(--primary-color);
     margin-bottom: 2rem;
     font-size: 2rem;
     text-align: start;
-}
-
-.main-container {
-    display: flex;
-    min-height: 100vh;
-    }
-    
-#main-content {
-    flex: 1;
-    padding: 50px;
-    position: relative;
-    background: #FFFFFF;
-    border-radius: 30px;
-    box-shadow: 0 0 30px rgba(0, 0, 0, .2);
-    margin: 50px;
-    overflow-y: auto;
-    max-height: calc(100vh - 100px);
 }
 
 /* Container for summaries */
 #summaryContainer {
     width: 100%;
     margin: 0 auto;
-    padding: 0 1rem;
-    
+    padding: 0;
 }
 
 /* Category section (like Basic Information box) */
 .category-section {
-    border: 2px solid #14AEBB; 
+    border: 2px solid var(--primary-color); 
     background-color: rgba(20, 174, 187, 0.1);
     border-radius: 8px;
     padding: 20px;
@@ -45,10 +27,10 @@ h2 {
 .category-title {
     display: block;
     margin-bottom: 8px;
-    font-size: 16px;
+    font-size: 12px;
     font-weight: bold;
     margin: 6px 0;
-    color: #14AEBB;
+    color: var(--primary-color);
 }
 
 /* Each field inside the category */
@@ -62,7 +44,7 @@ h2 {
 .summary-box strong {
     font-size: 15px;
     font-weight: 700;
-    color: #14AEBB;
+    color: var(--primary-color);
 }
 
 /* Field value */
@@ -73,8 +55,8 @@ h2 {
 
 
 #submitBtn, #backBtn{
-    background-color: #14AEBB;
-    color: white;
+    background-color: var(--primary-color);
+    color: var(--white);
     padding: 0.75rem 2rem;
     border: none;
     border-radius: 8px;
@@ -87,7 +69,7 @@ h2 {
 }
 
 #submitBtn:hover {
-    background-color: #2c3e75;
+    background-color: var(--button-hover);
 }
 .button-group {
     flex: 1;
