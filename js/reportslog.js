@@ -13,51 +13,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
     const database = firebase.database();
 
+    let reviewedReports = [];
     const reportsBody = document.getElementById("reportsBody");
     const paginationContainer = document.getElementById("pagination");
     const entriesInfo = document.getElementById("entriesInfo");
     const searchInput = document.getElementById("searchInput");
     const sortSelect = document.getElementById("sortSelect");
-    let reviewedReports = [];
     let currentPage = 1;
     const rowsPerPage = 5;
-
-    // Check user authentication and role
-    auth.onAuthStateChanged(user => {
-        if (!user) {
-            // Redirect to login if not authenticated
-            Swal.fire({
-                icon: 'error',
-                title: 'Authentication Required',
-                text: 'Please sign in to access this page.',
-            }).then(() => {
-                window.location.href = "../pages/login.html"; // Adjust to your login page
-            });
-            return;
-        }
-
-        // Check user role
-        database.ref(`users/${user.uid}/role`).once('value', snapshot => {
-            const role = snapshot.val();
-            if (role !== "AB ADMIN") {
-                // Deny access if not AB ADMIN
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Access Denied',
-                    text: 'You do not have permission to access this page.',
-                }).then(() => {
-                    window.location.href = "../pages/dashboard.html"; // Redirect to a safe page
-                });
-                return;
-            }
-
-            // If AB ADMIN, load reports
-            loadReportsFromFirebase();
-        });
-    });
 
     // Format date
     function formatDate(dateStr) {
@@ -113,14 +78,12 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
 
             // View button logic
-            const viewBtn = tr.querySelector('.viewBtn');
+            const viewBtn = tr.query mld tr.querySelector('.viewBtn');
             viewBtn.addEventListener('click', () => {
                 let readableReport = "";
                 for (let key in report) {
-                    // Skip the firebaseKey field
                     if (key === "firebaseKey") continue;
 
-                    // Convert sanitized keys to readable format for display
                     let displayKey = key
                         .replace(/([A-Z])/g, ' $1')
                         .replace(/^./, str => str.toUpperCase());
@@ -171,24 +134,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                     <div class="form-3">
                         <h2>Additional Updates</h2>
-                        <p><strong>Notes/Additional Information:</strong> ${formatDate(report.NotesAdditionalInformation) || "-"}</p>
+                        <p><strong>Notes/Additional Information:</strong> ${report.NotesAdditionalInformation || "-"}</p>
                     </div>
-                  
                 `;
 
-              modal.classList.remove("hidden");
+                modal.classList.remove("hidden");
 
-              closeModal.addEventListener("click", () => {
-                  modal.classList.add("hidden");
-              });
+                closeModal.addEventListener("click", () => {
+                    modal.classList.add("hidden");
+                });
 
-              window.addEventListener("click", function (event) {
-                  if (event.target === modal) {
-                      modal.classList.add("hidden");
-                  }
-              });
-          });
-
+                window.addEventListener("click", function (event) {
+                    if (event.target === modal) {
+                        modal.classList.add("hidden");
+                    }
+                });
+            });
 
             reportsBody.appendChild(tr);
         });
@@ -228,62 +189,61 @@ document.addEventListener('DOMContentLoaded', () => {
         let filteredReports = [...reviewedReports];
         const query = searchInput.value.trim().toLowerCase();
         const sortValue = sortSelect.value;
-        
-        
+
         // Search 
         if (query) {
             filteredReports = filteredReports.filter(report => {
                 const dateStr = report.DateOfReport;
-                const formattedDate = formatDate(dateStr).toLowerCase(); // Convert formatted date to string
+                const formattedDate = formatDate(dateStr).toLowerCase();
                 return (
-                    formattedDate.includes(query) || // Search by formatted date string
+                    formattedDate.includes(query) ||
                     Object.values(report).some(val =>
                         val && typeof val === 'string' && val.toLowerCase().includes(query)
                     )
                 );
             });
         }
-    
+
         // Sort
         if (sortValue) {
             const [sortField, direction] = sortValue.split('-');
-            
+
             filteredReports.sort((a, b) => {
                 let valA = a[sortField] || "";
                 let valB = b[sortField] || "";
-    
+
                 // Handle Date sorting
-                if (sortField === "Date of Report" || sortField === "DateOfReport") {
+                if (sortField === "DateOfReport") {
                     const dateA = new Date(valA);
                     const dateB = new Date(valB);
-                    
+
                     if (isNaN(dateA)) return direction === "asc" ? 1 : -1;
                     if (isNaN(dateB)) return direction === "asc" ? -1 : 1;
-                    
+
                     return direction === "asc" ? dateA - dateB : dateB - dateA;
                 }
-    
+
                 // Handle numeric fields
-                if (sortField.includes("LitersOfWater") || sortField.includes("LitersOfWater")) {
+                if (sortField === "LitersOfWater") {
                     valA = isNaN(Number(valA)) ? 0 : Number(valA);
                     valB = isNaN(Number(valB)) ? 0 : Number(valB);
                     return direction === "asc" ? valA - valB : valB - valA;
                 }
-    
+
                 // Default string comparison
                 valA = valA.toString().toLowerCase();
                 valB = valB.toString().toLowerCase();
-                return direction === "asc" 
-                    ? valA.localeCompare(valB) 
+                return direction === "asc"
+                    ? valA.localeCompare(valB)
                     : valB.localeCompare(valA);
             });
         }
-    
+
         // Pagination
         const startIndex = (currentPage - 1) * rowsPerPage;
         const endIndex = startIndex + rowsPerPage;
         const currentPageReports = filteredReports.slice(startIndex, endIndex);
-    
+
         renderReportsTable(currentPageReports);
         renderPagination(filteredReports.length);
     }
@@ -297,4 +257,7 @@ document.addEventListener('DOMContentLoaded', () => {
         searchInput.value = '';
         applySearchAndSort();
     };
+
+    // Load reports
+    loadReportsFromFirebase();
 });
