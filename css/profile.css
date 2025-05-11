@@ -1,23 +1,4 @@
-.container{
-    display: flex;
-    min-height: 100vh; 
-    margin: 0 auto;
-    justify-content: center; 
-    background-color: var(--light-bg);
-}
-
-#main-content {
-    flex: 1;
-    padding: 20px;
-    position: relative;
-    background: var(--white);
-    border-radius: 30px;
-    box-shadow: 0 0 30px rgba(0, 0, 0, .2);
-    margin: 50px;
-    overflow-y: auto;
-}
-
-.container form{
+.main-container form{
     position: relative;
     min-height: 510px; 
     height: 100%;
@@ -27,7 +8,7 @@
 }
 
 /* Form transitions */
-.container form .form{
+.main-container form .form{
     position: absolute;
     width: 100%;
     transition: 0.3s ease;
@@ -50,7 +31,7 @@ form.secActive .form.first{
 }
 
 /* Titles */
-.container form .title, 
+.main-container form .title, 
 .title{
     display: block;
     margin-bottom: 8px;
@@ -61,7 +42,7 @@ form.secActive .form.first{
 }
 
 /* Fields grid */
-.container form .fields{
+.main-container form .fields{
     display: flex;
     flex-wrap: wrap;
     gap: 15px;
@@ -119,8 +100,8 @@ form .fields .input-field{
 }
 
 /* Buttons */
-.container form button,
-.container form .backBtn{
+.main-container form button,
+.main-container form .backBtn{
     display: flex;
     align-items: center;
     justify-content: center;
@@ -166,11 +147,11 @@ form .buttons .backBtn {
         width: calc(100% /2 - 15px);
     }
 
-    .container form{
+    .main-container form{
         overflow-y: scroll;
     }
 
-    .container form::-webkit-scrollbar{
+    .main-container form::-webkit-scrollbar{
         display: none;
         
     }

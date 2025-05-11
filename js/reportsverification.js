@@ -113,7 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const modal = document.getElementById("reportModal");
                 const modalDetails = document.getElementById("modalReportDetails");
-                const closeModal = document.querySelector(".close-button");
+                const closeModal = document.getElementById("closeModal");
 
                 modalDetails.innerHTML = `  
                 <div class="report-section">
