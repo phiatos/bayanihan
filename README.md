@@ -31,7 +31,7 @@ planned system flow: https://docs.google.com/document/d/15CWf6rDFmi5rI86DARh8CFW
 <!-- // ================================================== // -->
 Test Walkthrough (For Review)
 Admin Account
-Mobile Number: 09166605231
+Mobile Number: 09166605232
 Password: abcdefg
 ✅ Full page access
 ✅ Can create ABVN accounts in VGM
@@ -39,10 +39,8 @@ Password: abcdefg
 ⚠️ Activation status not yet linked to dashboard view
 
 ABVN Account
-Mobile Number: 09499894578
-Password: 3xgbgylvU(
 ⚠️ Limited access setup (not fully working)
-You can register a new ABVN in VGM or use this account
+You can register a new ABVN in VGM and use it to login, credentials will be sent thru email.
 
 <!-- // ================================================== // -->
 Key Module Status:
