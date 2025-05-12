@@ -27,7 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
             title: 'No Report Data',
             text: 'No report data found. Please go back and submit the form again.',
         }).then(() => {
-            window.location.href = '../pages/reportsSubmission.html';
+            window.location.href = '../pages/reportssubmission.html';
         });
         return;
     }
@@ -47,11 +47,10 @@ document.addEventListener('DOMContentLoaded', () => {
     ]).then(() => {
         console.log(`Report with key ${reportKeyToRemove} has been removed from the database.`);
 
-        // Proceed to display the summary after removal
+        // Display the summary
         const categories = {
             "Basic Information": [
-                "Barangay",
-                "CityMunicipality",
+                "AreaOfOperation",
                 "TimeOfIntervention",
                 "SubmittedBy",
                 "DateOfReport"
@@ -66,12 +65,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 "NoOfVolunteersMobilized",
                 "TotalValueOfInKindDonations"
             ],
-            "Notes/Additional Information": [
+            "Additional Updates": [
                 "NotesAdditionalInformation"
             ]
         };
 
-        // Display the summary
         for (let category in categories) {
             const section = document.createElement("div");
             section.className = "category-section";
@@ -83,12 +81,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             categories[category].forEach(item => {
                 if (summaryData[item]) {
-                    // Convert the sanitized key back to a readable format for display
                     let displayKey = item
-                        .replace(/([A-Z])/g, ' $1') // Add space before capital letters
-                        .replace(/^./, str => str.toUpperCase()); // Capitalize first letter
-                    displayKey = displayKey
-                        .replace('CityMunicipality', 'City/Municipality')
+                        .replace(/([A-Z])/g, ' $1')
+                        .replace(/^./, str => str.toUpperCase())
+                        .replace('AreaOfOperation', 'Area of Operation')
                         .replace('TimeOfIntervention', 'Time of Intervention')
                         .replace('SubmittedBy', 'Submitted by')
                         .replace('DateOfReport', 'Date of Report')
@@ -112,61 +108,59 @@ document.addEventListener('DOMContentLoaded', () => {
             container.appendChild(section);
         }
 
-        // Back button
+        //  Back button logic
         document.getElementById('backBtn').addEventListener('click', () => {
             localStorage.setItem("returnToStep", "form-container-2");
-            window.location.href = "reportssubmission.html";
+            // reportData is already in localStorage, so just go back
+            window.location.href = "../pages/reportssubmission.html";
         });
 
-        // Submit button
+        //  Submit button logic
         const submitBtn = document.getElementById("submitBtn");
-    submitBtn.addEventListener("click", () => {
-    auth.onAuthStateChanged(user => {
-        if (!user) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Authentication Required',
-                text: 'Please sign in to submit a report.',
-            }).then(() => {
-                window.location.href = "../pages/login.html";
+        submitBtn.addEventListener("click", () => {
+            auth.onAuthStateChanged(user => {
+                if (!user) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Authentication Required',
+                        text: 'Please sign in to submit a report.',
+                    }).then(() => {
+                        window.location.href = "../pages/login.html";
+                    });
+                    return;
+                }
+
+                console.log("Submitting to Firebase:", summaryData);
+
+                summaryData["Status"] = "Pending";
+                summaryData["Timestamp"] = firebase.database.ServerValue.TIMESTAMP;
+
+                database.ref("reports/submitted").push(summaryData)
+                    .then(() => {
+                        console.log("Report successfully saved to Firebase");
+
+                        // 🔥 Clear localStorage data
+                        localStorage.removeItem("reportData");
+                        localStorage.removeItem("returnToStep");
+
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Report Submitted',
+                            text: 'Your report has been successfully submitted for verification!',
+                        }).then(() => {
+                            window.location.href = "../pages/dashboard.html";
+                        });
+                    })
+                    .catch((error) => {
+                        console.error("Error saving report to Firebase:", error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Failed to submit report: ' + error.message,
+                        });
+                    });
             });
-            return;
-        }
-
-        console.log("Submitting to Firebase:", summaryData);
-
-        summaryData["Status"] = "Pending";
-        summaryData["Timestamp"] = firebase.database.ServerValue.TIMESTAMP;
-
-        database.ref("reports/submitted").push(summaryData)
-            .then(() => {
-                console.log("Report successfully saved to Firebase");
-
-                // 🔥 Clear localStorage data
-                localStorage.removeItem("reportData");
-                localStorage.removeItem("returnToStep"); // Also clear step memory if needed
-
-                // ✅ Show success, then redirect to form page 1
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Report Submitted',
-                    text: 'Your report has been successfully submitted for verification!',
-                }).then(() => {
-                    // 👇 Redirect to form page 1
-                    window.location.href = "../pages/dashboard.html";
-                });
-            })
-            .catch((error) => {
-                console.error("Error saving report to Firebase:", error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Failed to submit report: ' + error.message,
-                });
-            });
-    });
-});
-
+        });
 
     }).catch(error => {
         console.error("Error during report removal process:", error);

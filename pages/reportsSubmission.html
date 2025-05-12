@@ -32,17 +32,15 @@
                         <span class="title">Basic Information</span>
                         <div class="fields">
                             <div class="input-field">
-                                <label>City/Municipality</label>
-                                <select id="category" name="city" required>
-                                    <option value="">Select City/Municipality</option>
-                                </select>
+                                <label>Report ID</label>
+                                <input type="text" id="reportId" placeholder="Report ID" readonly />
                             </div>
                             <div class="input-field">
-                                <label>Barangay</label>
-                                <select name="barangay" required>
-                                    <option value="">Select Barangay</option>
-                                </select>
+                                <label for="AreaOfOperation">Area of Operation:</label>
+                                <input type="text" id="AreaOfOperation" name="AreaOfOperation" placeholder="e.g. Purok 2, Brgy. Maligaya, Rosario" required></input>
+                                <button id="pinBtn">📍 Pin Location</button>
                             </div>
+                            
                             <div class="input-field">
                                 <label>Time of Intervention</label>
                                 <input type="time" placeholder="Time of Intervention" required>
@@ -55,10 +53,7 @@
                                 <label>Date of Report</label>
                                 <input type="text" id="dateOfReport" placeholder="Date of Report" readonly/>
                             </div>
-                            <div class="input-field">
-                                <label>Report ID</label>
-                                <input type="text" id="reportId" placeholder="Report ID" readonly />
-                            </div>
+                            
                         </div>
                     </div>
 
@@ -74,7 +69,7 @@
                                 <input type="number" placeholder="No. of Individuals or Families" min="1" required>
                             </div>
                             <div class="input-field">
-                                <label>No. of Food Packs</label>
+                                <label>No. of Relief Packs</label>
                                 <input type="number" placeholder="No. of Food Packs" min="1" required>
                             </div>
                             <div class="input-field">
@@ -120,6 +115,14 @@
         </div>
     </div>
 
+    <div id="mapModal" class="modal">
+    <div class="modal-content">
+        <span class="closeBtn">&times;</span>
+        <!-- Map container (empty for now) -->
+        <div id="mapContainer" style="width: 100%; height: 400px;"></div>
+    </div>
+    </div>
+    <script src="../js/reportssubmission.js"></script> 
     <script>
         fetch('../components/sidebar.html')
         .then(response => response.text())
@@ -135,6 +138,6 @@
         });
     </script>
     
-    <script src="../js/reportssubmission.js"></script> 
+    
 </body>
 </html>

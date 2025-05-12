@@ -68,8 +68,8 @@ document.addEventListener('DOMContentLoaded', () => {
             tr.innerHTML = `
                 <td>${displayIndex}</td>
                 <td>${report["ReportID"] || "-"}</td>
-                <td>${report["Barangay"] || "-"}</td>
-                <td>${report["CityMunicipality"] || "-"}</td>
+                <td>${report["volunteerGroup"] || "No ABVN"}</td>
+                <td>${report["AreaOfOperation"] || "-"}</td>
                 <td>${formatDate(report["DateOfReport"]) || "-"}</td>
                 <td>${report["SubmittedBy"] || "-"}</td>
                 <td>${report["NoOfHotMeals"] || "-"}</td>
@@ -88,7 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         .replace(/([A-Z])/g, ' $1')
                         .replace(/^./, str => str.toUpperCase());
                     displayKey = displayKey
-                        .replace('CityMunicipality', 'City/Municipality')
+                        .replace('AreaOfOperation', 'Area of Operation')
                         .replace('TimeOfIntervention', 'Time of Intervention')
                         .replace('SubmittedBy', 'Submitted by')
                         .replace('DateOfReport', 'Date of Report')
@@ -116,7 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <h2>Basic Information</h2>
                         <p><strong>Report ID:</strong>${report.ReportID || "-"}<p>
                         <p><strong>Volunteer Group: </strong>${report.volunteerGroup || "For Now ABVN"}</p>
-                        <p class="cell"><strong>Location of Operation: </strong>${report.Barangay || "-"}, ${report.CityMunicipality || "-"}</p>
+                        <p class="cell"><strong>Area of Operation: </strong>${report.AreaOfOperation || "-"}</p>
                         <p><strong>Submitted By: </strong>${report.SubmittedBy || "-"}<p>
                         <p><strong>Date of Report Submitted: </strong>${formatDate(report.DateOfReport) || "-"}</p>
                     </div>

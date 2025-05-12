@@ -39,62 +39,44 @@ document.addEventListener('DOMContentLoaded', () => {
         idInput.value = randomId;
     }
 
-const submittedByInput  = document.getElementById('SubmittedBy');
-if (submittedByInput ) {
-    const groupName = localStorage.getItem("VolunteerGroupName") || "Unknown Volunteer";
-    submittedByInput.value = groupName;
-    submittedByInput.readOnly = true; // Optional: make it non-editable
-}
+    // 🔧 FIXED: Map modal button logic
+    const pinBtn = document.getElementById('pinBtn');
+    const mapModal = document.getElementById('mapModal');
+    const closeBtn = document.querySelector('.closeBtn');
 
-    // Populate dropdowns
-    const citySelect = document.querySelector('select[name="city"]');
-    const barangaySelect = document.querySelector('select[name="barangay"]');
-
-    const locationData = {
-        "Batangas": ["Batangas City", "Lipa", "Nasugbu", "Tanauan"],
-        "Caloocan": ["Bagong Silang", "Longos", "San Agustin", "San Jose"],
-        "Cavite": ["Bacoor", "Dasmariñas", "Imus", "Tagaytay"],
-        "Cebu City": ["Guadalupe", "Lahug", "Mabolo", "Talamban"],
-        "Davao City": ["Agdao", "Buhangin", "Poblacion", "Toril"],
-        "Las Piñas": ["BF International", "CAA", "Pamplona", "Talon"],
-        "Malabon": ["Hulong Duhat", "Longos", "San Agustin", "Tanza"],
-        "Makati": ["Bel-Air", "Dasmariñas", "Pio del Pilar", "San Lorenzo"],
-        "Mandaluyong": ["Barangka", "Hulo", "Plainview", "Wack-Wack"],
-        "Manila": ["Ermita", "Malate", "Sampaloc", "Tondo"],
-        "Marikina": ["Calumpang", "Concepcion Uno", "San Roque", "Santo Niño"],
-        "Navotas": ["North Bay Boulevard", "San Jose", "San Roque", "Tangos"],
-        "Nagas": ["Baao", "Bula", "Iriga", "Naga City"],
-        "Parañaque": ["Baclaran", "BF Homes", "San Dionisio", "San Isidro"],
-        "Pasay": ["Baclaran", "Malibay", "San Isidro", "San Nicolas"],
-        "Pasig": ["Bambang", "Kapitolyo", "Manggahan", "Santolan"],
-        "Pateros": ["San Juan Bautista", "San Mateo", "San Pedro", "San Roque"],
-        "Quezon City": ["Batasan Hills", "Commonwealth", "Diliman", "Novaliches"],
-        "Quezon Province": ["Candelaria", "Lucena", "Sariaya", "Tayabas"],
-        "San Juan": ["Balong Bato", "Corazon de Jesus", "Little Baguio", "San Perfecto"],
-        "Taguig": ["Bagumbayan", "Fort Bonifacio", "North Signal Village", "Ususan"],
-        "Valenzuela": ["Bagong Silang", "Gen. T. De Leon", "Karuhatan", "Malanday"],
-    };
-
-    if (citySelect && barangaySelect) {
-        Object.keys(locationData).forEach(city => {
-            const option = document.createElement('option');
-            option.value = city;
-            option.textContent = city;
-            citySelect.appendChild(option);
+    if (pinBtn && mapModal && closeBtn) {
+        pinBtn.addEventListener('click', (e) => {
+            e.preventDefault(); // prevent form submit
+            mapModal.classList.add('show');
         });
 
-        citySelect.addEventListener('change', () => {
-            const selectedCity = citySelect.value;
-            barangaySelect.innerHTML = '<option value="">Select Barangay</option>';
-            if (locationData[selectedCity]) {
-                locationData[selectedCity].forEach(barangay => {
-                    const option = document.createElement('option');
-                    option.value = barangay;
-                    option.textContent = barangay;
-                    barangaySelect.appendChild(option);
-                });
+        closeBtn.addEventListener('click', () => {
+            mapModal.classList.remove('show');
+        });
+
+        window.addEventListener('click', (e) => {
+            if (e.target === mapModal) {
+                mapModal.classList.remove('show');
             }
         });
+    } else {
+        console.warn('Modal elements not found');
+    }
+
+    function formatTo12Hour(timeStr) {
+        const [hour, minute] = timeStr.split(':');
+        const h = parseInt(hour);
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        const formattedHour = h % 12 || 12;
+        return `${formattedHour}:${minute} ${ampm}`;
+    }
+
+    const submittedByInput = document.getElementById('SubmittedBy');
+    if (submittedByInput) {
+        const volunteerGroup = JSON.parse(localStorage.getItem("loggedInVolunteerGroup"));
+        const groupName = volunteerGroup ? volunteerGroup.organization : "Unknown Volunteer";
+        submittedByInput.value = groupName;
+        submittedByInput.readOnly = true;
     }
 
     // Handle navigation
@@ -117,12 +99,11 @@ if (submittedByInput ) {
         e.preventDefault();
 
         const formData = {
-            "Barangay": barangaySelect.value,
-            "CityMunicipality": citySelect.value,
-            "TimeOfIntervention": document.querySelector('input[placeholder="Time of Intervention"]').value,
-            "SubmittedBy": document.querySelector.value,
-            "DateOfReport": dateInput.value,
             "ReportID": idInput.value,
+            "AreaOfOperation": document.querySelector('input[placeholder="e.g. Purok 2, Brgy. Maligaya, Rosario"]').value,
+            "TimeOfIntervention": formatTo12Hour(document.querySelector('input[placeholder="Time of Intervention"]').value),
+            "SubmittedBy": submittedByInput ? submittedByInput.value : "Unknown Group",
+            "DateOfReport": dateInput.value,
             "Date": document.querySelector('input[type="date"]').value,
             "NoOfIndividualsOrFamilies": document.querySelector('input[placeholder="No. of Individuals or Families"]').value,
             "NoOfFoodPacks": document.querySelector('input[placeholder="No. of Food Packs"]').value,
@@ -135,13 +116,15 @@ if (submittedByInput ) {
             "Status": "Pending"
         };
 
+        console.log("Redirecting to reportsSummary.html");
+        localStorage.setItem("returnToStep", "form-container-2");
         localStorage.setItem("reportData", JSON.stringify(formData));
-        localStorage.setItem("returnToStep", "form-container-2"); // Flag to go back
         window.location.href = "../pages/reportsSummary.html";
     });
 
     // Handle returning from reportsSummary.html
     const returnTo = localStorage.getItem("returnToStep");
+
     if (returnTo === "form-container-2") {
         formPage1.style.display = "none";
         formPage2.style.display = "block";
@@ -151,27 +134,20 @@ if (submittedByInput ) {
             if (target) target.scrollIntoView({ behavior: "smooth" });
         }, 100);
 
-        // Restore form data if available
         const savedData = JSON.parse(localStorage.getItem("reportData"));
         if (savedData) {
-            citySelect.value = savedData.CityMunicipality;
-            citySelect.dispatchEvent(new Event('change')); // To repopulate barangays
-
-            setTimeout(() => {
-                barangaySelect.value = savedData.Barangay;
-            }, 100);
-
-            document.querySelector('input[placeholder="Time of Intervention"]').value = savedData.TimeOfIntervention;
-            document.querySelector('input[placeholder="Submitted by"]').value = savedData.SubmittedBy;
-            document.querySelector('input[type="date"]').value = savedData.Date;
-            document.querySelector('input[placeholder="No. of Individuals or Families"]').value = savedData.NoOfIndividualsOrFamilies;
-            document.querySelector('input[placeholder="No. of Food Packs"]').value = savedData.NoOfFoodPacks;
-            document.querySelector('input[placeholder="No. of Hot Meals"]').value = savedData.NoOfHotMeals;
-            document.querySelector('input[placeholder="Liters of Water"]').value = savedData.LitersOfWater;
-            document.querySelector('input[placeholder="No. of Volunteers Mobilized"]').value = savedData.NoOfVolunteersMobilized;
-            document.querySelector('input[placeholder="No. of Organizations Activated"]').value = savedData.NoOfOrganizationsActivated;
-            document.querySelector('input[placeholder="Total Value of In-Kind Donations"]').value = savedData.TotalValueOfInKindDonations;
-            document.querySelector('textarea').value = savedData.NotesAdditionalInformation;
+            document.querySelector('input[placeholder="e.g. Purok 2, Brgy. Maligaya, Rosario"]').value = savedData.AreaOfOperation || '';
+            document.querySelector('input[placeholder="Time of Intervention"]').value = savedData.TimeOfIntervention || '';
+            document.querySelector('input[placeholder="Submitted by"]').value = savedData.SubmittedBy || '';
+            document.querySelector('input[type="date"]').value = savedData.Date || '';
+            document.querySelector('input[placeholder="No. of Individuals or Families"]').value = savedData.NoOfIndividualsOrFamilies || '';
+            document.querySelector('input[placeholder="No. of Food Packs"]').value = savedData.NoOfFoodPacks || '';
+            document.querySelector('input[placeholder="No. of Hot Meals"]').value = savedData.NoOfHotMeals || '';
+            document.querySelector('input[placeholder="Liters of Water"]').value = savedData.LitersOfWater || '';
+            document.querySelector('input[placeholder="No. of Volunteers Mobilized"]').value = savedData.NoOfVolunteersMobilized || '';
+            document.querySelector('input[placeholder="No. of Organizations Activated"]').value = savedData.NoOfOrganizationsActivated || '';
+            document.querySelector('input[placeholder="Total Value of In-Kind Donations"]').value = savedData.TotalValueOfInKindDonations || '';
+            document.querySelector('textarea').value = savedData.NotesAdditionalInformation || '';
         }
 
         localStorage.removeItem("returnToStep");

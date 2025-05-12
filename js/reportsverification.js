@@ -68,12 +68,9 @@ document.addEventListener('DOMContentLoaded', () => {
             tr.innerHTML = `
                 <td>${displayIndex}</td>
                 <td>${report["ReportID"] || "-"}</td>
-                <td>${report["VolunteerGroupName"] || "[Org_Name]"}</td>
-                <td>${report["Barangay"] || "-"}</td>
-                <td>${report["CityMunicipality"] || "-"}</td>
+               <td>${report["SubmittedBy"] || "[Org_Name]"}</td>
                 <td>${report["TimeOfIntervention"] || "-"}</td>
                 <td>${formatDate(report["DateOfReport"]) || "-"}</td>
-                <td>${report["SubmittedBy"] || "-"}</td>
                 <td>${report["Status"] || "Pending"}</td>
                 <td>
                     <button class="viewBtn">View</button>
@@ -95,7 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     displayKey = displayKey
                         .replace('CityMunicipality', 'City/Municipality')
                         .replace('TimeOfIntervention', 'Time of Intervention')
-                        .replace('SubmittedBy', 'Submitted by')
+                        .replace('SubmittedByInput', 'Submitted by')
                         .replace('DateOfReport', 'Date of Report')
                         .replace('ReportID', 'Report ID')
                         .replace('NoOfIndividualsOrFamilies', 'No. of Individuals or Families')
@@ -120,9 +117,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="form-1">
                         <h2>Basic Information</h2>
                         <p><strong>Report ID:</strong>${report.ReportID || "-"}<p>
-                        <p><strong>Volunteer Group: </strong>${report.VolunteerGroupName || "[Org_Name]"}</p>
-                        <p class="cell"><strong>Location of Operation: </strong>${report.Barangay || "-"}, ${report.CityMunicipality || "-"}</p>
-                        <p><strong>Submitted By: </strong>${report.SubmittedBy || "-"}<p>
+                     <p><strong>Volunteer Group: </strong>${report.VolunteerGroupName || "[Org_Name]"}</p>
+                        <p class="cell"><strong>Area of Operation: </strong>${report.AreaOfOperation || "-"}</p>
+                        <p><strong>Submitted By: </strong>${report.SubmittedBy || "[Contact_Person]"}<p>
                         <p><strong>Date of Report Submitted: </strong>${formatDate(report.DateOfReport) || "-"}</p>
                     </div>
                     <div class="form-2">
