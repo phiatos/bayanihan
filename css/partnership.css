@@ -52,6 +52,19 @@ td textarea {
     margin-top: 10px;
 }
 
+.delete-btn {
+    background-color: #f44336;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 12px;
+    cursor: pointer;
+    border-radius: 3px;
+}
+
 /* Responsive layout */
 @media (max-width: 768px) {
     .form-page-container form .fields .input-field{

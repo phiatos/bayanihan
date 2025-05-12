@@ -451,7 +451,7 @@ button:disabled {
 
 .viewBtn {
   background-color: var(--blue);
-  width: 75%;
+  width: 90%;
   margin-bottom: 5px;
 }
 .viewBtn:hover {
@@ -460,7 +460,7 @@ button:disabled {
 
 .deleteBtn {
   background-color: var(--red);
-  width: 75%;
+  width: 90%;
 }
 .deleteBtn:hover {
   background-color: var(--red-hover);
@@ -468,7 +468,7 @@ button:disabled {
 
 .approveBtn {
   background-color: var(--green);
-  width: 75%;
+  width: 90%;
   margin-bottom: 5px;
 }
 .approveBtn:hover {
@@ -477,7 +477,7 @@ button:disabled {
 
 .rejectBtn {
   background-color: var(--red);
-  width: 75%;
+  width: 90%;
 }
 .rejectBtn:hover {
   background-color: var(--red-hover);
