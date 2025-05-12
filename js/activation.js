@@ -37,7 +37,7 @@ const clearBtn = document.querySelector('.clear-btn');
 firebase.auth().onAuthStateChanged(user => {
   if (user) {
     console.log("User is authenticated:", user.uid);
-    listenForDataUpdates(); // Set up real-time listener after authentication
+    listenForDataUpdates(); 
   } else {
     console.log("No user is authenticated. Attempting anonymous sign-in...");
     firebase.auth().signInAnonymously()
