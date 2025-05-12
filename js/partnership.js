@@ -488,21 +488,23 @@ document.addEventListener('DOMContentLoaded', () => {
                     } else if (colIndex === 5) { // Number (Tel)
                         element = document.createElement('input');
                         element.type = 'tel';
-                    } else if (colIndex >= 8 && colIndex <= 10) { // These are the select columns
-                        const selectOptions = [
-                            ['Select Assistance Type', 'Cash', 'Relief Goods', 'Services'],
-                            ['Select Status', 'Close', 'Closed Successful', 'Pending'],
-                            ['Select Endorsee', 'Team A', 'Team B', 'External Partner']
-                        ];
+                    } else if (colIndex === 7 || colIndex === 11 || colIndex === 12) { // These are the select columns
+                        let selectOptions = [];
+                        if (colIndex === 7) {
+                            selectOptions = ['Select Assistance Type', 'Cash', 'Relief Goods', 'Services'];
+                        } else if (colIndex === 11) {
+                            selectOptions = ['Select Status', 'Close', 'Closed Successful', 'Pending'];
+                        } else if (colIndex === 12) {
+                            selectOptions = ['Select Endorsee', 'Team A', 'Team B', 'External Partner'];
+                        }
                         const select = document.createElement('select');
-                        const options = selectOptions[colIndex - 8];
-                        options.forEach(optionText => {
+                        selectOptions.forEach(optionText => {
                             const option = document.createElement('option');
                             option.textContent = optionText;
                             option.value = optionText;
                             if (optionText === cellData) {
                                 option.selected = true;
-                            } else if (options[0] === optionText && cellData === '') {
+                            } else if (selectOptions[0] === optionText && cellData === '') {
                                 option.selected = true;
                             }
                             select.appendChild(option);
@@ -516,8 +518,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     cell.appendChild(element);
                 });
 
-                // Add the delete button to the last cell
-                const deleteCell = newRow.insertCell(rowData.length + 1); // Insert at the correct index
+                // Add the delete button for loaded rows
+                const deleteCell = newRow.insertCell(rowData.length + 1); 
                 const deleteButton = document.createElement('button');
                 deleteButton.textContent = 'Delete';
                 deleteButton.classList.add('delete-btn');
@@ -526,6 +528,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 deleteCell.appendChild(deleteButton);
             });
+        } else {
+            addRow();
         }
         applyPagination();
     }
