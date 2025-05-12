@@ -68,6 +68,7 @@ document.addEventListener('DOMContentLoaded', () => {
             tr.innerHTML = `
                 <td>${displayIndex}</td>
                 <td>${report["ReportID"] || "-"}</td>
+                <td>${report["volunteerGroup"] || "No ABVN"}</td>
                 <td>${report["Barangay"] || "-"}</td>
                 <td>${report["CityMunicipality"] || "-"}</td>
                 <td>${formatDate(report["DateOfReport"]) || "-"}</td>
