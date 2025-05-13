@@ -24,7 +24,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentPage = 1;
     const rowsPerPage = 5;
 
-    // Format date
     function formatDate(dateStr) {
         const date = new Date(dateStr);
         if (isNaN(date)) return dateStr;
@@ -35,16 +34,19 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Fetch reports from Firebase
     function loadReportsFromFirebase() {
         database.ref("reports/submitted").on("value", snapshot => {
             submittedReports = [];
             const reports = snapshot.val();
             if (reports) {
                 Object.keys(reports).forEach(key => {
+                    const report = reports[key];
+                    if (!report.VolunteerGroupName) {
+                        console.warn(`Report ${key} is missing VolunteerGroupName field. Using default: [Unknown Org]`);
+                    }
                     submittedReports.push({
                         firebaseKey: key,
-                        ...reports[key]
+                        ...report
                     });
                 });
             }
@@ -52,12 +54,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Render the table for the current page
     function renderReportsTable(reports) {
         submittedReportsContainer.innerHTML = '';
 
         if (reports.length === 0) {
-            submittedReportsContainer.innerHTML = "<tr><td colspan='9'>No submitted reports found on this page.</td></tr>";
+            submittedReportsContainer.innerHTML = "<tr><td colspan='10'>No submitted reports found on this page.</td></tr>";
             return;
         }
 
@@ -68,7 +69,8 @@ document.addEventListener('DOMContentLoaded', () => {
             tr.innerHTML = `
                 <td>${displayIndex}</td>
                 <td>${report["ReportID"] || "-"}</td>
-                <td>${report["VolunteerGroupName"] || "[Org_Name]"}</td>
+                <td>${report["VolunteerGroupName"] || "[Unknown Org]"}</td>
+                <td>${report["userUid"] || "N/A"}</td> <!-- Added UID column -->
                 <td>${report["Barangay"] || "-"}</td>
                 <td>${report["CityMunicipality"] || "-"}</td>
                 <td>${report["TimeOfIntervention"] || "-"}</td>
@@ -82,7 +84,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 </td>
             `;
 
-            // View button
             const viewBtn = tr.querySelector('.viewBtn');
             viewBtn.addEventListener('click', () => {
                 let readableReport = "";
@@ -119,10 +120,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="report-section">
                     <div class="form-1">
                         <h2>Basic Information</h2>
-                        <p><strong>Report ID:</strong>${report.ReportID || "-"}<p>
-                        <p><strong>Volunteer Group: </strong>${report.VolunteerGroupName || "[Org_Name]"}</p>
+                        <p><strong>Report ID:</strong>${report.ReportID || "-"}</p>
+                        <p><strong>Volunteer Group: </strong>${report.VolunteerGroupName || "[Unknown Org]"}</p>
+                        <p><strong>User UID: </strong>${report.userUid || "N/A"}</p> <!-- Added UID -->
                         <p class="cell"><strong>Location of Operation: </strong>${report.Barangay || "-"}, ${report.CityMunicipality || "-"}</p>
-                        <p><strong>Submitted By: </strong>${report.SubmittedBy || "-"}<p>
+                        <p><strong>Submitted By: </strong>${report.SubmittedBy || "-"}</p>
                         <p><strong>Date of Report Submitted: </strong>${formatDate(report.DateOfReport) || "-"}</p>
                     </div>
                     <div class="form-2">
@@ -131,7 +133,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <p><strong>No. of Individuals or Families:</strong>${report.NoOfIndividualsOrFamilies || "-"}</p>
                         <p><strong>No. of Food Packs:</strong>${report.NoOfFoodPacks || "-"}</p>
                         <p><strong>No. of Hot Meals/Ready-to-eat food: </strong>${report.NoOfHotMeals || "-"}</p>
-                        <p><strong>Liters of Water:</strong>${report.LitersOfWater || "-"} </p>
+                        <p><strong>Liters of Water:</strong>${report.LitersOfWater || "-"}</p>
                         <p><strong>No. of Volunteers Mobilized: </strong>${report.NoOfVolunteersMobilized || "-"}</p>
                         <p><strong>No. of Organizations Activated:</strong>${report.NoOfOrganizationsActivated || "-"}</p>
                         <p><strong>Total Value of In-Kind Donations:</strong>${report.TotalValueOfInKindDonations || "-"}</p>
@@ -156,19 +158,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             });
 
-            // Approve action
             tr.querySelector('.approveBtn').addEventListener('click', () => {
                 report["Status"] = "Approved";
-                database.ref(`reports/approved`).push(report)
+                const userUid = report.userUid;
+
+                Promise.all([
+                    database.ref(`reports/approved`).push(report),
+                    database.ref(`users/${userUid}/reports/${report.firebaseKey}`).set({ ...report, Status: "Approved" }),
+                    database.ref(`reports/submitted/${report.firebaseKey}`).remove()
+                ])
                     .then(() => {
-                        database.ref(`reports/submitted/${report.firebaseKey}`).remove()
-                            .then(() => {
-                                Swal.fire({
-                                    icon: 'success',
-                                    title: 'Report Approved',
-                                    text: 'The report has been approved and moved to the approved logs.',
-                                });
-                            });
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Report Approved',
+                            text: 'The report has been approved and moved to the approved logs.',
+                        });
                     })
                     .catch(error => {
                         Swal.fire({
@@ -179,9 +183,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
             });
 
-            // Reject action
             tr.querySelector('.rejectBtn').addEventListener('click', () => {
-                database.ref(`reports/submitted/${report.firebaseKey}`).remove()
+                const userUid = report.userUid;
+
+                Promise.all([
+                    database.ref(`reports/submitted/${report.firebaseKey}`).remove(),
+                    database.ref(`users/${userUid}/reports/${report.firebaseKey}`).remove()
+                ])
                     .then(() => {
                         Swal.fire({
                             icon: 'success',
@@ -231,7 +239,6 @@ document.addEventListener('DOMContentLoaded', () => {
         paginationContainer.appendChild(createButton("Next", currentPage + 1, currentPage === totalPages));
     }
 
-    // Search and sort functionality
     function applySearchAndSort() {
         const searchQuery = document.getElementById('searchInput').value.toLowerCase();
         const sortValue = document.getElementById('sortSelect').value;
@@ -247,7 +254,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        // Sort
         if (sortBy) {
             filteredReports.sort((a, b) => {
                 const valA = a[sortBy] || "";
@@ -274,17 +280,14 @@ document.addEventListener('DOMContentLoaded', () => {
         renderPagination(filteredReports.length);
     }
 
-    // Event listeners for search and sort
     searchInput.addEventListener('input', applySearchAndSort);
     sortSelect.addEventListener('change', applySearchAndSort);
 
-    // Clear search input
     window.clearDInputs = () => {
         searchInput.value = '';
         applySearchAndSort();
     };
 
-    // View Approved Reports button
     const viewApprovedBtn = document.getElementById("viewApprovedBtn");
     if (viewApprovedBtn) {
         viewApprovedBtn.addEventListener("click", () => {
@@ -292,6 +295,5 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Load reports
     loadReportsFromFirebase();
 });
