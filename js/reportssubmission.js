@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
             userUid = user.uid;
             console.log('Logged-in user UID:', userUid);
 
-            // Fetch user data from the database
+            // Fetch user data from the database to get the volunteer group name
             database.ref(`users/${userUid}`).once('value', snapshot => {
                 const userData = snapshot.val();
                 if (userData && userData.group) {
@@ -50,13 +50,8 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         } else {
             console.warn('No user is logged in');
-            Swal.fire({
-                icon: 'error',
-                title: 'Not Logged In',
-                text: 'Please log in to submit a report.',
-            }).then(() => {
-                window.location.href = '../pages/login.html';
-            });
+            // Redirect to login page if user is not authenticated
+            window.location.href = '../pages/login.html';
         }
     });
 
@@ -64,7 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const dateInput = document.getElementById('dateOfReport');
     if (dateInput) {
         const today = new Date();
-        const formatted = today.toLocaleDateString('en-CA');
+        const formatted = today.toLocaleDateString('en-CA'); // YYYY-MM-DD
         dateInput.value = formatted;
     }
 
@@ -105,6 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     if (citySelect && barangaySelect) {
+        // Populate cities
         Object.keys(locationData).forEach(city => {
             const option = document.createElement('option');
             option.value = city;
@@ -112,6 +108,7 @@ document.addEventListener('DOMContentLoaded', () => {
             citySelect.appendChild(option);
         });
 
+        // On city change, update barangays
         citySelect.addEventListener('change', () => {
             const selectedCity = citySelect.value;
             barangaySelect.innerHTML = '<option value="">Select Barangay</option>';
@@ -148,75 +145,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (!userUid) {
             console.error('No user UID available. Cannot submit report.');
-            Swal.fire({
-                icon: 'error',
-                title: 'Authentication Error',
-                text: 'User not authenticated. Please log in again.',
-            }).then(() => {
-                window.location.href = '../pages/login.html';
-            });
+            alert('User not authenticated. Please log in again.');
+            window.location.href = '../pages/login.html';
             return;
         }
 
         const formData = {
             VolunteerGroupName: volunteerGroupName, // e.g., "RAZEL KIM ORG"
-            userUid, // Include the UID
-            Barangay: barangaySelect.value,
-            CityMunicipality: citySelect.value,
-            TimeOfIntervention: document.querySelector('input[placeholder="Time of Intervention"]').value,
-            SubmittedBy: document.querySelector('input[placeholder="Submitted by"]').value,
-            DateOfReport: dateInput.value,
-            ReportID: idInput.value,
-            Date: document.querySelector('input[type="date"]').value,
-            NoOfIndividualsOrFamilies: document.querySelector('input[placeholder="No. of Individuals or Families"]').value,
-            NoOfFoodPacks: document.querySelector('input[placeholder="No. of Food Packs"]').value,
-            NoOfHotMeals: document.querySelector('input[placeholder="No. of Hot Meals"]').value,
-            LitersOfWater: document.querySelector('input[placeholder="Liters of Water"]').value,
-            NoOfVolunteersMobilized: document.querySelector('input[placeholder="No. of Volunteers Mobilized"]').value,
-            NoOfOrganizationsActivated: document.querySelector('input[placeholder="No. of Organizations Activated"]').value,
-            TotalValueOfInKindDonations: document.querySelector('input[placeholder="Total Value of In-Kind Donations"]').value,
-            NotesAdditionalInformation: document.querySelector('textarea').value,
-            Status: "Pending",
-            timestamp: firebase.database.ServerValue.TIMESTAMP
+            userUid, // Include the UID in formData but won't display in UI
+            Barangay: barangaySelect.value || "N/A",
+            CityMunicipality: citySelect.value || "N/A",
+            TimeOfIntervention: document.querySelector('input[placeholder="Time of Intervention"]')?.value || "N/A",
+            SubmittedBy: document.querySelector('input[placeholder="Submitted by"]')?.value || "N/A",
+            DateOfReport: dateInput.value || "N/A",
+            ReportID: idInput.value || "N/A",
+            Date: document.querySelector('input[type="date"]')?.value || "N/A",
+            NoOfIndividualsOrFamilies: document.querySelector('input[placeholder="No. of Individuals or Families"]')?.value || "N/A",
+            NoOfFoodPacks: document.querySelector('input[placeholder="No. of Food Packs"]')?.value || "N/A",
+            NoOfHotMeals: document.querySelector('input[placeholder="No. of Hot Meals"]')?.value || "N/A",
+            LitersOfWater: document.querySelector('input[placeholder="Liters of Water"]')?.value || "N/A",
+            NoOfVolunteersMobilized: document.querySelector('input[placeholder="No. of Volunteers Mobilized"]')?.value || "N/A",
+            NoOfOrganizationsActivated: document.querySelector('input[placeholder="No. of Organizations Activated"]')?.value || "N/A",
+            TotalValueOfInKindDonations: document.querySelector('input[placeholder="Total Value of In-Kind Donations"]')?.value || "N/A",
+            NotesAdditionalInformation: document.querySelector('textarea')?.value || "N/A",
+            Status: "Pending"
         };
 
-        // Save to both reports/submitted and users/<uid>/reports
-        const reportRef = database.ref('reports/submitted').push();
-        const userReportRef = database.ref(`users/${userUid}/reports/${reportRef.key}`);
-
-        Promise.all([
-            reportRef.set(formData),
-            userReportRef.set(formData)
-        ])
-            .then(() => {
-                console.log('Report saved to Firebase successfully');
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Report Submitted',
-                    text: 'Your report has been successfully submitted for verification!',
-                }).then(() => {
-                    formPage1.reset();
-                    formPage2.reset();
-                    formPage2.style.display = 'none';
-                    formPage1.style.display = 'block';
-                    if (idInput) {
-                        const randomId = 'ABRN' + Math.floor(10000 + Math.random() * 9000000000);
-                        idInput.value = randomId;
-                    }
-                    if (dateInput) {
-                        const today = new Date();
-                        const formatted = today.toLocaleDateString('en-CA');
-                        dateInput.value = formatted;
-                    }
-                });
-            })
-            .catch((error) => {
-                console.error('Failed to save report to Firebase:', error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Failed to submit report: ' + error.message,
-                });
-            });
+        // Save to localStorage and redirect to reportsSummary.html (no modal)
+        localStorage.setItem("reportData", JSON.stringify(formData));
+        window.location.href = "../pages/reportsSummary.html";
     });
 });
