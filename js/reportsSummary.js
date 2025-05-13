@@ -50,6 +50,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Proceed to display the summary after removal
         const categories = {
             "Basic Information": [
+                "ReportID",
+                "VolunteerGroupName", // Add VolunteerGroupName to display
                 "Barangay",
                 "CityMunicipality",
                 "TimeOfIntervention",
@@ -93,6 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         .replace('SubmittedBy', 'Submitted by')
                         .replace('DateOfReport', 'Date of Report')
                         .replace('ReportID', 'Report ID')
+                        .replace('VolunteerGroupName', 'Volunteer Group')
                         .replace('NoOfIndividualsOrFamilies', 'No. of Individuals or Families')
                         .replace('NoOfFoodPacks', 'No. of Food Packs')
                         .replace('NoOfHotMeals', 'No. of Hot Meals')
@@ -132,6 +135,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                     return;
                 }
+
+                // Add userUid to summaryData before saving to Firebase
+                summaryData["userUid"] = user.uid;
 
                 console.log("Submitting to Firebase:", summaryData);
 
