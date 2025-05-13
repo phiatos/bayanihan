@@ -45,6 +45,17 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentPage = 1;
     const rowsPerPage = 5;
 
+    searchInput.addEventListener('input', function() {
+    const searchTerm = this.value.toLowerCase();
+    filteredData = data.filter(item => {
+        return Object.values(item).some(value => {
+            return String(value).toLowerCase().includes(searchTerm);
+        });
+    });
+    currentPage = 1;
+    renderTable();
+});
+
     // Fetch data from Firebase
     database.ref('requestRelief/requests').on('value', (snapshot) => {
         console.log('Fetching data from Firebase');
