@@ -76,7 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     number: request.contactNumber,
                     email: request.email,
                     category: request.category,
-                    userUid: request.userUid || "N/A", // Include UID
+                    userUid: request.userUid || "N/A", // Keep userUid in data
                     items: request.items || [],
                     firebaseKey: key
                 });
@@ -109,7 +109,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td data-key="No">${start + index + 1}</td>
                 <td data-key="ReliefID">${item.id}</td>
                 <td data-key="VolunteerGroupName">${item.group}</td>
-                <td data-key="UserUID">${item.userUid}</td> <!-- Added UID column -->
                 <td data-key="City">${item.city}</td>
                 <td data-key="DropoffAddress">${item.address}</td>
                 <td data-key="ContactPerson">${item.contact}</td>
@@ -182,7 +181,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 No: (item, i) => i + 1,
                 ReliefID: item => item.id,
                 VolunteerGroupName: item => item.group,
-                UserUID: item => item.userUid, // Added for sorting
                 City: item => item.city,
                 DropoffAddress: item => item.address,
                 ContactPerson: item => item.contact,

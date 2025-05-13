@@ -61,7 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
         reportsBody.innerHTML = '';
 
         if (reports.length === 0) {
-            reportsBody.innerHTML = "<tr><td colspan='10'>No approved reports found on this page.</td></tr>";
+            reportsBody.innerHTML = "<tr><td colspan='9'>No approved reports found on this page.</td></tr>";
             return;
         }
 
@@ -73,7 +73,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${displayIndex}</td>
                 <td>${report["ReportID"] || "-"}</td>
                 <td>${report["VolunteerGroupName"] || "[Unknown Org]"}</td>
-                <td>${report["userUid"] || "N/A"}</td> <!-- Added UID column -->
                 <td>${report["Barangay"] || "-"}</td>
                 <td>${report["CityMunicipality"] || "-"}</td>
                 <td>${formatDate(report["DateOfReport"]) || "-"}</td>
@@ -87,7 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
             viewBtn.addEventListener('click', () => {
                 let readableReport = "";
                 for (let key in report) {
-                    if (key === "firebaseKey") continue;
+                    if (key === "firebaseKey" || key === "userUid") continue; // Skip userUid
 
                     let displayKey = key
                         .replace(/([A-Z])/g, ' $1')
@@ -121,7 +120,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         <h2>Basic Information</h2>
                         <p><strong>Report ID:</strong>${report.ReportID || "-"}</p>
                         <p><strong>Volunteer Group: </strong>${report.VolunteerGroupName || "[Unknown Org]"}</p>
-                        <p><strong>User UID: </strong>${report.userUid || "N/A"}</p> <!-- Added UID -->
                         <p class="cell"><strong>Location of Operation: </strong>${report.Barangay || "-"}, ${report.CityMunicipality || "-"}</p>
                         <p><strong>Submitted By: </strong>${report.SubmittedBy || "-"}</p>
                         <p><strong>Date of Report Submitted: </strong>${formatDate(report.DateOfReport) || "-"}</p>
