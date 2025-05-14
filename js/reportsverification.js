@@ -70,8 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${displayIndex}</td>
                 <td>${report["ReportID"] || "-"}</td>
                 <td>${report["VolunteerGroupName"] || "[Unknown Org]"}</td>
-                <td>${report["Barangay"] || "-"}</td>
-                <td>${report["CityMunicipality"] || "-"}</td>
+                <td>${report["AreaofOperation"] || "-"}</td>
                 <td>${report["TimeOfIntervention"] || "-"}</td>
                 <td>${formatDate(report["DateOfReport"]) || "-"}</td>
                 <td>${report["SubmittedBy"] || "-"}</td>
@@ -121,7 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <h2>Basic Information</h2>
                         <p><strong>Report ID:</strong>${report.ReportID || "-"}</p>
                         <p><strong>Volunteer Group: </strong>${report.VolunteerGroupName || "[Unknown Org]"}</p>
-                        <p class="cell"><strong>Location of Operation: </strong>${report.Barangay || "-"}, ${report.CityMunicipality || "-"}</p>
+                        <p class="cell"><strong>Location of Operation: </strong>${report.AreaOfOperation || "-"}</p>
                         <p><strong>Submitted By: </strong>${report.SubmittedBy || "-"}</p>
                         <p><strong>Date of Report Submitted: </strong>${formatDate(report.DateOfReport) || "-"}</p>
                     </div>
