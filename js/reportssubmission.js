@@ -58,14 +58,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return `${formattedHour}:${minute} ${ampm}`;
     }
 
-    const submittedByInput = document.getElementById('SubmittedBy');
-        if (submittedByInput) {
-        const volunteerGroup = JSON.parse(localStorage.getItem("loggedInVolunteerGroup"));
-        const groupName = volunteerGroup ? volunteerGroup.organization : "Unknown Volunteer";
-        submittedByInput.value = groupName;
-        submittedByInput.readOnly = true;
-    }
-
     let userUid = null;
     let volunteerGroupName = "[Unknown Org]";
 
@@ -178,62 +170,39 @@ document.addEventListener('DOMContentLoaded', () => {
         formPage1.style.display = "block";
     });
 
-     // Submit
+    // Submit final form
     formPage2.addEventListener("submit", function (e) {
         e.preventDefault();
 
+        if (!userUid) {
+            console.error('No user UID available. Cannot submit report.');
+            alert('User not authenticated. Please log in again.');
+            window.location.href = '../pages/login.html';
+            return;
+        }
+
         const formData = {
-            "ReportID": idInput.value,
-            "AreaOfOperation": document.querySelector('input[placeholder="e.g. Purok 2, Brgy. Maligaya, Rosario"]').value,
-            "TimeOfIntervention": formatTo12Hour(document.querySelector('input[placeholder="Time of Intervention"]').value),
-            "SubmittedBy": submittedByInput ? submittedByInput.value : "Unknown Group",
-            "DateOfReport": dateInput.value,
-            "Date": document.querySelector('input[type="date"]').value,
-            "NoOfIndividualsOrFamilies": document.querySelector('input[placeholder="No. of Individuals or Families"]').value,
-            "NoOfFoodPacks": document.querySelector('input[placeholder="No. of Food Packs"]').value,
-            "NoOfHotMeals": document.querySelector('input[placeholder="No. of Hot Meals"]').value,
-            "LitersOfWater": document.querySelector('input[placeholder="Liters of Water"]').value,
-            "NoOfVolunteersMobilized": document.querySelector('input[placeholder="No. of Volunteers Mobilized"]').value,
-            "NoOfOrganizationsActivated": document.querySelector('input[placeholder="No. of Organizations Activated"]').value,
-            "TotalValueOfInKindDonations": document.querySelector('input[placeholder="Total Value of In-Kind Donations"]').value,
-            "NotesAdditionalInformation": document.querySelector('textarea').value,
-            "Status": "Pending"
+            VolunteerGroupName: volunteerGroupName, // e.g., "RAZEL KIM ORG"
+            userUid, // Include the UID in formData but won't display in UI
+            AreaOfOperation: document.querySelector('input[placeholder="e.g. Purok 2, Brgy. Maligaya, Rosario"]').value,
+            TimeOfIntervention: document.querySelector('input[placeholder="Time of Intervention"]')?.value || "N/A",
+            SubmittedBy: document.querySelector('input[placeholder="Submitted by"]')?.value || "N/A",
+            DateOfReport: dateInput.value || "N/A",
+            ReportID: idInput.value || "N/A",
+            Date: document.querySelector('input[type="date"]')?.value || "N/A",
+            NoOfIndividualsOrFamilies: document.querySelector('input[placeholder="No. of Individuals or Families"]')?.value || "N/A",
+            NoOfFoodPacks: document.querySelector('input[placeholder="No. of Food Packs"]')?.value || "N/A",
+            NoOfHotMeals: document.querySelector('input[placeholder="No. of Hot Meals"]')?.value || "N/A",
+            LitersOfWater: document.querySelector('input[placeholder="Liters of Water"]')?.value || "N/A",
+            NoOfVolunteersMobilized: document.querySelector('input[placeholder="No. of Volunteers Mobilized"]')?.value || "N/A",
+            NoOfOrganizationsActivated: document.querySelector('input[placeholder="No. of Organizations Activated"]')?.value || "N/A",
+            TotalValueOfInKindDonations: document.querySelector('input[placeholder="Total Value of In-Kind Donations"]')?.value || "N/A",
+            NotesAdditionalInformation: document.querySelector('textarea')?.value || "N/A",
+            Status: "Pending"
         };
 
-        console.log("Redirecting to reportsSummary.html");
-        localStorage.setItem("returnToStep", "form-container-2");
+        // Save to localStorage and redirect to reportsSummary.html (no modal)
         localStorage.setItem("reportData", JSON.stringify(formData));
         window.location.href = "../pages/reportsSummary.html";
     });
-
-    // Handle returning from reportsSummary.html
-    const returnTo = localStorage.getItem("returnToStep");
-
-    if (returnTo === "form-container-2") {
-    formPage1.style.display = "none";
-    formPage2.style.display = "block";
-
-    setTimeout(() => {
-    const target = document.querySelector(".form-container-2");
-    if (target) target.scrollIntoView({ behavior: "smooth" });
-    }, 100);
-
-    const savedData = JSON.parse(localStorage.getItem("reportData"));
-    if (savedData) {
-    document.querySelector('input[placeholder="e.g. Purok 2, Brgy. Maligaya, Rosario"]').value = savedData.AreaOfOperation || '';
-    document.querySelector('input[placeholder="Time of Intervention"]').value = savedData.TimeOfIntervention || '';
-    document.querySelector('input[placeholder="Submitted by"]').value = savedData.SubmittedBy || '';
-    document.querySelector('input[type="date"]').value = savedData.Date || '';
-    document.querySelector('input[placeholder="No. of Individuals or Families"]').value = savedData.NoOfIndividualsOrFamilies || '';
-    document.querySelector('input[placeholder="No. of Food Packs"]').value = savedData.NoOfFoodPacks  || '';
-    document.querySelector('input[placeholder="No. of Hot Meals"]').value = savedData.NoOfHotMeals  || '';
-    document.querySelector('input[placeholder="Liters of Water"]').value = savedData.LitersOfWater  || '';
-    document.querySelector('input[placeholder="No. of Volunteers Mobilized"]').value = savedData.NoOfVolunteersMobilized  || '';
-    document.querySelector('input[placeholder="No. of Organizations Activated"]').value = savedData.NoOfOrganizationsActivated || '';
-    document.querySelector('input[placeholder="Total Value of In-Kind Donations"]').value = savedData.TotalValueOfInKindDonations || '';
-    document.querySelector('textarea').value = savedData.NotesAdditionalInformation || '';
-    }
-
-    localStorage.removeItem("returnToStep");
-    }
 });
