@@ -211,7 +211,6 @@ function renderTable(filteredData = data) {
   const end = start + rowsPerPage;
   const pageData = filteredData.slice(start, end);
   console.log("Page data:", pageData);
-
   pageData.forEach(row => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
@@ -223,11 +222,13 @@ function renderTable(filteredData = data) {
       <td>${row.email}</td>
       <td>${row.mobileNumber}</td>
       <td>${row.socialMedia}</td>
-      <td><button class="editButton" data-id="${row.no}">Edit</button></td>
+      <td>
+        <button class="editButton" data-id="${row.no}">Edit</button>
+        <button class="deleteButton" data-id="${row.no}">Delete</button>
+      </td>
     `;
     tableBody.appendChild(tr);
   });
-
   if (entriesInfo) {
     entriesInfo.textContent = `Showing ${start + 1} to ${Math.min(end, filteredData.length)} of ${filteredData.length} entries`;
   }
@@ -256,6 +257,7 @@ if (clearBtn) {
   clearBtn.style.display = 'none';
   clearBtn.addEventListener('click', clearDInputs);
 }
+
 if (searchInput) {
   searchInput.addEventListener('input', handleSearch);
 }
@@ -311,8 +313,9 @@ function renderPagination(totalRows) {
   paginationContainer.appendChild(createButton("Next", currentPage < totalPages ? currentPage + 1 : null, currentPage === totalPages));
 }
 
-// Edit functionality
+// Edit and Delete functionality
 function attachRowHandlers() {
+  // Edit button handler
   document.querySelectorAll('.editButton').forEach(button => {
     button.addEventListener('click', () => {
       const row = button.closest('tr');
@@ -359,6 +362,56 @@ function attachRowHandlers() {
             });
           });
       }
+    });
+  });
+
+  // Delete button handler
+  document.querySelectorAll('.deleteButton').forEach(button => {
+    button.addEventListener('click', () => {
+      const rowId = button.getAttribute('data-id');
+      Swal.fire({
+        icon: 'warning',
+        title: 'Are you sure?',
+        text: 'This will remove the volunteer group from the list but keep it in the database for future access.',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, delete it!',
+        cancelButtonText: 'Cancel'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          // Fetch the volunteer group data
+          database.ref(`volunteerGroups/${rowId}`).once('value')
+            .then(snapshot => {
+              const groupData = snapshot.val();
+              if (!groupData) throw new Error("Group not found.");
+
+              // Move to deletedVolunteerGroups node with a timestamp
+              return database.ref(`deletedVolunteerGroups/${rowId}`).set({
+                ...groupData,
+                deletedAt: new Date().toISOString()
+              });
+            })
+            .then(() => {
+              // Remove from volunteerGroups node
+              return database.ref(`volunteerGroups/${rowId}`).remove();
+            })
+            .then(() => {
+              Swal.fire({
+                icon: 'success',
+                title: 'Deleted',
+                text: 'Volunteer group has been moved to the deleted list.'
+              });
+              fetchAndRenderTable(); // Refresh the table to remove the row from the UI
+            })
+            .catch(error => {
+              console.error("Delete error:", error);
+              Swal.fire({
+                icon: 'error',
+                title: 'Delete Error',
+                text: error.message
+              });
+            });
+        }
+      });
     });
   });
 }
@@ -444,10 +497,8 @@ function applyChanges() {
   const locProvince = document.getElementById('locProvinceInput').value.trim();
   const locCity = document.getElementById('locCityInput').value.trim();
   const locBarangay = document.getElementById('locBarangayInput').value.trim();
-
   const hqAddress = hqBarangay ? `${hqBarangay}, ${hqCity}, ${hqProvince}` : hqCity && hqProvince ? `${hqCity}, ${hqProvince}` : '';
   const locAddress = locBarangay ? `${locBarangay}, ${locCity}, ${locProvince}` : locCity && locProvince ? `${locCity}, ${locProvince}` : '';
-
   if (currentAddressCell) {
     const row = currentAddressCell.closest('tr');
     const hqCell = row.querySelector('.hqCell');
@@ -469,6 +520,7 @@ function clearInputs() {
   const input = document.getElementById(id);
   if (input) input.addEventListener('input', e => populateCities(e.target.value, id.includes('loc')));
 });
+
 ['hqCityInput', 'locCityInput'].forEach(id => {
   const input = document.getElementById(id);
   if (input) input.addEventListener('input', e => populateBarangays(e.target.value, id.includes('loc')));

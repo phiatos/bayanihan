@@ -50,6 +50,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Display the summary
         const categories = {
             "Basic Information": [
+                "ReportID",
+                "VolunteerGroupName", // Add VolunteerGroupName to display
                 "AreaOfOperation",
                 "TimeOfIntervention",
                 "SubmittedBy",
@@ -82,13 +84,15 @@ document.addEventListener('DOMContentLoaded', () => {
             categories[category].forEach(item => {
                 if (summaryData[item]) {
                     let displayKey = item
-                        .replace(/([A-Z])/g, ' $1')
-                        .replace(/^./, str => str.toUpperCase())
+                        .replace(/([A-Z])/g, ' $1') // Add space before capital letters
+                        .replace(/^./, str => str.toUpperCase()); // Capitalize first letter
+                    displayKey = displayKey
                         .replace('AreaOfOperation', 'Area of Operation')
                         .replace('TimeOfIntervention', 'Time of Intervention')
                         .replace('SubmittedBy', 'Submitted by')
                         .replace('DateOfReport', 'Date of Report')
                         .replace('ReportID', 'Report ID')
+                        .replace('VolunteerGroupName', 'Volunteer Group')
                         .replace('NoOfIndividualsOrFamilies', 'No. of Individuals or Families')
                         .replace('NoOfFoodPacks', 'No. of Food Packs')
                         .replace('NoOfHotMeals', 'No. of Hot Meals')
@@ -129,6 +133,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                     return;
                 }
+
+                // Add userUid to summaryData before saving to Firebase
+                summaryData["userUid"] = user.uid;
 
                 console.log("Submitting to Firebase:", summaryData);
 

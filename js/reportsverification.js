@@ -1,5 +1,4 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Firebase configuration
     const firebaseConfig = {
         apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
         authDomain: "bayanihan-5ce7e.firebaseapp.com",
@@ -11,9 +10,20 @@ document.addEventListener('DOMContentLoaded', () => {
         measurementId: "G-ZTQ9VXXVV0",
     };
 
-    // Initialize Firebase
-    firebase.initializeApp(firebaseConfig);
-    const database = firebase.database();
+    let database, auth;
+    try {
+        firebase.initializeApp(firebaseConfig);
+        database = firebase.database();
+        auth = firebase.auth();
+    } catch (error) {
+        console.error("Firebase initialization failed:", error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Initialization Error',
+            text: 'Failed to initialize Firebase. Please try again later.',
+        });
+        return;
+    }
 
     let submittedReports = [];
     const submittedReportsContainer = document.getElementById("submittedReportsContainer");
@@ -24,10 +34,34 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentPage = 1;
     const rowsPerPage = 5;
 
-    // Format date
+    if (!submittedReportsContainer || !paginationContainer || !entriesInfo || !searchInput || !sortSelect) {
+        console.error("Required DOM elements not found");
+        Swal.fire({
+            icon: 'error',
+            title: 'Page Error',
+            text: 'Required elements are missing on the page. Please contact support.',
+        });
+        return;
+    }
+
+    auth.onAuthStateChanged(user => {
+        if (!user) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Authentication Required',
+                text: 'Please sign in to access report verification.',
+            }).then(() => {
+                window.location.href = "../pages/login.html";
+            });
+            return;
+        }
+
+        loadReportsFromFirebase();
+    });
+
     function formatDate(dateStr) {
         const date = new Date(dateStr);
-        if (isNaN(date)) return dateStr;
+        if (isNaN(date)) return dateStr || "-";
         return date.toLocaleDateString("en-US", {
             year: "numeric",
             month: "long",
@@ -35,29 +69,41 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Fetch reports from Firebase
     function loadReportsFromFirebase() {
         database.ref("reports/submitted").on("value", snapshot => {
             submittedReports = [];
             const reports = snapshot.val();
             if (reports) {
                 Object.keys(reports).forEach(key => {
+                    const report = reports[key];
+                    if (!report.VolunteerGroupName) {
+                        console.warn(`Report ${key} is missing VolunteerGroupName field. Will fetch dynamically on approval.`);
+                    }
                     submittedReports.push({
                         firebaseKey: key,
-                        ...reports[key]
+                        ...report
                     });
                 });
+            } else {
+                console.log("No submitted reports found in Firebase");
             }
             applySearchAndSort();
+        }, error => {
+            console.error("Error fetching reports from Firebase:", error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Failed to load reports: ' + error.message,
+            });
         });
     }
 
-    // Render the table for the current page
     function renderReportsTable(reports) {
         submittedReportsContainer.innerHTML = '';
 
         if (reports.length === 0) {
             submittedReportsContainer.innerHTML = "<tr><td colspan='9'>No submitted reports found on this page.</td></tr>";
+            entriesInfo.textContent = "Showing 0 to 0 of 0 entries";
             return;
         }
 
@@ -68,9 +114,11 @@ document.addEventListener('DOMContentLoaded', () => {
             tr.innerHTML = `
                 <td>${displayIndex}</td>
                 <td>${report["ReportID"] || "-"}</td>
-               <td>${report["SubmittedBy"] || "[Org_Name]"}</td>
+                <td>${report["VolunteerGroupName"] || "[Unknown Org]"}</td>
+                <td>${report["AreaOfOperation"] || "-"}</td>
                 <td>${report["TimeOfIntervention"] || "-"}</td>
-                <td>${formatDate(report["DateOfReport"]) || "-"}</td>
+                <td>${formatDate(report["DateOfReport"])}</td>
+                <td>${report["SubmittedBy"] || "-"}</td>
                 <td>${report["Status"] || "Pending"}</td>
                 <td>
                     <button class="viewBtn">View</button>
@@ -79,18 +127,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 </td>
             `;
 
-            // View button
             const viewBtn = tr.querySelector('.viewBtn');
             viewBtn.addEventListener('click', () => {
                 let readableReport = "";
                 for (let key in report) {
-                    if (key === "firebaseKey") continue;
+                    if (key === "firebaseKey" || key === "userUid") continue;
 
                     let displayKey = key
                         .replace(/([A-Z])/g, ' $1')
                         .replace(/^./, str => str.toUpperCase());
                     displayKey = displayKey
-                        .replace('CityMunicipality', 'City/Municipality')
+                        .replace('AreaOfOperation', 'Area of Operation')
                         .replace('TimeOfIntervention', 'Time of Intervention')
                         .replace('SubmittedByInput', 'Submitted by')
                         .replace('DateOfReport', 'Date of Report')
@@ -102,7 +149,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         .replace('NoOfVolunteersMobilized', 'No. of Volunteers Mobilized')
                         .replace('NoOfOrganizationsActivated', 'No. of Organizations Activated')
                         .replace('TotalValueOfInKindDonations', 'Total Value of In-Kind Donations')
-                        .replace('NotesAdditionalInformation', 'Notes/additional information');
+                        .replace('NotesAdditionalInformation', 'Notes/additional information')
+                        .replace('VolunteerGroupName', 'Volunteer Group');
 
                     const value = key === "DateOfReport" ? formatDate(report[key]) : report[key];
                     readableReport += `• ${displayKey}: ${value}\n`;
@@ -112,28 +160,38 @@ document.addEventListener('DOMContentLoaded', () => {
                 const modalDetails = document.getElementById("modalReportDetails");
                 const closeModal = document.getElementById("closeModal");
 
-                modalDetails.innerHTML = `  
-                <div class="report-section">
-                    <div class="form-1">
-                        <h2>Basic Information</h2>
-                        <p><strong>Report ID:</strong>${report.ReportID || "-"}<p>
-                     <p><strong>Volunteer Group: </strong>${report.VolunteerGroupName || "[Org_Name]"}</p>
-                        <p class="cell"><strong>Area of Operation: </strong>${report.AreaOfOperation || "-"}</p>
-                        <p><strong>Submitted By: </strong>${report.SubmittedBy || "[Contact_Person]"}<p>
-                        <p><strong>Date of Report Submitted: </strong>${formatDate(report.DateOfReport) || "-"}</p>
+                if (!modal || !modalDetails || !closeModal) {
+                    console.error("Modal elements not found");
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Modal elements are missing. Please contact support.',
+                    });
+                    return;
+                }
+
+                modalDetails.innerHTML = `
+                    <div class="report-section">
+                        <div class="form-1">
+                            <h2>Basic Information</h2>
+                            <p><strong>Report ID:</strong> ${report.ReportID || "-"}</p>
+                            <p><strong>Volunteer Group:</strong> ${report.VolunteerGroupName || "[Unknown Org]"}</p>
+                            <p class="cell"><strong>Location of Operation:</strong> ${report.AreaOfOperation || "-"}</p>
+                            <p><strong>Submitted By:</strong> ${report.SubmittedBy || "-"}</p>
+                            <p><strong>Date of Report Submitted:</strong> ${formatDate(report.DateOfReport)}</p>
+                        </div>
+                        <div class="form-2">
+                            <h2>Relief Operations</h2>
+                            <p><strong>Date of Relief Operation:</strong> ${formatDate(report.Date) || "-"}</p>
+                            <p><strong>No. of Individuals or Families:</strong> ${report.NoOfIndividualsOrFamilies || "-"}</p>
+                            <p><strong>No. of Food Packs:</strong> ${report.NoOfFoodPacks || "-"}</p>
+                            <p><strong>No. of Hot Meals/Ready-to-eat food:</strong> ${report.NoOfHotMeals || "-"}</p>
+                            <p><strong>Liters of Water:</strong> ${report.LitersOfWater || "-"}</p>
+                            <p><strong>No. of Volunteers Mobilized:</strong> ${report.NoOfVolunteersMobilized || "-"}</p>
+                            <p><strong>No. of Organizations Activated:</strong> ${report.NoOfOrganizationsActivated || "-"}</p>
+                            <p><strong>Total Value of In-Kind Donations:</strong> ${report.TotalValueOfInKindDonations || "-"}</p>
+                        </div>
                     </div>
-                    <div class="form-2">
-                        <h2>Relief Operations</h2>
-                        <p><strong>Date of Relief Operation:</strong>${formatDate(report.Date) || "-"}</p>
-                        <p><strong>No. of Individuals or Families:</strong>${report.NoOfIndividualsOrFamilies || "-"}</p>
-                        <p><strong>No. of Food Packs:</strong>${report.NoOfFoodPacks || "-"}</p>
-                        <p><strong>No. of Hot Meals/Ready-to-eat food: </strong>${report.NoOfHotMeals || "-"}</p>
-                        <p><strong>Liters of Water:</strong>${report.LitersOfWater || "-"} </p>
-                        <p><strong>No. of Volunteers Mobilized: </strong>${report.NoOfVolunteersMobilized || "-"}</p>
-                        <p><strong>No. of Organizations Activated:</strong>${report.NoOfOrganizationsActivated || "-"}</p>
-                        <p><strong>Total Value of In-Kind Donations:</strong>${report.TotalValueOfInKindDonations || "-"}</p>
-                    </div>
-                </div>
                     <div class="form-3">
                         <h2>Additional Updates</h2>
                         <p><strong>Notes/Additional Information:</strong> ${report.NotesAdditionalInformation || "-"}</p>
@@ -153,21 +211,49 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             });
 
-            // Approve action
             tr.querySelector('.approveBtn').addEventListener('click', () => {
-                report["Status"] = "Approved";
-                database.ref(`reports/approved`).push(report)
+                const userUid = report.userUid;
+                if (!userUid) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'User UID not found in report. Cannot approve.',
+                    });
+                    return;
+                }
+
+                // Fetch VolunteerGroupName from users/${userUid}/group
+                database.ref(`users/${userUid}`).once('value')
+                    .then(snapshot => {
+                        const userData = snapshot.val();
+                        let volunteerGroupName = "[Unknown Org]";
+                        if (userData && userData.group) {
+                            volunteerGroupName = userData.group;
+                            console.log(`Fetched VolunteerGroupName for user ${userUid}: ${volunteerGroupName}`);
+                        } else {
+                            console.warn(`No group found for user ${userUid}. Using default: [Unknown Org]`);
+                        }
+
+                        // Update the report with the correct VolunteerGroupName
+                        report["VolunteerGroupName"] = volunteerGroupName;
+                        report["Status"] = "Approved";
+
+                        // Save to approved reports and user's reports, then remove from submitted
+                        return Promise.all([
+                            database.ref(`reports/approved`).push(report),
+                            database.ref(`users/${userUid}/reports/${report.firebaseKey}`).set({ ...report, Status: "Approved" }),
+                            database.ref(`reports/submitted/${report.firebaseKey}`).remove()
+                        ]);
+                    })
                     .then(() => {
-                        database.ref(`reports/submitted/${report.firebaseKey}`).remove()
-                            .then(() => {
-                                Swal.fire({
-                                    icon: 'success',
-                                    title: 'Report Approved',
-                                    text: 'The report has been approved and moved to the approved logs.',
-                                });
-                            });
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Report Approved',
+                            text: 'The report has been approved and moved to the approved logs.',
+                        });
                     })
                     .catch(error => {
+                        console.error("Error during report approval:", error);
                         Swal.fire({
                             icon: 'error',
                             title: 'Error',
@@ -176,9 +262,21 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
             });
 
-            // Reject action
             tr.querySelector('.rejectBtn').addEventListener('click', () => {
-                database.ref(`reports/submitted/${report.firebaseKey}`).remove()
+                const userUid = report.userUid;
+                if (!userUid) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'User UID not found in report. Cannot reject.',
+                    });
+                    return;
+                }
+
+                Promise.all([
+                    database.ref(`reports/submitted/${report.firebaseKey}`).remove(),
+                    database.ref(`users/${userUid}/reports/${report.firebaseKey}`).remove()
+                ])
                     .then(() => {
                         Swal.fire({
                             icon: 'success',
@@ -187,6 +285,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         });
                     })
                     .catch(error => {
+                        console.error("Error during report rejection:", error);
                         Swal.fire({
                             icon: 'error',
                             title: 'Error',
@@ -228,10 +327,9 @@ document.addEventListener('DOMContentLoaded', () => {
         paginationContainer.appendChild(createButton("Next", currentPage + 1, currentPage === totalPages));
     }
 
-    // Search and sort functionality
     function applySearchAndSort() {
-        const searchQuery = document.getElementById('searchInput').value.toLowerCase();
-        const sortValue = document.getElementById('sortSelect').value;
+        const searchQuery = searchInput.value.toLowerCase();
+        const sortValue = sortSelect.value;
         const [sortBy, direction] = sortValue.split("-");
 
         let filteredReports = submittedReports.filter(report => {
@@ -244,7 +342,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        // Sort
         if (sortBy) {
             filteredReports.sort((a, b) => {
                 const valA = a[sortBy] || "";
@@ -271,24 +368,18 @@ document.addEventListener('DOMContentLoaded', () => {
         renderPagination(filteredReports.length);
     }
 
-    // Event listeners for search and sort
     searchInput.addEventListener('input', applySearchAndSort);
     sortSelect.addEventListener('change', applySearchAndSort);
 
-    // Clear search input
     window.clearDInputs = () => {
         searchInput.value = '';
         applySearchAndSort();
     };
 
-    // View Approved Reports button
     const viewApprovedBtn = document.getElementById("viewApprovedBtn");
     if (viewApprovedBtn) {
         viewApprovedBtn.addEventListener("click", () => {
             window.location.href = "../pages/reportslog.html";
         });
     }
-
-    // Load reports
-    loadReportsFromFirebase();
 });

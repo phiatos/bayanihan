@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
+    const auth = firebase.auth();
 
     const formPage1 = document.getElementById('form-page-1');
     const formPage2 = document.getElementById('form-page-2');
@@ -23,6 +24,65 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error("Form elements not found");
         return;
     }
+
+    const pinBtn = document.getElementById('pinBtn');
+    const mapModal = document.getElementById('mapModal');
+    const closeBtn = document.querySelector('.closeBtn');
+
+    if (pinBtn && mapModal && closeBtn) {
+        pinBtn.addEventListener('click', (e) => {
+        e.preventDefault(); // prevent form submit
+        mapModal.classList.add('show');
+    });
+
+    closeBtn.addEventListener('click', () => {
+        mapModal.classList.remove('show');
+    });
+
+    window.addEventListener('click', (e) => {
+        if (e.target === mapModal) {
+        mapModal.classList.remove('show');
+        }
+    });
+    } else {
+    console.warn('Modal elements not found');
+    }
+
+        function formatTo12Hour(timeStr) {
+        const [hour, minute] = timeStr.split(':');
+        const h = parseInt(hour);
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        const formattedHour = h % 12 || 12;
+        return `${formattedHour}:${minute} ${ampm}`;
+    }
+
+    let userUid = null;
+    let volunteerGroupName = "[Unknown Org]";
+
+    // Check if user is logged in and fetch their UID and group name
+    auth.onAuthStateChanged(user => {
+        if (user) {
+            userUid = user.uid;
+            console.log('Logged-in user UID:', userUid);
+
+            // Fetch user data from the database to get the volunteer group name
+            database.ref(`users/${userUid}`).once('value', snapshot => {
+                const userData = snapshot.val();
+                if (userData && userData.group) {
+                    volunteerGroupName = userData.group; // e.g., "RAZEL KIM ORG"
+                    console.log('Volunteer group fetched from database:', volunteerGroupName);
+                } else {
+                    console.warn('User data or group not found in database for UID:', userUid);
+                }
+            }).catch(error => {
+                console.error('Error fetching user data:', error);
+            });
+        } else {
+            console.warn('No user is logged in');
+            // Redirect to login page if user is not authenticated
+            window.location.href = '../pages/login.html';
+        }
+    });
 
     // Auto-set today's date
     const dateInput = document.getElementById('dateOfReport');
@@ -98,26 +158,34 @@ document.addEventListener('DOMContentLoaded', () => {
     formPage2.addEventListener("submit", function (e) {
         e.preventDefault();
 
+        if (!userUid) {
+            console.error('No user UID available. Cannot submit report.');
+            alert('User not authenticated. Please log in again.');
+            window.location.href = '../pages/login.html';
+            return;
+        }
+
         const formData = {
-            "ReportID": idInput.value,
-            "AreaOfOperation": document.querySelector('input[placeholder="e.g. Purok 2, Brgy. Maligaya, Rosario"]').value,
-            "TimeOfIntervention": formatTo12Hour(document.querySelector('input[placeholder="Time of Intervention"]').value),
-            "SubmittedBy": submittedByInput ? submittedByInput.value : "Unknown Group",
-            "DateOfReport": dateInput.value,
-            "Date": document.querySelector('input[type="date"]').value,
-            "NoOfIndividualsOrFamilies": document.querySelector('input[placeholder="No. of Individuals or Families"]').value,
-            "NoOfFoodPacks": document.querySelector('input[placeholder="No. of Food Packs"]').value,
-            "NoOfHotMeals": document.querySelector('input[placeholder="No. of Hot Meals"]').value,
-            "LitersOfWater": document.querySelector('input[placeholder="Liters of Water"]').value,
-            "NoOfVolunteersMobilized": document.querySelector('input[placeholder="No. of Volunteers Mobilized"]').value,
-            "NoOfOrganizationsActivated": document.querySelector('input[placeholder="No. of Organizations Activated"]').value,
-            "TotalValueOfInKindDonations": document.querySelector('input[placeholder="Total Value of In-Kind Donations"]').value,
-            "NotesAdditionalInformation": document.querySelector('textarea').value,
-            "Status": "Pending"
+            VolunteerGroupName: volunteerGroupName, // e.g., "RAZEL KIM ORG"
+            userUid, // Include the UID in formData but won't display in UI
+            AreaOfOperation: document.querySelector('input[placeholder="e.g. Purok 2, Brgy. Maligaya, Rosario"]').value,
+            TimeOfIntervention: document.querySelector('input[placeholder="Time of Intervention"]')?.value || "N/A",
+            SubmittedBy: document.querySelector('input[placeholder="Submitted by"]')?.value || "N/A",
+            DateOfReport: dateInput.value || "N/A",
+            ReportID: idInput.value || "N/A",
+            Date: document.querySelector('input[type="date"]')?.value || "N/A",
+            NoOfIndividualsOrFamilies: document.querySelector('input[placeholder="No. of Individuals or Families"]')?.value || "N/A",
+            NoOfFoodPacks: document.querySelector('input[placeholder="No. of Food Packs"]')?.value || "N/A",
+            NoOfHotMeals: document.querySelector('input[placeholder="No. of Hot Meals"]')?.value || "N/A",
+            LitersOfWater: document.querySelector('input[placeholder="Liters of Water"]')?.value || "N/A",
+            NoOfVolunteersMobilized: document.querySelector('input[placeholder="No. of Volunteers Mobilized"]')?.value || "N/A",
+            NoOfOrganizationsActivated: document.querySelector('input[placeholder="No. of Organizations Activated"]')?.value || "N/A",
+            TotalValueOfInKindDonations: document.querySelector('input[placeholder="Total Value of In-Kind Donations"]')?.value || "N/A",
+            NotesAdditionalInformation: document.querySelector('textarea')?.value || "N/A",
+            Status: "Pending"
         };
 
-        console.log("Redirecting to reportsSummary.html");
-        localStorage.setItem("returnToStep", "form-container-2");
+        // Save to localStorage and redirect to reportsSummary.html (no modal)
         localStorage.setItem("reportData", JSON.stringify(formData));
         window.location.href = "../pages/reportsSummary.html";
     });
