@@ -178,6 +178,34 @@ document.addEventListener('DOMContentLoaded', () => {
         formPage1.style.display = "block";
     });
 
+     // Submit
+    formPage2.addEventListener("submit", function (e) {
+        e.preventDefault();
+
+        const formData = {
+            "ReportID": idInput.value,
+            "AreaOfOperation": document.querySelector('input[placeholder="e.g. Purok 2, Brgy. Maligaya, Rosario"]').value,
+            "TimeOfIntervention": formatTo12Hour(document.querySelector('input[placeholder="Time of Intervention"]').value),
+            "SubmittedBy": submittedByInput ? submittedByInput.value : "Unknown Group",
+            "DateOfReport": dateInput.value,
+            "Date": document.querySelector('input[type="date"]').value,
+            "NoOfIndividualsOrFamilies": document.querySelector('input[placeholder="No. of Individuals or Families"]').value,
+            "NoOfFoodPacks": document.querySelector('input[placeholder="No. of Food Packs"]').value,
+            "NoOfHotMeals": document.querySelector('input[placeholder="No. of Hot Meals"]').value,
+            "LitersOfWater": document.querySelector('input[placeholder="Liters of Water"]').value,
+            "NoOfVolunteersMobilized": document.querySelector('input[placeholder="No. of Volunteers Mobilized"]').value,
+            "NoOfOrganizationsActivated": document.querySelector('input[placeholder="No. of Organizations Activated"]').value,
+            "TotalValueOfInKindDonations": document.querySelector('input[placeholder="Total Value of In-Kind Donations"]').value,
+            "NotesAdditionalInformation": document.querySelector('textarea').value,
+            "Status": "Pending"
+        };
+
+        console.log("Redirecting to reportsSummary.html");
+        localStorage.setItem("returnToStep", "form-container-2");
+        localStorage.setItem("reportData", JSON.stringify(formData));
+        window.location.href = "../pages/reportsSummary.html";
+    });
+
     // Handle returning from reportsSummary.html
     const returnTo = localStorage.getItem("returnToStep");
 
