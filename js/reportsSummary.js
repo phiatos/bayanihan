@@ -52,8 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
             "Basic Information": [
                 "ReportID",
                 "VolunteerGroupName", // Add VolunteerGroupName to display
-                "Barangay",
-                "CityMunicipality",
+                "AreaOfOperation",
                 "TimeOfIntervention",
                 "SubmittedBy",
                 "DateOfReport"
@@ -90,7 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         .replace(/([A-Z])/g, ' $1') // Add space before capital letters
                         .replace(/^./, str => str.toUpperCase()); // Capitalize first letter
                     displayKey = displayKey
-                        .replace('CityMunicipality', 'City/Municipality')
+                        .replace('AreaOfOperation', 'Area of Operation')
                         .replace('TimeOfIntervention', 'Time of Intervention')
                         .replace('SubmittedBy', 'Submitted by')
                         .replace('DateOfReport', 'Date of Report')

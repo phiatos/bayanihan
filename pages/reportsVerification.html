@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="../components/sidebar.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../css/reports.css" />
+    <link rel="stylesheet" href="../components/sidebar.css" />
     <link rel="stylesheet" href="../css/global.css" />
     <link rel='stylesheet' href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css'/>
-
+     
     <!-- Firebase Compat SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
@@ -16,7 +16,8 @@
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
-    <title>Reports Verification</title>
+
+    <title>Reports Log</title>
 </head>
 <body>
     <div class="main-container">
@@ -24,30 +25,32 @@
         <div id="main-content">
             <div class="controls">
                 <div class="controls_left">
-                    <header>Reports Verification</header>
+                    <header>Reports Log</header>
                 </div>
                 <div class="controls_right">
                     <div class="search-wrapper">
                         <i class="fa fa-search"></i>
                         <input type="text" placeholder="Search" id="searchInput" />
-                        <button onclick="clearDInputs()" class="clear-btn">
+                        <!-- <button onclick="clearDInputs()" class="clear-btn">
                             <i class='bx bx-x'></i>
-                        </button>
+                        </button> -->
                     </div>
                     <div class="custom-select-wrapper">
                         <select id="sortSelect">
                             <option value="">Sort by</option>
                             <optgroup label="Location">
-                                <option value="Barangay-asc">Barangay (A–Z)</option>
-                                <option value="Barangay-desc">Barangay (Z–A)</option>
                                 <option value="CityMunicipality-asc">City/Municipality (A–Z)</option>
                                 <option value="CityMunicipality-desc">City/Municipality (Z–A)</option>
                             </optgroup>
-                            <optgroup label="Date">
-                                <option value="DateOfReport-asc">Report Date (Low–High)</option>
-                                <option value="DateOfReport-desc">Report Date (High–Low)</option>
+                            <optgroup label="Hot Meals">
+                                <option value="NoOfHotMeals-asc">Hot Meals (Low–High)</option>
+                                <option value="NoOfHotMeals-desc">Hot Meals (High–Low)</option>
                             </optgroup>
-                        </select>
+                            <optgroup label="Liters of Water">
+                                <option value="LitersOfWater-asc">Liters of Water (Low–High)</option>
+                                <option value="LitersOfWater-desc">Liters of Water (High–Low)</option>
+                            </optgroup>
+                          </select>                          
                         <i class='bx bx-chevron-down'></i>
                     </div>
                 </div>
@@ -60,16 +63,14 @@
                         <th>Report ID</th>
                         <th>Volunteer Group Name</th>
                         <th>Area of Operation</th>
-                        <th>Time of Intervention</th>
-                        <th>Report Date</th>
-                        <th>Submitted By</th>
-                        <th>Status</th>
+                        <th>Report Date</th> 
+                        <th>Submitted by</th>
+                        <th>No. of Hot Meals</th>
+                        <th>Liters of Water</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
-                <tbody id="submittedReportsContainer">
-                    <button id="viewApprovedBtn">View Approved Reports</button>
-                </tbody>
+                <tbody id="reportsBody"></tbody>
             </table>
             <div class="pagination-info">
                 <span id="entriesInfo">Showing 0 to 0 of 0 entries</span>
@@ -83,7 +84,7 @@
             <span id="closeModal" class="close">&times;</span>
             <div class="modal-header"> 
                 <h2>Report Details</h2>
-             </div>
+            </div>
           <p id="modalReportDetails"></p>
         </div>
     </div>
@@ -102,6 +103,6 @@
             console.error('Error loading sidebar:', error);
         });
     </script>
-    <script src="../js/reportsverification.js"></script>
+    <script src="../js/reportslog.js"></script>
 </body>
 </html>
