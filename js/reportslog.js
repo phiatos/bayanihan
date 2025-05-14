@@ -1,5 +1,4 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Firebase configuration
     const firebaseConfig = {
         apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
         authDomain: "bayanihan-5ce7e.firebaseapp.com",
@@ -11,9 +10,20 @@ document.addEventListener('DOMContentLoaded', () => {
         measurementId: "G-ZTQ9VXXVV0",
     };
 
-    // Initialize Firebase
-    firebase.initializeApp(firebaseConfig);
-    const database = firebase.database();
+    let database, auth;
+    try {
+        firebase.initializeApp(firebaseConfig);
+        database = firebase.database();
+        auth = firebase.auth();
+    } catch (error) {
+        console.error("Firebase initialization failed:", error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Initialization Error',
+            text: 'Failed to initialize Firebase. Please try again later.',
+        });
+        return;
+    }
 
     let reviewedReports = [];
     const reportsBody = document.getElementById("reportsBody");
@@ -24,9 +34,34 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentPage = 1;
     const rowsPerPage = 5;
 
+    if (!reportsBody || !paginationContainer || !entriesInfo || !searchInput || !sortSelect) {
+        console.error("Required DOM elements not found");
+        Swal.fire({
+            icon: 'error',
+            title: 'Page Error',
+            text: 'Required elements are missing on the page. Please contact support.',
+        });
+        return;
+    }
+
+    auth.onAuthStateChanged(user => {
+        if (!user) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Authentication Required',
+                text: 'Please sign in to view the reports log.',
+            }).then(() => {
+                window.location.href = "../pages/login.html";
+            });
+            return;
+        }
+
+        loadReportsFromFirebase();
+    });
+
     function formatDate(dateStr) {
         const date = new Date(dateStr);
-        if (isNaN(date)) return dateStr;
+        if (isNaN(date)) return dateStr || "-";
         return date.toLocaleDateString("en-US", {
             year: "numeric",
             month: "long",
@@ -41,19 +76,27 @@ document.addEventListener('DOMContentLoaded', () => {
             if (reports) {
                 Object.keys(reports).forEach(key => {
                     const report = reports[key];
-                    if (report.volunteerGroup && !report.VolunteerGroupName) {
-                        report.VolunteerGroupName = report.volunteerGroup;
-                    }
+                    // Log if VolunteerGroupName is missing
                     if (!report.VolunteerGroupName) {
-                        console.warn(`Approved report ${key} is missing VolunteerGroupName field. Using default: [Unknown Org]`);
+                        console.warn(`Approved report ${key} is missing VolunteerGroupName. Report data:`, report);
+                        report.VolunteerGroupName = "[Unknown Org]";
                     }
                     reviewedReports.push({
                         firebaseKey: key,
                         ...report
                     });
                 });
+            } else {
+                console.log("No approved reports found in Firebase");
             }
             applySearchAndSort();
+        }, error => {
+            console.error("Error fetching reports from Firebase:", error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Failed to load reports: ' + error.message,
+            });
         });
     }
 
@@ -62,6 +105,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (reports.length === 0) {
             reportsBody.innerHTML = "<tr><td colspan='9'>No approved reports found on this page.</td></tr>";
+            entriesInfo.textContent = "Showing 0 to 0 of 0 entries";
             return;
         }
 
@@ -75,7 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${report["VolunteerGroupName"] || "[Unknown Org]"}</td>
                 <td>${report["Barangay"] || "-"}</td>
                 <td>${report["CityMunicipality"] || "-"}</td>
-                <td>${formatDate(report["DateOfReport"]) || "-"}</td>
+                <td>${formatDate(report["DateOfReport"])}</td>
                 <td>${report["SubmittedBy"] || "-"}</td>
                 <td>${report["NoOfHotMeals"] || "-"}</td>
                 <td>${report["LitersOfWater"] || "-"}</td>
@@ -86,7 +130,7 @@ document.addEventListener('DOMContentLoaded', () => {
             viewBtn.addEventListener('click', () => {
                 let readableReport = "";
                 for (let key in report) {
-                    if (key === "firebaseKey" || key === "userUid") continue; // Skip userUid
+                    if (key === "firebaseKey" || key === "userUid") continue;
 
                     let displayKey = key
                         .replace(/([A-Z])/g, ' $1')
@@ -104,7 +148,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         .replace('NoOfVolunteersMobilized', 'No. of Volunteers Mobilized')
                         .replace('NoOfOrganizationsActivated', 'No. of Organizations Activated')
                         .replace('TotalValueOfInKindDonations', 'Total Value of In-Kind Donations')
-                        .replace('NotesAdditionalInformation', 'Notes/additional information');
+                        .replace('NotesAdditionalInformation', 'Notes/additional information')
+                        .replace('VolunteerGroupName', 'Volunteer Group');
 
                     const value = key === "DateOfReport" ? formatDate(report[key]) : report[key];
                     readableReport += `• ${displayKey}: ${value}\n`;
@@ -114,28 +159,38 @@ document.addEventListener('DOMContentLoaded', () => {
                 const modalDetails = document.getElementById("modalReportDetails");
                 const closeModal = document.getElementById("closeModal");
 
-                modalDetails.innerHTML = `  
-                <div class="report-section">
-                    <div class="form-1">
-                        <h2>Basic Information</h2>
-                        <p><strong>Report ID:</strong>${report.ReportID || "-"}</p>
-                        <p><strong>Volunteer Group: </strong>${report.VolunteerGroupName || "[Unknown Org]"}</p>
-                        <p class="cell"><strong>Location of Operation: </strong>${report.Barangay || "-"}, ${report.CityMunicipality || "-"}</p>
-                        <p><strong>Submitted By: </strong>${report.SubmittedBy || "-"}</p>
-                        <p><strong>Date of Report Submitted: </strong>${formatDate(report.DateOfReport) || "-"}</p>
+                if (!modal || !modalDetails || !closeModal) {
+                    console.error("Modal elements not found");
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Modal elements are missing. Please contact support.',
+                    });
+                    return;
+                }
+
+                modalDetails.innerHTML = `
+                    <div class="report-section">
+                        <div class="form-1">
+                            <h2>Basic Information</h2>
+                            <p><strong>Report ID:</strong> ${report.ReportID || "-"}</p>
+                            <p><strong>Volunteer Group:</strong> ${report.VolunteerGroupName || "[Unknown Org]"}</p>
+                            <p class="cell"><strong>Location of Operation:</strong> ${report.Barangay || "-"}, ${report.CityMunicipality || "-"}</p>
+                            <p><strong>Submitted By:</strong> ${report.SubmittedBy || "-"}</p>
+                            <p><strong>Date of Report Submitted:</strong> ${formatDate(report.DateOfReport)}</p>
+                        </div>
+                        <div class="form-2">
+                            <h2>Relief Operations</h2>
+                            <p><strong>Date of Relief Operation:</strong> ${formatDate(report.Date) || "-"}</p>
+                            <p><strong>No. of Individuals or Families:</strong> ${report.NoOfIndividualsOrFamilies || "-"}</p>
+                            <p><strong>No. of Food Packs:</strong> ${report.NoOfFoodPacks || "-"}</p>
+                            <p><strong>No. of Hot Meals/Ready-to-eat food:</strong> ${report.NoOfHotMeals || "-"}</p>
+                            <p><strong>Liters of Water:</strong> ${report.LitersOfWater || "-"}</p>
+                            <p><strong>No. of Volunteers Mobilized:</strong> ${report.NoOfVolunteersMobilized || "-"}</p>
+                            <p><strong>No. of Organizations Activated:</strong> ${report.NoOfOrganizationsActivated || "-"}</p>
+                            <p><strong>Total Value of In-Kind Donations:</strong> ${report.TotalValueOfInKindDonations || "-"}</p>
+                        </div>
                     </div>
-                    <div class="form-2">
-                        <h2>Relief Operations</h2>
-                        <p><strong>Date of Relief Operation:</strong>${formatDate(report.Date) || "-"}</p>
-                        <p><strong>No. of Individuals or Families:</strong>${report.NoOfIndividualsOrFamilies || "-"}</p>
-                        <p><strong>No. of Food Packs:</strong>${report.NoOfFoodPacks || "-"}</p>
-                        <p><strong>No. of Hot Meals/Ready-to-eat food: </strong>${report.NoOfHotMeals || "-"}</p>
-                        <p><strong>Liters of Water:</strong>${report.LitersOfWater || "-"}</p>
-                        <p><strong>No. of Volunteers Mobilized: </strong>${report.NoOfVolunteersMobilized || "-"}</p>
-                        <p><strong>No. of Organizations Activated:</strong>${report.NoOfOrganizationsActivated || "-"}</p>
-                        <p><strong>Total Value of In-Kind Donations:</strong>${report.TotalValueOfInKindDonations || "-"}</p>
-                    </div>
-                </div>
                     <div class="form-3">
                         <h2>Additional Updates</h2>
                         <p><strong>Notes/Additional Information:</strong> ${report.NotesAdditionalInformation || "-"}</p>
@@ -189,8 +244,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function applySearchAndSort() {
-        const searchQuery = document.getElementById('searchInput').value.toLowerCase();
-        const sortValue = document.getElementById('sortSelect').value;
+        const searchQuery = searchInput.value.toLowerCase();
+        const sortValue = sortSelect.value;
         const [sortBy, direction] = sortValue.split("-");
 
         let filteredReports = reviewedReports.filter(report => {
@@ -236,6 +291,4 @@ document.addEventListener('DOMContentLoaded', () => {
         searchInput.value = '';
         applySearchAndSort();
     };
-
-    loadReportsFromFirebase();
 });
