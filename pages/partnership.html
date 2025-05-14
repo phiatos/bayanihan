@@ -29,81 +29,119 @@
                     <div class="search-wrapper">
                         <i class="fa fa-search"></i>
                         <input type="text" placeholder="Search" id="searchInput" />
-                        <button class="clear-btn">
+                        <button onclick="clearDInputs()" class="clear-btn">
                             <i class='bx bx-x'></i>
                         </button>
                     </div>
                     <div class="custom-select-wrapper">
                         <select id="sortSelect">
                             <option value="">Sort by</option>
-                            <option value="1">Encoder</option>
-                            <option value="2">Name</option>
-                            <option value="3">Type</option>
+                            <optgroup label="Encoder">
+                                <option value="Encoder-asc">Relief ID (Ascending)</option>
+                                <option value="Encoder-desc">Relief ID (Descending)</option>
+                            </optgroup>
+                            <optgroup label="Partner/Donor Name">
+                                <option value="Partner/Donor Name-asc">Volunteer Group Name (A–Z)</option>
+                                <option value="Partner/Donor Name-desc">Volunteer Group Name (Z–A)</option>
+                            </optgroup>
+                            <optgroup label="Partner Type">
+                                <option value="Partner Type-asc">Relief ID (Ascending)</option>
+                                <option value="Partner Type-desc">Relief ID (Descending)</option>
+                            </optgroup>
+                            <optgroup label="Contact Person">
+                                <option value="Contact Person-asc">Volunteer Group Name (A–Z)</option>
+                                <option value="Contact Person-desc">Volunteer Group Name (Z–A)</option>
+                            </optgroup>
+                            <optgroup label="Assistance Type">
+                                <option value="Assistance Type-asc">Volunteer Group Name (A–Z)</option>
+                                <option value="Assistance Type-desc">Volunteer Group Name (Z–A)</option>
+                            </optgroup>
                         </select>
                         <i class='bx bx-chevron-down'></i>
                     </div>
                 </div>
             </div>
 
-            <!-- Editable Table -->
-            <table id="partnershipTable">
-                <thead>
-                    <tr>
-                        <th>No.</th>
-                        <th>Encoder</th>
-                        <th>Partner/Donor Name</th>
-                        <th>Partner Type</th>
-                        <th>Address</th>
-                        <th>Contact Person</th>
-                        <th>Number</th>
-                        <th>Email</th>
-                        <th>Assistance Type</th>
-                        <th>Additional Notes</th>
-                        <th>Valuation</th>
-                        <th>Status</th>
-                        <th>Endorsed To</th>
-                        <th>Staff In-charge</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    
-                </tbody>
-            </table>
-
-            <button class="add-row-btn" onclick="addRow()">Add Row</button>
-            <button class="save-table-btn" id="saveBtn" onclick="saveTable()">Save Table</button>
-
-
-            <div class="pagination-info">
-                <span id="entriesInfo">Showing 0 to 0 of 0 entries</span>
-                <div id="pagination" class="pagination"></div>
-            </div>
+            <div class="form-container">
+            <form id="partnershipForm">
+                <div class="form-row">
+                    <input type="text" placeholder="Encoder" name="encoder" required>
+                    <input type="text" placeholder="Partner/Donor Name" name="partnerName" required>
+                    <input type="text" placeholder="Partner Type" name="partnerType">
+                    <input type="text" placeholder="Address" name="address">
+                    <input type="text" placeholder="Contact Person" name="contactPerson">
+                </div>
+                <div class="form-row">
+                    <input type="tel" placeholder="Number" name="number">
+                    <input type="email" placeholder="Email" name="email">
+                    <input type="text" placeholder="Assistance Type" name="assistanceType">
+                    <input type="text" placeholder="Additional Notes" name="notes">
+                    <input type="number" placeholder="Valuation" name="valuation">
+                </div>
+                <div class="form-row">
+                    <select name="status">
+                        <option value="closed">Closed</option>
+                        <option value="closed-successful">Closed - Successful</option>
+                        <option value="pending" selected>Pending</option>
+                    </select>
+                    <input type="text" placeholder="Endorsed To" name="endorsedTo">
+                    <input type="text" placeholder="Staff In-charge" name="staffInCharge">
+                    <button type="submit">Add Entry</button>
+                </div>
+            </form>
         </div>
-    </div>
 
-    <script>
-        // Fetch the sidebar HTML and inject it into the page
-        fetch('../components/sidebar.html')
-        .then(response => response.text())
-        .then(data => {
-            document.querySelector('.sidebar-placeholder').innerHTML = data;
+        <table id="dataTable">
+            <thead>
+                <tr>
+                    <th>No.</th>
+                    <th>Encoder</th>
+                    <th>Partner/Donor Name</th>
+                    <th>Partner Type</th>
+                    <th>Address</th>
+                    <th>Contact Person</th>
+                    <th>Number</th>
+                    <th>Email</th>
+                    <th>Assistance Type</th>
+                    <th>Additional Notes</th>
+                    <th>Valuation</th>
+                    <th>Status</th>
+                    <th>Endorsed To</th>
+                    <th>Staff In-charge</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+        <button id="exportBtn">Export to CSV</button>
 
-            // Create a new script element
-            const sidebarScript = document.createElement('script');
-            sidebarScript.src = '../components/sidebar.js'; 
+        <div class="pagination-info">
+            <span id="entriesInfo">Showing 0 to 0 of 0 entries</span>
+            <div id="pagination" class="pagination"></div>
+        </div>
 
-            // Call initSidebar when the script has loaded and executed
-            sidebarScript.onload = function() {
-            };
+        <script>
+            // Fetch the sidebar HTML and inject it into the page
+            fetch('../components/sidebar.html')
+            .then(response => response.text())
+            .then(data => {
+                document.querySelector('.sidebar-placeholder').innerHTML = data;
 
-            // Append the script element to the sidebar-placeholder
-            document.querySelector('.sidebar-placeholder').appendChild(sidebarScript);
-        })
-        .catch(error => {
-            console.error('Error loading sidebar:', error);
-        });
-    </script>
+                // Create a new script element
+                const sidebarScript = document.createElement('script');
+                sidebarScript.src = '../components/sidebar.js'; 
+
+                // Call initSidebar when the script has loaded and executed
+                sidebarScript.onload = function() {
+                };
+
+                // Append the script element to the sidebar-placeholder
+                document.querySelector('.sidebar-placeholder').appendChild(sidebarScript);
+            })
+            .catch(error => {
+                console.error('Error loading sidebar:', error);
+            });
+        </script>
 
     <script src="../js/partnership.js"></script>
 </body>
