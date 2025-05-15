@@ -1,4 +1,9 @@
-// Firebase configuration
+// Firebase imports
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+import { createUserWithEmailAndPassword, fetchSignInMethodsForEmail, getAuth } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { get, getDatabase, push, ref, remove, set } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
+
+// Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
   authDomain: "bayanihan-5ce7e.firebaseapp.com",
@@ -7,7 +12,7 @@ const firebaseConfig = {
   storageBucket: "bayanihan-5ce7e.appspot.com",
   messagingSenderId: "593123849917",
   appId: "1:593123849917:web:eb85a63a536eeff78ce9d4",
-  measurementId: "G-ZTQ9VXXVV0"
+  measurementId: "G-ZTQ9VXXVV0",
 };
 
 // SECURITY NOTE: In production, store firebaseConfig in environment variables (e.g., .env) or use Firebase App Check to prevent exposure.
