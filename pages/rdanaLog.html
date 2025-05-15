@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../components/sidebar.css" />
+    <link rel="stylesheet" href="../css/rdanaLog.css" />
+    <link rel="stylesheet" href="../css/global.css" />
+    <link rel='stylesheet' href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css'/>
+
+    <!-- Firebase Compat SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    
+<title>RDANA Log </title>
+</head>
+<body>
+    <div class="main-container">
+        <div class="sidebar-placeholder"></div>
+        <div id="main-content">
+            <div class="controls">
+                <div class="controls_left">
+                    <header>RDANA Log</header>
+                </div>
+                <div class="controls_right">
+                    <div class="search-wrapper">
+                        <i class="fa fa-search"></i>
+                        <input type="text" placeholder="Search" id="searchInput" />
+                        <button onclick="clearDInputs()" class="clear-btn">
+                            <i class='bx bx-x'></i>
+                        </button>
+                    </div>
+                    <div class="custom-select-wrapper">
+                        <select id="sortSelect">
+                        <option value="">Sort by</option>
+                        <optgroup label="Assessment Info">
+                            <option value="DateTime-asc">Date & Time (Oldest First)</option>
+                            <option value="DateTime-desc">Date & Time (Newest First)</option>
+                            <option value="RDANAID-asc">RDANA ID (Ascending)</option>
+                            <option value="RDANAID-desc">RDANA ID (Descending)</option>
+                        </optgroup>
+
+                        <optgroup label="Location">
+                            <option value="Location-asc">Location (A–Z)</option>
+                            <option value="Location-desc">Location (Z–A)</option>
+                        </optgroup>
+
+                        <optgroup label="Disaster Details">
+                            <option value="DisasterType-asc">Disaster Type (A–Z)</option>
+                            <option value="DisasterType-desc">Disaster Type (Z–A)</option>
+                        </optgroup>
+
+                        <optgroup label="Impact">
+                            <option value="AffectedPopulation-desc">Affected Population (High to Low)</option>
+                            <option value="AffectedPopulation-asc">Affected Population (Low to High)</option>
+                        </optgroup>
+
+                        <optgroup label="Response Actions">
+                            <option value="Needs-asc">Priority Needs (A–Z)</option>
+                            <option value="Needs-desc">Priority Needs (Z–A)</option>
+                        </optgroup>
+                        </select>
+                        <i class='bx bx-chevron-down'></i>
+                    </div>
+                </div>
+            </div>
+
+            <table id="orgTable">
+                <thead>
+                    <tr>
+                        <th>No.</th>
+                        <th>RDANA ID</th>
+                        <th>Date & Time of Assessment</th>
+                        <th>Location/Site Address</th>
+                        <th>Type of Disaster</th>
+                        <th>Affected Population</th>
+                        <th>Critical Needs</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Rows will be injected here by JS -->
+                </tbody>
+            </table>
+            <div class="pagination-info">
+                <span id="entriesInfo">Showing 0 to 0 of 0 entries</span>
+                <div id="pagination" class="pagination"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="previewModal" class="modal" style="display:none;">
+    <div class="modal-content">
+        <span id="closeModal" class="close">&times;</span>
+        <div id="modalContent"></div>
+    </div>
+    </div>
+
+
+</div>
+
+
+    <script>
+        // Fetch the sidebar HTML and inject it into the page
+        fetch('../components/sidebar.html')
+        .then(response => response.text())
+        .then(data => {
+            document.querySelector('.sidebar-placeholder').innerHTML = data;
+
+            // Create a new script element
+            const sidebarScript = document.createElement('script');
+            sidebarScript.src = '../components/sidebar.js'; 
+
+            // Call initSidebar when the script has loaded and executed
+            sidebarScript.onload = function() {};
+
+            // Append the script element to the sidebar-placeholder
+            document.querySelector('.sidebar-placeholder').appendChild(sidebarScript);
+        })
+        .catch(error => {
+            console.error('Error loading sidebar:', error);
+        });
+    </script>
+
+    <script src="../js/rdanaLog.js"></script>
+</body>
+</html>
