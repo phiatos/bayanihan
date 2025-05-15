@@ -53,7 +53,7 @@ input[type="date"]:valid{
 
 /* Dropdown styling to match text inputs */
 .input-field select,
-.modal select  {
+.modal select {
   font-size: 14px;
   font-weight: 400;
   color: #333;
@@ -165,8 +165,6 @@ button.btn-edit {
 .modal-content input[type="text"],
 .modal-content input[type="email"],
 .modal-content input[type="number"],
-.modal-content input[type="tel"],
-.modal-content input[type="date"],
 .modal-content select {
   width: calc(100% - 22px);
   border: 1px solid #ccc;
@@ -246,11 +244,11 @@ button.btn-edit {
   margin-top: 5px; 
 }
 
-/* Responsive fix - stack inputs on smaller screens */
-@media (max-width: 900px) {
-  .input-field {
-    width: calc((100% - 30px) / 3); /* 3 columns on tablets */
-  }
+@media (max-width: 768px) {
+    .modal-content {
+        width: 95%;
+        margin: 20% auto;
+    }
 }
 
 @media (max-width: 900px) {
@@ -261,6 +259,6 @@ button.btn-edit {
 
 @media (max-width: 600px) {
   .input-field {
-    width: 100%; /* full width on mobile */
+    width: 100%; 
   }
 }

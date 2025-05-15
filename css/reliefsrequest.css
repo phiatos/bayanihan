@@ -2,18 +2,6 @@ h2, h3{
   color: var(--primary-color);
 }
 
-#main-content {
-  flex: 1;
-  padding: 40px;
-  position: relative;
-  background: var(--white);
-  border-radius: 30px;
-  box-shadow: 0 0 30px rgba(0, 0, 0, .2);
-  margin: 50px;
-  max-height: calc(100vh - 100px);
-  
-}
-
 /* Dropdown styling to match text inputs */
 .input-field select {
   font-size: 14px;

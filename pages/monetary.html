@@ -6,143 +6,199 @@
     <link rel="stylesheet" href="../components/sidebar.css" />
     <link rel="stylesheet" href="../css/monetary.css" />
     <link rel="stylesheet" href="../css/global.css" />
-    <link rel='stylesheet' href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css'/>    
+    <link rel='stylesheet' href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css'/>
 
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
 
-    <!-- SweetAlert2 -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-    <title>Partnership</title>
+     <!-- SweetAlert2 -->
+     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+     
+    
+    <title>Monetary Donations</title>
 </head>
 <body>
     <div class="main-container">
         <div class="sidebar-placeholder"></div>
+
         <div id="main-content">
-            <div class="controls">
-                <div class="controls_left">
-                    <header>Partnership Tracker</header>
+            <header>Monetary Donations</header>
+
+            <div id="form-page-1">
+                <div class="form first">
+                    <form id="form-container-1">
+                    <div class="fields">
+                        <div class="input-field">
+                            <label for="encoder">Encoder:</label>
+                            <input type="text" id="encoder" placeholder="Enter encoder name">
+                        </div>
+                        <div class="input-field">
+                            <label for="name">Names/Company:</label>
+                            <input type="text" id="name" placeholder="Enter name or company">
+                        </div>
+                        <div class="input-field">
+                            <label for="address">Location (at least City Address):</label>
+                            <input type="text" id="address" placeholder="Enter city or full address">
+                        </div>
+                        <div class="input-field">
+                            <label for="number">Number:</label>
+                            <input type="text" id="number" placeholder="Enter contact number">
+                        </div>
+                        <div class="input-field">
+                            <label for="amount">Amount Donated:</label>
+                            <input type="number" id="amount" placeholder="Enter amount in PHP">
+                        </div>
+                        <div class="input-field">
+                            <label for="invoice">Cash Invoice #:</label>
+                            <input type="text" id="invoice" placeholder="Enter invoice number">
+                        </div>
+                        <div class="input-field">
+                            <label for="dateReceived">Date Received:</label>
+                            <input type="date" id="dateReceived">
+                        </div>
+                        <div class="input-field">
+                            <label for="email">Email:</label>
+                            <input type="email" id="email" placeholder="Enter email address">
+                        </div>
+                        <div class="input-field">
+                            <label for="bank">Bank:</label>
+                            <input type="text" id="bank" placeholder="Enter bank name">
+                        </div>
+                        <div class="input-field">
+                            <label for="proof">Proof of Transaction:</label>
+                            <input type="file" id="proof" />
+                        </div>
+                    </div>
+
+                    <button type="submit">Add Donation</button>
+                    </form>
                 </div>
-                <div class="controls_right">
-                    <div class="search-wrapper">
-                        <i class="fa fa-search"></i>
-                        <input type="text" placeholder="Search" id="searchInput" />
-                        <button onclick="clearDInputs()" class="clear-btn">
-                            <i class='bx bx-x'></i>
-                        </button>
+            </div>
+            
+            <section>
+                <div class="controls">
+                    <div class="controls_left">
+                        <h2>Monetary Donations</h2>
                     </div>
-                    <div class="custom-select-wrapper">
-                        <select id="sortSelect">
-                            <option value="">Sort by</option>
-                            <optgroup label="Encoder">
-                                <option value="Encoder-asc">Relief ID (Ascending)</option>
-                                <option value="Encoder-desc">Relief ID (Descending)</option>
-                            </optgroup>
-                            <optgroup label="Partner/Donor Name">
-                                <option value="Partner/Donor Name-asc">Volunteer Group Name (A–Z)</option>
-                                <option value="Partner/Donor Name-desc">Volunteer Group Name (Z–A)</option>
-                            </optgroup>
-                            <optgroup label="Partner Type">
-                                <option value="Partner Type-asc">Relief ID (Ascending)</option>
-                                <option value="Partner Type-desc">Relief ID (Descending)</option>
-                            </optgroup>
-                            <optgroup label="Contact Person">
-                                <option value="Contact Person-asc">Volunteer Group Name (A–Z)</option>
-                                <option value="Contact Person-desc">Volunteer Group Name (Z–A)</option>
-                            </optgroup>
-                            <optgroup label="Assistance Type">
-                                <option value="Assistance Type-asc">Volunteer Group Name (A–Z)</option>
-                                <option value="Assistance Type-desc">Volunteer Group Name (Z–A)</option>
-                            </optgroup>
-                        </select>
-                        <i class='bx bx-chevron-down'></i>
+                    <div class="controls_right">
+                        <div class="search-wrapper">
+                            <i class="fa fa-search"></i>
+                            <input type="text" placeholder="Search" id="searchInput" />
+                        </div>
+                        <div class="custom-select-wrapper">
+                            <select id="sortSelect">
+                                <option value="">Sort by</option>
+                                <optgroup label="Encoder">
+                                    <option value="encoder-asc">Encoder (A–Z)</option>
+                                    <option value="encoder-desc">Encoder (Z–A)</option>
+                                </optgroup>
+                                <optgroup label="Names/Company">
+                                    <option value="name-asc">Names/Company (A–Z)</option>
+                                    <option value="name-desc">Names/Company (Z–A)</option>
+                                </optgroup>
+                                <optgroup label="Location">
+                                    <option value="address-asc">Location (A–Z)</option>
+                                    <option value="address-desc">Location (Z–A)</option>
+                                </optgroup>
+                                <optgroup label="Number">
+                                    <option value="number-asc">Number (Low–High)</option>
+                                    <option value="number-desc">Number (High–Low)</option>
+                                </optgroup>
+                                <optgroup label="Amount Donated">
+                                    <option value="amount-asc">Amount Donated (Low–High)</option>
+                                    <option value="amount-desc">Amount Donated (High–Low)</option>
+                                </optgroup>
+                                <optgroup label="Cash Invoice #">
+                                    <option value="invoice-asc">Cash Invoice # (A–Z)</option>
+                                    <option value="invoice-desc">Cash Invoice # (Z–A)</option>
+                                </optgroup>
+                                <optgroup label="Date Received">
+                                    <option value="dateReceived-asc">Date Received (Earliest–Latest)</option>
+                                    <option value="dateReceived-desc">Date Received (Latest–Earliest)</option>
+                                </optgroup>
+                                <optgroup label="Email">
+                                    <option value="email-asc">Email (A–Z)</option>
+                                    <option value="email-desc">Email (Z–A)</option>
+                                </optgroup>
+                                <optgroup label="Bank">
+                                    <option value="bank-asc">Bank (A–Z)</option>
+                                    <option value="bank-desc">Bank (Z–A)</option>
+                                </optgroup>
+                            </select>
+                            <i class='bx bx-chevron-down'></i>
+                        </div>
                     </div>
+                </div>
+
+                <table id="monetaryTable">
+                    <thead>
+                        <tr>
+                        <th>No.</th>
+                        <th>Encoder</th>
+                        <th>Name/Company</th>
+                        <th>Location</th>
+                        <th>Number</th>
+                        <th>Amount Donated</th>
+                        <th>Cash Invoice #</th>
+                        <th>Date Received</th>
+                        <th>Email</th>
+                        <th>Bank</th>
+                        <th>Proof of Transaction</th>
+                        <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+
+                <div class="pagination-info">
+                    <span id="entriesInfo">Showing 0 to 0 of 0 entries</span>
+                    <div id="pagination" class="pagination"></div>
+                </div>
+
+                <br>
+                <button id="exportMonetaryBtn">Export Monetary to CSV</button>
+            </section>
+
+            <div class="modal" id="editMonetaryModal" style="display:none;">
+                <div class="modal-content">
+                    <span class="close-button" onclick="closeEditModal()">&times;</span>
+                    <h4>Edit Monetary Donation</h4>
+                    <label>Encoder: <input type="text" id="edit-encoder"></label>
+                    <label>Name/Company: <input type="text" id="edit-name"></label>
+                    <label>Location: <input type="text" id="edit-address"></label>
+                    <label>Number: <input type="tel" id="edit-number"></label>
+                    <label>Amount Donated: <input type="number" id="edit-amount"></label>
+                    <label>Cash Invoice #: <input type="text" id="edit-invoice"></label>
+                    <label>Date Received: <input type="date" id="edit-dateReceived"></label>
+                    <label>Email: <input type="email" id="edit-email"></label>
+                    <label>Bank: <input type="text" id="edit-bank"></label>
+                    <button type="button" onclick="saveEditedMonetaryDonation()">Save Changes</button>
+                    <button type="button" onclick="closeEditMonetaryModal()">Cancel</button>
                 </div>
             </div>
 
-            <div class="form-container">
-            <form id="partnershipForm">
-                <div class="form-row">
-                    <input type="text" placeholder="Encoder" name="encoder" required>
-                    <input type="text" placeholder="Partner/Donor Name" name="partnerName" required>
-                    <input type="text" placeholder="Partner Type" name="partnerType">
-                    <input type="text" placeholder="Address" name="address">
-                    <input type="text" placeholder="Contact Person" name="contactPerson">
-                </div>
-                <div class="form-row">
-                    <input type="tel" placeholder="Number" name="number">
-                    <input type="email" placeholder="Email" name="email">
-                    <input type="text" placeholder="Assistance Type" name="assistanceType">
-                    <input type="text" placeholder="Additional Notes" name="notes">
-                    <input type="number" placeholder="Valuation" name="valuation">
-                </div>
-                <div class="form-row">
-                    <select name="status">
-                        <option value="closed">Closed</option>
-                        <option value="closed-successful">Closed - Successful</option>
-                        <option value="pending" selected>Pending</option>
-                    </select>
-                    <input type="text" placeholder="Endorsed To" name="endorsedTo">
-                    <input type="text" placeholder="Staff In-charge" name="staffInCharge">
-                    <button type="submit">Add Entry</button>
-                </div>
-            </form>
         </div>
+    </div>
+    
+    <script>
+        fetch('../components/sidebar.html')
+        .then(response => response.text())
+        .then(data => {
+            document.querySelector('.sidebar-placeholder').innerHTML = data;
+            const sidebarScript = document.createElement('script');
+            sidebarScript.src = '../components/sidebar.js'; 
+            sidebarScript.onload = function() {
+            };
+            document.querySelector('.sidebar-placeholder').appendChild(sidebarScript);
+        })
+        .catch(error => {
+            console.error('Error loading sidebar:', error);
+        });
+    </script>
 
-        <table id="dataTable">
-            <thead>
-                <tr>
-                    <th>No.</th>
-                    <th>Encoder</th>
-                    <th>Partner/Donor Name</th>
-                    <th>Partner Type</th>
-                    <th>Address</th>
-                    <th>Contact Person</th>
-                    <th>Number</th>
-                    <th>Email</th>
-                    <th>Assistance Type</th>
-                    <th>Additional Notes</th>
-                    <th>Valuation</th>
-                    <th>Status</th>
-                    <th>Endorsed To</th>
-                    <th>Staff In-charge</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
-        <button id="exportBtn">Export to CSV</button>
-
-        <div class="pagination-info">
-            <span id="entriesInfo">Showing 0 to 0 of 0 entries</span>
-            <div id="pagination" class="pagination"></div>
-        </div>
-
-        <script>
-            // Fetch the sidebar HTML and inject it into the page
-            fetch('../components/sidebar.html')
-            .then(response => response.text())
-            .then(data => {
-                document.querySelector('.sidebar-placeholder').innerHTML = data;
-
-                // Create a new script element
-                const sidebarScript = document.createElement('script');
-                sidebarScript.src = '../components/sidebar.js'; 
-
-                // Call initSidebar when the script has loaded and executed
-                sidebarScript.onload = function() {
-                };
-
-                // Append the script element to the sidebar-placeholder
-                document.querySelector('.sidebar-placeholder').appendChild(sidebarScript);
-            })
-            .catch(error => {
-                console.error('Error loading sidebar:', error);
-            });
-        </script>
-
-    <script src="../js/monetaru.js"></script>
+    <script src="../js/monetary.js"></script>
+    
+        
 </body>
 </html>

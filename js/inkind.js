@@ -1,12 +1,11 @@
 document.addEventListener("DOMContentLoaded", () => {
   const form = document.getElementById("form-container-1");
-  const tableBody = document.querySelector("#monetaryTable tbody");
+  const tableBody = document.querySelector("#inKindTable tbody");
   const searchInput = document.getElementById("searchInput");
   const sortSelect = document.getElementById("sortSelect");
-  const exportBtn = document.getElementById("exportMonetaryBtn");
+  const exportBtn = document.getElementById("exportBtn");
   const entriesInfo = document.getElementById("entriesInfo");
   const paginationContainer = document.getElementById("pagination");
-  const editModal = document.getElementById("editMonetaryModal");
 
   const rowsPerPage = 10;
   let currentPage = 1;
@@ -24,14 +23,15 @@ document.addEventListener("DOMContentLoaded", () => {
     const newDonation = {
       encoder: form.encoder.value,
       name: form.name.value,
+      type: form.type.value,
       address: form.address.value,
+      contactPerson: form.contactPerson.value,
       number: form.number.value,
-      amountDonated: parseFloat(form.amount.value),
-      invoice: form.invoice.value,
-      dateReceived: form.dateReceived.value,
       email: form.email.value,
-      bank: form.bank.value,
-      proof: form.proof.value ? "Uploaded" : "No File", // Indicate if a file was selected
+      assistance: form.assistance.value,
+      valuation: form.valuation.value,
+      additionalnotes: form.additionalnotes.value,
+      status: form.status.value,
       id: Date.now(),
     };
 
@@ -55,18 +55,23 @@ document.addEventListener("DOMContentLoaded", () => {
         <td>${startIndex + i + 1}</td>
         <td>${d.encoder}</td>
         <td>${d.name}</td>
+        <td>${d.type}</td>
         <td>${d.address}</td>
+        <td>${d.contactPerson}</td>
         <td>${d.number}</td>
-        <td>${d.amountDonated.toLocaleString('en-PH', { style: 'currency', currency: 'PHP' })}</td>
-        <td>${d.invoice}</td>
-        <td>${new Date(d.dateReceived).toLocaleDateString()}</td>
         <td>${d.email}</td>
-        <td>${d.bank}</td>
-        <td>${d.proof}</td>
+        <td>${d.assistance}</td>
+        <td>${d.valuation}</td>
+        <td>${d.additionalnotes}</td>
+        <td>${d.status}</td>
         <td>
-          <button class="btn-edit" onclick="openEditMonetaryModal(${d.id})">Edit</button>
-          <button class="btn-delete" onclick="deleteMonetaryDonation('${d.id}')">Delete</button>
+            <button class="btn-edit" onclick="openEditModal(${d.id})">Edit</button>
+            <button class="btn-delete" onclick="deleteRow('${d.id}')">Delete</button>
         </td>
+        <td>
+            <button class="btn-endorse" onclick="openEndorseModal(${d.id})">Endorse</button>
+        </td>
+
       `;
       tableBody.appendChild(tr);
     });
@@ -124,15 +129,8 @@ document.addEventListener("DOMContentLoaded", () => {
   searchInput.addEventListener("input", () => {
     const searchTerm = searchInput.value.toLowerCase();
     filteredAndSortedDonations = allDonations.filter(d =>
-      d.encoder.toLowerCase().includes(searchTerm) ||
       d.name.toLowerCase().includes(searchTerm) ||
-      d.address.toLowerCase().includes(searchTerm) ||
-      d.number.toLowerCase().includes(searchTerm) ||
-      String(d.amountDonated).includes(searchTerm) ||
-      d.invoice.toLowerCase().includes(searchTerm) ||
-      new Date(d.dateReceived).toLocaleDateString().includes(searchTerm) ||
-      d.email.toLowerCase().includes(searchTerm) ||
-      d.bank.toLowerCase().includes(searchTerm)
+      d.encoder.toLowerCase().includes(searchTerm)
     );
     currentPage = 1;
     renderTable();
@@ -149,20 +147,7 @@ document.addEventListener("DOMContentLoaded", () => {
     else if (sortVal === "encoder-desc") arr.sort((a, b) => b.encoder.localeCompare(a.encoder));
     else if (sortVal === "name-asc") arr.sort((a, b) => a.name.localeCompare(b.name));
     else if (sortVal === "name-desc") arr.sort((a, b) => b.name.localeCompare(a.name));
-    else if (sortVal === "address-asc") arr.sort((a, b) => a.address.localeCompare(b.address));
-    else if (sortVal === "address-desc") arr.sort((a, b) => b.address.localeCompare(a.address));
-    else if (sortVal === "number-asc") arr.sort((a, b) => parseFloat(a.number) - parseFloat(b.number));
-    else if (sortVal === "number-desc") arr.sort((a, b) => parseFloat(b.number) - parseFloat(a.number));
-    else if (sortVal === "amount-asc") arr.sort((a, b) => a.amountDonated - b.amountDonated);
-    else if (sortVal === "amount-desc") arr.sort((a, b) => b.amountDonated - a.amountDonated);
-    else if (sortVal === "invoice-asc") arr.sort((a, b) => a.invoice.localeCompare(b.invoice));
-    else if (sortVal === "invoice-desc") arr.sort((a, b) => b.invoice.localeCompare(a.invoice));
-    else if (sortVal === "dateReceived-asc") arr.sort((a, b) => new Date(a.dateReceived) - new Date(b.dateReceived));
-    else if (sortVal === "dateReceived-desc") arr.sort((a, b) => new Date(b.dateReceived) - new Date(a.dateReceived));
-    else if (sortVal === "email-asc") arr.sort((a, b) => a.email.localeCompare(b.email));
-    else if (sortVal === "email-desc") arr.sort((a, b) => b.email.localeCompare(a.email));
-    else if (sortVal === "bank-asc") arr.sort((a, b) => a.bank.localeCompare(b.bank));
-    else if (sortVal === "bank-desc") arr.sort((a, b) => b.bank.localeCompare(a.bank));
+    // Add other sorting options as needed
   }
 
   exportBtn.addEventListener("click", () => {
@@ -170,35 +155,23 @@ document.addEventListener("DOMContentLoaded", () => {
       Swal.fire("Info", "No data to export!", "info");
       return;
     }
-    const headers = ["No.", "Encoder", "Name/Company", "Location", "Number", "Amount Donated", "Cash Invoice #", "Date Received", "Email", "Bank", "Proof of Transaction"];
-    const rows = allDonations.map((d, i) => [
-      i + 1,
-      d.encoder,
-      d.name,
-      d.address,
-      d.number,
-      d.amountDonated,
-      d.invoice,
-      new Date(d.dateReceived).toLocaleDateString(),
-      d.email,
-      d.bank,
-      d.proof,
-    ]);
+    const headers = ["No.", "Encoder", "Name", "Type", "Address", "Contact Person", "Number", "Email", "Type of Assistance", "Valuation", "Additional Notes", "Status"];
+    const rows = allDonations.map((d, i) => [i + 1, d.encoder, d.name, d.type, d.address, d.contactPerson, d.number, d.email, d.assistance, d.valuation, d.additionalnotes, d.status]);
     const csvContent = [headers.join(","), ...rows.map(row => row.join(","))].join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = "monetary-donations.csv";
+    link.download = "in-kind-donations.csv";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   });
 
-  window.deleteMonetaryDonation = (donationId) => {
+ window.deleteRow = (donationId) => {
     Swal.fire({
       title: 'Are you sure?',
-      text: "This monetary donation entry will be deleted!",
+      text: "This donation entry will be deleted!",
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#d33',
@@ -206,8 +179,8 @@ document.addEventListener("DOMContentLoaded", () => {
       confirmButtonText: 'Yes, delete it!'
     }).then((result) => {
       if (result.isConfirmed) {
-        allDonations = allDonations.filter(d => String(d.id) !== donationId);
-        filteredAndSortedDonations = filteredAndSortedDonations.filter(d => String(d.id) !== donationId);
+        allDonations = allDonations.filter(d => String(d.id) !== donationId); // Compare as strings
+        filteredAndSortedDonations = filteredAndSortedDonations.filter(d => String(d.id) !== donationId); // Compare as strings
         if ((currentPage - 1) * rowsPerPage >= filteredAndSortedDonations.length && currentPage > 1) {
           currentPage--;
         }
@@ -217,52 +190,85 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   };
 
-  window.openEditMonetaryModal = (donationId) => {
+  window.openEndorseModal = (donationId) => {
+    const modal = document.getElementById("endorseModal");
+    modal.style.display = "block";
+    const abvnList = document.getElementById("abvnList");
+    abvnList.innerHTML = `
+      <label><input type="radio" name="abvn" value="Group A" /> Group A</label><br/>
+      <label><input type="radio" name="abvn" value="Group B" /> Group B</label>
+      <p><b>Note:</b> Actual ABVN selection logic based on donation details would go here.</p>
+    `;
+    modal.dataset.donationId = donationId;
+  };
+
+  window.confirmEndorsement = () => {
+    const modal = document.getElementById("endorseModal");
+    const donationId = modal.dataset.donationId;
+    const selected = document.querySelector("input[name='abvn']:checked");
+    if (!selected) {
+      Swal.fire("Select a group to endorse", "", "warning");
+      return;
+    }
+    const group = selected.value;
+    Swal.fire("Endorsed!", `Donation with ID ${donationId} endorsed to ${group}`, "success");
+    modal.style.display = "none";
+  };
+
+  // Function to open the edit modal
+  window.openEditModal = (donationId) => {
     editingId = donationId;
     const donationToEdit = findDonation(donationId);
     if (donationToEdit) {
+      const editModal = document.getElementById("editModal");
       document.getElementById("edit-encoder").value = donationToEdit.encoder;
       document.getElementById("edit-name").value = donationToEdit.name;
+      document.getElementById("edit-type").value = donationToEdit.type;
       document.getElementById("edit-address").value = donationToEdit.address;
+      document.getElementById("edit-contactPerson").value = donationToEdit.contactPerson;
       document.getElementById("edit-number").value = donationToEdit.number;
-      document.getElementById("edit-amount").value = donationToEdit.amountDonated;
-      document.getElementById("edit-invoice").value = donationToEdit.invoice;
-      document.getElementById("edit-dateReceived").value = donationToEdit.dateReceived;
       document.getElementById("edit-email").value = donationToEdit.email;
-      document.getElementById("edit-bank").value = donationToEdit.bank;
+      document.getElementById("edit-assistance").value = donationToEdit.assistance;
+      document.getElementById("edit-valuation").value = donationToEdit.valuation;
+      document.getElementById("edit-additionalnotes").value = donationToEdit.additionalnotes;
+      document.getElementById("edit-status").value = donationToEdit.status;
       editModal.style.display = "block";
     }
   };
 
-  window.saveEditedMonetaryDonation = () => {
+  // Function to handle saving the edited donation
+  window.saveEditedDonation = () => {
     if (editingId !== null) {
       const updatedDonation = {
         id: editingId,
         encoder: document.getElementById("edit-encoder").value,
         name: document.getElementById("edit-name").value,
+        type: document.getElementById("edit-type").value,
         address: document.getElementById("edit-address").value,
+        contactPerson: document.getElementById("edit-contactPerson").value,
         number: document.getElementById("edit-number").value,
-        amountDonated: parseFloat(document.getElementById("edit-amount").value),
-        invoice: document.getElementById("edit-invoice").value,
-        dateReceived: document.getElementById("edit-dateReceived").value,
         email: document.getElementById("edit-email").value,
-        bank: document.getElementById("edit-bank").value,
-        // Note: Proof of transaction edit is not implemented here
+        assistance: document.getElementById("edit-assistance").value,
+        valuation: document.getElementById("edit-valuation").value,
+        additionalnotes: document.getElementById("edit-additionalnotes").value,
+        status: document.getElementById("edit-status").value,
       };
 
       const index = allDonations.findIndex(donation => donation.id === editingId);
       if (index !== -1) {
         allDonations[index] = updatedDonation;
-        filteredAndSortedDonations = [...allDonations];
+        filteredAndSortedDonations = [...allDonations]; // Update filtered list as well
         renderTable();
-        closeEditMonetaryModal();
+        closeEditModal();
         Swal.fire("Success", "Donation updated!", "success");
       }
       editingId = null;
     }
   };
 
-  window.closeEditMonetaryModal = () => {
+  // Function to close the edit modal
+  window.closeEditModal = () => {
+    const editModal = document.getElementById("editModal");
     editModal.style.display = "none";
     editingId = null;
   };
