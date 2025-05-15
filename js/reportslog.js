@@ -118,8 +118,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${report["ReportID"] || "-"}</td>
                 <td>${report["VolunteerGroupName"] || "[Unknown Org]"}</td>
                 <td>${report["AreaOfOperation"] || "-"}</td>
-                <td>${formatDate(report["DateOfReport"])}</td>
-                <td>${report["SubmittedBy"] || "-"}</td>
+                <td>${formatDate(report["StartDate"]) || "-"}</td>
+                <td>${formatDate(report["EndDate"]) || "-"}</td>
                 <td>${report["NoOfHotMeals"] || "-"}</td>
                 <td>${report["LitersOfWater"] || "-"}</td>
                 <td><button class="viewBtn">View</button></td>
@@ -140,6 +140,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         .replace('SubmittedBy', 'Submitted by')
                         .replace('DateOfReport', 'Date of Report')
                         .replace('ReportID', 'Report ID')
+                        .replace('StartDate', 'StartDate')
+                        .replace('EndDate', 'EndDate')
                         .replace('NoOfIndividualsOrFamilies', 'No. of Individuals or Families')
                         .replace('NoOfFoodPacks', 'No. of Food Packs')
                         .replace('NoOfHotMeals', 'No. of Hot Meals')
@@ -177,10 +179,12 @@ document.addEventListener('DOMContentLoaded', () => {
                             <p class="cell"><strong>Location of Operation:</strong> ${report.AreaOfOperation || "-"}</p>
                             <p><strong>Submitted By:</strong> ${report.SubmittedBy || "-"}</p>
                             <p><strong>Date of Report Submitted:</strong> ${formatDate(report.DateOfReport)}</p>
+                            <p><strong>Completion time of intervention:</strong> ${formatDate(report.TimeOfIntervention)}</p>
                         </div>
                         <div class="form-2">
                             <h2>Relief Operations</h2>
-                            <p><strong>Date of Relief Operation:</strong> ${formatDate(report.Date) || "-"}</p>
+                            <p><strong>Start Date of Operation:</strong> ${formatDate(report.StartDate) || "-"}</p>
+                            <p><strong>End Date of Operation:</strong> ${formatDate(report.EndDate) || "-"}</p>
                             <p><strong>No. of Individuals or Families:</strong> ${report.NoOfIndividualsOrFamilies || "-"}</p>
                             <p><strong>No. of Food Packs:</strong> ${report.NoOfFoodPacks || "-"}</p>
                             <p><strong>No. of Hot Meals/Ready-to-eat food:</strong> ${report.NoOfHotMeals || "-"}</p>
@@ -188,6 +192,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <p><strong>No. of Volunteers Mobilized:</strong> ${report.NoOfVolunteersMobilized || "-"}</p>
                             <p><strong>No. of Organizations Activated:</strong> ${report.NoOfOrganizationsActivated || "-"}</p>
                             <p><strong>Total Value of In-Kind Donations:</strong> ${report.TotalValueOfInKindDonations || "-"}</p>
+                            <p><strong>Total Monetary Donations:</strong> ${report.TotalMonetaryDonations || "-"}</p>
                         </div>
                     </div>
                     <div class="form-3">

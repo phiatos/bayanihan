@@ -118,7 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${report["AreaOfOperation"] || "-"}</td>
                 <td>${report["TimeOfIntervention"] || "-"}</td>
                 <td>${formatDate(report["DateOfReport"])}</td>
-                <td>${report["SubmittedBy"] || "-"}</td>
+                
                 <td>${report["Status"] || "Pending"}</td>
                 <td>
                     <button class="viewBtn">View</button>
@@ -139,9 +139,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     displayKey = displayKey
                         .replace('AreaOfOperation', 'Area of Operation')
                         .replace('TimeOfIntervention', 'Time of Intervention')
-                        .replace('SubmittedBy', 'Submitted by')
+                        .replace('SubmittedByInput', 'Submitted by')
                         .replace('DateOfReport', 'Date of Report')
                         .replace('ReportID', 'Report ID')
+                        .replace('StartDate', 'StartDate')
+                        .replace('EndDate', 'EndDate')
                         .replace('NoOfIndividualsOrFamilies', 'No. of Individuals or Families')
                         .replace('NoOfFoodPacks', 'No. of Food Packs')
                         .replace('NoOfHotMeals', 'No. of Hot Meals')
@@ -149,6 +151,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         .replace('NoOfVolunteersMobilized', 'No. of Volunteers Mobilized')
                         .replace('NoOfOrganizationsActivated', 'No. of Organizations Activated')
                         .replace('TotalValueOfInKindDonations', 'Total Value of In-Kind Donations')
+                        .replace('TotalMonetaryDonations', 'Total Monetary Donations')
                         .replace('NotesAdditionalInformation', 'Notes/additional information')
                         .replace('VolunteerGroupName', 'Volunteer Group');
 
@@ -172,17 +175,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 modalDetails.innerHTML = `
                     <div class="report-section">
-                        <div class="form-1">
+                         <div class="form-1">
                             <h2>Basic Information</h2>
                             <p><strong>Report ID:</strong> ${report.ReportID || "-"}</p>
-                            <p><strong>Volunteer Group:</strong> ${report.VolunteerGroupName || "[Unknown Org]"}</p>
-                            <p class="cell"><strong>Location of Operation:</strong> ${report.AreaOfOperation || "-"}</p>
+                            <p><strong>Volunteer Group:</strong> ${report.VolunteerGroupName || "[Unknown Org]"}</p> 
                             <p><strong>Submitted By:</strong> ${report.SubmittedBy || "-"}</p>
                             <p><strong>Date of Report Submitted:</strong> ${formatDate(report.DateOfReport)}</p>
+                            <p class="cell"><strong>Location of Operation:</strong> ${report.AreaOfOperation || "-"}</p>
+                            <p class="cell"><strong>Completion Time of Intervention:</strong> ${report.TimeOfIntervention || "-"}</p>
                         </div>
                         <div class="form-2">
                             <h2>Relief Operations</h2>
-                            <p><strong>Date of Relief Operation:</strong> ${formatDate(report.Date) || "-"}</p>
+                            <p><strong>Start Date of Operation:</strong> ${formatDate(report.StartDate) || "-"}</p>
+                            <p><strong>End Date of Operation:</strong> ${formatDate(report.EndDate) || "-"}</p>
                             <p><strong>No. of Individuals or Families:</strong> ${report.NoOfIndividualsOrFamilies || "-"}</p>
                             <p><strong>No. of Food Packs:</strong> ${report.NoOfFoodPacks || "-"}</p>
                             <p><strong>No. of Hot Meals/Ready-to-eat food:</strong> ${report.NoOfHotMeals || "-"}</p>
@@ -190,6 +195,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <p><strong>No. of Volunteers Mobilized:</strong> ${report.NoOfVolunteersMobilized || "-"}</p>
                             <p><strong>No. of Organizations Activated:</strong> ${report.NoOfOrganizationsActivated || "-"}</p>
                             <p><strong>Total Value of In-Kind Donations:</strong> ${report.TotalValueOfInKindDonations || "-"}</p>
+                            <p><strong>Total Monetary Donations:</strong> ${report.TotalMonetaryDonations || "-"}</p>
                         </div>
                     </div>
                     <div class="form-3">

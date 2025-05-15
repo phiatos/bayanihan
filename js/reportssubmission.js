@@ -181,15 +181,19 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        const startDateInput = document.querySelector('input[id="StartDate"]');
+        const endDateInput = document.querySelector('input[id="EndDate"]');
+
         const formData = {
             VolunteerGroupName: volunteerGroupName, // e.g., "RAZEL KIM ORG"
             userUid, // Include the UID in formData but won't display in UI
             AreaOfOperation: document.querySelector('input[placeholder="e.g. Purok 2, Brgy. Maligaya, Rosario"]').value,
-            TimeOfIntervention: document.querySelector('input[placeholder="Time of Intervention"]')?.value || "N/A",
+            TimeOfIntervention: document.querySelector('input[placeholder="Completion Time of Intervention"]')?.value || "N/A",
             SubmittedBy: document.querySelector('input[placeholder="Submitted by"]')?.value || "N/A",
             DateOfReport: dateInput.value || "N/A",
             ReportID: idInput.value || "N/A",
-            Date: document.querySelector('input[type="date"]')?.value || "N/A",
+            StartDate: startDateInput?.value || "N/A",
+            EndDate: endDateInput?.value || "N/A",
             NoOfIndividualsOrFamilies: document.querySelector('input[placeholder="No. of Individuals or Families"]')?.value || "N/A",
             NoOfFoodPacks: document.querySelector('input[placeholder="No. of Food Packs"]')?.value || "N/A",
             NoOfHotMeals: document.querySelector('input[placeholder="No. of Hot Meals"]')?.value || "N/A",
@@ -197,6 +201,7 @@ document.addEventListener('DOMContentLoaded', () => {
             NoOfVolunteersMobilized: document.querySelector('input[placeholder="No. of Volunteers Mobilized"]')?.value || "N/A",
             NoOfOrganizationsActivated: document.querySelector('input[placeholder="No. of Organizations Activated"]')?.value || "N/A",
             TotalValueOfInKindDonations: document.querySelector('input[placeholder="Total Value of In-Kind Donations"]')?.value || "N/A",
+            TotalMonetaryDonations: document.querySelector('input[placeholder="Total Monetary Donations"]')?.value || "N/A",
             NotesAdditionalInformation: document.querySelector('textarea')?.value || "N/A",
             Status: "Pending"
         };

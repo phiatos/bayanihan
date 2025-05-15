@@ -37,13 +37,10 @@
                                 <button id="pinBtn">📍 Pin Location</button>
                             </div>
                             <div class="input-field">
-                                <label>Time of Intervention</label>
-                                <input type="time" placeholder="Time of Intervention" required>
+                                <label>Completion Time of Intervention</label>
+                                <input type="time" placeholder="Completion Time of Intervention" required>
                             </div>
-                            <div class="input-field">
-                                <label>Submitted by</label>
-                                <input type="text" placeholder="Submitted by" required>
-                            </div>
+                
                             <div class="input-field">
                                 <label>Date of Report</label>
                                 <input type="text" id="dateOfReport" placeholder="Date of Report" readonly/>
@@ -55,12 +52,16 @@
                         </div>
                     </div>
 
-                    <div class="form-container-2">
+                      <div class="form-container-2">
                         <span class="title">Relief Operations</span>
                         <div class="fields">
                             <div class="input-field">
-                                <label>Date</label>
-                                <input type="date" placeholder="MM/DD/YY" required>
+                                <label>Starting Date of Operation</label>
+                                <input type="date" id="StartDate" placeholder="MM/DD/YY" required>
+                            </div>
+                            <div class="input-field">
+                                <label>Ending Date of Operation</label>
+                                <input type="date" id="EndDate" placeholder="MM/DD/YY" required>
                             </div>
                             <div class="input-field">
                                 <label>No. of Individuals or Families</label>
@@ -89,6 +90,10 @@
                             <div class="input-field">
                                 <label>Total Value of In-Kind Donations</label>
                                 <input type="number" placeholder="Total Value of In-Kind Donations" min="1" required>
+                            </div>
+                            <div class="input-field">
+                                <label>Total Monetary Donations</label>
+                                <input type="number" placeholder="Total Monetary Donations" min="1" required>
                             </div>
                         </div>
                         <button type="button" class="next-btn" id="nextBtn">Next</button>

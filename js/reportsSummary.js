@@ -54,20 +54,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 "VolunteerGroupName", // Add VolunteerGroupName to display
                 "AreaOfOperation",
                 "TimeOfIntervention",
-                "SubmittedBy",
                 "DateOfReport"
             ],
             "Relief Operations": [
-                "Date",
+                "StartDate",
+                "EndDate",
                 "NoOfOrganizationsActivated",
                 "NoOfIndividualsOrFamilies",
                 "NoOfFoodPacks",
                 "NoOfHotMeals",
                 "LitersOfWater",
                 "NoOfVolunteersMobilized",
-                "TotalValueOfInKindDonations"
+                "TotalValueOfInKindDonations",
+                "TotalMonetaryDonations"
             ],
-            "Notes/Additional Information": [
+            "Additional Updates": [
                 "NotesAdditionalInformation"
             ]
         };
@@ -90,10 +91,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         .replace(/^./, str => str.toUpperCase()); // Capitalize first letter
                     displayKey = displayKey
                         .replace('AreaOfOperation', 'Area of Operation')
-                        .replace('TimeOfIntervention', 'Time of Intervention')
+                        .replace('TimeOfIntervention', 'Completion of Time Intervention')
                         .replace('SubmittedBy', 'Submitted by')
                         .replace('DateOfReport', 'Date of Report')
                         .replace('ReportID', 'Report ID')
+                        .replace('StartDate', 'StartDate')
+                        .replace('EndDate', 'EndDate')
                         .replace('VolunteerGroupName', 'Volunteer Group')
                         .replace('NoOfIndividualsOrFamilies', 'No. of Individuals or Families')
                         .replace('NoOfFoodPacks', 'No. of Food Packs')
@@ -102,6 +105,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         .replace('NoOfVolunteersMobilized', 'No. of Volunteers Mobilized')
                         .replace('NoOfOrganizationsActivated', 'No. of Organizations Activated')
                         .replace('TotalValueOfInKindDonations', 'Total Value of In-Kind Donations')
+                        .replace('TotalMonetaryDonations', 'Total Monetary Donations')
                         .replace('NotesAdditionalInformation', 'Notes/additional information');
 
                     const fieldDiv = document.createElement("div");
