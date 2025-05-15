@@ -27,6 +27,37 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
+    const pinBtn = document.getElementById('pinBtn');
+    const mapModal = document.getElementById('mapModal');
+    const closeBtn = document.querySelector('.closeBtn');
+
+    if (pinBtn && mapModal && closeBtn) {
+        pinBtn.addEventListener('click', (e) => {
+        e.preventDefault(); // prevent form submit
+        mapModal.classList.add('show');
+    });
+
+    closeBtn.addEventListener('click', () => {
+        mapModal.classList.remove('show');
+    });
+
+    window.addEventListener('click', (e) => {
+        if (e.target === mapModal) {
+        mapModal.classList.remove('show');
+        }
+    });
+    } else {
+    console.warn('Modal elements not found');
+    }
+
+        function formatTo12Hour(timeStr) {
+        const [hour, minute] = timeStr.split(':');
+        const h = parseInt(hour);
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        const formattedHour = h % 12 || 12;
+        return `${formattedHour}:${minute} ${ampm}`;
+    }
+
     let userUid = null;
     let volunteerGroupName = "[Unknown Org]";
 
@@ -153,8 +184,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const formData = {
             VolunteerGroupName: volunteerGroupName, // e.g., "RAZEL KIM ORG"
             userUid, // Include the UID in formData but won't display in UI
-            Barangay: barangaySelect.value || "N/A",
-            CityMunicipality: citySelect.value || "N/A",
+            AreaOfOperation: document.querySelector('input[placeholder="e.g. Purok 2, Brgy. Maligaya, Rosario"]').value,
             TimeOfIntervention: document.querySelector('input[placeholder="Time of Intervention"]')?.value || "N/A",
             SubmittedBy: document.querySelector('input[placeholder="Submitted by"]')?.value || "N/A",
             DateOfReport: dateInput.value || "N/A",
