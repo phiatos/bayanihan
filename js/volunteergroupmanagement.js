@@ -826,7 +826,7 @@ if (closeSuccessBtn) {
   });
 }
 
-// Initialize
+// Initializeeeee
 document.addEventListener("DOMContentLoaded", () => {
   console.log("DOM loaded, fetching data...");
   fetchAndRenderTable();
