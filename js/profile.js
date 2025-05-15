@@ -30,7 +30,7 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById('otp-info').textContent = 'Mobile number not available for OTP verification.';
     };
 
-    // Function to fetch user data
+    // Function to fetch user data (unchanged as per your request)
     const fetchUserData = (user) => {
         const userMobile = localStorage.getItem("userMobile");
         console.log("Fetching data for userMobile:", userMobile);
@@ -179,28 +179,133 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // Password change handling
-    const form = document.querySelector("form");
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
+    // OTP handling shared between password change and mobile verification
+    let recaptchaVerifier;
+    let confirmationResult = null;
+    let passwordChangeData = null;
 
-        const userMobile = localStorage.getItem("userMobile");
-        if (!userMobile) {
-            console.error("No userMobile found for password change.");
+    // Function to initialize reCAPTCHA and send OTP
+    const sendOTP = async (phoneNumber) => {
+        try {
+            // Initialize reCAPTCHA verifier
+            recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
+                'size': 'invisible',
+                'callback': (response) => {
+                    console.log("reCAPTCHA solved:", response);
+                },
+                'expired-callback': () => {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'reCAPTCHA Expired',
+                        text: 'Please try again.'
+                    });
+                }
+            });
+
+            // Send OTP to the phone number
+            const formattedPhoneNumber = phoneNumber.startsWith('+') ? phoneNumber : `+63${phoneNumber.slice(1)}`; // Assuming Philippine number format
+            confirmationResult = await auth.signInWithPhoneNumber(formattedPhoneNumber, recaptchaVerifier);
+            Swal.fire({
+                icon: 'success',
+                title: 'OTP Sent',
+                text: `An OTP has been sent to ${phoneNumber}.`
+            });
+
+            return confirmationResult;
+        } catch (error) {
+            console.error('Error sending OTP:', error);
             Swal.fire({
                 icon: 'error',
-                title: 'Not Logged In',
-                text: 'Please log in to change your password.'
-            }).then(() => {
-                window.location.href = '/Bayanihan-PWA/login.html';
+                title: 'Error',
+                text: error.message || 'Failed to send OTP. Please try again.'
             });
-            return;
+            throw error;
         }
+    };
+
+    // Function to verify OTP
+    const verifyOTP = async (otpCode, context = 'mobileVerification') => {
+        try {
+            const result = await confirmationResult.confirm(otpCode);
+            Swal.fire({
+                icon: 'success',
+                title: 'OTP Verified',
+                text: 'OTP verified successfully!'
+            });
+
+            if (context === 'mobileVerification') {
+                // Update the user's profile or database with the verified phone number
+                const user = auth.currentUser;
+                await user.updatePhoneNumber(result.credential);
+
+                // Update the database with the verified phone number
+                const userMobile = localStorage.getItem("userMobile");
+                if (userMobile) {
+                    await database.ref('users').orderByChild('mobile').equalTo(userMobile).once('value', snapshot => {
+                        snapshot.forEach(childSnapshot => {
+                            database.ref(`users/${childSnapshot.key}`).update({
+                                phoneVerified: true
+                            });
+                        });
+                    });
+                }
+
+                // Reset the OTP field
+                document.getElementById('otp-code').value = '';
+            } else if (context === 'passwordChange') {
+                // Proceed with password change after OTP verification
+                const user = auth.currentUser;
+                if (!user) {
+                    throw new Error('No user is currently signed in.');
+                }
+
+                const userEmail = user.email;
+                if (!userEmail) {
+                    throw new Error('User email not found. Please log in again.');
+                }
+
+                const { currentPassword, newPassword } = passwordChangeData;
+                const credential = firebase.auth.EmailAuthProvider.credential(userEmail, currentPassword);
+                await user.reauthenticateWithCredential(credential);
+
+                // Update the password
+                await user.updatePassword(newPassword);
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Password Changed',
+                    text: 'Your password has been updated successfully.'
+                });
+
+                // Reset form and switch back to the first form
+                form.classList.remove('secActive');
+                form.querySelector('.form.first').reset();
+                passwordChangeData = null;
+            }
+
+            // Clear confirmation result
+            confirmationResult = null;
+            localStorage.removeItem('confirmationResult');
+        } catch (error) {
+            console.error('Error verifying OTP:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Invalid OTP',
+                text: error.message || 'The OTP you entered is incorrect. Please try again.'
+            });
+        }
+    };
+
+    // Password Change Handling with OTP Verification
+    const form = document.querySelector("form");
+    const changePasswordButton = form.querySelector('.form-container-2 button.nextBtn');
+    changePasswordButton.addEventListener('click', async (e) => {
+        e.preventDefault();
 
         const currentPassword = document.getElementById('current-password').value;
         const newPassword = document.getElementById('new-password').value;
         const confirmNewPassword = document.getElementById('confirm-new-password').value;
 
+        // Validate new password match
         if (newPassword !== confirmNewPassword) {
             Swal.fire({
                 icon: 'error',
@@ -210,37 +315,152 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        if (newPassword.length < 6) {
+        // Validate password length and complexity
+        if (newPassword.length < 8) {
             Swal.fire({
                 icon: 'error',
                 title: 'Weak Password',
-                text: 'New password must be at least 6 characters long.'
+                text: 'Password must be at least 8 characters long.'
+            });
+            return;
+        }
+
+        // Password complexity check (at least one uppercase, one number)
+        const passwordRegex = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
+        if (!passwordRegex.test(newPassword)) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Weak Password',
+                text: 'Password must contain at least one uppercase letter and one number.'
+            });
+            return;
+        }
+
+        // Store password change data
+        passwordChangeData = { currentPassword, newPassword };
+
+        // Get mobile number for OTP
+        const mobileNumber = document.getElementById('profile-mobile').textContent;
+        if (mobileNumber === 'N/A') {
+            Swal.fire({
+                icon: 'error',
+                title: 'No Mobile Number',
+                text: 'No mobile number available to send OTP.'
             });
             return;
         }
 
         try {
-            const user = auth.currentUser;
-            if (!user) {
-                throw new Error('No user is currently signed in.');
-            }
-
-            const credential = firebase.auth.EmailAuthProvider.credential(`${userMobile}@bayanihan.com`, currentPassword);
-            await user.reauthenticateWithCredential(credential);
-            await user.updatePassword(newPassword);
-            Swal.fire({
-                icon: 'success',
-                title: 'Password Changed',
-                text: 'Your password has been updated successfully.'
-            });
-            form.reset();
+            // Send OTP and switch to the second form
+            confirmationResult = await sendOTP(mobileNumber);
+            localStorage.setItem('confirmationResult', JSON.stringify(confirmationResult));
+            form.classList.add('secActive');
         } catch (error) {
-            console.error('Password change error:', error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: error.message || 'Failed to change password.'
-            });
+            // Error handled in sendOTP
         }
     });
+
+    // OTP Verification for Password Change
+    const verifyOtpPasswordButton = document.querySelector(".form.second .verify-otp-password");
+    if (verifyOtpPasswordButton) {
+        verifyOtpPasswordButton.addEventListener('click', async () => {
+            const otpCode = document.getElementById('otp-code-password').value;
+
+            if (!otpCode || otpCode.length !== 6) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Invalid OTP',
+                    text: 'Please enter a valid 6-digit OTP.'
+                });
+                return;
+            }
+
+            await verifyOTP(otpCode, 'passwordChange');
+        });
+    }
+
+    // Resend OTP for Password Change
+    const resendOtpPasswordButton = document.querySelector(".form.second .resend-otp-password");
+    if (resendOtpPasswordButton) {
+        resendOtpPasswordButton.addEventListener('click', async () => {
+            const mobileNumber = document.getElementById('profile-mobile').textContent;
+            if (mobileNumber === 'N/A') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'No Mobile Number',
+                    text: 'No mobile number available to send OTP.'
+                });
+                return;
+            }
+
+            try {
+                confirmationResult = await sendOTP(mobileNumber);
+                localStorage.setItem('confirmationResult', JSON.stringify(confirmationResult));
+            } catch (error) {
+                // Error handled in sendOTP
+            }
+        });
+    }
+
+    // Back button to return to the first form
+    const backButton = document.querySelector(".form.second .backBtn");
+    if (backButton) {
+        backButton.addEventListener('click', () => {
+            form.classList.remove('secActive');
+            passwordChangeData = null;
+            localStorage.removeItem('confirmationResult');
+            confirmationResult = null;
+        });
+    }
+
+    // OTP Verification Handling for Mobile Number
+    const verifyOtpButton = document.querySelector(".verify-otp");
+    if (verifyOtpButton) {
+        verifyOtpButton.addEventListener('click', async () => {
+            const otpCode = document.getElementById('otp-code').value;
+            const termsChecked = document.getElementById('terms').checked;
+            const dataConsentChecked = document.getElementById('data-consent').checked;
+
+            if (!termsChecked || !dataConsentChecked) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Consent Required',
+                    text: 'You must agree to the terms and data consent to proceed.'
+                });
+                return;
+            }
+
+            if (!otpCode || otpCode.length !== 6) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Invalid OTP',
+                    text: 'Please enter a valid 6-digit OTP.'
+                });
+                return;
+            }
+
+            const mobileNumber = document.getElementById('profile-mobile').textContent;
+            if (mobileNumber === 'N/A') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'No Mobile Number',
+                    text: 'No mobile number available to verify.'
+                });
+                return;
+            }
+
+            // Send OTP if not already sent
+            if (!confirmationResult) {
+                confirmationResult = await sendOTP(mobileNumber);
+                localStorage.setItem('confirmationResult', JSON.stringify(confirmationResult));
+            }
+
+            // Verify the OTP
+            await verifyOTP(otpCode, 'mobileVerification');
+
+            // Clear the confirmation result from localStorage after successful verification
+            localStorage.removeItem('confirmationResult');
+            confirmationResult = null;
+        });
+    }
 });
