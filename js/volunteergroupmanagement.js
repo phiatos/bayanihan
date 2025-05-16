@@ -817,16 +817,98 @@ if (confirmSaveBtn) {
   });
 }
 
-const closeSuccessBtn = document.getElementById('closeSuccessBtn');
-if (closeSuccessBtn) {
-  closeSuccessBtn.addEventListener('click', () => {
-    clearAInputs();
-    const successModal = document.getElementById('successModal');
-    if (successModal) successModal.style.display = 'none';
-  });
+document.getElementById('closeSuccessBtn').addEventListener('click', () => {
+  clearAInputs();
+  document.getElementById('successModal').style.display = 'none';
+});
+
+function closeAModal() {
+  document.getElementById('addOrgModal').style.display = 'none';
+  document.getElementById('areaOperationModal').style.display = 'none';
+  clearAInputs();
 }
 
-// Initialize
+function closeAOOModal() {
+  document.getElementById('areaOperationModal').style.display = 'none';
+  clearAOOInputs();
+}
+
+function clearAOOInputs() {
+  const form = document.getElementById('areaOperationForm');
+  form.reset();
+}
+
+function clearAInputs() {
+  const form = document.getElementById('addOrgForm');
+  form.reset();
+  document.getElementById('areaOperationContainer').innerHTML = '';
+}
+
+function renderPagination(totalRows) {
+  paginationContainer.innerHTML = "";
+  const totalPages = Math.ceil(totalRows / rowsPerPage);
+  const maxVisible = 5;
+
+  const createButton = (label, page = null, disabled = false, active = false) => {
+    const btn = document.createElement("button");
+    btn.textContent = label;
+    if (disabled) btn.disabled = true;
+    if (active) btn.classList.add("active-page");
+    if (page !== null) {
+      btn.addEventListener("click", () => {
+        currentPage = page;
+        renderTable(filterAndSort());
+      });
+    }
+    return btn;
+  };
+
+  if (totalPages === 0) {
+    paginationContainer.textContent = "No entries to display";
+    return;
+  }
+
+  paginationContainer.appendChild(createButton("Prev", currentPage - 1, currentPage === 1));
+
+  let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+  let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+
+  if (endPage - startPage < maxVisible - 1) {
+    startPage = Math.max(1, endPage - maxVisible + 1);
+  }
+
+  for (let i = startPage; i <= endPage; i++) {
+    paginationContainer.appendChild(createButton(i, i, false, i === currentPage));
+  }
+
+  paginationContainer.appendChild(createButton("Next", currentPage + 1, currentPage === totalPages));
+}
+
+function filterAndSort() {
+  let filtered = data.filter(row => {
+    const query = searchInput.value.trim().toLowerCase();
+    return Object.values(row).some(val => {
+      if (typeof val === 'string' || typeof val === 'number') {
+        return val.toString().toLowerCase().includes(query);
+      }
+      return false;
+    });
+  });
+
+  if (sortSelect.value) {
+    filtered.sort((a, b) =>
+      a[sortSelect.value].toString().localeCompare(b[sortSelect.value].toString())
+    );
+  }
+
+  return filtered;
+}
+
+sortSelect.addEventListener("change", () => {
+  currentPage = 1;
+  renderTable(filterAndSort());
+});
+
 document.addEventListener("DOMContentLoaded", () => {
   console.log("DOM loaded, fetching data...");
   fetchAndRenderTable();
