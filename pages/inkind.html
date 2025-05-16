@@ -36,11 +36,11 @@
                             <input type="text" id="encoder" placeholder="Enter encoder" />
                         </div>
                         <div class="input-field">
-                            <label for="name">Name</label>
+                            <label for="name">Name of the Partner/Donor</label>
                             <input type="text" id="name" placeholder="Enter name" />
                         </div>
                         <div class="input-field">
-                            <label for="type">Type</label>
+                            <label for="type">Partner/Donor Type</label>
                             <input type="text" id="type" placeholder="Enter type" />
                         </div>
                         <div class="input-field">
@@ -72,13 +72,17 @@
                             <input type="text" id="additionalnotes" placeholder="Enter additional notes" />
                         </div>
                         <div class="input-field">
-                        <label for="status">Status</label>
-                        <select id="status">
-                            <option value="" disabled selected>Select Status</option>
-                            <option value="closed-successful">Closed-successful</option>
-                            <option value="pending">Pending</option>
-                            <option value="closed">Closed</option>
-                        </select>
+                            <label for="status">Status</label>
+                            <select id="status">
+                                <option value="" disabled selected>Select Status</option>
+                                <option value="closed-successful">Closed-successful</option>
+                                <option value="pending">Pending</option>
+                                <option value="closed">Closed</option>
+                            </select>
+                        </div>
+                        <div class="input-field">
+                            <label for="staffIncharge">Staff-In Charge</label>
+                            <input type="text" id="staffIncharge" placeholder="Enter Staff-In Charge" />
                         </div>
                     </div>
 
@@ -144,6 +148,10 @@
                                     <option value="status-asc">Status (A–Z)</option>
                                     <option value="status-desc">Status (Z–A)</option>
                                 </optgroup>
+                                <optgroup label="Staff-In Charge">
+                                    <option value="staffIncharge-asc">Staff-In Charge (A–Z)</option>
+                                    <option value="staffIncharge-desc">Staff-In Charge (Z–A)</option>
+                                </optgroup>
                             </select>
                             <i class='bx bx-chevron-down'></i>
                         </div>
@@ -164,6 +172,7 @@
                         <th>Type of Assistance</th>
                         <th>Valuation</th>
                         <th>Additional Notes</th>
+                        <th>Staff-In Charge</th>
                         <th>Status</th>
                         <th>Action</th>
                         <th>Endorse</th>
@@ -211,6 +220,7 @@
                             <option value="closed">Closed</option>
                         </select>
                     </label>
+                    <label>Staff-In Charge: <input type="text" id="edit-staffIncharge"></label>
                     <button type="button" onclick="saveEditedDonation()">Save Changes</button>
                     <button type="button" onclick="closeEditModal()">Cancel</button>
                 </div>

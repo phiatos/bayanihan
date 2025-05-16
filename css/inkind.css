@@ -51,6 +51,13 @@ input[type="date"]:valid{
   color: #000;
 }
 
+.error-message {
+  color: red;
+  font-size: 0.8em;
+  margin-top: 0.2em;
+}
+
+
 /* Dropdown styling to match text inputs */
 .input-field select,
 .modal select {
