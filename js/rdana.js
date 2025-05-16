@@ -86,7 +86,17 @@ nextBtn4.addEventListener('click', () => {
         let page3Table = `<h3>Status of Structures</h3><div class='table-scroll'><table class='preview-table' id='page3preview'><tr><th>Structure</th><th>Status</th></tr>`;
         statusRows.forEach(row => {
             const structure = row.querySelector("td")?.innerText || "";
-            const status = row.querySelector("input")?.value || "N/A";
+            let status = "N/A";
+            const select = row.querySelector("select");
+            const input = row.querySelector("input");
+
+            if (select) {
+                const selectedOption = select.selectedOptions[0];
+                status = selectedOption && selectedOption.value ? selectedOption.text : "N/A";
+            } else if (input) {
+                status = input.value.trim() || "N/A";
+            }
+
             page3Table += `<tr><td>${structure}</td><td>${status}</td></tr>`;
         });
         page3Table += `</table></div>`;
