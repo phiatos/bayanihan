@@ -6,6 +6,7 @@
     <link rel="stylesheet" href="../components/sidebar.css"/>
     <link rel="stylesheet" href="../css/callfordonation.css"/>
     <link rel="stylesheet" href="../css/global.css" />
+    <link rel="stylesheet" href="../css/inkind.css"/>
     <link rel='stylesheet' href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css'/>
 
     <!-- Firebase SDK -->
@@ -18,16 +19,14 @@
     <title>call for donation</title>
 </head>
 <body>
-    <body>
-        <div class="form-page-container">
+        <div class="main-container">
             <div class="sidebar-placeholder"></div>
-            <div id="form-main-content">
-                <header>Donation</header>
+            <div id="main-content">
+                <header>Call For Donation</header>
                 
-                <form id="form-page-1">
-                <div class="form first"></div>
-                    <div class="form-container-1">
-                        <span class="title">Basic Information</span>
+                <div class="form-page-1">
+                    <div class="form first">
+                    <form id="form-container-1">
                         <div class="fields">
                             <div class="input-field">
                                 <label>Donation Drive</label>
@@ -41,12 +40,7 @@
                                 <label>Contact Number</label>
                                 <input type="number" id="contactNumber" placeholder="Contact Number" required="">
                             </div>
-                        </div>
-                    </div>
-                    <div class="form-container-2">
-                        <span class="title">Gcash Information</span>
-                        <div class="fields">
-                            <div class="input-field">
+                             <div class="input-field">
                                 <label>Account Number</label>
                                 <input type="number" id="accountNumber" placeholder="Account Number" required="">
                             </div>
@@ -54,17 +48,10 @@
                                 <label>Account Name</label>
                                 <input type="text" id="accountName" placeholder="Account Name" required="">
                             </div>
-                            <div class="input-field">
-                                <label for="donationImage">Upload Donation Image (optional):</label>
+                             <div class="input-field">
+                                <label for="donationImage">Upload Donation Image:</label>
                                 <input type="file" id="donationImage" accept="image/*" />
                             </div>
-                            
-                        </div>
-                    </div>
-
-                    <div class="form-container-2"> 
-                        <span class="title">Drop-Off Information</span>
-                        <div class="fields">
                             <div class="input-field">
                                 <label>Province</label>
                                 <select class="controls" id="provinceSelect" name="province" required="">
@@ -72,7 +59,6 @@
                                     <option value="Sorsogon">Sorsogon</option>
                                     <option value="Albay">Albay</option></select>
                             </div>
-
                             <div class="input-field">
                                 <label>City/Municipality</label>
                                 <select class="controls" id="citySelect" name="city" required="">
@@ -81,26 +67,89 @@
                                     <option value="Albay">Albay</option></select>
                                 </select>
                             </div>
-
                             <div class="input-field">
                                 <label>Barangay</label>
                                 <select class="controls" id="barangaySelect" name="barangay" required="">
                                     <option value="">Select Barangay</option>
                                 </select>
                             </div>
-
+                            
                             <div class="input-field">
                                 <label>Address</label>
                                 <input type="text" id="address" placeholder="(e.g 1234 Singkamas Street)" required="">
                             </div>
+                            
                             <div class="input-field">
                                 <label>Facebook Link</label>
                                 <input type="text" id="facebookLink" placeholder="Facebook Link" required="">
                             </div>
                         </div>
-                    </div> 
-                    <button type="button" class="next-btn" id="nextBtn">Next</button>
-                </form>
+
+                    <button type="button" class="next-btn" id="nextBtn">Add Call for Donation</button>
+                    </form>
+                    </div>
+                </div>
+            <section>
+                <div class="controls">
+                    <div class="controls_left">
+                        <h2>Donation Information</h2>
+                    </div>
+                    <div class="controls_right">
+                        <div class="search-wrapper">
+                            <i class="fa fa-search"></i>
+                            <input type="text" placeholder="Search" id="searchInput" />
+                        </div>
+                        <div class="custom-select-wrapper">
+                            <select id="sortSelect">
+                                <option value="">Sort by</option> 
+                                <optgroup label="Donation Drive">
+                                    <option value="donationDrive-asc">Donation Drive (A–Z)</option>
+                                    <option value="donationDrive-desc">Donation Drive (Z–A)</option>
+                                </optgroup>
+                                <optgroup label="Contact Name">
+                                    <option value="contactPerson-asc">Contact Name (A–Z)</option>
+                                    <option value="contactPerson-desc">Contact Name (Z–A)</option>
+                                </optgroup>
+                                <optgroup label="Account Name">
+                                    <option value="accountName-asc">Account Name (A–Z)</option>
+                                    <option value="accountName-desc">Account Name (Z–A)</option>
+                                </optgroup>
+                                <optgroup label="Drop Off">
+                                    <option value="dropOff-asc">Drop Off (A–Z)</option>
+                                    <option value="dropOff-desc">Drop Off (Z–A)</option>
+                                </optgroup>
+                            </select>
+                            <i class='bx bx-chevron-down'></i>
+                        </div>
+                    </div>
+                </div>
+
+                <table id="donationTable">
+                    <thead>
+                    <tr>
+                        <th>No.</th>
+                        <th>Donation Drive</th>
+                        <th>Contact Name</th>
+                        <th>Contact Number</th>
+                        <th>Account Number</th>
+                        <th>Account Name</th>
+                        <th>Exact Drop Off Address</th>
+                        <th>Facebook Link</th>
+                        <th>Action</th>
+                    </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+
+                <div class="pagination-info">
+                    <span id="entriesInfo">Showing 0 to 0 of 0 entries</span>
+                    <div id="pagination" class="pagination"></div>
+                </div>
+
+                <br>
+                <button id="exportBtn" type="button">Export In-Kind to CSV</button>
+            </section>
+
             </div>
         </div>
 
