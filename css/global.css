@@ -507,7 +507,7 @@ button:disabled {
 
 .form-page-container form{
   position: relative;
-  max-height: 510px; 
+  max-height: 550px; 
   height: 100%;
   margin-top: 10px;
   display: flex;
@@ -559,6 +559,10 @@ button:disabled {
   flex-direction: column;
   width: calc(100% / 3 - 10px);
   margin: 4px 0;
+}
+
+.form-page-container .input-field:not(:has(label)) input {
+  margin-top: 22px; /* Adjust this value to match the label height */
 }
 
 /* Labels */

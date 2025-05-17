@@ -8,13 +8,13 @@
     <link rel="stylesheet" href="../css/global.css" />
     <link rel='stylesheet' href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css'/>
 
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
+    <!-- Firebase Compat SDK (updated to 9.22.0) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
-     <!-- SweetAlert2 -->
-     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-     
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
     <title>Monetary Donations</title>
 </head>
@@ -51,7 +51,7 @@
                         </div>
                         <div class="input-field">
                             <label for="invoice">Cash Invoice #:</label>
-                            <input type="text" id="invoice" placeholder="Enter invoice number">
+                            <input type="text" id="invoice" placeholder="Automatically generated" readonly>
                         </div>
                         <div class="input-field">
                             <label for="dateReceived">Date Received:</label>
@@ -66,8 +66,8 @@
                             <input type="text" id="bank" placeholder="Enter bank name">
                         </div>
                         <div class="input-field">
-                            <label for="proof">Proof of Transaction:</label>
-                            <input type="file" id="proof" />
+                            <label for="proof">Proof of Transaction (Google Drive Link):</label>
+                            <input type="url" id="proof" placeholder="Enter Google Drive link" />
                         </div>
                     </div>
 
@@ -131,9 +131,10 @@
                     </div>
                 </div>
 
-                <table id="monetaryTable">
+                <div class="table-responsive-container">
+                    <table id="monetaryTable">
                     <thead>
-                        <tr>
+                    <tr>
                         <th>No.</th>
                         <th>Encoder</th>
                         <th>Name/Company</th>
@@ -146,11 +147,12 @@
                         <th>Bank</th>
                         <th>Proof of Transaction</th>
                         <th>Action</th>
-                        </tr>
+                    </tr>
                     </thead>
                     <tbody></tbody>
-                </table>
-
+                    </table>
+                </div>
+                
                 <div class="pagination-info">
                     <span id="entriesInfo">Showing 0 to 0 of 0 entries</span>
                     <div id="pagination" class="pagination"></div>
@@ -162,43 +164,40 @@
 
             <div class="modal" id="editMonetaryModal" style="display:none;">
                 <div class="modal-content">
-                    <span class="close-button" onclick="closeEditModal()">&times;</span>
+                    <span class="close-button" id="closeEditModalBtn">×</span>
                     <h4>Edit Monetary Donation</h4>
                     <label>Encoder: <input type="text" id="edit-encoder"></label>
                     <label>Name/Company: <input type="text" id="edit-name"></label>
                     <label>Location: <input type="text" id="edit-address"></label>
                     <label>Number: <input type="tel" id="edit-number"></label>
                     <label>Amount Donated: <input type="number" id="edit-amount"></label>
-                    <label>Cash Invoice #: <input type="text" id="edit-invoice"></label>
+                    <label>Cash Invoice #: <input type="text" id="edit-invoice" readonly></label>
                     <label>Date Received: <input type="date" id="edit-dateReceived"></label>
                     <label>Email: <input type="email" id="edit-email"></label>
                     <label>Bank: <input type="text" id="edit-bank"></label>
-                    <button type="button" onclick="saveEditedMonetaryDonation()">Save Changes</button>
-                    <button type="button" onclick="closeEditMonetaryModal()">Cancel</button>
+                    <label>Proof of Transaction (Google Drive Link): <input type="url" id="edit-proof"></label>
+                    <button type="button" id="saveEditBtn">Save Changes</button>
+                    <button type="button" id="cancelEditBtn">Cancel</button>
                 </div>
             </div>
-
         </div>
     </div>
     
     <script>
         fetch('../components/sidebar.html')
-        .then(response => response.text())
-        .then(data => {
-            document.querySelector('.sidebar-placeholder').innerHTML = data;
-            const sidebarScript = document.createElement('script');
-            sidebarScript.src = '../components/sidebar.js'; 
-            sidebarScript.onload = function() {
-            };
-            document.querySelector('.sidebar-placeholder').appendChild(sidebarScript);
-        })
-        .catch(error => {
-            console.error('Error loading sidebar:', error);
-        });
+            .then(response => response.text())
+            .then(data => {
+                document.querySelector('.sidebar-placeholder').innerHTML = data;
+                const sidebarScript = document.createElement('script');
+                sidebarScript.src = '../components/sidebar.js';
+                sidebarScript.onload = function() {};
+                document.querySelector('.sidebar-placeholder').appendChild(sidebarScript);
+            })
+            .catch(error => {
+                console.error('Error loading sidebar:', error);
+            });
     </script>
 
     <script src="../js/monetary.js"></script>
-    
-        
 </body>
 </html>

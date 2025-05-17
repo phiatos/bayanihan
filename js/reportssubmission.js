@@ -25,29 +25,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-    const pinBtn = document.getElementById('pinBtn');
-    const mapModal = document.getElementById('mapModal');
-    const closeBtn = document.querySelector('.closeBtn');
-
-    if (pinBtn && mapModal && closeBtn) {
-        pinBtn.addEventListener('click', (e) => {
-        e.preventDefault(); // prevent form submit
-        mapModal.classList.add('show');
-    });
-
-    closeBtn.addEventListener('click', () => {
-        mapModal.classList.remove('show');
-    });
-
-    window.addEventListener('click', (e) => {
-        if (e.target === mapModal) {
-        mapModal.classList.remove('show');
-        }
-    });
-    } else {
-    console.warn('Modal elements not found');
-    }
-
         function formatTo12Hour(timeStr) {
         const [hour, minute] = timeStr.split(':');
         const h = parseInt(hour);
