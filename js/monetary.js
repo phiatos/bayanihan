@@ -14,12 +14,109 @@ document.addEventListener("DOMContentLoaded", () => {
   let filteredAndSortedDonations = [];
   let editingId = null;
 
+  // Add this function within your DOMContentLoaded listener, before the form submission handler
+  const generateCashInvoiceNumber = () => {
+    const prefix = "CINV-";
+    const randomNumber = Math.floor(100000 + Math.random() * 900000); // Generates a 6-digit number
+    return prefix + randomNumber;
+  };
+  document.getElementById("invoice").value = generateCashInvoiceNumber();
+
+
   // Function to find a donation by its ID
   const findDonation = (id) => allDonations.find(donation => donation.id === id);
+
+  // Function to check if a field is empty
+  const isEmpty = (value) => value.trim() === "";
+
+  // Function to check if a value contains only letters (and spaces)
+  const isLettersOnly = (value) => /^[a-zA-Z\s]+$/.test(value);
+
+  // Function to check if a value is a valid number (integer or float)
+  const isValidNumber = (value) => {
+    if (value === null || value.trim() === '') return true; 
+    return !isNaN(parseFloat(value)) && isFinite(value);
+  };
+
+  // Function to display an error message
+  const showError = (inputField, message) => {
+    const errorDiv = inputField.nextElementSibling;
+    if (!errorDiv || !errorDiv.classList.contains('error-message')) {
+      const newErrorDiv = document.createElement('div');
+      newErrorDiv.className = 'error-message';
+      inputField.parentNode.insertBefore(newErrorDiv, inputField.nextSibling);
+      newErrorDiv.textContent = message;
+    } else {
+      errorDiv.textContent = message;
+    }
+    inputField.classList.add('error');
+  };
+
+  // Function to clear an error message
+  const clearError = (inputField) => {
+    const errorDiv = inputField.nextElementSibling;
+    if (errorDiv && errorDiv.classList.contains('error-message')) {
+      errorDiv.textContent = '';
+    }
+    inputField.classList.remove('error');
+  };
+
+  // Validate the add donation form
+  const validateForm = (formElements) => {
+    let isValid = true;
+    const fieldsToCheck = [
+      { input: formElements.encoder, label: "Encoder", lettersOnly: true },
+      { input: formElements.name, label: "Name/Company", lettersOnly: true },
+      { input: formElements.address, label: "Location" },
+      { input: formElements.number, label: "Number", numberOnly: true },
+      { input: formElements.amount, label: "Amount Donated", numberOnly: true, positiveNumber: true },
+      { input: formElements.invoice, label: "Cash Invoice #" },
+      { input: formElements.dateReceived, label: "Date Received" },
+      { input: formElements.email, label: "Email", isEmail: true },
+      { input: formElements.bank, label: "Bank" },
+      // { input: formElements.proof, label: "Proof of Transaction", required: false }
+    ];
+
+    fieldsToCheck.forEach(({ input, label, lettersOnly, numberOnly, positiveNumber, isEmail, required = true }) => {
+      clearError(input); 
+      if (required && isEmpty(input.value)) {
+          showError(input, `${label} is required.`);
+          isValid = false;
+      } else if (!isEmpty(input.value)) { 
+          if (lettersOnly && !isLettersOnly(input.value)) {
+              showError(input, `${label} should only contain letters and spaces.`);
+              isValid = false;
+          }
+          if (numberOnly) {
+              if (!isValidNumber(input.value)) {
+                  showError(input, `${label} should only contain numbers.`);
+                  isValid = false;
+              } else if (positiveNumber && parseFloat(input.value) <= 0) {
+                  showError(input, `${label} must be a positive number.`);
+                  isValid = false;
+              }
+          }
+          if (isEmail) {
+              const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+              if (!emailRegex.test(input.value.trim())) {
+                  showError(input, `Please enter a valid ${label.toLowerCase()} address.`);
+                  isValid = false;
+              }
+          }
+      }
+    });
+
+    return isValid;
+  };
 
   // Handle Form Submission (for adding new donations)
   form.addEventListener("submit", (e) => {
     e.preventDefault();
+
+    if (!validateForm(form.elements)) {
+      Swal.fire("Validation Error", "Please correct the highlighted errors before submitting.", "error");
+      return;
+    }
 
     const newDonation = {
       encoder: form.encoder.value,
@@ -31,7 +128,7 @@ document.addEventListener("DOMContentLoaded", () => {
       dateReceived: form.dateReceived.value,
       email: form.email.value,
       bank: form.bank.value,
-      proof: form.proof.value ? "Uploaded" : "No File", // Indicate if a file was selected
+      proof: form.proof.value, 
       id: Date.now(),
     };
 
@@ -39,8 +136,10 @@ document.addEventListener("DOMContentLoaded", () => {
     filteredAndSortedDonations = [...allDonations];
     currentPage = 1;
     form.reset();
+    Array.from(form.querySelectorAll('input, select')).forEach(clearError);
+    document.getElementById("invoice").value = generateCashInvoiceNumber();
     renderTable();
-    Swal.fire("Success", "Donation added!", "success");
+    Swal.fire("Success", "Monetary Donation Added Successfully!", "success");
   });
 
   function renderTable() {
@@ -59,10 +158,10 @@ document.addEventListener("DOMContentLoaded", () => {
         <td>${d.number}</td>
         <td>${d.amountDonated.toLocaleString('en-PH', { style: 'currency', currency: 'PHP' })}</td>
         <td>${d.invoice}</td>
-        <td>${new Date(d.dateReceived).toLocaleDateString()}</td>
+        <td>${new Date(d.dateReceived).toLocaleDateString('en-PH')}</td>
         <td>${d.email}</td>
         <td>${d.bank}</td>
-        <td>${d.proof}</td>
+        <td> ${d.proof ? `<a href="${d.proof}" target="_blank">View Proof</a>` : 'N/A'}</td>
         <td>
           <button class="btn-edit" onclick="openEditMonetaryModal(${d.id})">Edit</button>
           <button class="btn-delete" onclick="deleteMonetaryDonation('${d.id}')">Delete</button>
@@ -130,7 +229,7 @@ document.addEventListener("DOMContentLoaded", () => {
       d.number.toLowerCase().includes(searchTerm) ||
       String(d.amountDonated).includes(searchTerm) ||
       d.invoice.toLowerCase().includes(searchTerm) ||
-      new Date(d.dateReceived).toLocaleDateString().includes(searchTerm) ||
+      new Date(d.dateReceived).toLocaleDateString('en-PH').includes(searchTerm) ||
       d.email.toLowerCase().includes(searchTerm) ||
       d.bank.toLowerCase().includes(searchTerm)
     );
@@ -179,7 +278,7 @@ document.addEventListener("DOMContentLoaded", () => {
       d.number,
       d.amountDonated,
       d.invoice,
-      new Date(d.dateReceived).toLocaleDateString(),
+      new Date(d.dateReceived).toLocaleDateString('en-PH'),
       d.email,
       d.bank,
       d.proof,
@@ -195,7 +294,7 @@ document.addEventListener("DOMContentLoaded", () => {
     document.body.removeChild(link);
   });
 
-  window.deleteMonetaryDonation = (donationId) => {
+   window.deleteMonetaryDonation = (donationId) => {
     Swal.fire({
       title: 'Are you sure?',
       text: "This monetary donation entry will be deleted!",
@@ -217,6 +316,53 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   };
 
+  // Validate the edit donation form
+  const validateEditForm = () => {
+    let isValid = true;
+    const fieldsToCheck = [
+      { input: document.getElementById("edit-encoder"), label: "Encoder", lettersOnly: true },
+      { input: document.getElementById("edit-name"), label: "Name/Company", lettersOnly: true },
+      { input: document.getElementById("edit-address"), label: "Location" },
+      { input: document.getElementById("edit-number"), label: "Number", numberOnly: true },
+      { input: document.getElementById("edit-amount"), label: "Amount Donated", numberOnly: true, positiveNumber: true },
+      { input: document.getElementById("edit-invoice"), label: "Cash Invoice #" },
+      { input: document.getElementById("edit-dateReceived"), label: "Date Received" },
+      { input: document.getElementById("edit-email"), label: "Email", isEmail: true },
+      { input: document.getElementById("edit-bank"), label: "Bank" },
+    ];
+
+      fieldsToCheck.forEach(({ input, label, lettersOnly, numberOnly, positiveNumber, isEmail, required = true }) => {
+        clearError(input); // Clear previous errors first
+
+        if (required && isEmpty(input.value)) {
+          showError(input, `${label} is required.`);
+          isValid = false;
+        } else if (!isEmpty(input.value)) {
+          if (lettersOnly && !isLettersOnly(input.value)) {
+            showError(input, `${label} should only contain letters and spaces.`);
+            isValid = false;
+          }
+          if (numberOnly) {
+              if (!isValidNumber(input.value)) {
+                showError(input, `${label} should only contain numbers.`);
+                isValid = false;
+              } else if (positiveNumber && parseFloat(input.value) <= 0) {
+                showError(input, `${label} must be a positive number.`);
+                isValid = false;
+              }
+          }
+          if (isEmail) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(input.value.trim())) {
+              showError(input, `Please enter a valid ${label.toLowerCase()} address.`);
+              isValid = false;
+            }
+          }
+        }
+      });
+      return isValid;
+    };
+
   window.openEditMonetaryModal = (donationId) => {
     editingId = donationId;
     const donationToEdit = findDonation(donationId);
@@ -230,43 +376,68 @@ document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("edit-dateReceived").value = donationToEdit.dateReceived;
       document.getElementById("edit-email").value = donationToEdit.email;
       document.getElementById("edit-bank").value = donationToEdit.bank;
+      document.getElementById("edit-proof").value = donationToEdit.proof;
       editModal.style.display = "block";
+      // Clear any error messages when opening the modal
+      Array.from(editModal.querySelectorAll('input, select')).forEach(clearError);
     }
   };
 
   window.saveEditedMonetaryDonation = () => {
     if (editingId !== null) {
-      const updatedDonation = {
-        id: editingId,
+      // Re-create a temporary 'form.elements' like object for validation
+      const editFormElements = {
         encoder: document.getElementById("edit-encoder").value,
         name: document.getElementById("edit-name").value,
         address: document.getElementById("edit-address").value,
         number: document.getElementById("edit-number").value,
-        amountDonated: parseFloat(document.getElementById("edit-amount").value),
+        amount: document.getElementById("edit-amount").value, 
         invoice: document.getElementById("edit-invoice").value,
         dateReceived: document.getElementById("edit-dateReceived").value,
         email: document.getElementById("edit-email").value,
         bank: document.getElementById("edit-bank").value,
-        // Note: Proof of transaction edit is not implemented here
       };
 
-      const index = allDonations.findIndex(donation => donation.id === editingId);
-      if (index !== -1) {
-        allDonations[index] = updatedDonation;
-        filteredAndSortedDonations = [...allDonations];
-        renderTable();
-        closeEditMonetaryModal();
-        Swal.fire("Success", "Donation updated!", "success");
+      if (validateEditForm()) {
+        const updatedDonation = {
+          id: editingId,
+          encoder: editFormElements.encoder,
+          name: editFormElements.name,
+          address: editFormElements.address,
+          number: editFormElements.number,
+          amountDonated: parseFloat(editFormElements.amount),
+          invoice: editFormElements.invoice,
+          dateReceived: editFormElements.dateReceived,
+          email: editFormElements.email,
+          bank: editFormElements.bank,
+          proof: document.getElementById("edit-proof").value,
+        };
+
+        const index = allDonations.findIndex(donation => donation.id === editingId);
+        if (index !== -1) {
+          allDonations[index] = updatedDonation;
+          filteredAndSortedDonations = [...allDonations];
+          renderTable();
+          closeEditMonetaryModal();
+          Swal.fire("Success", "Donation updated!", "success");
+        }
+        editingId = null;
       }
-      editingId = null;
     }
   };
 
   window.closeEditMonetaryModal = () => {
+    const editModal = document.getElementById("editMonetaryModal");
     editModal.style.display = "none";
     editingId = null;
+    // Clear any error messages when closing the modal
+    const errorMessages = editModal.querySelectorAll('.error-message');
+    errorMessages.forEach(msg => msg.textContent = '');
+    const errorInputs = editModal.querySelectorAll('.error');
+    errorInputs.forEach(input => input.classList.remove('error'));
   };
 
+  
   // Initial rendering
   filteredAndSortedDonations = [...allDonations];
   renderTable();
