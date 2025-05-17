@@ -14,6 +14,15 @@ document.addEventListener("DOMContentLoaded", () => {
   let filteredAndSortedDonations = [];
   let editingId = null;
 
+  // Add this function within your DOMContentLoaded listener, before the form submission handler
+  const generateCashInvoiceNumber = () => {
+    const prefix = "CINV-";
+    const randomNumber = Math.floor(100000 + Math.random() * 900000); // Generates a 6-digit number
+    return prefix + randomNumber;
+  };
+  document.getElementById("invoice").value = generateCashInvoiceNumber();
+
+
   // Function to find a donation by its ID
   const findDonation = (id) => allDonations.find(donation => donation.id === id);
 
@@ -119,7 +128,7 @@ document.addEventListener("DOMContentLoaded", () => {
       dateReceived: form.dateReceived.value,
       email: form.email.value,
       bank: form.bank.value,
-      proof: form.proof.value ? "Uploaded" : "No File", // Indicate if a file was selected
+      proof: form.proof.value, 
       id: Date.now(),
     };
 
@@ -128,6 +137,7 @@ document.addEventListener("DOMContentLoaded", () => {
     currentPage = 1;
     form.reset();
     Array.from(form.querySelectorAll('input, select')).forEach(clearError);
+    document.getElementById("invoice").value = generateCashInvoiceNumber();
     renderTable();
     Swal.fire("Success", "Monetary Donation Added Successfully!", "success");
   });
@@ -151,7 +161,7 @@ document.addEventListener("DOMContentLoaded", () => {
         <td>${new Date(d.dateReceived).toLocaleDateString('en-PH')}</td>
         <td>${d.email}</td>
         <td>${d.bank}</td>
-        <td>${d.proof}</td>
+        <td> ${d.proof ? `<a href="${d.proof}" target="_blank">View Proof</a>` : 'N/A'}</td>
         <td>
           <button class="btn-edit" onclick="openEditMonetaryModal(${d.id})">Edit</button>
           <button class="btn-delete" onclick="deleteMonetaryDonation('${d.id}')">Delete</button>
@@ -366,6 +376,7 @@ document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("edit-dateReceived").value = donationToEdit.dateReceived;
       document.getElementById("edit-email").value = donationToEdit.email;
       document.getElementById("edit-bank").value = donationToEdit.bank;
+      document.getElementById("edit-proof").value = donationToEdit.proof;
       editModal.style.display = "block";
       // Clear any error messages when opening the modal
       Array.from(editModal.querySelectorAll('input, select')).forEach(clearError);
@@ -399,8 +410,7 @@ document.addEventListener("DOMContentLoaded", () => {
           dateReceived: editFormElements.dateReceived,
           email: editFormElements.email,
           bank: editFormElements.bank,
-          // Retain original proof value as it's not editable in this modal
-          proof: findDonation(editingId)?.proof || "No File",
+          proof: document.getElementById("edit-proof").value,
         };
 
         const index = allDonations.findIndex(donation => donation.id === editingId);

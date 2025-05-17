@@ -167,6 +167,7 @@ button.btn-edit {
 .modal-content input[type="number"],
 .modal-content input[type="tel"],
 .modal-content input[type="date"],
+.modal-content input[type="url"],
 .modal-content select {
   width: calc(100% - 22px);
   border: 1px solid #ccc;
