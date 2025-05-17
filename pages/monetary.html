@@ -51,7 +51,7 @@
                         </div>
                         <div class="input-field">
                             <label for="invoice">Cash Invoice #:</label>
-                            <input type="text" id="invoice" placeholder="Enter invoice number">
+                            <input type="text" id="invoice" placeholder="Automatically generated" readonly>
                         </div>
                         <div class="input-field">
                             <label for="dateReceived">Date Received:</label>
@@ -66,8 +66,8 @@
                             <input type="text" id="bank" placeholder="Enter bank name">
                         </div>
                         <div class="input-field">
-                            <label for="proof">Proof of Transaction:</label>
-                            <input type="file" id="proof" />
+                            <label for="proof">Proof of Transaction (Google Drive Link):</label>
+                            <input type="url" id="proof" placeholder="Enter Google Drive link" />
                         </div>
                     </div>
 
@@ -131,9 +131,10 @@
                     </div>
                 </div>
 
-                <table id="monetaryTable">
+                <div class="table-responsive-container">
+                    <table id="monetaryTable">
                     <thead>
-                        <tr>
+                    <tr>
                         <th>No.</th>
                         <th>Encoder</th>
                         <th>Name/Company</th>
@@ -146,10 +147,12 @@
                         <th>Bank</th>
                         <th>Proof of Transaction</th>
                         <th>Action</th>
-                        </tr>
+                    </tr>
                     </thead>
                     <tbody></tbody>
-                </table>
+                    </table>
+                </div>
+                
 
                 <div class="pagination-info">
                     <span id="entriesInfo">Showing 0 to 0 of 0 entries</span>
@@ -169,10 +172,11 @@
                     <label>Location: <input type="text" id="edit-address"></label>
                     <label>Number: <input type="tel" id="edit-number"></label>
                     <label>Amount Donated: <input type="number" id="edit-amount"></label>
-                    <label>Cash Invoice #: <input type="text" id="edit-invoice"></label>
+                    <label>Cash Invoice #: <input type="text" id="edit-invoice" readonly></label>
                     <label>Date Received: <input type="date" id="edit-dateReceived"></label>
                     <label>Email: <input type="email" id="edit-email"></label>
                     <label>Bank: <input type="text" id="edit-bank"></label>
+                    <label>Proof of Transaction (Google Drive Link): <input type="url" id="edit-proof"></label>
                     <button type="button" onclick="saveEditedMonetaryDonation()">Save Changes</button>
                     <button type="button" onclick="closeEditMonetaryModal()">Cancel</button>
                 </div>

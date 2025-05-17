@@ -167,6 +167,7 @@ button.btn-edit {
 .modal-content input[type="number"],
 .modal-content input[type="tel"],
 .modal-content input[type="date"],
+.modal-content input[type="url"],
 .modal-content select {
   width: calc(100% - 22px);
   border: 1px solid #ccc;
@@ -246,10 +247,33 @@ button.btn-edit {
   margin-top: 5px; 
 }
 
+.error-message {
+  color: var(--red); 
+  font-size: 0.8em;
+  margin-top: 0.2em;
+}
+
+.input-error {
+  border: 1px solid var(--red) !important; 
+  box-shadow: 0 0 5px rgba(255, 0, 0, 0.3) !important; 
+}
+
+/* Table Specific Scrolling */
+.table-responsive-container {
+  overflow-x: auto; 
+  width: 100%; 
+}
+
+#monetaryTable {
+  width: 100%; 
+  border-collapse: collapse; 
+}
+
+
 /* Responsive fix - stack inputs on smaller screens */
 @media (max-width: 900px) {
   .input-field {
-    width: calc((100% - 30px) / 3); /* 3 columns on tablets */
+    width: calc((100% - 30px) / 3); 
   }
 }
 

@@ -62,16 +62,16 @@ document.addEventListener("DOMContentLoaded", () => {
             { input: form.address, label: "Address" },
             { input: form.email, label: "Email" },
             { input: form.additionalnotes, label: "Additional Notes", required: false },
-            { input: form.status, label: "Status" }, // Assuming status is a dropdown, so we'll just check if it's selected
-            { input: form.staffIncharge, label: "Staff-In Charge", lettersOnly: true }, // Added validation for Staff-In Charge
+            { input: form.status, label: "Status" }, 
+            { input: form.staffIncharge, label: "Staff-In Charge", lettersOnly: true }, 
         ];
 
-        fieldsToCheck.forEach(({ input, label, lettersOnly, numberOnly, required = true }) => { // Added required
+        fieldsToCheck.forEach(({ input, label, lettersOnly, numberOnly, required = true }) => {
             clearError(input);
-            if (required && isEmpty(input.value)) { // Check if the field is required
+            if (required && isEmpty(input.value)) { 
                 showError(input, `${label} is required`);
                 isValid = false;
-            } else if (!isEmpty(input.value) && lettersOnly && !isLettersOnly(input.value)) { //check if not empty before checking for lettersOnly
+            } else if (!isEmpty(input.value) && lettersOnly && !isLettersOnly(input.value)) { 
                 showError(input, `${label} should only contain letters and spaces`);
                 isValid = false;
             } else if (!isEmpty(input.value) && numberOnly && !isValidNumber(input.value)) { //check if not empty before checking for numbers
@@ -200,7 +200,7 @@ document.addEventListener("DOMContentLoaded", () => {
         filteredAndSortedDonations = allDonations.filter(d =>
             d.name.toLowerCase().includes(searchTerm) ||
             d.encoder.toLowerCase().includes(searchTerm) ||
-            d.staffIncharge.toLowerCase().includes(searchTerm) // Added search for Staff-In Charge
+            d.staffIncharge.toLowerCase().includes(searchTerm) 
         );
         currentPage = 1;
         renderTable();
@@ -317,14 +317,14 @@ document.addEventListener("DOMContentLoaded", () => {
             { input: document.getElementById("edit-valuation"), label: "Valuation", numberOnly: true },
             { input: document.getElementById("edit-address"), label: "Address" },
             { input: document.getElementById("edit-email"), label: "Email" },
-            { input: document.getElementById("edit-additionalnotes"), label: "Additional Notes", required: false }, // Added required: false
-            { input: document.getElementById("edit-status"), label: "Status" }, // Assuming status is a dropdown
-            { input: document.getElementById("edit-staffIncharge"), label: "Staff-In Charge", lettersOnly: true }, // Added validation for Staff-In Charge in edit form
+            { input: document.getElementById("edit-additionalnotes"), label: "Additional Notes", required: false }, 
+            { input: document.getElementById("edit-status"), label: "Status" }, 
+            { input: document.getElementById("edit-staffIncharge"), label: "Staff-In Charge", lettersOnly: true }, 
         ];
 
         fieldsToCheck.forEach(({ input, label, lettersOnly, numberOnly, required = true }) => { // Added required
             clearError(input);
-            if (required && isEmpty(input.value)) { // Check if the field is required
+            if (required && isEmpty(input.value)) { 
                 showError(input, `${label} is required`);
                 isValid = false;
             } else if (!isEmpty(input.value) && lettersOnly && !isLettersOnly(input.value)) { //check if not empty before checking for lettersOnly
@@ -378,7 +378,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     valuation: document.getElementById("edit-valuation").value,
                     additionalnotes: document.getElementById("edit-additionalnotes").value,
                     status: document.getElementById("edit-status").value,
-                    staffIncharge: document.getElementById("edit-staffIncharge").value, // Get updated Staff-In Charge value
+                    staffIncharge: document.getElementById("edit-staffIncharge").value, 
                 };
 
                 const index = allDonations.findIndex(donation => donation.id === editingId);
