@@ -1,4 +1,4 @@
-const CACHE_NAME = 'bayanihan-cache-v1';
+const CACHE_NAME = 'bayanihan-cache-v2';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -10,9 +10,16 @@ const urlsToCache = [
   './css/login.css',
   './js/login.js',
   './js/global.js',
+  './pages/rdanaVerification.html',
+  './pages/rdanaLog.html',
+  './components/sidebar.html',
+  './components/sidebar.js',
+  './components/sidebar.css',
+  './js/rdanaLog.js',
+  './css/rdanaLog.css',
+  './assets/images/user.jpg',
 ];
 
-// Install event: Cache static assets
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
@@ -24,11 +31,9 @@ self.addEventListener('install', (event) => {
         console.error('Service Worker install error:', error);
       })
   );
-  // Force the waiting service worker to become active immediately
   self.skipWaiting();
 });
 
-// Activate event: Clean up old caches
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
@@ -42,27 +47,23 @@ self.addEventListener('activate', (event) => {
       );
     })
   );
-  // Take control of the page immediately
   self.clients.claim();
 });
 
-// Fetch event: Handle requests with a cache-first strategy for static assets
 self.addEventListener('fetch', (event) => {
   const requestUrl = new URL(event.request.url);
 
-  // Skip caching for Firebase Authentication API requests and other sensitive/dynamic endpoints
   if (
     requestUrl.origin === 'https://identitytoolkit.googleapis.com' ||
     requestUrl.origin === 'https://bayanihan-5ce7e-default-rtdb.asia-southeast1.firebasedatabase.app' ||
-    event.request.url.includes('emailjs') || // Skip EmailJS requests
-    event.request.method !== 'GET' // Skip non-GET requests (e.g., POST for login)
+    event.request.url.includes('emailjs') ||
+    event.request.method !== 'GET'
   ) {
     console.log('Bypassing cache for:', event.request.url);
     event.respondWith(fetch(event.request));
     return;
   }
 
-  // Cache-first strategy for static assets
   event.respondWith(
     caches.match(event.request)
       .then((response) => {
@@ -73,7 +74,6 @@ self.addEventListener('fetch', (event) => {
 
         console.log('Cache miss for:', event.request.url, '- Fetching from network');
         return fetch(event.request).then((response) => {
-          // Only cache valid responses
           if (!response || response.status !== 200 || response.type !== 'basic') {
             return response;
           }
@@ -91,12 +91,17 @@ self.addEventListener('fetch', (event) => {
           return response;
         }).catch((error) => {
           console.error('Fetch failed for:', event.request.url, error);
+          if (event.request.headers.get('accept').includes('text/html')) {
+            return caches.match('/index.html');
+          }
+          if (event.request.url.endsWith('.jpg') || event.request.url.endsWith('.png')) {
+            return caches.match('./assets/images/placeholder.jpg');
+          }
           throw error;
         });
       })
   );
 
-  // Background update for cached static assets
   if (urlsToCache.some(url => event.request.url.includes(url))) {
     event.waitUntil(
       fetch(event.request.clone()).then(async (response) => {
