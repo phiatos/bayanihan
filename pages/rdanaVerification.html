@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../components/sidebar.css" />
-    <link rel="stylesheet" href="../css/reports.css" />
+    <link rel="stylesheet" href="../css/rdanaLog.css" />
     <link rel="stylesheet" href="../css/global.css" />
     <link rel='stylesheet' href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css'/>
 
@@ -16,7 +16,7 @@
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
-    <title>Reports Verification</title>
+    <title>RDANA Verification</title>
 </head>
 <body>
     <div class="main-container">
@@ -24,7 +24,7 @@
         <div id="main-content">
             <div class="controls">
                 <div class="controls_left">
-                    <header>Reports Verification</header>
+                    <header>RDANA Verification</header>
                 </div>
                 <div class="controls_right">
                     <div class="search-wrapper">
@@ -36,17 +36,29 @@
                     </div>
                     <div class="custom-select-wrapper">
                         <select id="sortSelect">
-                            <option value="">Sort by</option>
-                            <optgroup label="Location">
-                                <option value="Barangay-asc">Barangay (A–Z)</option>
-                                <option value="Barangay-desc">Barangay (Z–A)</option>
-                                <option value="CityMunicipality-asc">City/Municipality (A–Z)</option>
-                                <option value="CityMunicipality-desc">City/Municipality (Z–A)</option>
-                            </optgroup>
-                            <optgroup label="Date">
-                                <option value="DateOfReport-asc">Report Date (Low–High)</option>
-                                <option value="DateOfReport-desc">Report Date (High–Low)</option>
-                            </optgroup>
+                        <option value="">Sort by</option>
+                        <optgroup label="Assessment Info">
+                            <option value="DateTime-asc">Date & Time (Oldest First)</option>
+                            <option value="DateTime-desc">Date & Time (Newest First)</option>
+                            <option value="RDANAID-asc">RDANA ID (Ascending)</option>
+                            <option value="RDANAID-desc">RDANA ID (Descending)</option>
+                        </optgroup>
+                        <optgroup label="Location">
+                            <option value="Location-asc">Location (A–Z)</option>
+                            <option value="Location-desc">Location (Z–A)</option>
+                        </optgroup>
+                        <optgroup label="Disaster Details">
+                            <option value="DisasterType-asc">Disaster Type (A–Z)</option>
+                            <option value="DisasterType-desc">Disaster Type (Z–A)</option>
+                        </optgroup>
+                        <optgroup label="Impact">
+                            <option value="AffectedPopulation-desc">Affected Population (High to Low)</option>
+                            <option value="AffectedPopulation-asc">Affected Population (Low to High)</option>
+                        </optgroup>
+                        <optgroup label="Response Actions">
+                            <option value="Needs-asc">Priority Needs (A–Z)</option>
+                            <option value="Needs-desc">Priority Needs (Z–A)</option>
+                        </optgroup>
                         </select>
                         <i class='bx bx-chevron-down'></i>
                     </div>
@@ -57,34 +69,32 @@
                 <thead>
                     <tr>
                         <th>No.</th>
-                        <th>Report ID</th>
-                        <th>Volunteer Group Name</th>
-                        <th>Area of Operation</th>
-                        <th>Time of Intervention</th>
-                        <th>Report Date</th>
-                        <!-- <th>Submitted By</th> -->
-                        <th>Status</th>
+                        <th>RDANA ID</th>
+                        <th>Date & Time of Assessment</th>
+                        <th>Location/Site Address</th>
+                        <th>Type of Disaster</th>
+                        <th>Affected Population</th>
+                        <th>Critical Needs</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody id="submittedReportsContainer">
-                    <button id="viewApprovedBtn">View Approved Reports</button>
+                    <!-- Reports will be dynamically inserted here -->
                 </tbody>
             </table>
             <div class="pagination-info">
                 <span id="entriesInfo">Showing 0 to 0 of 0 entries</span>
                 <div id="pagination" class="pagination"></div>
             </div>
+            <button id="viewApprovedBtn">View Approved RDANA</button>
         </div>
     </div>
 
     <div id="reportModal" class="modal hidden">
         <div class="modal-content">
-            <span id="closeModal" class="close">&times;</span>
-            <div class="modal-header"> 
-                <h2>Report Details</h2>
-             </div>
-          <p id="modalReportDetails"></p>
+            <span id="closeModal" class="close">×</span>
+            <div class="modal-header"></div>
+            <div id="modalReportDetails"></div>
         </div>
     </div>
 
@@ -101,7 +111,12 @@
         .catch(error => {
             console.error('Error loading sidebar:', error);
         });
+
+        function clearDInputs() {
+            document.getElementById('searchInput').value = '';
+            applySearchAndSort(); // Trigger re-render after clearing
+        }
     </script>
-    <script src="../js/reportsverification.js"></script>
+    <script src="../js/rdanaverification.js"></script>
 </body>
 </html>

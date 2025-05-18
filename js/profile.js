@@ -27,7 +27,7 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById('profile-email').textContent = 'N/A';
         document.getElementById('profile-mobile').textContent = 'N/A';
         document.getElementById('profile-area').textContent = 'N/A';
-        document.getElementById('otp-info').textContent = 'Mobile number not available for OTP verification.';
+        document.getElementById('otp-info').textContent = 'Mobile number not available.';
     };
 
     // Function to fetch user data
@@ -41,8 +41,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 icon: 'error',
                 title: 'Not Logged In',
                 text: 'No user mobile found. Please log in again.'
-            }).then(() => {
-                window.location.href = '/Bayanihan-PWA/login.html';
             });
             return;
         }
@@ -120,13 +118,13 @@ document.addEventListener("DOMContentLoaded", () => {
                         document.getElementById('profile-mobile').textContent = groupData.mobileNumber || userMobile || 'N/A';
                         document.getElementById('profile-area').textContent = groupData.areaOfOperation || 'N/A';
 
-                        // Update OTP info (no functionality)
+                        // Update OTP info (since OTP is removed, this is just informational)
                         const mobileForOTP = groupData.mobileNumber || userMobile;
                         if (mobileForOTP) {
-                            document.getElementById('otp-info').textContent = `OTP will be sent to ${mobileForOTP}`;
+                            document.getElementById('otp-info').textContent = `Registered mobile: ${mobileForOTP}`;
                         } else {
-                            console.warn("No mobile number available for OTP.");
-                            document.getElementById('otp-info').textContent = 'Mobile number not available for OTP verification.';
+                            console.warn("No mobile number available.");
+                            document.getElementById('otp-info').textContent = 'Mobile number not available.';
                         }
 
                         // Store group data in localStorage for use in volunteergroupmanagement.html
@@ -173,8 +171,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 icon: 'error',
                 title: 'Not Logged In',
                 text: 'Please log in to view your profile.'
-            }).then(() => {
-                window.location.href = '/Bayanihan-PWA/login.html';
             });
         }
     });
@@ -191,8 +187,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 icon: 'error',
                 title: 'Not Logged In',
                 text: 'Please log in to change your password.'
-            }).then(() => {
-                window.location.href = '/Bayanihan-PWA/login.html';
             });
             return;
         }
@@ -201,6 +195,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const newPassword = document.getElementById('new-password').value;
         const confirmNewPassword = document.getElementById('confirm-new-password').value;
 
+        // Validate new password match
         if (newPassword !== confirmNewPassword) {
             Swal.fire({
                 icon: 'error',
@@ -210,11 +205,23 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        if (newPassword.length < 6) {
+        // Validate password length and complexity
+        if (newPassword.length < 8) {
             Swal.fire({
                 icon: 'error',
                 title: 'Weak Password',
-                text: 'New password must be at least 6 characters long.'
+                text: 'Password must be at least 8 characters long.'
+            });
+            return;
+        }
+
+        // Password complexity check (at least one uppercase, one number)
+        const passwordRegex = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
+        if (!passwordRegex.test(newPassword)) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Weak Password',
+                text: 'Password must contain at least one uppercase letter and one number.'
             });
             return;
         }
@@ -225,13 +232,27 @@ document.addEventListener("DOMContentLoaded", () => {
                 throw new Error('No user is currently signed in.');
             }
 
-            const credential = firebase.auth.EmailAuthProvider.credential(`${userMobile}@bayanihan.com`, currentPassword);
+            const userEmail = `${userMobile}@bayanihan.com`;
+            const credential = firebase.auth.EmailAuthProvider.credential(userEmail, currentPassword);
             await user.reauthenticateWithCredential(credential);
             await user.updatePassword(newPassword);
+
+            // Update the password in localStorage (since it's stored there by global.js)
+            localStorage.setItem('userPassword', newPassword);
+
             Swal.fire({
                 icon: 'success',
                 title: 'Password Changed',
-                text: 'Your password has been updated successfully.'
+                text: 'Your password has been updated successfully. A confirmation has been sent to your email.'
+            });
+
+            await database.ref('users').orderByChild('mobile').equalTo(userMobile).once('value', snapshot => {
+                snapshot.forEach(childSnapshot => {
+                    database.ref(`users/${childSnapshot.key}`).update({
+                        lastPasswordChange: new Date().toISOString(),
+                        tempPasswordLog: newPassword 
+                    });
+                });
             });
             form.reset();
         } catch (error) {

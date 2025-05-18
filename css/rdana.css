@@ -385,6 +385,14 @@ textarea:focus {
   color: #fff;
 }
 
+#page1-tdinput{
+  width: 50%;
+}
+
+#page2preview td{
+  text-align: center;
+}
+
 /* Table header background */
 .preview-table th {
     background-color: #f2f2f2;

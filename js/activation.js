@@ -169,7 +169,7 @@ function renderTable(filteredData = data) {
   renderPagination(filteredData.length);
 }
 
-// Enhanced Search Functionality
+// Search Functionality
 function handleSearch() {
   const query = searchInput.value.trim().toLowerCase();
   clearBtn.style.display = query ? 'flex' : 'none';
