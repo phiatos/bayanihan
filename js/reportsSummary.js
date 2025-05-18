@@ -1,3 +1,22 @@
+function formatDate(dateStr) {
+    const date = new Date(dateStr);
+    if (isNaN(date)) return dateStr; // If not a valid date, return original
+    return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+}
+
+function formatTime(timeStr) {
+    const [hourStr, minuteStr] = timeStr.split(":");
+    let hour = parseInt(hourStr, 10);
+    const minute = parseInt(minuteStr, 10);
+    const ampm = hour >= 12 ? "PM" : "AM";
+    hour = hour % 12 || 12;
+    return `${hour}:${minute.toString().padStart(2, '0')} ${ampm}`;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     // Firebase configuration
     const firebaseConfig = {
@@ -51,9 +70,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const categories = {
             "Basic Information": [
                 "ReportID",
-                "VolunteerGroupName", // Add VolunteerGroupName to display
+                "VolunteerGroupName",
                 "AreaOfOperation",
-                
                 "DateOfReport"
             ],
             "Relief Operations": [
@@ -86,16 +104,15 @@ document.addEventListener('DOMContentLoaded', () => {
             categories[category].forEach(item => {
                 if (summaryData[item]) {
                     let displayKey = item
-                        .replace(/([A-Z])/g, ' $1') // Add space before capital letters
-                        .replace(/^./, str => str.toUpperCase()); // Capitalize first letter
+                        .replace(/([A-Z])/g, ' $1')
+                        .replace(/^./, str => str.toUpperCase());
                     displayKey = displayKey
                         .replace('AreaOfOperation', 'Area of Operation')
                         .replace('TimeOfIntervention', 'Completion of Time Intervention')
-                        // .replace('SubmittedBy', 'Submitted by')
                         .replace('DateOfReport', 'Date of Report')
                         .replace('ReportID', 'Report ID')
-                        .replace('StartDate', 'StartDate')
-                        .replace('EndDate', 'EndDate')
+                        .replace('StartDate', 'Start Date')
+                        .replace('EndDate', 'End Date')
                         .replace('VolunteerGroupName', 'Volunteer Group')
                         .replace('NoOfIndividualsOrFamilies', 'No. of Individuals or Families')
                         .replace('NoOfFoodPacks', 'No. of Food Packs')
@@ -107,9 +124,17 @@ document.addEventListener('DOMContentLoaded', () => {
                         .replace('TotalMonetaryDonations', 'Total Monetary Donations')
                         .replace('NotesAdditionalInformation', 'Notes/additional information');
 
+                    let value = summaryData[item];
+
+                    if (item === "DateOfReport" || item === "StartDate" || item === "EndDate") {
+                        value = formatDate(value);
+                    } else if (item === "TimeOfIntervention") {
+                        value = formatTime(value);
+                    }
+
                     const fieldDiv = document.createElement("div");
                     fieldDiv.className = "summary-box";
-                    fieldDiv.innerHTML = `<strong>${displayKey}:</strong> <span>${summaryData[item]}</span>`;
+                    fieldDiv.innerHTML = `<strong>${displayKey}:</strong> <span>${value}</span>`;
                     section.appendChild(fieldDiv);
                 }
             });
@@ -117,14 +142,13 @@ document.addEventListener('DOMContentLoaded', () => {
             container.appendChild(section);
         }
 
-        //  Back button logic
+        // Back button logic
         document.getElementById('backBtn').addEventListener('click', () => {
             localStorage.setItem("returnToStep", "form-container-2");
-            // reportData is already in localStorage, so just go back
             window.location.href = "../pages/reportssubmission.html";
         });
 
-        //  Submit button logic
+        // Submit button logic
         const submitBtn = document.getElementById("submitBtn");
         submitBtn.addEventListener("click", () => {
             auth.onAuthStateChanged(user => {
@@ -139,11 +163,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
-                // Add userUid to summaryData before saving to Firebase
                 summaryData["userUid"] = user.uid;
-
-                console.log("Submitting to Firebase:", summaryData);
-
                 summaryData["Status"] = "Pending";
                 summaryData["Timestamp"] = firebase.database.ServerValue.TIMESTAMP;
 
@@ -151,7 +171,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     .then(() => {
                         console.log("Report successfully saved to Firebase");
 
-                        // 🔥 Clear localStorage data
                         localStorage.removeItem("reportData");
                         localStorage.removeItem("returnToStep");
 
