@@ -68,6 +68,17 @@ document.addEventListener('DOMContentLoaded', () => {
             day: "numeric"
         });
     }
+    function formatTime(timeStr) {
+    if (!timeStr) return "-";
+    const date = new Date(`1970-01-01T${timeStr}`);
+    if (isNaN(date)) return timeStr;
+    return date.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true
+    });
+}
+
 
     function loadReportsFromFirebase() {
         database.ref("reports/submitted").on("value", snapshot => {
@@ -116,9 +127,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${report["ReportID"] || "-"}</td>
                 <td>${report["VolunteerGroupName"] || "[Unknown Org]"}</td>
                 <td>${report["AreaOfOperation"] || "-"}</td>
-                <td>${report["TimeOfIntervention"] || "-"}</td>
+                <td>${formatTime(report["TimeOfIntervention"])}</td>
                 <td>${formatDate(report["DateOfReport"])}</td>
-                
                 <td>${report["Status"] || "Pending"}</td>
                 <td>
                     <button class="viewBtn">View</button>
@@ -185,7 +195,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                         <div class="form-2">
                             <h2>Relief Operations</h2>
-                            <p class="cell"><strong>Completion Time of Intervention:</strong> ${report.TimeOfIntervention || "-"}</p>
+                            <p class="cell"><strong>Completion Time of Intervention:</strong> ${formatTime(report.TimeOfIntervention)}</p>
                             <p><strong>Start Date of Operation:</strong> ${formatDate(report.StartDate) || "-"}</p>
                             <p><strong>End Date of Operation:</strong> ${formatDate(report.EndDate) || "-"}</p>
                             <p><strong>No. of Individuals or Families:</strong> ${report.NoOfIndividualsOrFamilies || "-"}</p>

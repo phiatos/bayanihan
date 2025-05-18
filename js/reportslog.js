@@ -68,6 +68,16 @@ document.addEventListener('DOMContentLoaded', () => {
             day: "numeric"
         });
     }
+    function formatTime(timeStr) {
+    if (!timeStr) return "-";
+    const date = new Date(`1970-01-01T${timeStr}`);
+    if (isNaN(date)) return timeStr;
+    return date.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true
+    });
+}
 
     function loadReportsFromFirebase() {
         database.ref("reports/approved").on("value", snapshot => {
@@ -183,7 +193,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                         <div class="form-2">
                             <h2>Relief Operations</h2>
-                            <p><strong>Completion time of intervention:</strong> ${formatDate(report.TimeOfIntervention)}</p>
+                            <p><strong>Completion time of intervention:</strong> ${formatTime(report.TimeOfIntervention)}</p>
                             <p><strong>Start Date of Operation:</strong> ${formatDate(report.StartDate) || "-"}</p>
                             <p><strong>End Date of Operation:</strong> ${formatDate(report.EndDate) || "-"}</p>
                             <p><strong>No. of Individuals or Families:</strong> ${report.NoOfIndividualsOrFamilies || "-"}</p>
