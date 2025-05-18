@@ -95,7 +95,12 @@ function initSidebar() {
       'reportsVerification.html',
       'reportsLog.html',
       'activation.html',
-      'reliefsLog.html'
+      'reliefsLog.html',
+      'rdanaLog.html',
+      'rdanaVerification.html',
+      'inkind.html',
+      'monetary.html',
+
     ];
     const currentPath = window.location.pathname;
     const isRestrictedPage = restrictedPages.some(page => currentPath.includes(page));
@@ -173,30 +178,98 @@ function initSidebar() {
   }
 
   function restrictMenuAccess(role) {
-    const restrictedItems = [
-      ".menu-activation",
-      ".menu-reports",
-      ".menu-reliefs-log",
-    ];
+    // Define menu items to control visibility
+    const menuItems = {
+      dashboard: document.querySelector(".menu-dashboard"),
+      volunteergroupmanagement: document.querySelector(".menu-volunteergroupmanagement"),
+      activation: document.querySelector(".menu-activation"),
+      donationTracksheet: document.querySelector(".menu-donation-tracksheet"),
+      callfordonation: document.querySelector(".menu-callfordonation"),
+      rdana: document.querySelector(".menu-rdana"),
+      rdanaMain: document.querySelector(".menu-rdana-main"),
+      rdanaVerification: document.querySelector(".menu-rdana-verification"),
+      rdanaLog: document.querySelector(".menu-rdana-log"),
+      reliefs: document.querySelector(".menu-reliefs"),
+      reliefsRequest: document.querySelector(".menu-reliefs-request"),
+      reliefsLog: document.querySelector(".menu-reliefs-log"),
+      reports: document.querySelector(".menu-reports"),
+      reportsSubmission: document.querySelector(".menu-reports-submission"),
+      reportsVerification: document.querySelector(".menu-reports-verification"),
+      reportsLog: document.querySelector(".menu-reports-log"),
+    };
 
     console.log("Restricting menu access for role:", role);
 
     if (role === "ABVN") {
-      restrictedItems.forEach((selector) => {
-        const parentLi = document.querySelector(selector);
-        if (parentLi) {
-          parentLi.style.display = "none";
-          console.log(`Hid menu item: ${selector}`);
-        } else {
-          console.log(`Menu item not found: ${selector}`);
+      // Show allowed menu items for ABVN volunteers
+      const allowedItems = [
+        menuItems.dashboard,
+        menuItems.rdana,
+        menuItems.rdanaMain,
+        menuItems.callfordonation,
+        menuItems.reliefs,
+        menuItems.reliefsRequest,
+        menuItems.reports,
+        menuItems.reportsSubmission,
+      ];
+
+      // Hide restricted menu items for ABVN volunteers
+      const restrictedItems = [
+        menuItems.volunteergroupmanagement,
+        menuItems.activation,
+        menuItems.donationTracksheet,
+        menuItems.rdanaVerification,
+        menuItems.rdanaLog,
+        menuItems.reliefsLog,
+        menuItems.reportsVerification,
+        menuItems.reportsLog
+      ];
+
+      // Show allowed items
+      allowedItems.forEach((item) => {
+        if (item) {
+          item.style.display = "block";
+          console.log(`Showed menu item: ${item.className}`);
         }
       });
+
+      // Hide restricted items
+      restrictedItems.forEach((item) => {
+        if (item) {
+          item.style.display = "none";
+          console.log(`Hid menu item: ${item.className}`);
+        }
+      });
+
+      // If RDANA has no visible sub-items, hide the parent RDANA menu
+      if (!menuItems.rdanaMain || menuItems.rdanaMain.style.display === "none") {
+        if (menuItems.rdana) {
+          menuItems.rdana.style.display = "none";
+          console.log("Hid RDANA parent menu as no sub-items are visible");
+        }
+      }
+
+      // If Reliefs has no visible sub-items, hide the parent Reliefs menu
+      if (!menuItems.reliefsRequest || menuItems.reliefsRequest.style.display === "none") {
+        if (menuItems.reliefs) {
+          menuItems.reliefs.style.display = "none";
+          console.log("Hid Reliefs parent menu as no sub-items are visible");
+        }
+      }
+
+      // If Reports has no visible sub-items, hide the parent Reports menu
+      if (!menuItems.reportsSubmission || menuItems.reportsSubmission.style.display === "none") {
+        if (menuItems.reports) {
+          menuItems.reports.style.display = "none";
+          console.log("Hid Reports parent menu as no sub-items are visible");
+        }
+      }
     } else {
-      restrictedItems.forEach((selector) => {
-        const parentLi = document.querySelector(selector);
-        if (parentLi) {
-          parentLi.style.display = "block";
-          console.log(`Showed menu item: ${selector}`);
+      // For non-ABVN users (e.g., admins), show all menu items
+      Object.values(menuItems).forEach((item) => {
+        if (item) {
+          item.style.display = "block";
+          console.log(`Showed menu item: ${item.className}`);
         }
       });
     }

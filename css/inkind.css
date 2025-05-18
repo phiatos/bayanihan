@@ -52,9 +52,14 @@ input[type="date"]:valid{
 }
 
 .error-message {
-  color: red;
+  color: var(--red); 
   font-size: 0.8em;
   margin-top: 0.2em;
+}
+
+.input-error {
+  border: 1px solid var(--red) !important; 
+  box-shadow: 0 0 5px rgba(255, 0, 0, 0.3) !important; 
 }
 
 
@@ -172,6 +177,7 @@ button.btn-edit {
 .modal-content input[type="text"],
 .modal-content input[type="email"],
 .modal-content input[type="number"],
+.modal-content input[type="tel"],
 .modal-content select {
   width: calc(100% - 22px);
   border: 1px solid #ccc;
@@ -249,6 +255,17 @@ button.btn-edit {
   font-size: 0.75em; 
   color: #777;
   margin-top: 5px; 
+}
+
+/* Table Specific Scrolling */
+.table-responsive-container {
+    overflow-x: auto; 
+    width: 100%; 
+}
+
+#inKindTable {
+    width: 100%; 
+    border-collapse: collapse; 
 }
 
 @media (max-width: 768px) {
