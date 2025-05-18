@@ -1,85 +1,60 @@
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
-const nodemailer = require('nodemailer');
+const emailjs = require('@emailjs/nodejs');
 
-// Initialize Firebase Admin
+// Initialize the Admin SDK
 admin.initializeApp();
 
-// Configure Nodemailer (using Gmail as an example)
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: 'your-email@gmail.com', // Replace with your Gmail address
-    pass: 'your-app-password' // Replace with your Gmail App Password (generate via Google Account settings)
-  }
-});
+// Initialize EmailJS with your public key
+emailjs.init('ULA8rmn7VM-3fZ7ik'); // Your EmailJS public key
 
-// Function to generate a random temporary password
-function generateTempPassword(length = 10) {
-  const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+";
-  let password = "";
-  for (let i = 0; i < length; i++) {
-    const randomIndex = Math.floor(Math.random() * charset.length);
-    password += charset[randomIndex];
-  }
-  return password;
-}
+exports.resetPassword = functions.https.onCall(async (data, context) => {
+    const { mobileNumber, newPassword } = data;
 
-// Cloud Function to create a user and send a temporary password
-exports.createVolunteerGroupUser = functions.https.onCall(async (data, context) => {
-  // Ensure the caller is authenticated
-  if (!context.auth) {
-    throw new functions.https.HttpsError('unauthenticated', 'You must be authenticated to perform this action.');
-  }
+    if (!mobileNumber || !newPassword) {
+        throw new functions.https.HttpsError('invalid-argument', 'Mobile number and new password are required.');
+    }
 
-  const callerUid = context.auth.uid;
-  const userRecord = await admin.database().ref(`users/${callerUid}`).once('value');
-  const userData = userRecord.val();
-  if (!userData || userData.role !== 'AB ADMIN') {
-    throw new functions.https.HttpsError('permission-denied', 'Only AB ADMIN users can create volunteer groups.');
-  }
+    if (newPassword.length < 8) {
+        throw new functions.https.HttpsError('invalid-argument', 'Password must be at least 8 characters long.');
+    }
+    const passwordRegex = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
+    if (!passwordRegex.test(newPassword)) {
+        throw new functions.https.HttpsError('invalid-argument', 'Password must contain at least one uppercase letter and one number.');
+    }
 
-  const { email, mobileNumber, organization } = data;
+    try {
+        const syntheticEmail = `${mobileNumber}@bayanihan.com`;
+        const user = await admin.auth().getUserByEmail(syntheticEmail);
 
-  // Generate a temporary password
-  const tempPassword = generateTempPassword();
+        await admin.auth().updateUser(user.uid, {
+            password: newPassword
+        });
 
-  try {
-    // Create the user with the temporary password
-    const user = await admin.auth().createUser({
-      email: email,
-      password: tempPassword,
-      emailVerified: false
-    });
+        const db = admin.database();
+        const usersSnapshot = await db.ref('users').orderByChild('mobile').equalTo(mobileNumber).once('value');
+        let userEmail = null;
+        if (usersSnapshot.exists()) {
+            usersSnapshot.forEach(childSnapshot => {
+                userEmail = childSnapshot.val().email;
+                db.ref(`users/${childSnapshot.key}`).update({
+                    lastPasswordChange: new Date().toISOString()
+                });
+            });
+        }
 
-    // Store user details in the users node with role ABVN
-    await admin.database().ref(`users/${user.uid}`).set({
-      email: email,
-      role: 'ABVN',
-      createdAt: new Date().toISOString(),
-      mobile: mobileNumber,
-      organization: organization
-    });
+        // Send confirmation email
+        if (userEmail) {
+            await emailjs.send('service_g5f0erj', 'template_0yk865p', {
+                email: userEmail,
+                mobileNumber: mobileNumber,
+                message: `Your password for Bayanihan has been successfully reset. Please log in with your new password.`
+            });
+        }
 
-    // Send an email with the temporary password and mobile number
-    const mailOptions = {
-      from: 'your-email@gmail.com', // Replace with your Gmail address
-      to: email,
-      subject: 'Your Temporary Password for Bayanihan Volunteer Group',
-      text: `Hello ${organization},\n\nYou have been added as a volunteer group in the Bayanihan system.\n\n` +
-            `Please use the following credentials to log in:\n` +
-            `Email: ${email}\n` +
-            `Temporary Password: ${tempPassword}\n` +
-            `Mobile Number: ${mobileNumber}\n\n` +
-            `You can log in at: https://your-app-login-url.com\n` +
-            `Please change your password after logging in.\n\n` +
-            `Best regards,\nThe Bayanihan Team`
-    };
-
-    await transporter.sendMail(mailOptions);
-
-    return { success: true, uid: user.uid };
-  } catch (error) {
-    throw new functions.https.HttpsError('internal', 'Failed to create user and send email: ' + error.message);
-  }
+        return { success: true, message: 'Password reset successfully.' };
+    } catch (error) {
+        console.error('Error resetting password:', error);
+        throw new functions.https.HttpsError('internal', `Failed to reset password: ${error.message}`);
+    }
 });

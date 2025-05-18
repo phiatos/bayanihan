@@ -43,22 +43,18 @@
                             <option value="RDANAID-asc">RDANA ID (Ascending)</option>
                             <option value="RDANAID-desc">RDANA ID (Descending)</option>
                         </optgroup>
-
                         <optgroup label="Location">
                             <option value="Location-asc">Location (A–Z)</option>
                             <option value="Location-desc">Location (Z–A)</option>
                         </optgroup>
-
                         <optgroup label="Disaster Details">
                             <option value="DisasterType-asc">Disaster Type (A–Z)</option>
                             <option value="DisasterType-desc">Disaster Type (Z–A)</option>
                         </optgroup>
-
                         <optgroup label="Impact">
                             <option value="AffectedPopulation-desc">Affected Population (High to Low)</option>
                             <option value="AffectedPopulation-asc">Affected Population (Low to High)</option>
                         </optgroup>
-
                         <optgroup label="Response Actions">
                             <option value="Needs-asc">Priority Needs (A–Z)</option>
                             <option value="Needs-desc">Priority Needs (Z–A)</option>
@@ -83,22 +79,22 @@
                     </tr>
                 </thead>
                 <tbody id="submittedReportsContainer">
-                    <button id="viewApprovedBtn">View Approved RDANA</button>
+                    <!-- Reports will be dynamically inserted here -->
                 </tbody>
             </table>
             <div class="pagination-info">
                 <span id="entriesInfo">Showing 0 to 0 of 0 entries</span>
                 <div id="pagination" class="pagination"></div>
             </div>
+            <button id="viewApprovedBtn">View Approved RDANA</button>
         </div>
     </div>
 
     <div id="reportModal" class="modal hidden">
         <div class="modal-content">
-            <span id="closeModal" class="close">&times;</span>
-            <div class="modal-header"> 
-             </div>
-          <p id="modalReportDetails"></p>
+            <span id="closeModal" class="close">×</span>
+            <div class="modal-header"></div>
+            <div id="modalReportDetails"></div>
         </div>
     </div>
 
@@ -115,6 +111,11 @@
         .catch(error => {
             console.error('Error loading sidebar:', error);
         });
+
+        function clearDInputs() {
+            document.getElementById('searchInput').value = '';
+            applySearchAndSort(); // Trigger re-render after clearing
+        }
     </script>
     <script src="../js/rdanaverification.js"></script>
 </body>

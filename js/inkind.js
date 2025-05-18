@@ -1,4 +1,21 @@
 document.addEventListener("DOMContentLoaded", () => {
+    // Firebase configuration
+    const firebaseConfig = {
+        apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
+        authDomain: "bayanihan-5ce7e.firebaseapp.com",
+        databaseURL: "https://bayanihan-5ce7e-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "bayanihan-5ce7e",
+        storageBucket: "bayanihan-5ce7e.appspot.com",
+        messagingSenderId: "593123849917",
+        appId: "1:593123849917:web:eb85a63a536eeff78ce9d4",
+        measurementId: "G-ZTQ9VXXVV0",
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+    const auth = firebase.auth();
+
     const form = document.getElementById("form-container-1");
     const tableBody = document.querySelector("#inKindTable tbody");
     const searchInput = document.getElementById("searchInput");
@@ -11,10 +28,49 @@ document.addEventListener("DOMContentLoaded", () => {
     let currentPage = 1;
     let allDonations = [];
     let filteredAndSortedDonations = [];
-    let editingId = null;
+    let editingKey = null;
 
-    // Function to find a donation by its ID
-    const findDonation = (id) => allDonations.find(donation => donation.id === id);
+    // Check if user is authenticated
+    auth.onAuthStateChanged(user => {
+        if (!user) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Authentication Required',
+                text: 'Please sign in to access in-kind donations.',
+            }).then(() => {
+                window.location.href = "../pages/login.html";
+            });
+            return;
+        }
+        console.log("User authenticated:", user.uid);
+        loadDonations(user.uid);
+    });
+
+    function loadDonations(userUid) {
+        database.ref("donations/inkind").on("value", snapshot => {
+            allDonations = [];
+            const donations = snapshot.val();
+            if (donations) {
+                Object.keys(donations).forEach(key => {
+                    const donation = donations[key];
+                    allDonations.push({
+                        firebaseKey: key,
+                        userUid: donation.userUid,
+                        ...donation
+                    });
+                });
+            }
+            filteredAndSortedDonations = [...allDonations];
+            renderTable();
+        }, error => {
+            console.error("Error fetching in-kind donations:", error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Failed to load in-kind donations: ' + error.message,
+            });
+        });
+    }
 
     // Function to check if a field is empty
     const isEmpty = (value) => value.trim() === "";
@@ -62,19 +118,19 @@ document.addEventListener("DOMContentLoaded", () => {
             { input: form.address, label: "Address" },
             { input: form.email, label: "Email" },
             { input: form.additionalnotes, label: "Additional Notes", required: false },
-            { input: form.status, label: "Status" }, 
-            { input: form.staffIncharge, label: "Staff-In Charge", lettersOnly: true }, 
+            { input: form.status, label: "Status" },
+            { input: form.staffIncharge, label: "Staff-In Charge", lettersOnly: true },
         ];
 
         fieldsToCheck.forEach(({ input, label, lettersOnly, numberOnly, required = true }) => {
             clearError(input);
-            if (required && isEmpty(input.value)) { 
+            if (required && isEmpty(input.value)) {
                 showError(input, `${label} is required`);
                 isValid = false;
-            } else if (!isEmpty(input.value) && lettersOnly && !isLettersOnly(input.value)) { 
+            } else if (!isEmpty(input.value) && lettersOnly && !isLettersOnly(input.value)) {
                 showError(input, `${label} should only contain letters and spaces`);
                 isValid = false;
-            } else if (!isEmpty(input.value) && numberOnly && !isValidNumber(input.value)) { //check if not empty before checking for numbers
+            } else if (!isEmpty(input.value) && numberOnly && !isValidNumber(input.value)) {
                 showError(input, `${label} should only contain numbers`);
                 isValid = false;
             }
@@ -87,6 +143,12 @@ document.addEventListener("DOMContentLoaded", () => {
     form.addEventListener("submit", (e) => {
         e.preventDefault();
         if (validateForm()) {
+            const user = auth.currentUser;
+            if (!user) {
+                Swal.fire("Error", "User not authenticated!", "error");
+                return;
+            }
+
             const newDonation = {
                 encoder: form.encoder.value,
                 name: form.name.value,
@@ -99,16 +161,22 @@ document.addEventListener("DOMContentLoaded", () => {
                 valuation: form.valuation.value,
                 additionalnotes: form.additionalnotes.value,
                 status: form.status.value,
-                staffIncharge: form.staffIncharge.value, // Get the value of Staff-In Charge
+                staffIncharge: form.staffIncharge.value,
                 id: Date.now(),
+                userUid: user.uid,
+                createdAt: new Date().toISOString(),
             };
 
-            allDonations.push(newDonation);
-            filteredAndSortedDonations = [...allDonations];
-            currentPage = 1;
-            form.reset();
-            renderTable();
-            Swal.fire("Success", "Donation added!", "success");
+            // Save to Firebase
+            database.ref("donations/inkind").push(newDonation)
+                .then(() => {
+                    form.reset();
+                    Swal.fire("Success", "Donation added!", "success");
+                })
+                .catch(error => {
+                    console.error("Error adding donation:", error);
+                    Swal.fire("Error", "Failed to add donation: " + error.message, "error");
+                });
         }
     });
 
@@ -135,13 +203,16 @@ document.addEventListener("DOMContentLoaded", () => {
                 <td>${d.staffIncharge}</td>
                 <td>${d.status}</td>
                 <td>
-                    <button class="btn-edit" onclick="openEditModal(${d.id})">Edit</button>
-                    <button class="btn-delete" onclick="deleteRow('${d.id}')">Delete</button>
+                    <button class="btn-edit">Edit</button>
+                    <button class="btn-delete">Delete</button>
                 </td>
                 <td>
-                    <button class="btn-endorse" onclick="openEndorseModal(${d.id})">Endorse</button>
+                    <button class="btn-endorse">Endorse</button>
                 </td>
             `;
+            tr.querySelector(".btn-edit").addEventListener("click", () => openEditModal(d.firebaseKey));
+            tr.querySelector(".btn-delete").addEventListener("click", () => deleteRow(d.firebaseKey));
+            tr.querySelector(".btn-endorse").addEventListener("click", () => openEndorseModal(d.firebaseKey));
             tableBody.appendChild(tr);
         });
 
@@ -200,7 +271,7 @@ document.addEventListener("DOMContentLoaded", () => {
         filteredAndSortedDonations = allDonations.filter(d =>
             d.name.toLowerCase().includes(searchTerm) ||
             d.encoder.toLowerCase().includes(searchTerm) ||
-            d.staffIncharge.toLowerCase().includes(searchTerm) 
+            d.staffIncharge.toLowerCase().includes(searchTerm)
         );
         currentPage = 1;
         renderTable();
@@ -235,8 +306,8 @@ document.addEventListener("DOMContentLoaded", () => {
         else if (sortVal === "notes-desc") arr.sort((a, b) => b.additionalnotes.localeCompare(a.additionalnotes));
         else if (sortVal === "status-asc") arr.sort((a, b) => a.status.localeCompare(b.status));
         else if (sortVal === "status-desc") arr.sort((a, b) => b.status.localeCompare(a.status));
-        else if (sortVal === "staffIncharge-asc") arr.sort((a, b) => a.staffIncharge.localeCompare(b.staffIncharge)); // Added sorting for Staff-In Charge
-        else if (sortVal === "staffIncharge-desc") arr.sort((a, b) => b.staffIncharge.localeCompare(a.staffIncharge)); // Added sorting for Staff-In Charge
+        else if (sortVal === "staffIncharge-asc") arr.sort((a, b) => a.staffIncharge.localeCompare(b.staffIncharge));
+        else if (sortVal === "staffIncharge-desc") arr.sort((a, b) => b.staffIncharge.localeCompare(a.staffIncharge));
     }
 
     exportBtn.addEventListener("click", () => {
@@ -257,10 +328,10 @@ document.addEventListener("DOMContentLoaded", () => {
         document.body.removeChild(link);
     });
 
-    window.deleteRow = (donationId) => {
+    function deleteRow(firebaseKey) {
         Swal.fire({
             title: 'Are you sure?',
-            text: "This donation entry will be deleted!",
+            text: "This donation entry will be deleted from the list but saved to deleted donations!",
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#d33',
@@ -268,18 +339,37 @@ document.addEventListener("DOMContentLoaded", () => {
             confirmButtonText: 'Yes, delete it!'
         }).then((result) => {
             if (result.isConfirmed) {
-                allDonations = allDonations.filter(d => String(d.id) !== donationId); // Compare as strings
-                filteredAndSortedDonations = filteredAndSortedDonations.filter(d => String(d.id) !== donationId); // Compare as strings
-                if ((currentPage - 1) * rowsPerPage >= filteredAndSortedDonations.length && currentPage > 1) {
-                    currentPage--;
+                // Fetch the donation to be deleted
+                const donationToDelete = allDonations.find(d => d.firebaseKey === firebaseKey);
+                if (!donationToDelete) {
+                    Swal.fire("Error", "Donation not found!", "error");
+                    return;
                 }
-                renderTable();
-                Swal.fire('Deleted!', 'The donation entry has been deleted.', 'success');
+
+                // Add deletedAt timestamp
+                const deletedDonation = {
+                    ...donationToDelete,
+                    deletedAt: new Date().toISOString()
+                };
+
+                // Move to deleteddonations/deletedinkind
+                database.ref(`deleteddonations/deletedinkind/${firebaseKey}`).set(deletedDonation)
+                    .then(() => {
+                        // Remove from donations/inkind
+                        return database.ref(`donations/inkind/${firebaseKey}`).remove();
+                    })
+                    .then(() => {
+                        Swal.fire('Deleted!', 'The donation entry has been moved to deleted donations.', 'success');
+                    })
+                    .catch(error => {
+                        console.error("Error moving donation to deleted donations:", error);
+                        Swal.fire("Error", "Failed to delete donation: " + error.message, "error");
+                    });
             }
         });
-    };
+    }
 
-    window.openEndorseModal = (donationId) => {
+    function openEndorseModal(firebaseKey) {
         const modal = document.getElementById("endorseModal");
         modal.style.display = "block";
         const abvnList = document.getElementById("abvnList");
@@ -288,21 +378,25 @@ document.addEventListener("DOMContentLoaded", () => {
             <label><input type="radio" name="abvn" value="Group B" /> Group B</label>
             <p><b>Note:</b> Actual ABVN selection logic based on donation details would go here.</p>
         `;
-        modal.dataset.donationId = donationId;
-    };
+        modal.dataset.firebaseKey = firebaseKey;
+    }
 
-    window.confirmEndorsement = () => {
+    document.getElementById("confirmEndorseBtn").addEventListener("click", () => {
         const modal = document.getElementById("endorseModal");
-        const donationId = modal.dataset.donationId;
+        const firebaseKey = modal.dataset.firebaseKey;
         const selected = document.querySelector("input[name='abvn']:checked");
         if (!selected) {
             Swal.fire("Select a group to endorse", "", "warning");
             return;
         }
         const group = selected.value;
-        Swal.fire("Endorsed!", `Donation with ID ${donationId} endorsed to ${group}`, "success");
+        Swal.fire("Endorsed!", `Donation with ID ${firebaseKey} endorsed to ${group}`, "success");
         modal.style.display = "none";
-    };
+    });
+
+    document.getElementById("cancelEndorseBtn").addEventListener("click", () => {
+        document.getElementById("endorseModal").style.display = "none";
+    });
 
     // Validate the edit donation form
     const validateEditForm = () => {
@@ -317,20 +411,20 @@ document.addEventListener("DOMContentLoaded", () => {
             { input: document.getElementById("edit-valuation"), label: "Valuation", numberOnly: true },
             { input: document.getElementById("edit-address"), label: "Address" },
             { input: document.getElementById("edit-email"), label: "Email" },
-            { input: document.getElementById("edit-additionalnotes"), label: "Additional Notes", required: false }, 
-            { input: document.getElementById("edit-status"), label: "Status" }, 
-            { input: document.getElementById("edit-staffIncharge"), label: "Staff-In Charge", lettersOnly: true }, 
+            { input: document.getElementById("edit-additionalnotes"), label: "Additional Notes", required: false },
+            { input: document.getElementById("edit-status"), label: "Status" },
+            { input: document.getElementById("edit-staffIncharge"), label: "Staff-In Charge", lettersOnly: true },
         ];
 
-        fieldsToCheck.forEach(({ input, label, lettersOnly, numberOnly, required = true }) => { // Added required
+        fieldsToCheck.forEach(({ input, label, lettersOnly, numberOnly, required = true }) => {
             clearError(input);
-            if (required && isEmpty(input.value)) { 
+            if (required && isEmpty(input.value)) {
                 showError(input, `${label} is required`);
                 isValid = false;
-            } else if (!isEmpty(input.value) && lettersOnly && !isLettersOnly(input.value)) { //check if not empty before checking for lettersOnly
+            } else if (!isEmpty(input.value) && lettersOnly && !isLettersOnly(input.value)) {
                 showError(input, `${label} should only contain letters and spaces`);
                 isValid = false;
-            } else if (!isEmpty(input.value) && numberOnly && !isValidNumber(input.value)) { //check if not empty before checking for numbers
+            } else if (!isEmpty(input.value) && numberOnly && !isValidNumber(input.value)) {
                 showError(input, `${label} should only contain numbers`);
                 isValid = false;
             }
@@ -339,10 +433,9 @@ document.addEventListener("DOMContentLoaded", () => {
         return isValid;
     };
 
-    // Function to open the edit modal
-    window.openEditModal = (donationId) => {
-        editingId = donationId;
-        const donationToEdit = findDonation(donationId);
+    function openEditModal(firebaseKey) {
+        editingKey = firebaseKey;
+        const donationToEdit = allDonations.find(d => d.firebaseKey === firebaseKey);
         if (donationToEdit) {
             const editModal = document.getElementById("editModal");
             document.getElementById("edit-encoder").value = donationToEdit.encoder;
@@ -356,17 +449,15 @@ document.addEventListener("DOMContentLoaded", () => {
             document.getElementById("edit-valuation").value = donationToEdit.valuation;
             document.getElementById("edit-additionalnotes").value = donationToEdit.additionalnotes;
             document.getElementById("edit-status").value = donationToEdit.status;
-            document.getElementById("edit-staffIncharge").value = donationToEdit.staffIncharge; // Populate Staff-In Charge in edit modal
+            document.getElementById("edit-staffIncharge").value = donationToEdit.staffIncharge;
             editModal.style.display = "block";
         }
-    };
+    }
 
-    // Function to handle saving the edited donation
-    window.saveEditedDonation = () => {
-        if (editingId !== null) {
+    document.getElementById("saveEditBtn").addEventListener("click", () => {
+        if (editingKey !== null) {
             if (validateEditForm()) {
                 const updatedDonation = {
-                    id: editingId,
                     encoder: document.getElementById("edit-encoder").value,
                     name: document.getElementById("edit-name").value,
                     type: document.getElementById("edit-type").value,
@@ -378,35 +469,37 @@ document.addEventListener("DOMContentLoaded", () => {
                     valuation: document.getElementById("edit-valuation").value,
                     additionalnotes: document.getElementById("edit-additionalnotes").value,
                     status: document.getElementById("edit-status").value,
-                    staffIncharge: document.getElementById("edit-staffIncharge").value, 
+                    staffIncharge: document.getElementById("edit-staffIncharge").value,
+                    id: allDonations.find(d => d.firebaseKey === editingKey).id,
+                    userUid: allDonations.find(d => d.firebaseKey === editingKey).userUid,
+                    createdAt: allDonations.find(d => d.firebaseKey === editingKey).createdAt,
+                    updatedAt: new Date().toISOString(),
                 };
 
-                const index = allDonations.findIndex(donation => donation.id === editingId);
-                if (index !== -1) {
-                    allDonations[index] = updatedDonation;
-                    filteredAndSortedDonations = [...allDonations];
-                    renderTable();
-                    closeEditModal();
-                    Swal.fire("Success", "Donation updated!", "success");
-                }
-                editingId = null;
+                database.ref(`donations/inkind/${editingKey}`).set(updatedDonation)
+                    .then(() => {
+                        closeEditModal();
+                        Swal.fire("Success", "Donation updated!", "success");
+                        editingKey = null;
+                    })
+                    .catch(error => {
+                        console.error("Error updating donation:", error);
+                        Swal.fire("Error", "Failed to update donation: " + error.message, "error");
+                    });
             }
         }
-    };
+    });
 
-    // Function to close the edit modal
-    window.closeEditModal = () => {
+    function closeEditModal() {
         const editModal = document.getElementById("editModal");
         editModal.style.display = "none";
-        editingId = null;
-        // Clear any error messages when closing the modal
+        editingKey = null;
         const errorMessages = editModal.querySelectorAll('.error-message');
         errorMessages.forEach(msg => msg.textContent = '');
         const errorInputs = editModal.querySelectorAll('.error');
         errorInputs.forEach(input => input.classList.remove('error'));
-    };
+    }
 
-    // Initial rendering
-    filteredAndSortedDonations = [...allDonations];
-    renderTable();
+    document.getElementById("closeEditModalBtn").addEventListener("click", closeEditModal);
+    document.getElementById("cancelEditBtn").addEventListener("click", closeEditModal);
 });

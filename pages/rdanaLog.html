@@ -8,16 +8,15 @@
     <link rel="stylesheet" href="../css/global.css" />
     <link rel='stylesheet' href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css'/>
 
-    <!-- Firebase Compat SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+    <!-- Firebase Compat SDK (updated to 9.22.0 for consistency) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
-    
-<title>RDANA Log </title>
+    <title>RDANA Log</title>
 </head>
 <body>
     <div class="main-container">
@@ -37,33 +36,29 @@
                     </div>
                     <div class="custom-select-wrapper">
                         <select id="sortSelect">
-                        <option value="">Sort by</option>
-                        <optgroup label="Assessment Info">
-                            <option value="DateTime-asc">Date & Time (Oldest First)</option>
-                            <option value="DateTime-desc">Date & Time (Newest First)</option>
-                            <option value="RDANAID-asc">RDANA ID (Ascending)</option>
-                            <option value="RDANAID-desc">RDANA ID (Descending)</option>
-                        </optgroup>
-
-                        <optgroup label="Location">
-                            <option value="Location-asc">Location (A–Z)</option>
-                            <option value="Location-desc">Location (Z–A)</option>
-                        </optgroup>
-
-                        <optgroup label="Disaster Details">
-                            <option value="DisasterType-asc">Disaster Type (A–Z)</option>
-                            <option value="DisasterType-desc">Disaster Type (Z–A)</option>
-                        </optgroup>
-
-                        <optgroup label="Impact">
-                            <option value="AffectedPopulation-desc">Affected Population (High to Low)</option>
-                            <option value="AffectedPopulation-asc">Affected Population (Low to High)</option>
-                        </optgroup>
-
-                        <optgroup label="Response Actions">
-                            <option value="Needs-asc">Priority Needs (A–Z)</option>
-                            <option value="Needs-desc">Priority Needs (Z–A)</option>
-                        </optgroup>
+                            <option value="">Sort by</option>
+                            <optgroup label="Assessment Info">
+                                <option value="DateTime-asc">Date & Time (Oldest First)</option>
+                                <option value="DateTime-desc">Date & Time (Newest First)</option>
+                                <option value="RDANAID-asc">RDANA ID (Ascending)</option>
+                                <option value="RDANAID-desc">RDANA ID (Descending)</option>
+                            </optgroup>
+                            <optgroup label="Location">
+                                <option value="Location-asc">Location (A–Z)</option>
+                                <option value="Location-desc">Location (Z–A)</option>
+                            </optgroup>
+                            <optgroup label="Disaster Details">
+                                <option value="DisasterType-asc">Disaster Type (A–Z)</option>
+                                <option value="DisasterType-desc">Disaster Type (Z–A)</option>
+                            </optgroup>
+                            <optgroup label="Impact">
+                                <option value="AffectedPopulation-desc">Affected Population (High to Low)</option>
+                                <option value="AffectedPopulation-asc">Affected Population (Low to High)</option>
+                            </optgroup>
+                            <optgroup label="Response Actions">
+                                <option value="Needs-asc">Priority Needs (A–Z)</option>
+                                <option value="Needs-desc">Priority Needs (Z–A)</option>
+                            </optgroup>
                         </select>
                         <i class='bx bx-chevron-down'></i>
                     </div>
@@ -95,36 +90,39 @@
     </div>
 
     <div id="previewModal" class="modal" style="display:none;">
-    <div class="modal-content">
-        <span id="closeModal" class="close">&times;</span>
-        <div id="modalContent"></div>
+        <div class="modal-content">
+            <span id="closeModal" class="close">×</span>
+            <div id="modalContent"></div>
+        </div>
     </div>
-    </div>
-
-
-</div>
-
 
     <script>
         // Fetch the sidebar HTML and inject it into the page
         fetch('../components/sidebar.html')
-        .then(response => response.text())
-        .then(data => {
-            document.querySelector('.sidebar-placeholder').innerHTML = data;
+            .then(response => response.text())
+            .then(data => {
+                document.querySelector('.sidebar-placeholder').innerHTML = data;
 
-            // Create a new script element
-            const sidebarScript = document.createElement('script');
-            sidebarScript.src = '../components/sidebar.js'; 
+                // Create a new script element
+                const sidebarScript = document.createElement('script');
+                sidebarScript.src = '../components/sidebar.js'; 
 
-            // Call initSidebar when the script has loaded and executed
-            sidebarScript.onload = function() {};
+                // Call initSidebar when the script has loaded and executed
+                sidebarScript.onload = function() {};
 
-            // Append the script element to the sidebar-placeholder
-            document.querySelector('.sidebar-placeholder').appendChild(sidebarScript);
-        })
-        .catch(error => {
-            console.error('Error loading sidebar:', error);
-        });
+                // Append the script element to the sidebar-placeholder
+                document.querySelector('.sidebar-placeholder').appendChild(sidebarScript);
+            })
+            .catch(error => {
+                console.error('Error loading sidebar:', error);
+            });
+
+        function clearDInputs() {
+            document.getElementById('searchInput').value = '';
+            // Trigger search with empty input
+            const event = new Event('input');
+            document.getElementById('searchInput').dispatchEvent(event);
+        }
     </script>
 
     <script src="../js/rdanaLog.js"></script>

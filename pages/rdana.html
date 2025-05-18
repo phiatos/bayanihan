@@ -16,7 +16,6 @@
   <!-- SweetAlert2 -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   
-
   <title>RDANA Page</title>
 </head>
 <body>
@@ -114,43 +113,42 @@
 
           <span class="title">Profile of the Disaster</span>
           <div style="overflow-x: auto; margin-top: 10px;">
-          <table id="disasterprofile-table">
-            <thead>
-              <tr>
-                <th>Affected Municipalities/Communities</th>
-                <th>Total Population</th>
-                <th>Affected Population</th>
-                <th>Deaths</th>
-                <th>Injured</th>
-                <th>Missing</th>
-                <th>Children</th>
-                <th>Women</th>
-                <th>Senior Citizens</th>
-                <th>PWD</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody id="tableBody">
-              <tr>
-                <td><input type="text" placeholder="Enter Municipalities/Communities" required/></td>
-                <td><input type="number" placeholder="Enter Total Population" min="0" required/></td>
-                <td><input type="number" placeholder="Enter Affected Population" min="0" required/></td>
-                <td><input type="number" placeholder="No. of Deaths" min="0" required/></td>
-                <td><input type="number" placeholder="No. of Injured" min="0" required/></td>
-                <td><input type="number" placeholder="No. of Missing" min="0" required/></td>
-                <td><input type="number" placeholder="No. of Children" min="0" required/></td>
-                <td><input type="number" placeholder="No. of Women" min="0" required/></td>
-                <td><input type="number" placeholder="No. of Senior Citizens" min="0" required/></td>
-                <td><input type="number" placeholder="No. of PWD" min="0" required/></td>
-                <td><button type="reset" class="removeRowBtn">Clear</button></td>
-              </tr>
-            </tbody>
-          </table>
+            <table id="disasterprofile-table">
+              <thead>
+                <tr>
+                  <th>Affected Municipalities/Communities</th>
+                  <th>Total Population</th>
+                  <th>Affected Population</th>
+                  <th>Deaths</th>
+                  <th>Injured</th>
+                  <th>Missing</th>
+                  <th>Children</th>
+                  <th>Women</th>
+                  <th>Senior Citizens</th>
+                  <th>PWD</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="tableBody">
+                <tr>
+                  <td><input type="text" placeholder="Enter Municipalities/Communities" required/></td>
+                  <td><input type="number" placeholder="Enter Total Population" min="0" required/></td>
+                  <td><input type="number" placeholder="Enter Affected Population" min="0" required/></td>
+                  <td><input type="number" placeholder="No. of Deaths" min="0" required/></td>
+                  <td><input type="number" placeholder="No. of Injured" min="0" required/></td>
+                  <td><input type="number" placeholder="No. of Missing" min="0" required/></td>
+                  <td><input type="number" placeholder="No. of Children" min="0" required/></td>
+                  <td><input type="number" placeholder="No. of Women" min="0" required/></td>
+                  <td><input type="number" placeholder="No. of Senior Citizens" min="0" required/></td>
+                  <td><input type="number" placeholder="No. of PWD" min="0" required/></td>
+                  <td><button type="reset" class="removeRowBtn">Clear</button></td>
+                </tr>
+              </tbody>
+            </table>
           </div>
           <button type="button" id="addRowBtn" style="margin-top: 10px;">Add Row</button>
         </div>
         
-
         <div class="button-group">
           <button type="button" class="next-btn" id="backBtn2">Back</button>
           <button type="button" class="next-btn" id="nextBtn2">Proceed</button>
@@ -162,7 +160,7 @@
         <div class="form-container-1">
           <span class="title">Status of Lifelines, Social Structure, and Critical Facilities</span>
           <div style="overflow-x: auto; margin-top: 10px;">
-            <table id="status-table" >
+            <table id="status-table">
               <thead>
                 <tr>
                   <th style="width: 40%;">Structures</th>
@@ -198,13 +196,13 @@
                     <select>
                       <option value="" disabled selected>Select from one of the following</option>
                       <option value="Option1">There is electricity.</option>
-                      <option value="Option2">Some places do not have electricity. </option>
+                      <option value="Option2">Some places do not have electricity.</option>
                       <option value="Option3">The entire area has no electricity.</option>
                     </select>
                   </td>
                 </tr>
                 <tr>
-                  <td id="status-td">Communication Networks, Internet </td>
+                  <td id="status-td">Communication Networks, Internet</td>
                   <td>
                     <select>
                       <option value="" disabled selected>Select from one of the following</option>
@@ -231,13 +229,13 @@
                     <select>
                       <option value="" disabled selected>Select from one of the following</option>
                       <option value="Option1">Clean water is available.</option>
-                      <option value="Option2"> Only some locations have clean water.</option>
+                      <option value="Option2">Only some locations have clean water.</option>
                       <option value="Option3">No clean water is available.</option>
                     </select>
                   </td>
                 </tr>
-                 <tr>
-                  <td id="status-td">Market, Business, and Commercial Establishments </td>
+                <tr>
+                  <td id="status-td">Market, Business, and Commercial Establishments</td>
                   <td>
                     <select>
                       <option value="" disabled selected>Select from one of the following</option>
@@ -346,11 +344,11 @@
       <!-- Page 5 - Submission Preview -->
       <form id="form-page-5" style="display: none;">
         <div class="form-container-1">
-            <div id="preview-data"></div> <!-- This is where the preview will be injected -->
+          <div id="preview-data"></div> <!-- This is where the preview will be injected -->
           
           <div class="button-group">
             <button type="button" class="next-btn" id="backBtn5">Back</button>
-            <button type="submit" class="next-btn" id="submitReportBtn">Submit</button>
+            <button type="submit" class="next-btn" id="submitReportBtn">Submit Report</button>
           </div>
         </div>
       </form>
