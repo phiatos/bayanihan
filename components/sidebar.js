@@ -95,7 +95,12 @@ function initSidebar() {
       'reportsVerification.html',
       'reportsLog.html',
       'activation.html',
-      'reliefsLog.html'
+      'reliefsLog.html',
+      'rdanaLog.html',
+      'rdanaVerification.html',
+      'inkind.html',
+      'monetary.html',
+
     ];
     const currentPath = window.location.pathname;
     const isRestrictedPage = restrictedPages.some(page => currentPath.includes(page));
@@ -201,6 +206,7 @@ function initSidebar() {
         menuItems.dashboard,
         menuItems.rdana,
         menuItems.rdanaMain,
+        menuItems.callfordonation,
         menuItems.reliefs,
         menuItems.reliefsRequest,
         menuItems.reports,
@@ -212,12 +218,11 @@ function initSidebar() {
         menuItems.volunteergroupmanagement,
         menuItems.activation,
         menuItems.donationTracksheet,
-        menuItems.callfordonation,
         menuItems.rdanaVerification,
         menuItems.rdanaLog,
         menuItems.reliefsLog,
         menuItems.reportsVerification,
-        menuItems.reportsLog,
+        menuItems.reportsLog
       ];
 
       // Show allowed items
