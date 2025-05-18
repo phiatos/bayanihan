@@ -31,36 +31,40 @@
                     <div class="form-container-1">
                         <span class="title">Basic Information</span>
                         <div class="fields">
-                             <div class="input-field">
-                                <label for="AreaOfOperation">Area of Operation:</label>
-                                <input type="text" id="AreaOfOperation" name="AreaOfOperation" placeholder="e.g. Purok 2, Brgy. Maligaya, Rosario" required></input>
-                                <button id="pinBtn">📍 Pin Location</button>
-                            </div>
-                            <div class="input-field">
-                                <label>Time of Intervention</label>
-                                <input type="time" placeholder="Time of Intervention" required>
-                            </div>
-                            <div class="input-field">
-                                <label>Submitted by</label>
-                                <input type="text" placeholder="Submitted by" required>
-                            </div>
-                            <div class="input-field">
-                                <label>Date of Report</label>
-                                <input type="text" id="dateOfReport" placeholder="Date of Report" readonly/>
-                            </div>
                             <div class="input-field">
                                 <label>Report ID</label>
                                 <input type="text" id="reportId" placeholder="Report ID" readonly />
                             </div>
+                            <div class="input-field">
+                                <label for="AreaOfOperation">Area of Operation:</label>
+                                <input type="text" id="AreaOfOperation" name="AreaOfOperation" placeholder="e.g. Purok 2, Brgy. Maligaya, Rosario" required></input>
+                                <button id="pinBtn">📍 Pin Location</button>
+                            </div>
+                            
+                          
+                
+                            <div class="input-field">
+                                <label>Date of Report</label>
+                                <input type="text" id="dateOfReport" placeholder="Date of Report" readonly/>
+                            </div>
+                            
                         </div>
                     </div>
 
-                    <div class="form-container-2">
+                      <div class="form-container-2">
                         <span class="title">Relief Operations</span>
                         <div class="fields">
                             <div class="input-field">
-                                <label>Date</label>
-                                <input type="date" placeholder="MM/DD/YY" required>
+                                <label>Completion Time of Intervention</label>
+                                <input type="time" placeholder="Completion Time of Intervention" required>
+                            </div>
+                            <div class="input-field">
+                                <label>Starting Date of Operation</label>
+                                <input type="date" id="StartDate" placeholder="MM/DD/YY" required>
+                            </div>
+                            <div class="input-field">
+                                <label>Ending Date of Operation</label>
+                                <input type="date" id="EndDate" placeholder="MM/DD/YY" required>
                             </div>
                             <div class="input-field">
                                 <label>No. of Individuals or Families</label>
@@ -90,6 +94,10 @@
                                 <label>Total Value of In-Kind Donations</label>
                                 <input type="number" placeholder="Total Value of In-Kind Donations" min="1" required>
                             </div>
+                            <div class="input-field">
+                                <label>Total Monetary Donations</label>
+                                <input type="number" placeholder="Total Monetary Donations" min="1" required>
+                            </div>
                         </div>
                         <button type="button" class="next-btn" id="nextBtn">Next</button>
                     </div>
@@ -114,11 +122,11 @@
     </div>
 
     <div id="mapModal" class="modal">
-        <div class="modal-content">
-            <span class="closeBtn">&times;</span>
-            <!-- Map container (empty for now) -->
-            <div id="mapContainer" style="width: 100%; height: 400px;"></div>
-        </div>
+    <div class="modal-content">
+        <span class="closeBtn">&times;</span>
+        <!-- Map container (empty for now) -->
+        <div id="mapContainer" style="width: 100%; height: 400px;"></div>
+    </div>
     </div>
 
     <script>

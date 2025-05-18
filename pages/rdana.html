@@ -16,14 +16,13 @@
   <!-- SweetAlert2 -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   
-
   <title>RDANA Page</title>
 </head>
 <body>
   <div class="form-page-container">
     <div class="sidebar-placeholder"></div>
     <div id="form-main-content">
-      <header>Rapid Damage Assessment and Analysis Report Page</header>
+      <header>Rapid Damage Assessment and Need Analysis Report Page</header>
 
       <!-- Page 1 -->
       <form id="form-page-1">
@@ -114,43 +113,42 @@
 
           <span class="title">Profile of the Disaster</span>
           <div style="overflow-x: auto; margin-top: 10px;">
-          <table id="disasterprofile-table">
-            <thead>
-              <tr>
-                <th>Affected Municipalities/Communities</th>
-                <th>Total Population</th>
-                <th>Affected Population</th>
-                <th>Deaths</th>
-                <th>Injured</th>
-                <th>Missing</th>
-                <th>Children</th>
-                <th>Women</th>
-                <th>Senior Citizens</th>
-                <th>PWD</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody id="tableBody">
-              <tr>
-                <td><input type="text" placeholder="Enter Municipalities/Communities" required/></td>
-                <td><input type="number" placeholder="Enter Total Population" min="0" required/></td>
-                <td><input type="number" placeholder="Enter Affected Population" min="0" required/></td>
-                <td><input type="number" placeholder="No. of Deaths" min="0" required/></td>
-                <td><input type="number" placeholder="No. of Injured" min="0" required/></td>
-                <td><input type="number" placeholder="No. of Missing" min="0" required/></td>
-                <td><input type="number" placeholder="No. of Children" min="0" required/></td>
-                <td><input type="number" placeholder="No. of Women" min="0" required/></td>
-                <td><input type="number" placeholder="No. of Senior Citizens" min="0" required/></td>
-                <td><input type="number" placeholder="No. of PWD" min="0" required/></td>
-                <td><button type="reset" class="removeRowBtn">Clear</button></td>
-              </tr>
-            </tbody>
-          </table>
+            <table id="disasterprofile-table">
+              <thead>
+                <tr>
+                  <th>Affected Municipalities/Communities</th>
+                  <th>Total Population</th>
+                  <th>Affected Population</th>
+                  <th>Deaths</th>
+                  <th>Injured</th>
+                  <th>Missing</th>
+                  <th>Children</th>
+                  <th>Women</th>
+                  <th>Senior Citizens</th>
+                  <th>PWD</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="tableBody">
+                <tr>
+                  <td><input type="text" placeholder="Enter Municipalities/Communities" required/></td>
+                  <td><input type="number" placeholder="Enter Total Population" min="0" required/></td>
+                  <td><input type="number" placeholder="Enter Affected Population" min="0" required/></td>
+                  <td><input type="number" placeholder="No. of Deaths" min="0" required/></td>
+                  <td><input type="number" placeholder="No. of Injured" min="0" required/></td>
+                  <td><input type="number" placeholder="No. of Missing" min="0" required/></td>
+                  <td><input type="number" placeholder="No. of Children" min="0" required/></td>
+                  <td><input type="number" placeholder="No. of Women" min="0" required/></td>
+                  <td><input type="number" placeholder="No. of Senior Citizens" min="0" required/></td>
+                  <td><input type="number" placeholder="No. of PWD" min="0" required/></td>
+                  <td><button type="reset" class="removeRowBtn">Clear</button></td>
+                </tr>
+              </tbody>
+            </table>
           </div>
           <button type="button" id="addRowBtn" style="margin-top: 10px;">Add Row</button>
         </div>
         
-
         <div class="button-group">
           <button type="button" class="next-btn" id="backBtn2">Back</button>
           <button type="button" class="next-btn" id="nextBtn2">Proceed</button>
@@ -162,33 +160,96 @@
         <div class="form-container-1">
           <span class="title">Status of Lifelines, Social Structure, and Critical Facilities</span>
           <div style="overflow-x: auto; margin-top: 10px;">
-            <table id="status-table" >
+            <table id="status-table">
               <thead>
                 <tr>
                   <th style="width: 40%;">Structures</th>
-                  <th style="width: 60%;">Response</th>
+                  <th style="width: 60%;">Status</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  <td id="status-td">Bridges</td>
-                  <td><input type="text" placeholder="Enter response or status" style="width: 100%;" required /></td>
+                  <td id="status-td">Residential Houses</td>
+                  <td>
+                    <select>
+                      <option value="" disabled selected>Select from one of the following</option>
+                      <option value="Option1">Some houses are flooded/damaged.</option>
+                      <option value="Option2">Many houses are flooded/damaged.</option>
+                      <option value="Option3">An entire community is flooded/damaged.</option>
+                    </select>
+                  </td>
                 </tr>
                 <tr>
-                  <td id="status-td">Roads</td>
-                  <td><input type="text" placeholder="Enter response or status" style="width: 100%;" required /></td>
+                  <td id="status-td">Transportation and Mobility</td>
+                  <td>
+                     <select>
+                      <option value="" disabled selected>Select from one of the following</option>
+                      <option value="Option1">Roads are clear of debris and/or flood; passable.</option>
+                      <option value="Option2">Some roads are blocked by debris and/or flood.</option>
+                      <option value="Option3">Most roads are blocked by debris and/or flood; not passable.</option>
+                    </select>
+                  </td>
                 </tr>
                 <tr>
-                  <td id="status-td">Buildings</td>
-                  <td><input type="text" placeholder="Enter response or status" style="width: 100%;" required /></td>
+                  <td id="status-td">Electricity, Power Grid</td>
+                  <td>
+                    <select>
+                      <option value="" disabled selected>Select from one of the following</option>
+                      <option value="Option1">There is electricity.</option>
+                      <option value="Option2">Some places do not have electricity.</option>
+                      <option value="Option3">The entire area has no electricity.</option>
+                    </select>
+                  </td>
                 </tr>
                 <tr>
-                  <td id="status-td">Hospitals</td>
-                  <td><input type="text" placeholder="Enter response or status" style="width: 100%;" required /></td>
+                  <td id="status-td">Communication Networks, Internet</td>
+                  <td>
+                    <select>
+                      <option value="" disabled selected>Select from one of the following</option>
+                      <option value="Option1">Communication lines are up.</option>
+                      <option value="Option2">There is intermittent signal available.</option>
+                      <option value="Option3">Communication lines are down.</option>
+                    </select>
+                  </td>
                 </tr>
                 <tr>
-                  <td id="status-td">Schools</td>
-                  <td><input type="text" placeholder="Enter response or status" style="width: 100%;" required /></td>
+                  <td id="status-td">Hospitals, Rural Health Units</td>
+                  <td>
+                    <select>
+                      <option value="" disabled selected>Select from one of the following</option>
+                      <option value="Option1">Hospitals are open.</option>
+                      <option value="Option2">Some hospitals are open.</option>
+                      <option value="Option3">No hospitals are open.</option>
+                    </select>
+                  </td>
+                </tr>
+                <tr>
+                  <td id="status-td">Water Supply System</td>
+                  <td>
+                    <select>
+                      <option value="" disabled selected>Select from one of the following</option>
+                      <option value="Option1">Clean water is available.</option>
+                      <option value="Option2">Only some locations have clean water.</option>
+                      <option value="Option3">No clean water is available.</option>
+                    </select>
+                  </td>
+                </tr>
+                <tr>
+                  <td id="status-td">Market, Business, and Commercial Establishments</td>
+                  <td>
+                    <select>
+                      <option value="" disabled selected>Select from one of the following</option>
+                      <option value="Option1">Establishments are open.</option>
+                      <option value="Option2">Some establishments are open.</option>
+                      <option value="Option3">No establishments are open.</option>
+                    </select>
+                  </td>
+                </tr>
+                <tr>
+                  <td id="status-td">Others</td>
+                  <td>
+                    <input type="text" placeholder="Input Here (Optional)"/>
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -283,11 +344,11 @@
       <!-- Page 5 - Submission Preview -->
       <form id="form-page-5" style="display: none;">
         <div class="form-container-1">
-            <div id="preview-data"></div> <!-- This is where the preview will be injected -->
+          <div id="preview-data"></div> <!-- This is where the preview will be injected -->
           
           <div class="button-group">
             <button type="button" class="next-btn" id="backBtn5">Back</button>
-            <button type="submit" class="next-btn" id="submitReportBtn">Submit</button>
+            <button type="submit" class="next-btn" id="submitReportBtn">Submit Report</button>
           </div>
         </div>
       </form>

@@ -1,4 +1,166 @@
-document.addEventListener('DOMContentLoaded', () => {
+// Global variable to hold the map and markers
+let map;
+let markers = [];
+let autocomplete;
+
+// Initialize Google Maps
+function initMap() {
+    // Default to Manila, Philippines
+    const defaultLocation = { lat: 14.5995, lng: 120.9842 };
+
+    // Initialize the map
+    map = new google.maps.Map(document.getElementById("map"), {
+        center: defaultLocation,
+        zoom: 10,
+        mapTypeId: "roadmap",
+    });
+
+    // Initialize the search bar with Places Autocomplete using the existing search-input
+    const searchInput = document.getElementById("search-input");
+    autocomplete = new google.maps.places.Autocomplete(searchInput);
+    autocomplete.bindTo("bounds", map);
+
+    // When a place is selected from the autocomplete dropdown
+    autocomplete.addListener("place_changed", () => {
+        const place = autocomplete.getPlace();
+        if (!place.geometry || !place.geometry.location) {
+            Swal.fire({
+                icon: "error",
+                title: "Location Not Found",
+                text: "Please select a valid location from the dropdown.",
+            });
+            return;
+        }
+
+        // Center the map on the selected location
+        map.setCenter(place.geometry.location);
+        map.setZoom(16);
+
+        // Clear existing markers
+        clearMarkers();
+
+        // Add a marker at the selected location
+        const marker = new google.maps.Marker({
+            position: place.geometry.location,
+            map: map,
+            title: place.name,
+        });
+        markers.push(marker);
+
+        // Add an info window
+        const infowindow = new google.maps.InfoWindow({
+            content: `<strong>${place.name}</strong><br>${place.formatted_address}`,
+        });
+        marker.addListener("click", () => {
+            infowindow.open(map, marker);
+        });
+        infowindow.open(map, marker);
+    });
+
+    // Allow pinning a location by clicking on the map
+    map.addListener("click", (event) => {
+        // Clear existing markers
+        clearMarkers();
+
+        // Add a new marker at the clicked location
+        const marker = new google.maps.Marker({
+            position: event.latLng,
+            map: map,
+            title: "Pinned Location",
+        });
+        markers.push(marker);
+
+        // Add an info window
+        const infowindow = new google.maps.InfoWindow({
+            content: `Pinned Location<br>Lat: ${event.latLng.lat()}, Lng: ${event.latLng.lng()}`,
+        });
+        marker.addListener("click", () => {
+            infowindow.open(map, marker);
+        });
+        infowindow.open(map, marker);
+
+        // Center the map on the pinned location
+        map.setCenter(event.latLng);
+        map.setZoom(16);
+    });
+
+    // Get user's location
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const userLocation = {
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude,
+                };
+
+                // Center the map on the user's location
+                map.setCenter(userLocation);
+                map.setZoom(16);
+
+                // Add a marker for the user's location
+                const marker = new google.maps.Marker({
+                    position: userLocation,
+                    map: map,
+                    title: "You are here",
+                    icon: {
+                        url: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png", // Blue dot for user location
+                    },
+                });
+                markers.push(marker);
+
+                // Add an info window
+                const infowindow = new google.maps.InfoWindow({
+                    content: "You are here",
+                });
+                marker.addListener("click", () => {
+                    infowindow.open(map, marker);
+                });
+                infowindow.open(map, marker);
+
+                console.log("User location:", userLocation);
+            },
+            (error) => {
+                console.error("Geolocation error:", error);
+                let errorMessage = "Unable to retrieve your location.";
+                switch (error.code) {
+                    case error.PERMISSION_DENIED:
+                        errorMessage = "Location access denied. Please allow location access in your browser settings.";
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        errorMessage = "Location information is unavailable. Ensure your device has a working GPS or network connection.";
+                        break;
+                    case error.TIMEOUT:
+                        errorMessage = "Location request timed out. Please try again.";
+                        break;
+                }
+                Swal.fire({
+                    icon: "error",
+                    title: "Location Error",
+                    text: errorMessage,
+                });
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0,
+            }
+        );
+    } else {
+        Swal.fire({
+            icon: "error",
+            title: "Geolocation Not Supported",
+            text: "Your browser does not support geolocation. Please use a modern browser.",
+        });
+    }
+}
+
+// Function to clear all markers from the map
+function clearMarkers() {
+    markers.forEach(marker => marker.setMap(null));
+    markers = [];
+}
+
+document.addEventListener("DOMContentLoaded", () => {
     // Firebase configuration
     const firebaseConfig = {
         apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
@@ -17,82 +179,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const database = firebase.database();
 
     // Elements to display metrics
-    const headerEl = document.querySelector('header');
-    const foodPacksEl = document.getElementById('food-packs');
-    const hotMealsEl = document.getElementById('hot-meals');
-    const waterLitersEl = document.getElementById('water-liters');
-    const volunteersEl = document.getElementById('volunteers');
-    const amountRaisedEl = document.getElementById('amount-raised');
-    const inkeyindDonationsEl = document.getElementById('inkind-donations');
+    const headerEl = document.querySelector("header");
+    const foodPacksEl = document.getElementById("food-packs");
+    const hotMealsEl = document.getElementById("hot-meals");
+    const waterLitersEl = document.getElementById("water-liters");
+    const volunteersEl = document.getElementById("volunteers");
+    const amountRaisedEl = document.getElementById("amount-raised");
+    const inkeyindDonationsEl = document.getElementById("inkind-donations");
 
-    // Map Initialization
-    const map = L.map('map').setView([14.5995, 120.9842], 10); // Default to Manila, Philippines
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        maxZoom: 19, // Increased max zoom for finer detail
-    }).addTo(map);
-
-    // Get user's location with high accuracy
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const userLocation = {
-                    latitude: position.coords.latitude,
-                    longitude: position.coords.longitude,
-                    accuracy: position.coords.accuracy, // Log accuracy for debugging
-                };
-
-                // Update map view to user's location
-                map.setView([userLocation.latitude, userLocation.longitude], 16); // Zoom closer for precision
-
-                // Add marker for user's location
-                L.marker([userLocation.latitude, userLocation.longitude])
-                    .addTo(map)
-                    .bindPopup('You are here')
-                    .openPopup();
-
-                console.log('User location:', userLocation);
-                console.log(`Location accuracy: ${userLocation.accuracy} meters`);
-            },
-            (error) => {
-                console.error('Geolocation error:', error);
-                let errorMessage = 'Unable to retrieve your location.';
-                switch (error.code) {
-                    case error.PERMISSION_DENIED:
-                        errorMessage = 'Location access denied. Please allow location access in your browser settings.';
-                        break;
-                    case error.POSITION_UNAVAILABLE:
-                        errorMessage = 'Location information is unavailable. Ensure your device has a working GPS or network connection.';
-                        break;
-                    case error.TIMEOUT:
-                        errorMessage = 'Location request timed out. Please try again.';
-                        break;
-                }
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Location Error',
-                    text: errorMessage,
-                });
-            },
-            {
-                enableHighAccuracy: true, // Request GPS-level accuracy
-                timeout: 10000, // Wait up to 10 seconds
-                maximumAge: 0, // No cached location
-            }
-        );
-    } else {
-        Swal.fire({
-            icon: 'error',
-            title: 'Geolocation Not Supported',
-            text: 'Your browser does not support geolocation. Please use a modern browser.',
-        });
-    }
-
-    // Search bar (placeholder, no functionality yet)
-    const searchInput = document.getElementById('search-input');
-    searchInput.addEventListener('input', (e) => {
-        console.log('Search query:', e.target.value);
-        // Add search functionality here if needed
+    // Search bar for both metrics and map search
+    const searchInput = document.getElementById("search-input");
+    searchInput.addEventListener("input", (e) => {
+        const query = e.target.value.trim();
+        console.log("Search query:", query);
     });
 
     // Check user authentication
@@ -100,27 +199,27 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!user) {
             // Redirect to login if not authenticated
             Swal.fire({
-                icon: 'error',
-                title: 'Authentication Required',
-                text: 'Please sign in to access the dashboard.',
+                icon: "error",
+                title: "Authentication Required",
+                text: "Please sign in to access the dashboard.",
             }).then(() => {
                 window.location.href = "../pages/login.html";
             });
             return;
         }
 
-        // Debug: Log the user's UID
+        //  Log the user's UID
         console.log(`Logged-in user UID: ${user.uid}`);
 
         // Fetch user role
-        database.ref(`users/${user.uid}`).once('value', snapshot => {
+        database.ref(`users/${user.uid}`).once("value", snapshot => {
             const userData = snapshot.val();
             if (!userData || !userData.role) {
                 console.error(`User data not found for UID: ${user.uid}`);
                 Swal.fire({
-                    icon: 'error',
-                    title: 'User Data Missing',
-                    text: 'User role not found. Please contact an administrator.',
+                    icon: "error",
+                    title: "User Data Missing",
+                    text: "User role not found. Please contact an administrator.",
                 }).then(() => {
                     window.location.href = "../pages/login.html";
                 });
@@ -130,7 +229,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const role = userData.role;
             const userEmail = user.email;
 
-            // Debug: Log the role of the logged-in user
+            // Log the role of the logged-in user
             console.log(`Role of logged-in user (UID: ${user.uid}): ${role}`);
             console.log(`User Email: ${userEmail}`);
 
@@ -175,7 +274,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     console.log("No approved reports found in the database.");
                 }
 
-                // Update the DOM with aggregated data
+                // the DOM with aggregated data
                 foodPacksEl.textContent = totalFoodPacks;
                 hotMealsEl.textContent = totalHotMeals;
                 waterLitersEl.textContent = totalWaterLiters;
@@ -183,22 +282,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 amountRaisedEl.textContent = totalAmountRaised;
                 inkeyindDonationsEl.textContent = totalInkindDonations;
 
-                // Debug: Log the aggregated totals
+                // aggregated totals
                 console.log(`Totals - Food Packs: ${totalFoodPacks}, Hot Meals: ${totalHotMeals}, Water Liters: ${totalWaterLiters}, Volunteers: ${totalVolunteers}, Amount Raised: ${totalAmountRaised}, In-Kind Donations: ${totalInkindDonations}`);
             }, error => {
                 console.error("Error fetching approved reports:", error);
                 Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Failed to load dashboard data. Please try again later.',
+                    icon: "error",
+                    title: "Error",
+                    text: "Failed to load dashboard data. Please try again later.",
                 });
             });
         }, error => {
             console.error("Error fetching user data:", error);
             Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Failed to load user data. Please try again later.',
+                icon: "error",
+                title: "Error",
+                text: "Failed to load user data. Please try again later.",
             });
         });
     });

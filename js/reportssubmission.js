@@ -11,12 +11,10 @@ document.addEventListener('DOMContentLoaded', () => {
         measurementId: "G-ZTQ9VXXVV0",
     };
 
-    // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
     const auth = firebase.auth();
 
-    // Get elements
     const formPage1 = document.getElementById('form-page-1');
     const formPage2 = document.getElementById('form-page-2');
     const nextBtn = document.getElementById('nextBtn');
@@ -25,29 +23,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!formPage1 || !formPage2 || !nextBtn || !backBtn) {
         console.error("Form elements not found");
         return;
-    }
-
-    const pinBtn = document.getElementById('pinBtn');
-    const mapModal = document.getElementById('mapModal');
-    const closeBtn = document.querySelector('.closeBtn');
-
-    if (pinBtn && mapModal && closeBtn) {
-        pinBtn.addEventListener('click', (e) => {
-        e.preventDefault(); // prevent form submit
-        mapModal.classList.add('show');
-    });
-
-    closeBtn.addEventListener('click', () => {
-        mapModal.classList.remove('show');
-    });
-
-    window.addEventListener('click', (e) => {
-        if (e.target === mapModal) {
-        mapModal.classList.remove('show');
-        }
-    });
-    } else {
-    console.warn('Modal elements not found');
     }
 
         function formatTo12Hour(timeStr) {
@@ -90,7 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const dateInput = document.getElementById('dateOfReport');
     if (dateInput) {
         const today = new Date();
-        const formatted = today.toLocaleDateString('en-CA'); // YYYY-MM-DD
+        const formatted = today.toLocaleDateString('en-CA');
         dateInput.value = formatted;
     }
 
@@ -101,61 +76,48 @@ document.addEventListener('DOMContentLoaded', () => {
         idInput.value = randomId;
     }
 
-    // Populate city and barangay dropdowns
-    const citySelect = document.querySelector('select[name="city"]');
-    const barangaySelect = document.querySelector('select[name="barangay"]');
+    // 🔧 FIXED: Map modal button logic
+    const pinBtn = document.getElementById('pinBtn');
+    const mapModal = document.getElementById('mapModal');
+    const closeBtn = document.querySelector('.closeBtn');
 
-    const locationData = {
-        "Batangas": ["Batangas City", "Lipa", "Nasugbu", "Tanauan"],
-        "Caloocan": ["Bagong Silang", "Longos", "San Agustin", "San Jose"],
-        "Cavite": ["Bacoor", "Dasmariñas", "Imus", "Tagaytay"],
-        "Cebu City": ["Guadalupe", "Lahug", "Mabolo", "Talamban"],
-        "Davao City": ["Agdao", "Buhangin", "Poblacion", "Toril"],
-        "Las Piñas": ["BF International", "CAA", "Pamplona", "Talon"],
-        "Malabon": ["Hulong Duhat", "Longos", "San Agustin", "Tanza"],
-        "Makati": ["Bel-Air", "Dasmariñas", "Pio del Pilar", "San Lorenzo"],
-        "Mandaluyong": ["Barangka", "Hulo", "Plainview", "Wack-Wack"],
-        "Manila": ["Ermita", "Malate", "Sampaloc", "Tondo"],
-        "Marikina": ["Calumpang", "Concepcion Uno", "San Roque", "Santo Niño"],
-        "Navotas": ["North Bay Boulevard", "San Jose", "San Roque", "Tangos"],
-        "Nagas": ["Baao", "Bula", "Iriga", "Naga City"],
-        "Parañaque": ["Baclaran", "BF Homes", "San Dionisio", "San Isidro"],
-        "Pasay": ["Baclaran", "Malibay", "San Isidro", "San Nicolas"],
-        "Pasig": ["Bambang", "Kapitolyo", "Manggahan", "Santolan"],
-        "Pateros": ["San Juan Bautista", "San Mateo", "San Pedro", "San Roque"],
-        "Quezon City": ["Batasan Hills", "Commonwealth", "Diliman", "Novaliches"],
-        "Quezon Province": ["Candelaria", "Lucena", "Sariaya", "Tayabas"],
-        "San Juan": ["Balong Bato", "Corazon de Jesus", "Little Baguio", "San Perfecto"],
-        "Taguig": ["Bagumbayan", "Fort Bonifacio", "North Signal Village", "Ususan"],
-        "Valenzuela": ["Bagong Silang", "Gen. T. De Leon", "Karuhatan", "Malanday"],
-    };
-
-    if (citySelect && barangaySelect) {
-        // Populate cities
-        Object.keys(locationData).forEach(city => {
-            const option = document.createElement('option');
-            option.value = city;
-            option.textContent = city;
-            citySelect.appendChild(option);
+    if (pinBtn && mapModal && closeBtn) {
+        pinBtn.addEventListener('click', (e) => {
+            e.preventDefault(); // prevent form submit
+            mapModal.classList.add('show');
         });
 
-        // On city change, update barangays
-        citySelect.addEventListener('change', () => {
-            const selectedCity = citySelect.value;
-            barangaySelect.innerHTML = '<option value="">Select Barangay</option>';
-            if (locationData[selectedCity]) {
-                locationData[selectedCity].forEach(barangay => {
-                    const option = document.createElement('option');
-                    option.value = barangay;
-                    option.textContent = barangay;
-                    barangaySelect.appendChild(option);
-                });
+        closeBtn.addEventListener('click', () => {
+            mapModal.classList.remove('show');
+        });
+
+        window.addEventListener('click', (e) => {
+            if (e.target === mapModal) {
+                mapModal.classList.remove('show');
             }
         });
+    } else {
+        console.warn('Modal elements not found');
     }
 
-    // Go to next form only if valid
-    nextBtn.addEventListener('click', function () {
+    function formatTo12Hour(timeStr) {
+        const [hour, minute] = timeStr.split(':');
+        const h = parseInt(hour);
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        const formattedHour = h % 12 || 12;
+        return `${formattedHour}:${minute} ${ampm}`;
+    }
+
+    const submittedByInput = document.getElementById('SubmittedBy');
+    if (submittedByInput) {
+        const volunteerGroup = JSON.parse(localStorage.getItem("loggedInVolunteerGroup"));
+        const groupName = volunteerGroup ? volunteerGroup.organization : "Unknown Volunteer";
+        submittedByInput.value = groupName;
+        submittedByInput.readOnly = true;
+    }
+
+    // Handle navigation
+    nextBtn.addEventListener('click', () => {
         if (formPage1.checkValidity()) {
             formPage1.style.display = "none";
             formPage2.style.display = "block";
@@ -164,13 +126,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Back to first form
-    backBtn.addEventListener('click', function () {
+    backBtn.addEventListener('click', () => {
         formPage2.style.display = "none";
         formPage1.style.display = "block";
     });
 
-    // Submit final form
+    // Submit
     formPage2.addEventListener("submit", function (e) {
         e.preventDefault();
 
@@ -181,15 +142,19 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        const startDateInput = document.querySelector('input[id="StartDate"]');
+        const endDateInput = document.querySelector('input[id="EndDate"]');
+
         const formData = {
             VolunteerGroupName: volunteerGroupName, // e.g., "RAZEL KIM ORG"
             userUid, // Include the UID in formData but won't display in UI
             AreaOfOperation: document.querySelector('input[placeholder="e.g. Purok 2, Brgy. Maligaya, Rosario"]').value,
-            TimeOfIntervention: document.querySelector('input[placeholder="Time of Intervention"]')?.value || "N/A",
+            TimeOfIntervention: document.querySelector('input[placeholder="Completion Time of Intervention"]')?.value || "N/A",
             SubmittedBy: document.querySelector('input[placeholder="Submitted by"]')?.value || "N/A",
             DateOfReport: dateInput.value || "N/A",
             ReportID: idInput.value || "N/A",
-            Date: document.querySelector('input[type="date"]')?.value || "N/A",
+            StartDate: startDateInput?.value || "N/A",
+            EndDate: endDateInput?.value || "N/A",
             NoOfIndividualsOrFamilies: document.querySelector('input[placeholder="No. of Individuals or Families"]')?.value || "N/A",
             NoOfFoodPacks: document.querySelector('input[placeholder="No. of Food Packs"]')?.value || "N/A",
             NoOfHotMeals: document.querySelector('input[placeholder="No. of Hot Meals"]')?.value || "N/A",
@@ -197,6 +162,7 @@ document.addEventListener('DOMContentLoaded', () => {
             NoOfVolunteersMobilized: document.querySelector('input[placeholder="No. of Volunteers Mobilized"]')?.value || "N/A",
             NoOfOrganizationsActivated: document.querySelector('input[placeholder="No. of Organizations Activated"]')?.value || "N/A",
             TotalValueOfInKindDonations: document.querySelector('input[placeholder="Total Value of In-Kind Donations"]')?.value || "N/A",
+            TotalMonetaryDonations: document.querySelector('input[placeholder="Total Monetary Donations"]')?.value || "N/A",
             NotesAdditionalInformation: document.querySelector('textarea')?.value || "N/A",
             Status: "Pending"
         };
@@ -205,4 +171,35 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem("reportData", JSON.stringify(formData));
         window.location.href = "../pages/reportsSummary.html";
     });
+
+    // Handle returning from reportsSummary.html
+    const returnTo = localStorage.getItem("returnToStep");
+
+    if (returnTo === "form-container-2") {
+        formPage1.style.display = "none";
+        formPage2.style.display = "block";
+
+        setTimeout(() => {
+            const target = document.querySelector(".form-container-2");
+            if (target) target.scrollIntoView({ behavior: "smooth" });
+        }, 100);
+
+        const savedData = JSON.parse(localStorage.getItem("reportData"));
+        if (savedData) {
+            document.querySelector('input[placeholder="e.g. Purok 2, Brgy. Maligaya, Rosario"]').value = savedData.AreaOfOperation || '';
+            document.querySelector('input[placeholder="Time of Intervention"]').value = savedData.TimeOfIntervention || '';
+            document.querySelector('input[placeholder="Submitted by"]').value = savedData.SubmittedBy || '';
+            document.querySelector('input[type="date"]').value = savedData.Date || '';
+            document.querySelector('input[placeholder="No. of Individuals or Families"]').value = savedData.NoOfIndividualsOrFamilies || '';
+            document.querySelector('input[placeholder="No. of Food Packs"]').value = savedData.NoOfFoodPacks || '';
+            document.querySelector('input[placeholder="No. of Hot Meals"]').value = savedData.NoOfHotMeals || '';
+            document.querySelector('input[placeholder="Liters of Water"]').value = savedData.LitersOfWater || '';
+            document.querySelector('input[placeholder="No. of Volunteers Mobilized"]').value = savedData.NoOfVolunteersMobilized || '';
+            document.querySelector('input[placeholder="No. of Organizations Activated"]').value = savedData.NoOfOrganizationsActivated || '';
+            document.querySelector('input[placeholder="Total Value of In-Kind Donations"]').value = savedData.TotalValueOfInKindDonations || '';
+            document.querySelector('textarea').value = savedData.NotesAdditionalInformation || '';
+        }
+
+        localStorage.removeItem("returnToStep");
+    }
 });
