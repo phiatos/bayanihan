@@ -77,30 +77,63 @@
                             <span class="btnText">Change Password</span>
                         </button>
                     </div>
-                    <div class="otp-verification">
-                        <span class="title">Verify Your Mobile Number</span>
-                        <p id="otp-info">Sending OTP to your registered mobile number...</p>
-                        <div id="recaptcha-container"></div>
-                        <div class="fields">
-                            <div class="input-field">
-                                <label>Enter OTP</label>
-                                <!-- <input type="text" id="otp-code" placeholder="6-digit code" maxlength="6" required> -->
-                            </div>
-                        </div>
-                        <div class="input-field">
-                            <input type="checkbox" id="terms" required>
-                            <label for="terms">I agree to the <a href="terms.html" target="_blank">terms and privacy policy</a></label>
-                        </div>
-                        <div class="input-field">
-                            <input type="checkbox" id="data-consent" required>
-                            <label for="data-consent">I consent to Bayanihan collecting and storing my data for disaster response purposes</label>
-                        </div>
-                        <button type="button" class="nextBtn verify-otp">
-                            <span class="btnText">Verify OTP</span>
-                        </button>
-                    </div>
                 </div>
             </form>
+        </div>
+
+       <div id="termsAndConditionsModal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header"> 
+                    <h2>Terms and Conditions</h2>
+                </div>
+                <div class="terms-scroll-area">
+                    <h3>1. Introduction</h3>
+                    <p>Welcome to Bayanihan! These Terms and Conditions ("Terms") govern your use of the Bayanihan application and services. By accessing or using Bayanihan, you agree to be bound by these Terms.</p>
+
+                    <h3>2. User Responsibilities</h3>
+                    <ul>
+                        <li>You must provide accurate and complete information during registration and keep it updated.</li>
+                        <li>You are responsible for maintaining the confidentiality of your account password.</li>
+                        <li>You agree to use Bayanihan only for lawful purposes and in accordance with these Terms.</li>
+                    </ul>
+
+                    <h3>3. Data Collection and Privacy</h3>
+                    <p>By using Bayanihan, you consent to the collection and storage of your data for disaster response and related purposes as outlined in our Privacy Policy. Our Privacy Policy is an integral part of these Terms and can be found <a href="terms.html" target="_blank">here</a>. We commit to protecting your data and using it responsibly.</p>
+
+                    <h3>4. Prohibited Activities</h3>
+                    <p>You agree not to engage in any of the following prohibited activities:</p>
+                    <ul>
+                        <li>Violating any applicable laws or regulations.</li>
+                        <li>Transmitting any harmful or malicious code.</li>
+                        <li>Interfering with the operation of Bayanihan.</li>
+                        <li>Attempting to gain unauthorized access to our systems.</li>
+                    </ul>
+
+                    <h3>5. Intellectual Property</h3>
+                    <p>All content and intellectual property on Bayanihan, including but not limited to text, graphics, logos, and software, are the property of Bayanihan or its licensors and are protected by intellectual property laws.</p>
+
+                    <h3>6. Disclaimer of Warranties</h3>
+                    <p>Bayanihan is provided "as is" and "as available" without any warranties of any kind, either express or implied. We do not warrant that the service will be uninterrupted, error-free, or secure.</p>
+
+                    <h3>7. Limitation of Liability</h3>
+                    <p>To the fullest extent permitted by applicable law, Bayanihan shall not be liable for any indirect, incidental, special, consequential, or punitive damages, or any loss of profits or revenues, whether incurred directly or indirectly, or or any loss of data, use, goodwill, or other intangible losses, resulting from (a) your access to or use of or inability to access or use the service; (b) any conduct or content of any third party on the service; (c) any content obtained from the service; and (d) unauthorized access, use or alteration of your transmissions or content.</p>
+
+                    <h3>8. Governing Law</h3>
+                    <p>These Terms shall be governed and construed in accordance with the laws of the Philippines, without regard to its conflict of law provisions.</p>
+
+                    <h3>9. Changes to Terms</h3>
+                    <p>We reserve the right to modify or replace these Terms at any time. If a revision is material, we will provide at least 30 days' notice prior to any new terms taking effect. By continuing to access or use our Service after those revisions become effective, you agree to be bound by the revised terms.</p>
+
+                    <h3>10. Contact Us</h3>
+                    <p>If you have any questions about these Terms, please contact us at support@bayanihan.com.</p>
+                </div>
+                <div class="modal-footer">
+                    <label for="agreeCheckbox">
+                        <input type="checkbox" id="agreeCheckbox"> I have read and agree to the Terms and Conditions and the Privacy Policy.
+                    </label>
+                    <button id="agreeButton" disabled>Agree and Continue</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -118,6 +151,6 @@
                 console.error('Error loading sidebar:', error);
             });
     </script>
-    <script src="../js/profile.js"></script>
+    <script src="../js/profile.js"  type="module"></script>
 </body>
 </html>

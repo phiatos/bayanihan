@@ -767,7 +767,8 @@ if (confirmSaveBtn) {
         mobile: orgData.mobileNumber,
         organization: orgData.organization,
         contactPerson: orgData.contactPerson,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        isFirstLogin: true
       });
 
       // Save volunteer group
