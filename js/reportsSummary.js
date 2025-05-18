@@ -27,7 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
             title: 'No Report Data',
             text: 'No report data found. Please go back and submit the form again.',
         }).then(() => {
-            window.location.href = '../pages/reportsSubmission.html';
+            window.location.href = '../pages/reportssubmission.html';
         });
         return;
     }
@@ -47,32 +47,33 @@ document.addEventListener('DOMContentLoaded', () => {
     ]).then(() => {
         console.log(`Report with key ${reportKeyToRemove} has been removed from the database.`);
 
-        // Proceed to display the summary after removal
+        // Display the summary
         const categories = {
             "Basic Information": [
                 "ReportID",
                 "VolunteerGroupName", // Add VolunteerGroupName to display
                 "AreaOfOperation",
-                "TimeOfIntervention",
-                "SubmittedBy",
+                
                 "DateOfReport"
             ],
             "Relief Operations": [
-                "Date",
+                "TimeOfIntervention",
+                "StartDate",
+                "EndDate",
                 "NoOfOrganizationsActivated",
                 "NoOfIndividualsOrFamilies",
                 "NoOfFoodPacks",
                 "NoOfHotMeals",
                 "LitersOfWater",
                 "NoOfVolunteersMobilized",
-                "TotalValueOfInKindDonations"
+                "TotalValueOfInKindDonations",
+                "TotalMonetaryDonations"
             ],
-            "Notes/Additional Information": [
+            "Additional Updates": [
                 "NotesAdditionalInformation"
             ]
         };
 
-        // Display the summary
         for (let category in categories) {
             const section = document.createElement("div");
             section.className = "category-section";
@@ -84,16 +85,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
             categories[category].forEach(item => {
                 if (summaryData[item]) {
-                    // Convert the sanitized key back to a readable format for display
                     let displayKey = item
                         .replace(/([A-Z])/g, ' $1') // Add space before capital letters
                         .replace(/^./, str => str.toUpperCase()); // Capitalize first letter
                     displayKey = displayKey
                         .replace('AreaOfOperation', 'Area of Operation')
-                        .replace('TimeOfIntervention', 'Time of Intervention')
-                        .replace('SubmittedBy', 'Submitted by')
+                        .replace('TimeOfIntervention', 'Completion of Time Intervention')
+                        // .replace('SubmittedBy', 'Submitted by')
                         .replace('DateOfReport', 'Date of Report')
                         .replace('ReportID', 'Report ID')
+                        .replace('StartDate', 'StartDate')
+                        .replace('EndDate', 'EndDate')
                         .replace('VolunteerGroupName', 'Volunteer Group')
                         .replace('NoOfIndividualsOrFamilies', 'No. of Individuals or Families')
                         .replace('NoOfFoodPacks', 'No. of Food Packs')
@@ -102,6 +104,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         .replace('NoOfVolunteersMobilized', 'No. of Volunteers Mobilized')
                         .replace('NoOfOrganizationsActivated', 'No. of Organizations Activated')
                         .replace('TotalValueOfInKindDonations', 'Total Value of In-Kind Donations')
+                        .replace('TotalMonetaryDonations', 'Total Monetary Donations')
                         .replace('NotesAdditionalInformation', 'Notes/additional information');
 
                     const fieldDiv = document.createElement("div");
@@ -114,15 +117,16 @@ document.addEventListener('DOMContentLoaded', () => {
             container.appendChild(section);
         }
 
-        // Back button
+        //  Back button logic
         document.getElementById('backBtn').addEventListener('click', () => {
-            window.location.href = '../pages/reportsSubmission.html';
+            localStorage.setItem("returnToStep", "form-container-2");
+            // reportData is already in localStorage, so just go back
+            window.location.href = "../pages/reportssubmission.html";
         });
 
-        // Submit button
+        //  Submit button logic
         const submitBtn = document.getElementById("submitBtn");
         submitBtn.addEventListener("click", () => {
-            // Check if user is authenticated
             auth.onAuthStateChanged(user => {
                 if (!user) {
                     Swal.fire({
@@ -140,25 +144,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 console.log("Submitting to Firebase:", summaryData);
 
-                // Add timestamp and status
                 summaryData["Status"] = "Pending";
                 summaryData["Timestamp"] = firebase.database.ServerValue.TIMESTAMP;
 
-                // Save to Firebase under reports/submitted
                 database.ref("reports/submitted").push(summaryData)
                     .then(() => {
                         console.log("Report successfully saved to Firebase");
 
-                        // Clear the draft report from localStorage
+                        // 🔥 Clear localStorage data
                         localStorage.removeItem("reportData");
+                        localStorage.removeItem("returnToStep");
 
-                        // Show success message
                         Swal.fire({
                             icon: 'success',
                             title: 'Report Submitted',
                             text: 'Your report has been successfully submitted for verification!',
                         }).then(() => {
-                            // Redirect to the single dashboard for both roles
                             window.location.href = "../pages/dashboard.html";
                         });
                     })
@@ -172,6 +173,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
             });
         });
+
     }).catch(error => {
         console.error("Error during report removal process:", error);
         Swal.fire({

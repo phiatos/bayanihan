@@ -95,7 +95,12 @@ function initSidebar() {
       'reportsVerification.html',
       'reportsLog.html',
       'activation.html',
-      'reliefsLog.html'
+      'reliefsLog.html',
+      'rdanaLog.html',
+      'rdanaVerification.html',
+      'inkind.html',
+      'monetary.html',
+
     ];
     const currentPath = window.location.pathname;
     const isRestrictedPage = restrictedPages.some(page => currentPath.includes(page));
@@ -217,7 +222,7 @@ function initSidebar() {
         menuItems.rdanaLog,
         menuItems.reliefsLog,
         menuItems.reportsVerification,
-        menuItems.reportsLog,
+        menuItems.reportsLog
       ];
 
       // Show allowed items
