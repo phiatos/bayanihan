@@ -315,7 +315,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     if (userRole === "admin") {
                         window.location.replace(`${BASE_PATH}/pages/dashboard.html`);
                     } else if (userRole === "volunteer" || userRole === "ABVN") {
-                        window.location.replace(`${BASE_PATH}/volunteer-dashboard.html`);
+                        window.location.replace(`${BASE_PATH}/pages/dashboard.html`);
                     } else {
                         window.location.replace(`${BASE_PATH}/pages/dashboard.html`);
                     }
