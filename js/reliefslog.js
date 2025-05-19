@@ -97,34 +97,84 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function renderTable() {
-        console.log('Rendering table');
-        tableBody.innerHTML = '';
-        const start = (currentPage - 1) * rowsPerPage;
-        const end = start + rowsPerPage;
-        const currentRows = filteredData.slice(start, end);
+    console.log('Rendering table');
+    tableBody.innerHTML = '';
+    const start = (currentPage - 1) * rowsPerPage;
+    const end = start + rowsPerPage;
+    const currentRows = filteredData.slice(start, end);
 
-        currentRows.forEach((item, index) => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td data-key="No">${start + index + 1}</td>
-                <td data-key="ReliefID">${item.id}</td>
-                <td data-key="VolunteerGroupName">${item.group}</td>
-                <td data-key="City">${item.city}</td>
-                <td data-key="DropoffAddress">${item.address}</td>
-                <td data-key="ContactPerson">${item.contact}</td>
-                <td data-key="ContactNumber">${item.number}</td>
-                <td data-key="RequestCategory">${item.category}</td>
-                <td>
-                    <button class="viewBtn" data-index="${data.indexOf(item)}">View</button>
-                    <button class="deleteBtn" data-key="${item.firebaseKey}">Delete</button>
-                </td>
-            `;
-            tableBody.appendChild(tr);
-        });
+    currentRows.forEach((item, index) => {
+        const tr = document.createElement('tr');
+        const rowIndex = start + index;
+
+        tr.innerHTML = `
+            <td data-key="No">${rowIndex + 1}</td>
+            <td data-key="ReliefID">${item.id}</td>
+            <td data-key="VolunteerGroupName">${item.group}</td>
+            <td data-key="City">${item.city}</td>
+            <td data-key="DropoffAddress">${item.address}</td>
+            <td data-key="ContactPerson">${item.contact}</td>
+            <td data-key="ContactNumber">${item.number}</td>
+            <td data-key="RequestCategory">${item.category}</td>
+
+            <!-- Status dropdown -->
+            <td>
+                <select class="statusSelect" data-id="${item.id}">
+                    <option disabled selected value="">Select Status</option>
+                    <option value="Pending" ${item.status === "Pending" ? "selected" : ""}>Pending</option>
+                    <option value="Completed" ${item.status === "Completed" ? "selected" : ""}>Completed</option>
+                </select>
+            </td>
+
+            <!-- Notes column -->
+            <td>
+                <textarea class="notesInput" rows="2" data-id="${item.id}">${item.notes || ''}</textarea>
+            </td>
+
+            <td>
+                <button class="saveBtn" data-id="${item.id}">Save</button>
+                <button class="viewBtn" data-index="${data.indexOf(item)}">View</button>
+                <button class="deleteBtn" data-key="${item.firebaseKey}">Delete</button>
+            </td>
+        `;
+
+        tableBody.appendChild(tr);
+    });
+
+    attachSaveListeners(); // important
 
         entriesInfo.textContent = `Showing ${filteredData.length ? start + 1 : 0} to ${Math.min(end, filteredData.length)} of ${filteredData.length} entries`;
         renderPagination();
     }
+
+    function attachSaveListeners() {
+    const saveButtons = document.querySelectorAll('.saveBtn');
+
+    saveButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const id = button.getAttribute('data-id');
+            const row = button.closest('tr');
+            const notes = row.querySelector('.notesInput').value.trim();
+            const status = row.querySelector('.statusSelect').value;
+
+            if (!status) {
+                Swal.fire('Please select a status before saving.');
+                return;
+            }
+
+            // Example: Save to Firebase
+            const updateRef = firebase.database().ref('reliefRequests').child(id);
+            updateRef.update({
+                notes: notes,
+                status: status
+            }).then(() => {
+                Swal.fire('Saved!', 'Notes and status have been updated.', 'success');
+            }).catch(err => {
+                Swal.fire('Error', err.message, 'error');
+            });
+        });
+    });
+}
 
     document.getElementById('closeModal').addEventListener('click', () => {
         document.getElementById('reliefModal').classList.add('hidden');

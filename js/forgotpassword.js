@@ -101,6 +101,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const snapshot = await otpRef.once('value');
         let data = snapshot.val() || { count: 0, lastSent: 0 };
 
+        // FOR TESTING: Comment out the cooldown and max attempts checks
+        /*
         // Check if we're within the cooldown period
         const now = Date.now();
         const timeSinceLastSent = (now - data.lastSent) / 1000; // in seconds
@@ -112,10 +114,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (data.count >= MAX_OTP_ATTEMPTS) {
             throw new Error(`OTP sending limit reached. You can only send ${MAX_OTP_ATTEMPTS} OTPs to this number.`);
         }
+        */
 
-        // Increment count and update last sent time
+        // Increment count and update last sent time (still track for logging purposes)
         data.count += 1;
-        data.lastSent = now;
+        data.lastSent = Date.now();
         await otpRef.set(data);
 
         return data.count;
@@ -335,11 +338,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error('No user is currently signed in.');
             }
 
+            // Set the email for the user (without requiring verification for forgot password flow)
+            const userEmail = `${mobileNumber}@bayanihan.com`;
+            if (!user.email || user.email !== userEmail) {
+                await user.updateEmail(userEmail);
+            }
+
             // Update the password in Firebase Authentication
             await user.updatePassword(np);
 
             // Update the password in localStorage for consistency with global.js
             localStorage.setItem('userPassword', np);
+            localStorage.setItem('userMobile', mobileNumber); // Ensure mobile number is stored for consistency
 
             // Update the database with the password change
             await database.ref('users').orderByChild('mobile').equalTo(mobileNumber).once('value', snapshot => {

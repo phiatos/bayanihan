@@ -38,6 +38,30 @@
   background-color: var(--light-bg);
 }
 
+.statusSelect{
+  width: fit-content;
+}
+
+.notesInput {
+  width: max-content;
+  min-height: 40px;
+  resize: vertical;
+  padding: 6px 8px;
+  font-size: 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+  font-family: inherit;
+  background-color: #f9f9f9;
+  transition: border-color 0.2s ease-in-out;
+}
+
+.notesInput:focus {
+  border-color: #007BFF;
+  outline: none;
+  background-color: #fff;
+}
+
 @media (max-width: 768px) {
 
   table {

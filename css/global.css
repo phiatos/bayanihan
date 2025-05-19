@@ -483,6 +483,16 @@ button:disabled {
   background-color: var(--red-hover);
 }
 
+.saveBtn{
+  width: 90%;
+  margin-bottom: 5px;
+  background-color: #14aebb;
+}
+
+.saveBtn:hover {
+  background-color: #0e8893;
+}
+
 /* ==========================================================================
   Forms Styles (reliefsRequest & reportsSubmission)
 ========================================================================== */
