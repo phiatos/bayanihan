@@ -144,6 +144,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Back button logic
         document.getElementById('backBtn').addEventListener('click', () => {
+        // Save current summaryData back to localStorage to keep form data
+            localStorage.setItem("reportData", JSON.stringify(summaryData));
+
             localStorage.setItem("returnToStep", "form-container-2");
             window.location.href = "../pages/reportssubmission.html";
         });
