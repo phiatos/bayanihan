@@ -130,7 +130,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById('city').addEventListener('input', function(e) {
-        this.value = this.value.replace(/[^a-zA-Z\s]/g, '');
+        this.value = this.value.replace(/[^a-zA-Z\sñÑ]/g, ''); // Added ñ and Ñ
     });
 
     document.getElementById("category").addEventListener("change", function() {
