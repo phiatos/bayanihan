@@ -16,7 +16,10 @@ a {
   transition: width 0.3s;
   padding: 24px;
   z-index: 1000;
-  overflow: visible;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -ms-overflow-style: none;  
+  scrollbar-width: none;  
 }
 
 .sidebar .head {
