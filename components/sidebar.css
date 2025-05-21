@@ -1,4 +1,3 @@
-/* Sidebar Styles */
 a {
   text-decoration: none;
 }
@@ -9,17 +8,12 @@ a {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 5px;
   background-color: var(--primary-color);
-  padding: 14px;
   border-radius: 0 30px 30px 0;
   transition: width 0.3s;
-  padding: 24px;
+  padding: 24px; /* Global padding for the sidebar */
   z-index: 1000;
-  overflow-y: auto;
-  overflow-x: hidden;
-  -ms-overflow-style: none;  
-  scrollbar-width: none;  
 }
 
 .sidebar .head {
@@ -43,11 +37,12 @@ a {
 
 .user-details .title,
 .menu .title {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 500;
   color: var(--white);
   text-transform: uppercase;
   margin-bottom: 5px;
+  margin-top: 5px;
 }
 
 .user-details .name {
@@ -56,10 +51,28 @@ a {
   font-weight: bold;
 }
 
-/* Navigation Styles */
-/* .nav {
-  flex: 1;
+.scrollable-content {
+  flex: 1; /* Takes up remaining vertical space */
+  overflow-y: auto;
+  overflow-x: hidden;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* .main-menu-wrapper {
+  padding-right: 10px; 
+  padding-bottom: 20px; 
 } */
+
+.scrollable-content .menu:not(:last-child) {
+  padding-bottom: 10px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid var(--white);
+}
+
+.nav {
+  flex: 1; /* Ensures .nav expands within scrollable-content if needed */
+}
 
 .menu ul li {
   position: relative;
@@ -85,7 +98,7 @@ a {
   background-color: var(--white);
 }
 
-.menu ul li i{
+.menu ul li i {
   font-size: 20px;
 }
 
@@ -115,11 +128,12 @@ a {
   font-size: 12px;
 }
 
-/* Menu Styling */
-.menu:not(:last-child) {
-  padding-bottom: 10px;
-  margin-bottom: 20px;
-  border-bottom: 2px solid var(--white);
+.sidebar > .menu {
+  padding-top: 15px; 
+  margin-top: auto; 
+  border-top: 1px solid var(--white); 
+  padding-bottom: 0; 
+  margin-bottom: 0; 
 }
 
 .menu-btn {
@@ -149,7 +163,11 @@ a {
 /* Active Sidebar */
 .sidebar.active {
   width: 92px;
-  overflow: visible;
+  overflow: visible; /* Allows menu-btn to remain visible */
+}
+
+.sidebar.active .scrollable-content {
+  overflow: visible; 
 }
 
 .sidebar.active .menu-btn i {
@@ -173,6 +191,7 @@ a {
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 12px 0;
 }
 
 .sidebar.active .menu > ul > li > a .text {
@@ -187,6 +206,7 @@ a {
   opacity: 0;
   visibility: hidden;
   transition: all 0.3s;
+  white-space: nowrap;
 }
 
 .sidebar.active .menu > ul > li > a .text::after {
@@ -229,20 +249,18 @@ a {
 }
 
 .sidebar.active .has-dropdown.active a[href*="reliefs"]:hover .text {
-  color: var(--accent-color); /* or any color you want */
+  color: var(--accent-color);
 }
 
 .sidebar.active .has-dropdown.active a[href*="reports"]:hover .text {
   color: var(--accent-color);
 }
 
-
-
 @media (min-width: 1200px) {
-  .sidebar.active{
+  .sidebar.active {
     padding: 0;
   }
-  .sidebar.active .head{
+  .sidebar.active .head {
     padding: 15px;
     justify-content: center;
     align-content: center;
@@ -250,47 +268,42 @@ a {
 }
 
 @media (max-width: 1500px) {
-  .sidebar{
+  .sidebar {
     width: 220px;
-  padding: 30px;
-}
-.sidebar.active {
-  padding: 0;
-}
-
-.sidebar.active .head{
-  padding: 15px;
-  justify-content: center;
-  align-content: center;
-}
-.menu ul li i{
-  padding: 5px;
-  /* gap: 10px; */
-  font-size: 20px;
-}
-
-.menu ul li  span{
-font-style: 10px;
-}
+    padding: 30px;
+  }
+  .sidebar.active {
+    padding: 0;
+  }
+  .sidebar.active .head {
+    padding: 15px;
+    justify-content: center;
+    align-content: center;
+  }
+  .menu ul li i {
+    padding: 5px;
+    font-size: 20px;
+  }
+  .menu ul li span {
+    font-size: 10px; /* Changed font-style to font-size */
+  }
 }
 
 @media (max-width: 990px) {
-  .sidebar{
+  .sidebar {
     width: 200px;
-}
-.sidebar.active {
-  padding: 0;
-}
-
-.sidebar.active .head{
-  padding: 15px;
-  justify-content: center;
-  align-content: center;
-}
-  .nav i{
+  }
+  .sidebar.active {
+    padding: 0;
+  }
+  .sidebar.active .head {
+    padding: 15px;
+    justify-content: center;
+    align-content: center;
+  }
+  .nav i {
     font-size: 20px;
   }
-
 }
 
 @media (max-width: 768px) {
@@ -301,17 +314,15 @@ font-style: 10px;
   .sidebar.active {
     padding: 0;
   }
-
-  .sidebar.active .head{
+  .sidebar.active .head {
     padding: 15px;
     justify-content: center;
     align-content: center;
   }
-
-  .nav .i{
+  .nav .i {
     font-size: 34px;
   }
-  .menu ul li a{
+  .menu ul li a {
     font-size: 14px;
     padding-left: 5px;
   }
@@ -327,14 +338,12 @@ font-style: 10px;
     width: 165px;
     padding-right: 20px;
   }
-
-  .sidebar.active .head{
+  .sidebar.active .head {
     padding: 15px 5px 15px 10px;
     justify-content: center;
     align-content: center;
   }
-
-  .menu ul li a{
+  .menu ul li a {
     font-size: 14px;
     padding-left: 5px;
   }
@@ -348,26 +357,24 @@ font-style: 10px;
   }
   .sidebar {
     width: 170px;
-  padding-right: 20px;
+    padding-right: 20px;
   }
-  .sidebar.active .head .title{
+  .sidebar.active .head .title {
     font-size: 11px;
   }
-  .sidebar.active .head i{
+  .sidebar.active .head i {
     font-size: 26px;
   }
-
-  .sidebar.active .head{
+  .sidebar.active .head {
     padding: 10px;
     justify-content: center;
     align-content: center;
   }
-  .head .name{
+  .head .name {
     font-size: 14px;
   }
-  .menu ul li a{
+  .menu ul li a {
     font-size: 14px;
     padding-left: 5px;
   }
-
 }

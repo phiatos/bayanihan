@@ -228,7 +228,6 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             const role = userData.role;
-            // No need for userEmail if we are using userUid for filtering
             // const userEmail = user.email; 
 
             console.log(`Role of logged-in user (UID: ${user.uid}): ${role}`);
@@ -265,15 +264,15 @@ document.addEventListener("DOMContentLoaded", () => {
                         // Aggregate data - use parseFloat for numbers that can have decimals
                         // Using 'parseFloat' for all numeric values for consistency and to handle potential string numbers
                         totalFoodPacks += parseFloat(report.NoOfFoodPacks || 0);
-                        totalHotMeals += parseFloat(report.NoOfHotMeals || 0); // Corrected typo here (NoOfHotMea1s -> NoOfHotMeals) if it's in your data
+                        totalHotMeals += parseFloat(report.NoOfHotMeals || 0); 
                         totalWaterLiters += parseFloat(report.LitersOfWater || 0);
-                        totalVolunteers += parseFloat(report.NoOfV01unteersMobi1ized || 0); // Corrected typo here (NoOfV01unteersMobi1ized -> NoOfVolunteersMobilized) if it's in your data
+                        totalVolunteers += parseFloat(report.NoOfVolunteersMobilized || 0);
                         
                         // Use the correct field name for monetary donations from your Firebase data
                         totalMonetaryDonations += parseFloat(report.TotalMonetaryDonations || 0);
                         
                         // Corrected typo in field name (TotalVa1ueOfInKindDonations -> TotalValueOfInKindDonations) if it's in your data
-                        totalInKindDonations += parseFloat(report.TotalVa1ueOfInKindDonations || 0); 
+                        totalInKindDonations += parseFloat(report.TotalValueOfInKindDonations || 0); 
                     });
                 } else {
                     console.log("No approved reports found in the database.");
