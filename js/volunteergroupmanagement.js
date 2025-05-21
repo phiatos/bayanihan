@@ -123,7 +123,10 @@ document.addEventListener('mousemove', (e) => {
 
 // Utility functions
 function formatMobileNumber(mobile) {
-  const cleaned = mobile.replace(/\D/g, "");
+  let cleaned = mobile.replace(/\D/g, "");
+  if (cleaned.startsWith("63") && cleaned.length === 12) {
+    cleaned = "0" + cleaned.slice(2);
+  }
   if (/^\d{10,15}$/.test(cleaned)) {
     return cleaned;
   }
@@ -547,7 +550,10 @@ function clearAOOInputs() {
 function clearAInputs() {
   const form = document.getElementById('addOrgForm');
   const container = document.getElementById('areaOperationContainer');
-  if (form) form.reset();
+  if (form) {
+    form.reset();
+    form.mobileNumber.value = '';
+  }
   if (container) container.innerHTML = '';
 }
 
@@ -650,7 +656,7 @@ if (addOrgForm) {
       Swal.fire({
         icon: 'error',
         title: 'Invalid Mobile Number',
-        text: 'Mobile number must be 10-15 digits.'
+        text: 'Mobile number must be 10-15 digits (e.g., 091xxxxxxxx or +639xxxxxxxxx).'
       });
       return;
     }
@@ -749,14 +755,38 @@ if (confirmSaveBtn) {
       // Check if mobile number already exists
       const usersSnapshot = await database.ref('users').once('value');
       const users = usersSnapshot.val();
-      if (users && Object.values(users).some(user => user.mobile === orgData.mobileNumber)) {
-        throw new Error("Mobile number already registered.");
+      
+      // New code's detailed mobile number check with logging
+      console.log("All users in database:", users);
+      if (users) {
+        for (const userData of Object.values(users)) {
+          const storedMobile = formatMobileNumber(userData.mobile);
+          const incomingMobile = formatMobileNumber(orgData.mobileNumber); // Format incoming number too
+
+          console.log(`Comparing mobile: ${incomingMobile} with stored: ${userData.mobile} -> ${storedMobile}`);
+
+          if (storedMobile === null || incomingMobile === null) {
+            console.log(`Skipping comparison due to invalid mobile number: ${incomingMobile} vs ${storedMobile}`);
+            continue;
+          }
+          if (storedMobile === incomingMobile) { // Use formatted incoming number for comparison
+            console.log(`Match found! Mobile number ${orgData.mobileNumber} already registered for user:`, userData);
+            throw new Error("Mobile number already registered.");
+          }
+        }
       }
 
-      // Create Firebase Authentication account
+      // Create Firebase Authentication account with the actual email (NEW CODE)
       const tempPassword = generateTempPassword();
-      const syntheticEmail = `${orgData.mobileNumber}@bayanihan.com`;
-      const userCredential = await secondaryAuth.createUserWithEmailAndPassword(syntheticEmail, tempPassword);
+      let userCredential;
+      try {
+        userCredential = await secondaryAuth.createUserWithEmailAndPassword(orgData.email, tempPassword);
+      } catch (error) {
+        if (error.code === 'auth/email-already-in-use') {
+          throw new Error("Email already registered in Firebase Authentication. Please use a different email.");
+        }
+        throw new Error("Error creating user in Firebase Authentication: " + error.message);
+      }
       const newUser = userCredential.user;
 
       // Save user data to users/<uid>
@@ -768,7 +798,8 @@ if (confirmSaveBtn) {
         organization: orgData.organization,
         contactPerson: orgData.contactPerson,
         createdAt: new Date().toISOString(),
-        isFirstLogin: true
+        isFirstLogin: true,
+        emailVerified: false
       });
 
       // Save volunteer group
@@ -786,14 +817,15 @@ if (confirmSaveBtn) {
         organization: orgData.organization,
         tempPassword: tempPassword,
         mobileNumber: orgData.mobileNumber,
-        message: `Your volunteer group "${orgData.organization}" has been successfully registered with Bayanihan. Please use the credentials below to log in.`
+        message: `Your volunteer group "${orgData.organization}" has been successfully registered with Bayanihan. Please use the credentials below to log in. You will be prompted to verify your email upon your first login.`
       });
 
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'Volunteer group added successfully and credentials sent!'
+        text: 'Volunteer group added successfully! An email with login credentials has been sent to the user.'
       });
+
       orgData = null;
       const confirmModal = document.getElementById('confirmModal');
       const successModal = document.getElementById('successModal');

@@ -2,7 +2,6 @@
     position: relative;
     min-height: 510px; 
     height: 100%;
-    margin-top: 10px;
     display: flex;
     flex-direction: column;
 }
