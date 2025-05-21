@@ -72,10 +72,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 "ReportID",
                 "VolunteerGroupName",
                 "AreaOfOperation",
+                "TimeOfIntervention",
                 "DateOfReport"
             ],
             "Relief Operations": [
-                "TimeOfIntervention",
                 "StartDate",
                 "EndDate",
                 "NoOfOrganizationsActivated",
@@ -109,10 +109,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     displayKey = displayKey
                         .replace('AreaOfOperation', 'Area of Operation')
                         .replace('TimeOfIntervention', 'Completion of Time Intervention')
+                        .replace('SubmittedBy', 'Submitted by')
                         .replace('DateOfReport', 'Date of Report')
                         .replace('ReportID', 'Report ID')
-                        .replace('StartDate', 'Start Date')
-                        .replace('EndDate', 'End Date')
+                        .replace('StartDate', 'StartDate')
+                        .replace('EndDate', 'EndDate')
                         .replace('VolunteerGroupName', 'Volunteer Group')
                         .replace('NoOfIndividualsOrFamilies', 'No. of Individuals or Families')
                         .replace('NoOfFoodPacks', 'No. of Food Packs')
@@ -142,16 +143,14 @@ document.addEventListener('DOMContentLoaded', () => {
             container.appendChild(section);
         }
 
-        // Back button logic
+        //  Back button logic
         document.getElementById('backBtn').addEventListener('click', () => {
-        // Save current summaryData back to localStorage to keep form data
-            localStorage.setItem("reportData", JSON.stringify(summaryData));
-
             localStorage.setItem("returnToStep", "form-container-2");
+            // reportData is already in localStorage, so just go back
             window.location.href = "../pages/reportssubmission.html";
         });
 
-        // Submit button logic
+        //  Submit button logic
         const submitBtn = document.getElementById("submitBtn");
         submitBtn.addEventListener("click", () => {
             auth.onAuthStateChanged(user => {
@@ -167,6 +166,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 summaryData["userUid"] = user.uid;
+
+                console.log("Submitting to Firebase:", summaryData);
+
                 summaryData["Status"] = "Pending";
                 summaryData["Timestamp"] = firebase.database.ServerValue.TIMESTAMP;
 
@@ -174,6 +176,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     .then(() => {
                         console.log("Report successfully saved to Firebase");
 
+                        // 🔥 Clear localStorage data
                         localStorage.removeItem("reportData");
                         localStorage.removeItem("returnToStep");
 

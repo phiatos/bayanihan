@@ -129,6 +129,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${report["AreaOfOperation"] || "-"}</td>
                 <td>${formatTime(report["TimeOfIntervention"])}</td>
                 <td>${formatDate(report["DateOfReport"])}</td>
+                
                 <td>${report["Status"] || "Pending"}</td>
                 <td>
                     <button class="viewBtn">View</button>
@@ -149,7 +150,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     displayKey = displayKey
                         .replace('AreaOfOperation', 'Area of Operation')
                         .replace('TimeOfIntervention', 'Time of Intervention')
-                        // .replace('SubmittedByInput', 'Submitted by')
+                        .replace('SubmittedByInput', 'Submitted by')
                         .replace('DateOfReport', 'Date of Report')
                         .replace('ReportID', 'Report ID')
                         .replace('StartDate', 'StartDate')
@@ -189,13 +190,13 @@ document.addEventListener('DOMContentLoaded', () => {
                             <h2>Basic Information</h2>
                             <p><strong>Report ID:</strong> ${report.ReportID || "-"}</p>
                             <p><strong>Volunteer Group:</strong> ${report.VolunteerGroupName || "[Unknown Org]"}</p> 
+                            <p><strong>Submitted By:</strong> ${report.SubmittedBy || "-"}</p>
                             <p><strong>Date of Report Submitted:</strong> ${formatDate(report.DateOfReport)}</p>
                             <p class="cell"><strong>Location of Operation:</strong> ${report.AreaOfOperation || "-"}</p>
-                            
+                            <p class="cell"><strong>Completion Time of Intervention:</strong> ${report.TimeOfIntervention || "-"}</p>
                         </div>
                         <div class="form-2">
                             <h2>Relief Operations</h2>
-                            <p class="cell"><strong>Completion Time of Intervention:</strong> ${formatTime(report.TimeOfIntervention)}</p>
                             <p><strong>Start Date of Operation:</strong> ${formatDate(report.StartDate) || "-"}</p>
                             <p><strong>End Date of Operation:</strong> ${formatDate(report.EndDate) || "-"}</p>
                             <p><strong>No. of Individuals or Families:</strong> ${report.NoOfIndividualsOrFamilies || "-"}</p>

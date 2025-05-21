@@ -140,3 +140,28 @@ textarea:focus {
     }
     
 }
+
+
+
+/* Modal */
+#mapModal {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+}
+#mapModal.show {
+    display: block;
+}
+.modal-content {
+    background: white;
+    margin: 10% auto;
+    padding: 20px;
+    width: 300px;
+}
+.closeBtn {
+    float: right;
+    cursor: pointer;
+}
+

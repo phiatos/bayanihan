@@ -189,11 +189,10 @@ document.addEventListener('DOMContentLoaded', () => {
                             <p class="cell"><strong>Location of Operation:</strong> ${report.AreaOfOperation || "-"}</p>
                             <p><strong>Submitted By:</strong> ${report.SubmittedBy || "-"}</p>
                             <p><strong>Date of Report Submitted:</strong> ${formatDate(report.DateOfReport)}</p>
-                            
+                            <p><strong>Completion time of intervention:</strong> ${formatDate(report.TimeOfIntervention)}</p>
                         </div>
                         <div class="form-2">
                             <h2>Relief Operations</h2>
-                            <p><strong>Completion time of intervention:</strong> ${formatTime(report.TimeOfIntervention)}</p>
                             <p><strong>Start Date of Operation:</strong> ${formatDate(report.StartDate) || "-"}</p>
                             <p><strong>End Date of Operation:</strong> ${formatDate(report.EndDate) || "-"}</p>
                             <p><strong>No. of Individuals or Families:</strong> ${report.NoOfIndividualsOrFamilies || "-"}</p>

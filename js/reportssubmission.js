@@ -25,6 +25,13 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
+        function formatTo12Hour(timeStr) {
+        const [hour, minute] = timeStr.split(':');
+        const h = parseInt(hour);
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        const formattedHour = h % 12 || 12;
+        return `${formattedHour}:${minute} ${ampm}`;
+    }
 
     let userUid = null;
     let volunteerGroupName = "[Unknown Org]";
@@ -69,7 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
         idInput.value = randomId;
     }
 
-    // FIXED: Map modal button logic
+    // 🔧 FIXED: Map modal button logic
     const pinBtn = document.getElementById('pinBtn');
     const mapModal = document.getElementById('mapModal');
     const closeBtn = document.querySelector('.closeBtn');
@@ -91,6 +98,14 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     } else {
         console.warn('Modal elements not found');
+    }
+
+    function formatTo12Hour(timeStr) {
+        const [hour, minute] = timeStr.split(':');
+        const h = parseInt(hour);
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        const formattedHour = h % 12 || 12;
+        return `${formattedHour}:${minute} ${ampm}`;
     }
 
     const submittedByInput = document.getElementById('SubmittedBy');
@@ -158,39 +173,33 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Handle returning from reportsSummary.html
-const returnTo = localStorage.getItem("returnToStep");
+    const returnTo = localStorage.getItem("returnToStep");
 
-if (returnTo === "form-container-1") {
-    formPage1.style.display = "none";
-    formPage2.style.display = "block";
+    if (returnTo === "form-container-2") {
+        formPage1.style.display = "none";
+        formPage2.style.display = "block";
 
-    setTimeout(() => {
-        const target = document.querySelector(".form-container-1");
-        if (target) target.scrollIntoView({ behavior: "smooth" });
-    }, 100);
+        setTimeout(() => {
+            const target = document.querySelector(".form-container-2");
+            if (target) target.scrollIntoView({ behavior: "smooth" });
+        }, 100);
 
-    const savedData = JSON.parse(localStorage.getItem("reportData"));
-    if (savedData) {
-        document.querySelector('input[placeholder="e.g. Purok 2, Brgy. Maligaya, Rosario"]').value = savedData.AreaOfOperation || '';
-        document.querySelector('input[placeholder="Time of Intervention"]').value = savedData.TimeOfIntervention || '';
-        document.querySelector('input[placeholder="Submitted by"]').value = savedData.SubmittedBy || '';
-        document.querySelector('input[type="date"]').value = savedData.Date || '';
-        document.querySelector('input[placeholder="No. of Individuals or Families"]').value = savedData.NoOfIndividualsOrFamilies || '';
-        document.querySelector('input[placeholder="No. of Food Packs"]').value = savedData.NoOfFoodPacks || '';
-        document.querySelector('input[placeholder="No. of Hot Meals"]').value = savedData.NoOfHotMeals || '';
-        document.querySelector('input[placeholder="Liters of Water"]').value = savedData.LitersOfWater || '';
-        document.querySelector('input[placeholder="No. of Volunteers Mobilized"]').value = savedData.NoOfVolunteersMobilized || '';
-        document.querySelector('input[placeholder="No. of Organizations Activated"]').value = savedData.NoOfOrganizationsActivated || '';
-        document.querySelector('input[placeholder="Total Value of In-Kind Donations"]').value = savedData.TotalValueOfInKindDonations || '';
-        document.querySelector('textarea').value = savedData.NotesAdditionalInformation || '';
+        const savedData = JSON.parse(localStorage.getItem("reportData"));
+        if (savedData) {
+            document.querySelector('input[placeholder="e.g. Purok 2, Brgy. Maligaya, Rosario"]').value = savedData.AreaOfOperation || '';
+            document.querySelector('input[placeholder="Time of Intervention"]').value = savedData.TimeOfIntervention || '';
+            document.querySelector('input[placeholder="Submitted by"]').value = savedData.SubmittedBy || '';
+            document.querySelector('input[type="date"]').value = savedData.Date || '';
+            document.querySelector('input[placeholder="No. of Individuals or Families"]').value = savedData.NoOfIndividualsOrFamilies || '';
+            document.querySelector('input[placeholder="No. of Food Packs"]').value = savedData.NoOfFoodPacks || '';
+            document.querySelector('input[placeholder="No. of Hot Meals"]').value = savedData.NoOfHotMeals || '';
+            document.querySelector('input[placeholder="Liters of Water"]').value = savedData.LitersOfWater || '';
+            document.querySelector('input[placeholder="No. of Volunteers Mobilized"]').value = savedData.NoOfVolunteersMobilized || '';
+            document.querySelector('input[placeholder="No. of Organizations Activated"]').value = savedData.NoOfOrganizationsActivated || '';
+            document.querySelector('input[placeholder="Total Value of In-Kind Donations"]').value = savedData.TotalValueOfInKindDonations || '';
+            document.querySelector('textarea').value = savedData.NotesAdditionalInformation || '';
+        }
+
+        localStorage.removeItem("returnToStep");
     }
-
-    // Clear it so it doesn’t auto-jump next time
-    localStorage.removeItem("returnToStep");
-} else {
-    // Default to form 1
-    formPage1.style.display = "block";
-    formPage2.style.display = "none";
-}
 });
-
