@@ -21,6 +21,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const searchInput = document.getElementById("searchInput");
     const sortSelect = document.getElementById("sortSelect");
     const exportBtn = document.getElementById("exportBtn");
+    const savePdfBtn = document.getElementById("savePdfBtn");
     const entriesInfo = document.getElementById("entriesInfo");
     const paginationContainer = document.getElementById("pagination");
 
@@ -310,23 +311,91 @@ document.addEventListener("DOMContentLoaded", () => {
         else if (sortVal === "staffIncharge-desc") arr.sort((a, b) => b.staffIncharge.localeCompare(a.staffIncharge));
     }
 
+    // --- Excel Export Functionality ---
     exportBtn.addEventListener("click", () => {
         if (allDonations.length === 0) {
             Swal.fire("Info", "No data to export!", "info");
             return;
         }
-        const headers = ["No.", "Encoder", "Name", "Type", "Address", "Contact Person", "Number", "Email", "Type of Assistance", "Valuation", "Additional Notes", "Staff-In Charge", "Status"];
-        const rows = allDonations.map((d, i) => [i + 1, d.encoder, d.name, d.type, d.address, d.contactPerson, d.number, d.email, d.assistance, d.valuation, d.additionalnotes, d.staffIncharge, d.status]);
-        const csvContent = [headers.join(","), ...rows.map(row => row.join(","))].join("\n");
-        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = "in-kind-donations.csv";
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+
+        const dataForExport = allDonations.map((d, i) => ({
+            "No.": i + 1, 
+            "Encoder": d.encoder,
+            "Name": d.name,
+            "Type": d.type,
+            "Address": d.address,
+            "Contact Person": d.contactPerson,
+            "Number": String(d.number), 
+            "Email": d.email,
+            "Type of Assistance": d.assistance,
+            "Valuation": parseFloat(d.valuation), 
+            "Additional Notes": d.additionalnotes,
+            "Staff-In Charge": d.staffIncharge,
+            "Status": d.status
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(dataForExport);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "In-Kind Donations"); 
+        XLSX.writeFile(wb, "in-kind-donations.xlsx");
+
+        Swal.fire("Success", "In-Kind Donations exported to Excel!", "success");
     });
+
+    // --- PDF Export Functionality ---
+    savePdfBtn.addEventListener("click", () => {
+        if (allDonations.length === 0) {
+            Swal.fire("Info", "No data to export to PDF!", "info");
+            return;
+        }
+
+        const { jsPDF } = window.jspdf; 
+        const doc = new jsPDF('landscape');
+
+        const head = [[
+            "No.", "Encoder", "Name", "Type", "Address", "Contact Person",
+            "Number", "Email", "Type of Assistance", "Valuation",
+            "Additional Notes", "Staff-In Charge", "Status"
+        ]];
+
+        const body = allDonations.map((d, i) => [
+            i + 1,
+            d.encoder,
+            d.name,
+            d.type,
+            d.address,
+            String(d.contactPerson), 
+            String(d.number),
+            d.email,
+            d.assistance,
+            `₱${parseFloat(d.valuation).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, // Format as currency
+            d.additionalnotes,
+            d.staffIncharge,
+            d.status
+        ]);
+
+        // Add the table to the PDF
+        doc.autoTable({
+            head: head,
+            body: body,
+            startY: 20, // Start table a bit below the top margin
+            theme: 'striped', // Apply a theme (optional)
+            headStyles: { fillColor: [50, 100, 150] }, // Header background color
+            styles: { fontSize: 8 }, // Font size for table content
+            didDrawPage: function (data) {
+                // Add header/footer if needed
+                doc.setFontSize(10);
+                doc.text("In-Kind Donations Report", data.settings.margin.left, 10);
+                doc.text(`Page ${doc.internal.getNumberOfPages()}`, doc.internal.pageSize.width - data.settings.margin.right, 10, { align: 'right' });
+            }
+        });
+
+        // Save the PDF
+        doc.save("in-kind-donations.pdf");
+        Swal.close(); 
+        Swal.fire("Success", "In-Kind Donations exported to PDF!", "success");
+    });
+
 
     function deleteRow(firebaseKey) {
         Swal.fire({

@@ -20,7 +20,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const tableBody = document.querySelector("#monetaryTable tbody");
     const searchInput = document.getElementById("searchInput");
     const sortSelect = document.getElementById("sortSelect");
-    const exportBtn = document.getElementById("exportMonetaryBtn");
+    const exportExcelBtn = document.getElementById("exportMonetaryExcelBtn");
+    const exportPdfBtn = document.getElementById("exportMonetaryPdfBtn");
     const entriesInfo = document.getElementById("entriesInfo");
     const paginationContainer = document.getElementById("pagination");
     const editModal = document.getElementById("editMonetaryModal");
@@ -65,7 +66,8 @@ document.addEventListener("DOMContentLoaded", () => {
                     allDonations.push({
                         firebaseKey: key,
                         userUid: donation.userUid,
-                        ...donation
+                        ...donation,
+                        amount: parseFloat(donation.amountDonated || 0) 
                     });
                 });
             }
@@ -332,34 +334,122 @@ document.addEventListener("DOMContentLoaded", () => {
         else if (sortVal === "bank-desc") arr.sort((a, b) => b.bank.localeCompare(a.bank));
     }
 
-    exportBtn.addEventListener("click", () => {
+    // --- Excel Export Functionality ---
+    exportExcelBtn.addEventListener("click", () => {
         if (allDonations.length === 0) {
             Swal.fire("Info", "No data to export!", "info");
             return;
         }
-        const headers = ["No.", "Encoder", "Name/Company", "Location", "Number", "Amount Donated", "Cash Invoice #", "Date Received", "Email", "Bank", "Proof of Transaction"];
-        const rows = allDonations.map((d, i) => [
+
+        const dataForExport = allDonations.map((d, i) => ({
+            "No.": i + 1,
+            "Encoder": d.encoder,
+            "Name/Company": d.name,
+            "Location": d.address,
+            "Number": d.number,
+            "Amount Donated": d.amountDonated,
+            "Cash Invoice #": d.invoice,
+            "Date Received": new Date(d.dateReceived).toLocaleDateString('en-PH'),
+            "Email": d.email,
+            "Bank": d.bank,
+            "Proof of Transaction": d.proof
+        }));
+
+        // Create a worksheet from the data
+        const ws = XLSX.utils.json_to_sheet(dataForExport);
+
+        // Create a new workbook
+        const wb = XLSX.utils.book_new();
+
+        // Add the worksheet to the workbook
+        XLSX.utils.book_append_sheet(wb, ws, "Monetary Donations"); // Sheet name
+
+        // Write the workbook and trigger download
+        XLSX.writeFile(wb, "monetary-donations.xlsx");
+
+        Swal.fire("Success", "Monetary Donations exported to Excel!", "success");
+    });
+
+    // --- Excel Export Functionality ---
+    exportExcelBtn.addEventListener("click", () => {
+        if (allDonations.length === 0) {
+            Swal.fire("Info", "No data to export!", "info");
+            return;
+        }
+
+        const dataForExport = allDonations.map((d, i) => ({
+            "No.": i + 1,
+            "Encoder": d.encoder,
+            "Name/Company": d.name,
+            "Location": d.address,
+            "Number": d.number,
+            "Amount Donated": d.amountDonated,
+            "Cash Invoice #": d.invoice,
+            "Date Received": new Date(d.dateReceived).toLocaleDateString('en-PH'),
+            "Email": d.email,
+            "Bank": d.bank,
+            "Proof of Transaction": d.proof // Keep proof for Excel if still desired
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(dataForExport);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Monetary Donations");
+        XLSX.writeFile(wb, "monetary-donations.xlsx");
+
+        Swal.fire("Success", "Monetary Donations exported to Excel!", "success");
+    });
+
+    // --- PDF Export Functionality ---
+    exportPdfBtn.addEventListener("click", async () => {
+        if (allDonations.length === 0) {
+            Swal.fire("Info", "No data to export!", "info");
+            return;
+        }
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('landscape'); 
+
+            
+        const head = [[
+            "No.", "Encoder", "Name/Company", "Location", 
+            "Number","Amount Donated", "Cash Invoice #", 
+            "Date Received", "Email", "Bank"
+        ]];
+
+        const body = allDonations.map((d, i) => [
             i + 1,
             d.encoder,
             d.name,
-            d.address,
-            d.number,
-            d.amountDonated,
+            d.address, 
+            String(d.number), 
+            d.amountDonated.toLocaleString('en-PH', { style: 'currency', currency: 'PHP' }), 
             d.invoice,
-            new Date(d.dateReceived).toLocaleDateString('en-PH'),
+            new Date(d.dateReceived).toLocaleDateString('en-PH'), 
             d.email,
-            d.bank,
-            d.proof,
+            d.bank
         ]);
-        const csvContent = [headers.join(","), ...rows.map(row => row.join(","))].join("\n");
-        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = "monetary-donations.csv";
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+
+        // Add the table to the PDF
+        doc.autoTable({
+            head: head,
+            body: body,
+            startY: 20, // Start table a bit below the top margin
+            theme: 'striped', // Apply a theme (optional: 'striped', 'grid', 'plain')
+            headStyles: { fillColor: [50, 100, 150] }, // Header background color
+            styles: { fontSize: 8 }, // Font size for table content
+            margin: { top: 15, right: 10, bottom: 10, left: 10 }, // Adjust margins
+            didDrawPage: function (data) {
+                // Add header/footer if needed
+                doc.setFontSize(10);
+                doc.text("Monetary Donations Report", data.settings.margin.left, 10);
+                doc.text(`Page ${doc.internal.getNumberOfPages()}`, doc.internal.pageSize.width - data.settings.margin.right, 10, { align: 'right' });
+            }
+        });
+
+        // Save the PDF
+        doc.save("monetary-donations.pdf");
+        Swal.close(); 
+        Swal.fire("Success", "Monetary Donations exported to PDF!", "success");
     });
 
     function deleteMonetaryDonation(firebaseKey) {
