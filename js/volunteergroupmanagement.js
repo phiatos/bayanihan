@@ -550,7 +550,11 @@ function clearAOOInputs() {
 function clearAInputs() {
   const form = document.getElementById('addOrgForm');
   const container = document.getElementById('areaOperationContainer');
-  if (form) form.reset();
+  if (form) {
+    form.reset();
+    // Explicitly clear the mobile number field
+    form.mobileNumber.value = '';
+  }
   if (container) container.innerHTML = '';
 }
 
@@ -752,6 +756,7 @@ if (confirmSaveBtn) {
       // Check if mobile number already exists
       const usersSnapshot = await database.ref('users').once('value');
       const users = usersSnapshot.val();
+      console.log("All users in database:", users);
       if (users) {
         for (const userData of Object.values(users)) {
           const storedMobile = formatMobileNumber(userData.mobile);
@@ -761,6 +766,7 @@ if (confirmSaveBtn) {
             continue;
           }
           if (storedMobile === orgData.mobileNumber) {
+            console.log(`Match found! Mobile number ${orgData.mobileNumber} already registered for user:`, userData);
             throw new Error("Mobile number already registered.");
           }
         }
@@ -778,15 +784,6 @@ if (confirmSaveBtn) {
         throw new Error("Error creating user in Firebase Authentication: " + error.message);
       }
       const newUser = userCredential.user;
-
-      // Send email verification to the actual email
-      const actionCodeSettings = {
-        url: `${window.location.origin}/Bayanihan-PWA/pages/login.html`,
-        handleCodeInApp: false,
-      };
-      console.log("Sending verification email to new user:", orgData.email);
-      await newUser.sendEmailVerification(actionCodeSettings);
-      console.log("Verification email sent successfully to:", orgData.email);
 
       // Save user data to users/<uid>
       await database.ref(`users/${newUser.uid}`).set({
@@ -809,20 +806,19 @@ if (confirmSaveBtn) {
         userId: newUser.uid
       });
 
-      // Send EmailJS confirmation with temporary password using updated service and template IDs
+      // Send EmailJS email with credentials (without verification message)
       await emailjs.send('service_g5f0erj', 'template_0yk865p', {
         email: orgData.email,
         organization: orgData.organization,
         tempPassword: tempPassword,
         mobileNumber: orgData.mobileNumber,
-        message: `Your volunteer group "${orgData.organization}" has been successfully registered with Bayanihan. Please use the credentials below to log in after verifying your email.`,
-        verification_message: `A verification email has been sent to ${orgData.email}. Please click the link in that email to verify your account before logging in.`
+        message: `Your volunteer group "${orgData.organization}" has been successfully registered with Bayanihan. Please use the credentials below to log in. You will be prompted to verify your email upon your first login.`
       });
 
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'Volunteer group added successfully! A verification email has been sent. Please verify the email before logging in.'
+        text: 'Volunteer group added successfully! An email with login credentials has been sent to the user.'
       });
       orgData = null;
       const confirmModal = document.getElementById('confirmModal');

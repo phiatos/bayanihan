@@ -184,7 +184,7 @@ document.addEventListener("DOMContentLoaded", () => {
             console.log("Sending verification email to ABVN user:", user.email);
             await sendEmailVerification(user, actionCodeSettings);
             console.log("Verification email sent successfully to:", user.email);
-            alert("A verification email has been sent to your email address. Please verify your email before logging in (check spam/junk folder).");
+            alert("Your email address is not verified. A verification email has been sent to your email address. Please verify your email to proceed with login (check spam/junk folder).");
           } catch (error) {
             console.error("Error sending verification email:", error);
             alert("Failed to send verification email: " + error.message);
