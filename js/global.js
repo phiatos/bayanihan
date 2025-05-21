@@ -140,7 +140,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         if (userRole === "admin") {
                             window.location.replace(`${BASE_PATH}/pages/dashboard.html`);
                         } else if (userRole === "volunteer" || userRole === "ABVN") {
-                            window.location.replace(`${BASE_PATH}/volunteer-dashboard.html`); // Assuming volunteer-dashboard is correct
+                            window.location.replace(`${BASE_PATH}/pages/dashboard.html`); 
                         } else {
                             // Default redirection if role is not recognized or missing
                             window.location.replace(`${BASE_PATH}/pages/dashboard.html`);
