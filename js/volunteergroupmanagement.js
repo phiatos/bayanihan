@@ -123,7 +123,10 @@ document.addEventListener('mousemove', (e) => {
 
 // Utility functions
 function formatMobileNumber(mobile) {
-  const cleaned = mobile.replace(/\D/g, "");
+  let cleaned = mobile.replace(/\D/g, "");
+  if (cleaned.startsWith("63") && cleaned.length === 12) {
+    cleaned = "0" + cleaned.slice(2);
+  }
   if (/^\d{10,15}$/.test(cleaned)) {
     return cleaned;
   }
@@ -650,7 +653,7 @@ if (addOrgForm) {
       Swal.fire({
         icon: 'error',
         title: 'Invalid Mobile Number',
-        text: 'Mobile number must be 10-15 digits.'
+        text: 'Mobile number must be 10-15 digits (e.g., 091xxxxxxxx or +639xxxxxxxxx).'
       });
       return;
     }
@@ -749,15 +752,41 @@ if (confirmSaveBtn) {
       // Check if mobile number already exists
       const usersSnapshot = await database.ref('users').once('value');
       const users = usersSnapshot.val();
-      if (users && Object.values(users).some(user => user.mobile === orgData.mobileNumber)) {
-        throw new Error("Mobile number already registered.");
+      if (users) {
+        for (const userData of Object.values(users)) {
+          const storedMobile = formatMobileNumber(userData.mobile);
+          console.log(`Comparing mobile: ${orgData.mobileNumber} with stored: ${userData.mobile} -> ${storedMobile}`);
+          if (storedMobile === null || orgData.mobileNumber === null) {
+            console.log(`Skipping comparison due to invalid mobile number: ${orgData.mobileNumber} vs ${storedMobile}`);
+            continue;
+          }
+          if (storedMobile === orgData.mobileNumber) {
+            throw new Error("Mobile number already registered.");
+          }
+        }
       }
 
-      // Create Firebase Authentication account
+      // Create Firebase Authentication account with the actual email
       const tempPassword = generateTempPassword();
-      const syntheticEmail = `${orgData.mobileNumber}@bayanihan.com`;
-      const userCredential = await secondaryAuth.createUserWithEmailAndPassword(syntheticEmail, tempPassword);
+      let userCredential;
+      try {
+        userCredential = await secondaryAuth.createUserWithEmailAndPassword(orgData.email, tempPassword);
+      } catch (error) {
+        if (error.code === 'auth/email-already-in-use') {
+          throw new Error("Email already registered in Firebase Authentication.");
+        }
+        throw new Error("Error creating user in Firebase Authentication: " + error.message);
+      }
       const newUser = userCredential.user;
+
+      // Send email verification to the actual email
+      const actionCodeSettings = {
+        url: `${window.location.origin}/Bayanihan-PWA/pages/login.html`,
+        handleCodeInApp: false,
+      };
+      console.log("Sending verification email to new user:", orgData.email);
+      await newUser.sendEmailVerification(actionCodeSettings);
+      console.log("Verification email sent successfully to:", orgData.email);
 
       // Save user data to users/<uid>
       await database.ref(`users/${newUser.uid}`).set({
@@ -767,7 +796,8 @@ if (confirmSaveBtn) {
         mobile: orgData.mobileNumber,
         organization: orgData.organization,
         contactPerson: orgData.contactPerson,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        emailVerified: false
       });
 
       // Save volunteer group
@@ -780,18 +810,19 @@ if (confirmSaveBtn) {
       });
 
       // Send EmailJS confirmation with temporary password using updated service and template IDs
-      await emailjs.send('service_g5f0erj', 'template_0yk865p', { // Updated to your new service ID and template ID
+      await emailjs.send('service_g5f0erj', 'template_0yk865p', {
         email: orgData.email,
         organization: orgData.organization,
         tempPassword: tempPassword,
         mobileNumber: orgData.mobileNumber,
-        message: `Your volunteer group "${orgData.organization}" has been successfully registered with Bayanihan. Please use the credentials below to log in.`
+        message: `Your volunteer group "${orgData.organization}" has been successfully registered with Bayanihan. Please use the credentials below to log in after verifying your email.`,
+        verification_message: `A verification email has been sent to ${orgData.email}. Please click the link in that email to verify your account before logging in.`
       });
 
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'Volunteer group added successfully and credentials sent!'
+        text: 'Volunteer group added successfully! A verification email has been sent. Please verify the email before logging in.'
       });
       orgData = null;
       const confirmModal = document.getElementById('confirmModal');
