@@ -13,8 +13,8 @@ const firebaseConfig = {
 // Initialize Firebase (using the modular SDK imports as per your global.js)
 // Make sure to add these imports at the top of your profile.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js"; // Added signOut for potential use
-import { getDatabase, ref, update, get } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js"; // Added signOut for potential use
+import { get, getDatabase, ref, update } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
 
 const app = initializeApp(firebaseConfig); // Initialize the app here
 const auth = getAuth(app); // Use getAuth from modular SDK
