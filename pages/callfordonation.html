@@ -124,12 +124,8 @@
                     </div>
                 </div>
 
-<<<<<<< HEAD
                 <div class="table-responsive-container">
                     <table id="donationTable">
-=======
-                <table id="donationTable">
->>>>>>> eb5d94e336269e3c8f4277ee253974bf6e63cffb
                     <thead>
                     <tr>
                         <th>No.</th>
@@ -145,11 +141,8 @@
                     </thead>
                     <tbody></tbody>
                 </table>
-<<<<<<< HEAD
                 </div>
                 
-=======
->>>>>>> eb5d94e336269e3c8f4277ee253974bf6e63cffb
 
                 <div class="pagination-info">
                     <span id="entriesInfo">Showing 0 to 0 of 0 entries</span>
@@ -164,42 +157,21 @@
         </div>
 
     <script>
-<<<<<<< HEAD
-=======
-        // Fetch the sidebar HTML and inject it into the page
->>>>>>> eb5d94e336269e3c8f4277ee253974bf6e63cffb
         fetch('../components/sidebar.html')
         .then(response => response.text())
         .then(data => {
             document.querySelector('.sidebar-placeholder').innerHTML = data;
-<<<<<<< HEAD
             const sidebarScript = document.createElement('script');
             sidebarScript.src = '../components/sidebar.js'; 
             sidebarScript.onload = function() {
             };
-=======
-
-            // Create a new script element
-            const sidebarScript = document.createElement('script');
-            sidebarScript.src = '../components/sidebar.js'; 
-
-            // Call initSidebar when the script has loaded and executed
-            sidebarScript.onload = function() {
-            };
-
-            // Append the script element to the sidebar-placeholder
->>>>>>> eb5d94e336269e3c8f4277ee253974bf6e63cffb
             document.querySelector('.sidebar-placeholder').appendChild(sidebarScript);
         })
         .catch(error => {
             console.error('Error loading sidebar:', error);
         });
     </script>
-<<<<<<< HEAD
 
     <script src="../js/callfordonation.js"></script>
-=======
-<script src="../js/callfordonation.js"></script>
->>>>>>> eb5d94e336269e3c8f4277ee253974bf6e63cffb
 </body>
 </html>

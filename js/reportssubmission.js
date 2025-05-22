@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-        function formatTo12Hour(timeStr) {
+    function formatTo12Hour(timeStr) {
         const [hour, minute] = timeStr.split(':');
         const h = parseInt(hour);
         const ampm = h >= 12 ? 'PM' : 'AM';
@@ -62,11 +62,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Auto-set today's date
-    const dateInput = document.getElementById('dateOfReport');
-    if (dateInput) {
+    const dateOfReportInput = document.getElementById('dateOfReport'); // Renamed to avoid conflict
+    if (dateOfReportInput) {
         const today = new Date();
-        const formatted = today.toLocaleDateString('en-CA');
-        dateInput.value = formatted;
+        const formatted = today.toLocaleDateString('en-CA'); // 'YYYY-MM-DD'
+        dateOfReportInput.value = formatted;
     }
 
     // Generate random report ID
@@ -76,7 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
         idInput.value = randomId;
     }
 
-    // 🔧 FIXED: Map modal button logic
+    // Map modal button logic
     const pinBtn = document.getElementById('pinBtn');
     const mapModal = document.getElementById('mapModal');
     const closeBtn = document.querySelector('.closeBtn');
@@ -100,14 +100,6 @@ document.addEventListener('DOMContentLoaded', () => {
         console.warn('Modal elements not found');
     }
 
-    function formatTo12Hour(timeStr) {
-        const [hour, minute] = timeStr.split(':');
-        const h = parseInt(hour);
-        const ampm = h >= 12 ? 'PM' : 'AM';
-        const formattedHour = h % 12 || 12;
-        return `${formattedHour}:${minute} ${ampm}`;
-    }
-
     const submittedByInput = document.getElementById('SubmittedBy');
     if (submittedByInput) {
         const volunteerGroup = JSON.parse(localStorage.getItem("loggedInVolunteerGroup"));
@@ -116,14 +108,96 @@ document.addEventListener('DOMContentLoaded', () => {
         submittedByInput.readOnly = true;
     }
 
-    // Handle navigation
+    // ---
+    // Handle navigation and Date Validation
+    // ---
     nextBtn.addEventListener('click', () => {
-        if (formPage1.checkValidity()) {
-            formPage1.style.display = "none";
-            formPage2.style.display = "block";
-        } else {
-            formPage1.reportValidity();
+        // First, check if the basic form validity for page 1 is met
+        if (!formPage1.checkValidity()) {
+            formPage1.reportValidity(); // Show native browser validation messages
+            return; // Stop if form page 1 is not valid
         }
+
+        const startDateInput = document.getElementById('StartDate');
+        const endDateInput = document.getElementById('EndDate');
+
+        // Check if date inputs exist on the page (they should, given checkValidity above)
+        if (!startDateInput || !endDateInput) {
+            console.error("StartDate or EndDate input not found. Cannot perform date validation.");
+            // If they are missing, we still don't want to proceed
+            return;
+        }
+        
+        const startDateValue = startDateInput.value;
+        const endDateValue = endDateInput.value;
+
+        // Ensure both date fields are filled before detailed validation
+        if (!startDateValue || !endDateValue) {
+            alert("Please fill in both Start Date and End Date.");
+            if (!startDateValue) {
+                startDateInput.focus();
+            } else {
+                endDateInput.focus();
+            }
+            return; // Stop execution
+        }
+
+        // Create Date objects from input values.
+        // It's best to use a consistent parsing method or ensure the date string is YYYY-MM-DD
+        // to avoid timezone issues when creating a new Date object.
+        const startDate = new Date(startDateValue + 'T00:00:00'); // Append T00:00:00 to force UTC midnight for consistency
+        const endDate = new Date(endDateValue + 'T00:00:00');
+
+        // Get today's date, normalized to midnight local time
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Normalize to the start of the day for accurate local date comparison
+
+        // Set a reasonable "future" limit for EndDate (e.g., 1 year from today)
+        const oneYearFromNow = new Date(today); // Start from today's normalized date
+        oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+        // No need to set to end of day if `today` is already normalized to start of day
+
+        // --- Date Validation Logic ---
+
+        // 1. Check for Invalid Dates (e.g., if input string was malformed)
+        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+            alert("Invalid date entered. Please use the date picker to select valid dates.");
+            if (isNaN(startDate.getTime())) {
+                startDateInput.focus();
+            } else {
+                endDateInput.focus();
+            }
+            return;
+        }
+
+        // 2. Start Date cannot be in the future (compared to today)
+        // If startDate is exactly today, it should be allowed.
+        if (startDate > today) {
+            alert("Start Date cannot be a future date.");
+            startDateInput.focus();
+            return;
+        }
+
+        // 3. Start Date cannot be after End Date
+        if (startDate > endDate) {
+            alert("Start Date cannot be after End Date.");
+            startDateInput.focus();
+            return;
+        }
+
+        // 4. End Date not excessively far in the future (e.g., more than 1 year from today)
+        // This checks if endDate is beyond our defined future limit.
+        if (endDate > oneYearFromNow) {
+            alert("End Date cannot be more than 1 year from today. Please enter a valid date range.");
+            endDateInput.focus();
+            return;
+        }
+
+        // --- End Date Validation Logic ---
+
+        // If ALL validations (formPage1.checkValidity() AND date validations) pass, then proceed to Page 2
+        formPage1.style.display = "none";
+        formPage2.style.display = "block";
     });
 
     backBtn.addEventListener('click', () => {
@@ -142,16 +216,17 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const startDateInput = document.querySelector('input[id="StartDate"]');
-        const endDateInput = document.querySelector('input[id="EndDate"]');
+        // Retrieve date inputs again for formData, using their current values
+        const startDateInput = document.getElementById('StartDate');
+        const endDateInput = document.getElementById('EndDate');
 
         const formData = {
-            VolunteerGroupName: volunteerGroupName, // e.g., "RAZEL KIM ORG"
-            userUid, // Include the UID in formData but won't display in UI
+            VolunteerGroupName: volunteerGroupName,
+            userUid,
             AreaOfOperation: document.querySelector('input[placeholder="e.g. Purok 2, Brgy. Maligaya, Rosario"]').value,
             TimeOfIntervention: document.querySelector('input[placeholder="Completion Time of Intervention"]')?.value || "N/A",
-            SubmittedBy: document.querySelector('input[placeholder="Submitted by"]')?.value || "N/A",
-            DateOfReport: dateInput.value || "N/A",
+            SubmittedBy: document.getElementById('SubmittedBy').value || "N/A",
+            DateOfReport: dateOfReportInput.value || "N/A", // Use the renamed input
             ReportID: idInput.value || "N/A",
             StartDate: startDateInput?.value || "N/A",
             EndDate: endDateInput?.value || "N/A",
@@ -187,9 +262,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const savedData = JSON.parse(localStorage.getItem("reportData"));
         if (savedData) {
             document.querySelector('input[placeholder="e.g. Purok 2, Brgy. Maligaya, Rosario"]').value = savedData.AreaOfOperation || '';
-            document.querySelector('input[placeholder="Time of Intervention"]').value = savedData.TimeOfIntervention || '';
-            document.querySelector('input[placeholder="Submitted by"]').value = savedData.SubmittedBy || '';
-            document.querySelector('input[type="date"]').value = savedData.Date || '';
+            document.querySelector('input[placeholder="Completion Time of Intervention"]').value = savedData.TimeOfIntervention || '';
+            document.getElementById('SubmittedBy').value = savedData.SubmittedBy || '';
+            document.getElementById('dateOfReport').value = savedData.DateOfReport || '';
+            document.getElementById('reportId').value = savedData.ReportID || '';
+            document.getElementById('StartDate').value = savedData.StartDate || '';
+            document.getElementById('EndDate').value = savedData.EndDate || '';
             document.querySelector('input[placeholder="No. of Individuals or Families"]').value = savedData.NoOfIndividualsOrFamilies || '';
             document.querySelector('input[placeholder="No. of Food Packs"]').value = savedData.NoOfFoodPacks || '';
             document.querySelector('input[placeholder="No. of Hot Meals"]').value = savedData.NoOfHotMeals || '';
@@ -197,6 +275,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.querySelector('input[placeholder="No. of Volunteers Mobilized"]').value = savedData.NoOfVolunteersMobilized || '';
             document.querySelector('input[placeholder="No. of Organizations Activated"]').value = savedData.NoOfOrganizationsActivated || '';
             document.querySelector('input[placeholder="Total Value of In-Kind Donations"]').value = savedData.TotalValueOfInKindDonations || '';
+            document.querySelector('input[placeholder="Total Monetary Donations"]').value = savedData.TotalMonetaryDonations || '';
             document.querySelector('textarea').value = savedData.NotesAdditionalInformation || '';
         }
 
