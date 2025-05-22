@@ -27,14 +27,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const sortSelect = document.getElementById('sortSelect');
     const entriesInfo = document.getElementById('entriesInfo');
     const pagination = document.getElementById('pagination');
+    const savePdfBtn = document.getElementById('savePdfBtn');
+    const exportExcelBtn = document.getElementById('exportExcelBtn'); 
 
-    if (!tableBody || !searchInput || !sortSelect || !entriesInfo || !pagination) {
+    if (!tableBody || !searchInput || !sortSelect || !entriesInfo || !pagination || !savePdfBtn || !exportExcelBtn) {
         console.error('One or more DOM elements are missing:', {
             tableBody: !!tableBody,
             searchInput: !!searchInput,
             sortSelect: !!sortSelect,
             entriesInfo: !!entriesInfo,
-            pagination: !!pagination
+            pagination: !!pagination,
+            savePdfBtn: !!savePdfBtn,
+            exportExcelBtn: !!exportExcelBtn
         });
         return;
     }
@@ -43,6 +47,165 @@ document.addEventListener('DOMContentLoaded', () => {
     let filteredData = [];
     let currentPage = 1;
     const rowsPerPage = 5;
+
+    // --- PDF Generation ---
+    savePdfBtn.addEventListener('click', () => {
+        Swal.fire({
+            title: 'Generating PDF...',
+            text: 'Please wait while the PDF is being created.',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        const doc = new window.jspdf.jsPDF('l', 'mm', 'a4'); 
+
+        const headers = [
+            'No.', 'Relief ID', 'Volunteer Group Name', 'City', 'Drop-off Address',
+            'Contact Person', 'Contact Number', 'Request Category', 'Status', 'Notes'
+        ];
+
+        const body = filteredData.map((item, index) => {
+            return [
+                index + 1, 
+                item.id,
+                item.group,
+                item.city,
+                item.address,
+                item.contact,
+                item.number,
+                item.category,
+                item.status || 'Pending', 
+                item.notes || 'N/A' 
+            ];
+        });
+
+        doc.autoTable({
+            head: [headers],
+            body: body,
+            startY: 20,
+            theme: 'striped',
+            headStyles: {
+                fillColor: [41, 128, 185],
+                textColor: 255,
+                fontStyle: 'bold',
+                fontSize: 10
+            },
+            styles: {
+                fontSize: 8,
+                cellPadding: 2,
+                overflow: 'linebreak'
+            },
+            columnStyles: {
+                0: { cellWidth: 10 },
+                1: { cellWidth: 20 },
+                2: { cellWidth: 35 },
+                3: { cellWidth: 25 },
+                4: { cellWidth: 45 },
+                5: { cellWidth: 30 },
+                6: { cellWidth: 25 },
+                7: { cellWidth: 25 },
+                8: { cellWidth: 20 },
+                9: { cellWidth: 30 }
+            },
+            didDrawPage: function (data) {
+                doc.setFontSize(14);
+                doc.setTextColor(40);
+                doc.text('Relief Request Log', data.settings.margin.left, 15);
+            }
+        });
+
+        doc.save('Relief_Request_Log.pdf');
+        Swal.close(); 
+
+        Swal.fire({
+            title: 'Success!',
+            text: 'PDF generated successfully!',
+            icon: 'success',
+            timer: 1500, 
+            showConfirmButton: false
+        });
+    });
+
+    // --- Excel Export Logic ---
+    exportExcelBtn.addEventListener('click', () => {
+        Swal.fire({
+            title: 'Generating Excel...',
+            text: 'Please wait while the Excel file is being created.',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        try {
+            const worksheetData = [];
+            
+            // Add headers
+            const headers = [
+                'No.', 'Relief ID', 'Volunteer Group Name', 'City', 'Drop-off Address',
+                'Contact Person', 'Contact Number', 'Request Category', 'Status', 'Notes'
+            ];
+            worksheetData.push(headers);
+
+            // Add data rows
+            filteredData.forEach((item, index) => {
+                worksheetData.push([
+                    index + 1,
+                    item.id,
+                    item.group,
+                    item.city,
+                    item.address,
+                    item.contact,
+                    item.number,
+                    item.category,
+                    item.status || 'Pending',
+                    item.notes || 'N/A'
+                ]);
+            });
+
+            // Create a worksheet
+            const ws = XLSX.utils.aoa_to_sheet(worksheetData);
+
+            // Optional: Set column widths for better display in Excel
+            const wscols = [
+                {wch: 5},   // No.
+                {wch: 15},  // Relief ID
+                {wch: 30},  // Volunteer Group Name
+                {wch: 20},  // City
+                {wch: 40},  // Drop-off Address
+                {wch: 25},  // Contact Person
+                {wch: 20},  // Contact Number
+                {wch: 25},  // Request Category
+                {wch: 15},  // Status
+                {wch: 35}   // Notes
+            ];
+            ws['!cols'] = wscols;
+
+            // Create a workbook
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Relief Requests");
+
+            // Write and download the file
+            XLSX.writeFile(wb, 'Relief_Request_Log.xlsx');
+
+            Swal.close();
+            Swal.fire({
+                title: 'Success!',
+                text: 'Excel file generated successfully!',
+                icon: 'success',
+                timer: 1500,
+                showConfirmButton: false
+            });
+
+        } catch (error) {
+            console.error('Error generating Excel:', error);
+            Swal.close();
+            Swal.fire('Error!', 'Failed to generate Excel: ' + error.message, 'error');
+        }
+    });
+
 
     searchInput.addEventListener('input', function() {
         const searchTerm = this.value.toLowerCase();
