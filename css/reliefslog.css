@@ -1,5 +1,6 @@
 /* Modal Table Styling */
 #reliefModal .modal-content table {
+  overflow-y: auto;
   width: 100%;
   border-collapse: collapse;
   margin-top: 20px;

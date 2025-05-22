@@ -242,7 +242,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     category: request.category,
                     userUid: request.userUid || "N/A", // Keep userUid in data
                     items: request.items || [],
-                    firebaseKey: key
+                    firebaseKey: key,
+                    status: request.status || "",         // ADD THIS
+                    notes: request.notes || ""
                 });
             });
             console.log('Data fetched successfully:', data);
@@ -296,7 +298,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </td>
 
             <td>
-                <button class="saveBtn" data-id="${item.id}">Save</button>
+                <button class="saveBtn" data-key="${item.firebaseKey}">Save</button>
                 <button class="viewBtn" data-index="${data.indexOf(item)}">View</button>
                 <button class="deleteBtn" data-key="${item.firebaseKey}">Delete</button>
             </td>
@@ -305,40 +307,42 @@ document.addEventListener('DOMContentLoaded', () => {
         tableBody.appendChild(tr);
     });
 
-    attachSaveListeners(); // important
-
         entriesInfo.textContent = `Showing ${filteredData.length ? start + 1 : 0} to ${Math.min(end, filteredData.length)} of ${filteredData.length} entries`;
         renderPagination();
+        attachSaveListeners();
     }
 
     function attachSaveListeners() {
-    const saveButtons = document.querySelectorAll('.saveBtn');
-
-    saveButtons.forEach(button => {
-        button.addEventListener('click', () => {
-            const id = button.getAttribute('data-id');
-            const row = button.closest('tr');
-            const notes = row.querySelector('.notesInput').value.trim();
+    document.querySelectorAll('.saveBtn').forEach(button => {
+        button.addEventListener('click', function () {
+            const key = this.dataset.key;
+            const row = this.closest('tr');
             const status = row.querySelector('.statusSelect').value;
+            const notes = row.querySelector('.notesInput').value;
 
-            if (!status) {
-                Swal.fire('Please select a status before saving.');
-                return;
-            }
-
-            // Example: Save to Firebase
-            const updateRef = firebase.database().ref('reliefRequests').child(id);
-            updateRef.update({
-                notes: notes,
-                status: status
+            // Save to Firebase
+            database.ref(`requestRelief/requests/${key}`).update({
+                status: status,
+                notes: notes
             }).then(() => {
-                Swal.fire('Saved!', 'Notes and status have been updated.', 'success');
-            }).catch(err => {
-                Swal.fire('Error', err.message, 'error');
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Saved!',
+                    text: 'Status and notes updated successfully.',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+            }).catch(error => {
+                console.error('Error saving to Firebase:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Save failed',
+                    text: error.message
+                });
             });
         });
     });
-}
+    }
 
     document.getElementById('closeModal').addEventListener('click', () => {
         document.getElementById('reliefModal').classList.add('hidden');

@@ -417,6 +417,7 @@ table {
   border-collapse: collapse;
   min-width: unset;
   table-layout: auto;
+  overflow-y: auto;
 }
 
 th, td {
