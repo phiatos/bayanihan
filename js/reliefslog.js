@@ -116,7 +116,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        doc.save('Relief_Request_Log.pdf');
+        // doc.save('Relief_Request_Log.pdf');
+        doc.save(`Relief_Request_Log_${new Date().toISOString().slice(0,10)}.pdf`);
         Swal.close(); 
 
         Swal.fire({

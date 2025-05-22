@@ -7,19 +7,18 @@
     <link rel="stylesheet" href="../components/sidebar.css" />
     <link rel="stylesheet" href="../css/global.css" />
     <link rel='stylesheet' href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css'/>
-     
     <!-- Firebase Compat SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    
     <!-- PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
-
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <!-- Excel -->
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+    
     <title>Reports Log</title>
 </head>
 <body>
@@ -31,9 +30,8 @@
                     <header>Reports Log</header>
                 </div>
                 <div class="controls_right">
-                    <button id="exportExcelBtn" class="export-button">
-                        <i class='bx bxs-file-export'></i> Export to Excel
-                    </button>
+                    <button id="savePdfBtn" class="pdf-button">Save to PDF</button>
+                    <button id="exportExcelBtn" class="excel-button">Export to Excel</button> 
                     <div class="search-wrapper">
                         <i class="fa fa-search"></i>
                         <input type="text" placeholder="Search" id="searchInput" />
