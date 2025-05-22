@@ -19,6 +19,15 @@ form.secActive .form.first {
     pointer-events: none;
 }
 
+#group-title {
+    font-size: 24px; 
+    font-weight: 700; 
+    color: var(--primary-color); 
+    margin-top: 15px; 
+    text-align: left; 
+    letter-spacing: 0.5px; 
+}
+
 /* --- Form Section Styling --- */
 .form-container-1,
 .form-container-2 {
@@ -54,11 +63,20 @@ form .fields .input-field {
     margin: 4px 0;
 }
 
+.form-container-2 .input-field {
+    position: relative;
+    margin: 30px 0;
+    display: flex;
+    flex-direction: column;
+}
+
 /* --- Input Elements --- */
 .input-field label {
     font-size: 12px;
     font-weight: 700;
+    margin-bottom: 5px;
     color: var(--primary-color);
+    text-align: left; 
 }
 
 .input-field input,
@@ -74,6 +92,18 @@ form .fields .input-field {
     word-wrap: break-word;
 }
 
+.form-container-2 .input-field input {
+    flex-grow: 1;
+    width: 100%;
+    padding: 10px 15px;
+    border-radius: 5px;
+    border: 1px solid #aaa;
+    font-size: 14px;
+    color: #333;
+    font-weight: 400;
+    background-color: var(--white); 
+}
+
 .input-field input:is(:focus, :valid) {
     box-shadow: 0 3px 6px rgba(0, 0, 0, 0.13);
 }
@@ -84,6 +114,23 @@ form .fields .input-field {
 
 .input-field input[type="date"]:valid {
     color: #000;
+}
+
+.input-box-input-with-icon { 
+    display: flex;
+    align-items: center; 
+}
+
+
+
+.input-field i{
+    position: absolute;
+    right: 15px;
+    margin-left: 10px; 
+    font-size: 20px;
+    color: #888;
+    cursor: pointer;
+    z-index: 2; 
 }
 
 /* --- Buttons --- */
@@ -271,9 +318,10 @@ body.modal-open .sidebar-placeholder {
 }
 
 /* --- Responsive Layout --- */
-@media (max-width: 750px) {
+@media (max-width: 768px) {
     form .fields .input-field {
-        width: calc(100% / 2 - 15px);
+        width: calc(100% /2 - 100px);
+        width: 100%;   
     }
 
     .main-container form {
@@ -290,3 +338,4 @@ body.modal-open .sidebar-placeholder {
         width: 100%;
     }
 }
+

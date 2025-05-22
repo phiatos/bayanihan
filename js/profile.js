@@ -320,6 +320,48 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
+    // --- Password Toggle Functionality ---
+    // Function to set up password toggle for a given input field
+    const setupPasswordToggle = (passwordInputId) => {
+        const passwordInput = document.getElementById(passwordInputId);
+        // Assuming your HTML will have sibling elements for the icons
+        // For example:
+        // <div class="input-field">
+        //     <label>Current Password</label>
+        //     <input type="password" id="current-password" placeholder="Enter your current password" required>
+        //     <i class='bx bxs-lock-alt password-toggle-closed' data-target-id='current-password'></i>
+        //     <i class='bx bxs-lock-open-alt password-toggle-open' data-target-id='current-password'></i>
+        // </div>
+
+        // We need to find the specific icons for this input
+        const parentDiv = passwordInput ? passwordInput.parentElement : null;
+        const lockIcon = parentDiv ? parentDiv.querySelector('.password-toggle-closed') : null;
+        const openLockIcon = parentDiv ? parentDiv.querySelector('.password-toggle-open') : null;
+
+        if (lockIcon && openLockIcon && passwordInput) {
+            openLockIcon.style.display = 'none'; // Initially hide the open lock
+
+            lockIcon.addEventListener('click', () => {
+                passwordInput.type = 'text';
+                lockIcon.style.display = 'none';
+                openLockIcon.style.display = 'inline';
+            });
+
+            openLockIcon.addEventListener('click', () => {
+                passwordInput.type = 'password';
+                openLockIcon.style.display = 'none';
+                lockIcon.style.display = 'inline';
+            });
+        } else {
+            console.warn(`Password toggle icons or input not found for ${passwordInputId}`);
+        }
+    };
+
+    // Apply password toggle to all password fields
+    setupPasswordToggle('current-password');
+    setupPasswordToggle('new-password');
+    setupPasswordToggle('confirm-new-password');
+
     // Password change handling
     const form = document.querySelector("form"); // Updated selector to match HTML
     if (form) {
