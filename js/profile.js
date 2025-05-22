@@ -164,13 +164,51 @@ document.addEventListener("DOMContentLoaded", () => {
     auth.onAuthStateChanged(user => {
         if (user) {
             console.log("User is authenticated:", user.uid);
-            fetchUserData(user);
+            // Check if email is verified for non-admin users
+            database.ref('users').orderByChild('email').equalTo(user.email).once('value')
+                .then(snapshot => {
+                    if (snapshot.exists()) {
+                        let userData = null;
+                        snapshot.forEach(childSnapshot => {
+                            userData = childSnapshot.val();
+                        });
+                        if (userData.role !== 'AB ADMIN' && !user.emailVerified) {
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Email Not Verified',
+                                text: 'Please verify your email to access this page. Check your inbox or spam folder for the verification email.'
+                            }).then(() => {
+                                auth.signOut();
+                                window.location.replace('/Bayanihan-PWA/pages/login.html');
+                            });
+                            return;
+                        }
+                        fetchUserData(user);
+                    } else {
+                        console.error("No user data found for email:", user.email);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'User Data Not Found',
+                            text: 'User data not found in the database. Please contact support.'
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking user data:', error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Failed to verify user data: ' + error.message
+                    });
+                });
         } else {
             console.error("No user is authenticated.");
             Swal.fire({
                 icon: 'error',
                 title: 'Not Logged In',
                 text: 'Please log in to view your profile.'
+            }).then(() => {
+                window.location.replace('/Bayanihan-PWA/pages/login.html');
             });
         }
     });
@@ -180,9 +218,9 @@ document.addEventListener("DOMContentLoaded", () => {
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
 
-        const userMobile = localStorage.getItem("userMobile");
-        if (!userMobile) {
-            console.error("No userMobile found for password change.");
+        const user = auth.currentUser;
+        if (!user) {
+            console.error("No user is signed in.");
             Swal.fire({
                 icon: 'error',
                 title: 'Not Logged In',
@@ -215,7 +253,6 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        // Password complexity check (at least one uppercase, one number)
         const passwordRegex = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
         if (!passwordRegex.test(newPassword)) {
             Swal.fire({
@@ -227,40 +264,49 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         try {
-            const user = auth.currentUser;
-            if (!user) {
-                throw new Error('No user is currently signed in.');
+            // Use the email from the authenticated user
+            const userEmail = user.email;
+            if (!userEmail) {
+                throw new Error('No email associated with this user.');
             }
 
-            const userEmail = `${userMobile}@bayanihan.com`;
+            // Reauthenticate with the user's actual email
             const credential = firebase.auth.EmailAuthProvider.credential(userEmail, currentPassword);
             await user.reauthenticateWithCredential(credential);
             await user.updatePassword(newPassword);
 
-            // Update the password in localStorage (since it's stored there by global.js)
+            // Update the password in localStorage (if necessary)
             localStorage.setItem('userPassword', newPassword);
+
+            // Update the database with the last password change
+            const userMobile = localStorage.getItem("userMobile");
+            if (userMobile) {
+                await database.ref('users').orderByChild('mobile').equalTo(userMobile).once('value', snapshot => {
+                    snapshot.forEach(childSnapshot => {
+                        database.ref(`users/${childSnapshot.key}`).update({
+                            lastPasswordChange: new Date().toISOString()
+                        });
+                    });
+                });
+            }
 
             Swal.fire({
                 icon: 'success',
                 title: 'Password Changed',
-                text: 'Your password has been updated successfully. A confirmation has been sent to your email.'
+                text: 'Your password has been updated successfully.'
             });
 
-            await database.ref('users').orderByChild('mobile').equalTo(userMobile).once('value', snapshot => {
-                snapshot.forEach(childSnapshot => {
-                    database.ref(`users/${childSnapshot.key}`).update({
-                        lastPasswordChange: new Date().toISOString(),
-                        tempPasswordLog: newPassword 
-                    });
-                });
-            });
             form.reset();
         } catch (error) {
             console.error('Password change error:', error);
+            let errorMessage = 'Failed to change password. Please ensure your current password is correct.';
+            if (error.code === 'auth/invalid-credential') {
+                errorMessage = 'Incorrect current password or authentication issue.';
+            }
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
-                text: error.message || 'Failed to change password.'
+                text: errorMessage
             });
         }
     });
