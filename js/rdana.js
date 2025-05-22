@@ -66,22 +66,30 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Function to validate form inputs using HTML5 validation
-  function validatePageInputs(pageSelector) {
-    const inputs = document.querySelectorAll(`${pageSelector} input[required], ${pageSelector} select[required], ${pageSelector} textarea[required]`);
-    let isValid = true;
+ function validatePageInputs(pageSelector) {
+  const inputs = document.querySelectorAll(`${pageSelector} input[required], ${pageSelector} select[required], ${pageSelector} textarea[required]`);
+  let isValid = true;
 
-    inputs.forEach(input => {
-      if (!input.value.trim()) {
-        isValid = false;
-        input.classList.add("input-error");
-      } else {
-        input.classList.remove("input-error");
+  inputs.forEach(input => {
+    const errorMessage = input.nextElementSibling;
+    if (!input.value.trim()) {
+      isValid = false;
+      input.classList.add("input-error");
+      if (errorMessage && errorMessage.classList.contains("error-message")) {
+        errorMessage.textContent = "This field is required.";
+        errorMessage.style.display = "block";
       }
-    });
+    } else {
+      input.classList.remove("input-error");
+      if (errorMessage && errorMessage.classList.contains("error-message")) {
+        errorMessage.style.display = "none";
+      }
+    }
+  });
 
-    return isValid;
-  }
+  return isValid;
+}
+
 
   // Input validation for text fields
   document.querySelectorAll('input[type="text"]').forEach(input => {
@@ -598,149 +606,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  function approveReport(report) {
-    auth.onAuthStateChanged(user => {
-      if (!user) {
-        Swal.fire({
-          icon: 'error',
-          title: 'Authentication Required',
-          text: 'Please sign in to approve reports.',
-        }).then(() => {
-          window.location.href = "../pages/login.html";
-        });
-        return;
-      }
-
-      console.log("Attempting to approve report:", report.rdanaId);
-
-      // Check if user is admin (optional, based on security rules)
-      database.ref(`users/${user.uid}/role`).once('value', snapshot => {
-        const role = snapshot.val();
-        if (role !== 'admin') {
-          Swal.fire({
-            icon: 'error',
-            title: 'Permission Denied',
-            text: 'Only admins can approve reports.',
-          });
-          return;
-        }
-
-        report.status = "Approved";
-        Promise.all([
-          database.ref(`rdana/approved`).push(report),
-          database.ref(`users/${report.userUid}/rdanaReports/${report.firebaseKey}`).set({ ...report, status: "Approved" }),
-          database.ref(`rdana/submitted/${report.firebaseKey}`).remove()
-        ])
-          .then(() => {
-            console.log("RDANA report approved and moved to rdana/approved");
-            Swal.fire({
-              icon: 'success',
-              title: 'Report Approved',
-              text: 'The RDANA report has been approved and moved to the logs.',
-            });
-          })
-          .catch(error => {
-            console.error("Error during RDANA report approval:", error);
-            Swal.fire({
-              icon: 'error',
-              title: 'Error',
-              text: 'Failed to approve RDANA report: ' + error.message,
-            });
-          });
-      });
-    });
-  }
-
-  function rejectReport(report) {
-    auth.onAuthStateChanged(user => {
-      if (!user) {
-        Swal.fire({
-          icon: 'error',
-          title: 'Authentication Required',
-          text: 'Please sign in to reject reports.',
-        }).then(() => {
-          window.location.href = "../pages/login.html";
-        });
-        return;
-      }
-
-      console.log("Attempting to reject report:", report.rdanaId);
-
-      Promise.all([
-        database.ref(`rdana/submitted/${report.firebaseKey}`).remove(),
-        database.ref(`users/${report.userUid}/rdanaReports/${report.firebaseKey}`).remove()
-      ])
-        .then(() => {
-          console.log("RDANA report rejected and removed");
-          Swal.fire({
-            icon: 'success',
-            title: 'Report Rejected',
-            text: 'The RDANA report has been rejected and removed.',
-          });
-        })
-        .catch(error => {
-          console.error("Error during RDANA report rejection:", error);
-          Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'Failed to reject RDANA report: ' + error.message,
-          });
-        });
-    });
-  }
-
-  // Placeholder function to save a volunteer group
-  function saveVolunteerGroup(groupData) {
-    auth.onAuthStateChanged(user => {
-      if (!user) {
-        Swal.fire({
-          icon: 'error',
-          title: 'Authentication Required',
-          text: 'Please sign in to create a volunteer group.',
-        }).then(() => {
-          window.location.href = "../pages/login.html";
-        });
-        return;
-      }
-
-      const volunteerGroupData = {
-        groupName: groupData.groupName || "Unnamed Group",
-        createdBy: user.uid,
-        createdAt: firebase.database.ServerValue.TIMESTAMP,
-        members: groupData.members || [user.uid]
-      };
-
-      console.log("Attempting to save volunteer group:", volunteerGroupData);
-
-      database.ref("volunteerGroups").push(volunteerGroupData)
-        .then(() => {
-          console.log("Volunteer group saved successfully to volunteerGroups");
-          Swal.fire({
-            icon: 'success',
-            title: 'Volunteer Group Created',
-            text: 'The volunteer group has been created successfully!',
-          });
-        })
-        .catch(error => {
-          console.error("Error saving volunteer group to Firebase:", error);
-          Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'Failed to create volunteer group: ' + error.message,
-          });
-        });
-    });
-  }
-
-  const createGroupBtn = document.getElementById('createVolunteerGroupBtn');
-  if (createGroupBtn) {
-    createGroupBtn.addEventListener('click', () => {
-      const groupNameInput = document.getElementById('groupNameInput');
-      const groupName = groupNameInput ? groupNameInput.value : "Test Group";
-      saveVolunteerGroup({ groupName });
-    });
-  }
-
   // Only add event listeners for search and sort if the elements exist
   if (searchInput && sortSelect) {
     searchInput.addEventListener("input", applySearchAndSort);
@@ -824,42 +689,28 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Add row functionality for disaster profile table
-  const addRowBtn = document.getElementById('addRowBtn');
-  const tableBody = document.getElementById('tableBody');
+  // Add row functionality
+  document.getElementById("addRowBtn").addEventListener('click', function() {
+    const tableBody = document.getElementById("tableBody");
+    const newRow = document.createElement("tr");
 
-  if (addRowBtn && tableBody) {
-    addRowBtn.addEventListener('click', () => {
-      const newRow = document.createElement('tr');
-      newRow.innerHTML = `
-        <td><input type="text" placeholder="Enter Municipalities/Communities" required/></td>
-        <td><input type="number" placeholder="Enter Total Population" min="0" required/></td>
-        <td><input type="number" placeholder="Enter Affected Population" min="0" required/></td>
-        <td><input type="number" placeholder="No. of Deaths" min="0" required/></td>
-        <td><input type="number" placeholder="No. of Injured" min="0" required/></td>
-        <td><input type="number" placeholder="No. of Missing" min="0" required/></td>
-        <td><input type="number" placeholder="No. of Children" min="0" required/></td>
-        <td><input type="number" placeholder="No. of Women" min="0" required/></td>
-        <td><input type="number" placeholder="No. of Senior Citizens" min="0" required/></td>
-        <td><input type="number" placeholder="No. of PWD" min="0" required/></td>
-        <td><button type="button" class="removeRowBtn">Clear</button></td>
-      `;
-      tableBody.appendChild(newRow);
+    newRow.innerHTML = `
+      <td><input type="text" placeholder="Enter Municipalities/Communities" /></td>
+      <td><input type="number" placeholder="Enter Total Population" /></td>
+      <td><input type="number" placeholder="Enter Affected Population" /></td>
+      <td><input type="number" placeholder="No. of Deaths" /></td>
+      <td><input type="number" placeholder="No. of Injured" /></td>
+      <td><input type="number" placeholder="No. of Missing" /></td>
+      <td><input type="number" placeholder="No. of Children" /></td>
+      <td><input type="number" placeholder="No. of Women" /></td>
+      <td><input type="number" placeholder="No. of Senior Citizens" /></td>
+      <td><input type="number" placeholder="No. of PWD" /></td>
+      <td><button type="button" class="deleteRowBtn">Delete</button></td>
+    `;
+    tableBody.appendChild(newRow);
 
-      newRow.querySelector('.removeRowBtn').addEventListener('click', () => {
-        newRow.querySelectorAll('input').forEach(input => input.value = '');
-      });
-    });
-
-    document.querySelectorAll('.removeRowBtn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        btn.closest('tr').querySelectorAll('input').forEach(input => input.value = '');
-      });
-    });
-  }
-
-  // Add delete functionality for new rows
-  const deleteBtns = document.querySelectorAll(".deleteRowBtn");
+    // Add delete functionality for new rows
+    const deleteBtns = document.querySelectorAll(".deleteRowBtn");
     deleteBtns.forEach(button => {
       button.addEventListener('click', function() {
         this.closest('tr').remove();
@@ -870,9 +721,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // Clear row functionality
   const clearBtns = document.querySelectorAll(".removeRowBtn");
   clearBtns.forEach(button => {
-  button.addEventListener('click', function() {
-    const row = this.closest('tr');
-    row.querySelectorAll('input').forEach(input => input.value = '');
-  });
+    button.addEventListener('click', function() {
+      const row = this.closest('tr');
+      row.querySelectorAll('input').forEach(input => input.value = '');
+    });
+});
 
 });

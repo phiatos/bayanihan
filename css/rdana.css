@@ -39,6 +39,44 @@ h2, h3{
   .input-field select {
     padding-right: 40px;
   }
+
+/* Highlight all required inputs with a subtle border color initially */
+input[required],
+select[required],
+textarea[required] {
+  border: 2px solid #ccc;
+  transition: border-color 0.3s ease;
+}
+
+/* Add focus effect to required inputs */
+input[required]:focus,
+select[required]:focus,
+textarea[required]:focus {
+  border-color: #007BFF;
+  outline: none;
+}
+
+/* Optional: style the labels for required fields with an asterisk */
+label:has(+ input[required]),
+label:has(+ select[required]),
+label:has(+ textarea[required]) {
+  font-weight: bold;
+  position: relative;
+}
+
+label:has(+ input[required])::after,
+label:has(+ select[required])::after,
+label:has(+ textarea[required])::after {
+  content: ' *';
+  color: #e74c3c;
+  font-weight: bold;
+}
+
+.title.required::after {
+  content: " *";
+  color: red;
+}
+
   
   .top-bar {
     display: flex;
