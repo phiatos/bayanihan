@@ -103,12 +103,91 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Handle navigation
     nextBtn.addEventListener('click', () => {
-        if (formPage1.checkValidity()) {
-            formPage1.style.display = "none";
-            formPage2.style.display = "block";
-        } else {
-            formPage1.reportValidity();
+        if (!formPage1.checkValidity()) {
+            formPage1.reportValidity(); 
+            return; 
         }
+
+        const startDateInput = document.getElementById('StartDate');
+        const endDateInput = document.getElementById('EndDate');
+
+        // Check if date inputs exist on the page (they should, given checkValidity above)
+        if (!startDateInput || !endDateInput) {
+            console.error("StartDate or EndDate input not found. Cannot perform date validation.");
+            // If they are missing, we still don't want to proceed
+            return;
+        }
+        
+        const startDateValue = startDateInput.value;
+        const endDateValue = endDateInput.value;
+
+        // Ensure both date fields are filled before detailed validation
+        if (!startDateValue || !endDateValue) {
+            alert("Please fill in both Start Date and End Date.");
+            if (!startDateValue) {
+                startDateInput.focus();
+            } else {
+                endDateInput.focus();
+            }
+            return; // Stop execution
+        }
+
+        // Create Date objects from input values.
+        // It's best to use a consistent parsing method or ensure the date string is YYYY-MM-DD
+        // to avoid timezone issues when creating a new Date object.
+        const startDate = new Date(startDateValue + 'T00:00:00'); // Append T00:00:00 to force UTC midnight for consistency
+        const endDate = new Date(endDateValue + 'T00:00:00');
+
+        // Get today's date, normalized to midnight local time
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Normalize to the start of the day for accurate local date comparison
+
+        // Set a reasonable "future" limit for EndDate (e.g., 1 year from today)
+        const oneYearFromNow = new Date(today); // Start from today's normalized date
+        oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+        // No need to set to end of day if today is already normalized to start of day
+
+        // --- Date Validation Logic ---
+
+        // 1. Check for Invalid Dates (e.g., if input string was malformed)
+        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+            alert("Invalid date entered. Please use the date picker to select valid dates.");
+            if (isNaN(startDate.getTime())) {
+                startDateInput.focus();
+            } else {
+                endDateInput.focus();
+            }
+            return;
+        }
+
+        // 2. Start Date cannot be in the future (compared to today)
+        // If startDate is exactly today, it should be allowed.
+        if (startDate > today) {
+            alert("Start Date cannot be a future date.");
+            startDateInput.focus();
+            return;
+        }
+
+        // 3. Start Date cannot be after End Date
+        if (startDate > endDate) {
+            alert("Start Date cannot be after End Date.");
+            startDateInput.focus();
+            return;
+        }
+
+        // 4. End Date not excessively far in the future (e.g., more than 1 year from today)
+        // This checks if endDate is beyond our defined future limit.
+        if (endDate > oneYearFromNow) {
+            alert("End Date cannot be more than 1 year from today. Please enter a valid date range.");
+            endDateInput.focus();
+            return;
+        }
+
+        // --- End Date Validation Logic ---
+
+        // If ALL validations (formPage1.checkValidity() AND date validations) pass, then proceed to Page 2
+        formPage1.style.display = "none";
+        formPage2.style.display = "block";
     });
 
     backBtn.addEventListener('click', () => {

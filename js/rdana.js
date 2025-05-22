@@ -857,4 +857,22 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
   }
+
+  // Add delete functionality for new rows
+  const deleteBtns = document.querySelectorAll(".deleteRowBtn");
+    deleteBtns.forEach(button => {
+      button.addEventListener('click', function() {
+        this.closest('tr').remove();
+      });
+    });
+  });
+
+  // Clear row functionality
+  const clearBtns = document.querySelectorAll(".removeRowBtn");
+  clearBtns.forEach(button => {
+  button.addEventListener('click', function() {
+    const row = this.closest('tr');
+    row.querySelectorAll('input').forEach(input => input.value = '');
+  });
+
 });
