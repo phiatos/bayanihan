@@ -31,10 +31,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const entriesInfo = document.getElementById("entriesInfo");
     const searchInput = document.getElementById("searchInput");
     const sortSelect = document.getElementById("sortSelect");
+    const exportExcelBtn = document.getElementById("exportExcelBtn");
     let currentPage = 1;
     const rowsPerPage = 5;
 
-    if (!reportsBody || !paginationContainer || !entriesInfo || !searchInput || !sortSelect) {
+    if (!reportsBody || !paginationContainer || !entriesInfo || !searchInput || !sortSelect || !exportExcelBtn) {
         console.error("Required DOM elements not found");
         Swal.fire({
             icon: 'error',
@@ -68,16 +69,16 @@ document.addEventListener('DOMContentLoaded', () => {
             day: "numeric"
         });
     }
-    function formatTime(timeStr) {
-    if (!timeStr) return "-";
-    const date = new Date(`1970-01-01T${timeStr}`);
-    if (isNaN(date)) return timeStr;
-    return date.toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-        hour12: true
-    });
-}
+        function formatTime(timeStr) {
+        if (!timeStr) return "-";
+        const date = new Date(`1970-01-01T${timeStr}`);
+        if (isNaN(date)) return timeStr;
+        return date.toLocaleTimeString("en-US", {
+            hour: "numeric",
+            minute: "2-digit",
+            hour12: true
+        });
+    }
 
     function loadReportsFromFirebase() {
         database.ref("reports/approved").on("value", snapshot => {
@@ -110,6 +111,112 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // This function will get the currently displayed data
+    function getDisplayedReportsData() {
+        const searchQuery = searchInput.value.toLowerCase();
+        const sortValue = sortSelect.value;
+        const [sortBy, direction] = sortValue.split("-");
+
+        let filteredReports = reviewedReports.filter(report => {
+            return Object.entries(report).some(([key, value]) => {
+                if (key === "DateOfReport") {
+                    const formattedDate = formatDate(value).toLowerCase();
+                    return formattedDate.includes(searchQuery);
+                }
+                return value?.toString().toLowerCase().includes(searchQuery);
+            });
+        });
+
+        if (sortBy) {
+            filteredReports.sort((a, b) => {
+                const valA = a[sortBy] || "";
+                const valB = b[sortBy] || "";
+
+                if (sortBy.includes("Date")) { // Handle all date fields like StartDate, EndDate, DateOfReport
+                    const dateA = new Date(valA);
+                    const dateB = new Date(valB);
+                    if (isNaN(dateA) || isNaN(dateB)) return 0;
+                    return direction === "asc" ? dateA - dateB : dateB - dateA;
+                }
+                
+                // Handle numeric sorting for 'NoOfHotMeals' and 'LitersOfWater'
+                if (sortBy === "NoOfHotMeals" || sortBy === "LitersOfWater") {
+                    const numA = parseFloat(valA);
+                    const numB = parseFloat(valB);
+                    if (isNaN(numA) || isNaN(numB)) return 0; // Treat non-numeric as equal for sorting
+                    return direction === "asc" ? numA - numB : numB - numA;
+                }
+
+                return direction === "asc"
+                    ? valA.toString().localeCompare(valB.toString())
+                    : valB.toString().localeCompare(valA.toString());
+            });
+        }
+        return filteredReports;
+    }
+
+    // Function to handle Excel export
+    function exportReportsToExcel() {
+        const dataToExport = getDisplayedReportsData(); // Get all filtered and sorted data
+        
+        if (dataToExport.length === 0) {
+            Swal.fire({
+                icon: 'info',
+                title: 'No Data to Export',
+                text: 'There are no reports matching your current search/sort criteria to export.',
+            });
+            return;
+        }
+
+        const headerMap = {
+            "ReportID": "Report ID",
+            "VolunteerGroupName": "Volunteer Group Name",
+            "AreaOfOperation": "Area of Operation",
+            "StartDate": "Operation Start Date",
+            "EndDate": "Operation End Date",
+            "SubmittedBy": "Submitted by",
+            "NoOfHotMeals": "No. of Hot Meals",
+            "LitersOfWater": "Liters of Water",
+            "DateOfReport": "Report Submission Date",
+            "TimeOfIntervention": "Completion Time of Intervention",
+            "NoOfIndividualsOrFamilies": "No. of Individuals or Families",
+            "NoOfFoodPacks": "No. of Food Packs",
+            "NoOfVolunteersMobilized": "No. of Volunteers Mobilized",
+            "NoOfOrganizationsActivated": "No. of Organizations Activated",
+            "TotalValueOfInKindDonations": "Total Value of In-Kind Donations",
+            "TotalMonetaryDonations": "Total Monetary Donations",
+            "NotesAdditionalInformation": "Notes/Additional Information"
+        };
+
+        // Prepare data for export
+        const wsData = dataToExport.map(report => {
+            const row = {};
+            for (const key in headerMap) {
+                let value = report[key];
+                if (key.includes("Date") && value) {
+                    value = formatDate(value); // Format dates for Excel
+                } else if (key.includes("Time") && value) {
+                    value = formatTime(value); // Format times for Excel
+                }
+                row[headerMap[key]] = value || "-"; // Use mapped header and fallback to "-"
+            }
+            return row;
+        });
+
+        const ws = XLSX.utils.json_to_sheet(wsData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Reports Log");
+
+        const fileName = `Reports_Log_${new Date().toISOString().slice(0,10)}.xlsx`;
+        XLSX.writeFile(wb, fileName);
+
+        Swal.fire({
+            icon: 'success',
+            title: 'Export Successful',
+            text: `Reports exported to ${fileName}`,
+        });
+    }
+    
     function renderReportsTable(reports) {
         reportsBody.innerHTML = '';
 

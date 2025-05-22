@@ -1,5 +1,4 @@
 document.addEventListener("DOMContentLoaded", () => {
-    // Firebase configuration
     const firebaseConfig = {
         apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
         authDomain: "bayanihan-5ce7e.firebaseapp.com",
@@ -80,7 +79,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const isLettersOnly = (value) => /^[a-zA-Z\s]+$/.test(value);
 
     // Function to check if a value is a valid number
-    const isValidNumber = (value) => /^\d+$/.test(value);
+    const isValidNumber = (value) => /^\d+(\.\d+)?$/.test(value);
 
     // Function to display an error message
     const showError = (inputField, message) => {
@@ -199,13 +198,14 @@ document.addEventListener("DOMContentLoaded", () => {
                 <td>${d.number}</td>
                 <td>${d.email}</td>
                 <td>${d.assistance}</td>
-                <td>${d.valuation}</td>
+                <td>₱${parseFloat(d.valuation).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                 <td>${d.additionalnotes}</td>
                 <td>${d.staffIncharge}</td>
                 <td>${d.status}</td>
                 <td>
                     <button class="btn-edit">Edit</button>
                     <button class="btn-delete">Delete</button>
+                    <button class="btn-save-single-pdf">Save PDF</button> </td>
                 </td>
                 <td>
                     <button class="btn-endorse">Endorse</button>
@@ -214,6 +214,8 @@ document.addEventListener("DOMContentLoaded", () => {
             tr.querySelector(".btn-edit").addEventListener("click", () => openEditModal(d.firebaseKey));
             tr.querySelector(".btn-delete").addEventListener("click", () => deleteRow(d.firebaseKey));
             tr.querySelector(".btn-endorse").addEventListener("click", () => openEndorseModal(d.firebaseKey));
+            tr.querySelector(".btn-save-single-pdf").addEventListener("click", () => saveSingleDonationPdf(d));
+
             tableBody.appendChild(tr);
         });
 
@@ -342,14 +344,14 @@ document.addEventListener("DOMContentLoaded", () => {
         Swal.fire("Success", "In-Kind Donations exported to Excel!", "success");
     });
 
-    // --- PDF Export Functionality ---
+    // --- PDF Export Functionality (All Data) ---
     savePdfBtn.addEventListener("click", () => {
         if (allDonations.length === 0) {
             Swal.fire("Info", "No data to export to PDF!", "info");
             return;
         }
 
-        const { jsPDF } = window.jspdf; 
+        const { jsPDF } = window.jspdf;
         const doc = new jsPDF('landscape');
 
         const head = [[
@@ -364,11 +366,11 @@ document.addEventListener("DOMContentLoaded", () => {
             d.name,
             d.type,
             d.address,
-            String(d.contactPerson), 
+            String(d.contactPerson),
             String(d.number),
             d.email,
             d.assistance,
-            `₱${parseFloat(d.valuation).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, // Format as currency
+            `₱${parseFloat(d.valuation).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 
             d.additionalnotes,
             d.staffIncharge,
             d.status
@@ -378,12 +380,11 @@ document.addEventListener("DOMContentLoaded", () => {
         doc.autoTable({
             head: head,
             body: body,
-            startY: 20, // Start table a bit below the top margin
-            theme: 'striped', // Apply a theme (optional)
-            headStyles: { fillColor: [50, 100, 150] }, // Header background color
-            styles: { fontSize: 8 }, // Font size for table content
+            startY: 20,
+            theme: 'striped', 
+            headStyles: { fillColor: [50, 100, 150] }, 
+            styles: { fontSize: 8 }, 
             didDrawPage: function (data) {
-                // Add header/footer if needed
                 doc.setFontSize(10);
                 doc.text("In-Kind Donations Report", data.settings.margin.left, 10);
                 doc.text(`Page ${doc.internal.getNumberOfPages()}`, doc.internal.pageSize.width - data.settings.margin.right, 10, { align: 'right' });
@@ -391,11 +392,43 @@ document.addEventListener("DOMContentLoaded", () => {
         });
 
         // Save the PDF
-        doc.save("in-kind-donations.pdf");
-        Swal.close(); 
-        Swal.fire("Success", "In-Kind Donations exported to PDF!", "success");
+        doc.save("all-in-kind-donations.pdf"); 
+        Swal.close();
+        Swal.fire("Success", "All In-Kind Donations exported to PDF!", "success");
     });
 
+    // --- Save Single Donation to PDF ---
+    function saveSingleDonationPdf(donation) {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF(); 
+
+        doc.setFontSize(18);
+        doc.text("In-Kind Donation Details", 14, 22);
+
+        doc.setFontSize(12);
+        let y = 30; 
+
+        const addDetail = (label, value) => {
+            doc.text(`${label}: ${value}`, 14, y);
+            y += 7; 
+        };
+
+        addDetail("Encoder", donation.encoder);
+        addDetail("Name", donation.name);
+        addDetail("Type", donation.type);
+        addDetail("Address", donation.address);
+        addDetail("Contact Person", donation.contactPerson);
+        addDetail("Number", String(donation.number));
+        addDetail("Email", donation.email);
+        addDetail("Type of Assistance", donation.assistance);
+        addDetail("Valuation", `₱${parseFloat(donation.valuation).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`); 
+        addDetail("Staff-In Charge", donation.staffIncharge);
+        addDetail("Status", donation.status);
+        addDetail("Recorded On", new Date(donation.createdAt).toLocaleString()); 
+
+        doc.save(`donation_${donation.firebaseKey}.pdf`);
+        Swal.fire("Success", "Donation details exported to PDF!", "success");
+    }
 
     function deleteRow(firebaseKey) {
         Swal.fire({

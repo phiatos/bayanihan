@@ -9,8 +9,8 @@
 .input-field {
   display: flex;
   flex-direction: column;
-  width: calc((100% - 60px) / 5); 
-  box-sizing: border-box; 
+  width: calc((100% - 60px) / 5);
+  box-sizing: border-box;
 }
 
 .title {
@@ -22,13 +22,13 @@
   color: var(--primary-color);
 }
 
-label{
+label {
   font-size: 12px;
   font-weight: 700;
   color: var(--primary-color);
 }
 
-input{
+input {
   font-size: 14px;
   font-weight: 400;
   color: #333;
@@ -39,31 +39,29 @@ input{
   border: 1px solid #aaa;
 }
 
-input:is(:focus, :valid){
+input:is(:focus, :valid) {
   box-shadow: 0 3px 6px rgba(0, 0, 0, 0.13);
 }
 
-input[type="date"]{
+input[type="date"] {
   color: #707070;
 }
 
-input[type="date"]:valid{
+input[type="date"]:valid {
   color: #000;
 }
 
 .error-message {
-  color: var(--red); 
+  color: var(--red);
   font-size: 0.8em;
   margin-top: 0.2em;
 }
 
 .input-error {
-  border: 1px solid var(--red) !important; 
-  box-shadow: 0 0 5px rgba(255, 0, 0, 0.3) !important; 
+  border: 1px solid var(--red) !important;
+  box-shadow: 0 0 5px rgba(255, 0, 0, 0.3) !important;
 }
 
-
-/* Dropdown styling to match text inputs */
 .input-field select,
 .modal select {
   font-size: 14px;
@@ -74,7 +72,7 @@ input[type="date"]:valid{
   border-radius: 5px;
   margin-top: 6px;
   border: 1px solid #aaa;
-  appearance: none;            /* remove native arrow */
+  appearance: none;
   background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2210%22%20height%3D%227%22%20viewBox%3D%220%200%2010%207%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cpath%20d%3D%22M0%200l5%207%205-7z%22%20fill%3D%22%23666%22/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 15px center;
@@ -85,7 +83,6 @@ input[type="date"]:valid{
   box-shadow: 0 3px 6px rgba(0, 0, 0, 0.13);
 }
 
-/* Ensure the arrow doesn’t overlap the text on small widths */
 .input-field select {
   padding-right: 40px;
 }
@@ -96,39 +93,48 @@ input[type="date"]:valid{
   align-items: center;
 }
 
-/* Add margin between buttons inside the same cell */
-td > .btn-edit {
-  margin-right: 5px;
-}
-
 button.btn-edit,
 button.btn-delete,
-button.btn-endorse {
+button.btn-endorse,
+button.btn-save-single-pdf {
   width: 90px;
-  padding: 6px 0;           
-  box-sizing: border-box;   
+  padding: 6px 0;
+  box-sizing: border-box;
   border: none;
   border-radius: 4px;
   font-size: 13px;
   cursor: pointer;
   color: #fff;
   display: inline-block;
-  text-align: center;       
-  margin: 5px;      
+  text-align: center;
+  margin: 5px;
   transition: background-color 0.3s ease, box-shadow 0.2s ease;
 }
 
-/* Delete button is red */
 button.btn-delete {
   background-color: var(--red);
 }
 
-/* Edit button is blue */
 button.btn-edit {
   background-color: var(--blue);
 }
 
-/* Base modal styling - Reduced size and scroll */
+button.btn-endorse {
+  background-color: var(--primary-color);
+}
+
+button.btn-save-single-pdf {
+  background-color: var(--accent-color);
+}
+
+td > .btn-edit,
+td > .btn-delete,
+td > .btn-endorse,
+td > .btn-save-single-pdf {
+  margin-right: 5px;
+  margin-bottom: 5px;
+}
+
 .modal {
   display: flex;
   position: fixed;
@@ -138,10 +144,10 @@ button.btn-edit {
   width: 100%;
   height: 100%;
   overflow: auto;
-  background-color: rgba(0,0,0,0.4);
+  background-color: rgba(0, 0, 0, 0.4);
   justify-content: center;
   align-items: center;
-  padding: 20px; 
+  padding: 20px;
 }
 
 .modal-content {
@@ -149,13 +155,13 @@ button.btn-edit {
   margin: 5% auto;
   padding: 15px;
   border: 1px solid #888;
-  width: 80%; 
-  max-width: 400px; 
+  width: 80%;
+  max-width: 400px;
   border-radius: 8px;
-  box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
+  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
   position: relative;
   overflow-y: auto;
-  max-height: 80vh; 
+  max-height: 80vh;
 }
 
 .modal-content h4 {
@@ -178,37 +184,39 @@ button.btn-edit {
 .modal-content input[type="email"],
 .modal-content input[type="number"],
 .modal-content input[type="tel"],
+.modal-content input[type="date"],
+.modal-content input[type="url"],
 .modal-content select {
   width: calc(100% - 22px);
   border: 1px solid #ccc;
   border-radius: 4px;
   box-sizing: border-box;
-  font-size: 0.85em; 
+  font-size: 0.85em;
 }
 
 .modal-content select {
   appearance: none;
   background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2210%22%20height%3D%227%22%20viewBox%3D%220%200%2010%207%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cpath%20d%3D%22M0%200l5%207%205-7z%22%20fill%3D%22%23666%22/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 8px center; 
-  background-size: 8px 5px; 
-  padding-right: 25px; 
+  background-position: right 8px center;
+  background-size: 8px 5px;
+  padding-right: 25px;
 }
 
 .modal-content button {
-  padding: 8px 12px; 
+  padding: 8px 12px;
   margin-top: 8px;
   border: none;
   border-radius: 4px;
   color: var(--white);
-  font-size: 0.85em; 
+  font-size: 0.85em;
   cursor: pointer;
   transition: background-color 0.3s ease;
 }
 
 .modal-content button[onclick*="confirm"] {
   background-color: var(--green);
-  margin-right: 5px; 
+  margin-right: 5px;
 }
 
 .modal-content button[onclick*="cancel"],
@@ -220,7 +228,6 @@ button.btn-edit {
   opacity: 0.9;
 }
 
-/* Style for the close button */
 .close-button {
   position: absolute;
   top: 10px;
@@ -229,7 +236,7 @@ button.btn-edit {
   font-weight: bold;
   color: #aaa;
   cursor: pointer;
-  z-index: 1001; /* Ensure it's above the modal content */
+  z-index: 1001;
 }
 
 .close-button:hover {
@@ -237,52 +244,62 @@ button.btn-edit {
 }
 
 #abvnList {
-  margin-bottom: 10px; 
+  margin-bottom: 10px;
 }
 
 #abvnList label {
   display: block;
-  margin-bottom: 5px; 
+  margin-bottom: 5px;
   font-weight: normal;
-  font-size: 0.8em; 
+  font-size: 0.8em;
 }
 
 #abvnList input[type="radio"] {
-  margin-right: 3px; 
+  margin-right: 3px;
 }
 
 #abvnList p {
-  font-size: 0.75em; 
+  font-size: 0.75em;
   color: #777;
-  margin-top: 5px; 
+  margin-top: 5px;
 }
 
-/* Table Specific Scrolling */
 .table-responsive-container {
-    overflow-x: auto; 
-    width: 100%; 
+  overflow-x: auto;
+  width: 100%;
 }
 
-#inKindTable {
-    width: 100%; 
-    border-collapse: collapse; 
+#inKindTable, #monetaryTable {
+  width: 100%;
+  border-collapse: collapse;
 }
 
-@media (max-width: 768px) {
-    .modal-content {
-        width: 95%;
-        margin: 20% auto;
-    }
+.error-message {
+  color: var(--red); 
+  font-size: 0.8em;
+  margin-top: 0.2em;
+}
+
+.input-error {
+  border: 1px solid var(--red) !important; 
+  box-shadow: 0 0 5px rgba(255, 0, 0, 0.3) !important; 
 }
 
 @media (max-width: 900px) {
   .input-field {
-    width: calc((100% - 30px) / 3); 
+      width: calc((100% - 30px) / 3);
+  }
+}
+
+@media (max-width: 768px) {
+  .modal-content {
+      width: 95%;
+      margin: 20% auto;
   }
 }
 
 @media (max-width: 600px) {
   .input-field {
-    width: 100%; 
+      width: 100%;
   }
 }

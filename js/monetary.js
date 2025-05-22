@@ -57,31 +57,38 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     function loadDonations(userUid) {
-        database.ref("donations/monetary").on("value", snapshot => {
-            allDonations = [];
-            const donations = snapshot.val();
-            if (donations) {
-                Object.keys(donations).forEach(key => {
-                    const donation = donations[key];
-                    allDonations.push({
-                        firebaseKey: key,
-                        userUid: donation.userUid,
-                        ...donation,
-                        amount: parseFloat(donation.amountDonated || 0) 
-                    });
+    database.ref("donations/monetary").on("value", snapshot => {
+        allDonations = [];
+        const donations = snapshot.val();
+        if (donations) {
+            Object.keys(donations).forEach(key => {
+                const donation = donations[key];
+                
+                const cleanAmountString = String(donation.amountDonated || '0').replace(/[^0-9.]/g, '');
+                const parsedAmount = parseFloat(cleanAmountString);
+
+                const finalAmount = isNaN(parsedAmount) ? 0 : parsedAmount;
+
+                allDonations.push({
+                    firebaseKey: key,
+                    userUid: donation.userUid,
+                    ...donation,
+                    // Store the now guaranteed-clean number
+                    amount: finalAmount 
                 });
-            }
-            filteredAndSortedDonations = [...allDonations];
-            renderTable();
-        }, error => {
-            console.error("Error fetching monetary donations:", error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Failed to load monetary donations: ' + error.message,
             });
+        }
+        filteredAndSortedDonations = [...allDonations];
+        renderTable();
+    }, error => {
+        console.error("Error fetching monetary donations:", error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Failed to load monetary donations: ' + error.message,
         });
-    }
+    });
+}
 
     // Function to check if a field is empty
     const isEmpty = (value) => value.trim() === "";
@@ -224,7 +231,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 <td>${d.name}</td>
                 <td>${d.address}</td>
                 <td>${d.number}</td>
-                <td>${d.amountDonated.toLocaleString('en-PH', { style: 'currency', currency: 'PHP' })}</td>
+                <td>${d.amount.toLocaleString('en-PH', { style: 'currency', currency: 'PHP' })}</td>
                 <td>${d.invoice}</td>
                 <td>${new Date(d.dateReceived).toLocaleDateString('en-PH')}</td>
                 <td>${d.email}</td>
@@ -233,10 +240,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 <td>
                     <button class="btn-edit">Edit</button>
                     <button class="btn-delete">Delete</button>
+                    <button class="btn-save-single-pdf">Save PDF</button>
                 </td>
             `;
             tr.querySelector(".btn-edit").addEventListener("click", () => openEditMonetaryModal(d.firebaseKey));
             tr.querySelector(".btn-delete").addEventListener("click", () => deleteMonetaryDonation(d.firebaseKey));
+            tr.querySelector(".btn-save-single-pdf").addEventListener("click", () => saveSingleMonetaryDonationPdf(d));
+            
             tableBody.appendChild(tr);
         });
 
@@ -422,7 +432,7 @@ document.addEventListener("DOMContentLoaded", () => {
             d.name,
             d.address, 
             String(d.number), 
-            d.amountDonated.toLocaleString('en-PH', { style: 'currency', currency: 'PHP' }), 
+            d.amount.toLocaleString('en-PH', { style: 'currency', currency: 'PHP' }), 
             d.invoice,
             new Date(d.dateReceived).toLocaleDateString('en-PH'), 
             d.email,
@@ -451,6 +461,38 @@ document.addEventListener("DOMContentLoaded", () => {
         Swal.close(); 
         Swal.fire("Success", "Monetary Donations exported to PDF!", "success");
     });
+
+    // --- Save Single Monetary Donation to PDF ---
+    function saveSingleMonetaryDonationPdf(donation) {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+
+        doc.setFontSize(18);
+        doc.text("Monetary Donation Details", 14, 22);
+
+        doc.setFontSize(12);
+        let y = 30;
+
+        const addDetail = (label, value) => {
+            doc.text(`${label}: ${value}`, 14, y);
+            y += 7;
+        };
+
+        addDetail("Encoder", donation.encoder);
+        addDetail("Name/Company", donation.name);
+        addDetail("Location", donation.address);
+        addDetail("Number", String(donation.number));
+        addDetail("Amount Donated", donation.amount.toLocaleString('en-PH', { style: 'currency', currency: 'PHP' }));
+        addDetail("Cash Invoice #", donation.invoice);
+        addDetail("Date Received", new Date(donation.dateReceived).toLocaleDateString('en-PH'));
+        addDetail("Email", donation.email);
+        addDetail("Bank", donation.bank);
+        addDetail("Proof of Transaction", donation.proof || "N/A");
+        addDetail("Recorded On", new Date(donation.createdAt).toLocaleString());
+
+        doc.save(`monetary_donation_${donation.firebaseKey}.pdf`);
+        Swal.fire("Success", "Monetary donation details exported to PDF!", "success");
+    }
 
     function deleteMonetaryDonation(firebaseKey) {
         Swal.fire({
