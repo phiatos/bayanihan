@@ -22,26 +22,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Elements
     const toStep2Btn = document.getElementById('to-step2');
-    const verifyOtpBtn = document.getElementById('verify-otp');
-    const resendOtp = document.getElementById('resend-otp');
-    const updatePwdBtn = document.getElementById('update-password');
+    const toStep3Btn = document.getElementById('to-step3');
+    const toStep4Btn = document.getElementById('to-step4');
     const backToLogin = document.getElementById('back-to-login');
-    const timerDisplay = document.getElementById('timer');
-    const mobileInput = document.getElementById('mobile');
-    const displayMobileEl = document.getElementById('display-mobile');
-    const otpInputs = document.querySelectorAll('#step2 .otp');
-    const newPwdInput = document.getElementById('new-password');
-    const confirmPwdIn = document.getElementById('confirm-password');
+    const emailInput = document.getElementById('email');
+    const displayEmailEl = document.getElementById('display-email');
     const backButton = document.querySelector('.back-btn');
-
-    // OTP state
-    let confirmationResult = null;
-    let recaptchaVerifier = null;
-    let mobileNumber = null;
-
-    // Track OTP sending attempts and last send time in the database
-    const MAX_OTP_ATTEMPTS = 4;
-    const COOLDOWN_SECONDS = 30; // 30-second cooldown between OTP sends
 
     if (backButton) {
         backButton.addEventListener('click', () => {
@@ -57,387 +43,97 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     showStep(current);
 
-    // Timer state
-    let timerInterval, timerActive = false;
-
-    // OTP timer
-    function startTimer(sec) {
-        clearInterval(timerInterval);
-        timerActive = true;
-        resendOtp.classList.add('disabled');
-
-        let t = sec;
-        function tick() {
-            const m = String(Math.floor(t / 60)).padStart(2, '0');
-            const s = String(t % 60).padStart(2, '0');
-            timerDisplay.textContent = `${m}:${s}`;
-            if (t-- < 0) {
-                clearInterval(timerInterval);
-                timerDisplay.textContent = 'Expired';
-                timerActive = false;
-                resendOtp.classList.remove('disabled');
-                otpInputs.forEach(i => i.disabled = true);
-                verifyOtpBtn.disabled = true;
-            }
-        }
-        tick();
-        timerInterval = setInterval(tick, 1000);
-    }
-
-    // Initialize OTP inputs
-    function resetOtpInputs() {
-        otpInputs.forEach((inp, i) => {
-            inp.value = '';
-            inp.disabled = i !== 0;
-        });
-        otpInputs[0].focus();
-        verifyOtpBtn.disabled = true;
-        verifyOtpBtn.classList.remove('active');
-    }
-
-    // Function to check and update OTP send count in the database
-    async function checkAndUpdateOtpSendCount(phoneNumber) {
-        const otpRef = database.ref(`otpAttempts/${phoneNumber.replace(/[^0-9]/g, '')}`);
-        const snapshot = await otpRef.once('value');
-        let data = snapshot.val() || { count: 0, lastSent: 0 };
-
-        // FOR TESTING: Comment out the cooldown and max attempts checks
-        /*
-        // Check if we're within the cooldown period
-        const now = Date.now();
-        const timeSinceLastSent = (now - data.lastSent) / 1000; // in seconds
-        if (timeSinceLastSent < COOLDOWN_SECONDS && data.count > 0) {
-            throw new Error(`Please wait ${Math.ceil(COOLDOWN_SECONDS - timeSinceLastSent)} seconds before requesting another OTP.`);
-        }
-
-        // Check OTP send limit
-        if (data.count >= MAX_OTP_ATTEMPTS) {
-            throw new Error(`OTP sending limit reached. You can only send ${MAX_OTP_ATTEMPTS} OTPs to this number.`);
-        }
-        */
-
-        // Increment count and update last sent time (still track for logging purposes)
-        data.count += 1;
-        data.lastSent = Date.now();
-        await otpRef.set(data);
-
-        return data.count;
-    }
-
-    // Function to send OTP
-    async function sendOTP(phoneNumber) {
-        try {
-            // Check and update OTP send count in the database
-            const attemptCount = await checkAndUpdateOtpSendCount(phoneNumber);
-
-            // Initialize reCAPTCHA verifier
-            console.log("Initializing reCAPTCHA verifier...");
-            recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
-                'size': 'invisible',
-                'callback': (response) => {
-                    console.log("reCAPTCHA solved successfully:", response);
-                },
-                'expired-callback': () => {
-                    console.log("reCAPTCHA expired.");
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'reCAPTCHA Expired',
-                        text: 'Please try again.'
-                    });
-                    recaptchaVerifier = null;
-                },
-                'error-callback': (error) => {
-                    console.error("reCAPTCHA error:", error);
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'reCAPTCHA Error',
-                        text: 'Failed to verify reCAPTCHA. Please try again.'
-                    });
-                }
-            });
-
-            // Render the reCAPTCHA to ensure it’s loaded
-            console.log("Rendering reCAPTCHA...");
-            await recaptchaVerifier.render().catch(error => {
-                console.error("Error rendering reCAPTCHA:", error);
-                throw new Error("Failed to render reCAPTCHA.");
-            });
-
-            // Format phone number to international format (+63 for Philippines)
-            const formattedPhoneNumber = phoneNumber.startsWith('+') ? phoneNumber : `+63${phoneNumber.slice(1)}`;
-            
-            // Enforce SMS region policy: only allow Philippine numbers (+63)
-            if (!formattedPhoneNumber.startsWith('+63')) {
-                throw new Error("Only Philippine mobile numbers (+63) are allowed.");
-            }
-
-            console.log(`Sending OTP to: ${formattedPhoneNumber} (Attempt ${attemptCount} of ${MAX_OTP_ATTEMPTS})`);
-            confirmationResult = await auth.signInWithPhoneNumber(formattedPhoneNumber, recaptchaVerifier);
-
-            Swal.fire({
-                icon: 'success',
-                title: 'OTP Sent',
-                text: `An OTP has been sent to ${phoneNumber}.`
-            });
-
-            return confirmationResult;
-        } catch (error) {
-            console.error('Error sending OTP:', error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: error.message || 'Failed to send OTP. Please try again.'
-            });
-            throw error;
-        } finally {
-            // Clear reCAPTCHA after use
-            if (recaptchaVerifier) {
-                console.log("Clearing reCAPTCHA...");
-                recaptchaVerifier.clear();
-                recaptchaVerifier = null;
-            }
-        }
-    }
-
-    // Step 1 → Step 2
+    // Step 1 → Step 2: Send Password Reset Email
     toStep2Btn.addEventListener('click', async () => {
-        const mob = mobileInput.value.trim();
-        if (!/^09\d{9}$/.test(mob)) {
+        const email = emailInput.value.trim();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
             Swal.fire({
                 icon: 'error',
-                title: 'Invalid Mobile Number',
-                text: 'Enter a valid 11-digit Philippine mobile number starting with 09.'
-            });
-            return;
-        }
-
-        mobileNumber = mob;
-        displayMobileEl.textContent = mob;
-
-        try {
-            confirmationResult = await sendOTP(mob);
-            current = 1;
-            resetOtpInputs();
-            startTimer(180);
-            showStep(current);
-        } catch (error) {
-            // Error handled in sendOTP
-        }
-    });
-
-    // Resend OTP (only after timer expires)
-    resendOtp.addEventListener('click', async (e) => {
-        e.preventDefault();
-        if (timerActive) return;
-
-        try {
-            confirmationResult = await sendOTP(mobileNumber);
-            resetOtpInputs();
-            startTimer(180);
-        } catch (error) {
-            // Error handled in sendOTP
-        }
-    });
-
-    // OTP input logic
-    otpInputs.forEach((inp, idx) => {
-        inp.addEventListener('input', () => {
-            inp.value = inp.value.replace(/[^0-9]/g, ''); // Only allow numbers
-            const val = inp.value, next = otpInputs[idx + 1], prev = otpInputs[idx - 1];
-            if (val.length > 0 && next) {
-                next.disabled = false;
-                next.focus();
-            }
-            const allFilled = [...otpInputs].every(i => i.value.trim() !== '');
-            verifyOtpBtn.disabled = !allFilled;
-            verifyOtpBtn.classList.toggle('active', allFilled);
-        });
-
-        inp.addEventListener('keyup', e => {
-            const prev = otpInputs[idx - 1];
-            if (e.key === 'Backspace' && inp.value.length === 0 && prev) {
-                inp.disabled = true;
-                prev.focus();
-            }
-        });
-    });
-
-    // Verify OTP → Step 3
-    verifyOtpBtn.addEventListener('click', async () => {
-        if (verifyOtpBtn.disabled) return;
-
-        const otpCode = [...otpInputs].map(inp => inp.value).join('');
-        if (!confirmationResult) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'No OTP confirmation available. Please request a new OTP.'
-            });
-            return;
-        }
-
-        // Ensure the OTP is exactly 6 digits
-        if (otpCode.length !== 6 || !/^\d{6}$/.test(otpCode)) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Invalid OTP',
-                text: 'Please enter a valid 6-digit OTP.'
+                title: 'Invalid Email Address',
+                text: 'Enter a valid email address.'
             });
             return;
         }
 
         try {
-            await confirmationResult.confirm(otpCode);
-            current = 2;
-            showStep(current);
-        } catch (error) {
-            console.error('Error verifying OTP:', error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Invalid OTP',
-                text: error.message || 'The OTP you entered is incorrect. Please try again.'
-            });
-        }
-    });
-
-    // Update Password → Step 4
-    updatePwdBtn.addEventListener('click', async () => {
-        const np = newPwdInput.value, cp = confirmPwdIn.value;
-        if (!np || np !== cp) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Password Mismatch',
-                text: 'Passwords must match and not be empty.'
-            });
-            return;
-        }
-
-        // Validate password length and complexity (align with Firebase Password Policy)
-        if (np.length < 8) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Weak Password',
-                text: 'Password must be at least 8 characters long.'
-            });
-            return;
-        }
-
-        const passwordRegex = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
-        if (!passwordRegex.test(np)) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Weak Password',
-                text: 'Password must contain at least one uppercase letter and one number.'
-            });
-            return;
-        }
-
-        try {
-            const user = auth.currentUser;
-            if (!user) {
-                throw new Error('No user is currently signed in.');
-            }
-
-            // Set the email for the user (without requiring verification for forgot password flow)
-            const userEmail = `${mobileNumber}@bayanihan.com`;
-            if (!user.email || user.email !== userEmail) {
-                await user.updateEmail(userEmail);
-            }
-
-            // Update the password in Firebase Authentication
-            await user.updatePassword(np);
-
-            // Update the password in localStorage for consistency with global.js
-            localStorage.setItem('userPassword', np);
-            localStorage.setItem('userMobile', mobileNumber); // Ensure mobile number is stored for consistency
-
-            // Update the database with the password change
-            await database.ref('users').orderByChild('mobile').equalTo(mobileNumber).once('value', snapshot => {
-                if (!snapshot.exists()) {
-                    console.error("No user found with mobile:", mobileNumber);
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'User Not Found',
-                        text: 'User data not found in the database. Please contact support.'
+            // Check if the email exists in the database
+            let userFound = false;
+            let userMobile = null;
+            let userId = null;
+            await database.ref('users').orderByChild('email').equalTo(email).once('value', snapshot => {
+                if (snapshot.exists()) {
+                    snapshot.forEach(childSnapshot => {
+                        userFound = true;
+                        userMobile = childSnapshot.val().mobile;
+                        userId = childSnapshot.key;
                     });
-                    return;
                 }
-
-                snapshot.forEach(childSnapshot => {
-                    database.ref(`users/${childSnapshot.key}`).update({
-                        lastPasswordChange: new Date().toISOString(),
-                        // Do NOT store the password in the database in production
-                        tempPasswordLog: np // Remove this in production
-                    }).then(() => {
-                        console.log("Database updated with new password details for mobile:", mobileNumber);
-                    }).catch(error => {
-                        console.error("Error updating database:", error);
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Database Error',
-                            text: 'Failed to update password in database: ' + error.message
-                        });
-                    });
-                });
             });
+
+            if (!userFound) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Email Not Found',
+                    text: 'No account is associated with this email address. Please try again or register.'
+                });
+                return;
+            }
+
+            // Send password reset email
+            const actionCodeSettings = {
+                url: `${window.location.origin}/Bayanihan-PWA/pages/login.html`,
+                handleCodeInApp: false,
+            };
+            await auth.sendPasswordResetEmail(email, actionCodeSettings);
+
+            // Store userId in localStorage for consistency
+            localStorage.setItem('resetUserId', userId);
+            localStorage.setItem('userEmail', email);
+            if (userMobile) {
+                localStorage.setItem('userMobile', userMobile);
+            }
+
+            // Display the email in Step 2
+            displayEmailEl.textContent = email;
 
             Swal.fire({
                 icon: 'success',
-                title: 'Password Updated',
-                text: 'Your password has been updated successfully.'
+                title: 'Reset Link Sent',
+                text: `A password reset link has been sent to ${email}. Please check your email (including spam/junk folder).`
             });
 
-            current = 3;
+            current = 1;
             showStep(current);
         } catch (error) {
-            console.error('Error updating password:', error);
+            console.error('Error in Step 1:', error);
+            let errorMessage = 'Failed to send reset email. Please try again.';
+            if (error.code === 'auth/user-not-found') {
+                errorMessage = 'No account is associated with this email address.';
+            } else if (error.code === 'auth/invalid-email') {
+                errorMessage = 'Invalid email address format.';
+            }
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
-                text: error.message || 'Failed to update password.'
+                text: errorMessage
             });
         }
+    });
+
+    // Step 2 → Step 3: Proceed to Instructions
+    toStep3Btn.addEventListener('click', () => {
+        current = 2;
+        showStep(current);
+    });
+
+    // Step 3 → Step 4: Proceed to Success
+    toStep4Btn.addEventListener('click', () => {
+        current = 3;
+        showStep(current);
     });
 
     // Back to login
     backToLogin.addEventListener('click', () => {
-        window.location.href = '/pages/login.html';
+        window.location.href = '../pages/login.html';
     });
-
-    if (newPwdInput && confirmPwdIn) {
-        const newPasswordInput = document.getElementById('new-password');
-        const confirmPasswordInput = document.getElementById('confirm-password');
-        const newPasswordLockIcon = newPwdInput.nextElementSibling;
-        const newPasswordOpenLockIcon = newPasswordLockIcon.nextElementSibling;
-        const confirmPasswordLockIcon = confirmPwdIn.nextElementSibling;
-        const confirmPasswordOpenLockIcon = confirmPasswordLockIcon.nextElementSibling;
-
-        if (newPasswordLockIcon && newPasswordOpenLockIcon) {
-            newPasswordLockIcon.addEventListener('click', () => {
-                newPasswordInput.type = 'text';
-                newPasswordLockIcon.style.display = 'none';
-                newPasswordOpenLockIcon.style.display = 'inline';
-            });
-
-            newPasswordOpenLockIcon.addEventListener('click', () => {
-                newPasswordInput.type = 'password';
-                newPasswordOpenLockIcon.style.display = 'none';
-                newPasswordLockIcon.style.display = 'inline';
-            });
-        }
-
-        if (confirmPasswordLockIcon && confirmPasswordOpenLockIcon) {
-            confirmPasswordLockIcon.addEventListener('click', () => {
-                confirmPasswordInput.type = 'text';
-                confirmPasswordLockIcon.style.display = 'none';
-                confirmPasswordOpenLockIcon.style.display = 'inline';
-            });
-
-            confirmPasswordOpenLockIcon.addEventListener('click', () => {
-                confirmPasswordInput.type = 'password';
-                confirmPasswordOpenLockIcon.style.display = 'none';
-                confirmPasswordLockIcon.style.display = 'inline';
-            });
-        }
-    }
 });
