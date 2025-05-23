@@ -112,10 +112,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Handle navigation and Date Validation
     // ---
     nextBtn.addEventListener('click', () => {
-        // First, check if the basic form validity for page 1 is met
         if (!formPage1.checkValidity()) {
-            formPage1.reportValidity(); // Show native browser validation messages
-            return; // Stop if form page 1 is not valid
+            formPage1.reportValidity(); 
+            return; 
         }
 
         const startDateInput = document.getElementById('StartDate');
@@ -155,7 +154,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Set a reasonable "future" limit for EndDate (e.g., 1 year from today)
         const oneYearFromNow = new Date(today); // Start from today's normalized date
         oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
-        // No need to set to end of day if `today` is already normalized to start of day
+        // No need to set to end of day if today is already normalized to start of day
 
         // --- Date Validation Logic ---
 

@@ -31,10 +31,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const entriesInfo = document.getElementById("entriesInfo");
     const searchInput = document.getElementById("searchInput");
     const sortSelect = document.getElementById("sortSelect");
+    const savePdfBtn = document.getElementById('savePdfBtn');
+    const exportExcelBtn = document.getElementById('exportExcelBtn'); 
+
     let currentPage = 1;
     const rowsPerPage = 5;
 
-    if (!reportsBody || !paginationContainer || !entriesInfo || !searchInput || !sortSelect) {
+    if (!reportsBody || !paginationContainer || !entriesInfo || !searchInput || !sortSelect || !savePdfBtn || !exportExcelBtn) {
         console.error("Required DOM elements not found");
         Swal.fire({
             icon: 'error',
@@ -68,16 +71,16 @@ document.addEventListener('DOMContentLoaded', () => {
             day: "numeric"
         });
     }
-    function formatTime(timeStr) {
-    if (!timeStr) return "-";
-    const date = new Date(`1970-01-01T${timeStr}`);
-    if (isNaN(date)) return timeStr;
-    return date.toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-        hour12: true
-    });
-}
+        function formatTime(timeStr) {
+        if (!timeStr) return "-";
+        const date = new Date(`1970-01-01T${timeStr}`);
+        if (isNaN(date)) return timeStr;
+        return date.toLocaleTimeString("en-US", {
+            hour: "numeric",
+            minute: "2-digit",
+            hour12: true
+        });
+    }
 
     function loadReportsFromFirebase() {
         database.ref("reports/approved").on("value", snapshot => {
@@ -109,6 +112,276 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
     }
+
+    // This function will get the currently displayed data
+    function getDisplayedReportsData() {
+        const searchQuery = searchInput.value.toLowerCase();
+        const sortValue = sortSelect.value;
+        const [sortBy, direction] = sortValue.split("-");
+
+        let filteredReports = reviewedReports.filter(report => {
+            return Object.entries(report).some(([key, value]) => {
+                if (key === "DateOfReport") {
+                    const formattedDate = formatDate(value).toLowerCase();
+                    return formattedDate.includes(searchQuery);
+                }
+                return value?.toString().toLowerCase().includes(searchQuery);
+            });
+        });
+
+        if (sortBy) {
+            filteredReports.sort((a, b) => {
+                const valA = a[sortBy] || "";
+                const valB = b[sortBy] || "";
+
+                if (sortBy.includes("Date")) { // Handle all date fields like StartDate, EndDate, DateOfReport
+                    const dateA = new Date(valA);
+                    const dateB = new Date(valB);
+                    if (isNaN(dateA) || isNaN(dateB)) return 0;
+                    return direction === "asc" ? dateA - dateB : dateB - dateA;
+                }
+                
+                // Handle numeric sorting for 'NoOfHotMeals' and 'LitersOfWater'
+                if (sortBy === "NoOfHotMeals" || sortBy === "LitersOfWater") {
+                    const numA = parseFloat(valA);
+                    const numB = parseFloat(valB);
+                    if (isNaN(numA) || isNaN(numB)) return 0; // Treat non-numeric as equal for sorting
+                    return direction === "asc" ? numA - numB : numB - numA;
+                }
+
+                return direction === "asc"
+                    ? valA.toString().localeCompare(valB.toString())
+                    : valB.toString().localeCompare(valA.toString());
+            });
+        }
+        return filteredReports;
+    }
+
+    // --- PDF Generation ---
+    savePdfBtn.addEventListener('click', () => {
+        Swal.fire({
+            title: 'Generating PDF...',
+            text: 'Please wait while the PDF is being created.',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        const doc = new window.jspdf.jsPDF('l', 'mm', 'a4');
+
+        const headers = [
+            'No.', 'Report ID', 'Volunteer Group Name', 'Area of Operation',
+            'Operation Start Date', 'Operation End Date', 'No. of Hot Meals',
+            'Liters of Water', 'Submitted by', 'Report Submission Date',
+            'Completion Time of Intervention', 'No. of Individuals/Families',
+            'No. of Food Packs', 'No. of Volunteers Mobilized',
+            'No. of Organizations Activated', 'Total In-Kind Donations',
+            'Total Monetary Donations', 'Notes/Additional Info'
+        ];
+
+        const dataToExport = getDisplayedReportsData(); 
+
+        if (dataToExport.length === 0) {
+            Swal.fire({
+                icon: 'info',
+                title: 'No Data to Export',
+                text: 'There are no reports matching your current search/sort criteria to export to PDF.',
+            });
+            return;
+        }
+
+        const body = dataToExport.map((item, index) => {
+            return [
+                index + 1,
+                item.ReportID || '-',
+                item.VolunteerGroupName || '[Unknown Org]',
+                item.AreaOfOperation || '-',
+                formatDate(item.StartDate) || '-',
+                formatDate(item.EndDate) || '-',
+                item.NoOfHotMeals || '-',
+                item.LitersOfWater || '-',
+                item.SubmittedBy || '-',
+                formatDate(item.DateOfReport) || '-',
+                formatTime(item.TimeOfIntervention) || '-',
+                item.NoOfIndividualsOrFamilies || '-',
+                item.NoOfFoodPacks || '-',
+                item.NoOfVolunteersMobilized || '-',
+                item.NoOfOrganizationsActivated || '-',
+                item.TotalValueOfInKindDonations || '-',
+                item.TotalMonetaryDonations || '-',
+                item.NotesAdditionalInformation || '-'
+            ];
+        });
+
+        // Add the main header ONLY ONCE before autoTable
+        doc.setFontSize(18);
+        doc.setTextColor(40);
+        doc.text('Approved Reports Log', 14, 15); 
+
+        doc.autoTable({
+            head: [headers],
+            body: body,
+            startY: 20,
+            theme: 'striped',
+            headStyles: {
+                fillColor: [41, 128, 185],
+                textColor: 255,
+                fontStyle: 'bold',
+                fontSize: 8
+            },
+            styles: {
+                fontSize: 7,
+                cellPadding: 1,
+                overflow: 'linebreak'
+            },
+            columnStyles: {
+                0: { cellWidth: 10 },  
+                1: { cellWidth: 18 }, 
+                2: { cellWidth: 28 },  
+                3: { cellWidth: 25 },
+                4: { cellWidth: 20 },
+                5: { cellWidth: 20 },
+                6: { cellWidth: 15 },
+                7: { cellWidth: 15 },
+                8: { cellWidth: 25 },
+                9: { cellWidth: 20 },
+                10: { cellWidth: 20 },
+                11: { cellWidth: 20 },
+                12: { cellWidth: 15 },
+                13: { cellWidth: 20 },
+                14: { cellWidth: 20 },
+                15: { cellWidth: 20 },
+                16: { cellWidth: 20 },
+                17: { cellWidth: 25 }
+            },
+            didDrawPage: function (data) {
+                // Footer
+                var str = "Page " + doc.internal.getNumberOfPages();
+                doc.setFontSize(10);
+                doc.text(str, data.settings.margin.left, doc.internal.pageSize.height - 10);
+            }
+        });
+
+        doc.save(`Approved_Reports_Log_${new Date().toISOString().slice(0,10)}.pdf`);
+        Swal.close(); 
+
+        Swal.fire({
+            title: 'Success!',
+            text: 'PDF generated successfully!',
+            icon: 'success',
+            timer: 1500, 
+            showConfirmButton: false
+        });
+    });
+
+    // --- Excel Export Logic ---
+    exportExcelBtn.addEventListener('click', () => {
+        Swal.fire({
+            title: 'Generating Excel...',
+            text: 'Please wait while the Excel file is being created.',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        try {
+            const dataToExport = getDisplayedReportsData(); // Get all filtered and sorted data
+            
+            if (dataToExport.length === 0) {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'No Data to Export',
+                    text: 'There are no reports matching your current search/sort criteria to export.',
+                });
+                return;
+            }
+
+            const headerMap = {
+                "ReportID": "Report ID",
+                "VolunteerGroupName": "Volunteer Group Name",
+                "AreaOfOperation": "Area of Operation",
+                "StartDate": "Operation Start Date",
+                "EndDate": "Operation End Date",
+                "NoOfHotMeals": "No. of Hot Meals",
+                "LitersOfWater": "Liters of Water",
+                "SubmittedBy": "Submitted by",
+                "DateOfReport": "Report Submission Date",
+                "TimeOfIntervention": "Completion Time of Intervention",
+                "NoOfIndividualsOrFamilies": "No. of Individuals or Families",
+                "NoOfFoodPacks": "No. of Food Packs",
+                "NoOfVolunteersMobilized": "No. of Volunteers Mobilized",
+                "NoOfOrganizationsActivated": "No. of Organizations Activated",
+                "TotalValueOfInKindDonations": "Total Value of In-Kind Donations",
+                "TotalMonetaryDonations": "Total Monetary Donations",
+                "NotesAdditionalInformation": "Notes/Additional Information"
+            };
+
+            // Prepare data for export, mapping keys to friendly headers
+            const wsData = dataToExport.map(report => {
+                const row = {};
+                for (const key in headerMap) {
+                    let value = report[key];
+                    if (key.includes("Date") && value) {
+                        value = formatDate(value); // Format dates for Excel
+                    } else if (key.includes("Time") && value) {
+                        value = formatTime(value); // Format times for Excel
+                    }
+                    row[headerMap[key]] = value || "-"; // Use mapped header and fallback to "-"
+                }
+                return row;
+            });
+
+            // Create a worksheet
+            const ws = XLSX.utils.json_to_sheet(wsData);
+
+            // Optional: Set column widths for better display in Excel
+            const wscols = [
+                {wch: 15},  // Report ID
+                {wch: 30},  // Volunteer Group Name
+                {wch: 25},  // Area of Operation
+                {wch: 20},  // Operation Start Date
+                {wch: 20},  // Operation End Date
+                {wch: 18},  // No. of Hot Meals
+                {wch: 18},  // Liters of Water
+                {wch: 25},  // Submitted by
+                {wch: 20},  // Report Submission Date
+                {wch: 25},  // Completion Time of Intervention
+                {wch: 25},  // No. of Individuals or Families
+                {wch: 20},  // No. of Food Packs
+                {wch: 25},  // No. of Volunteers Mobilized
+                {wch: 25},  // No. of Organizations Activated
+                {wch: 25},  // Total Value of In-Kind Donations
+                {wch: 25},  // Total Monetary Donations
+                {wch: 40}   // Notes/Additional Information
+            ];
+            ws['!cols'] = wscols;
+
+            // Create a workbook
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Approved Reports");
+
+            // Write and download the file
+            const fileName = `Approved_Reports_Log_${new Date().toISOString().slice(0,10)}.xlsx`;
+            XLSX.writeFile(wb, fileName);
+
+            Swal.close();
+            Swal.fire({
+                title: 'Success!',
+                text: 'Excel file generated successfully!',
+                icon: 'success',
+                timer: 1500,
+                showConfirmButton: false
+            });
+
+        } catch (error) {
+            console.error('Error generating Excel:', error);
+            Swal.close();
+            Swal.fire('Error!', 'Failed to generate Excel: ' + error.message, 'error');
+        }
+    });
+
 
     function renderReportsTable(reports) {
         reportsBody.innerHTML = '';
