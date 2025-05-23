@@ -224,7 +224,7 @@ document.addEventListener('DOMContentLoaded', () => {
             userUid,
             AreaOfOperation: document.querySelector('input[placeholder="e.g. Purok 2, Brgy. Maligaya, Rosario"]').value,
             TimeOfIntervention: document.querySelector('input[placeholder="Completion Time of Intervention"]')?.value || "N/A",
-            SubmittedBy: document.getElementById('SubmittedBy').value || "N/A",
+            // SubmittedBy: document.getElementById('SubmittedBy').value || "N/A",
             DateOfReport: dateOfReportInput.value || "N/A", // Use the renamed input
             ReportID: idInput.value || "N/A",
             StartDate: startDateInput?.value || "N/A",
@@ -250,8 +250,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const returnTo = localStorage.getItem("returnToStep");
 
     if (returnTo === "form-container-2") {
-        formPage1.style.display = "none";
-        formPage2.style.display = "block";
+        formPage1.style.display = "block";
+        formPage2.style.display = "none";
 
         setTimeout(() => {
             const target = document.querySelector(".form-container-2");

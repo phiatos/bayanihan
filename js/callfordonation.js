@@ -1,4 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
+  const userRole = localStorage.getItem('userRole'); // Assuming user role is stored in localStorage
+
   let donations = JSON.parse(localStorage.getItem('donations')) || [];
   let filteredReports = donations;
   let currentPage = 1;
@@ -14,14 +16,63 @@ document.addEventListener('DOMContentLoaded', () => {
   const tableBody = document.querySelector('#donationTable tbody');
   const entriesInfo = document.getElementById('entriesInfo');
   const pagination = document.getElementById('pagination');
-  const nextBtn = document.getElementById('nextBtn');
-  const donationForm = document.getElementById('donationForm');
+  const donationForm = document.getElementById('donationForm'); // The form for input
+  const submitButton = document.getElementById('nextBtn'); // Assuming this is the submit button
 
-  // Province to city mapping
   const cities = {
     Albay: ["Legazpi", "Daraga", "Tabaco"],
     Sorsogon: ["Sorsogon City", "Gubat", "Castilla"]
   };
+
+  const exportCsvButton = document.getElementById('exportBtn');
+
+  // Function to control the visibility of the Export CSV button
+  function toggleExportCsvButton() {
+    if (exportCsvButton) {
+      if (userRole === 'ABVN') {
+        exportCsvButton.style.display = 'none'; // Hide for ABVN users
+      } else {
+        exportCsvButton.style.display = 'block'; // Show for other users (like AB ADMIN)
+      }
+    }
+  }
+  
+  // Function to enable/disable form elements
+  function toggleFormElements(enable) {
+    if (donationForm) {
+      Array.from(donationForm.elements).forEach(element => {
+        element.disabled = !enable;
+      });
+    }
+    if (submitButton) {
+      donationDrive.disabled = !enable; 
+      contactPerson.disabled = !enable; 
+      contactNumber.disabled = !enable; 
+      accountNumber.disabled = !enable; 
+      accountName.disabled = !enable; 
+      donationImage.disabled = !enable; 
+      provinceSelect.disabled = !enable; 
+      citySelect.disabled = !enable; 
+      barangaySelect.disabled = !enable; 
+      address.disabled = !enable; 
+      facebookLink.disabled = !enable; // Disable all form elements
+      submitButton.disabled = !enable; // Disable the submit button
+    }
+  }
+
+  // Function to handle button visibility in the table
+  function updateTableButtons() {
+    const deleteButtons = document.querySelectorAll('.delete-btn');
+    if (userRole === 'ABVN') {
+      deleteButtons.forEach(button => {
+        button.style.display = 'none';
+      });
+    } else {
+      deleteButtons.forEach(button => {
+        button.style.display = 'inline-block';
+      });
+    }
+  }
 
   // Populate city and barangay options
   if (provinceSelect && citySelect && barangaySelect) {
@@ -60,43 +111,43 @@ document.addEventListener('DOMContentLoaded', () => {
     renderReports();
   }
 
-// Add event listeners
-searchInput?.addEventListener('input', applyFilters);
-sortSelect?.addEventListener('change', applyFilters);
+  // Add event listeners
+  searchInput?.addEventListener('input', applyFilters);
+  sortSelect?.addEventListener('change', applyFilters);
 
-function applyFilters() {
-  let data = [...donations]; // assuming donations is your original array
+  function applyFilters() {
+    let data = [...donations]; // assuming donations is your original array
 
-  // Search filter
-  const searchTerm = searchInput.value.trim().toLowerCase();
-  if (searchTerm) {
-    data = data.filter(d =>
-      (d.donationDrive || '').toLowerCase().includes(searchTerm) ||
-      (d.contactPerson || '').toLowerCase().includes(searchTerm) ||
-      (d.contactNumber || '').toLowerCase().includes(searchTerm) ||
-      (d.accountNumber || '').toLowerCase().includes(searchTerm) ||
-      (d.accountName || '').toLowerCase().includes(searchTerm) ||
-      (d.dropOff || '').toLowerCase().includes(searchTerm) ||
-      (d.facebookLink || '').toLowerCase().includes(searchTerm)
-    );
+    // Search filter
+    const searchTerm = searchInput.value.trim().toLowerCase();
+    if (searchTerm) {
+      data = data.filter(d =>
+        (d.donationDrive || '').toLowerCase().includes(searchTerm) ||
+        (d.contactPerson || '').toLowerCase().includes(searchTerm) ||
+        (d.contactNumber || '').toLowerCase().includes(searchTerm) ||
+        (d.accountNumber || '').toLowerCase().includes(searchTerm) ||
+        (d.accountName || '').toLowerCase().includes(searchTerm) ||
+        (d.dropOff || '').toLowerCase().includes(searchTerm) ||
+        (d.facebookLink || '').toLowerCase().includes(searchTerm)
+      );
+    }
+
+    // Sort logic
+    const sortValue = sortSelect.value;
+    if (sortValue) {
+      const [field, direction] = sortValue.split('-');
+      data.sort((a, b) => {
+        const valA = (a[field] || '').toString().toLowerCase();
+        const valB = (b[field] || '').toString().toLowerCase();
+        return direction === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+      });
+    }
+
+    // Render or update your table here
+    filteredReports = data;
+    currentPage = 1;
+    renderReports(); // Make sure you have a renderReports() function
   }
-
-  // Sort logic
-  const sortValue = sortSelect.value;
-  if (sortValue) {
-    const [field, direction] = sortValue.split('-');
-    data.sort((a, b) => {
-      const valA = (a[field] || '').toString().toLowerCase();
-      const valB = (b[field] || '').toString().toLowerCase();
-      return direction === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
-    });
-  }
-
-  // Render or update your table here
-  filteredReports = data;
-  currentPage = 1;
-  renderReports(); // Make sure you have a renderReports() function
-}
 
   function renderReports() {
     tableBody.innerHTML = "";
@@ -133,6 +184,7 @@ function applyFilters() {
     entriesInfo.textContent = `Showing ${startIndex + 1} to ${endIndex} of ${totalEntries} entries`;
     renderPagination(totalPages);
     attachEventListeners();
+    updateTableButtons(); // Call this after rendering to update button visibility
   }
 
   function renderPagination(totalPages) {
@@ -214,8 +266,8 @@ function applyFilters() {
     });
   }
 
-  if (nextBtn) {
-    nextBtn.addEventListener('click', (e) => {
+  if (submitButton) {
+    submitButton.addEventListener('click', (e) => {
       e.preventDefault();
 
       const donationDrive = document.getElementById('donationDrive')?.value.trim();
@@ -280,6 +332,16 @@ function applyFilters() {
       }
     });
   }
+
+   // Initial setup based on user role
+  // if (userRole === 'AB ADMIN') {
+  //   toggleFormElements(false); // Disable input form elements and the submit button
+  // } else if (userRole === 'ABVN') {
+  //   toggleFormElements(true); // Enable input form elements and the submit button
+  // }
+
+  // Call the function to control the Export CSV button visibility
+  toggleExportCsvButton();
 
   applyChange();
 });

@@ -146,8 +146,8 @@ document.addEventListener('DOMContentLoaded', () => {
         //  Back button logic
         document.getElementById('backBtn').addEventListener('click', () => {
             localStorage.setItem("returnToStep", "form-container-2");
-            // reportData is already in localStorage, so just go back
-            window.location.href = "../pages/reportssubmission.html";
+            // window.location.href = "../pages/reportssubmission.html";
+            window.history.back();
         });
 
         //  Submit button logic
