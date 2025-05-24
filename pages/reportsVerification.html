@@ -37,11 +37,17 @@
                     <div class="custom-select-wrapper">
                         <select id="sortSelect">
                             <option value="">Sort by</option>
+                            <optgroup label="Group">
+                                <option value="VolunteerGroupName-asc">Group Name (A–Z)</option>
+                                <option value="VolunteerGroupName-desc">Group Name (Z–A)</option>   
+                            </optgroup>
                             <optgroup label="Location">
-                                <option value="Barangay-asc">Barangay (A–Z)</option>
-                                <option value="Barangay-desc">Barangay (Z–A)</option>
-                                <option value="CityMunicipality-asc">City/Municipality (A–Z)</option>
-                                <option value="CityMunicipality-desc">City/Municipality (Z–A)</option>
+                                <option value="AreaOfOperation-asc">Area of Operation (A–Z)</option>
+                                <option value="AreaOfOperation-desc">Area of Operation (Z–A)</option>
+                            </optgroup>
+                            <optgroup label="Time">
+                                <option value="TimeOfIntervention-asc">Time of Intervention (Low–High)</option>
+                                <option value="TimeOfIntervention-desc">Time of Intervention (High-Low)</option>
                             </optgroup>
                             <optgroup label="Date">
                                 <option value="DateOfReport-asc">Report Date (Low–High)</option>
