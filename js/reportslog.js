@@ -121,7 +121,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let filteredReports = reviewedReports.filter(report => {
             return Object.entries(report).some(([key, value]) => {
-                if (key === "DateOfReport") {
+                // Check if key includes "Date" for search filtering
+                if (key.includes("Date") && value) { 
                     const formattedDate = formatDate(value).toLowerCase();
                     return formattedDate.includes(searchQuery);
                 }
@@ -134,19 +135,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 const valA = a[sortBy] || "";
                 const valB = b[sortBy] || "";
 
-                if (sortBy.includes("Date")) { // Handle all date fields like StartDate, EndDate, DateOfReport
+                // Check if sortBy includes "Date" to handle StartDate, EndDate, DateOfReport
+                if (sortBy.includes("Date")) { 
                     const dateA = new Date(valA);
                     const dateB = new Date(valB);
-                    if (isNaN(dateA) || isNaN(dateB)) return 0;
+                    if (isNaN(dateA) || isNaN(dateB)) return 0; // Or handle invalid dates differently (e.g., push to end)
                     return direction === "asc" ? dateA - dateB : dateB - dateA;
                 }
                 
-                // Handle numeric sorting for 'NoOfHotMeals' and 'LitersOfWater'
-                if (sortBy === "NoOfHotMeals" || sortBy === "LitersOfWater") {
+                // Handle numeric sorting for 'NoOfHotMeals', 'LitersOfWater',
+                // 'TotalValueOfInKindDonations', and 'TotalMonetaryDonations'
+                if (sortBy === "NoOfHotMeals" || sortBy === "LitersOfWater" ||
+                    sortBy === "TotalValueOfInKindDonations" || sortBy === "TotalMonetaryDonations") {
                     const numA = parseFloat(valA);
                     const numB = parseFloat(valB);
-                    if (isNaN(numA) || isNaN(numB)) return 0; // Treat non-numeric as equal for sorting
-                    return direction === "asc" ? numA - numB : numB - numA;
+                    const finalNumA = isNaN(numA) ? 0 : numA; 
+                    const finalNumB = isNaN(numB) ? 0 : numB;
+
+                    return direction === "asc" ? finalNumA - finalNumB : finalNumB - finalNumA;
                 }
 
                 return direction === "asc"
@@ -157,7 +163,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return filteredReports;
     }
 
-    // --- PDF Generation ---
     // --- PDF Generation ---
 savePdfBtn.addEventListener('click', () => {
     Swal.fire({
@@ -340,22 +345,22 @@ function generatePdf() {
 
             // Optional: Set column widths for better display in Excel
             const wscols = [
-                {wch: 15},  // Report ID
-                {wch: 30},  // Volunteer Group Name
-                {wch: 25},  // Area of Operation
-                {wch: 20},  // Operation Start Date
-                {wch: 20},  // Operation End Date
-                {wch: 18},  // No. of Hot Meals
-                {wch: 18},  // Liters of Water
-                {wch: 20},  // Report Submission Date
-                {wch: 25},  // Completion Time of Intervention
-                {wch: 25},  // No. of Individuals or Families
-                {wch: 20},  // No. of Food Packs
-                {wch: 25},  // No. of Volunteers Mobilized
-                {wch: 25},  // No. of Organizations Activated
-                {wch: 25},  // Total Value of In-Kind Donations
-                {wch: 25},  // Total Monetary Donations
-                {wch: 40}   // Notes/Additional Information
+                {wch: 15},   // Report ID
+                {wch: 30},   // Volunteer Group Name
+                {wch: 25},   // Area of Operation
+                {wch: 20},   // Operation Start Date
+                {wch: 20},   // Operation End Date
+                {wch: 18},   // No. of Hot Meals
+                {wch: 18},   // Liters of Water
+                {wch: 20},   // Report Submission Date
+                {wch: 25},   // Completion Time of Intervention
+                {wch: 25},   // No. of Individuals or Families
+                {wch: 20},   // No. of Food Packs
+                {wch: 25},   // No. of Volunteers Mobilized
+                {wch: 25},   // No. of Organizations Activated
+                {wch: 25},   // Total Value of In-Kind Donations
+                {wch: 25},   // Total Monetary Donations
+                {wch: 40}    // Notes/Additional Information
             ];
             ws['!cols'] = wscols;
 
@@ -404,8 +409,8 @@ function generatePdf() {
                 <td>${report["AreaOfOperation"] || "-"}</td>
                 <td>${formatDate(report["StartDate"]) || "-"}</td>
                 <td>${formatDate(report["EndDate"]) || "-"}</td>
-                <td>${report["NoOfHotMeals"] || "-"}</td>
-                <td>${report["LitersOfWater"] || "-"}</td>
+                <td>${report["TotalValueOfInKindDonations"] || "-"}</td>
+                <td>${report["TotalMonetaryDonations"] || "-"}</td>
                 <td><button class="viewBtn">View</button></td>
             `;
 
@@ -423,8 +428,8 @@ function generatePdf() {
                         .replace('TimeOfIntervention', 'Time of Intervention')
                         .replace('DateOfReport', 'Date of Report')
                         .replace('ReportID', 'Report ID')
-                        .replace('StartDate', 'StartDate')
-                        .replace('EndDate', 'EndDate')
+                        .replace('StartDate', 'Start Date') // Corrected display
+                        .replace('EndDate', 'End Date')     // Corrected display
                         .replace('NoOfIndividualsOrFamilies', 'No. of Individuals or Families')
                         .replace('NoOfFoodPacks', 'No. of Food Packs')
                         .replace('NoOfHotMeals', 'No. of Hot Meals')
@@ -435,7 +440,7 @@ function generatePdf() {
                         .replace('NotesAdditionalInformation', 'Notes/additional information')
                         .replace('VolunteerGroupName', 'Volunteer Group');
 
-                    const value = key === "DateOfReport" ? formatDate(report[key]) : report[key];
+                    const value = key.includes("Date") ? formatDate(report[key]) : report[key]; // Used includes("Date") here too
                     readableReport += `• ${displayKey}: ${value}\n`;
                 }
 
@@ -537,7 +542,8 @@ function generatePdf() {
 
         let filteredReports = reviewedReports.filter(report => {
             return Object.entries(report).some(([key, value]) => {
-                if (key === "DateOfReport") {
+                // Check if key includes "Date" for search filtering
+                if (key.includes("Date") && value) { 
                     const formattedDate = formatDate(value).toLowerCase();
                     return formattedDate.includes(searchQuery);
                 }
@@ -550,11 +556,22 @@ function generatePdf() {
                 const valA = a[sortBy] || "";
                 const valB = b[sortBy] || "";
 
-                if (sortBy === "DateOfReport") {
+                // Check if sortBy includes "Date" to handle StartDate, EndDate, DateOfReport
+                if (sortBy.includes("Date")) { 
                     const dateA = new Date(valA);
                     const dateB = new Date(valB);
                     if (isNaN(dateA) || isNaN(dateB)) return 0;
                     return direction === "asc" ? dateA - dateB : dateB - dateA;
+                }
+
+                // Apply numeric sorting for specified fields
+                if (sortBy === "NoOfHotMeals" || sortBy === "LitersOfWater" ||
+                    sortBy === "TotalValueOfInKindDonations" || sortBy === "TotalMonetaryDonations") {
+                    const numA = parseFloat(valA);
+                    const numB = parseFloat(valB);
+                    const finalNumA = isNaN(numA) ? 0 : numA;
+                    const finalNumB = isNaN(numB) ? 0 : numB;
+                    return direction === "asc" ? finalNumA - finalNumB : finalNumB - finalNumA;
                 }
 
                 return direction === "asc"

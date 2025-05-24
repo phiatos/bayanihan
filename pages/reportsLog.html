@@ -42,17 +42,26 @@
                     <div class="custom-select-wrapper">
                         <select id="sortSelect">
                             <option value="">Sort by</option>
+                            <optgroup label="Group Name">
+                                <option value="VolunteerGroupName-asc">Volunteer Group Name (A–Z)</option>
+                                <option value="VolunteerGroupName-desc">Volunteer Group Name (Z–A)</option>
+                            </optgroup>
                             <optgroup label="Location">
-                                <option value="CityMunicipality-asc">City/Municipality (A–Z)</option>
-                                <option value="CityMunicipality-desc">City/Municipality (Z–A)</option>
+                                <option value="AreaOfOperation-asc">Area of Operation (A–Z)</option>
+                                <option value="AreaOfOperation-desc">Area of Operation (Z–A)</option>
                             </optgroup>
-                            <optgroup label="Hot Meals">
-                                <option value="NoOfHotMeals-asc">Hot Meals (Low–High)</option>
-                                <option value="NoOfHotMeals-desc">Hot Meals (High–Low)</option>
+                            <optgroup label="Date">
+                                <option value="StartDate-asc">Starting Date (Old–New)</option>
+                                <option value="StartDate-desc">Starting Date (New–Old)</option>
+                                <option value="EndDate-asc">Ending Date (Old–New)</option>
+                                <option value="EndDate-desc">Ending Date (New–Old)</option>
                             </optgroup>
-                            <optgroup label="Liters of Water">
-                                <option value="LitersOfWater-asc">Liters of Water (Low–High)</option>
-                                <option value="LitersOfWater-desc">Liters of Water (High–Low)</option>
+                            
+                            <optgroup label="Value">
+                                <option value="TotalValueOfInKindDonations-asc">Total Value Of InKind Donations (Low–High)</option>
+                                <option value="TotalValueOfInKindDonations-desc">Total Value Of InKind Donations (High–Low)</option>
+                                <option value="TotalMonetaryDonations-asc">Total Monetary Donations (Low–High)</option>
+                                <option value="TotalMonetaryDonations-desc">Total Monetary Donations (High–Low)</option>
                             </optgroup>
                           </select>                          
                         <i class='bx bx-chevron-down'></i>
@@ -67,10 +76,10 @@
                         <th>Report ID</th>
                         <th>Volunteer Group Name</th>
                         <th>Area of Operation</th>
-                        <th>Report Date</th> 
-                        <th>Submitted by</th>
-                        <th>No. of Hot Meals</th>
-                        <th>Liters of Water</th>
+                        <th>Starting Date of Operation</th> 
+                        <th>Ending Date of Operation</th>
+                        <th>Total Value of In-Kind Donations</th>
+                        <th>Total Monetary Donations</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
