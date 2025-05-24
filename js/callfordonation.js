@@ -1,11 +1,11 @@
 document.addEventListener('DOMContentLoaded', () => {
-  const userRole = localStorage.getItem('userRole'); // Assuming user role is stored in localStorage
+    const userRole = localStorage.getItem('userRole'); // Assuming user role is stored in localStorage
 
-  let donations = JSON.parse(localStorage.getItem('donations')) || [];
-  let filteredReports = donations;
-  let currentPage = 1;
-  const entriesPerPage = 10;
-  let viewingApproved = false;
+    let donations = JSON.parse(localStorage.getItem('donations')) || [];
+    let filteredReports = donations;
+    let currentPage = 1;
+    const entriesPerPage = 10;
+    let viewingApproved = false;
 
   // DOM elements
   const searchInput = document.getElementById('searchInput');
@@ -51,7 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
           // Use the path relative to the HTML document
           // (e.g., if HTML in 'pages/', JSON in 'js/', path is '../js/region.json')
-          const url = '../js/region.json';
+          const url = '/Bayanihan-PWA/json/region.json';
 
           // *** REPLACED $.getJSON with fetch API ***
           fetch(url)
@@ -101,7 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
           barangaySelect.innerHTML = '<option selected="true" disabled></option>';
           barangaySelect.selectedIndex = 0;
 
-          const url = '../province.json';
+          const url = '/Bayanihan-PWA/json/province.json';
 
           // *** REPLACED $.getJSON with fetch API ***
           fetch(url)
@@ -149,7 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
           barangaySelect.innerHTML = '<option selected="true" disabled></option>';
           barangaySelect.selectedIndex = 0;
 
-          const url = '../city.json';
+          const url = '/Bayanihan-PWA/json/city.json';
 
           // *** REPLACED $.getJSON with fetch API ***
           fetch(url)
@@ -193,8 +193,7 @@ document.addEventListener('DOMContentLoaded', () => {
           barangaySelect.innerHTML = '<option selected="true" disabled>Choose barangay</option>';
           barangaySelect.selectedIndex = 0;
 
-          const url = '../barangay.json';
-
+          const url = '/Bayanihan-PWA/json/barangay.json';
           // *** REPLACED $.getJSON with fetch API ***
           fetch(url)
               .then(response => {
@@ -309,8 +308,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // Call the initial fill for regions directly on page load
   my_handlers.fill_regions();
 
-  if (searchInput) searchInput.addEventListener('input', applyFilters);
-  if (sortSelect) sortSelect.addEventListener('change', applyFilters);
+    if (searchInput) searchInput.addEventListener('input', applyFilters);
+    if (sortSelect) sortSelect.addEventListener('change', applyFilters);
 
   function applyChange() {
       filteredReports = [...donations];
@@ -377,7 +376,7 @@ document.addEventListener('DOMContentLoaded', () => {
                   <td><a href="${r.facebookLink || '#'}" target="_blank" rel="noopener noreferrer">Visit The Page</a></td>
                   <td>
                       <button class="view-btn" data-index="${startIndex + i}">View Image</button>
-                      <button class="delete-btn" data-index="${startIndex + i}">Delete</button>
+                      <button class="delete-btn" data-index="${startIndex + i}">Remove</button>
                   </td>
               `;
               tableBody.appendChild(row);
@@ -596,6 +595,3 @@ document.addEventListener('DOMContentLoaded', () => {
   updateTableButtons();
   applyChange();
 });
-
-
-

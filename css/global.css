@@ -276,11 +276,15 @@ tr {
   background: var(--light-bg);
   padding: 50px;
   width: 1000px;
-  height: auto;
-  overflow-y: auto;
+  /* Add max-height and make overflow-y scroll */
+  max-height: 90vh; /* Adjust as needed, e.g., 90% of viewport height */
+  overflow-y: auto; /* This is key! */
   border: 5px solid var(--primary-color);
   border-radius: 18px;
   position: relative;
+  /* Ensure the content box itself allows scrolling */
+  display: flex; /* Often useful for internal layout */
+  flex-direction: column; /* To stack content vertically */
 }
 
 .close {
