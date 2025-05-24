@@ -112,7 +112,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         console.log("User authenticated:", user.uid);
         loadDonations(user.uid);
-        updateSearchPlaceholder(); // Initial call to set placeholder
+        updateSearchPlaceholder(); 
     });
 
     function loadDonations(userUid) {
@@ -235,15 +235,15 @@ document.addEventListener("DOMContentLoaded", () => {
             };
 
             database.ref("donations/inkind").push(newDonation)
-                .then(() => {
-                    form.reset();
-                    formHasChanges = false;
-                    Swal.fire("Success", "Donation added!", "success");
-                })
-                .catch(error => {
-                    console.error("Error adding donation:", error);
-                    Swal.fire("Error", "Failed to add donation: " + error.message, "error");
-                });
+            .then(() => {
+                form.reset();
+                formHasChanges = false;
+                Swal.fire("Success", "Donation added!", "success");
+            })
+            .catch(error => {
+                console.error("Error adding donation:", error);
+                Swal.fire("Error", "Failed to add donation: " + error.message, "error");
+            });
         }
     });
 
@@ -469,12 +469,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
         Swal.fire("Success", "In-Kind Donations exported to Excel!", "success");
     });
-
-    function addSectionTitle(title, y, doc) {
-        doc.setFontSize(14);
-        doc.text(title, 14, y);
-        return y + 10;
-    }
 
     // --- PDF Export Functionality (All Data) ---
     savePdfBtn.addEventListener("click", () => {
@@ -772,15 +766,15 @@ document.addEventListener("DOMContentLoaded", () => {
                 };
 
                 database.ref(`donations/inkind/${editingKey}`).set(updatedDonation)
-                    .then(() => {
-                        closeEditModal();
-                        Swal.fire("Success", "Donation updated!", "success");
-                        editingKey = null;
-                    })
-                    .catch(error => {
-                        console.error("Error updating donation:", error);
-                        Swal.fire("Error", "Failed to update donation: " + error.message, "error");
-                    });
+                .then(() => {
+                    closeEditModal();
+                    Swal.fire("Success", "Donation updated!", "success");
+                    editingKey = null;
+                })
+                .catch(error => {
+                    console.error("Error updating donation:", error);
+                    Swal.fire("Error", "Failed to update donation: " + error.message, "error");
+                });
             }
         }
     });

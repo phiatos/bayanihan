@@ -19,10 +19,7 @@
     <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
     <!-- PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
-
-    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script> -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     
     <title>Monetary Donations</title>
 </head>
@@ -33,53 +30,54 @@
         <div id="main-content">
             <header>Monetary Donations</header>
 
-            <div id="form-page-1">
-                <div class="form first">
+            <div class="form-page-1">
+                <div class="form-first">
                     <form id="form-container-1">
                     <div class="fields">
                         <div class="input-field">
-                            <label for="encoder">Encoder:</label>
-                            <input type="text" id="encoder" placeholder="Enter encoder name" maxlength="70">
+                            <label for="encoder">Encoder</label>
+                            <input type="text" id="encoder" placeholder="Enter encoder name" maxlength="70" required>
                         </div>
                         <div class="input-field">
-                            <label for="name">Names/Company:</label>
-                            <input type="text" id="name" placeholder="Enter name or company" maxlength="100">
+                            <label for="name">Names/Company</label>
+                            <input type="text" id="name" placeholder="Enter name or company" maxlength="100" required>
                         </div>
                         <div class="input-field">
-                            <label for="address">Location (at least City Address):</label>
-                            <input type="text" id="address" placeholder="Enter city or full address" maxlength="150">
+                            <label for="address">Location (at least City Address)</label>
+                            <input type="text" id="address" placeholder="Enter city or full address" maxlength="150" required>
                         </div>
                         <div class="input-field">
-                            <label for="number">Number:</label>
-                            <input type="text" id="number" placeholder="Enter contact number" maxlength="15">
+                            <label for="number">Number</label>
+                            <input type="tel" id="number" placeholder="Enter contact number" maxlength="15" required>
                         </div>
                         <div class="input-field">
-                            <label for="amount">Amount Donated:</label>
-                            <input type="number" id="amount" placeholder="Enter amount in PHP"  max="999999999">
+                            <label for="amount">Amount Donated</label>
+                            <input type="number" id="amount" placeholder="Enter amount in PHP"  max="999999999" required>
                         </div>
                         <div class="input-field">
-                            <label for="invoice">Cash Invoice #:</label>
+                            <label for="invoice">Cash Invoice #</label>
                             <input type="text" id="invoice" placeholder="Automatically generated" readonly maxlength="30">
                         </div>
                         <div class="input-field">
-                            <label for="dateReceived">Date Received:</label>
-                            <input type="date" id="dateReceived">
+                            <label for="dateReceived">Date Received</label>
+                            <input type="date" id="dateReceived" required>
                         </div>
                         <div class="input-field">
-                            <label for="email">Email:</label>
-                            <input type="email" id="email" placeholder="Enter email address" maxlength="100">
+                            <label for="email">Email</label>
+                            <input type="email" id="email" placeholder="Enter email address" maxlength="100" required>
                         </div>
                         <div class="input-field">
-                            <label for="bank">Bank:</label>
-                            <input type="text" id="bank" placeholder="Enter bank name" maxlength="50">
+                            <label for="bank">Bank</label>
+                            <input type="text" id="bank" placeholder="Enter bank name" maxlength="50" required>
                         </div>
                         <div class="input-field">
-                            <label for="proof">Proof of Transaction (Google Drive Link):</label>
+                            <label for="proof">Proof of Transaction (Gdrive Link)</label>
                             <input type="url" id="proof" placeholder="Enter Google Drive link" maxlength="255" required/>
                         </div>
                     </div>
 
                     <button type="submit">Add Donation</button>
+                    <button type="button" id="clearFormBtn" class="clear-button">Clear Form</button>
                     </form>
                 </div>
             </div>
@@ -167,11 +165,11 @@
                 </div>
 
                 <br>
-                <button id="exportMonetaryExcelBtn">Export to Excel</button>
-                <button id="exportMonetaryPdfBtn">Save to PDF</button>
+                <button id="exportBtn">Export to Excel</button>
+                <button id="savePdfBtn">Save to PDF</button>
             </section>
 
-            <div class="modal" id="editMonetaryModal" style="display:none;">
+            <div class="modal" id="editModal" style="display:none;">
                 <div class="modal-content">
                     <span class="close-button" id="closeEditModalBtn">×</span>
                     <h4>Edit Monetary Donation</h4>
