@@ -333,15 +333,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-   // Initial setup based on user role
-  if (userRole === 'AB ADMIN') {
-    toggleFormElements(false); // Disable input form elements and the submit button
-  } else if (userRole === 'ABVN') {
-    toggleFormElements(true); // Enable input form elements and the submit button
-  }
-
-  // Call the function to control the Export CSV button visibility
   toggleExportCsvButton();
-
   applyChange();
+  
 });
