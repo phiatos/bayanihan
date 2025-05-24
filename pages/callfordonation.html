@@ -52,29 +52,31 @@
                                 <input type="file" id="donationImage" accept="image/*" />
                             </div>
                             <div class="input-field">
-                                <label>Province</label>
-                                <select class="controls" id="provinceSelect" name="province" required="">
-                                    <option value="">Select Province</option>
-                                    <option value="Sorsogon">Sorsogon</option>
-                                    <option value="Albay">Albay</option></select>
+                                <label class="form-label">Region *</label>
+                                <select name="region" class="form-control form-control-md" id="region"></select>
+                                <input type="hidden" class="form-control form-control-md" name="region_text" id="region-text" required>
                             </div>
+
                             <div class="input-field">
-                                <label>City/Municipality</label>
-                                <select class="controls" id="citySelect" name="city" required="">
-                                    <option value="">Select City/Municipality</option>
-                                     <option value="Sorsogon">Sorsogon</option>
-                                    <option value="Albay">Albay</option></select>
-                                </select>
+                                <label class="form-label">Province *</label>
+                                <select name="province" class="form-control form-control-md" id="province"></select>
+                                <input type="hidden" class="form-control form-control-md" name="province_text" id="province-text" required>
                             </div>
+
                             <div class="input-field">
-                                <label>Barangay</label>
-                                <select class="controls" id="barangaySelect" name="barangay" required="">
-                                    <option value="">Select Barangay</option>
-                                </select>
+                                <label class="form-label">City / Municipality *</label>
+                                <select name="city" class="form-control form-control-md" id="city"></select>
+                                <input type="hidden" class="form-control form-control-md" name="city_text" id="city-text" required>
                             </div>
-                            
+
                             <div class="input-field">
-                                <label>Address</label>
+                                <label class="form-label">Barangay *</label>
+                                <select name="barangay" class="form-control form-control-md" id="barangay"></select>
+                                <input type="hidden" class="form-control form-control-md" name="barangay_text" id="barangay-text" required>
+                            </div>
+                                                        
+                            <div class="input-field">
+                                <label>Blk/Lot/Unit #</label>
                                 <input type="text" id="address" placeholder="(e.g 1234 Singkamas Street)" required="">
                             </div>
                             

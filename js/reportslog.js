@@ -158,122 +158,125 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- PDF Generation ---
-    savePdfBtn.addEventListener('click', () => {
-        Swal.fire({
-            title: 'Generating PDF...',
-            text: 'Please wait while the PDF is being created.',
-            allowOutsideClick: false,
-            didOpen: () => {
-                Swal.showLoading();
-            }
-        });
-
-        const doc = new window.jspdf.jsPDF('l', 'mm', 'a4');
-
-        const headers = [
-            'No.', 'Report ID', 'Volunteer Group Name', 'Area of Operation',
-            'Operation Start Date', 'Operation End Date', 'No. of Hot Meals',
-            'Liters of Water', 'Submitted by', 'Report Submission Date',
-            'Completion Time of Intervention', 'No. of Individuals/Families',
-            'No. of Food Packs', 'No. of Volunteers Mobilized',
-            'No. of Organizations Activated', 'Total In-Kind Donations',
-            'Total Monetary Donations', 'Notes/Additional Info'
-        ];
-
-        const dataToExport = getDisplayedReportsData(); 
-
-        if (dataToExport.length === 0) {
-            Swal.fire({
-                icon: 'info',
-                title: 'No Data to Export',
-                text: 'There are no reports matching your current search/sort criteria to export to PDF.',
-            });
-            return;
+    // --- PDF Generation ---
+savePdfBtn.addEventListener('click', () => {
+    Swal.fire({
+        title: 'Generating PDF...',
+        text: 'Please wait while the PDF file is being created.',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
         }
+    });
+    generatePdf();
+});
 
-        const body = dataToExport.map((item, index) => {
-            return [
-                index + 1,
-                item.ReportID || '-',
-                item.VolunteerGroupName || '[Unknown Org]',
-                item.AreaOfOperation || '-',
-                formatDate(item.StartDate) || '-',
-                formatDate(item.EndDate) || '-',
-                item.NoOfHotMeals || '-',
-                item.LitersOfWater || '-',
-                item.SubmittedBy || '-',
-                formatDate(item.DateOfReport) || '-',
-                formatTime(item.TimeOfIntervention) || '-',
-                item.NoOfIndividualsOrFamilies || '-',
-                item.NoOfFoodPacks || '-',
-                item.NoOfVolunteersMobilized || '-',
-                item.NoOfOrganizationsActivated || '-',
-                item.TotalValueOfInKindDonations || '-',
-                item.TotalMonetaryDonations || '-',
-                item.NotesAdditionalInformation || '-'
-            ];
+function generatePdf() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('portrait'); // Changed to 'portrait' for better report layout
+
+    const reports = getDisplayedReportsData(); 
+
+    if (reports.length === 0) {
+        Swal.fire({
+            icon: 'info',
+            title: 'No Data to Export',
+            text: 'There are no reports matching your current search/sort criteria to export to PDF.',
         });
+        return;
+    }
 
-        // Add the main header ONLY ONCE before autoTable
-        doc.setFontSize(18);
-        doc.setTextColor(40);
-        doc.text('Approved Reports Log', 14, 15); 
+    const logo = new Image();
+    // IMPORTANT: Verify this path is correct relative to your HTML file!
+    logo.src = '/Bayanihan-PWA/assets/images/AB_logo.png'; 
 
-        doc.autoTable({
-            head: [headers],
-            body: body,
-            startY: 20,
-            theme: 'striped',
-            headStyles: {
-                fillColor: [41, 128, 185],
-                textColor: 255,
-                fontStyle: 'bold',
-                fontSize: 8
-            },
-            styles: {
-                fontSize: 7,
-                cellPadding: 1,
-                overflow: 'linebreak'
-            },
-            columnStyles: {
-                0: { cellWidth: 10 },  
-                1: { cellWidth: 18 }, 
-                2: { cellWidth: 28 },  
-                3: { cellWidth: 25 },
-                4: { cellWidth: 20 },
-                5: { cellWidth: 20 },
-                6: { cellWidth: 15 },
-                7: { cellWidth: 15 },
-                8: { cellWidth: 25 },
-                9: { cellWidth: 20 },
-                10: { cellWidth: 20 },
-                11: { cellWidth: 20 },
-                12: { cellWidth: 15 },
-                13: { cellWidth: 20 },
-                14: { cellWidth: 20 },
-                15: { cellWidth: 20 },
-                16: { cellWidth: 20 },
-                17: { cellWidth: 25 }
-            },
-            didDrawPage: function (data) {
-                // Footer
-                var str = "Page " + doc.internal.getNumberOfPages();
-                doc.setFontSize(10);
-                doc.text(str, data.settings.margin.left, doc.internal.pageSize.height - 10);
+    logo.onload = function() {
+        const pageWidth = doc.internal.pageSize.width;
+        const pageHeight = doc.internal.pageSize.height;
+        const logoWidth = 30;
+        const logoHeight = (logo.naturalHeight / logo.naturalWidth) * logoWidth;
+        const margin = 14; 
+        const textX = margin; 
+        const contentWidth = pageWidth - (2 * margin); 
+
+        // Function to add header (logo and title)
+        const addHeader = () => {
+            let yOffset = margin; // Start yOffset for the header
+            doc.addImage(logo, 'PNG', pageWidth - logoWidth - margin, margin, logoWidth, logoHeight);
+            doc.setFontSize(18);
+            doc.text("Approved Reports Log", margin, yOffset);
+            yOffset += 10;
+            doc.setFontSize(10);
+            doc.text(`Report Generated: ${new Date().toLocaleString()}`, margin, yOffset);
+            return yOffset + 15; // Return new yOffset after header content
+        };
+
+        reports.forEach((report, index) => {
+            if (index > 0) {
+                doc.addPage(); // Start a new page for each report after the first one
             }
+
+            let yPos = addHeader(); // Add header to the current page and get starting yPos for content
+
+            doc.setFontSize(14);
+            doc.setTextColor(20, 174, 187); // Use a primary color for the Report ID
+            doc.text(`Report ID: ${report.ReportID || "-"}`, textX, yPos); // Use textX for initial indent
+            yPos += 10;
+            doc.setTextColor(0); // Reset text color to black
+
+            const reportDetails = [
+                { label: "Volunteer Group", value: report.VolunteerGroupName || "[Unknown Org]" },
+                { label: "Location of Operation", value: report.AreaOfOperation || "-" },
+                { label: "Date of Report Submitted", value: formatDate(report.DateOfReport) },
+                { label: "Completion time of intervention", value: formatTime(report.TimeOfIntervention) },
+                { label: "Start Date of Operation", value: formatDate(report.StartDate) || "-" },
+                { label: "End Date of Operation", value: formatDate(report.EndDate) || "-" },
+                { label: "No. of Individuals or Families", value: report.NoOfIndividualsOrFamilies || "-" },
+                { label: "No. of Food Packs", value: report.NoOfFoodPacks || "-" },
+                { label: "No. of Hot Meals/Ready-to-eat food", value: report.NoOfHotMeals || "-" },
+                { label: "Liters of Water", value: report.LitersOfWater || "-" },
+                { label: "No. of Volunteers Mobilized", value: report.NoOfVolunteersMobilized || "-" },
+                { label: "No. of Organizations Activated", value: report.NoOfOrganizationsActivated || "-" },
+                { label: "Total Value of In-Kind Donations", value: report.TotalValueOfInKindDonations || "-" },
+                { label: "Total Monetary Donations", value: report.TotalMonetaryDonations || "-" },
+                { label: "Notes/Additional Information", value: report.NotesAdditionalInformation || "-" }
+            ];
+
+            doc.setFontSize(10);
+            const detailLineHeight = 5; // Adjusted line height for details
+            reportDetails.forEach(detail => {
+                const text = `• ${detail.label}: ${detail.value}`;
+                const splitText = doc.splitTextToSize(text, contentWidth); // Use contentWidth for wrapping
+                doc.text(splitText, textX, yPos); // Use textX for drawing
+                yPos += (splitText.length * detailLineHeight); 
+            });
+
+            // Add footer
+            doc.setFontSize(8);
+            const pageNumberText = `Page ${doc.internal.getNumberOfPages()}`;
+            const poweredByText = "Powered by: Appvance";
+            const footerY = pageHeight - 10;
+
+            doc.text(pageNumberText, margin, footerY);
+            doc.text(poweredByText, pageWidth - margin, footerY, { align: 'right' });
         });
 
         doc.save(`Approved_Reports_Log_${new Date().toISOString().slice(0,10)}.pdf`);
-        Swal.close(); 
-
+        Swal.close();
         Swal.fire({
             title: 'Success!',
-            text: 'PDF generated successfully!',
+            text: 'PDF file generated successfully!',
             icon: 'success',
-            timer: 1500, 
+            timer: 1500,
             showConfirmButton: false
         });
-    });
+    };
+
+    logo.onerror = function() {
+        Swal.close();
+        Swal.fire("Error", "Failed to load logo image at /Bayanihan-PWA/assets/images/AB_logo.png. Please check the path.", "error");
+    };
+}
 
     // --- Excel Export Logic ---
     exportExcelBtn.addEventListener('click', () => {
@@ -306,7 +309,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 "EndDate": "Operation End Date",
                 "NoOfHotMeals": "No. of Hot Meals",
                 "LitersOfWater": "Liters of Water",
-                "SubmittedBy": "Submitted by",
                 "DateOfReport": "Report Submission Date",
                 "TimeOfIntervention": "Completion Time of Intervention",
                 "NoOfIndividualsOrFamilies": "No. of Individuals or Families",
@@ -345,7 +347,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 {wch: 20},  // Operation End Date
                 {wch: 18},  // No. of Hot Meals
                 {wch: 18},  // Liters of Water
-                {wch: 25},  // Submitted by
                 {wch: 20},  // Report Submission Date
                 {wch: 25},  // Completion Time of Intervention
                 {wch: 25},  // No. of Individuals or Families
@@ -420,7 +421,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     displayKey = displayKey
                         .replace('AreaOfOperation', 'Area of Operation')
                         .replace('TimeOfIntervention', 'Time of Intervention')
-                        .replace('SubmittedBy', 'Submitted by')
                         .replace('DateOfReport', 'Date of Report')
                         .replace('ReportID', 'Report ID')
                         .replace('StartDate', 'StartDate')
@@ -460,7 +460,6 @@ document.addEventListener('DOMContentLoaded', () => {
                             <p><strong>Report ID:</strong> ${report.ReportID || "-"}</p>
                             <p><strong>Volunteer Group:</strong> ${report.VolunteerGroupName || "[Unknown Org]"}</p>
                             <p class="cell"><strong>Location of Operation:</strong> ${report.AreaOfOperation || "-"}</p>
-                            <p><strong>Submitted By:</strong> ${report.SubmittedBy || "-"}</p>
                             <p><strong>Date of Report Submitted:</strong> ${formatDate(report.DateOfReport)}</p>
                             
                         </div>

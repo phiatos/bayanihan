@@ -398,7 +398,7 @@ document.addEventListener("DOMContentLoaded", () => {
             "Date Received": new Date(d.dateReceived).toLocaleDateString('en-PH'),
             "Email": d.email,
             "Bank": d.bank,
-            "Proof of Transaction": d.proof // Keep proof for Excel if still desired
+            "Proof of Transaction": d.proof 
         }));
 
         const ws = XLSX.utils.json_to_sheet(dataForExport);
@@ -409,89 +409,146 @@ document.addEventListener("DOMContentLoaded", () => {
         Swal.fire("Success", "Monetary Donations exported to Excel!", "success");
     });
 
-    // --- PDF Export Functionality ---
-    exportPdfBtn.addEventListener("click", async () => {
+    // --- PDF Export Functionality (All Data)---
+    exportPdfBtn.addEventListener("click", () => {
         if (allDonations.length === 0) {
-            Swal.fire("Info", "No data to export!", "info");
+            Swal.fire("Info", "No data to export to PDF!", "info");
             return;
         }
 
         const { jsPDF } = window.jspdf;
-        const doc = new jsPDF('landscape'); 
+        const doc = new jsPDF('landscape');
 
-            
-        const head = [[
-            "No.", "Encoder", "Name/Company", "Location", 
-            "Number","Amount Donated", "Cash Invoice #", 
-            "Date Received", "Email", "Bank"
-        ]];
+        let yOffset = 20;
+        const logo = new Image();
+        logo.src = '/Bayanihan-PWA/assets/images/AB_logo.png';
 
-        const body = allDonations.map((d, i) => [
-            i + 1,
-            d.encoder,
-            d.name,
-            d.address, 
-            String(d.number), 
-            d.amount.toLocaleString('en-PH', { style: 'currency', currency: 'PHP' }), 
-            d.invoice,
-            new Date(d.dateReceived).toLocaleDateString('en-PH'), 
-            d.email,
-            d.bank
-        ]);
+        logo.onload = function() {
+            const pageWidth = doc.internal.pageSize.width;
+            const logoWidth = 30;
+            const logoHeight = (logo.naturalHeight / logo.naturalWidth) * logoWidth;
+            const margin = 14;
 
-        // Add the table to the PDF
-        doc.autoTable({
-            head: head,
-            body: body,
-            startY: 20, // Start table a bit below the top margin
-            theme: 'striped', // Apply a theme (optional: 'striped', 'grid', 'plain')
-            headStyles: { fillColor: [50, 100, 150] }, // Header background color
-            styles: { fontSize: 8 }, // Font size for table content
-            margin: { top: 15, right: 10, bottom: 10, left: 10 }, // Adjust margins
-            didDrawPage: function (data) {
-                // Add header/footer if needed
-                doc.setFontSize(10);
-                doc.text("Monetary Donations Report", data.settings.margin.left, 10);
-                doc.text(`Page ${doc.internal.getNumberOfPages()}`, doc.internal.pageSize.width - data.settings.margin.right, 10, { align: 'right' });
-            }
-        });
+            doc.addImage(logo, 'PNG', pageWidth - logoWidth - margin, margin, logoWidth, logoHeight);
 
-        // Save the PDF
-        doc.save("monetary-donations.pdf");
-        Swal.close(); 
-        Swal.fire("Success", "Monetary Donations exported to PDF!", "success");
+            doc.setFontSize(18);
+            doc.text("Monetary Donations Report", 14, yOffset);
+            yOffset += 10;
+            doc.setFontSize(10);
+            doc.text(`Report Generated: ${new Date().toLocaleString()}`, 14, yOffset);
+            yOffset += 15;
+
+            const head = [[
+                "No.", "Encoder", "Name/Company", "Location",
+                "Number", "Amount Donated", "Cash Invoice #",
+                "Date Received", "Email", "Bank"
+            ]];
+
+            const body = allDonations.map((d, i) => [
+                i + 1,
+                d.encoder || 'N/A',
+                d.name || 'N/A',
+                d.address || 'N/A',
+                String(d.number) || 'N/A', 
+                `PHP ${parseFloat(d.amount || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+                d.invoice || 'N/A',
+                new Date(d.dateReceived).toLocaleDateString('en-PH') || 'N/A',
+                d.email || 'N/A',
+                d.bank || 'N/A'
+            ]);
+
+            doc.autoTable({
+                head: head,
+                body: body,
+                startY: yOffset,
+                theme: 'grid',
+                headStyles: {
+                    fillColor: [20, 174, 187],
+                    textColor: [255, 255, 255],
+                    halign: 'center'
+                },
+                styles: {
+                    fontSize: 8,
+                    cellPadding: 2
+                },
+                didDrawPage: function (data) {
+                    doc.setFontSize(8);
+                    const pageNumberText = `Page ${data.pageNumber} of ${doc.internal.getNumberOfPages()}`;
+                    const poweredByText = "Powered by: Appvance";
+                    const pageWidth = doc.internal.pageSize.width;
+                    const margin = data.settings.margin.left;
+                    const footerY = doc.internal.pageSize.height - 10;
+
+                    doc.text(pageNumberText, margin, footerY);
+                    doc.text(poweredByText, pageWidth - margin, footerY, { align: 'right' });
+                }
+            });
+
+            const filename = `all-monetary-donations_${new Date().toISOString().slice(0, 10)}.pdf`;
+            doc.save(filename);
+            Swal.close();
+            Swal.fire("Success", `All Monetary Donations exported to "${filename}"`, "success");
+        };
+
+        logo.onerror = function() {
+            Swal.fire("Error", "Failed to load logo image. Please check the path.", "error");
+        };
     });
 
-    // --- Save Single Monetary Donation to PDF ---
+    // --- Save Single Donation to PDF ---
     function saveSingleMonetaryDonationPdf(donation) {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
 
-        doc.setFontSize(18);
-        doc.text("Monetary Donation Details", 14, 22);
+        const logo = new Image();
+        logo.src = '/Bayanihan-PWA/assets/images/AB_logo.png';
 
-        doc.setFontSize(12);
-        let y = 30;
+        logo.onload = function() {
+            const pageWidth = doc.internal.pageSize.width;
+            const logoWidth = 30;
+            const logoHeight = (logo.naturalHeight / logo.naturalWidth) * logoWidth;
+            const margin = 14;
 
-        const addDetail = (label, value) => {
-            doc.text(`${label}: ${value}`, 14, y);
-            y += 7;
+            doc.addImage(logo, 'PNG', pageWidth - logoWidth - margin, margin, logoWidth, logoHeight);
+
+            doc.setFontSize(18);
+            doc.text("Monetary Donation Details", 14, 22);
+            doc.setFontSize(10);
+            doc.text(`Report Generated: ${new Date().toLocaleString()}`, 14, 30);
+            let y = 45;
+
+            const addDetail = (label, value) => {
+                doc.text(`${label}: ${value || 'N/A'}`, 14, y);
+                y += 7;
+            };
+
+            addDetail("Encoder", donation.encoder);
+            addDetail("Name/Company", donation.name);
+            addDetail("Location", donation.address);
+            addDetail("Number", String(donation.number));
+            addDetail("Amount Donated", `PHP ${parseFloat(donation.amount || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
+            addDetail("Cash Invoice #", donation.invoice);
+            addDetail("Date Received", new Date(donation.dateReceived).toLocaleDateString('en-PH'));
+            addDetail("Email", donation.email);
+            addDetail("Bank", donation.bank);
+            addDetail("Proof of Transaction", donation.proof);
+            addDetail("Recorded On", new Date(donation.createdAt).toLocaleString());
+
+            doc.setFontSize(8);
+            const footerY = doc.internal.pageSize.height - 10;
+            const pageNumberText = `Page 1 of 1`;
+            const poweredByText = "Powered by: Appvance";
+
+            doc.text(pageNumberText, margin, footerY);
+            doc.text(poweredByText, pageWidth - margin, footerY, { align: 'right' });
+
+            doc.save(`monetary_donation_${new Date().toISOString().slice(0, 10)}.pdf`);
+            Swal.fire("Success", "Monetary donation details exported to PDF!", "success");
         };
 
-        addDetail("Encoder", donation.encoder);
-        addDetail("Name/Company", donation.name);
-        addDetail("Location", donation.address);
-        addDetail("Number", String(donation.number));
-        addDetail("Amount Donated", donation.amount.toLocaleString('en-PH', { style: 'currency', currency: 'PHP' }));
-        addDetail("Cash Invoice #", donation.invoice);
-        addDetail("Date Received", new Date(donation.dateReceived).toLocaleDateString('en-PH'));
-        addDetail("Email", donation.email);
-        addDetail("Bank", donation.bank);
-        addDetail("Proof of Transaction", donation.proof || "N/A");
-        addDetail("Recorded On", new Date(donation.createdAt).toLocaleString());
-
-        doc.save(`monetary_donation_${donation.firebaseKey}.pdf`);
-        Swal.fire("Success", "Monetary donation details exported to PDF!", "success");
+        logo.onerror = function() {
+            Swal.fire("Error", "Failed to load logo image. Please check the path.", "error");
+        };
     }
 
     function deleteMonetaryDonation(firebaseKey) {
