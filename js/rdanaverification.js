@@ -156,7 +156,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
       submittedReportsContainer.appendChild(tr);
       console.log("Verifying Report:", report);
-
     });
 
     renderPagination(reports.length);

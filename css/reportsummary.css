@@ -63,11 +63,14 @@
     background-color: var(--button-hover);
 }
 .button-group {
-    flex: 1;
     display: flex;
     flex-direction: row;
     justify-content: start;
-    margin-left: 30px;
+}
+#submitBtn, #backBtn {
+    width: 150px;
+    margin-right: 10px; /* Add space between buttons */
+    padding: 15px;
 }
 
 

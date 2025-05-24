@@ -68,17 +68,18 @@ document.addEventListener('DOMContentLoaded', () => {
             day: "numeric"
         });
     }
-    function formatTime(timeStr) {
-    if (!timeStr) return "-";
-    const date = new Date(`1970-01-01T${timeStr}`);
-    if (isNaN(date)) return timeStr;
-    return date.toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-        hour12: true
-    });
-}
 
+    function formatTime(timeStr) {
+        if (!timeStr) return "-";
+        // Create a Date object with a dummy date to parse time correctly
+        const date = new Date(`1970-01-01T${timeStr}`);
+        if (isNaN(date)) return timeStr;
+        return date.toLocaleTimeString("en-US", {
+            hour: "numeric",
+            minute: "2-digit",
+            hour12: true
+        });
+    }
 
     function loadReportsFromFirebase() {
         database.ref("reports/submitted").on("value", snapshot => {
@@ -98,7 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 console.log("No submitted reports found in Firebase");
             }
-            applySearchAndSort();
+            applySearchAndSort(); // Re-apply search and sort after data loads
         }, error => {
             console.error("Error fetching reports from Firebase:", error);
             Swal.fire({
@@ -115,6 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (reports.length === 0) {
             submittedReportsContainer.innerHTML = "<tr><td colspan='9'>No submitted reports found on this page.</td></tr>";
             entriesInfo.textContent = "Showing 0 to 0 of 0 entries";
+            renderPagination(0); // Clear pagination if no reports
             return;
         }
 
@@ -139,36 +141,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const viewBtn = tr.querySelector('.viewBtn');
             viewBtn.addEventListener('click', () => {
-                let readableReport = "";
-                for (let key in report) {
-                    if (key === "firebaseKey" || key === "userUid") continue;
-
-                    let displayKey = key
-                        .replace(/([A-Z])/g, ' $1')
-                        .replace(/^./, str => str.toUpperCase());
-                    displayKey = displayKey
-                        .replace('AreaOfOperation', 'Area of Operation')
-                        .replace('TimeOfIntervention', 'Time of Intervention')
-                        // .replace('SubmittedByInput', 'Submitted by')
-                        .replace('DateOfReport', 'Date of Report')
-                        .replace('ReportID', 'Report ID')
-                        .replace('StartDate', 'StartDate')
-                        .replace('EndDate', 'EndDate')
-                        .replace('NoOfIndividualsOrFamilies', 'No. of Individuals or Families')
-                        .replace('NoOfFoodPacks', 'No. of Food Packs')
-                        .replace('NoOfHotMeals', 'No. of Hot Meals')
-                        .replace('LitersOfWater', 'Liters of Water')
-                        .replace('NoOfVolunteersMobilized', 'No. of Volunteers Mobilized')
-                        .replace('NoOfOrganizationsActivated', 'No. of Organizations Activated')
-                        .replace('TotalValueOfInKindDonations', 'Total Value of In-Kind Donations')
-                        .replace('TotalMonetaryDonations', 'Total Monetary Donations')
-                        .replace('NotesAdditionalInformation', 'Notes/additional information')
-                        .replace('VolunteerGroupName', 'Volunteer Group');
-
-                    const value = key === "DateOfReport" ? formatDate(report[key]) : report[key];
-                    readableReport += `• ${displayKey}: ${value}\n`;
-                }
-
                 const modal = document.getElementById("reportModal");
                 const modalDetails = document.getElementById("modalReportDetails");
                 const closeModal = document.getElementById("closeModal");
@@ -183,15 +155,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
+                // Construct readable report details for the modal
                 modalDetails.innerHTML = `
                     <div class="report-section">
-                         <div class="form-1">
+                        <div class="form-1">
                             <h2>Basic Information</h2>
                             <p><strong>Report ID:</strong> ${report.ReportID || "-"}</p>
                             <p><strong>Volunteer Group:</strong> ${report.VolunteerGroupName || "[Unknown Org]"}</p> 
                             <p><strong>Date of Report Submitted:</strong> ${formatDate(report.DateOfReport)}</p>
                             <p class="cell"><strong>Location of Operation:</strong> ${report.AreaOfOperation || "-"}</p>
-                            
                         </div>
                         <div class="form-2">
                             <h2>Relief Operations</h2>
@@ -245,12 +217,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         let volunteerGroupName = "[Unknown Org]";
                         if (userData && userData.group) {
                             volunteerGroupName = userData.group;
-                            console.log(`Fetched VolunteerGroupName for user ${userUid}: ${volunteerGroupName}`);
+                            console.log(`Workspaceed VolunteerGroupName for user ${userUid}: ${volunteerGroupName}`);
                         } else {
                             console.warn(`No group found for user ${userUid}. Using default: [Unknown Org]`);
                         }
 
-                        // Update the report with the correct VolunteerGroupName
+                        // Update the report with the correct VolunteerGroupName and Status
                         report["VolunteerGroupName"] = volunteerGroupName;
                         report["Status"] = "Approved";
 
@@ -313,7 +285,9 @@ document.addEventListener('DOMContentLoaded', () => {
             submittedReportsContainer.appendChild(tr);
         });
 
-        entriesInfo.textContent = `Showing ${(currentPage - 1) * rowsPerPage + 1} to ${Math.min(currentPage * rowsPerPage, reports.length)} of ${submittedReports.length} entries`;
+        const firstEntry = (currentPage - 1) * rowsPerPage + 1;
+        const lastEntry = Math.min(currentPage * rowsPerPage, reports.length);
+        entriesInfo.textContent = `Showing ${firstEntry} to ${lastEntry} of ${reports.length} entries`;
     }
 
     function renderPagination(totalRows) {
@@ -350,10 +324,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let filteredReports = submittedReports.filter(report => {
             return Object.entries(report).some(([key, value]) => {
+                // Handle date formatting for search
                 if (key === "DateOfReport") {
                     const formattedDate = formatDate(value).toLowerCase();
                     return formattedDate.includes(searchQuery);
                 }
+                // Handle time formatting for search (optional, but good for consistency)
+                if (key === "TimeOfIntervention") {
+                    const formattedTime = formatTime(value).toLowerCase();
+                    return formattedTime.includes(searchQuery);
+                }
+                // Convert other values to string for generic search
                 return value?.toString().toLowerCase().includes(searchQuery);
             });
         });
@@ -366,10 +347,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (sortBy === "DateOfReport") {
                     const dateA = new Date(valA);
                     const dateB = new Date(valB);
-                    if (isNaN(dateA) || isNaN(dateB)) return 0;
+                    if (isNaN(dateA) || isNaN(dateB)) return 0; // Handle invalid dates
                     return direction === "asc" ? dateA - dateB : dateB - dateA;
+                } else if (sortBy === "TimeOfIntervention") {
+                    // Create Date objects with a dummy date to compare times
+                    const timeA = new Date(`1970-01-01T${valA}`).getTime();
+                    const timeB = new Date(`1970-01-01T${valB}`).getTime();
+                    if (isNaN(timeA) || isNaN(timeB)) return 0; // Handle invalid times
+                    return direction === "asc" ? timeA - timeB : timeB - timeA;
                 }
-
+                // Default string comparison for other fields
                 return direction === "asc"
                     ? valA.toString().localeCompare(valB.toString())
                     : valB.toString().localeCompare(valA.toString());
@@ -384,11 +371,20 @@ document.addEventListener('DOMContentLoaded', () => {
         renderPagination(filteredReports.length);
     }
 
-    searchInput.addEventListener('input', applySearchAndSort);
-    sortSelect.addEventListener('change', applySearchAndSort);
+    searchInput.addEventListener('input', () => {
+        currentPage = 1; // Reset to first page on new search
+        applySearchAndSort();
+    });
 
+    sortSelect.addEventListener('change', () => {
+        currentPage = 1; // Reset to first page on new sort
+        applySearchAndSort();
+    });
+
+    // Function to clear search input (currently commented out in HTML)
     window.clearDInputs = () => {
         searchInput.value = '';
+        currentPage = 1; // Reset to first page on clear
         applySearchAndSort();
     };
 
