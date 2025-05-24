@@ -24,7 +24,7 @@
             <!-- Group Information Section -->
             <div class="group-info">
                 <h2 id="group-title">Loading Group Information...</h2>
-                <p id="group-description">Fetching group details...</p>
+                <p id="group-description" style="display: none;">Fetching group details...</p>
             </div>
             <form action="">
                 <div class="form first">
@@ -62,15 +62,27 @@
                         <div class="fields">
                             <div class="input-field">
                                 <label>Current Password</label>
-                                <input type="password" id="current-password" placeholder="Enter your temporary password" required>
+                                <div class="input-box-input-with-icon">
+                                    <input type="password" id="current-password" placeholder="Enter your temporary password" required>
+                                    <i class='bx bxs-lock-alt password-toggle-closed'></i>
+                                    <i class='bx bxs-lock-open-alt password-toggle-open'></i>
+                                </div>
                             </div>
                             <div class="input-field">
                                 <label>New Password</label>
-                                <input type="password" id="new-password" placeholder="Enter your new password" required>
+                                <div class="input-box-input-with-icon">
+                                    <input type="password" id="new-password" placeholder="Enter your new password" required>
+                                    <i class='bx bxs-lock-alt password-toggle-closed'></i>
+                                    <i class='bx bxs-lock-open-alt password-toggle-open'></i>
+                                </div>
                             </div>
                             <div class="input-field">
                                 <label>Confirm New Password</label>
-                                <input type="password" id="confirm-new-password" placeholder="Confirm your new password" required>
+                                <div class="input-box-input-with-icon">
+                                    <input type="password" id="confirm-new-password" placeholder="Confirm your new password" required>
+                                    <i class='bx bxs-lock-alt password-toggle-closed'></i>
+                                    <i class='bx bxs-lock-open-alt password-toggle-open'></i>
+                                </div>
                             </div>
                         </div>
                         <button type="submit" class="nextBtn">

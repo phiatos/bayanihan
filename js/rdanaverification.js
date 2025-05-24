@@ -142,7 +142,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <td>${report.profile?.Site_Location_Address_Barangay || "N/A"}</td>
         <td>${report.disasterType}</td>
         <td>${report.effects?.affectedPopulation}</td>
-        <td>${report.needs?.priority?.join(", ")}</td>
+        <td>${report.needs?.priority?.join(", ") ?? "N/A"}</td>
         <td>
           <button class="viewBtn">View</button>
           <button class="approveBtn">Approve</button>
@@ -155,6 +155,8 @@ document.addEventListener('DOMContentLoaded', () => {
       tr.querySelector(".rejectBtn").addEventListener("click", () => rejectReport(report));
 
       submittedReportsContainer.appendChild(tr);
+      console.log("Verifying Report:", report);
+
     });
 
     renderPagination(reports.length);
@@ -290,16 +292,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Check if user is admin
       database.ref(`users/${user.uid}/role`).once('value', snapshot => {
-        const role = snapshot.val();
-        if (role !== 'admin') {
-          Swal.fire({
-            icon: 'error',
-            title: 'Permission Denied',
-            text: 'Only admins can approve reports.',
-          });
-          return;
-        }
-
         report.status = "Approved";
         Promise.all([
           database.ref(`rdana/approved`).push(report),

@@ -17,6 +17,11 @@
 
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Sheets -->
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+    <!-- PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 </head>
 <body>
     <div class="main-container">
@@ -67,7 +72,7 @@
                         </div>
                         <div class="input-field">
                             <label for="additionalnotes">Additional Notes</label>
-                            <input type="text" id="additionalnotes" placeholder="Enter additional notes" maxlength="300" required/>
+                            <input type="text" id="additionalnotes" placeholder="Enter additional notes" maxlength="300"/>
                         </div>
                         <div class="input-field">
                             <label for="status">Status</label>
@@ -187,7 +192,8 @@
                 </div>
 
                 <br>
-                <button id="exportBtn" type="button">Export In-Kind to CSV</button>
+                <button id="exportBtn" type="button">Export to Excel</button>
+                <button id="savePdfBtn" type="button">Save to PDF</button>
             </section>
 
             <div class="modal" id="endorseModal" style="display:none;">

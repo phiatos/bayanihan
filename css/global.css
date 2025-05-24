@@ -13,6 +13,8 @@
   --red-hover: #d63128;
   --green: #34C759;
   --green-hover: #2fa84e;
+  --gray: #9e9e9e;
+
 }
 
 * {
@@ -229,6 +231,32 @@ tr {
   border-color: #14AEBB; 
   outline: none; 
 }
+
+.pdf-button, .excel-button {
+  background-color: #14AEBB;
+  color: white;
+  padding: 8px 12px;
+  font-size: 12px;
+  border: 1px solid #14AEBB;
+  border-radius: 12px;
+  cursor: pointer;
+  box-sizing: border-box;
+  margin: 10px 0;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+}
+
+.controls_right .pdf-button:hover, 
+.controls_right .excel-button:hover{
+  background-color: #10919B;
+  border-color: #10919B;
+  color: var(--white);
+  padding: 8px 12px;
+}
+
 /* ==========================================================================
  Pagination
 ========================================================================== */
@@ -389,6 +417,7 @@ table {
   border-collapse: collapse;
   min-width: unset;
   table-layout: auto;
+  overflow-y: auto;
 }
 
 th, td {
