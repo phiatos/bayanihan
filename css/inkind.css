@@ -93,48 +93,6 @@ input[type="date"]:valid {
   align-items: center;
 }
 
-button.btn-edit,
-button.btn-delete,
-button.btn-endorse,
-button.btn-save-single-pdf {
-  width: 90px;
-  padding: 6px 0;
-  box-sizing: border-box;
-  border: none;
-  border-radius: 4px;
-  font-size: 13px;
-  cursor: pointer;
-  color: #fff;
-  display: inline-block;
-  text-align: center;
-  margin: 5px;
-  transition: background-color 0.3s ease, box-shadow 0.2s ease;
-}
-
-button.btn-delete {
-  background-color: var(--red);
-}
-
-button.btn-edit {
-  background-color: var(--blue);
-}
-
-button.btn-endorse {
-  background-color: var(--primary-color);
-}
-
-button.btn-save-single-pdf {
-  background-color: var(--accent-color);
-}
-
-td > .btn-edit,
-td > .btn-delete,
-td > .btn-endorse,
-td > .btn-save-single-pdf {
-  margin-right: 5px;
-  margin-bottom: 5px;
-}
-
 .modal {
   display: flex;
   position: fixed;
