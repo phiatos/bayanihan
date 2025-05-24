@@ -72,16 +72,14 @@ p {
 }
 
 #label{
-    background-color: #14aebb;
-    color: #fff;
+  background-color: #14aebb;
+  color: #fff;
 }
 
 #rdanalog-table th{
   background-color: #009faee1;
   color: #fff;
 }
-
-
 
 @media (max-width: 768px) {
 

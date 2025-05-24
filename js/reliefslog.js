@@ -1,6 +1,4 @@
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOM fully loaded, initializing reliefslog script');
-
     // Firebase configuration
     const firebaseConfig = {
         apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
@@ -48,8 +46,13 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentPage = 1;
     const rowsPerPage = 5;
 
-    // --- PDF Generation ---
+    // --- PDF Export Functionality (All Data) ---
     savePdfBtn.addEventListener('click', () => {
+        if (filteredData.length === 0) {
+            Swal.fire("Info", "No data to export to PDF!", "info");
+            return;
+        }
+
         Swal.fire({
             title: 'Generating PDF...',
             text: 'Please wait while the PDF is being created.',
@@ -59,74 +62,104 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        const doc = new window.jspdf.jsPDF('l', 'mm', 'a4'); 
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('landscape'); // Changed to landscape to match inkind
 
-        const headers = [
-            'No.', 'Relief ID', 'Volunteer Group Name', 'City', 'Drop-off Address',
-            'Contact Person', 'Contact Number', 'Request Category', 'Status', 'Notes'
-        ];
+        let yOffset = 20;
+        const logo = new Image();
+        logo.src = '/Bayanihan-PWA/assets/images/AB_logo.png'; // Assuming the logo path is the same
 
-        const body = filteredData.map((item, index) => {
-            return [
-                index + 1, 
-                item.id,
-                item.group,
-                item.city,
-                item.address,
-                item.contact,
-                item.number,
-                item.category,
-                item.status || 'Pending', 
-                item.notes || 'N/A' 
+        logo.onload = function() {
+            const pageWidth = doc.internal.pageSize.width;
+            const logoWidth = 30;
+            const logoHeight = (logo.naturalHeight / logo.naturalWidth) * logoWidth;
+            const margin = 14;
+
+            doc.addImage(logo, 'PNG', pageWidth - logoWidth - margin, margin, logoWidth, logoHeight);
+
+            doc.setFontSize(18);
+            doc.text("Relief Request Log Report", 14, yOffset); // Updated title
+            yOffset += 10;
+            doc.setFontSize(10);
+            doc.text(`Report Generated: ${new Date().toLocaleString()}`, 14, yOffset);
+            yOffset += 15;
+
+            const headers = [
+                'No.', 'Relief ID', 'Volunteer Group Name', 'City', 'Drop-off Address',
+                'Contact Person', 'Contact Number', 'Request Category', 'Items (Name & Qty)', 'Status', 'Notes' 
             ];
-        });
 
-        doc.autoTable({
-            head: [headers],
-            body: body,
-            startY: 20,
-            theme: 'striped',
-            headStyles: {
-                fillColor: [41, 128, 185],
-                textColor: 255,
-                fontStyle: 'bold',
-                fontSize: 10
-            },
-            styles: {
-                fontSize: 8,
-                cellPadding: 2,
-                overflow: 'linebreak'
-            },
-            columnStyles: {
-                0: { cellWidth: 10 },
-                1: { cellWidth: 20 },
-                2: { cellWidth: 35 },
-                3: { cellWidth: 25 },
-                4: { cellWidth: 45 },
-                5: { cellWidth: 30 },
-                6: { cellWidth: 25 },
-                7: { cellWidth: 25 },
-                8: { cellWidth: 20 },
-                9: { cellWidth: 30 }
-            },
-            didDrawPage: function (data) {
-                doc.setFontSize(14);
-                doc.setTextColor(40);
-                doc.text('Relief Request Log', data.settings.margin.left, 15);
-            }
-        });
+            const body = filteredData.map((item, index) => {
+                const itemsFormatted = (item.items || []).map(i => `${i.name} (Qty: ${i.quantity})`).join('\n'); 
+               
+                return [
+                    index + 1,
+                    item.id || 'N/A',
+                    item.group || 'N/A',
+                    item.city || 'N/A',
+                    item.address || 'N/A',
+                    item.contact || 'N/A',
+                    item.number || 'N/A',
+                    item.category || 'N/A',
+                    itemsFormatted || 'N/A',
+                    item.status || 'Pending',
+                    item.notes || 'N/A'
+                ];
+            });
 
-        // doc.save('Relief_Request_Log.pdf');
-        doc.save(`Relief_Request_Log_${new Date().toISOString().slice(0,10)}.pdf`);
-        Swal.close(); 
+            doc.autoTable({
+                head: [headers],
+                body: body,
+                startY: yOffset, 
+                theme: 'grid', 
+                headStyles: {
+                    fillColor: [20, 174, 187], 
+                    textColor: [255, 255, 255],
+                    halign: 'center', 
+                    fontSize: 8 
+                },
+                styles: {
+                    fontSize: 8,
+                    cellPadding: 2,
+                    overflow: 'linebreak'
+                },
+                
+                columnStyles: {
+                    0: { cellWidth: 10 }, 
+                    1: { cellWidth: 20 }, 
+                    2: { cellWidth: 30 },   
+                    3: { cellWidth: 25 },   
+                    4: { cellWidth: 40 },    
+                    5: { cellWidth: 25 },    
+                    6: { cellWidth: 20 },   
+                    7: { cellWidth: 25 },    
+                    8: { cellWidth: 35 },    
+                    9: { cellWidth: 15 },    
+                    10: { cellWidth: 25 }    
+                },
 
-        Swal.fire({
-            title: 'Success!',
-            text: 'PDF generated successfully!',
-            icon: 'success',
-            timer: 1500, 
-            showConfirmButton: false
-        });
+                didDrawPage: function (data) {
+                    doc.setFontSize(8); 
+                    const pageNumberText = `Page ${data.pageNumber} of ${doc.internal.getNumberOfPages()}`;
+                    const poweredByText = "Powered by: Appvance"; 
+                    const pageWidth = doc.internal.pageSize.width;
+                    const margin = data.settings.margin.left;
+                    const footerY = doc.internal.pageSize.height - 10;
+
+                    doc.text(pageNumberText, margin, footerY);
+                    doc.text(poweredByText, pageWidth - margin, footerY, { align: 'right' });
+                }
+            });
+
+            const filename = `Relief_Request_Log_${new Date().toISOString().slice(0, 10)}.pdf`;
+            doc.save(filename);
+            Swal.close();
+            Swal.fire("Success", `Relief Request Log exported to "${filename}"`, "success"); // Matched success message
+        };
+
+        logo.onerror = function() {
+            Swal.fire("Error", "Failed to load logo image. Please check the path.", "error");
+        };
     });
 
     // --- Excel Export Logic ---
@@ -144,14 +177,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const worksheetData = [];
             
             // Add headers
-            const headers = [
+             const headers = [
                 'No.', 'Relief ID', 'Volunteer Group Name', 'City', 'Drop-off Address',
-                'Contact Person', 'Contact Number', 'Request Category', 'Status', 'Notes'
+                'Contact Person', 'Contact Number', 'Request Category', 'Items (Name & Qty)', 'Status', 'Notes'
             ];
             worksheetData.push(headers);
 
             // Add data rows
             filteredData.forEach((item, index) => {
+                const itemsFormatted = (item.items || []).map(i => `${i.name} (Qty: ${i.quantity})`).join(', '); 
+
                 worksheetData.push([
                     index + 1,
                     item.id,
@@ -161,6 +196,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     item.contact,
                     item.number,
                     item.category,
+                    itemsFormatted,
                     item.status || 'Pending',
                     item.notes || 'N/A'
                 ]);
@@ -179,6 +215,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 {wch: 25},  // Contact Person
                 {wch: 20},  // Contact Number
                 {wch: 25},  // Request Category
+                {wch: 35},   // Items (Name & Qty) - Adjusted width
                 {wch: 15},  // Status
                 {wch: 35}   // Notes
             ];
@@ -298,9 +335,9 @@ document.addEventListener('DOMContentLoaded', () => {
             </td>
 
             <td>
-                <button class="saveBtn" data-key="${item.firebaseKey}">Save</button>
+                <button class="saveBtn" data-key="${item.firebaseKey}">Save </button>
                 <button class="viewBtn" data-index="${data.indexOf(item)}">View</button>
-                <button class="deleteBtn" data-key="${item.firebaseKey}">Delete</button>
+                <button class="deleteBtn" data-key="${item.firebaseKey}">Remove</button>
             </td>
         `;
 

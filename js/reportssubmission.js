@@ -214,7 +214,6 @@ document.addEventListener('DOMContentLoaded', () => {
             userUid, // Include the UID in formData but won't display in UI
             AreaOfOperation: document.querySelector('input[placeholder="e.g. Purok 2, Brgy. Maligaya, Rosario"]').value,
             TimeOfIntervention: document.querySelector('input[placeholder="Completion Time of Intervention"]')?.value || "N/A",
-            SubmittedBy: document.querySelector('input[placeholder="Submitted by"]')?.value || "N/A",
             DateOfReport: dateInput.value || "N/A",
             ReportID: idInput.value || "N/A",
             StartDate: startDateInput?.value || "N/A",
@@ -252,7 +251,6 @@ if (returnTo === "form-container-1") {
     if (savedData) {
         document.querySelector('input[placeholder="e.g. Purok 2, Brgy. Maligaya, Rosario"]').value = savedData.AreaOfOperation || '';
         document.querySelector('input[placeholder="Time of Intervention"]').value = savedData.TimeOfIntervention || '';
-        document.querySelector('input[placeholder="Submitted by"]').value = savedData.SubmittedBy || '';
         document.querySelector('input[type="date"]').value = savedData.Date || '';
         document.querySelector('input[placeholder="No. of Individuals or Families"]').value = savedData.NoOfIndividualsOrFamilies || '';
         document.querySelector('input[placeholder="No. of Food Packs"]').value = savedData.NoOfFoodPacks || '';
