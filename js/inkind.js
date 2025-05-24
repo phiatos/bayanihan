@@ -203,18 +203,18 @@ document.addEventListener("DOMContentLoaded", () => {
                 <td>${d.staffIncharge}</td>
                 <td>${d.status}</td>
                 <td>
-                    <button class="btn-edit">Edit</button>
-                    <button class="btn-delete">Delete</button>
-                    <button class="btn-save-single-pdf">Save PDF</button> </td>
+                    <button class="editBtn">Edit</button>
+                    <button class="deleteBtn">Delete</button>
+                    <button class="savePDFBtn">Save PDF</button> </td>
                 </td>
                 <td>
-                    <button class="btn-endorse">Endorse</button>
+                    <button class="endorseBtn">Endorse</button>
                 </td>
             `;
-            tr.querySelector(".btn-edit").addEventListener("click", () => openEditModal(d.firebaseKey));
-            tr.querySelector(".btn-delete").addEventListener("click", () => deleteRow(d.firebaseKey));
-            tr.querySelector(".btn-endorse").addEventListener("click", () => openEndorseModal(d.firebaseKey));
-            tr.querySelector(".btn-save-single-pdf").addEventListener("click", () => saveSingleDonationPdf(d));
+            tr.querySelector(".editBtn").addEventListener("click", () => openEditModal(d.firebaseKey));
+            tr.querySelector(".deleteBtn").addEventListener("click", () => deleteRow(d.firebaseKey));
+            tr.querySelector(".endorseBtn").addEventListener("click", () => openEndorseModal(d.firebaseKey));
+            tr.querySelector(".savePDFBtn").addEventListener("click", () => saveSingleDonationPdf(d));
 
             tableBody.appendChild(tr);
         });

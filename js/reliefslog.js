@@ -1,6 +1,4 @@
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOM fully loaded, initializing reliefslog script');
-
     // Firebase configuration
     const firebaseConfig = {
         apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
@@ -298,9 +296,9 @@ document.addEventListener('DOMContentLoaded', () => {
             </td>
 
             <td>
-                <button class="saveBtn" data-key="${item.firebaseKey}">Save</button>
+                <button class="saveBtn" data-key="${item.firebaseKey}">Save </button>
                 <button class="viewBtn" data-index="${data.indexOf(item)}">View</button>
-                <button class="deleteBtn" data-key="${item.firebaseKey}">Delete</button>
+                <button class="deleteBtn" data-key="${item.firebaseKey}">Remove</button>
             </td>
         `;
 

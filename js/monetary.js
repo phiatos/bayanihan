@@ -238,14 +238,14 @@ document.addEventListener("DOMContentLoaded", () => {
                 <td>${d.bank}</td>
                 <td>${d.proof ? `<a href="${d.proof}" target="_blank">View Proof</a>` : 'N/A'}</td>
                 <td>
-                    <button class="btn-edit">Edit</button>
-                    <button class="btn-delete">Delete</button>
-                    <button class="btn-save-single-pdf">Save PDF</button>
+                    <button class="editBtn">Edit</button>
+                    <button class="deleteBtn">Delete</button>
+                    <button class="savePDFBtn">Save PDF</button>
                 </td>
             `;
-            tr.querySelector(".btn-edit").addEventListener("click", () => openEditMonetaryModal(d.firebaseKey));
-            tr.querySelector(".btn-delete").addEventListener("click", () => deleteMonetaryDonation(d.firebaseKey));
-            tr.querySelector(".btn-save-single-pdf").addEventListener("click", () => saveSingleMonetaryDonationPdf(d));
+            tr.querySelector(".editBtn").addEventListener("click", () => openEditMonetaryModal(d.firebaseKey));
+            tr.querySelector(".deleteBtn").addEventListener("click", () => deleteMonetaryDonation(d.firebaseKey));
+            tr.querySelector(".savePDFBtn").addEventListener("click", () => saveSingleMonetaryDonationPdf(d));
             
             tableBody.appendChild(tr);
         });
