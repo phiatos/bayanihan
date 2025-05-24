@@ -221,8 +221,8 @@ function renderTable(filteredData = data) {
       <td>${row.mobileNumber}</td>
       <td>${row.socialMedia}</td>
       <td>
-        <button class="editButton" data-id="${row.no}">Edit</button>
-        <button class="deleteButton" data-id="${row.no}">Delete</button>
+        <button class="editBtn" data-id="${row.no}">Edit</button>
+        <button class="deleteBtn" data-id="${row.no}">Remove</button>
       </td>
     `;
     tableBody.appendChild(tr);
@@ -314,7 +314,7 @@ function renderPagination(totalRows) {
 // Edit and Delete functionality
 function attachRowHandlers() {
   // Edit button handler
-  document.querySelectorAll('.editButton').forEach(button => {
+  document.querySelectorAll('.editBtn').forEach(button => {
     button.addEventListener('click', () => {
       const row = button.closest('tr');
       const rowId = button.getAttribute('data-id');
@@ -364,7 +364,7 @@ function attachRowHandlers() {
   });
 
   // Delete button handler
-  document.querySelectorAll('.deleteButton').forEach(button => {
+  document.querySelectorAll('.deleteBtn').forEach(button => {
     button.addEventListener('click', () => {
       const rowId = button.getAttribute('data-id');
       Swal.fire({

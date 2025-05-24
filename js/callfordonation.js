@@ -173,8 +173,8 @@ document.addEventListener('DOMContentLoaded', () => {
           <td>${r.dropOff || r.address || ''}</td>
           <td><a href="${r.facebookLink || '#'}" target="_blank" rel="noopener noreferrer">Visit The Page</a></td>
           <td>
-            <button class="view-btn" data-index="${startIndex + i}">View Image</button>
-            <button class="delete-btn" data-index="${startIndex + i}">Delete</button>
+            <button class="viewBtn" data-index="${startIndex + i}">View Image</button>
+            <button class="deleteBtn" data-index="${startIndex + i}">Remove</button>
           </td>
         `;
         tableBody.appendChild(row);
@@ -231,7 +231,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function attachEventListeners() {
-    document.querySelectorAll('.view-btn').forEach(button => {
+    document.querySelectorAll('.viewBtn').forEach(button => {
       button.addEventListener('click', e => {
         const index = parseInt(e.target.dataset.index);
         const data = filteredReports[index];
@@ -243,7 +243,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
 
-    document.querySelectorAll('.delete-btn').forEach(button => {
+    document.querySelectorAll('.deleteBtn').forEach(button => {
       button.addEventListener('click', e => {
         const index = parseInt(e.target.dataset.index);
         const data = filteredReports[index];
