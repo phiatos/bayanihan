@@ -343,7 +343,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     <td>${d.donationDate || 'N/A'}</td>
                     <td>
                         <button class="editBtn">Edit</button>
-                        <button class="deleteBtn">Delete</button>
+                        <button class="deleteBtn">Remove</button>
                         <button class="savePDFBtn">Save PDF</button> </td>
                     </td>
                     <td>
@@ -502,9 +502,16 @@ document.addEventListener("DOMContentLoaded", () => {
         const ws = XLSX.utils.json_to_sheet(dataForExport);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "In-Kind Donations");
-        XLSX.writeFile(wb, "in-kind-donations.xlsx");
-
-        Swal.fire("Success", "In-Kind Donations exported to Excel!", "success");
+        // Get current date and format it for the filename
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0'); 
+        const day = String(today.getDate()).padStart(2, '0');
+        const formattedDate = `${year}-${month}-${day}`;
+        // Construct the filename with the date
+        const filename = `in-kind-donations_${formattedDate}.xlsx`;
+        XLSX.writeFile(wb, filename);
+        Swal.fire("Success", `In-Kind Donations exported to ${filename}!`, "success");
     });
 
     // --- PDF Export Functionality (All Data) ---

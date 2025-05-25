@@ -163,232 +163,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return filteredReports;
     }
 
-    // --- PDF Generation ---
-savePdfBtn.addEventListener('click', () => {
-    Swal.fire({
-        title: 'Generating PDF...',
-        text: 'Please wait while the PDF file is being created.',
-        allowOutsideClick: false,
-        didOpen: () => {
-            Swal.showLoading();
-        }
-    });
-    generatePdf();
-});
-
-function generatePdf() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF('portrait'); // Changed to 'portrait' for better report layout
-
-    const reports = getDisplayedReportsData(); 
-
-    if (reports.length === 0) {
-        Swal.fire({
-            icon: 'info',
-            title: 'No Data to Export',
-            text: 'There are no reports matching your current search/sort criteria to export to PDF.',
-        });
-        return;
-    }
-
-    const logo = new Image();
-    // IMPORTANT: Verify this path is correct relative to your HTML file!
-    logo.src = '/Bayanihan-PWA/assets/images/AB_logo.png'; 
-
-    logo.onload = function() {
-        const pageWidth = doc.internal.pageSize.width;
-        const pageHeight = doc.internal.pageSize.height;
-        const logoWidth = 30;
-        const logoHeight = (logo.naturalHeight / logo.naturalWidth) * logoWidth;
-        const margin = 14; 
-        const textX = margin; 
-        const contentWidth = pageWidth - (2 * margin); 
-
-        // Function to add header (logo and title)
-        const addHeader = () => {
-            let yOffset = margin; // Start yOffset for the header
-            doc.addImage(logo, 'PNG', pageWidth - logoWidth - margin, margin, logoWidth, logoHeight);
-            doc.setFontSize(18);
-            doc.text("Approved Reports Log", margin, yOffset);
-            yOffset += 10;
-            doc.setFontSize(10);
-            doc.text(`Report Generated: ${new Date().toLocaleString()}`, margin, yOffset);
-            return yOffset + 15; // Return new yOffset after header content
-        };
-
-        reports.forEach((report, index) => {
-            if (index > 0) {
-                doc.addPage(); // Start a new page for each report after the first one
-            }
-
-            let yPos = addHeader(); // Add header to the current page and get starting yPos for content
-
-            doc.setFontSize(14);
-            doc.setTextColor(20, 174, 187); // Use a primary color for the Report ID
-            doc.text(`Report ID: ${report.ReportID || "-"}`, textX, yPos); // Use textX for initial indent
-            yPos += 10;
-            doc.setTextColor(0); // Reset text color to black
-
-            const reportDetails = [
-                { label: "Volunteer Group", value: report.VolunteerGroupName || "[Unknown Org]" },
-                { label: "Location of Operation", value: report.AreaOfOperation || "-" },
-                { label: "Date of Report Submitted", value: formatDate(report.DateOfReport) },
-                { label: "Completion time of intervention", value: formatTime(report.TimeOfIntervention) },
-                { label: "Start Date of Operation", value: formatDate(report.StartDate) || "-" },
-                { label: "End Date of Operation", value: formatDate(report.EndDate) || "-" },
-                { label: "No. of Individuals or Families", value: report.NoOfIndividualsOrFamilies || "-" },
-                { label: "No. of Food Packs", value: report.NoOfFoodPacks || "-" },
-                { label: "No. of Hot Meals/Ready-to-eat food", value: report.NoOfHotMeals || "-" },
-                { label: "Liters of Water", value: report.LitersOfWater || "-" },
-                { label: "No. of Volunteers Mobilized", value: report.NoOfVolunteersMobilized || "-" },
-                { label: "No. of Organizations Activated", value: report.NoOfOrganizationsActivated || "-" },
-                { label: "Total Value of In-Kind Donations", value: report.TotalValueOfInKindDonations || "-" },
-                { label: "Total Monetary Donations", value: report.TotalMonetaryDonations || "-" },
-                { label: "Notes/Additional Information", value: report.NotesAdditionalInformation || "-" }
-            ];
-
-            doc.setFontSize(10);
-            const detailLineHeight = 5; // Adjusted line height for details
-            reportDetails.forEach(detail => {
-                const text = `• ${detail.label}: ${detail.value}`;
-                const splitText = doc.splitTextToSize(text, contentWidth); // Use contentWidth for wrapping
-                doc.text(splitText, textX, yPos); // Use textX for drawing
-                yPos += (splitText.length * detailLineHeight); 
-            });
-
-            // Add footer
-            doc.setFontSize(8);
-            const pageNumberText = `Page ${doc.internal.getNumberOfPages()}`;
-            const poweredByText = "Powered by: Appvance";
-            const footerY = pageHeight - 10;
-
-            doc.text(pageNumberText, margin, footerY);
-            doc.text(poweredByText, pageWidth - margin, footerY, { align: 'right' });
-        });
-
-        doc.save(`Approved_Reports_Log_${new Date().toISOString().slice(0,10)}.pdf`);
-        Swal.close();
-        Swal.fire({
-            title: 'Success!',
-            text: 'PDF file generated successfully!',
-            icon: 'success',
-            timer: 1500,
-            showConfirmButton: false
-        });
-    };
-
-    logo.onerror = function() {
-        Swal.close();
-        Swal.fire("Error", "Failed to load logo image at /Bayanihan-PWA/assets/images/AB_logo.png. Please check the path.", "error");
-    };
-}
-
-    // --- Excel Export Logic ---
-    exportExcelBtn.addEventListener('click', () => {
-        Swal.fire({
-            title: 'Generating Excel...',
-            text: 'Please wait while the Excel file is being created.',
-            allowOutsideClick: false,
-            didOpen: () => {
-                Swal.showLoading();
-            }
-        });
-
-        try {
-            const dataToExport = getDisplayedReportsData(); // Get all filtered and sorted data
-            
-            if (dataToExport.length === 0) {
-                Swal.fire({
-                    icon: 'info',
-                    title: 'No Data to Export',
-                    text: 'There are no reports matching your current search/sort criteria to export.',
-                });
-                return;
-            }
-
-            const headerMap = {
-                "ReportID": "Report ID",
-                "VolunteerGroupName": "Volunteer Group Name",
-                "AreaOfOperation": "Area of Operation",
-                "StartDate": "Operation Start Date",
-                "EndDate": "Operation End Date",
-                "NoOfHotMeals": "No. of Hot Meals",
-                "LitersOfWater": "Liters of Water",
-                "DateOfReport": "Report Submission Date",
-                "TimeOfIntervention": "Completion Time of Intervention",
-                "NoOfIndividualsOrFamilies": "No. of Individuals or Families",
-                "NoOfFoodPacks": "No. of Food Packs",
-                "NoOfVolunteersMobilized": "No. of Volunteers Mobilized",
-                "NoOfOrganizationsActivated": "No. of Organizations Activated",
-                "TotalValueOfInKindDonations": "Total Value of In-Kind Donations",
-                "TotalMonetaryDonations": "Total Monetary Donations",
-                "NotesAdditionalInformation": "Notes/Additional Information"
-            };
-
-            // Prepare data for export, mapping keys to friendly headers
-            const wsData = dataToExport.map(report => {
-                const row = {};
-                for (const key in headerMap) {
-                    let value = report[key];
-                    if (key.includes("Date") && value) {
-                        value = formatDate(value); // Format dates for Excel
-                    } else if (key.includes("Time") && value) {
-                        value = formatTime(value); // Format times for Excel
-                    }
-                    row[headerMap[key]] = value || "-"; // Use mapped header and fallback to "-"
-                }
-                return row;
-            });
-
-            // Create a worksheet
-            const ws = XLSX.utils.json_to_sheet(wsData);
-
-            // Optional: Set column widths for better display in Excel
-            const wscols = [
-                {wch: 15},   // Report ID
-                {wch: 30},   // Volunteer Group Name
-                {wch: 25},   // Area of Operation
-                {wch: 20},   // Operation Start Date
-                {wch: 20},   // Operation End Date
-                {wch: 18},   // No. of Hot Meals
-                {wch: 18},   // Liters of Water
-                {wch: 20},   // Report Submission Date
-                {wch: 25},   // Completion Time of Intervention
-                {wch: 25},   // No. of Individuals or Families
-                {wch: 20},   // No. of Food Packs
-                {wch: 25},   // No. of Volunteers Mobilized
-                {wch: 25},   // No. of Organizations Activated
-                {wch: 25},   // Total Value of In-Kind Donations
-                {wch: 25},   // Total Monetary Donations
-                {wch: 40}    // Notes/Additional Information
-            ];
-            ws['!cols'] = wscols;
-
-            // Create a workbook
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Approved Reports");
-
-            // Write and download the file
-            const fileName = `Approved_Reports_Log_${new Date().toISOString().slice(0,10)}.xlsx`;
-            XLSX.writeFile(wb, fileName);
-
-            Swal.close();
-            Swal.fire({
-                title: 'Success!',
-                text: 'Excel file generated successfully!',
-                icon: 'success',
-                timer: 1500,
-                showConfirmButton: false
-            });
-
-        } catch (error) {
-            console.error('Error generating Excel:', error);
-            Swal.close();
-            Swal.fire('Error!', 'Failed to generate Excel: ' + error.message, 'error');
-        }
-    });
-
-
     function renderReportsTable(reports) {
         reportsBody.innerHTML = '';
 
@@ -411,8 +185,14 @@ function generatePdf() {
                 <td>${formatDate(report["EndDate"]) || "-"}</td>
                 <td>${report["TotalValueOfInKindDonations"] || "-"}</td>
                 <td>${report["TotalMonetaryDonations"] || "-"}</td>
-                <td><button class="viewBtn">View</button></td>
+                <td>
+                    <button class="viewBtn">View</button>
+                    <button class="savePDFBtn">Save PDF</button>
+                </td>
             `;
+
+            const savePDFBtn = tr.querySelector(".savePDFBtn");
+        savePDFBtn.addEventListener("click", () => saveIndividualReportToPdf(report));
 
             const viewBtn = tr.querySelector('.viewBtn');
             viewBtn.addEventListener('click', () => {
@@ -428,8 +208,8 @@ function generatePdf() {
                         .replace('TimeOfIntervention', 'Time of Intervention')
                         .replace('DateOfReport', 'Date of Report')
                         .replace('ReportID', 'Report ID')
-                        .replace('StartDate', 'Start Date') // Corrected display
-                        .replace('EndDate', 'End Date')     // Corrected display
+                        .replace('StartDate', 'Start Date') 
+                        .replace('EndDate', 'End Date')    
                         .replace('NoOfIndividualsOrFamilies', 'No. of Individuals or Families')
                         .replace('NoOfFoodPacks', 'No. of Food Packs')
                         .replace('NoOfHotMeals', 'No. of Hot Meals')
@@ -595,4 +375,394 @@ function generatePdf() {
         searchInput.value = '';
         applySearchAndSort();
     };
+
+    // --- Excel Export Logic ---
+    exportExcelBtn.addEventListener('click', () => {
+        Swal.fire({
+            title: 'Generating Excel...',
+            text: 'Please wait while the Excel file is being created.',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        try {
+            const dataToExport = getDisplayedReportsData(); // Get all filtered and sorted data
+            
+            if (dataToExport.length === 0) {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'No Data to Export',
+                    text: 'There are no reports matching your current search/sort criteria to export.',
+                });
+                return;
+            }
+
+            const headerMap = {
+                "ReportID": "Report ID",
+                "VolunteerGroupName": "Volunteer Group Name",
+                "AreaOfOperation": "Area of Operation",
+                "StartDate": "Operation Start Date",
+                "EndDate": "Operation End Date",
+                "NoOfHotMeals": "No. of Hot Meals",
+                "LitersOfWater": "Liters of Water",
+                "DateOfReport": "Report Submission Date",
+                "TimeOfIntervention": "Completion Time of Intervention",
+                "NoOfIndividualsOrFamilies": "No. of Individuals or Families",
+                "NoOfFoodPacks": "No. of Food Packs",
+                "NoOfVolunteersMobilized": "No. of Volunteers Mobilized",
+                "NoOfOrganizationsActivated": "No. of Organizations Activated",
+                "TotalValueOfInKindDonations": "Total Value of In-Kind Donations",
+                "TotalMonetaryDonations": "Total Monetary Donations",
+                "NotesAdditionalInformation": "Notes/Additional Information"
+            };
+
+            // Prepare data for export, mapping keys to friendly headers
+            const wsData = dataToExport.map(report => {
+                const row = {};
+                for (const key in headerMap) {
+                    let value = report[key];
+                    if (key.includes("Date") && value) {
+                        value = formatDate(value); // Format dates for Excel
+                    } else if (key.includes("Time") && value) {
+                        value = formatTime(value); // Format times for Excel
+                    }
+                    row[headerMap[key]] = value || "-"; // Use mapped header and fallback to "-"
+                }
+                return row;
+            });
+
+            // Create a worksheet
+            const ws = XLSX.utils.json_to_sheet(wsData);
+
+            // Optional: Set column widths for better display in Excel
+            const wscols = [
+                {wch: 15},   // Report ID
+                {wch: 30},   // Volunteer Group Name
+                {wch: 25},   // Area of Operation
+                {wch: 20},   // Operation Start Date
+                {wch: 20},   // Operation End Date
+                {wch: 18},   // No. of Hot Meals
+                {wch: 18},   // Liters of Water
+                {wch: 20},   // Report Submission Date
+                {wch: 25},   // Completion Time of Intervention
+                {wch: 25},   // No. of Individuals or Families
+                {wch: 20},   // No. of Food Packs
+                {wch: 25},   // No. of Volunteers Mobilized
+                {wch: 25},   // No. of Organizations Activated
+                {wch: 25},   // Total Value of In-Kind Donations
+                {wch: 25},   // Total Monetary Donations
+                {wch: 40}    // Notes/Additional Information
+            ];
+            ws['!cols'] = wscols;
+
+            // Create a workbook
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Approved Reports");
+
+            // Write and download the file
+            const fileName = `Approved_Reports_Log_${new Date().toISOString().slice(0,10)}.xlsx`;
+            XLSX.writeFile(wb, fileName);
+
+            Swal.close();
+            Swal.fire({
+                title: 'Success!',
+                text: 'Excel file generated successfully!',
+                icon: 'success',
+                timer: 1500,
+                showConfirmButton: false
+            });
+
+        } catch (error) {
+            console.error('Error generating Excel:', error);
+            Swal.close();
+            Swal.fire('Error!', 'Failed to generate Excel: ' + error.message, 'error');
+        }
+    });
+
+    // --- PDF Export Functionality (All Data) ---
+    savePdfBtn.addEventListener('click', () => {
+        Swal.fire({
+            title: 'Generating PDF...',
+            text: 'Please wait while the PDF file is being created.',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+        generatePdf();
+    });
+
+    function generatePdf() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('portrait'); 
+
+        const reports = getDisplayedReportsData(); 
+
+        if (reports.length === 0) {
+            Swal.close(); // Close the loading dialog
+            Swal.fire({
+                icon: 'info',
+                title: 'No Data to Export',
+                text: 'There are no reports matching your current search/sort criteria to export to PDF.',
+            });
+            return;
+        }
+
+        const logo = new Image();
+        // IMPORTANT: Verify this path is correct relative to your HTML file!
+        logo.src = '/Bayanihan-PWA/assets/images/AB_logo.png'; 
+
+        logo.onload = function() {
+            const pageWidth = doc.internal.pageSize.width;
+            const pageHeight = doc.internal.pageSize.height;
+            const logoWidth = 30;
+            const logoHeight = (logo.naturalHeight / logo.naturalWidth) * logoWidth;
+            const margin = 14; 
+            const textX = margin; 
+            const contentWidth = pageWidth - (2 * margin); 
+
+            const addHeaderAndFooter = (docInstance, pageNum, totalPages) => {
+                let yOffset = margin;
+                docInstance.addImage(logo, 'PNG', pageWidth - logoWidth - margin, margin, logoWidth, logoHeight);
+
+                docInstance.setFontSize(18);
+                docInstance.text("Approved Reports Log", margin, yOffset + 8);
+                yOffset += 18;
+
+                docInstance.setFontSize(10);
+                docInstance.text(`Report Generated: ${new Date().toLocaleString()}`, margin, yOffset);
+                yOffset += 15;
+
+                docInstance.setFontSize(8);
+                const footerY = pageHeight - 10;
+                docInstance.text(`Page ${pageNum} of ${totalPages}`, margin, footerY);
+                docInstance.text("Powered by: Appvance", pageWidth - margin, footerY, { align: 'right' });
+
+                return yOffset;
+            };
+
+            const addDetailText = (docInstance, label, value, currentY, contentAreaWidth, detailLineHeight = 5) => {
+                const text = `• ${label}: ${value || '-'}`; // Changed N/A to '-' for consistency
+                const splitText = docInstance.splitTextToSize(text, contentAreaWidth);
+                docInstance.text(splitText, margin, currentY); // Use margin for initial indent
+                return currentY + (splitText.length * detailLineHeight); // Adjusted for space between lines
+            };
+
+            const addSectionTitle = (docInstance, title, currentY) => {
+                docInstance.setFontSize(12);
+                docInstance.setTextColor(20, 174, 187);
+                docInstance.text(title, margin, currentY);
+                docInstance.setTextColor(0);
+                return currentY + 7;
+            };
+
+            let currentPage = 1;
+
+            reports.forEach((report, index) => {
+                if (index > 0) {
+                    doc.addPage();
+                    currentPage++;
+                }
+
+                let yPos = addHeaderAndFooter(doc, currentPage, reports.length);
+
+                doc.setFontSize(14);
+                doc.setTextColor(20, 174, 187);
+                doc.text(`Report ID: ${report.ReportID || "-"}`, textX, yPos);
+                yPos += 10;
+                doc.setTextColor(0);
+
+                yPos = addSectionTitle(doc, "Basic Information", yPos);
+                doc.setFontSize(10);
+                yPos = addDetailText(doc, "Volunteer Group", report.VolunteerGroupName || "[Unknown Org]", yPos, contentWidth);
+                yPos = addDetailText(doc, "Location of Operation", report.AreaOfOperation || "-", yPos, contentWidth);
+                yPos = addDetailText(doc, "Date of Report Submitted", formatDate(report.DateOfReport), yPos, contentWidth);
+                yPos += 5; // Add some space
+
+                yPos = addSectionTitle(doc, "Relief Operations", yPos);
+                doc.setFontSize(10);
+                yPos = addDetailText(doc, "Completion time of intervention", formatTime(report.TimeOfIntervention), yPos, contentWidth);
+                yPos = addDetailText(doc, "Start Date of Operation", formatDate(report.StartDate) || "-", yPos, contentWidth);
+                yPos = addDetailText(doc, "End Date of Operation", formatDate(report.EndDate) || "-", yPos, contentWidth);
+                yPos = addDetailText(doc, "No. of Individuals or Families", report.NoOfIndividualsOrFamilies || "-", yPos, contentWidth);
+                yPos = addDetailText(doc, "No. of Food Packs", report.NoOfFoodPacks || "-", yPos, contentWidth);
+                yPos = addDetailText(doc, "No. of Hot Meals/Ready-to-eat food", report.NoOfHotMeals || "-", yPos, contentWidth);
+                yPos = addDetailText(doc, "Liters of Water", report.LitersOfWater || "-", yPos, contentWidth);
+                yPos = addDetailText(doc, "No. of Volunteers Mobilized", report.NoOfVolunteersMobilized || "-", yPos, contentWidth);
+                yPos = addDetailText(doc, "No. of Organizations Activated", report.NoOfOrganizationsActivated || "-", yPos, contentWidth);
+                yPos = addDetailText(doc, "Total Value of In-Kind Donations", report.TotalValueOfInKindDonations || "-", yPos, contentWidth);
+                yPos = addDetailText(doc, "Total Monetary Donations", report.TotalMonetaryDonations || "-", yPos, contentWidth);
+                yPos += 5; // Add some space
+
+                yPos = addSectionTitle(doc, "Additional Updates", yPos);
+                doc.setFontSize(10);
+                yPos = addDetailText(doc, "Notes/Additional Information", report.NotesAdditionalInformation || "-", yPos, contentWidth);
+
+                // No autoTable for reports here, as per previous structure.
+                // The styling for success message will be applied below.
+            });
+
+            const date = new Date();
+            const dateString = date.toISOString().slice(0, 10);
+            doc.save(`Approved_Reports_Log_${dateString}.pdf`);
+            
+            Swal.close();
+            Swal.fire({
+                title: 'Success!',
+                text: 'PDF file generated successfully!',
+                icon: 'success',
+                timer: 1500,
+                showConfirmButton: false,
+                color: '#1b5e20',
+                iconColor: '#43a047',
+                confirmButtonColor: '#388e3c',
+                confirmButtonText: 'Great!',
+                customClass: {
+                    popup: 'swal2-popup-success-export',
+                    title: 'swal2-title-success-export',
+                    content: 'swal2-text-success-export',
+                    confirmButton: 'swal2-button-success-export'
+                }
+            });
+        };
+
+        logo.onerror = function() {
+            Swal.close();
+            Swal.fire("Error", "Failed to load logo image at /Bayanihan-PWA/assets/images/AB_logo.png. Please check the path.", "error");
+        };
+    }
+
+    // --- Save Single Donation to PDF ---
+    function saveIndividualReportToPdf(report) {
+        Swal.fire({
+            title: 'Generating PDF...',
+            text: 'Please wait while the PDF file is being created.',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('portrait');
+
+        const logo = new Image();
+        logo.src = '/Bayanihan-PWA/assets/images/AB_logo.png';
+
+        logo.onload = function() {
+            const pageWidth = doc.internal.pageSize.width;
+            const pageHeight = doc.internal.pageSize.height;
+            const logoWidth = 30;
+            const logoHeight = (logo.naturalHeight / logo.naturalWidth) * logoWidth;
+            const margin = 14;
+            let y = margin;
+
+            // Header for single report
+            doc.addImage(logo, 'PNG', pageWidth - logoWidth - margin, margin, logoWidth, logoHeight);
+            doc.setFontSize(18);
+            doc.text("Report Details", margin, y + 8);
+            y += 18;
+            doc.setFontSize(10);
+            doc.text(`Report Generated: ${new Date().toLocaleString()}`, margin, y);
+            y += 15;
+
+            // Helper to add details with page breaks
+            const addDetail = (label, value, isTitle = false) => {
+                // Check if content will fit on the current page
+                if (y > pageHeight - margin - 20) { // 20 is an arbitrary buffer
+                    doc.addPage();
+                    y = margin; // Reset y for new page
+                    // Add header to new page
+                    doc.addImage(logo, 'PNG', pageWidth - logoWidth - margin, margin, logoWidth, logoHeight);
+                    doc.setFontSize(14);
+                    doc.text("Report Details (Cont.)", margin, y + 8);
+                    y += 18;
+                }
+
+                doc.setFontSize(isTitle ? 12 : 10);
+                if (isTitle) {
+                    doc.setTextColor(20, 174, 187);
+                    doc.text(`${label}`, margin, y);
+                    doc.setTextColor(0);
+                    y += 7; // Space after title
+                } else {
+                    const text = `• ${label}: ${value || '-'}`;
+                    const splitText = doc.splitTextToSize(text, pageWidth - (2 * margin));
+                    doc.text(splitText, margin, y);
+                    y += (splitText.length * 5); // 5 is line height
+                }
+            };
+
+            // Report ID (prominent)
+            doc.setFontSize(14);
+            doc.setTextColor(20, 174, 187);
+            doc.text(`Report ID: ${report.ReportID || "-"}`, margin, y);
+            y += 10;
+            doc.setTextColor(0); // Reset color
+
+            // Basic Information
+            addDetail("Basic Information", "", true);
+            addDetail("Volunteer Group", report.VolunteerGroupName || "[Unknown Org]");
+            addDetail("Location of Operation", report.AreaOfOperation || "-");
+            addDetail("Date of Report Submitted", formatDate(report.DateOfReport));
+            y += 5;
+
+            // Relief Operations
+            addDetail("Relief Operations", "", true);
+            addDetail("Completion time of intervention", formatTime(report.TimeOfIntervention));
+            addDetail("Start Date of Operation", formatDate(report.StartDate) || "-");
+            addDetail("End Date of Operation", formatDate(report.EndDate) || "-");
+            addDetail("No. of Individuals or Families", report.NoOfIndividualsOrFamilies || "-");
+            addDetail("No. of Food Packs", report.NoOfFoodPacks || "-");
+            addDetail("No. of Hot Meals/Ready-to-eat food", report.NoOfHotMeals || "-");
+            addDetail("Liters of Water", report.LitersOfWater || "-");
+            addDetail("No. of Volunteers Mobilized", report.NoOfVolunteersMobilized || "-");
+            addDetail("No. of Organizations Activated", report.NoOfOrganizationsActivated || "-");
+            addDetail("Total Value of In-Kind Donations", report.TotalValueOfInKindDonations || "-");
+            addDetail("Total Monetary Donations", report.TotalMonetaryDonations || "-");
+            y += 5;
+
+            // Additional Updates
+            addDetail("Additional Updates", "", true);
+            addDetail("Notes/Additional Information", report.NotesAdditionalInformation || "-");
+            y += 5;
+
+            // Footer
+            doc.setFontSize(8);
+            const footerY = pageHeight - 10;
+            const pageNumberText = `Page ${doc.internal.getNumberOfPages()}`;
+            const poweredByText = "Powered by: Appvance";
+
+            doc.text(pageNumberText, margin, footerY);
+            doc.text(poweredByText, pageWidth - margin, footerY, { align: 'right' });
+
+            doc.save(`Report_${report.ReportID || 'Details'}.pdf`);
+
+            Swal.close();
+            Swal.fire({
+                icon: 'success',
+                title: 'PDF Generated!',
+                text: `Report "${report.ReportID || 'Details'}" saved as PDF.`,
+                timer: 2000,
+                showConfirmButton: false,
+                color: '#1b5e20',
+                iconColor: '#43a047',
+                confirmButtonColor: '#388e3c',
+                confirmButtonText: 'Great!',
+                customClass: {
+                    popup: 'swal2-popup-success-export',
+                    title: 'swal2-title-success-export',
+                    content: 'swal2-text-success-export',
+                    confirmButton: 'swal2-button-success-export'
+                }
+            });
+        };
+
+        logo.onerror = function() {
+            Swal.close();
+            Swal.fire("Error", "Failed to load logo image. Please check the path.", "error");
+        };
+    }
 });
