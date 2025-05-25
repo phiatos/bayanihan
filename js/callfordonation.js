@@ -1,11 +1,26 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // Firebase Configuration (Updated with your config)
+    const firebaseConfig = {
+        apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
+        authDomain: "bayanihan-5ce7e.firebaseapp.com",
+        databaseURL: "https://bayanihan-5ce7e-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "bayanihan-5ce7e",
+        storageBucket: "bayanihan-5ce7e.appspot.com",
+        messagingSenderId: "593123849917",
+        appId: "1:593123849917:web:eb85a63a536eeff78ce9d4",
+        measurementId: "G-ZTQ9VXXVV0"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+
     const userRole = localStorage.getItem('userRole'); // Assuming user role is stored in localStorage
 
-    let donations = JSON.parse(localStorage.getItem('donations')) || [];
+    let donations = [];
     let filteredReports = donations;
     let currentPage = 1;
     const entriesPerPage = 10;
-    let viewingApproved = false; // This variable seems unused in the provided code snippet.
+    let viewingApproved = false;
 
     // DOM elements
     const searchInput = document.getElementById('searchInput');
@@ -17,10 +32,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const tableBody = document.querySelector('#donationTable tbody');
     const entriesInfo = document.getElementById('entriesInfo');
     const pagination = document.getElementById('pagination');
-    const donationForm = document.getElementById('form-container-1'); // Correctly referencing the form container
+    const donationForm = document.getElementById('form-container-1');
     const submitButton = document.getElementById('nextBtn');
     const clearFormBtn = document.getElementById("clearFormBtn");
-
     const exportCsvButton = document.getElementById('exportBtn');
 
     // Input fields to display selected text
@@ -37,13 +51,31 @@ document.addEventListener('DOMContentLoaded', () => {
         donationForm.addEventListener('input', () => {
             formHasChanges = true;
         });
-        donationForm.addEventListener('change', () => { // For select/checkbox/radio changes
+        donationForm.addEventListener('change', () => {
             formHasChanges = true;
         });
     }
 
+    // Base path for JSON files
+    const baseJsonPath = '../json/';
+
+    // Load donations from Firebase
+    const dbRef = firebase.database().ref('callfordonation');
+    dbRef.on('value', (snapshot) => {
+        const data = snapshot.val();
+        donations = [];
+        if (data) {
+            Object.entries(data).forEach(([key, value]) => {
+                donations.push({ ...value, firebaseKey: key });
+            });
+        }
+        applyChange();
+    }, (error) => {
+        console.error("Error fetching donations from Firebase:", error);
+        Swal.fire('Error', 'Failed to load donations from the database.', 'error');
+    });
+
     var my_handlers = {
-        // Function to load all regions initially
         fill_regions: function() {
             if (regionTextInput) regionTextInput.value = '';
             if (provinceTextInput) provinceTextInput.value = '';
@@ -62,7 +94,8 @@ document.addEventListener('DOMContentLoaded', () => {
             barangaySelect.innerHTML = '<option value="" selected="true" disabled>Choose Region First</option>';
             barangaySelect.selectedIndex = 0;
 
-            const url = '/Bayanihan-PWA/json/region.json';
+            const url = `${baseJsonPath}region.json`;
+            console.log(`Fetching regions from: ${url}`);
 
             fetch(url)
                 .then(response => {
@@ -73,6 +106,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 })
                 .then(data => {
                     console.log("Region data loaded (Vanilla JS):", data);
+                    if (!Array.isArray(data) || !data.every(item => item.region_code && item.region_name)) {
+                        throw new Error("Invalid region data structure");
+                    }
 
                     data.sort(function(a, b) {
                         return a.region_name.localeCompare(b.region_name);
@@ -88,9 +124,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 .catch(error => {
                     console.error("Request for region.json Failed (Vanilla JS): " + error.message);
                     console.error("Fetch error object: ", error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Failed to Load Regions',
+                        text: `Unable to load region data: ${error.message}. Check if ${url} is accessible.`,
+                        confirmButtonText: 'OK'
+                    });
                 });
         },
-        // Function to load provinces based on selected region
         fill_provinces: function() {
             var region_code = regionSelect.value;
 
@@ -129,7 +170,8 @@ document.addEventListener('DOMContentLoaded', () => {
             barangaySelect.innerHTML = '<option value="" selected="true" disabled>Choose Province First</option>';
             barangaySelect.selectedIndex = 0;
 
-            const url = '/Bayanihan-PWA/json/province.json';
+            const url = `${baseJsonPath}province.json`;
+            console.log(`Fetching provinces from: ${url}`);
 
             fetch(url)
                 .then(response => {
@@ -139,6 +181,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     return response.json();
                 })
                 .then(data => {
+                    console.log("Province data loaded (Vanilla JS):", data);
+                    if (!Array.isArray(data) || !data.every(item => item.region_code && item.province_code && item.province_name)) {
+                        throw new Error("Invalid province data structure");
+                    }
+
                     var result = data.filter(function(value) {
                         return value.region_code == region_code;
                     });
@@ -157,9 +204,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 .catch(error => {
                     console.error("Request for province.json Failed (Vanilla JS): " + error.message);
                     console.error("Fetch error object: ", error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Failed to Load Provinces',
+                        text: `Unable to load province data: ${error.message}. Check if ${url} is accessible.`,
+                        confirmButtonText: 'OK'
+                    });
                 });
         },
-        // fill city
         fill_cities: function() {
             var province_code = provinceSelect.value;
 
@@ -191,7 +243,8 @@ document.addEventListener('DOMContentLoaded', () => {
             barangaySelect.innerHTML = '<option value="" selected="true" disabled>Choose City First</option>';
             barangaySelect.selectedIndex = 0;
 
-            const url = '/Bayanihan-PWA/json/city.json';
+            const url = `${baseJsonPath}city.json`;
+            console.log(`Fetching cities from: ${url}`);
 
             fetch(url)
                 .then(response => {
@@ -201,6 +254,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     return response.json();
                 })
                 .then(data => {
+                    console.log("City data loaded (Vanilla JS):", data);
+                    if (!Array.isArray(data) || !data.every(item => item.province_code && item.city_code && item.city_name)) {
+                        throw new Error("Invalid city data structure");
+                    }
+
                     var result = data.filter(function(value) {
                         return value.province_code == province_code;
                     });
@@ -219,9 +277,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 .catch(error => {
                     console.error("Request for city.json Failed (Vanilla JS): " + error.message);
                     console.error("Fetch error object: ", error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Failed to Load Cities',
+                        text: `Unable to load city data: ${error.message}. Check if ${url} is accessible.`,
+                        confirmButtonText: 'OK'
+                    });
                 });
         },
-        // fill barangay
         fill_barangays: function() {
             var city_code = citySelect.value;
 
@@ -246,7 +309,9 @@ document.addEventListener('DOMContentLoaded', () => {
             barangaySelect.innerHTML = '<option value="" selected="true" disabled>Choose barangay</option>';
             barangaySelect.selectedIndex = 0;
 
-            const url = '/Bayanihan-PWA/json/barangay.json';
+            const url = `${baseJsonPath}barangay.json`;
+            console.log(`Fetching barangays from: ${url}`);
+
             fetch(url)
                 .then(response => {
                     if (!response.ok) {
@@ -255,6 +320,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     return response.json();
                 })
                 .then(data => {
+                    console.log("Barangay data loaded (Vanilla JS):", data);
+                    if (!Array.isArray(data) || !data.every(item => item.city_code && item.brgy_code && item.brgy_name)) {
+                        throw new Error("Invalid barangay data structure");
+                    }
+
                     var result = data.filter(function(value) {
                         return value.city_code == city_code;
                     });
@@ -273,6 +343,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 .catch(error => {
                     console.error("Request for barangay.json Failed (Vanilla JS): " + error.message);
                     console.error("Fetch error object: ", error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Failed to Load Barangays',
+                        text: `Unable to load barangay data: ${error.message}. Check if ${url} is accessible.`,
+                        confirmButtonText: 'OK'
+                    });
                 });
         },
         onchange_barangay: function() {
@@ -285,20 +361,18 @@ document.addEventListener('DOMContentLoaded', () => {
     function toggleExportCsvButton() {
         if (exportCsvButton) {
             if (userRole === 'ABVN') {
-                exportCsvButton.style.display = 'none'; // Hide for ABVN users
+                exportCsvButton.style.display = 'none';
             } else {
-                exportCsvButton.style.display = 'block'; // Show for other users (like AB ADMIN)
+                exportCsvButton.style.display = 'block';
             }
         }
     }
 
-    // Function to enable/disable form elements - This function appears to be unused as per previous analysis.
-    // Keeping it here for completeness if it's used elsewhere in your application.
+    // Function to enable/disable form elements
     function toggleFormElements(enable) {
         const formContainer = document.getElementById('form-container-1');
         if (formContainer) {
             Array.from(formContainer.elements).forEach(element => {
-                // Ensure only relevant elements are disabled/enabled, exclude address dropdowns
                 if (element.id !== 'region' && element.id !== 'province' && element.id !== 'city' && element.id !== 'barangay') {
                     element.disabled = !enable;
                 }
@@ -362,14 +436,14 @@ document.addEventListener('DOMContentLoaded', () => {
     searchInput?.addEventListener('input', applyFilters);
     sortSelect?.addEventListener('change', () => {
         const selectedSortOption = sortSelect.value;
-        if (selectedSortOption === "") { // Check if the placeholder is selected
+        if (selectedSortOption === "") {
             Swal.fire({
                 icon: 'warning',
                 title: 'No Sort Option Selected',
                 text: 'Please select a specific sort option from the dropdown.',
                 confirmButtonText: 'OK'
             });
-            return; // Stop execution if placeholder is selected
+            return;
         }
         applyFilters();
     });
@@ -387,21 +461,33 @@ document.addEventListener('DOMContentLoaded', () => {
         if (searchTerm) {
             data = data.filter(d =>
                 (d.donationDrive || '').toLowerCase().includes(searchTerm) ||
-                (d.contactPerson || '').toLowerCase().includes(searchTerm) ||
-                (d.contactNumber || '').toLowerCase().includes(searchTerm) ||
-                (d.accountNumber || '').toLowerCase().includes(searchTerm) ||
-                (d.accountName || '').toLowerCase().includes(searchTerm) ||
-                (d.dropOff || '').toLowerCase().includes(searchTerm) ||
+                (d.contact?.person || '').toLowerCase().includes(searchTerm) ||
+                (d.contact?.number || '').toLowerCase().includes(searchTerm) ||
+                (d.account?.number || '').toLowerCase().includes(searchTerm) ||
+                (d.account?.name || '').toLowerCase().includes(searchTerm) ||
+                (d.address?.fullAddress || d.dropOff || '').toLowerCase().includes(searchTerm) ||
                 (d.facebookLink || '').toLowerCase().includes(searchTerm)
             );
         }
 
         const sortValue = sortSelect.value;
-        if (sortValue) { // Only sort if a valid sort option is selected
+        if (sortValue) {
             const [field, direction] = sortValue.split('-');
             data.sort((a, b) => {
-                const valA = (a[field] || '').toString().toLowerCase();
-                const valB = (b[field] || '').toString().toLowerCase();
+                let valA, valB;
+                if (field === 'dropOff') {
+                    valA = (a.address?.fullAddress || a.dropOff || '').toLowerCase();
+                    valB = (b.address?.fullAddress || b.dropOff || '').toLowerCase();
+                } else if (field === 'contactPerson') {
+                    valA = (a.contact?.person || a[field] || '').toString().toLowerCase();
+                    valB = (b.contact?.person || b[field] || '').toString().toLowerCase();
+                } else if (field === 'accountName') {
+                    valA = (a.account?.name || a[field] || '').toString().toLowerCase();
+                    valB = (b.account?.name || b[field] || '').toString().toLowerCase();
+                } else {
+                    valA = (a[field] || '').toString().toLowerCase();
+                    valB = (b[field] || '').toString().toLowerCase();
+                }
                 return direction === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
             });
         }
@@ -425,20 +511,18 @@ document.addEventListener('DOMContentLoaded', () => {
             }).then((result) => {
                 if (result.isConfirmed) {
                     if (donationForm) {
-                        // Manually clear inputs within the form
                         Array.from(donationForm.querySelectorAll('input, select, textarea')).forEach(element => {
                             if (element.type === 'file') {
-                                element.value = ''; // Clear file input
+                                element.value = '';
                             } else if (element.tagName === 'SELECT') {
-                                element.selectedIndex = 0; // Reset select to first option (assuming placeholder)
+                                element.selectedIndex = 0;
                             } else {
-                                element.value = ''; // Clear text inputs and textareas
+                                element.value = '';
                             }
                         });
-                        // Re-initialize region dropdowns after clearing
                         my_handlers.fill_regions();
                     }
-                    formHasChanges = false; // Reset the flag after clearing
+                    formHasChanges = false;
                     const errorMessages = donationForm ? donationForm.querySelectorAll('.error-message') : [];
                     errorMessages.forEach(msg => msg.textContent = '');
                     const errorInputs = donationForm ? donationForm.querySelectorAll('.error') : [];
@@ -447,7 +531,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         } else {
             if (donationForm) {
-                // Manually clear inputs within the form
                 Array.from(donationForm.querySelectorAll('input, select, textarea')).forEach(element => {
                     if (element.type === 'file') {
                         element.value = '';
@@ -466,7 +549,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-
     function renderReports() {
         tableBody.innerHTML = "";
 
@@ -484,12 +566,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 row.innerHTML = `
                     <td>${startIndex + i + 1}</td>
                     <td>${r.donationDrive || ''}</td>
-                    <td>${r.contactPerson || ''}</td>
-                    <td>${r.contactNumber || ''}</td>
-                    <td>${r.accountNumber || ''}</td>
-                    <td>${r.accountName || ''}</td>
-                    <td>${r.dropOff || r.address || ''}</td>
-                    <td><a href="${r.facebookLink || '#'}" target="_blank" rel="noopener noreferrer">Visit The Page</a></td>
+                    <td>${r.contact?.person || r.contactPerson || ''}</td>
+                    <td>${r.contact?.number || r.contactNumber || ''}</td>
+                    <td>${r.account?.number || r.accountNumber || ''}</td>
+                    <td>${r.account?.name || r.accountName || ''}</td>
+                    <td>${r.address?.fullAddress || r.dropOff || ''}</td>
+                    <td><a href="${r.facebookLink || '#'}" target="_blank" rel="noopener noreferrer">${r.facebookLink && r.facebookLink !== 'N/A' ? 'Visit The Page' : 'N/A'}</a></td>
                     <td>
                         <button class="view-btn" data-index="${startIndex + i}">View Image</button>
                         <button class="delete-btn" data-index="${startIndex + i}">Remove</button>
@@ -574,10 +656,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     confirmButtonText: 'Yes, delete it!'
                 }).then(result => {
                     if (result.isConfirmed) {
-                        donations = donations.filter(d => d !== data);
-                        localStorage.setItem('donations', JSON.stringify(donations));
-                        applyFilters();
-                        Swal.fire('Deleted!', 'The donation has been removed.', 'success');
+                        // Remove from Firebase
+                        firebase.database().ref(`callfordonation/${data.firebaseKey}`).remove()
+                            .then(() => {
+                                Swal.fire('Deleted!', 'The donation has been removed.', 'success');
+                            })
+                            .catch(error => {
+                                console.error("Error deleting donation:", error);
+                                Swal.fire('Error', 'Failed to delete the donation.', 'error');
+                            });
                     }
                 });
             });
@@ -608,45 +695,61 @@ document.addEventListener('DOMContentLoaded', () => {
 
             function saveDonation(base64Image) {
                 const newDonation = {
+                    donationId: `DONATION-${Math.floor(100 + Math.random() * 900)}`,
+                    dateTime: new Date().toISOString(),
                     donationDrive,
-                    contactPerson,
-                    contactNumber,
-                    accountNumber,
-                    accountName,
-                    Region: region,
-                    Province: province,
-                    CityMunicipality: city,
-                    Barangay: barangay,
-                    dropOff: `${address}, ${barangay}, ${city}, ${province}, ${region}`,
-                    facebookLink,
+                    contact: {
+                        person: contactPerson,
+                        number: contactNumber
+                    },
+                    account: {
+                        number: accountNumber,
+                        name: accountName
+                    },
+                    address: {
+                        region: region,
+                        province: province,
+                        city: city,
+                        barangay: barangay,
+                        street: address,
+                        fullAddress: `${address}, ${barangay}, ${city}, ${province}, ${region}`
+                    },
+                    facebookLink: facebookLink || "N/A",
                     image: base64Image || '',
-                    Status: "Pending" // Assuming newly added donations are pending
+                    status: "Pending",
+                    userRole: userRole || 'default',
+                    timestamp: Date.now()
                 };
-                donations.push(newDonation);
-                localStorage.setItem('donations', JSON.stringify(donations));
-                applyChange(); // Re-render the table with the new donation
 
-                // Clear form fields after successful submission
-                document.getElementById('donationDrive').value = '';
-                document.getElementById('contactPerson').value = '';
-                document.getElementById('contactNumber').value = '';
-                document.getElementById('accountNumber').value = '';
-                document.getElementById('accountName').value = '';
+                // Save to Firebase under the 'callfordonation' node
+                firebase.database().ref('callfordonation').push(newDonation)
+                    .then(() => {
+                        // Clear form fields after successful submission
+                        document.getElementById('donationDrive').value = '';
+                        document.getElementById('contactPerson').value = '';
+                        document.getElementById('contactNumber').value = '';
+                        document.getElementById('accountNumber').value = '';
+                        document.getElementById('accountName').value = '';
 
-                my_handlers.fill_regions(); // Reset location dropdowns
+                        my_handlers.fill_regions();
 
-                document.getElementById('address').value = '';
-                document.getElementById('facebookLink').value = '';
-                document.getElementById('donationImage').value = '';
+                        document.getElementById('address').value = '';
+                        document.getElementById('facebookLink').value = '';
+                        document.getElementById('donationImage').value = '';
 
-                if (regionTextInput) regionTextInput.value = '';
-                if (provinceTextInput) provinceTextInput.value = '';
-                if (cityTextInput) cityTextInput.value = '';
-                if (barangayTextInput) barangayTextInput.value = '';
+                        if (regionTextInput) regionTextInput.value = '';
+                        if (provinceTextInput) provinceTextInput.value = '';
+                        if (cityTextInput) cityTextInput.value = '';
+                        if (barangayTextInput) barangayTextInput.value = '';
 
-                formHasChanges = false; // Reset formHasChanges after submission
+                        formHasChanges = false;
 
-                Swal.fire('Success', 'Donation added successfully!', 'success');
+                        Swal.fire('Success', 'Donation added successfully!', 'success');
+                    })
+                    .catch(error => {
+                        console.error("Error saving donation to Firebase:", error);
+                        Swal.fire('Error', 'Failed to save the donation.', 'error');
+                    });
             }
 
             if (imageFile) {
@@ -679,15 +782,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const csvData = filteredReports.map((item, index) => [
                 index + 1,
                 `"${item.donationDrive || ''}"`,
-                `"${item.contactPerson || ''}"`,
-                `"${item.contactNumber || ''}"`,
-                `"${item.accountNumber || ''}"`,
-                `"${item.accountName || ''}"`,
-                `"${item.Region || ''}"`,
-                `"${item.Province || ''}"`,
-                `"${item.CityMunicipality || ''}"`,
-                `"${item.Barangay || ''}"`,
-                `"${item.dropOff || ''}"`,
+                `"${item.contact?.person || item.contactPerson || ''}"`,
+                `"${item.contact?.number || item.contactNumber || ''}"`,
+                `"${item.account?.number || item.accountNumber || ''}"`,
+                `"${item.account?.name || item.accountName || ''}"`,
+                `"${item.address?.region || item.Region || ''}"`,
+                `"${item.address?.province || item.Province || ''}"`,
+                `"${item.address?.city || item.CityMunicipality || ''}"`,
+                `"${item.address?.barangay || item.Barangay || ''}"`,
+                `"${item.address?.fullAddress || item.dropOff || ''}"`,
                 `"${item.facebookLink || ''}"`,
                 `"${item.image || ''}"`
             ].join(','));
@@ -713,5 +816,5 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initial calls when the DOM content is loaded
     toggleExportCsvButton();
     updateTableButtons();
-    applyChange(); // Initial rendering of reports
+    applyChange();
 });
