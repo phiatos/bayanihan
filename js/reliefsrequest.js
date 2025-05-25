@@ -180,10 +180,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (!name) {
             console.log('Validation failed: Item name is empty');
-            Swal.fire({
-                icon: 'warning',
-                title: 'Missing Item Name',
-                text: 'Please enter the item name.',
+           Swal.fire({
+            icon: 'warning',
+            title: 'Missing Item Name',
+            text: 'Please enter the item name.',
+            timer: 2200,
+            showConfirmButton: false,
+            timerProgressBar: true,
+            customClass: {
+                popup: 'swal2-popup-warning-clean',
+                title: 'swal2-title-warning-clean',
+                content: 'swal2-text-warning-clean'
+            }
             });
             return;
         }
@@ -191,10 +199,20 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!quantity || parseInt(quantity) <= 0) {
             console.log('Validation failed: Invalid quantity', { quantity });
             Swal.fire({
-                icon: 'warning',
-                title: 'Invalid Quantity',
-                text: 'Please enter a quantity greater than 0.',
-            });
+            icon: 'warning',
+            title: 'Invalid Quantity',
+            text: 'Please enter a quantity greater than 0.',
+            background: '#fefefe',                   // soft neutral background
+            color: '#6c584c',                       // deep neutral text
+            iconColor: '#d18f00',                   // warm amber icon
+            confirmButtonColor: '#d18f00',          // matching amber confirm button
+            customClass: {
+                popup: 'swal2-popup-warning-clean',
+                title: 'swal2-title-warning-clean',
+                htmlContainer: 'swal2-text-warning-clean'
+            }
+        });
+
             return;
         }
 
@@ -270,10 +288,20 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!contactPerson) {
             console.log('Validation failed: Contact person is empty');
             Swal.fire({
-                icon: 'warning',
-                title: 'Missing Contact Person',
-                text: 'Please enter the contact person’s name.',
-            });
+            icon: 'warning',
+            title: 'Missing Contact Person',
+            text: 'Please enter the contact person’s name.',
+            background: '#fefefe',                   
+            color: '#6c584c',                      
+            iconColor: '#d18f00',                  
+            confirmButtonColor: '#d18f00',         
+            customClass: {
+                popup: 'swal2-popup-warning-clean',
+                title: 'swal2-title-warning-clean',
+                htmlContainer: 'swal2-text-warning-clean'
+            }
+        });
+
             return;
         }
 
@@ -283,6 +311,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 icon: 'warning',
                 title: 'Invalid Contact Number',
                 text: 'Please enter a valid contact number (at least 10 digits).',
+                 background: '#fefefe',                   
+                color: '#6c584c',                      
+                iconColor: '#d18f00',                  
+                confirmButtonColor: '#d18f00',         
+                customClass: {
+                    popup: 'swal2-popup-warning-clean',
+                    title: 'swal2-title-warning-clean',
+                    htmlContainer: 'swal2-text-warning-clean'
+                }
             });
             return;
         }
@@ -293,6 +330,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 icon: 'warning',
                 title: 'Invalid Email',
                 text: 'Please enter a valid email address.',
+                 background: '#fefefe',                   
+                color: '#6c584c',                      
+                iconColor: '#d18f00',                  
+                confirmButtonColor: '#d18f00',         
+                customClass: {
+                    popup: 'swal2-popup-warning-clean',
+                    title: 'swal2-title-warning-clean',
+                    htmlContainer: 'swal2-text-warning-clean'
+                }
             });
             return;
         }
@@ -303,6 +349,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 icon: 'warning',
                 title: 'Missing Address',
                 text: 'Please enter the drop-off address.',
+                background: '#fefefe',                   
+                color: '#6c584c',                      
+                iconColor: '#d18f00',                  
+                confirmButtonColor: '#d18f00',         
+                customClass: {
+                    popup: 'swal2-popup-warning-clean',
+                    title: 'swal2-title-warning-clean',
+                    htmlContainer: 'swal2-text-warning-clean'
+                }
             });
             return;
         }
@@ -313,6 +368,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 icon: 'warning',
                 title: 'Missing City',
                 text: 'Please enter the city.',
+                background: '#fefefe',                   
+                color: '#6c584c',                      
+                iconColor: '#d18f00',                  
+                confirmButtonColor: '#d18f00',         
+                customClass: {
+                    popup: 'swal2-popup-warning-clean',
+                    title: 'swal2-title-warning-clean',
+                    htmlContainer: 'swal2-text-warning-clean'
+                }
             });
             return;
         }
@@ -323,6 +387,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 icon: 'warning',
                 title: 'Missing Category',
                 text: 'Please select a donation category.',
+                background: '#fefefe',                   
+                color: '#6c584c',                      
+                iconColor: '#d18f00',                  
+                confirmButtonColor: '#d18f00',         
+                customClass: {
+                    popup: 'swal2-popup-warning-clean',
+                    title: 'swal2-title-warning-clean',
+                    htmlContainer: 'swal2-text-warning-clean'
+                }
             });
             return;
         }
@@ -333,6 +406,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 icon: 'warning',
                 title: 'No Items Added',
                 text: 'Please add at least one item before proceeding.',
+                background: '#fefefe',                   
+                color: '#6c584c',                      
+                iconColor: '#d18f00',                  
+                confirmButtonColor: '#d18f00',         
+                customClass: {
+                    popup: 'swal2-popup-warning-clean',
+                    title: 'swal2-title-warning-clean',
+                    htmlContainer: 'swal2-text-warning-clean'
+                }
             });
             return;
         }

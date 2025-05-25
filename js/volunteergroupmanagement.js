@@ -344,11 +344,6 @@ function attachRowHandlers() {
             });
             button.textContent = 'Edit';
             editingRowId = null;
-            Swal.fire({
-              icon: 'success',
-              title: 'Updated',
-              text: 'Volunteer group updated successfully!'
-            });
             fetchAndRenderTable();
           })
           .catch(error => {
@@ -799,7 +794,8 @@ if (confirmSaveBtn) {
         contactPerson: orgData.contactPerson,
         createdAt: new Date().toISOString(),
         isFirstLogin: true,
-        emailVerified: false
+        emailVerified: false,
+        password_needs_reset: true
       });
 
       // Save volunteer group

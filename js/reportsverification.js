@@ -235,18 +235,36 @@ document.addEventListener('DOMContentLoaded', () => {
                     })
                     .then(() => {
                         Swal.fire({
-                            icon: 'success',
-                            title: 'Report Approved',
-                            text: 'The report has been approved and moved to the approved logs.',
-                        });
+                        icon: 'success',
+                        title: 'Report Approved',
+                        text: 'The report has been approved and moved to the approved logs.',
+                        background: '#f0fdf4', 
+                        color: '#065f46',     
+                        iconColor: '#059669',  
+                        confirmButtonColor: '#059669', 
+                        customClass: {
+                            popup: 'swal2-popup-success-clean',
+                            title: 'swal2-title-success-clean',
+                            content: 'swal2-text-success-clean'
+                        }
+                    });
                     })
                     .catch(error => {
                         console.error("Error during report approval:", error);
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: 'Failed to approve report: ' + error.message,
-                        });
+                       Swal.fire({
+                        icon: 'error',
+                        title: 'Approval Failed',
+                        text: `Failed to approve report: ${error.message}`,
+                        background: '#fef2f2',       
+                        color: '#7f1d1d',          
+                        iconColor: '#dc2626',        
+                        confirmButtonColor: '#b91c1c', 
+                        customClass: {
+                            popup: 'swal2-popup-error-clean',
+                            title: 'swal2-title-error-clean',
+                            content: 'swal2-text-error-clean'
+                        }
+                    });
                     });
             });
 
@@ -267,10 +285,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 ])
                     .then(() => {
                         Swal.fire({
-                            icon: 'success',
-                            title: 'Report Rejected',
-                            text: 'The report has been rejected and removed.',
-                        });
+                        icon: 'info',  // using 'info' or 'warning' instead of 'success'
+                        title: 'Report Rejected',
+                        text: 'The report has been rejected and removed.',
+                        background: '#fef2f2',             // soft red background (not alarming)
+                        color: '#7f1d1d',                  // deep red text
+                        iconColor: '#dc2626',              // firm red icon
+                        confirmButtonColor: '#b91c1c',     // strong red button
+                        customClass: {
+                            popup: 'swal2-popup-rejected-clean',
+                            title: 'swal2-title-rejected-clean',
+                            content: 'swal2-text-rejected-clean'
+                        }
+                    });
+
                     })
                     .catch(error => {
                         console.error("Error during report rejection:", error);

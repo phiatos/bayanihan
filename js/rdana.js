@@ -126,7 +126,21 @@ document.addEventListener('DOMContentLoaded', () => {
   if (nextBtn4) {
     nextBtn4.addEventListener('click', () => {
       if (!validatePageInputs('#form-page-4')) {
-        Swal.fire("Incomplete Data", "Please fill in all required fields on this page.", "warning");
+        Swal.fire({
+            icon: 'warning',
+            title: 'Incomplete Data',
+            text: 'Please fill in all required fields on this page.',
+            background: '#fffaf0',             
+            color: '#92400e',                  
+            iconColor: '#f59e0b',              
+            confirmButtonColor: '#d97706',     
+            customClass: {
+                popup: 'swal2-popup-warning-clean',
+                title: 'swal2-title-warning-clean',
+                content: 'swal2-text-warning-clean'
+            }
+        });
+
         return;
       }
 
@@ -244,11 +258,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
       page4Table += `
         <p><strong>Other Immediate Needs:</strong> ${otherNeeds}</p>
-        <p><strong>Estimated Quantity:</strong> $${formatLargeNumber(estQty)}</p>
+        <p><strong>Estimated Quantity:</strong> ${estQty}</p>
         <h3 style="margin-top: 15px; margin-bottom: 10px;">Initial Response Actions</h3>
         <p><strong>Response Groups Involved:</strong> ${responseGroup}</p>
         <p><strong>Relief Assistance Deployed:</strong> ${reliefDeployed}</p>
-        <p><strong>Number of Families Served:</strong> $${formatLargeNumber(familiesServed)}</p>
+        <p><strong>Number of Families Served:</strong> ${familiesServed}</p>
       `;
 
       // Combine all sections
@@ -296,10 +310,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 !needsChecklist || needsChecklist.length === 0) {
               console.error("Form data is incomplete:", { profileData, affectedCommunities, needsChecklist });
               Swal.fire({
-                icon: 'error',
-                title: 'Submission Failed',
-                text: 'Form data is incomplete. Please ensure all fields are filled correctly.',
+                  icon: 'error',
+                  title: 'Submission Failed',
+                  text: 'Form data is incomplete. Please ensure all fields are filled correctly.',
+                  background: '#fef2f2',             
+                  color: '#7f1d1d',                  
+                  iconColor: '#b91c1c',               
+                  confirmButtonColor: '#991b1b',       
+                  customClass: {
+                      popup: 'swal2-popup-error-clean',
+                      title: 'swal2-title-error-clean',
+                      content: 'swal2-text-error-clean'
+                  }
               });
+
               newSubmitBtn.disabled = false;
               newSubmitBtn.textContent = "Submit Report";
               return;
@@ -344,6 +368,17 @@ document.addEventListener('DOMContentLoaded', () => {
                   icon: 'success',
                   title: 'Report Submitted',
                   text: 'Your RDANA report has been submitted for verification!',
+                  background: '#e6ffed',           // soft mint-green background for positivity
+                  color: '#065f46',                // deep green text for good readability
+                  iconColor: '#10b981',            // fresh teal-green icon to reinforce success
+                  confirmButtonColor: '#059669',  // matching green confirm button for consistency
+                  timer: 2000,                    // auto-close after 2 seconds
+                  showConfirmButton: false,
+                  customClass: {
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    content: 'swal2-text-success-clean'
+                  }
                 }).then(() => {
                   // Reset form data after successful submission
                   profileData = {};
@@ -396,10 +431,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error("Error code:", error.code);
                 console.error("Error message:", error.message);
                 Swal.fire({
-                  icon: 'error',
-                  title: 'Error',
-                  text: 'Failed to submit RDANA report: ' + error.message,
-                });
+                icon: 'error',
+                title: 'Submission Failed',
+                text: 'Failed to submit RDANA report: ' + error.message,
+                background: '#fdecea',          
+                color: '#b91c1c',                
+                iconColor: '#dc2626',            
+                confirmButtonColor: '#b91c1c',  
+                timer: 3000,                    
+                showConfirmButton: true,
+                customClass: {
+                  popup: 'swal2-popup-error-clean',
+                  title: 'swal2-title-error-clean',
+                  content: 'swal2-text-error-clean'
+                }
+              });
+
               })
               .finally(() => {
                 newSubmitBtn.disabled = false;
@@ -432,7 +479,20 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById("form-page-1").style.display = "none";
         document.getElementById("form-page-2").style.display = "block";
       } else {
-        Swal.fire("Incomplete Data", "Please fill in all required fields on this page.", "warning");
+        Swal.fire({
+            icon: 'warning',
+            title: 'Incomplete Data',
+            text: 'Please fill in all required fields on this page.',
+            background: '#fffaf0',             
+            color: '#92400e',                  
+            iconColor: '#f59e0b',              
+            confirmButtonColor: '#d97706',     
+            customClass: {
+                popup: 'swal2-popup-warning-clean',
+                title: 'swal2-title-warning-clean',
+                content: 'swal2-text-warning-clean'
+            }
+        });
       }
     });
   }
@@ -443,7 +503,20 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById("form-page-2").style.display = "none";
         document.getElementById("form-page-3").style.display = "block";
       } else {
-        Swal.fire("Incomplete Data", "Please fill in all required fields on this page.", "warning");
+        Swal.fire({
+            icon: 'warning',
+            title: 'Incomplete Data',
+            text: 'Please fill in all required fields on this page.',
+            background: '#fffaf0',             
+            color: '#92400e',                  
+            iconColor: '#f59e0b',              
+            confirmButtonColor: '#d97706',     
+            customClass: {
+                popup: 'swal2-popup-warning-clean',
+                title: 'swal2-title-warning-clean',
+                content: 'swal2-text-warning-clean'
+            }
+        });
       }
     });
   }
@@ -454,7 +527,20 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById("form-page-3").style.display = "none";
         document.getElementById("form-page-4").style.display = "block";
       } else {
-        Swal.fire("Incomplete Data", "Please fill in all required fields on this page.", "warning");
+        Swal.fire({
+            icon: 'warning',
+            title: 'Incomplete Data',
+            text: 'Please fill in all required fields on this page.',
+            background: '#fffaf0',             
+            color: '#92400e',                  
+            iconColor: '#f59e0b',              
+            confirmButtonColor: '#d97706',     
+            customClass: {
+                popup: 'swal2-popup-warning-clean',
+                title: 'swal2-title-warning-clean',
+                content: 'swal2-text-warning-clean'
+            }
+        });
       }
     });
   }

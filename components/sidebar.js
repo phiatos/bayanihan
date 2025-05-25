@@ -49,34 +49,46 @@ function initSidebar() {
       e.preventDefault();
 
       Swal.fire({
-        title: "Are you sure you want to log out?",
-        text: "You will need to log in again to access your account.",
-        icon: "warning",
-        showCancelButton: true,
-        confirmButtonColor: "#3085d6",
-        cancelButtonColor: "#d33",
-        confirmButtonText: "Yes, logout",
-        cancelButtonText: "Cancel",
-      }).then((result) => {
-        if (result.isConfirmed) {
-          localStorage.removeItem("userMobile");
-          localStorage.removeItem("userRole");
-          localStorage.removeItem("userData");
+      title: "Are you sure you want to log out?",
+      text: "You will need to log in again to access your account.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Yes, log out",
+      cancelButtonText: "Cancel",
+      reverseButtons: true,
+      focusCancel: true,
+      customClass: {
+        popup: 'swal2-popup-clean',
+        title: 'swal2-title-clean',
+        content: 'swal2-text-clean',
+        confirmButton: 'swal2-btn-confirm-clean',
+        cancelButton: 'swal2-btn-cancel-clean'
+      },
+    }).then((result) => {
+      if (result.isConfirmed) {
+        localStorage.removeItem("userMobile");
+        localStorage.removeItem("userRole");
+        localStorage.removeItem("userData");
 
-          Swal.fire({
-            title: "Logged out!",
-            text: "You have been successfully logged out.",
-            icon: "success",
-            timer: 1500,
-            showConfirmButton: false,
-          });
+        Swal.fire({
+          title: "Logged out!",
+          text: "You have been successfully logged out.",
+          icon: "success",
+          timer: 1600,
+          showConfirmButton: false,
+          timerProgressBar: true,
+          customClass: {
+            popup: 'swal2-popup-success-clean',
+            title: 'swal2-title-success-clean',
+            content: 'swal2-text-success-clean'
+          },
+          didClose: () => {
+            window.location.replace("../pages/login.html");
+          }
+        });
+      }
+    });
 
-          setTimeout(() => {
-            const absolutePath = "../pages/login.html";
-            window.location.replace(absolutePath);
-          }, 1600);
-        }
-      });
     });
   } else {
     console.log("Logout button element NOT found (from within sidebar.js).");

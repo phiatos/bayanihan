@@ -121,8 +121,6 @@ form .fields .input-field {
     align-items: center; 
 }
 
-
-
 .input-field i{
     position: absolute;
     right: 15px;
@@ -257,9 +255,6 @@ form .backBtn i {
     color: green;
 }
 
-
-
-
 /* --- Modal Styles --- */
 .modal {
     display: none;
@@ -376,22 +371,24 @@ form .backBtn i {
     cursor: pointer;
 }
 
-.modal-footer button {
+.modal-footer #agreeButton {
     background-color: var(--primary-color);
+    width: 120px;
     color: white;
     padding: 12px 25px;
     border: none;
     border-radius: 5px;
     cursor: pointer;
     font-size: 1.1em;
+    text-align: center;
     transition: background-color 0.3s ease;
 }
 
-.modal-footer button:hover:not(:disabled) {
+.modal-footer #agreeButton:hover:not(:disabled) {
     background-color: var(--button-hover);
 }
 
-.modal-footer button:disabled {
+.modal-footer #agreeButton:disabled {
     background-color: #cccccc;
     cursor: not-allowed;
 }

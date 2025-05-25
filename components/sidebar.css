@@ -378,3 +378,90 @@ a {
     padding-left: 5px;
   }
 }
+
+/* --- Popup base --- */
+.swal2-popup-clean {
+  border-radius: 14px;
+  padding: 2.5rem 3rem;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  box-shadow: 0 12px 30px rgba(50, 50, 93, 0.1);
+  background: #f9fafb; /* Soft off-white */
+  max-width: max-content;
+  color: #2c3e50; /* Dark slate blue */
+}
+
+/* Title styling */
+.swal2-title-clean {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  color: #34495e; /* Muted dark blue */
+  letter-spacing: 0.03em;
+}
+
+/* Text styling */
+.swal2-text-clean {
+  font-size: 1.15rem;
+  color: #566573; /* Medium slate gray */
+  margin-bottom: 2rem;
+  line-height: 1.5;
+}
+
+/* Confirm button */
+.swal2-btn-confirm-clean {
+  background-color: #bc1a1a !important; /* Soft teal */
+  color: #fff !important;
+  font-weight: 600;
+  font-size: 1rem;
+  width: fit-content;
+  padding: 0.65rem 2.1rem !important;
+  border-radius: 10px !important;
+  border: none !important;
+  box-shadow: 0 5px 15px rgba(188, 26, 26, 0.4);
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.swal2-btn-confirm-clean:hover {
+  background-color: #a01616 !important; /* Darker teal */
+  box-shadow: 0 5px 10px rgba(160, 22, 22, 0.6);
+}
+
+/* Cancel button */
+.swal2-btn-cancel-clean {
+  width: fit-content;
+  background-color: #ecf0f1 !important; /* Light gray */
+  color: #7f8c8d !important; /* Medium gray */
+  font-weight: 600;
+  font-size: 1rem;
+  padding: 0.65rem 2.1rem !important;
+  border-radius: 10px !important;
+  border: none !important;
+  margin-left: 0.75rem !important;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.swal2-btn-cancel-clean:hover {
+  background-color: #bdc3c7 !important; /* Medium gray */
+  color: #2c3e50 !important; /* Dark slate blue */
+}
+
+/* Success popup */
+.swal2-popup-success-clean {
+  border-radius: 14px;
+  padding: 2.5rem 3rem;
+  background: #dff9f3; /* Pale mint green */
+  box-shadow: 0 12px 30px rgba(39, 174, 96, 0.25);
+  color: #27ae60; /* Vibrant green */
+}
+
+.swal2-title-success-clean {
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: #27ae60;
+  margin-bottom: 0.25rem;
+}
+
+.swal2-text-success-clean {
+  font-size: 1.05rem;
+  color: #2ecc71;
+}
