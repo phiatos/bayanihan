@@ -206,6 +206,26 @@ document.addEventListener('DOMContentLoaded', () => {
       .trim();
   }
 
+  function formatLargeNumber(numStr) {
+  let num = BigInt(numStr || "0");
+  const trillion = 1_000_000_000_000n;
+  const billion = 1_000_000_000n;
+  const million = 1_000_000n;
+  const thousand = 1_000n;
+
+  if (num >= trillion) {
+    return (Number(num) / Number(trillion)).toFixed(2).replace(/\.?0+$/, '') + 'T';
+  } else if (num >= billion) {
+    return (Number(num) / Number(billion)).toFixed(2).replace(/\.?0+$/, '') + 'B';
+  } else if (num >= million) {
+    return (Number(num) / Number(million)).toFixed(2).replace(/\.?0+$/, '') + 'M';
+  } else if (num >= thousand) {
+    return (Number(num) / Number(thousand)).toFixed(2).replace(/\.?0+$/, '') + 'k';
+  }
+  return num.toString();
+}
+
+
   function showDetails(report) {
     const modal = document.getElementById("reportModal");
     const modalDetails = document.getElementById("modalReportDetails");
@@ -225,24 +245,26 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     modalityHTML += `</table></div>`;
 
+    
     let summaryHTML = `<h3>Summary of Disaster/Incident</h3><p>${report.summary || "N/A"}</p>`;
 
     let affectedHTML = `<h3>Affected Communities</h3><div class='table-scroll'><table class='preview-table' id='rdanalog-table'><tr>
       <th>Community</th><th>Total Pop.</th><th>Affected Pop.</th><th>Deaths</th><th>Injured</th><th>Missing</th><th>Children</th><th>Women</th><th>Seniors</th><th>PWD</th></tr>`;
     (report.affectedCommunities || []).forEach(c => {
-      affectedHTML += `<tr>
-        <td>${c.community || "-"}</td>
-        <td>${c.totalPop || 0}</td>
-        <td>${c.affected || 0}</td>
-        <td>${c.deaths || 0}</td>
-        <td>${c.injured || 0}</td>
-        <td>${c.missing || 0}</td>
-        <td>${c.children || 0}</td>
-        <td>${c.women || 0}</td>
-        <td>${c.seniors || 0}</td>
-        <td>${c.pwd || 0}</td>
-      </tr>`;
-    });
+    affectedHTML += `<tr>
+      <td>${c.community || "-"}</td>
+      <td>${formatLargeNumber(c.totalPop)}</td>
+      <td>${formatLargeNumber(c.affected)}</td>
+      <td>${formatLargeNumber(c.deaths)}</td>
+      <td>${formatLargeNumber(c.injured)}</td>
+      <td>${formatLargeNumber(c.missing)}</td>
+      <td>${formatLargeNumber(c.children)}</td>
+      <td>${formatLargeNumber(c.women)}</td>
+      <td>${formatLargeNumber(c.seniors)}</td>
+      <td>${formatLargeNumber(c.pwd)}</td>
+    </tr>`;
+  });
+
     affectedHTML += `</table></div>`;
 
     let structureHTML = `<h3>Status of Structures</h3><div class='table-scroll'><table class='preview-table' id='rdanalog-table'><tr><th>Structure</th><th>Status</th></tr>`;
@@ -259,11 +281,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let otherNeedsHTML = `
       <p><strong>Other Immediate Needs:</strong> ${report.otherNeeds || "N/A"}</p>
-      <p><strong>Estimated Quantity:</strong> ${report.estQty || "N/A"}</p>
+      <p><strong>Estimated Quantity:</strong> ${formatLargeNumber(report.estQty)}</p>
       <h3>Initial Response Actions</h3>
       <p><strong>Response Groups Involved:</strong> ${report.responseGroup || "N/A"}</p>
       <p><strong>Relief Assistance Deployed:</strong> ${report.reliefDeployed || "N/A"}</p>
-      <p><strong>Number of Families Served:</strong> ${report.familiesServed || "N/A"}</p>
+      <p><strong>Number of Families Served:</strong> ${formatLargeNumber(report.familiesServed)}</p>
     `;
 
     modalDetails.innerHTML = profileHTML + modalityHTML + summaryHTML + affectedHTML + structureHTML + checklistHTML + otherNeedsHTML;

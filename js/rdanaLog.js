@@ -198,6 +198,25 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  function formatLargeNumber(numStr) {
+      let num = BigInt(numStr || "0");
+      const trillion = 1_000_000_000_000n;
+      const billion = 1_000_000_000n;
+      const million = 1_000_000n;
+      const thousand = 1_000n;
+
+      if (num >= trillion) {
+        return (Number(num) / Number(trillion)).toFixed(2).replace(/\.?0+$/, '') + 'T';
+      } else if (num >= billion) {
+        return (Number(num) / Number(billion)).toFixed(2).replace(/\.?0+$/, '') + 'B';
+      } else if (num >= million) {
+        return (Number(num) / Number(million)).toFixed(2).replace(/\.?0+$/, '') + 'M';
+      } else if (num >= thousand) {
+        return (Number(num) / Number(thousand)).toFixed(2).replace(/\.?0+$/, '') + 'k';
+      }
+      return num.toString();
+    }
+
   function viewLog(globalIndex) {
     const log = filteredLogs[globalIndex];
     const previewDiv = document.getElementById("modalContent");
@@ -226,18 +245,18 @@ document.addEventListener('DOMContentLoaded', () => {
     let affectedHTML = `<h3>Affected Communities</h3><div class='table-scroll'><table class='preview-table' id='rdanalog-table'><tr>
       <th>Community</th><th>Total Pop.</th><th>Affected Pop.</th><th>Deaths</th><th>Injured</th><th>Missing</th><th>Children</th><th>Women</th><th>Seniors</th><th>PWD</th></tr>`;
     (log.affectedCommunities || []).forEach(c => {
-      affectedHTML += `<tr>
-        <td>${c.community || "-"}</td>
-        <td>${c.totalPop || 0}</td>
-        <td>${c.affected || 0}</td>
-        <td>${c.deaths || 0}</td>
-        <td>${c.injured || 0}</td>
-        <td>${c.missing || 0}</td>
-        <td>${c.children || 0}</td>
-        <td>${c.women || 0}</td>
-        <td>${c.seniors || 0}</td>
-        <td>${c.pwd || 0}</td>
-      </tr>`;
+     affectedHTML += `<tr>
+      <td>${c.community || "-"}</td>
+      <td>${formatLargeNumber(c.totalPop)}</td>
+      <td>${formatLargeNumber(c.affected)}</td>
+      <td>${formatLargeNumber(c.deaths)}</td>
+      <td>${formatLargeNumber(c.injured)}</td>
+      <td>${formatLargeNumber(c.missing)}</td>
+      <td>${formatLargeNumber(c.children)}</td>
+      <td>${formatLargeNumber(c.women)}</td>
+      <td>${formatLargeNumber(c.seniors)}</td>
+      <td>${formatLargeNumber(c.pwd)}</td>
+    </tr>`;
     });
     affectedHTML += `</table></div>`;
 
