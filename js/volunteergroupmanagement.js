@@ -344,11 +344,6 @@ function attachRowHandlers() {
             });
             button.textContent = 'Edit';
             editingRowId = null;
-            Swal.fire({
-              icon: 'success',
-              title: 'Updated',
-              text: 'Volunteer group updated successfully!'
-            });
             fetchAndRenderTable();
           })
           .catch(error => {
