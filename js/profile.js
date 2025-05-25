@@ -201,10 +201,20 @@ document.addEventListener("DOMContentLoaded", () => {
     function preventNavigation(e) {
         e.preventDefault();
         Swal.fire({
-            icon: 'warning',
-            title: 'Terms Required',
-            text: 'You must accept the Terms and Conditions to navigate the application.'
+        icon: 'warning',
+        title: 'Terms Required',
+        text: 'You must accept the Terms and Conditions to navigate the application.',
+        iconColor: '#f9a825',
+        confirmButtonColor: '#f57c00',
+        confirmButtonText: 'Okay, I Understand',
+        customClass: {
+            popup: 'swal2-popup-warning-terms',
+            title: 'swal2-title-warning-terms',
+            content: 'swal2-text-warning-terms',
+            confirmButton: 'swal2-button-warning-terms'
+        }
         });
+
         showTermsModal();
     }
 
@@ -436,10 +446,22 @@ document.addEventListener("DOMContentLoaded", () => {
                 })
                 .then(() => {
                     Swal.fire({
-                        icon: 'success',
-                        title: 'Password Changed',
-                        text: 'Your password has been updated successfully.'
+                    icon: 'success',
+                    title: 'Password Changed',
+                    text: 'Your password has been updated successfully.',
+                    background: '#e8f5e9',
+                    color: '#2e7d32',
+                    iconColor: '#43a047',
+                    confirmButtonColor: '#2e7d32',
+                    confirmButtonText: 'Great!',
+                    customClass: {
+                        popup: 'swal2-popup-success-password',
+                        title: 'swal2-title-success-password',
+                        content: 'swal2-text-success-password',
+                        confirmButton: 'swal2-button-success-password'
+                    }
                     });
+
                     form.reset();
                 })
                 .catch(error => {

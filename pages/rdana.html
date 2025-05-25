@@ -132,16 +132,17 @@
               </thead>
               <tbody id="tableBody">
                 <tr>
-                  <td><input type="text" placeholder="Enter Municipalities/Communities" required/></td>
-                  <td><input type="number" placeholder="Enter Total Population" min="0" required/></td>
-                  <td><input type="number" placeholder="Enter Affected Population" min="0" required/></td>
-                  <td><input type="number" placeholder="No. of Deaths" min="0" required/></td>
-                  <td><input type="number" placeholder="No. of Injured" min="0" required/></td>
-                  <td><input type="number" placeholder="No. of Missing" min="0" required/></td>
-                  <td><input type="number" placeholder="No. of Children" min="0" required/></td>
-                  <td><input type="number" placeholder="No. of Women" min="0" required/></td>
-                  <td><input type="number" placeholder="No. of Senior Citizens" min="0" required/></td>
-                  <td><input type="number" placeholder="No. of PWD" min="0" required/></td>
+                <td><input type="text" placeholder="Enter Municipalities/Communities" required/></td>
+                <td><input type="number" placeholder="Enter Total Population" min="0" required oninput="if(this.value < 0) this.value = 0;"/></td>
+                <td><input type="number" placeholder="Enter Affected Population" min="0" required oninput="if(this.value < 0) this.value = 0;"/></td>
+                <td><input type="number" placeholder="No. of Deaths" min="0" required oninput="if(this.value < 0) this.value = 0;"/></td>
+                <td><input type="number" placeholder="No. of Injured" min="0" required oninput="if(this.value < 0) this.value = 0;"/></td>
+                <td><input type="number" placeholder="No. of Missing" min="0" required oninput="if(this.value < 0) this.value = 0;"/></td>
+                <td><input type="number" placeholder="No. of Children" min="0" required oninput="if(this.value < 0) this.value = 0;"/></td>
+                <td><input type="number" placeholder="No. of Women" min="0" required oninput="if(this.value < 0) this.value = 0;"/></td>
+                <td><input type="number" placeholder="No. of Senior Citizens" min="0" required oninput="if(this.value < 0) this.value = 0;"/></td>
+                <td><input type="number" placeholder="No. of PWD" min="0" required oninput="if(this.value < 0) this.value = 0;"/></td>
+
                   <td><button type="reset" class="removeRowBtn">Clear</button></td>
                 </tr>
               </tbody>

@@ -248,11 +248,39 @@ document.addEventListener("DOMContentLoaded", () => {
             .then(() => {
                 form.reset();
                 formHasChanges = false;
-                Swal.fire("Success", "Donation added!", "success");
+                Swal.fire({
+                icon: 'success',
+                title: 'Donation Added!',
+                text: 'Your donation has been successfully recorded.',
+                timer: 2000,
+                showConfirmButton: false,
+                background: '#e6f4ea',          
+                color: '#1b5e20',               
+                iconColor: '#2e7d32',    
+                customClass: {
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    content: 'swal2-text-success-clean'
+                }
+                });
+
             })
             .catch(error => {
                 console.error("Error adding donation:", error);
-                Swal.fire("Error", "Failed to add donation: " + error.message, "error");
+                Swal.fire({
+                icon: 'error',
+                title: 'Failed to Add Donation',
+                text: 'An error occurred: ' + error.message,
+                background: '#fcebea',         
+                color: '#b71c1c',               
+                iconColor: '#c62828',           
+                confirmButtonColor: '#c62828',  
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    content: 'swal2-text-error-clean'
+                }
+                });
             });
         }
     });
@@ -280,13 +308,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (formHasChanges) {
             Swal.fire({
-                title: 'Discard Changes?',
-                text: "You have unsaved changes. Are you sure you want to clear the form?",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#d33',
-                cancelButtonColor: '#3085d6',
-                confirmButtonText: 'Yes, clear it!'
+            title: 'Discard Changes?',
+            text: 'You have unsaved changes. Are you sure you want to clear the form?',
+            icon: 'warning',                                
+            iconColor: '#f57c00',               
+            showCancelButton: true,
+            confirmButtonColor: '#c62828',      
+            cancelButtonColor: '#546e7a',        
+            confirmButtonText: 'Yes, clear it!',
+            cancelButtonText: 'No, keep editing',
+            reverseButtons: true,               
+            customClass: {
+                popup: 'swal2-popup-warning-clean',
+                title: 'swal2-title-warning-clean',
+                content: 'swal2-text-warning-clean',
+                confirmButton: 'swal2-button-confirm-clean',
+                cancelButton: 'swal2-button-cancel-clean'
+            }
             }).then((result) => {
                 if (result.isConfirmed) {
                     clearFormFields();
@@ -615,7 +653,22 @@ function applySorting(arr, sortVal) {
             doc.text(poweredByText, pageWidth - margin, footerY, { align: 'right' });
 
             doc.save(`monetary_donation_${new Date().toISOString().slice(0, 10)}.pdf`);
-            Swal.fire("Success", "Monetary donation details exported to PDF!", "success");
+            Swal.fire({
+            title: 'Export Successful!',
+            text: 'Monetary donation details have been exported to PDF.',
+            icon: 'success',
+            color: '#1b5e20',
+            iconColor: '#43a047',
+            confirmButtonColor: '#388e3c',
+            confirmButtonText: 'Great!',
+            customClass: {
+                popup: 'swal2-popup-success-export',
+                title: 'swal2-title-success-export',
+                content: 'swal2-text-success-export',
+                confirmButton: 'swal2-button-success-export'
+            }
+            });
+
         };
 
         logo.onerror = function() {
@@ -628,10 +681,20 @@ function applySorting(arr, sortVal) {
             title: 'Are you sure?',
             text: "This monetary donation entry will be deleted from the list but saved to deleted donations!",
             icon: 'warning',
+            iconColor: '#ffa000',
             showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
-            confirmButtonText: 'Yes, delete it!'
+            confirmButtonColor: '#d32f2f',  // stronger red
+            cancelButtonColor: '#546e7a',   // blue-gray
+            confirmButtonText: 'Yes, delete it!',
+            cancelButtonText: 'Cancel',
+            reverseButtons: true,
+            customClass: {
+                popup: 'swal2-popup-delete-clean',
+                title: 'swal2-title-delete-clean',
+                content: 'swal2-text-delete-clean',
+                confirmButton: 'swal2-button-confirm-clean',
+                cancelButton: 'swal2-button-cancel-clean'
+            }
         }).then((result) => {
             if (result.isConfirmed) {
                 const donationToDelete = allDonations.find(d => d.firebaseKey === firebaseKey);
@@ -752,7 +815,22 @@ function applySorting(arr, sortVal) {
                 database.ref(`donations/monetary/${editingKey}`).update(updatedDonation) // Use .update() instead of .set() to only change specified fields
                 .then(() => {
                     closeEditModal();
-                    Swal.fire("Success", "Donation updated!", "success");
+                    Swal.fire({
+                    title: 'Success!',
+                    text: 'Donation updated successfully!',
+                    icon: 'success',
+                    color: '#1b5e20',
+                    iconColor: '#43a047',
+                    confirmButtonColor: '#388e3c',
+                    confirmButtonText: 'OK',
+                    customClass: {
+                        popup: 'swal2-popup-success-clean',
+                        title: 'swal2-title-success-clean',
+                        content: 'swal2-text-success-clean',
+                        confirmButton: 'swal2-button-success-clean'
+                    }
+                    });
+
                     editingKey = null;
                 })
                 .catch(error => {

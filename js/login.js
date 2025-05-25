@@ -24,28 +24,40 @@ document.addEventListener("DOMContentLoaded", () => {
   if (!openLockIcon) console.error("Open lock icon not found");
 
   // Function to display error messages
-  const displayError = (inputElement, message) => {
-      const errorDiv = inputElement.parentElement.querySelector('.error-message');
-      if (errorDiv) {
-          errorDiv.textContent = message;
-      } else {
-          const newErrorDiv = document.createElement('div');
-          newErrorDiv.className = 'error-message';
-          newErrorDiv.style.color = 'red';
-          newErrorDiv.style.fontSize = '0.8em';
-          newErrorDiv.style.marginTop = '5px';
-          newErrorDiv.textContent = message;
-          inputElement.parentElement.appendChild(newErrorDiv);
-      }
-  };
+const showToast = (message, type = 'error') => {
+    const toastContainer = document.querySelector('.toast-container');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.textContent = message;
 
-  // Function to clear error messages
-  const clearError = (inputElement) => {
-      const errorDiv = inputElement.parentElement.querySelector('.error-message');
-      if (errorDiv) {
-          errorDiv.textContent = '';
-      }
-  };
+    toastContainer.appendChild(toast);
+
+    // Trigger animation
+    setTimeout(() => toast.classList.add('show'), 10);
+
+    // Remove after 3 seconds
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300); // match CSS transition
+    }, 3000);
+};
+
+
+const clearError = (inputElement) => {
+    const inputBox = inputElement.closest('.input-box');
+    const errorDiv = inputBox.querySelector('.error-message');
+
+    if (errorDiv) {
+        errorDiv.classList.remove('show');
+        setTimeout(() => {
+            errorDiv.remove();
+        }, 300); // match CSS transition time
+    }
+
+    inputElement.classList.remove('error');
+};
+
+
 
   // Validate Mobile Number
   const validateMobile = () => {
@@ -53,31 +65,31 @@ document.addEventListener("DOMContentLoaded", () => {
     const mobileNumber = mobileInput.value.trim();
 
     if (!mobileNumber) {
-      displayError(mobileInput, 'Mobile number is required.');
-      return false;
+        showToast('Mobile number is required.');
+        return false;
     }
 
     if (!/^\d+$/.test(mobileNumber)) {
-      displayError(mobileInput, 'Mobile number should only contain digits.');
+      showToast('Mobile number should only contain digits.');
       return false;
     }
 
     // Mobile number should be at least 10 digits (for 9XXXXXXXXX) or 11 for 09XXXXXXXXX
     if (mobileNumber.length < 10) {
-      displayError(mobileInput, 'Mobile number must be at least 10 digits.');
+      showToast('Mobile number should only contain digits.');
       return false;
     }
 
     // Philippine mobile numbers must start with 09 or +639
     if (!mobileNumber.startsWith('09') && !mobileNumber.startsWith('+639')) {
-      displayError(mobileInput, 'Mobile number must start with 09 or +639.');
+      showToast('Mobile number must start with 09 or +639.');
       return false;
     }
 
     // Strict length validation based on prefix
     if ((mobileNumber.startsWith('09') && mobileNumber.length !== 11) ||
       (mobileNumber.startsWith('+639') && mobileNumber.length !== 13)) {
-      displayError(mobileInput, 'Invalid mobile number length.');
+      showToast('Invalid mobile number length.');
       return false;
     }
 
@@ -108,6 +120,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
           if (isMobileValid && isPasswordValid) {
               // Proceed with login logic (e.g., sending data to the server)
+              showToast('Login Successful!', 'success');
               console.log('Login successful (client-side validation passed)!', {
                   mobile: mobileInput.value,
                   password: passwordInput.value

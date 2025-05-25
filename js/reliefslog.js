@@ -331,7 +331,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             <!-- Notes column -->
             <td>
-                <textarea class="notesInput" rows="2" data-id="${item.id}">${item.notes || ''}</textarea>
+                <textarea class="notesInput" maxlength="50" rows="3" data-id="${item.id}">${item.notes || ''}</textarea>
             </td>
 
             <td>
@@ -363,18 +363,32 @@ document.addEventListener('DOMContentLoaded', () => {
                 notes: notes
             }).then(() => {
                 Swal.fire({
-                    icon: 'success',
-                    title: 'Saved!',
-                    text: 'Status and notes updated successfully.',
-                    timer: 1500,
-                    showConfirmButton: false
+                icon: 'success',
+                title: 'Saved!',
+                text: 'Status and notes updated successfully.',
+                timer: 1500,
+                showConfirmButton: false,
+                timerProgressBar: true,
+                customClass: {
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    content: 'swal2-text-success-clean'
+                }
                 });
             }).catch(error => {
                 console.error('Error saving to Firebase:', error);
                 Swal.fire({
-                    icon: 'error',
-                    title: 'Save failed',
-                    text: error.message
+                icon: 'error',
+                title: 'Save failed',
+                text: error.message,
+                timer: 2500,
+                showConfirmButton: false,
+                timerProgressBar: true,
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    content: 'swal2-text-error-clean'
+                }
                 });
             });
         });

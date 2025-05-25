@@ -153,14 +153,31 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function deleteLog(firebaseKey, globalIndex) {
-    Swal.fire({
-      title: 'Are you sure?',
-      text: "You won't be able to revert this!",
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#3085d6',
-      cancelButtonColor: '#d33',
-      confirmButtonText: 'Yes, delete it!'
+    
+   Swal.fire({
+    title: 'Confirm Deletion',
+    text: "Are you absolutely sure you want to delete this? This action is irreversible!",
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#d9534f',   // Bootstrap danger red, strong but not overly bright
+    cancelButtonColor: '#6c757d',    // Muted gray, less attention
+    confirmButtonText: 'Yes, delete it!',
+    cancelButtonText: 'Cancel',
+    background: '#fff',
+    color: '#212529',                // Darker text for strong readability
+    iconColor: '#d9534f',            // Matches confirm button for visual coherence
+    position: 'center',
+    customClass: {
+      popup: 'custom-swal-popup',
+      title: 'custom-swal-title',
+      content: 'custom-swal-text',
+      confirmButton: 'custom-confirm-btn',
+      cancelButton: 'custom-cancel-btn'
+    },
+    buttonsStyling: false,
+
+
+
     }).then((result) => {
       if (result.isConfirmed) {
         // Delete from Firebase
@@ -180,11 +197,21 @@ document.addEventListener('DOMContentLoaded', () => {
             if (currentPage > totalPages) currentPage = totalPages || 1;
 
             renderTable(filteredLogs);
-            Swal.fire(
-              'Deleted!',
-              'The RDANA log has been deleted.',
-              'success'
-            );
+            Swal.fire({
+            icon: 'success',
+            title: 'Log Permanently Deleted',
+            text: 'This action cannot be undone. The RDANA log has been permanently removed.',
+            timer: 2500,
+            showConfirmButton: false,
+            background: '#fff5f5',           // subtle red-pink background to imply caution
+            color: '#b71c1c',                // strong red text for emphasis
+            iconColor: '#d32f2f',            // red icon for seriousness
+            customClass: {
+              popup: 'swal2-popup-delete',
+              title: 'swal2-title-delete',
+              content: 'swal2-text-delete'
+            }
+          });
           })
           .catch(error => {
             console.error("Error deleting RDANA log:", error);
@@ -246,16 +273,16 @@ document.addEventListener('DOMContentLoaded', () => {
       <th>Community</th><th>Total Pop.</th><th>Affected Pop.</th><th>Deaths</th><th>Injured</th><th>Missing</th><th>Children</th><th>Women</th><th>Seniors</th><th>PWD</th></tr>`;
     (log.affectedCommunities || []).forEach(c => {
      affectedHTML += `<tr>
-      <td>${c.community || "-"}</td>
-      <td>${formatLargeNumber(c.totalPop)}</td>
-      <td>${formatLargeNumber(c.affected)}</td>
-      <td>${formatLargeNumber(c.deaths)}</td>
-      <td>${formatLargeNumber(c.injured)}</td>
-      <td>${formatLargeNumber(c.missing)}</td>
-      <td>${formatLargeNumber(c.children)}</td>
-      <td>${formatLargeNumber(c.women)}</td>
-      <td>${formatLargeNumber(c.seniors)}</td>
-      <td>${formatLargeNumber(c.pwd)}</td>
+       <td>${c.community || "-"}</td>
+        <td>${c.totalPop || 0}</td>
+        <td>${c.affected || 0}</td>
+        <td>${c.deaths || 0}</td>
+        <td>${c.injured || 0}</td>
+        <td>${c.missing || 0}</td>
+        <td>${c.children || 0}</td>
+        <td>${c.women || 0}</td>
+        <td>${c.seniors || 0}</td>
+        <td>${c.pwd || 0}</td>
     </tr>`;
     });
     affectedHTML += `</table></div>`;

@@ -4,6 +4,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebas
 import { getAuth, sendEmailVerification, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { get, getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
 
+
 // Firebase config (keep as is)
 const firebaseConfig = {
     apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
@@ -87,11 +88,12 @@ document.addEventListener("DOMContentLoaded", () => {
             const mobile = formatMobileNumber(mobileInput);
 
             if (!mobile) {
-                alert("Please enter a valid mobile number (10-15 digits, e.g., 091xxxxxxxx or +639xxxxxxxxx).");
+                //alert("Please enter a valid mobile number (10-15 digits, e.g., 091xxxxxxxx or +639xxxxxxxxx).");
                 return;
             }
 
             console.log("Login successful (client-side validation passed)!", { mobile, password });
+
 
             try {
                 // Look up the user's email in the database using the mobile number
@@ -184,10 +186,10 @@ document.addEventListener("DOMContentLoaded", () => {
                         console.log("Sending verification email to ABVN user:", user.email);
                         await sendEmailVerification(user, actionCodeSettings);
                         console.log("Verification email sent successfully to:", user.email);
-                        alert("Your email address is not verified. A verification email has been sent to your email address. Please verify your email to proceed with login (check spam/junk folder).");
+                        showToast("Your email address is not verified. A verification email has been sent to your email address. Please verify your email to proceed with login (check spam/junk folder).");
                     } catch (error) {
                         console.error("Error sending verification email:", error);
-                        alert("Failed to send verification email: " + error.message);
+                        showToast("Failed to send verification email: " + error.message);
                     }
                     await signOut(auth); 
                     return;
@@ -217,7 +219,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 localStorage.setItem("userMobile", mobile);
                 localStorage.setItem("userRole", userData.role);
 
-                alert("Login successful!");
+                showToast('Login successful!', 'success');
 
                 // Dispatch a custom event to update the sidebar
                 const event = new Event("updateSidebar");
@@ -231,6 +233,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         console.error("Service Worker error:", error);
                     });
                 }
+
 
                 // --- CORRECTED REDIRECTION LOGIC ---
                 // Prioritize admin redirection if conditions are met
@@ -256,15 +259,40 @@ document.addEventListener("DOMContentLoaded", () => {
                
             } catch (error) {
                 if (error.code === "auth/invalid-credential") {
-                    alert("Invalid mobile number or password.");
+                    //alert("Invalid mobile number or password.");
+                    showToast("Invalid mobile number or password.");
                 } else {
-                    alert("An error occurred during login: " + error.message);
+                    //alert("An error occurred during login: " + error.message);
+                    showToast("An error occurred during login: " + error.message);
                     console.error("Login error:", error); 
                 }
             }
         });
     }
 });
+
+  // Function to display error messages
+const showToast = (message, type = 'error') => {
+    const toastContainer = document.querySelector('.toast-container');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.textContent = message;
+
+    toastContainer.appendChild(toast);
+
+    // Trigger animation
+    setTimeout(() => toast.classList.add('show'));
+
+    // Remove after 3 seconds
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300); // match CSS transition
+    }, 3000);
+};
+
+
+
+
 
 // // Firebase imports
 // import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js";
