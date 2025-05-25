@@ -459,3 +459,73 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 });
+
+// Password Strength Logic
+
+const passwordInput = document.getElementById('new-password');
+const strengthMessage = document.getElementById('password-strength-message');
+const strengthBar = document.querySelector('.strength-bar');
+const strengthContainer = document.querySelector('.strength-bar-container');
+const tooltip = document.getElementById('password-tooltip');
+
+const checkLength = document.getElementById('check-length');
+const checkUppercase = document.getElementById('check-uppercase');
+const checkNumber = document.getElementById('check-number');
+const checkSymbol = document.getElementById('check-symbol');
+
+passwordInput.addEventListener('input', function() {
+    const password = this.value.trim();
+
+    if (password.length === 0) {
+        tooltip.classList.remove('show');
+        strengthMessage.classList.remove('show');
+        strengthContainer.classList.remove('show');
+        return;
+    }
+
+    tooltip.classList.add('show');
+    strengthMessage.classList.add('show');
+    strengthContainer.classList.add('show');
+
+    // Check criteria
+    const hasLength = password.length >= 8;
+    const hasUppercase = /[A-Z]/.test(password);
+    const hasNumber = /[0-9]/.test(password);
+    const hasSymbol = /[^A-Za-z0-9]/.test(password);
+
+    checkLength.textContent = (hasLength ? '✅' : '❌') + ' At least 8 characters';
+    checkUppercase.textContent = (hasUppercase ? '✅' : '❌') + ' An uppercase letter';
+    checkNumber.textContent = (hasNumber ? '✅' : '❌') + ' A number';
+    checkSymbol.textContent = (hasSymbol ? '✅' : '❌') + ' A symbol (!@#$ etc.)';
+
+    // Strength logic
+    let strength = '';
+    let strengthClass = '';
+    let barWidth = '0%';
+    let barColor = 'red';
+
+    const passedChecks = [hasLength, hasUppercase, hasNumber, hasSymbol].filter(Boolean).length;
+
+    if (passedChecks <= 1) {
+        strength = 'Weak';
+        strengthClass = 'strength-weak';
+        barWidth = '33%';
+        barColor = 'red';
+    } else if (passedChecks === 2 || passedChecks === 3) {
+        strength = 'Medium';
+        strengthClass = 'strength-medium';
+        barWidth = '66%';
+        barColor = 'orange';
+    } else if (passedChecks === 4) {
+        strength = 'Strong';
+        strengthClass = 'strength-strong';
+        barWidth = '100%';
+        barColor = 'green';
+    }
+
+    strengthMessage.textContent = 'Strength: ' + strength;
+    strengthMessage.className = 'strength-message ' + strengthClass;
+
+    strengthBar.style.width = barWidth;
+    strengthBar.style.backgroundColor = barColor;
+});

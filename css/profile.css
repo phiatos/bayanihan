@@ -174,6 +174,92 @@ form .backBtn i {
     margin-right: 14px;
 }
 
+/*Password Strength*/
+.password-tooltip {
+    background-color: #f9f9f9;
+    border: 1px solid #ccc;
+    padding: 8px;
+    border-radius: 4px;
+    margin-top: 5px;
+    font-size: 0.85em;
+
+    opacity: 0;
+    max-height: 0;
+    overflow: hidden;
+    transition: opacity 0.3s ease, max-height 0.3s ease;
+}
+
+.password-tooltip.show {
+    opacity: 1;
+    max-height: 200px; /* adjust as needed */
+}
+
+.password-tooltip ul {
+    list-style: none;
+    padding: 0;
+    margin: 5px 0 0 0;
+}
+
+.password-tooltip li {
+    margin-bottom: 4px;
+}
+
+.strength-bar-container {
+    width: 100%;
+    height: 6px;
+    background-color: #e0e0e0;
+    border-radius: 4px;
+    margin-top: 5px;
+    overflow: hidden;
+
+    opacity: 0;
+    max-height: 0;
+    transition: opacity 0.3s ease, max-height 0.3s ease;
+}
+
+.strength-bar-container.show {
+    opacity: 1;
+    max-height: 20px; /* enough for the bar height */
+}
+
+.strength-bar {
+    height: 100%;
+    width: 0%;
+    background-color: red;
+    transition: width 0.4s ease, background-color 0.4s ease;
+}
+
+.strength-message {
+    margin-top: 5px;
+    font-size: 0.9em;
+    font-weight: bold;
+
+    opacity: 0;
+    max-height: 0;
+    overflow: hidden;
+    transition: opacity 0.3s ease, max-height 0.3s ease;
+}
+
+.strength-message.show {
+    opacity: 1;
+    max-height: 40px; /* enough for message text */
+}
+
+.strength-weak {
+    color: red;
+}
+
+.strength-medium {
+    color: orange;
+}
+
+.strength-strong {
+    color: green;
+}
+
+
+
+
 /* --- Modal Styles --- */
 .modal {
     display: none;
