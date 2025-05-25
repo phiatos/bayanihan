@@ -799,7 +799,8 @@ if (confirmSaveBtn) {
         contactPerson: orgData.contactPerson,
         createdAt: new Date().toISOString(),
         isFirstLogin: true,
-        emailVerified: false
+        emailVerified: false,
+        password_needs_reset: true
       });
 
       // Save volunteer group
