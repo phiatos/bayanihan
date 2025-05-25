@@ -1,5 +1,4 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Firebase Configuration (Updated with your config)
     const firebaseConfig = {
         apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
         authDomain: "bayanihan-5ce7e.firebaseapp.com",
@@ -16,26 +15,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const userRole = localStorage.getItem('userRole'); // Assuming user role is stored in localStorage
 
-    let donations = [];
-    let filteredReports = donations;
-    let currentPage = 1;
-    const entriesPerPage = 10;
-    let viewingApproved = false;
-
     // DOM elements
+    const form = document.getElementById('form-container-1');
+    const tableBody = document.querySelector('#donationTable tbody');
     const searchInput = document.getElementById('searchInput');
+    const sortSelect = document.getElementById('sortSelect');
+    const exportBtn = document.getElementById("exportBtn");
+    const savePdfBtn = document.getElementById("savePdfBtn");
+    const entriesInfo = document.getElementById('entriesInfo');
+    const paginationContainer = document.getElementById("pagination");
+    const clearFormBtn = document.getElementById("clearFormBtn"); 
+    const submitButton = document.getElementById('nextBtn');
+
     const regionSelect = document.getElementById('region');
     const provinceSelect = document.getElementById('province');
     const citySelect = document.getElementById('city');
     const barangaySelect = document.getElementById('barangay');
-    const sortSelect = document.getElementById('sortSelect');
-    const tableBody = document.querySelector('#donationTable tbody');
-    const entriesInfo = document.getElementById('entriesInfo');
-    const pagination = document.getElementById('pagination');
-    const donationForm = document.getElementById('form-container-1');
-    const submitButton = document.getElementById('nextBtn');
-    const clearFormBtn = document.getElementById("clearFormBtn");
-    const exportCsvButton = document.getElementById('exportBtn');
 
     // Input fields to display selected text
     const regionTextInput = document.getElementById('region-text');
@@ -43,15 +38,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const cityTextInput = document.getElementById('city-text');
     const barangayTextInput = document.getElementById('barangay-text');
 
+    const rowsPerPage = 10;
+    let currentPage = 1;
+    let allDonations = [];
+    let filteredAndSortedDonations = [];
+    let viewingApproved = false;
+
     // Variable to track if the form has changes
     let formHasChanges = false;
 
     // Add event listeners to the form inputs to track changes
-    if (donationForm) {
-        donationForm.addEventListener('input', () => {
+    if (form) {
+        form.addEventListener('input', () => {
             formHasChanges = true;
         });
-        donationForm.addEventListener('change', () => {
+        form.addEventListener('change', () => {
             formHasChanges = true;
         });
     }
@@ -63,10 +64,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const dbRef = firebase.database().ref('callfordonation');
     dbRef.on('value', (snapshot) => {
         const data = snapshot.val();
-        donations = [];
+        allDonations = [];
         if (data) {
             Object.entries(data).forEach(([key, value]) => {
-                donations.push({ ...value, firebaseKey: key });
+                allDonations.push({ ...value, firebaseKey: key });
             });
         }
         applyChange();
@@ -449,13 +450,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function applyChange() {
-        filteredReports = [...donations];
+        filteredAndSortedDonations = [...allDonations];
         currentPage = 1;
-        renderReports();
+        renderTable();
     }
 
     function applyFilters() {
-        let data = [...donations];
+        let data = [...allDonations];
 
         const searchTerm = searchInput.value.trim().toLowerCase();
         if (searchTerm) {
@@ -492,9 +493,9 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        filteredReports = data;
+        filteredAndSortedDonations = data;
         currentPage = 1;
-        renderReports();
+        renderTable();
     }
 
     // Clear form button event listener
@@ -510,8 +511,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 confirmButtonText: 'Yes, clear it!'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    if (donationForm) {
-                        Array.from(donationForm.querySelectorAll('input, select, textarea')).forEach(element => {
+                    if (form) {
+                        Array.from(form.querySelectorAll('input, select, textarea')).forEach(element => {
                             if (element.type === 'file') {
                                 element.value = '';
                             } else if (element.tagName === 'SELECT') {
@@ -523,15 +524,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         my_handlers.fill_regions();
                     }
                     formHasChanges = false;
-                    const errorMessages = donationForm ? donationForm.querySelectorAll('.error-message') : [];
+                    const errorMessages = form ? form.querySelectorAll('.error-message') : [];
                     errorMessages.forEach(msg => msg.textContent = '');
-                    const errorInputs = donationForm ? donationForm.querySelectorAll('.error') : [];
+                    const errorInputs = form ? form.querySelectorAll('.error') : [];
                     errorInputs.forEach(input => input.classList.remove('error'));
                 }
             });
         } else {
-            if (donationForm) {
-                Array.from(donationForm.querySelectorAll('input, select, textarea')).forEach(element => {
+            if (form) {
+                Array.from(form.querySelectorAll('input, select, textarea')).forEach(element => {
                     if (element.type === 'file') {
                         element.value = '';
                     } else if (element.tagName === 'SELECT') {
@@ -542,133 +543,125 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 my_handlers.fill_regions();
             }
-            const errorMessages = donationForm ? donationForm.querySelectorAll('.error-message') : [];
+            const errorMessages = form ? form.querySelectorAll('.error-message') : [];
             errorMessages.forEach(msg => msg.textContent = '');
-            const errorInputs = donationForm ? donationForm.querySelectorAll('.error') : [];
+            const errorInputs = form ? form.querySelectorAll('.error') : [];
             errorInputs.forEach(input => input.classList.remove('error'));
         }
     });
 
-    function renderReports() {
+    function renderTable() {
+        const startIndex = (currentPage - 1) * rowsPerPage;
+        const endIndex = startIndex + rowsPerPage;
+        const currentPageRows = filteredAndSortedDonations.slice(startIndex, endIndex);
+
         tableBody.innerHTML = "";
-
-        const totalEntries = filteredReports.length;
-        const totalPages = Math.ceil(totalEntries / entriesPerPage);
-        const startIndex = (currentPage - 1) * entriesPerPage;
-        const endIndex = Math.min(startIndex + entriesPerPage, totalEntries);
-        const pageData = filteredReports.slice(startIndex, endIndex);
-
-        if (pageData.length === 0) {
-            tableBody.innerHTML = "<tr><td colspan='9'>No donations found.</td></tr>";
+        if (currentPageRows.length === 0) {
+            const noDataRow = document.createElement("tr");
+            noDataRow.innerHTML = `<td colspan="9" style="text-align: center;">No donations found.</td>`;
+            tableBody.appendChild(noDataRow);
         } else {
-            pageData.forEach((r, i) => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
+            currentPageRows.forEach((r, i) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
                     <td>${startIndex + i + 1}</td>
-                    <td>${r.donationDrive || ''}</td>
-                    <td>${r.contact?.person || r.contactPerson || ''}</td>
-                    <td>${r.contact?.number || r.contactNumber || ''}</td>
-                    <td>${r.account?.number || r.accountNumber || ''}</td>
-                    <td>${r.account?.name || r.accountName || ''}</td>
-                    <td>${r.address?.fullAddress || r.dropOff || ''}</td>
+                    <td>${r.donationDrive || 'N/A'}</td>
+                    <td>${r.contact?.person || 'N/A'}</td>
+                    <td>${String(r.contact?.number || 'N/A')}</td>
+                    <td>${String(r.account?.number || 'N/A')}</td>
+                    <td>${r.account?.name || 'N/A'}</td>
+                    <td>${r.address?.fullAddress || r.dropOff || 'N/A'}</td>
                     <td><a href="${r.facebookLink || '#'}" target="_blank" rel="noopener noreferrer">${r.facebookLink && r.facebookLink !== 'N/A' ? 'Visit The Page' : 'N/A'}</a></td>
                     <td>
-                        <button class="view-btn" data-index="${startIndex + i}">View Image</button>
-                        <button class="delete-btn" data-index="${startIndex + i}">Remove</button>
+                        <button class="viewBtn">View Image</button>
+                        <button class="deleteBtn">Remove</button>
+                        <button class="savePDFBtn">Save PDF</button>
                     </td>
                 `;
-                tableBody.appendChild(row);
+                tr.querySelector(".viewBtn").addEventListener("click", () => {
+                    Swal.fire({
+                        html: r?.image ? `<img src="${r.image}" alt="Donation Image" style="max-width: 100%; margin-top: 10px;" />` : 'No image available.',
+                        icon: 'info',
+                        confirmButtonText: 'Close'
+                    });
+                });
+                tr.querySelector(".deleteBtn").addEventListener("click", () => {
+                    Swal.fire({
+                        title: 'Are you sure?',
+                        text: "This donation will be deleted.",
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Yes, delete it!'
+                    }).then(result => {
+                        if (result.isConfirmed) {
+                            firebase.database().ref(`callfordonation/${r.firebaseKey}`).remove()
+                                .then(() => {
+                                    Swal.fire('Deleted!', 'The donation has been removed.', 'success');
+                                })
+                                .catch(error => {
+                                    console.error("Error deleting donation:", error);
+                                    Swal.fire('Error', 'Failed to delete the donation.', 'error');
+                                });
+                        }
+                    });
+                });
+                tr.querySelector(".savePDFBtn").addEventListener("click", () => saveSingleCfdDonationPdf(r));
+
+                tableBody.appendChild(tr);
             });
         }
 
-        entriesInfo.textContent = `Showing ${startIndex + 1} to ${endIndex} of ${totalEntries} entries`;
-        renderPagination(totalPages);
-        attachEventListeners();
-        updateTableButtons();
+        updatePaginationInfo();
+        renderPagination();
     }
 
-    function renderPagination(totalPages) {
-        pagination.innerHTML = "";
+    function updatePaginationInfo() {
+        const totalEntries = filteredAndSortedDonations.length;
+        const startEntry = (currentPage - 1) * rowsPerPage + 1;
+        const endEntry = Math.min(currentPage * rowsPerPage, totalEntries);
+        entriesInfo.textContent = `Showing ${startEntry} to ${endEntry} of ${totalEntries} entries`;
+        if (totalEntries === 0) {
+            entriesInfo.textContent = `Showing 0 to 0 of 0 entries`;
+        }
+    }
 
-        const prevBtn = document.createElement('button');
-        prevBtn.id = 'prevBtnPage';
-        prevBtn.textContent = 'Prev';
-        prevBtn.disabled = currentPage === 1;
-        pagination.appendChild(prevBtn);
-
-        for (let i = 1; i <= totalPages; i++) {
-            const pageBtn = document.createElement('button');
-            pageBtn.textContent = i;
-            if (i === currentPage) {
-                pageBtn.classList.add('active');
+    const createPaginationButton = (label, page, disabled = false, isActive = false) => {
+        const btn = document.createElement('button');
+        btn.textContent = label;
+        if (disabled) btn.disabled = true;
+        if (isActive) btn.classList.add('active-page');
+        btn.addEventListener('click', () => {
+            if (!disabled) {
+                currentPage = page;
+                renderTable();
             }
-            pageBtn.addEventListener('click', () => {
-                currentPage = i;
-                renderReports();
-            });
-            pagination.appendChild(pageBtn);
+        });
+        return btn;
+    };
+
+    function renderPagination() {
+        paginationContainer.innerHTML = '';
+        const totalPages = Math.ceil(filteredAndSortedDonations.length / rowsPerPage);
+
+        if (totalPages === 0) {
+            paginationContainer.innerHTML = '<span>No entries to display</span>';
+            return;
         }
 
-        const nextBtn = document.createElement('button');
-        nextBtn.id = 'nextBtnPage';
-        nextBtn.textContent = 'Next';
-        nextBtn.disabled = currentPage === totalPages || totalPages === 0;
-        pagination.appendChild(nextBtn);
+        paginationContainer.appendChild(createPaginationButton('Prev', Math.max(1, currentPage - 1), currentPage === 1));
 
-        prevBtn.addEventListener('click', () => {
-            if (currentPage > 1) {
-                currentPage--;
-                renderReports();
-            }
-        });
+        const maxVisible = 5;
+        let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+        let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+        if (endPage - startPage < maxVisible - 1) {
+            startPage = Math.max(1, endPage - maxVisible + 1);
+        }
 
-        nextBtn.addEventListener('click', () => {
-            if (currentPage < totalPages) {
-                currentPage++;
-                renderReports();
-            }
-        });
-    }
+        for (let i = startPage; i <= endPage; i++) {
+            paginationContainer.appendChild(createPaginationButton(i, i, false, i === currentPage));
+        }
 
-    function attachEventListeners() {
-        document.querySelectorAll('.view-btn').forEach(button => {
-            button.addEventListener('click', e => {
-                const index = parseInt(e.target.dataset.index);
-                const data = filteredReports[index];
-                Swal.fire({
-                    html: data?.image ? `<img src="${data.image}" alt="Donation Image" style="max-width: 100%; margin-top: 10px;" />` : 'No image available.',
-                    icon: 'info',
-                    confirmButtonText: 'Close'
-                });
-            });
-        });
-
-        document.querySelectorAll('.delete-btn').forEach(button => {
-            button.addEventListener('click', e => {
-                const index = parseInt(e.target.dataset.index);
-                const data = filteredReports[index];
-
-                Swal.fire({
-                    title: 'Are you sure?',
-                    text: "This donation will be deleted.",
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonText: 'Yes, delete it!'
-                }).then(result => {
-                    if (result.isConfirmed) {
-                        // Remove from Firebase
-                        firebase.database().ref(`callfordonation/${data.firebaseKey}`).remove()
-                            .then(() => {
-                                Swal.fire('Deleted!', 'The donation has been removed.', 'success');
-                            })
-                            .catch(error => {
-                                console.error("Error deleting donation:", error);
-                                Swal.fire('Error', 'Failed to delete the donation.', 'error');
-                            });
-                    }
-                });
-            });
-        });
+        paginationContainer.appendChild(createPaginationButton('Next', Math.min(totalPages, currentPage + 1), currentPage === totalPages));
     }
 
     if (submitButton) {
@@ -764,53 +757,256 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Export to CSV functionality
-    if (exportCsvButton) {
-        exportCsvButton.addEventListener('click', () => {
-            if (filteredReports.length === 0) {
-                Swal.fire('No Data', 'There is no data to export.', 'info');
-                return;
+    // --- Excel Export Functionality ---
+    exportBtn.addEventListener("click", () => {
+        if (filteredAndSortedDonations.length === 0) {
+            Swal.fire("Info", "No data to export!", "info");
+            return;
+        }
+
+        const dataForExport = filteredAndSortedDonations.map((d, i) => ({
+            "No.": i + 1,
+            "Donation Drive": d.donationDrive || '',
+            "Contact Person": d.contact?.person || '',
+            "Contact Number": String(d.contact?.number || ''),
+            "Account Number": String(d.account?.number || ''),
+            "Account Name": d.account?.name || '',
+            "Region": d.address?.region || '',
+            "Province": d.address?.province || '',
+            "City/Municipality": d.address?.city || '',
+            "Barangay": d.address?.barangay || '',
+            "Street Address": d.address?.street || '',
+            "Full Address": d.address?.fullAddress || d.dropOff || '',
+            "Facebook Link": d.facebookLink && d.facebookLink !== 'N/A' ? d.facebookLink : 'N/A',
+            "Status": d.status || '',
+            "Submitted Date/Time": new Date(d.dateTime).toLocaleString() || ''
+        }));
+
+        // Check if XLSX library is loaded
+        if (typeof XLSX === 'undefined') {
+            Swal.fire("Error", "XLSX library not loaded. Please ensure `xlsx.full.min.js` is included in your HTML.", "error");
+            console.error("XLSX library is not loaded.");
+            return;
+        }
+
+        const ws = XLSX.utils.json_to_sheet(dataForExport);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Call for Donations");
+
+        // Get current date and format it for the filename
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0'); 
+        const day = String(today.getDate()).padStart(2, '0');
+        const formattedDate = `${year}-${month}-${day}`;
+        // Construct the filename with the date
+        const filename = `call-for-donations_${formattedDate}.xlsx`;
+        XLSX.writeFile(wb, filename);
+        Swal.fire("Success", `Call for Donations data exported to ${filename}!`, "success");
+    });
+
+    // --- PDF Export Functionality ---
+    savePdfBtn.addEventListener("click", () => {
+        if (filteredAndSortedDonations.length === 0) {
+            Swal.fire("Info", "No data to export to PDF!", "info");
+            return;
+        }
+
+        if (typeof window.jspdf === 'undefined' || typeof window.jspdf.jsPDF === 'undefined') {
+            Swal.fire("Error", "jsPDF library not loaded. Please ensure `jspdf.umd.min.js` and `jspdf.autotable.min.js` are included in your HTML.", "error");
+            console.error("jsPDF library is not loaded.");
+            return;
+        }
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('landscape');
+
+        let yOffset = 20;
+        const logo = new Image();
+        logo.src = '/Bayanihan-PWA/assets/images/AB_logo.png';
+
+        logo.onload = function() {
+            const pageWidth = doc.internal.pageSize.width;
+            const logoWidth = 30;
+            const logoHeight = (logo.naturalHeight / logo.naturalWidth) * logoWidth;
+            const margin = 14;
+
+            doc.addImage(logo, 'PNG', pageWidth - logoWidth - margin, margin, logoWidth, logoHeight);
+
+            doc.setFontSize(18);
+            doc.text("Call for Donations Report", 14, yOffset);
+            yOffset += 10;
+            doc.setFontSize(10);
+            doc.text(`Report Generated: ${new Date().toLocaleString()}`, 14, yOffset);
+            yOffset += 15;
+
+            const head = [[
+                "No.", "Donation Drive", "Contact Person", "Contact Number",
+                "Account Number", "Account Name", "Full Address", "Facebook Link",
+                "Status", "Submission Date/Time"
+            ]];
+
+            const body = filteredAndSortedDonations.map((d, i) => [
+                i + 1,
+                d.donationDrive || 'N/A',
+                d.contact?.person || 'N/A',
+                String(d.contact?.number || 'N/A'),
+                String(d.account?.number || 'N/A'),
+                d.account?.name || 'N/A',
+                d.address?.fullAddress || d.dropOff || 'N/A',
+                d.facebookLink && d.facebookLink !== 'N/A' ? d.facebookLink : 'N/A',
+                d.status || 'N/A',
+                new Date(d.dateTime).toLocaleString() || 'N/A'
+            ]);
+
+            doc.autoTable({
+                head: head,
+                body: body,
+                startY: yOffset,
+                theme: 'grid',
+                headStyles: {
+                    fillColor: [20, 174, 187],
+                    textColor: [255, 255, 255],
+                    halign: 'center'
+                },
+                styles: {
+                    fontSize: 8,
+                    cellPadding: 2
+                },
+                didDrawPage: function (data) {
+                    doc.setFontSize(8);
+                    const pageNumberText = `Page ${data.pageNumber} of ${doc.internal.getNumberOfPages()}`;
+                    const poweredByText = "Powered by: Appvance";
+                    const pageWidth = doc.internal.pageSize.width;
+                    const margin = data.settings.margin.left;
+                    const footerY = doc.internal.pageSize.height - 10;
+
+                    doc.text(pageNumberText, margin, footerY);
+                    doc.text(poweredByText, pageWidth - margin, footerY, { align: 'right' });
+                }
+            });
+
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            const formattedDate = `${year}-${month}-${day}`;
+
+            const filename = `call-for-donations_${formattedDate}.pdf`;
+            doc.save(filename);
+            Swal.close();
+            Swal.fire("Success", `Call for Donations data exported to "${filename}"`, "success");
+        };
+
+        logo.onerror = function() {
+            Swal.fire("Error", "Failed to load logo image. Please check the path.", "error");
+        };
+    });
+
+    // --- Save Single CFD Donation to PDF ---
+    function saveSingleCfdDonationPdf(donation) {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF(); 
+
+        Swal.fire({
+            title: 'Generating PDF...',
+            text: 'Please wait while your PDF is being created.',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        const logo = new Image();
+        logo.src = '/Bayanihan-PWA/assets/images/AB_logo.png'; 
+
+        logo.onload = function() {
+            const pageWidth = doc.internal.pageSize.width;
+            const logoWidth = 30;
+            const logoHeight = (logo.naturalHeight / logo.naturalWidth) * logoWidth;
+            const margin = 14; 
+
+            
+            doc.addImage(logo, 'PNG', pageWidth - logoWidth - margin, margin, logoWidth, logoHeight);
+
+            doc.setFontSize(18);
+            doc.text("Call for Donation Details", margin, 22); 
+            doc.setFontSize(10);
+            doc.text(`Report Generated: ${new Date().toLocaleString()}`, margin, 30);
+            
+            let y = 45; 
+
+            const addDetail = (label, value) => {
+                doc.text(`${label}: ${value || 'N/A'}`, margin, y);
+                y += 7; 
+            };
+
+            addDetail("Donation Drive", donation.donationDrive);
+            addDetail("Contact Person", donation.contact?.person);
+            addDetail("Contact Number", String(donation.contact?.number || 'N/A'));
+            addDetail("Account Number", String(donation.account?.number || 'N/A'));
+            addDetail("Account Name", donation.account?.name);
+            addDetail("Region", donation.address?.region);
+            addDetail("Province", donation.address?.province);
+            addDetail("City/Municipality", donation.address?.city);
+            addDetail("Barangay", donation.address?.barangay);
+            addDetail("Street Address", donation.address?.street);
+            addDetail("Full Address", donation.address?.fullAddress || donation.dropOff);
+            addDetail("Facebook Link", donation.facebookLink && donation.facebookLink !== 'N/A' ? donation.facebookLink : 'N/A');
+            addDetail("Status", donation.status);
+            addDetail("Submitted Date/Time", new Date(donation.dateTime).toLocaleString());
+
+            if (donation.image) {
+                y += 10; 
+                const imgWidth = 80;
+                const imgHeight = (imgWidth / logo.naturalWidth) * logo.naturalHeight; 
+                const imgX = margin;
+                if (y + imgHeight > doc.internal.pageSize.height - margin) {
+                    doc.addPage();
+                    y = margin;
+                }
+                doc.text("Attached Image:", margin, y);
+                y += 5; 
+                doc.addImage(donation.image, 'JPEG', imgX, y, imgWidth, imgHeight);
             }
 
-            const headers = [
-                "No.", "Donation Drive", "Contact Name", "Contact Number",
-                "Account Number", "Account Name", "Region", "Province",
-                "City/Municipality", "Barangay", "Exact Drop Off Address",
-                "Facebook Link", "Image Link"
-            ];
+            // Footer
+            doc.setFontSize(8);
+            const footerY = doc.internal.pageSize.height - 10;
+            const pageNumberText = `Page 1 of 1`; 
+            const poweredByText = "Powered by: Appvance";
 
-            const csvData = filteredReports.map((item, index) => [
-                index + 1,
-                `"${item.donationDrive || ''}"`,
-                `"${item.contact?.person || item.contactPerson || ''}"`,
-                `"${item.contact?.number || item.contactNumber || ''}"`,
-                `"${item.account?.number || item.accountNumber || ''}"`,
-                `"${item.account?.name || item.accountName || ''}"`,
-                `"${item.address?.region || item.Region || ''}"`,
-                `"${item.address?.province || item.Province || ''}"`,
-                `"${item.address?.city || item.CityMunicipality || ''}"`,
-                `"${item.address?.barangay || item.Barangay || ''}"`,
-                `"${item.address?.fullAddress || item.dropOff || ''}"`,
-                `"${item.facebookLink || ''}"`,
-                `"${item.image || ''}"`
-            ].join(','));
+            doc.text(pageNumberText, margin, footerY);
+            doc.text(poweredByText, pageWidth - margin, footerY, { align: 'right' });
 
-            const csvContent = [
-                headers.join(','),
-                ...csvData
-            ].join('\n');
+            // Generate filename with relevant donation ID
+            // const filename = `donation_details_${donation.donationId || donation.firebaseKey}.pdf`;
+            // doc.save(filename);
+            doc.save(`cfd_donation_${new Date().toISOString().slice(0, 10)}.pdf`);
 
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            const url = URL.createObjectURL(blob);
-            link.setAttribute('href', url);
-            link.setAttribute('download', 'call_for_donation_reports.csv');
-            link.style.visibility = 'hidden';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            Swal.fire('Exported!', 'Donation data has been exported to CSV.', 'success');
-        });
+            
+            Swal.close(); 
+            Swal.fire({
+                title: 'Export Successful!',
+                text: `Donation details for "${donation.donationDrive}" have been exported to PDF.`,
+                icon: 'success',
+                color: '#1b5e20',
+                iconColor: '#43a047',
+                confirmButtonColor: '#388e3c',
+                confirmButtonText: 'Great!',
+                customClass: {
+                    popup: 'swal2-popup-success-export',
+                    title: 'swal2-title-success-export',
+                    content: 'swal2-text-success-export',
+                    confirmButton: 'swal2-button-success-export'
+                }
+            });
+        };
+
+        logo.onerror = function() {
+            Swal.close(); // Close loading Swal
+            Swal.fire("Error", "Failed to load logo image. Please check the path.", "error");
+        };
     }
 
     // Initial calls when the DOM content is loaded

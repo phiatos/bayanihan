@@ -1,5 +1,4 @@
 document.addEventListener('DOMContentLoaded', () => {
-  // Firebase configuration
   const firebaseConfig = {
     apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
     authDomain: "bayanihan-5ce7e.firebaseapp.com",
@@ -11,12 +10,12 @@ document.addEventListener('DOMContentLoaded', () => {
     measurementId: "G-ZTQ9VXXVV0",
   };
 
-  // Initialize Firebase
   firebase.initializeApp(firebaseConfig);
   const database = firebase.database();
   const auth = firebase.auth();
 
   const exportExcelBtn = document.getElementById('exportExcelBtn'); 
+  const savePdfBtn = document.getElementById('savePdfBtn');
 
   let rdanaLogs = [];
   let filteredLogs = [];
@@ -103,7 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const savePDFBtn = row.querySelector(".savePDFBtn");
       viewBtn.addEventListener("click", () => viewLog(start + index));
       deleteBtn.addEventListener("click", () => deleteLog(log.firebaseKey, start + index));
-      savePDFBtn.addEventListener("click", () => savePdf(log));
+      savePDFBtn.addEventListener("click", () => saveIndividualLogToPdf(log));
       tbody.appendChild(row);
     });
 
@@ -396,7 +395,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const flattenedLog = {
         "RDANA ID": log.rdanaId || "N/A",
         "Record Date/Time": log.dateTime ? new Date(log.dateTime).toLocaleString() : "N/A", // From log.dateTime
-        "Firebase Key": log.firebaseKey || "N/A", // Added firebaseKey for reference
         "User UID": log.userUid || "N/A",
         "Status": log.status || "N/A",
 
@@ -414,22 +412,16 @@ document.addEventListener('DOMContentLoaded', () => {
         "Profile - Time of Information Gathered": log.profile?.Time_of_Information_Gathered || "N/A",
         "Profile - Time of Occurrence": log.profile?.Time_of_Occurrence || "N/A",
         "Profile - Type of Disaster": log.profile?.Type_of_Disaster || "N/A",
-        "Disaster Type (Top Level)": log.disasterType || "N/A", // Keep this if sometimes it's also a top-level field
+        "Disaster Type": log.disasterType || "N/A",
 
         // Modality Information (These are directly under 'modality' with different keys than expected before)
         "Modality - Date and Time of Occurrence": log.modality?.Date_and_Time_of_Occurrence || "N/A",
         "Modality - Locations and Areas Affected": log.modality?.Locations_and_Areas_Affected || "N/A",
         "Modality - Type of Disaster (Modality)": log.modality?.Type_of_Disaster || "N/A",
-        // The previous modality fields (areaSafeAccess, mainAccessRoute, etc.) were not present in your structure.
 
         // Summary
         "Summary of Disaster/Incident": log.summary || "N/A",
-
-        // Effects (Based on your snippet, 'effects' is an empty object or just "0" for the first entry)
-        // If 'effects' has more specific sub-fields (like 'affectedPopulation' from your old viewLog code)
-        // they need to be listed here. For now, just 'affectedPopulation' is kept if it eventually exists.
         "Effects - Affected Population": log.effects?.affectedPopulation ?? "N/A",
-
 
         // Affected Communities (this is an array of objects)
         "Affected Communities - Community": Array.isArray(log.affectedCommunities) ? log.affectedCommunities.map(c => c.community).filter(Boolean).join(", ") : "N/A",
@@ -443,10 +435,8 @@ document.addEventListener('DOMContentLoaded', () => {
         "Affected Communities - Seniors": Array.isArray(log.affectedCommunities) ? log.affectedCommunities.map(c => c.seniors).filter(val => val !== undefined && val !== null).join(", ") : "N/A",
         "Affected Communities - PWD": Array.isArray(log.affectedCommunities) ? log.affectedCommunities.map(c => c.pwd).filter(val => val !== undefined && val !== null).join(", ") : "N/A",
 
-        // Structure Status (this is an array of objects)
-        // Combining structure and status into a single cell for simplicity
         "Structure Status Details": Array.isArray(log.structureStatus) ?
-            log.structureStatus.map(s => `${s.structure || "N/A"}: ${s.status || "N/A"}`).filter(Boolean).join("; ") : "N/A",
+          log.structureStatus.map(s => `${s.structure || "N/A"}: ${s.status || "N/A"}`).filter(Boolean).join("; ") : "N/A",
 
         // Needs Priority
         "Needs - Priority List": log.needs?.priority?.join(", ") || "N/A",
@@ -486,82 +476,324 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // --- PDF Export Functionality ---
-function savePdf(log) {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-
-    const addSectionTitle = (title, y, doc) => {
-        doc.setFontSize(14);
-        doc.text(title, 14, y);
-        return y + 10;
-    };
-
-    let yOffset = 20;
-
-    doc.setFontSize(18);
-    doc.text(`RDANA Report: ${log.rdanaId || 'N/A'}`, 14, yOffset);
-    yOffset += 10;
-    doc.setFontSize(10);
-    doc.text(`Report Generated: ${new Date().toLocaleString()}`, 14, yOffset);
-    yOffset += 10;
-    doc.text(`Date & Time of Assessment: ${log.dateTime ? new Date(log.dateTime).toLocaleString() : 'N/A'}`, 14, yOffset);
-    yOffset += 10;
-    doc.text(`Status: ${log.status || 'N/A'}`, 14, yOffset);
-    yOffset += 15; // Space after header info
-
-    // Profile Section
-    yOffset = addSectionTitle('1. Profile of the Disaster', yOffset, doc);
-    const profileData = Object.entries(log.profile || {}).map(([key, value]) => [formatKey(key), value || 'N/A']);
-    profileData.unshift(['Type of Disaster', log.disasterType || 'N/A']); // Add top-level disaster type
-    doc.autoTable({
-        startY: yOffset,
-        head: [['Field', 'Value']],
-        body: profileData,
-        theme: 'grid',
-        styles: { fontSize: 8, cellPadding: 2 },
-        headStyles: { fillColor: [200, 200, 200], textColor: [0, 0, 0] },
-        didDrawPage: function (data) {
-            // Footer
-            doc.setFontSize(8);
-            doc.text(`Page ${data.pageNumber} of ${doc.internal.getNumberOfPages()}`, data.settings.margin.left, doc.internal.pageSize.height - 10);
-        }
+  // --- PDF Export Functionality (All Data) ---
+  savePdfBtn.addEventListener('click', () => {
+    Swal.fire({
+      title: 'Generating PDF...',
+      text: 'Please wait while the PDF file is being created.',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
     });
-    yOffset = doc.autoTable.previous.finalY + 10; // Update yOffset
+    exportAllRdanaLogsToPdf();
+  });
 
-    // Modality Section
-    yOffset = addSectionTitle('2. Modality of the Disaster', yOffset, doc);
-    const modalityData = Object.entries(log.modality || {}).map(([key, value]) => [formatKey(key), value || 'N/A']);
-    if (modalityData.length > 0) {
-        doc.autoTable({
-            startY: yOffset,
-            head: [['Field', 'Value']],
-            body: modalityData,
-            theme: 'grid',
-            styles: { fontSize: 8, cellPadding: 2 },
-            headStyles: { fillColor: [200, 200, 200], textColor: [0, 0, 0] },
-            didDrawPage: function (data) {
-                doc.setFontSize(8);
-                doc.text(`Page ${data.pageNumber} of ${doc.internal.getNumberOfPages()}`, data.settings.margin.left, doc.internal.pageSize.height - 10);
-            }
-        });
-        yOffset = doc.autoTable.previous.finalY + 10;
-    } else {
-        doc.text('No modality data available.', 14, yOffset);
-        yOffset += 10;
+  async function exportAllRdanaLogsToPdf() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('portrait');
+
+    const logsToExport = filteredLogs;
+
+    if (logsToExport.length === 0) {
+      Swal.close();
+      Swal.fire({
+        icon: 'info',
+        title: 'No Data to Export',
+        text: 'There are no RDANA logs matching your current search/sort criteria to export to PDF.',
+      });
+      return;
     }
 
-    // Summary
-    yOffset = addSectionTitle('3. Summary of Disaster/Incident', yOffset, doc);
-    doc.setFontSize(10);
-    doc.text(log.summary || 'N/A', 14, yOffset, { maxWidth: doc.internal.pageSize.width - 28 });
-    yOffset += (doc.getTextDimensions(log.summary || 'N/A', { maxWidth: doc.internal.pageSize.width - 28 }).h) + 10;
-    
-    // Affected Communities
-    yOffset = addSectionTitle('4. Affected Communities', yOffset, doc);
-    const affectedHeaders = ['Community', 'Total Pop.', 'Affected Pop.', 'Deaths', 'Injured', 'Missing', 'Children', 'Women', 'Seniors', 'PWD'];
-    const affectedBody = (Array.isArray(log.affectedCommunities) ? log.affectedCommunities : []).map(c => [
-        c.community || '-',
+    const logo = new Image();
+    logo.src = '/Bayanihan-PWA/assets/images/AB_logo.png';
+
+    logo.onload = function() {
+      const pageWidth = doc.internal.pageSize.width;
+      const pageHeight = doc.internal.pageSize.height;
+      const logoWidth = 30;
+      const logoHeight = (logo.naturalHeight / logo.naturalWidth) * logoWidth;
+      const margin = 14;
+      const textX = margin;
+      const contentWidth = pageWidth - (2 * margin);
+
+      const addHeaderAndFooter = (docInstance, pageNum, totalPages) => {
+        let yOffset = margin;
+        docInstance.addImage(logo, 'PNG', pageWidth - logoWidth - margin, margin, logoWidth, logoHeight);
+
+        docInstance.setFontSize(18);
+        docInstance.text("RDANA Logs Report", margin, yOffset + 8);
+        yOffset += 18;
+
+        docInstance.setFontSize(10);
+        docInstance.text(`Report Generated: ${new Date().toLocaleString()}`, margin, yOffset);
+        yOffset += 15;
+
+        docInstance.setFontSize(8);
+        const footerY = pageHeight - 10;
+        docInstance.text(`Page ${pageNum} of ${totalPages}`, margin, footerY);
+        docInstance.text("Powered by: Appvance", pageWidth - margin, footerY, { align: 'right' });
+
+        return yOffset;
+      };
+
+      const addDetailText = (docInstance, label, value, currentY, contentAreaWidth, detailLineHeight = 5) => {
+        const text = `${label}: ${value || 'N/A'}`;
+        const splitText = docInstance.splitTextToSize(text, contentAreaWidth);
+        docInstance.text(splitText, margin, currentY);
+        return currentY + (splitText.length * detailLineHeight) + 2;
+      };
+
+      const addSectionTitle = (docInstance, title, currentY) => {
+        docInstance.setFontSize(12);
+        docInstance.setTextColor(20, 174, 187);
+        docInstance.text(title, margin, currentY);
+        docInstance.setTextColor(0);
+        return currentY + 7;
+      };
+
+      let currentPage = 1;
+
+      logsToExport.forEach((log, index) => {
+        if (index > 0) {
+          doc.addPage();
+          currentPage++;
+        }
+
+        let yPos = addHeaderAndFooter(doc, currentPage, logsToExport.length);
+
+        doc.setFontSize(14);
+        doc.setTextColor(20, 174, 187);
+        doc.text(`RDANA ID: ${log.rdanaId || "N/A"}`, textX, yPos);
+        yPos += 10;
+        doc.setTextColor(0);
+
+        doc.setFontSize(10);
+        yPos = addDetailText(doc, "Record Date/Time", log.dateTime ? new Date(log.dateTime).toLocaleString() : "N/A", yPos, contentWidth);
+        yPos = addDetailText(doc, "Disaster Type", log.disasterType || "N/A", yPos, contentWidth);
+        yPos = addDetailText(doc, "User UID", log.userUid || "N/A", yPos, contentWidth);
+        yPos = addDetailText(doc, "Status", log.status || "N/A", yPos, contentWidth);
+
+        yPos += 5;
+
+        yPos = addSectionTitle(doc, "Profile of the Disaster", yPos);
+        doc.setFontSize(10);
+        for (const [key, value] of Object.entries(log.profile || {})) {
+          yPos = addDetailText(doc, formatKey(key), value, yPos, contentWidth);
+        }
+        yPos += 5;
+
+        yPos = addSectionTitle(doc, "Modality of the Disaster", yPos);
+        doc.setFontSize(10);
+        for (const [key, value] of Object.entries(log.modality || {})) {
+          yPos = addDetailText(doc, formatKey(key), value, yPos, contentWidth);
+        }
+        yPos += 5;
+
+        yPos = addSectionTitle(doc, "Summary of Disaster/Incident", yPos);
+        doc.setFontSize(10);
+        yPos = addDetailText(doc, "Summary", log.summary || "N/A", yPos, contentWidth);
+        yPos += 5;
+
+        yPos = addSectionTitle(doc, "Affected Communities", yPos);
+        doc.setFontSize(8);
+        const headers_affected = ["Community", "Total Pop.", "Affected Pop.", "Deaths", "Injured", "Missing", "Children", "Women", "Seniors", "PWD"];
+        const data_affected = (log.affectedCommunities || []).map(c => [
+          c.community || "-",
+          c.totalPop || 0,
+          c.affected || 0,
+          c.deaths || 0,
+          c.injured || 0,
+          c.missing || 0,
+          c.children || 0,
+          c.women || 0,
+          c.seniors || 0,
+          c.pwd || 0
+        ]);
+
+        doc.autoTable({
+          startY: yPos,
+          head: [headers_affected],
+          body: data_affected,
+          theme: 'grid',
+          styles: { fontSize: 7, cellPadding: 1, overflow: 'linebreak' },
+          headStyles: { fillColor: [20, 174, 187] },
+          margin: { left: margin, right: margin },
+          didDrawPage: function (data) {
+            yPos = data.cursor.y + 5;
+          },
+          didParseCell: function(data) {
+            if (data.section === 'body' && data.column.index === 0) {
+              data.cell.styles.fontStyle = 'bold';
+            }
+          }
+        });
+        if (doc.autoTable.previous.finalY) {
+          yPos = doc.autoTable.previous.finalY + 5;
+        }
+
+        yPos = addSectionTitle(doc, "Status of Structures", yPos);
+        doc.setFontSize(8);
+        const headers_structure = ["Structure", "Status"];
+        const data_structure = (log.structureStatus || []).map(s => [
+          s.structure || "-",
+          s.status || "-"
+        ]);
+        doc.autoTable({
+          startY: yPos,
+          head: [headers_structure],
+          body: data_structure,
+          theme: 'grid',
+          styles: { fontSize: 7, cellPadding: 1, overflow: 'linebreak' },
+          headStyles: { fillColor: [20, 174, 187] },
+          margin: { left: margin, right: margin },
+          didDrawPage: function (data) {
+            yPos = data.cursor.y + 5;
+          }
+        });
+        if (doc.autoTable.previous.finalY) {
+          yPos = doc.autoTable.previous.finalY + 5;
+        }
+
+        yPos = addSectionTitle(doc, "Initial Needs Assessment", yPos);
+        doc.setFontSize(8);
+        const headers_needs = ["Item", "Needed"];
+        const data_needs = (log.needsChecklist || []).map(n => [
+          n.item || "-",
+          n.needed ? "Yes" : "No"
+        ]);
+        doc.autoTable({
+          startY: yPos,
+          head: [headers_needs],
+          body: data_needs,
+          theme: 'grid',
+          styles: { fontSize: 7, cellPadding: 1, overflow: 'linebreak' },
+          headStyles: { fillColor: [20, 174, 187] },
+          margin: { left: margin, right: margin },
+          didDrawPage: function (data) {
+            yPos = data.cursor.y + 5;
+          }
+        });
+        if (doc.autoTable.previous.finalY) {
+          yPos = doc.autoTable.previous.finalY + 5;
+        }
+
+        yPos = addSectionTitle(doc, "Other Needs and Response", yPos);
+        doc.setFontSize(10);
+        yPos = addDetailText(doc, "Other Immediate Needs", log.otherNeeds || "N/A", yPos, contentWidth);
+        yPos = addDetailText(doc, "Estimated Quantity", log.estQty || "N/A", yPos, contentWidth);
+        yPos = addDetailText(doc, "Response Groups Involved", log.responseGroup || "N/A", yPos, contentWidth);
+        yPos = addDetailText(doc, "Relief Assistance Deployed", log.reliefDeployed || "N/A", yPos, contentWidth);
+        yPos = addDetailText(doc, "Number of Families Served", log.familiesServed || "N/A", yPos, contentWidth);
+      });
+
+      const date = new Date();
+      const dateString = date.toISOString().slice(0, 10);
+      doc.save(`Approved_RDANA_Logs_${dateString}.pdf`);
+      Swal.close();
+      Swal.fire({
+        title: 'Success!',
+        text: 'PDF file generated successfully!',
+        icon: 'success',
+        timer: 1500,
+        showConfirmButton: false,
+        color: '#1b5e20',
+        iconColor: '#43a047',
+        confirmButtonColor: '#388e3c',
+        confirmButtonText: 'Great!',
+        customClass: {
+          popup: 'swal2-popup-success-export',
+          title: 'swal2-title-success-export',
+          content: 'swal2-text-success-export',
+          confirmButton: 'swal2-button-success-export'
+        }
+      });
+    };
+
+    logo.onerror = function() {
+      Swal.close();
+      Swal.fire("Error", "Failed to load logo image at /Bayanihan-PWA/assets/images/AB_logo.png. Please check the path.", "error");
+    };
+  }
+
+  // --- Save Single Donation to PDF ---
+  function saveIndividualLogToPdf(log) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('portrait');
+
+    const logo = new Image();
+    logo.src = '/Bayanihan-PWA/assets/images/AB_logo.png';
+
+    logo.onload = function() {
+      const pageWidth = doc.internal.pageSize.width;
+      const pageHeight = doc.internal.pageSize.height;
+      const logoWidth = 30;
+      const logoHeight = (logo.naturalHeight / logo.naturalWidth) * logoWidth;
+      const margin = 14;
+      let y = margin;
+
+      doc.addImage(logo, 'PNG', pageWidth - logoWidth - margin, margin, logoWidth, logoHeight);
+
+      doc.setFontSize(18);
+      doc.text("RDANA Log Details", margin, y + 8);
+      y += 18;
+
+      doc.setFontSize(10);
+      doc.text(`Report Generated: ${new Date().toLocaleString()}`, margin, y);
+      y += 15;
+
+      const addDetail = (label, value, isTitle = false) => {
+        if (y > pageHeight - margin - 20) {
+          doc.addPage();
+          y = margin;
+          doc.addImage(logo, 'PNG', pageWidth - logoWidth - margin, margin, logoWidth, logoHeight);
+          doc.setFontSize(14);
+          doc.text("RDANA Log Details (Cont.)", margin, y + 8);
+          y += 18;
+        }
+
+        doc.setFontSize(isTitle ? 12 : 10);
+        if (isTitle) {
+          doc.setTextColor(20, 174, 187);
+          doc.text(`${label}`, margin, y);
+          doc.setTextColor(0);
+          y += 7;
+        } else {
+          const text = `${label}: ${value || 'N/A'}`;
+          const splitText = doc.splitTextToSize(text, pageWidth - (2 * margin));
+          doc.text(splitText, margin, y);
+          y += (splitText.length * 5) + 2;
+        }
+      };
+
+      addDetail("RDANA ID", log.rdanaId || "N/A");
+      addDetail("Record Date/Time", log.dateTime ? new Date(log.dateTime).toLocaleString() : "N/A");
+      addDetail("Disaster Type", log.disasterType || "N/A");
+      addDetail("User UID", log.userUid || "N/A");
+      addDetail("Status", log.status || "N/A");
+
+      y += 5;
+      addDetail("Profile of the Disaster", "", true);
+      for (const [key, value] of Object.entries(log.profile || {})) {
+        addDetail(formatKey(key), value);
+      }
+
+      y += 5;
+      addDetail("Modality of the Disaster", "", true);
+      for (const [key, value] of Object.entries(log.modality || {})) {
+        addDetail(formatKey(key), value);
+      }
+
+      y += 5;
+      addDetail("Summary of Disaster/Incident", "", true);
+      addDetail("Summary", log.summary || "N/A");
+
+      y += 5;
+      addDetail("Affected Communities", "", true);
+      doc.setFontSize(8);
+      const headers_affected = ["Community", "Total Pop.", "Affected Pop.", "Deaths", "Injured", "Missing", "Children", "Women", "Seniors", "PWD"];
+      const data_affected = (log.affectedCommunities || []).map(c => [
+        c.community || "-",
         c.totalPop || 0,
         c.affected || 0,
         c.deaths || 0,
@@ -571,107 +803,117 @@ function savePdf(log) {
         c.women || 0,
         c.seniors || 0,
         c.pwd || 0
-    ]);
-    if (affectedBody.length > 0) {
-        doc.autoTable({
-            startY: yOffset,
-            head: [affectedHeaders],
-            body: affectedBody,
-            theme: 'grid',
-            styles: { fontSize: 8, cellPadding: 2 },
-            headStyles: { fillColor: [200, 200, 200], textColor: [0, 0, 0] },
-            didDrawPage: function (data) {
-                doc.setFontSize(8);
-                doc.text(`Page ${data.pageNumber} of ${doc.internal.getNumberOfPages()}`, data.settings.margin.left, doc.internal.pageSize.height - 10);
-            }
-        });
-        yOffset = doc.autoTable.previous.finalY + 10;
-    } else {
-        doc.text('No affected communities data available.', 14, yOffset);
-        yOffset += 10;
-    }
+      ]);
 
-    // Structure Status
-    yOffset = addSectionTitle('5. Status of Structures', yOffset, doc);
-    const structureHeaders = ['Structure', 'Status'];
-    const structureBody = (Array.isArray(log.structureStatus) ? log.structureStatus : []).map(s => [
-        s.structure || '-',
-        s.status || '-'
-    ]);
-    if (structureBody.length > 0) {
-        doc.autoTable({
-            startY: yOffset,
-            head: [structureHeaders],
-            body: structureBody,
-            theme: 'grid',
-            styles: { fontSize: 8, cellPadding: 2 },
-            headStyles: { fillColor: [200, 200, 200], textColor: [0, 0, 0] },
-            didDrawPage: function (data) {
-                doc.setFontSize(8);
-                doc.text(`Page ${data.pageNumber} of ${doc.internal.getNumberOfPages()}`, data.settings.margin.left, doc.internal.pageSize.height - 10);
-            }
-        });
-        yOffset = doc.autoTable.previous.finalY + 10;
-    } else {
-        doc.text('No structure status data available.', 14, yOffset);
-        yOffset += 10;
-    }
+      doc.autoTable({
+        startY: y,
+        head: [headers_affected],
+        body: data_affected,
+        theme: 'grid',
+        styles: { fontSize: 7, cellPadding: 1, overflow: 'linebreak' },
+        headStyles: { fillColor: [20, 174, 187] },
+        margin: { left: margin, right: margin },
+        didDrawPage: function (data) {
+          y = data.cursor.y + 5;
+        },
+        didParseCell: function(data) {
+          if (data.section === 'body' && data.column.index === 0) {
+            data.cell.styles.fontStyle = 'bold';
+          }
+        }
+      });
+      if (doc.autoTable.previous.finalY) {
+        y = doc.autoTable.previous.finalY + 5;
+      }
 
-    // Needs Checklist
-    yOffset = addSectionTitle('6. Initial Needs Assessment', yOffset, doc);
-    const needsChecklistHeaders = ['Item', 'Needed'];
-    const needsChecklistBody = (Array.isArray(log.needsChecklist) ? log.needsChecklist : []).map(n => [
-        n.item || '-',
+      y += 5;
+      addDetail("Status of Structures", "", true);
+      doc.setFontSize(8);
+      const headers_structure = ["Structure", "Status"];
+      const data_structure = (log.structureStatus || []).map(s => [
+        s.structure || "-",
+        s.status || "-"
+      ]);
+      doc.autoTable({
+        startY: y,
+        head: [headers_structure],
+        body: data_structure,
+        theme: 'grid',
+        styles: { fontSize: 7, cellPadding: 1, overflow: 'linebreak' },
+        headStyles: { fillColor: [20, 174, 187] },
+        margin: { left: margin, right: margin },
+        didDrawPage: function (data) {
+          y = data.cursor.y + 5;
+        }
+      });
+      if (doc.autoTable.previous.finalY) {
+        y = doc.autoTable.previous.finalY + 5;
+      }
+
+      y += 5;
+      addDetail("Initial Needs Assessment", "", true);
+      doc.setFontSize(8);
+      const headers_needs = ["Item", "Needed"];
+      const data_needs = (log.needsChecklist || []).map(n => [
+        n.item || "-",
         n.needed ? "Yes" : "No"
-    ]);
-    if (needsChecklistBody.length > 0) {
-        doc.autoTable({
-            startY: yOffset,
-            head: [needsChecklistHeaders],
-            body: needsChecklistBody,
-            theme: 'grid',
-            styles: { fontSize: 8, cellPadding: 2 },
-            headStyles: { fillColor: [200, 200, 200], textColor: [0, 0, 0] },
-            didDrawPage: function (data) {
-                doc.setFontSize(8);
-                doc.text(`Page ${data.pageNumber} of ${doc.internal.getNumberOfPages()}`, data.settings.margin.left, doc.internal.pageSize.height - 10);
-            }
-        });
-        yOffset = doc.autoTable.previous.finalY + 10;
-    } else {
-        doc.text('No needs checklist data available.', 14, yOffset);
-        yOffset += 10;
-    }
+      ]);
+      doc.autoTable({
+        startY: y,
+        head: [headers_needs],
+        body: data_needs,
+        theme: 'grid',
+        styles: { fontSize: 7, cellPadding: 1, overflow: 'linebreak' },
+        headStyles: { fillColor: [20, 174, 187] },
+        margin: { left: margin, right: margin },
+        didDrawPage: function (data) {
+          y = data.cursor.y + 5;
+        }
+      });
+      if (doc.autoTable.previous.finalY) {
+        y = doc.autoTable.previous.finalY + 5;
+      }
 
-    // Needs Priority
-    yOffset = addSectionTitle('7. Priority Needs', yOffset, doc);
-    doc.setFontSize(10);
-    doc.text(log.needs?.priority?.join(", ") || 'N/A', 14, yOffset, { maxWidth: doc.internal.pageSize.width - 28 });
-    yOffset += (doc.getTextDimensions(log.needs?.priority?.join(", ") || 'N/A', { maxWidth: doc.internal.pageSize.width - 28 }).h) + 10;
+      y += 5;
+      addDetail("Other Needs and Response", "", true);
+      addDetail("Other Immediate Needs", log.otherNeeds || "N/A");
+      addDetail("Estimated Quantity", log.estQty || "N/A");
+      addDetail("Response Groups Involved", log.responseGroup || "N/A");
+      addDetail("Relief Assistance Deployed", log.reliefDeployed || "N/A");
+      addDetail("Number of Families Served", log.familiesServed || "N/A");
 
+      doc.setFontSize(8);
+      const footerY = pageHeight - 10;
+      const pageNumberText = `Page ${doc.internal.getNumberOfPages()}`;
+      const poweredByText = "Powered by: Appvance";
 
-    // Other Needs and Response
-    yOffset = addSectionTitle('8. Other Needs and Response', yOffset, doc);
-    doc.setFontSize(10);
-    doc.text(`Other Immediate Needs: ${log.otherNeeds || 'N/A'}`, 14, yOffset);
-    yOffset += 7;
-    doc.text(`Estimated Quantity: ${log.estQty || 'N/A'}`, 14, yOffset);
-    yOffset += 7;
-    doc.text(`Response Groups Involved: ${log.responseGroup || 'N/A'}`, 14, yOffset);
-    yOffset += 7;
-    doc.text(`Relief Assistance Deployed: ${log.reliefDeployed || 'N/A'}`, 14, yOffset);
-    yOffset += 7;
-    doc.text(`Number of Families Served: ${log.familiesServed || 'N/A'}`, 14, yOffset);
-    yOffset += 10;
+      doc.text(pageNumberText, margin, footerY);
+      doc.text(poweredByText, pageWidth - margin, footerY, { align: 'right' });
 
-    const filename = `RDANA_Report_${log.rdanaId || 'N/A'}_${new Date().toISOString().slice(0, 10)}.pdf`;
-    doc.save(filename);
+      doc.save(`RDANA_Log_${log.rdanaId}.pdf`);
 
-    Swal.fire({
+      Swal.fire({
         icon: 'success',
-        title: 'PDF Saved!',
-        text: `RDANA Report "${filename}" has been generated.`,
-    });
-}
-  
+        title: 'PDF Generated!',
+        text: `RDANA Log "${log.rdanaId}" saved as PDF.`,
+        timer: 2000,
+        showConfirmButton: false,
+        color: '#1b5e20',
+        iconColor: '#43a047',
+        confirmButtonColor: '#388e3c',
+        confirmButtonText: 'Great!',
+        customClass: {
+          popup: 'swal2-popup-success-export',
+          title: 'swal2-title-success-export',
+          content: 'swal2-text-success-export',
+          confirmButton: 'swal2-button-success-export'
+        }
+      });
+    };
+
+    logo.onerror = function() {
+      Swal.fire("Error", "Failed to load logo image. Please check the path.", "error");
+    };
+  }
+
 });

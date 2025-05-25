@@ -354,22 +354,19 @@ document.addEventListener("DOMContentLoaded", () => {
                     hideTermsModal();
 
                     if (passwordNeedsResetAfterTerms) {
-                        // MODIFIED: If password reset is required, show a single SweetAlert for both actions
                         await Swal.fire({
-                            icon: 'success', // Use success icon as terms are accepted
-                            title: 'Agreement Accepted & Password Change Required!', // MODIFIED TITLE
-                            text: 'Thank you for accepting the Terms and Conditions. For security reasons, please proceed to change your temporary password now.', // MODIFIED TEXT
+                            icon: 'success', 
+                            title: 'Agreement Accepted & Password Change Required!', 
+                            text: 'Thank you for accepting the Terms and Conditions. For security reasons, please proceed to change your temporary password now.', 
                             allowOutsideClick: false,
                             allowEscapeKey: false,
                             showConfirmButton: true,
                             confirmButtonText: 'Continue to Password Change'
                         });
-                        // MODIFIED: Ensure only password change section is visible and redirect
                         if (basicInfoSection) basicInfoSection.style.display = 'none';
                         if (changePasswordFormContainer) changePasswordFormContainer.style.display = 'block';
-                        window.location.replace(`${BASE_PATH}/pages/profile.html`); // Reloads page to apply display changes
+                        window.location.replace(`${BASE_PATH}/pages/profile.html`); 
                     } else {
-                        // If no password reset needed, show only agreement success and redirect normally
                         await Swal.fire({
                             icon: 'success',
                             title: 'Agreement Accepted!',
@@ -408,18 +405,17 @@ document.addEventListener("DOMContentLoaded", () => {
         const openLockIcon = parentDiv ? parentDiv.querySelector('.password-toggle-open') : null;
 
         if (lockIcon && openLockIcon && passwordInput && parentDiv) {
-            // Initially, show the closed lock icon and hide the open one
             openLockIcon.style.display = 'none';
-            lockIcon.style.display = 'inline'; // Ensure it's visible by default
+            lockIcon.style.display = 'inline'; 
 
             lockIcon.addEventListener('click', () => {
                 passwordInput.type = 'text';
-                parentDiv.classList.add('show-open-lock'); // Add class to show open lock
+                parentDiv.classList.add('show-open-lock'); 
             });
 
             openLockIcon.addEventListener('click', () => {
                 passwordInput.type = 'password';
-                parentDiv.classList.remove('show-open-lock'); // Remove class to show closed lock
+                parentDiv.classList.remove('show-open-lock'); 
             });
         } else {
             console.warn(`Password toggle icons or input not found for ${passwordInputId}`);
@@ -432,7 +428,7 @@ document.addEventListener("DOMContentLoaded", () => {
     setupPasswordToggle('confirm-new-password');
 
     // Password change handling (Modular SDK)
-    const form = document.querySelector("form"); // Assumes this form handles password changes
+    const form = document.querySelector("form"); 
     if (form) {
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -473,24 +469,22 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
 
-            const userEmail = user.email; // Consistent variable name
+            const userEmail = user.email;
             if (!userEmail) {
                 showError('Error', 'No email associated with this user for re-authentication.');
                 return;
             }
 
             try {
-                // Reauthenticate user with current password
+                
                 const credential = EmailAuthProvider.credential(userEmail, currentPassword);
                 await reauthenticateWithCredential(user, credential);
 
-                // Update the password
                 await updatePassword(user, newPassword);
 
-                // Update the database: last password change timestamp and set password_needs_reset to false
                 await update(ref(database, `users/${user.uid}`), {
                     lastPasswordChange: new Date().toISOString(),
-                    password_needs_reset: false // Set to false after successful change
+                    password_needs_reset: false 
                 });
 
                 Swal.fire({
@@ -519,7 +513,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // Password Strength Logic
-    const newPasswordInput = document.getElementById('new-password'); // Renamed for clarity
+    const newPasswordInput = document.getElementById('new-password');
     const strengthMessage = document.getElementById('password-strength-message');
     const strengthBar = document.querySelector('.strength-bar');
     const strengthContainer = document.querySelector('.strength-bar-container');
@@ -549,7 +543,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const hasLength = password.length >= 8;
             const hasUppercase = /[A-Z]/.test(password);
             const hasNumber = /[0-9]/.test(password);
-            const hasSymbol = /[^A-Za-z0-9]/.test(password); // Check for any non-alphanumeric character
+            const hasSymbol = /[^A-Za-z0-9]/.test(password); 
 
             checkLength.textContent = (hasLength ? '✅' : '❌') + ' At least 8 characters';
             checkUppercase.textContent = (hasUppercase ? '✅' : '❌') + ' An uppercase letter';
@@ -560,14 +554,14 @@ document.addEventListener("DOMContentLoaded", () => {
             let strength = '';
             let strengthClass = '';
             let barWidth = '0%';
-            let barColor = 'red'; // Default to red
+            let barColor = 'red'; 
 
             const passedChecks = [hasLength, hasUppercase, hasNumber, hasSymbol].filter(Boolean).length;
 
             if (passedChecks <= 1) {
                 strength = 'Weak';
                 strengthClass = 'strength-weak';
-                barWidth = '25%'; // Adjusted for 4 checks
+                barWidth = '25%'; 
                 barColor = 'red';
             } else if (passedChecks === 2) {
                 strength = 'Medium';
@@ -578,7 +572,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 strength = 'Good';
                 strengthClass = 'strength-good';
                 barWidth = '75%';
-                barColor = 'yellowgreen'; // A bit better than orange, before strong
+                barColor = 'yellowgreen'; 
             } else if (passedChecks === 4) {
                 strength = 'Strong';
                 strengthClass = 'strength-strong';
@@ -587,7 +581,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             strengthMessage.textContent = 'Strength: ' + strength;
-            strengthMessage.className = 'strength-message ' + strengthClass; // Ensure the class is applied correctly
+            strengthMessage.className = 'strength-message ' + strengthClass; 
 
             strengthBar.style.width = barWidth;
             strengthBar.style.backgroundColor = barColor;

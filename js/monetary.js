@@ -362,7 +362,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     <td>${d.proof ? `<a href="${d.proof}" target="_blank">View Proof</a>` : 'N/A'}</td>
                     <td>
                         <button class="editBtn">Edit</button>
-                        <button class="deleteBtn">Delete</button>
+                        <button class="deleteBtn">Remove</button>
                         <button class="savePDFBtn">Save PDF</button>
                     </td>
                 `;
@@ -427,68 +427,65 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // Event listener for search input
-searchInput.addEventListener("input", () => {
-    const searchTerm = searchInput.value.toLowerCase();
-    const currentSort = sortSelect.value;
+    searchInput.addEventListener("input", () => {
+        const searchTerm = searchInput.value.toLowerCase();
+        const currentSort = sortSelect.value;
 
-    filteredAndSortedDonations = allDonations.filter(d => {
-        if (currentSort.includes('encoder')) return (d.encoder || '').toLowerCase().includes(searchTerm);
-        if (currentSort.includes('name')) return (d.name || '').toLowerCase().includes(searchTerm);
-        if (currentSort.includes('address')) return (d.address || '').toLowerCase().includes(searchTerm);
-        if (currentSort.includes('number')) return String(d.number || '').includes(searchTerm);
-        if (currentSort.includes('amount')) return String(d.amountDonated || '').includes(searchTerm); 
-        if (currentSort.includes('invoice')) return (d.invoice || '').toLowerCase().includes(searchTerm);
-        if (currentSort.includes('dateReceived')) return (d.dateReceived || '').toLowerCase().includes(searchTerm);
-        if (currentSort.includes('email')) return (d.email || '').toLowerCase().includes(searchTerm);
-        if (currentSort.includes('bank')) return (d.bank || '').toLowerCase().includes(searchTerm);
+        filteredAndSortedDonations = allDonations.filter(d => {
+            if (currentSort.includes('encoder')) return (d.encoder || '').toLowerCase().includes(searchTerm);
+            if (currentSort.includes('name')) return (d.name || '').toLowerCase().includes(searchTerm);
+            if (currentSort.includes('address')) return (d.address || '').toLowerCase().includes(searchTerm);
+            if (currentSort.includes('number')) return String(d.number || '').includes(searchTerm);
+            if (currentSort.includes('amount')) return String(d.amountDonated || '').includes(searchTerm); 
+            if (currentSort.includes('invoice')) return (d.invoice || '').toLowerCase().includes(searchTerm);
+            if (currentSort.includes('dateReceived')) return (d.dateReceived || '').toLowerCase().includes(searchTerm);
+            if (currentSort.includes('email')) return (d.email || '').toLowerCase().includes(searchTerm);
+            if (currentSort.includes('bank')) return (d.bank || '').toLowerCase().includes(searchTerm);
 
-        // Default broad search if no specific sort or 'Sort by' is selected
-        return (d.name || '').toLowerCase().includes(searchTerm) ||
-               (d.encoder || '').toLowerCase().includes(searchTerm) ||
-               (d.address || '').toLowerCase().includes(searchTerm) ||
-               (String(d.number) || '').includes(searchTerm) ||
-               (String(d.amountDonated) || '').includes(searchTerm) ||
-               (d.invoice || '').toLowerCase().includes(searchTerm) ||
-               (d.dateReceived || '').toLowerCase().includes(searchTerm) ||
-               (d.email || '').toLowerCase().includes(searchTerm) ||
-               (d.bank || '').toLowerCase().includes(searchTerm);
+            // Default broad search if no specific sort or 'Sort by' is selected
+            return (d.name || '').toLowerCase().includes(searchTerm) ||
+                (d.encoder || '').toLowerCase().includes(searchTerm) ||
+                (d.address || '').toLowerCase().includes(searchTerm) ||
+                (String(d.number) || '').includes(searchTerm) ||
+                (String(d.amountDonated) || '').includes(searchTerm) ||
+                (d.invoice || '').toLowerCase().includes(searchTerm) ||
+                (d.dateReceived || '').toLowerCase().includes(searchTerm) ||
+                (d.email || '').toLowerCase().includes(searchTerm) ||
+                (d.bank || '').toLowerCase().includes(searchTerm);
+        });
+
+        currentPage = 1; // Reset to the first page after filtering
+        renderTable();
     });
 
-    currentPage = 1; // Reset to the first page after filtering
-    renderTable();
-});
+    // Event listener for sort select
+    sortSelect.addEventListener("change", () => {
+        const sortVal = sortSelect.value;
+        applySorting(filteredAndSortedDonations, sortVal);
+        updateSearchPlaceholder(); 
+        renderTable();
+    });
 
-// Event listener for sort select
-sortSelect.addEventListener("change", () => {
-    const sortVal = sortSelect.value;
-    // Assuming applySorting is a separate function as in your original inkind concept
-    applySorting(filteredAndSortedDonations, sortVal);
-    updateSearchPlaceholder(); // Update placeholder when sort changes
-    renderTable();
-});
-
-// You'll also need the applySorting function if you don't have it already defined like this:
-function applySorting(arr, sortVal) {
-    if (sortVal === "encoder-asc") arr.sort((a, b) => (a.encoder || '').localeCompare(b.encoder || ''));
-    else if (sortVal === "encoder-desc") arr.sort((a, b) => (b.encoder || '').localeCompare(a.encoder || ''));
-    else if (sortVal === "name-asc") arr.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-    else if (sortVal === "name-desc") arr.sort((a, b) => (b.name || '').localeCompare(a.name || ''));
-    else if (sortVal === "address-asc") arr.sort((a, b) => (a.address || '').localeCompare(b.address || ''));
-    else if (sortVal === "address-desc") arr.sort((a, b) => (b.address || '').localeCompare(a.address || ''));
-    else if (sortVal === "number-asc") arr.sort((a, b) => parseInt((a.number || '0').replace(/\D/g, '')) - parseInt((b.number || '0').replace(/\D/g, '')));
-    else if (sortVal === "number-desc") arr.sort((a, b) => parseInt((b.number || '0').replace(/\D/g, '')) - parseInt((a.number || '0').replace(/\D/g, '')));
-    else if (sortVal === "amount-asc") arr.sort((a, b) => (a.amountDonated || 0) - (b.amountDonated || 0));
-    else if (sortVal === "amount-desc") arr.sort((a, b) => (b.amountDonated || 0) - (a.amountDonated || 0));
-    else if (sortVal === "invoice-asc") arr.sort((a, b) => (a.invoice || '').localeCompare(b.invoice || ''));
-    else if (sortVal === "invoice-desc") arr.sort((a, b) => (b.invoice || '').localeCompare(a.invoice || ''));
-    else if (sortVal === "dateReceived-asc") arr.sort((a, b) => new Date(a.dateReceived || '0') - new Date(b.dateReceived || '0'));
-    else if (sortVal === "dateReceived-desc") arr.sort((a, b) => new Date(b.dateReceived || '0') - new Date(a.dateReceived || '0'));
-    else if (sortVal === "email-asc") arr.sort((a, b) => (a.email || '').localeCompare(b.email || ''));
-    else if (sortVal === "email-desc") arr.sort((a, b) => (b.email || '').localeCompare(a.email || ''));
-    else if (sortVal === "bank-asc") arr.sort((a, b) => (a.bank || '').localeCompare(b.bank || ''));
-    else if (sortVal === "bank-desc") arr.sort((a, b) => (b.bank || '').localeCompare(a.bank || ''));
-}
-
+    function applySorting(arr, sortVal) {
+        if (sortVal === "encoder-asc") arr.sort((a, b) => (a.encoder || '').localeCompare(b.encoder || ''));
+        else if (sortVal === "encoder-desc") arr.sort((a, b) => (b.encoder || '').localeCompare(a.encoder || ''));
+        else if (sortVal === "name-asc") arr.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+        else if (sortVal === "name-desc") arr.sort((a, b) => (b.name || '').localeCompare(a.name || ''));
+        else if (sortVal === "address-asc") arr.sort((a, b) => (a.address || '').localeCompare(b.address || ''));
+        else if (sortVal === "address-desc") arr.sort((a, b) => (b.address || '').localeCompare(a.address || ''));
+        else if (sortVal === "number-asc") arr.sort((a, b) => parseInt((a.number || '0').replace(/\D/g, '')) - parseInt((b.number || '0').replace(/\D/g, '')));
+        else if (sortVal === "number-desc") arr.sort((a, b) => parseInt((b.number || '0').replace(/\D/g, '')) - parseInt((a.number || '0').replace(/\D/g, '')));
+        else if (sortVal === "amount-asc") arr.sort((a, b) => (a.amountDonated || 0) - (b.amountDonated || 0));
+        else if (sortVal === "amount-desc") arr.sort((a, b) => (b.amountDonated || 0) - (a.amountDonated || 0));
+        else if (sortVal === "invoice-asc") arr.sort((a, b) => (a.invoice || '').localeCompare(b.invoice || ''));
+        else if (sortVal === "invoice-desc") arr.sort((a, b) => (b.invoice || '').localeCompare(a.invoice || ''));
+        else if (sortVal === "dateReceived-asc") arr.sort((a, b) => new Date(a.dateReceived || '0') - new Date(b.dateReceived || '0'));
+        else if (sortVal === "dateReceived-desc") arr.sort((a, b) => new Date(b.dateReceived || '0') - new Date(a.dateReceived || '0'));
+        else if (sortVal === "email-asc") arr.sort((a, b) => (a.email || '').localeCompare(b.email || ''));
+        else if (sortVal === "email-desc") arr.sort((a, b) => (b.email || '').localeCompare(a.email || ''));
+        else if (sortVal === "bank-asc") arr.sort((a, b) => (a.bank || '').localeCompare(b.bank || ''));
+        else if (sortVal === "bank-desc") arr.sort((a, b) => (b.bank || '').localeCompare(a.bank || ''));
+    }
 
     // --- Excel Export Functionality ---
     exportBtn.addEventListener("click", () => {
@@ -514,9 +511,16 @@ function applySorting(arr, sortVal) {
         const ws = XLSX.utils.json_to_sheet(dataForExport);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Monetary Donations");
-        XLSX.writeFile(wb, "monetary-donations.xlsx");
-
-        Swal.fire("Success", "Monetary Donations exported to Excel!", "success");
+        // Get current date and format it for the filename
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0'); 
+        const day = String(today.getDate()).padStart(2, '0'); 
+        const formattedDate = `${year}-${month}-${day}`;
+        // Construct the filename with the date
+        const filename = `monetary-donations_${formattedDate}.xlsx`;
+        XLSX.writeFile(wb, filename);
+        Swal.fire("Success", `Monetary Donations exported to ${filename}!`, "success");
     });
 
     // --- PDF Export Functionality (All Data)---
