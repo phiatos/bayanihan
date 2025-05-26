@@ -15,8 +15,9 @@
 
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    
-    
+
+    <!-- Google Maps API -->
+ <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBDtlY28p-MvLHRtxnjiibSAadSETvM3VU&libraries=places&callback=initMap" async defer></script>
     <title>Submit a Report</title>
 </head>
 <body>
@@ -25,7 +26,7 @@
         <div id="form-main-content">
             <header>Reports Submission</header>
 
-             <!-- Page 1 -->
+            <!-- Page 1 -->
             <form id="form-page-1">
                 <div class="form first">
                     <div class="form-container-1">
@@ -102,13 +103,13 @@
         
             <!-- Page 2 -->
             <form id="form-page-2" style="display: none;">
-            <div class="form-container-1">
-                <h2>Additional Updates</h2>
-                <div>
-                    <p>Notes/Additional Information</p>
-                    <textarea rows="6" cols="100" placeholder="Notes/additional information"></textarea>
+                <div class="form-container-1">
+                    <h2>Additional Updates</h2>
+                    <div>
+                        <p>Notes/Additional Information</p>
+                        <textarea rows="6" cols="100" placeholder="Notes/additional information"></textarea>
+                    </div>
                 </div>
-            </div>
                 <div class="button-group">
                     <button type="button" class="next-btn" id="backBtn">Back</button>
                     <button type="submit" class="next-btn">Next</button>
@@ -117,12 +118,17 @@
         </div>
     </div>
 
+    <!-- Map Modal with Search Bar -->
     <div id="mapModal" class="modal">
-    <div class="modal-content">
-        <span class="closeBtn">&times;</span>
-        <!-- Map container (empty for now) -->
-        <div id="mapContainer" style="width: 100%; height: 400px;"></div>
-    </div>
+        <div class="modal-content">
+            <span class="closeBtn">×</span>
+            <!-- Search Bar -->
+            <div class="search-bar">
+                <input type="text" id="search-input" placeholder="Search for a location..." />
+            </div>
+            <!-- Map Container -->
+            <div id="mapContainer" style="width: 100%; height: 500px;"></div>
+        </div>
     </div>
 
     <script>

@@ -50,7 +50,7 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById('profile-area').textContent = 'N/A';
     };
 
-    // Function to fetch user data
+    // Function to fetch user data and display profile information
     const fetchUserData = async (user) => {
         const userEmail = localStorage.getItem("userEmail");
         console.log("Fetching data for user email:", userEmail);
@@ -75,6 +75,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
             let userData = userSnapshot.val();
             console.log("User data retrieved:", userData);
+
+            // === ADMIN ROLE HANDLING ===
+            if (userData.role === 'AB ADMIN') {
+                const position = userData.role; 
+                const name = userData.contactPerson;
+                const email = userData.email;
+                const mobile = userData.mobile;
+
+                // Display admin profile info on profile page
+                document.getElementById('profile-position').innerText = position || 'N/A';
+                document.getElementById('profile-contact-person').innerText = name || 'N/A';
+                document.getElementById('profile-email').innerText = email || 'N/A';
+                document.getElementById('profile-mobile').innerText = mobile || 'N/A';
+                return;
+            }
 
             if (!userData.organization) {
                 console.error("No organization found for user:", user.uid);
@@ -133,6 +148,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 mobileNumber: groupData.mobileNumber || userData.mobile,
                 socialMedia: groupData.socialMedia || ''
             }));
+
         } catch (error) {
             console.error('Error fetching user or group data:', error);
             showError('Error', 'Failed to fetch data: ' + error.message);
@@ -225,9 +241,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function handlePopState(event) {
-        history.pushState(null, null, location.href); // Push current state again to keep modal active
-        // MODIFIED: Re-evaluate what needs to be shown based on state, rather than just forcing terms modal
-        // Re-run the main authentication state check
+        history.pushState(null, null, location.href); 
         onAuthStateChanged(auth, async (user) => { /* This will trigger the main logic to display correct UI */ });
     }
 
@@ -235,7 +249,7 @@ document.addEventListener("DOMContentLoaded", () => {
     onAuthStateChanged(auth, async (user) => {
         if (user) {
             console.log("User is authenticated:", user.uid);
-            await fetchUserData(user); // Wait for user data to be fetched
+            await fetchUserData(user); 
 
             try {
                 const snapshot = await get(ref(database, 'users/' + user.uid));
@@ -314,6 +328,8 @@ document.addEventListener("DOMContentLoaded", () => {
             console.error("No user is authenticated. Redirecting to login.");
             showError('Not Logged In', 'Please log in to view your profile.', true);
         }
+
+        
     });
 
     // Enable/disable the Agree button based on checkbox state
