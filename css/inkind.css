@@ -227,7 +227,7 @@ input[type="date"]:valid {
   width: 100%;
 }
 
-#inKindTable, #monetaryTable {
+#inKindTable, #monetaryTable, #donationTable {
   width: 100%;
   border-collapse: collapse;
 }
