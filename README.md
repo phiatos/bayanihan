@@ -12,18 +12,18 @@ planned system flow: https://docs.google.com/document/d/15CWf6rDFmi5rI86DARh8CFW
 
 <!-- // ================================================== // -->
 Test Walkthrough (For Review)
-Admin Account
-Email: sophiakirstentorrenueva@gmail.com
-Password: NUbulldogs2k25
-✅ Full page access
-✅ Can create ABVN accounts in VGM
-✅ Can activate/deactivate ABVN accounts
-⚠️ Activation still in progress.
+1. Admin Account
+> Email: sophiakirstentorrenueva@gmail.com
+> Password: NUbulldogs2k25
+- Full page access
+- Can create ABVN accounts in VGM
+- Can activate/deactivate ABVN accounts
+- Activation still in progress.
 
-ABVN Account
-Email: sktorrenueva@gmail.com
-Password: Phi@2003
-✅ Fully Working, just a few finalization.
+2. ABVN Account
+> Email: sktorrenueva@gmail.com
+> Password: Phi@2003
+- Fully Working, just a few finalization.
 
 <!-- // ================================================== // -->
 📌 Current Progress Overview:
