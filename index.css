@@ -107,6 +107,7 @@ footer {
 }
 
 #loginButton {
+    all: unset;
     margin-top: 10px;
     padding: 12px 30px;
     background-color: #14AEBB;
@@ -125,9 +126,6 @@ footer {
     width: 40%;
     padding-top: 1rem;
     margin-left: 60px;
-    /* margin: 10px 10px;
-    border: 2px solid #14AEBB; 
-    border-radius: 20px; */
 }
 
 .faq-sections {
@@ -136,6 +134,7 @@ footer {
     align-items: center;         
     flex-direction: column;     
     padding: 0px 10px;  
+    margin-bottom: 10px;
 }
 
 .faq-container .title {
@@ -145,7 +144,7 @@ footer {
     font-size: 16px;
     font-weight: bold;
     margin: 6px 0;
-    color: #14AEBB;
+    color: var(--primary-color);
 }
 
 .faq-title::before {
@@ -166,7 +165,7 @@ footer {
     margin: 0 auto;  
 }
 
-.accordion li {
+.accordion > li {
     list-style: none;
     width: 100%;
     margin: 10px;
@@ -177,7 +176,7 @@ footer {
                 -6px -6px 10px -1px rgba(255, 255, 255, 0.2);
 }
 
-.accordion li label {
+.accordion > li label {
     display: flex;
     align-items: center;
     padding: 5px;
@@ -187,10 +186,9 @@ footer {
     color: #FA3B99;
 }
 
-.accordion li:not(:last-child) {
+.accordion > li:not(:last-child) {
     margin-bottom: 15px;
 }
-
 
 label::before {
     content: '+';
@@ -203,13 +201,29 @@ input[type="radio"]{
     display: none;
 }
 
+/* contents inside the faqs */
 .accordion .content {
     color: #333;
-    padding: 0 10px;
+    padding: 0 10px 0 10px; 
     line-height: 26px;
-    max-height: 0;
-    overflow: hidden;
+    max-height: 0px;
+    overflow: auto;
     transition: max-height 0.5s ease, padding 0.5s ease;
+    padding-right: 10px; 
+}
+
+.accordion .content::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.accordion .content::-webkit-scrollbar-thumb {
+    background-color: var(--primary-color);
+    border-radius: 3px;
+}
+
+.accordion .content::-webkit-scrollbar-thumb:hover {
+    background-color: #999;
 }
 
 .accordion input[type="radio"]:checked + label + .content {
@@ -220,6 +234,31 @@ input[type="radio"]{
 .accordion input[type="radio"]:checked + label::before {
     content: '-';
 }
+
+.accordion .content p {
+    font-size: 14px;
+    line-height: 1.2;
+    color: var(--black);
+    white-space: pre-line; 
+}
+
+.accordion .content p strong {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+.accordion .content ol {
+    list-style-type: decimal;
+    list-style-position: outside;
+    padding-left: 20px;
+    margin: 10px 10px 10px 0; /* top right bottom left */
+}
+
+.accordion .content ol li {
+    list-style: decimal;
+    font-size: 14px;
+}
+
 
 @media (max-width: 768px) {
     main {
