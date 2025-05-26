@@ -90,11 +90,14 @@ header {
     color: #656079;
 }
 
-.search-icon {
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 0.5rem;
+.search-icon i{
+    align-items: center;
+    justify-content: center;
+}
+
+.search-icon, .search-icon:hover{
+    all: unset;
+    justify-content: center;
 }
 
 /* Map Container Styles */

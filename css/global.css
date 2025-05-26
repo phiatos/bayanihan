@@ -96,17 +96,51 @@ header::before {
   flex-wrap: nowrap; 
 }
 
-.controls_right input[type="text"], .controls select {
-  padding: 8px 12px;
+.controls_right input[type="text"] {
+  height: 40px;
+  padding: 10px 14px;
   font-size: 12px;
-  max-width: 150px;
-  width: 100%;
+  max-width: 280px;
+  width: 280px;
   background-color: rgba(20, 174, 187, 0.1);
-  border: 1px solid #14AEBB; 
-  border-radius: 12px;
+  border: 1.5px solid #14AEBB;
+  border-radius: 25px;
   box-sizing: border-box;
   margin: 10px 0;
-  justify-content: right;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.controls_right input[type="text"]:focus, #sortSelect:hover, #sortSelect:focus {
+  outline: none;
+  border-color: #10919B;
+  box-shadow: 0 0 8px rgba(16, 145, 155, 0.3);
+}
+
+.controls_right input[type="text"]::placeholder {
+  color: #10919B;
+  opacity: 0.6;
+  font-style: italic;
+}
+
+#sortSelect {
+  height: 40px;
+  padding: 10px 14px;
+  font-size: 12px;
+  max-width: 280px;
+  width: 200px;
+  background-color: rgba(20, 174, 187, 0.1);
+  border: 1.5px solid #14AEBB;
+  border-radius: 25px;
+  box-sizing: border-box;
+  margin: 10px 0;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+
+#sortSelect option[disabled] {
+  color: #10919B;
+  opacity: 0.6;
+
 }
 
 .controls #addNew:hover{
@@ -121,17 +155,6 @@ header::before {
   max-width: 100%;
 }
 
-.search-wrapper input {
-  border: none;
-  outline: none;
-  max-height: 35px;
-  padding-right: 30px;
-  flex: 1;
-  font-size: 14px;
-  width: 100%;
-  background-color: transparent;
-}
-
 .clear-btn {
   position: absolute;
   right: 10px;
@@ -143,13 +166,6 @@ header::before {
   align-items: center;
   justify-content: center;
   font-size: 25px;
-}
-
-.controls_right i:hover, .controls_right button:hover {
-  color: rgba(0, 0, 0, 0.6);
-  border: none;
-  background-color: transparent;
-  color: #4059A5;
 }
 
 .search-wrapper .fa-search,
@@ -203,59 +219,38 @@ tr {
   box-sizing: border-box;
 }
 
-#sortSelect {
-  padding: 8px 12px;
-  font-size: 12px;
-  max-width: 150px;
-  width: 100%;
-  background-color: rgba(20, 174, 187, 0.1);
-  border: 1px solid #14AEBB; 
-  border-radius: 12px;
-  box-sizing: border-box;
-  margin: 10px 0;
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  background-image: url('data:image/svg+xml;utf8,<svg fill="currentColor" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>');
-  background-repeat: no-repeat;
-  background-position: right 8px center; 
-  padding-right: 25px; 
-}
-
-#sortSelect option {
-  padding: 8px;
-  font-size: 12px;
-}
-
-#sortSelect:focus {
-  border-color: #14AEBB; 
-  outline: none; 
-}
 
 .pdf-button, .excel-button {
+  width: fit-content;
   background-color: #14AEBB;
-  color: white;
-  padding: 8px 12px;
-  font-size: 12px;
-  border: 1px solid #14AEBB;
-  border-radius: 12px;
+  color: #fff;
+  padding: 10px 18px;
+  font-size: 0.7rem;
+  border: none;
+  border-radius: 10px;
   cursor: pointer;
-  box-sizing: border-box;
-  margin: 10px 0;
-  white-space: nowrap;
+  margin: 10px 5px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 36px;
+  height: 40px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.controls_right .pdf-button:hover, 
-.controls_right .excel-button:hover{
-  background-color: #10919B;
-  border-color: #10919B;
-  color: var(--white);
-  padding: 8px 12px;
+.pdf-button:hover, .excel-button:hover {
+  background-color: #0C747C;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
+
+.pdf-button i, .excel-button i {
+  font-size: 1.1rem;
+  margin-right: 8px;
+}
+
+
+
 
 /* ==========================================================================
  Modal
@@ -445,43 +440,86 @@ button:disabled {
   cursor: not-allowed;
 }
 
-.viewBtn,  
-.editBtn{
-  background-color: var(--blue);
-}
-.viewBtn:hover, 
-.editBtn:hover {
-  background-color: var(--blue-hover);
+.activation-btn, .bayanihanBtn{
+  width: 120px;
+  padding: 8px 0; /* a bit more vertical padding for comfort */
+  background-color: var(--primary-color);
+  color: var(--white);
+  box-sizing: border-box;
+  border: none;
+  border-radius: 10px; /* slightly rounder for modern feel */
+  cursor: pointer;
+  font-size: 13px; /* slightly larger for readability */
+  letter-spacing: 0.5px;
+  display: inline-block;
+  text-align: center;
+  margin: 5px;
+  transition: 
+    background-color 0.3s ease, 
+    box-shadow 0.3s ease, 
+    transform 0.2s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
 }
 
-.deleteBtn {
+.activation-btn:hover, .bayanihanBtn:hover {
+  background-color: #0c7a99; /* a deeper tone for hover */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+  transform: translateY(-2px);
+}
+
+.activation-btn:focus, .bayanihanBtn:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(20, 174, 187, 0.5);
+}
+
+/* Shared button styles for sleek look */
+.viewBtn, .editBtn, .deleteBtn, .approveBtn, .rejectBtn, 
+.saveBtn, .endorseBtn, .savePDFBtn{
+  color: #fff;
+  border: none;
+  padding: 10px 18px;
+  font-size: 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  width: 100px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.viewBtn, .editBtn {
+  background-color: var(--blue);
+}
+
+.viewBtn:hover, .editBtn:hover {
+  background-color: var(--blue-hover);
+  transform: translateY(-2px);
+}
+
+.deleteBtn, .rejectBtn {
   background-color: var(--red);
 }
-.deleteBtn:hover {
+
+.deleteBtn:hover, .rejectBtn:hover {
   background-color: var(--red-hover);
+  transform: translateY(-2px);
 }
 
 .approveBtn {
   background-color: var(--green);
 }
+
 .approveBtn:hover {
   background-color: var(--green-hover);
+  transform: translateY(-2px);
 }
 
-.rejectBtn {
-  background-color: var(--red);
-}
-.rejectBtn:hover {
-  background-color: var(--red-hover);
-}
-
-.saveBtn, .endorseBtn{
+.saveBtn, .endorseBtn {
   background-color: var(--primary-color);
 }
 
-.saveBtn:hover,
-.endorseBtn:hover {
+.saveBtn:hover, .endorseBtn:hover {
   background-color: var(--button-hover);
+  transform: translateY(-2px);
 }
 
 .savePDFBtn {
@@ -490,15 +528,36 @@ button:disabled {
 
 .savePDFBtn:hover {
   background-color: var(--accent-hover-color);
+  transform: translateY(-2px);
 }
 
 .table-controls .viewApprovedBtn {
-  width: 150px; 
-  background-color: var(--primary-color); 
+  width: fit-content;
+  background-color: #14AEBB;
+  color: #fff;
+  padding: 10px 18px;
+  font-size: 0.7rem;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  margin: -10px 0 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .table-controls .viewApprovedBtn:hover {
-  background-color: var(--button-hover); 
+  background-color: #0C747C;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.table-controls i, .viewApprovedBtn i {
+  font-size: 1.1rem;
+  margin-right: 8px;
 }
 
 
@@ -541,17 +600,38 @@ td > .savePDFBtn {
   border: 1px solid #ccc;
   border-radius: 10px;
   cursor: pointer;
+  transition: 
+    background-color 0.3s ease, 
+    border-color 0.3s ease, 
+    color 0.3s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+  box-shadow: none;
 }
 
 #pagination button.active-page {
-  background-color: rgba(20, 174, 187, 0.1);
-  color: var(--primary-color);
+  background-color: rgb(20, 173, 187);
+  color: white;
+  box-shadow: 0 0 8px rgba(20, 173, 187, 0.6);
+}
+
+#pagination button:hover:not(:disabled) {
+  background-color: rgba(20, 173, 187, 0.589);
+  border: 1px solid #13919f;
+  color: white;
+  box-shadow: 0 2px 8px rgba(20, 173, 187, 0.5);
+  transform: translateY(-2px);
 }
 
 #pagination button:disabled {
-  background-color: var(--white);
   cursor: not-allowed;
+  color: #aaa;
+  background-color: #f5f5f5;
+  border-color: #ddd;
+  box-shadow: none;
+  pointer-events: none;
 }
+
 
 #pagination {
   display: flex;

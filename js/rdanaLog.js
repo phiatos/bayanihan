@@ -16,6 +16,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const exportExcelBtn = document.getElementById('exportExcelBtn'); 
   const savePdfBtn = document.getElementById('savePdfBtn');
+  const entriesInfo = document.querySelector("#entriesInfo");
+  const paginationContainer = document.querySelector("#pagination");
 
   let rdanaLogs = [];
   let filteredLogs = [];
@@ -114,42 +116,48 @@ document.addEventListener('DOMContentLoaded', () => {
     renderPaginationControls(totalPages);
   }
 
-  function renderPaginationControls(totalPages) {
+  function renderPaginationControls(totalRows) {
     const pagination = document.getElementById("pagination");
     pagination.innerHTML = '';
 
-    if (totalPages === 0) {
-      pagination.innerHTML = '<span>No entries to display</span>';
-      return;
-    }
+    const totalPages = Math.ceil(totalRows / rowsPerPage);
+    const maxVisible = 5;
 
-    const createButton = (label, page, disabled = false, isActive = false) => {
-      const btn = document.createElement('button');
-      btn.textContent = label;
-      if (disabled) btn.disabled = true;
-      if (isActive) btn.classList.add('active');
-      btn.addEventListener('click', () => {
-        currentPage = page;
-        renderTable(filteredLogs);
-      });
-      return btn;
+    const createButton = (label, page = null, disabled = false, isActive = false) => {
+        const btn = document.createElement('button');
+        btn.textContent = label;
+        if (disabled) btn.disabled = true;
+        if (isActive) btn.classList.add('active-page');
+        if (page !== null) {
+            btn.addEventListener('click', () => {
+                currentPage = page;
+                renderTable(filteredLogs);
+            });
+        }
+        return btn;
     };
+
+    if (totalPages === 0) {
+        pagination.innerHTML = '<span>No entries to display</span>';
+        return;
+    }
 
     pagination.appendChild(createButton('Prev', currentPage - 1, currentPage === 1));
 
-    const maxVisible = 5;
     let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
     let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+
     if (endPage - startPage < maxVisible - 1) {
-      startPage = Math.max(1, endPage - maxVisible + 1);
+        startPage = Math.max(1, endPage - maxVisible + 1);
     }
 
     for (let i = startPage; i <= endPage; i++) {
-      pagination.appendChild(createButton(i, i, false, i === currentPage));
+        pagination.appendChild(createButton(i, i, false, i === currentPage));
     }
 
     pagination.appendChild(createButton('Next', currentPage + 1, currentPage === totalPages));
-  }
+}
+
 
   function deleteLog(firebaseKey, globalIndex) {
     
