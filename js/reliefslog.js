@@ -319,7 +319,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const btn = document.createElement('button');
             btn.textContent = label;
             if (disabled) btn.disabled = true;
-            if (isActive) btn.classList.add('active');
+            if (isActive) btn.classList.add('active-page');
             btn.addEventListener('click', () => {
                 currentPage = page;
                 renderTable();
