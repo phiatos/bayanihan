@@ -38,7 +38,8 @@ main {
 }
 
 /* header */
-header {
+.index-header {
+    all: unset;
     display: flex;
     align-items: center;
     justify-content: flex-start;
