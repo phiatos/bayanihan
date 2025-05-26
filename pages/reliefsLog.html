@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="../css/reliefslog.css" />
     <link rel="stylesheet" href="../css/global.css" />
     <link rel='stylesheet' href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css'/>
+
     <!-- Firebase Compat SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
@@ -30,8 +31,12 @@
                     <header>Relief Request Log</header>
                 </div>
                 <div class="controls_right">
-                    <button id="savePdfBtn" class="pdf-button">Save to PDF</button>
-                    <button id="exportExcelBtn" class="excel-button">Export to Excel</button> 
+                    <button id="savePdfBtn" class="pdf-button">
+                        <i class='bx bxs-file-pdf'></i>
+                        Save to PDF</button>
+                    <button id="exportExcelBtn" class="excel-button">
+                         <i class='bx bxs-file-export'></i>
+                         Export to Excel</button> 
                     <div class="search-wrapper">
                         <i class="fa fa-search"></i>
                         <input type="text" placeholder="Search" id="searchInput" />
