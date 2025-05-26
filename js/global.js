@@ -271,7 +271,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 });
 
-  // Function to display error messages
+// Function to display error messages
 const showToast = (message, type = 'error') => {
     const toastContainer = document.querySelector('.toast-container');
     const toast = document.createElement('div');
