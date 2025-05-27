@@ -325,6 +325,7 @@ form{
     left: 20px; 
     cursor: pointer;
     z-index: 10;
+    background: transparent;
 }
 .back-btn i {
     font-size: 24px; 

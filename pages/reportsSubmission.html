@@ -8,16 +8,12 @@
     <link rel="stylesheet" href="../css/global.css" />
     <link rel='stylesheet' href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css'/>
 
-    <!-- Firebase Compat SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
-    <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-    <!-- Google Maps API -->
- <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBDtlY28p-MvLHRtxnjiibSAadSETvM3VU&libraries=places&callback=initMap" async defer></script>
+    
     <title>Submit a Report</title>
 </head>
 <body>
@@ -26,7 +22,6 @@
         <div id="form-main-content">
             <header>Reports Submission</header>
 
-            <!-- Page 1 -->
             <form id="form-page-1">
                 <div class="form first">
                     <div class="form-container-1">
@@ -45,6 +40,10 @@
                                 <label>Date of Report</label>
                                 <input type="text" id="dateOfReport" placeholder="Date of Report" readonly/>
                             </div>
+                            <!-- <div class="input-field">
+                                <label>Submitted By</label>
+                                <input type="text" id="SubmittedBy" placeholder="Submitted By" readonly />
+                            </div> -->
                         </div>
                     </div>
 
@@ -52,8 +51,15 @@
                         <span class="title">Relief Operations</span>
                         <div class="fields">
                             <div class="input-field">
+                                <label for="calamityAreaDropdown">Select Calamity & Area of Operation:</label>
+                                <select id="calamityAreaDropdown" required>
+                                    <option value="">-- Select an Active Operation --</option>
+                                </select>
+                            </div>
+                            
+                            <div class="input-field">
                                 <label>Completion Time of Intervention</label>
-                                <input type="time" placeholder="Completion Time of Intervention" required>
+                                <input type="time" id="completionTime" placeholder="Completion Time of Intervention" required>
                             </div>
                             <div class="input-field">
                                 <label>Starting Date of Operation</label>
@@ -65,35 +71,35 @@
                             </div>
                             <div class="input-field">
                                 <label>No. of Individuals or Families</label>
-                                <input type="number" placeholder="No. of Individuals or Families" min="1" required>
+                                <input type="number" id="numIndividualsFamilies" placeholder="No. of Individuals or Families" min="1" required>
                             </div>
                             <div class="input-field">
                                 <label>No. of Relief Packs</label>
-                                <input type="number" placeholder="No. of Food Packs" min="1" required>
+                                <input type="number" id="numFoodPacks" placeholder="No. of Food Packs" min="1" required>
                             </div>
                             <div class="input-field">
                                 <label>No. of Hot Meals/Ready-to-eat food</label>
-                                <input type="number" placeholder="No. of Hot Meals" min="1" required>
+                                <input type="number" id="numHotMeals" placeholder="No. of Hot Meals" min="1" required>
                             </div>
                             <div class="input-field">
                                 <label>Liters of Water</label>
-                                <input type="number" placeholder="Liters of Water" min="1" required>
+                                <input type="number" id="litersWater" placeholder="Liters of Water" min="1" required>
                             </div>
                             <div class="input-field">
                                 <label>No. of Volunteers Mobilized</label>
-                                <input type="number" placeholder="No. of Volunteers Mobilized" min="1" required>
+                                <input type="number" id="numVolunteers" placeholder="No. of Volunteers Mobilized" min="1" required>
                             </div>
                             <div class="input-field">
                                 <label>No. of Organizations Activated</label>
-                                <input type="number" placeholder="No. of Organizations Activated" min="1" required>
+                                <input type="number" id="numOrganizations" placeholder="No. of Organizations Activated" min="1" required>
                             </div>
                             <div class="input-field">
                                 <label>Total Value of In-Kind Donations</label>
-                                <input type="number" placeholder="Total Value of In-Kind Donations" min="1" required>
+                                <input type="number" id="valueInKind" placeholder="Total Value of In-Kind Donations" min="1" required>
                             </div>
                             <div class="input-field">
                                 <label>Total Monetary Donations</label>
-                                <input type="number" placeholder="Total Monetary Donations" min="1" required>
+                                <input type="number" id="monetaryDonations" placeholder="Total Monetary Donations" min="1" required>
                             </div>
                         </div>
                         <button type="button" class="next-btn" id="nextBtn">Next</button>
@@ -101,13 +107,12 @@
                 </div>
             </form>
         
-            <!-- Page 2 -->
             <form id="form-page-2" style="display: none;">
                 <div class="form-container-1">
                     <h2>Additional Updates</h2>
                     <div>
-                        <p>Notes/Additional Information</p>
-                        <textarea rows="6" cols="100" placeholder="Notes/additional information"></textarea>
+                        <p>Notes/Additional Information (Optional)</p>
+                        <textarea id="notesInfo" rows="6" cols="100" placeholder="Notes/additional information"></textarea>
                     </div>
                 </div>
                 <div class="button-group">
@@ -121,13 +126,8 @@
     <!-- Map Modal with Search Bar -->
     <div id="mapModal" class="modal">
         <div class="modal-content">
-            <span class="closeBtn">×</span>
-            <!-- Search Bar -->
-            <div class="search-bar">
-                <input type="text" id="search-input" placeholder="Search for a location..." />
-            </div>
-            <!-- Map Container -->
-            <div id="mapContainer" style="width: 100%; height: 500px;"></div>
+            <span class="closeBtn">&times;</span>
+            <div id="mapContainer" style="width: 100%; height: 400px;"></div>
         </div>
     </div>
 

@@ -75,6 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 "DateOfReport"
             ],
             "Relief Operations": [
+                "CalamityAreaId",
                 "TimeOfIntervention",
                 "StartDate",
                 "EndDate",
@@ -109,6 +110,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     displayKey = displayKey
                         .replace('AreaOfOperation', 'Area of Operation')
                         .replace('TimeOfIntervention', 'Completion of Time Intervention')
+                        .replace('CalamityAreaId', 'Calamity Area ID')
                         .replace('DateOfReport', 'Date of Report')
                         .replace('ReportID', 'Report ID')
                         .replace('StartDate', 'Start Date')
@@ -145,10 +147,10 @@ document.addEventListener('DOMContentLoaded', () => {
         // Back button logic
         document.getElementById('backBtn').addEventListener('click', () => {
         // Save current summaryData back to localStorage to keep form data
-            localStorage.setItem("reportData", JSON.stringify(summaryData));
-
+            // localStorage.setItem("reportData", JSON.stringify(summaryData));
+            window.history.back()
             localStorage.setItem("returnToStep", "form-container-2");
-            window.location.href = "../pages/reportssubmission.html";
+            
         });
 
         // Submit button logic
