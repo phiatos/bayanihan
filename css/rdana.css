@@ -179,30 +179,36 @@ label:has(+ textarea[required])::after {
     display: flex;
     justify-content: flex-start;
     gap: 12px;
-    margin-top: 15px;
+    margin-top: 10px;
   }
   
   #form-page-2 .button-group .next-btn {
-    min-width: 10px;
+    width: 160px;
+    padding: 8px 0; /* a bit more vertical padding for comfort */
     background-color: var(--primary-color);
+    color: var(--white);
+    box-sizing: border-box;
+    border: none;
+    border-radius: 10px; /* slightly rounder for modern feel */
+    cursor: pointer;
+    font-size: 14px; /* slightly larger for readability */
+    letter-spacing: 0.5px;
+    display: inline-block;
+    text-align: center;
+    margin: 5px;
+    transition: 
+      background-color 0.3s ease, 
+      box-shadow 0.3s ease, 
+      transform 0.2s ease;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
   }
   
   #form-page-2 .button-group .next-btn:hover {
-    background-color: #128C99;
-  }
-  
-  
-  
-/* General table styling */
-#disasterprofile-table{
-  width: auto;
-  border-radius: 10px;
-  border: solid 1px #14adbb;
-  margin-top: 10px;
-  font-family: Arial, sans-serif;
-  font-size: 14px;
-  color: #333;
+    background-color: #0c7a99; /* a deeper tone for hover */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+    transform: translateY(-2px);
 }
+  
 
 #status-table{
   width: 100%;
@@ -236,7 +242,7 @@ label:has(+ textarea[required])::after {
 #checklist-table input[type="checkbox"] {
   width: 20px;
   height: 20px;
-  accent-color: #007bff;
+  accent-color: #FA3B99;
   cursor: pointer;
   margin: 5px;
 }
@@ -253,16 +259,6 @@ label:has(+ textarea[required])::after {
   }
 }
 
-
-
-/* Header styling */
-#disasterprofile-table thead th{
-  background-color: #00b3c3c2;
-  border: solid 1px #14adbb;
-  color: white;
-  padding: 15px;
-  text-align: center;
-}
 
 #status-table thead th {
   background-color: #00b3c3c2;
@@ -284,11 +280,8 @@ label:has(+ textarea[required])::after {
     }
 }
 
-/* Body cell styling */
-#disasterprofile-table tbody td{
-  border: solid 1px #14adbb;
-  padding: 8px 10px;
-}
+
+
 
 #status-table tbody td{
   border: solid 1px #14adbb;
@@ -303,27 +296,7 @@ label:has(+ textarea[required])::after {
   
 }
 
-/* Alternate row colors */
-#disasterprofile-table tbody tr:nth-child(even), #status-table tbody tr:nth-child(even)  {
-  background-color: #f9f9f9;
-}
 
-/* Hover effect */
-#disasterprofile-table tbody tr:hover, #status-table tbody tr:hover  {
-  background-color: #f1f1f1;
-}
-
-/* Input inside table cells */
-#disasterprofile-table input[type="text"],
-#disasterprofile-table input[type="number"] {
-  width: 100%;
-  padding: 6px;
-  background-color: #fff;
-  box-sizing: border-box;
-  border: solid 1px #14adbb;
-  border-radius: 4px;
-  text-align: center;
-}
 
 #status-table input[type="text"] {
   width: 100%;
@@ -338,27 +311,96 @@ label:has(+ textarea[required])::after {
   font-size: 15px;
 }
 
-/* Button inside table (like remove row) */
+#disasterprofile-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid #14adbb;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-top: 15px;
+  font-family: Arial, sans-serif;
+  font-size: 14px;
+  color: #333;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+#disasterprofile-table thead th {
+  background-color: #00b3c3;
+  color: white;
+  padding: 16px 12px;
+  text-align: center;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+#disasterprofile-table tbody td {
+  width: 100px;
+  border-top: 1px solid #14adbb;
+  padding: 16px 12px;
+  text-align: center;
+  justify-content: center;
+  transition: background-color 0.2s ease;
+}
+
+#disasterprofile-table tbody tr:hover {
+  background-color: rgba(20, 173, 187, 0.1);
+}
+
+#disasterprofile-table input[type="text"],
+#disasterprofile-table input[type="number"] {
+  width: 100%;
+  padding: 8px 10px;
+  background-color: #fff;
+  box-sizing: border-box;
+  border: 1px solid #14adbb;
+  border-radius: 6px;
+  text-align: center;
+  font-size: 12px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+#disasterprofile-table input[type="text"]::placeholder,
+#disasterprofile-table input[type="number"]::placeholder {
+  color: #999;
+  font-size: 12px;
+  font-style: italic; /* italic for subtle guiding tone */
+  opacity: 0.7;
+}
+
+#disasterprofile-table input[type="text"]:focus,
+#disasterprofile-table input[type="number"]:focus {
+  border-color: #0f8b98;
+  box-shadow: 0 0 6px rgba(20, 173, 187, 0.5);
+  outline: none;
+}
+
 #disasterprofile-table button {
-  padding: 5px 10px;
+  padding: 6px 12px;
   background-color: #f44336;
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
+  font-size: 13px;
   cursor: pointer;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease;
 }
 
-#disasterprofile-table button:hover {
+#disasterprofile-table button:hover:not(:disabled) {
   background-color: #d32f2f;
+  box-shadow: 0 0 6px rgb(255, 86, 86);
 }
 
-#disasterprofile-table input::placeholder {
-  color: #888;
-  font-size: 10px;
-  opacity: 1; 
-  text-align: center;
-  align-content: center;
+#disasterprofile-table button:active:not(:disabled) {
+  transform: scale(0.95);
 }
+
+#disasterprofile-table button:disabled {
+  background-color: #e0e0e0;
+  color: #aaa;
+  cursor: not-allowed;
+}
+
 
 /* Section Heading */
 h2 {

@@ -260,27 +260,46 @@ tr {
   position: fixed;
   top: 0; left: 0;
   width: 100%; height: 100%;
-  background: rgba(0,0,0,0.6);
+  background: rgba(0, 0, 0, 0.5); /* slightly softer dark backdrop */
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 999;
+  backdrop-filter: blur(4px); /* adds subtle background blur for elegance */
+  transition: opacity 0.3s ease;
 }
 
-.modal.hidden { display: none; }
+.modal.hidden {
+  opacity: 0;
+  pointer-events: none; /* ensures no accidental clicks when hidden */
+}
+
 .modal-content {
   background: var(--light-bg);
-  padding: 50px;
-  width: 1000px;
-  /* Add max-height and make overflow-y scroll */
-  max-height: 90vh; /* Adjust as needed, e.g., 90% of viewport height */
-  overflow-y: auto; /* This is key! */
-  border: 5px solid var(--primary-color);
-  border-radius: 18px;
+  padding: 40px 50px;
+  width: 90%;
+  max-width: 900px; /* keep it responsive */
+  max-height: 85vh;
+  overflow-y: auto;
+  border: 3px solid var(--primary-color);
+  border-radius: 16px;
   position: relative;
-  /* Ensure the content box itself allows scrolling */
-  display: flex; /* Often useful for internal layout */
-  flex-direction: column; /* To stack content vertically */
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.25);
+  animation: modalFadeIn 0.4s ease; /* smooth entrance animation */
+}
+
+/* Add smooth fade-in */
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .close {
@@ -560,15 +579,6 @@ button:disabled {
   margin-right: 8px;
 }
 
-
-/* td > .editBtn,
-td > .deleteBtn,
-td > .endorseBtn,
-td > .savePDFBtn {
-  margin-right: 5px;
-  margin-bottom: 5px;
-} */
-
 /* ==========================================================================
  Pagination
 ========================================================================== */
@@ -769,30 +779,38 @@ td > .savePDFBtn {
 /* Buttons */
 .form-page-container form .next-btn, 
 .form-page-container form .backBtn{
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 45px;
-  max-width: 200px;
-  width: 100%;
-  border: none;
-  outline: none;
-  color: var(--white);
-  border-radius: 5px;
-  margin: 15px 0;
-  background-color: var(--primary-color);
-  transition: all 0.3s linear;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 400;
+    width: 200px;
+    padding: 8px 0; /* a bit more vertical padding for comfort */
+    background-color: var(--primary-color);
+    color: var(--white);
+    box-sizing: border-box;
+    border: none;
+    border-radius: 10px; /* slightly rounder for modern feel */
+    cursor: pointer;
+    font-size: 14px; /* slightly larger for readability */
+    letter-spacing: 0.5px;
+    display: inline-block;
+    text-align: center;
+    margin-top: 10px;
+    margin-bottom: 25px;
+    transition: 
+      background-color 0.3s ease, 
+      box-shadow 0.3s ease, 
+      transform 0.2s ease;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
 }
+
+.form-page-container form button:hover{
+  background-color: #0c7a99; /* a deeper tone for hover */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+  transform: translateY(-2px);
+}
+
 
 button.delete-btn{
   align-content: center;
 }
-.form-page-container form button:hover{
-  background-color: #0e7781;
-}
+
 
 .form-page-container form button i,
 .form-page-container form .backBtn i{
@@ -810,10 +828,11 @@ button.delete-btn{
 .form-page-container form .buttons .backBtn{
   margin-right: 14px;
 }
+
 .form-page-container .button-group{
   display: flex;
   align-items: center;
-  margin-top: 20px;
+  margin-top: 10px;
   gap: 10px;
 }
 
