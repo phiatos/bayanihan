@@ -116,63 +116,56 @@ document.addEventListener('DOMContentLoaded', () => {
     renderPaginationControls(totalPages);
   }
 
-  function renderPaginationControls(totalRows) {
+  function renderPaginationControls(totalPages) {
     const pagination = document.getElementById("pagination");
     pagination.innerHTML = '';
 
-    const totalPages = Math.ceil(totalRows / rowsPerPage);
-    const maxVisible = 5;
-
-    const createButton = (label, page = null, disabled = false, isActive = false) => {
-        const btn = document.createElement('button');
-        btn.textContent = label;
-        if (disabled) btn.disabled = true;
-        if (isActive) btn.classList.add('active-page');
-        if (page !== null) {
-            btn.addEventListener('click', () => {
-                currentPage = page;
-                renderTable(filteredLogs);
-            });
-        }
-        return btn;
-    };
-
     if (totalPages === 0) {
-        pagination.innerHTML = '<span>No entries to display</span>';
-        return;
+      pagination.innerHTML = '<span>No entries to display</span>';
+      return;
     }
+
+    const createButton = (label, page, disabled = false, isActive = false) => {
+      const btn = document.createElement('button');
+      btn.textContent = label;
+      if (disabled) btn.disabled = true;
+      if (isActive) btn.classList.add('active');
+      btn.addEventListener('click', () => {
+        currentPage = page;
+        renderTable(filteredLogs);
+      });
+      return btn;
+    };
 
     pagination.appendChild(createButton('Prev', currentPage - 1, currentPage === 1));
 
+    const maxVisible = 5;
     let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
     let endPage = Math.min(totalPages, startPage + maxVisible - 1);
-
     if (endPage - startPage < maxVisible - 1) {
-        startPage = Math.max(1, endPage - maxVisible + 1);
+      startPage = Math.max(1, endPage - maxVisible + 1);
     }
 
     for (let i = startPage; i <= endPage; i++) {
-        pagination.appendChild(createButton(i, i, false, i === currentPage));
+      pagination.appendChild(createButton(i, i, false, i === currentPage));
     }
 
     pagination.appendChild(createButton('Next', currentPage + 1, currentPage === totalPages));
-}
-
+  }
 
   function deleteLog(firebaseKey, globalIndex) {
-    
-   Swal.fire({
-    title: 'Confirm Deletion',
-    text: "Are you absolutely sure you want to delete this? This action is irreversible!",
+  Swal.fire({
+    title: 'Are you sure?',
+    text: 'This will remove the RDANA log from the active list but keep it in the database for future access.',
     icon: 'warning',
     showCancelButton: true,
-    confirmButtonColor: '#d9534f',   // Bootstrap danger red, strong but not overly bright
-    cancelButtonColor: '#6c757d',    // Muted gray, less attention
+    confirmButtonColor: '#d9534f',
+    cancelButtonColor: '#6c757d',
     confirmButtonText: 'Yes, delete it!',
     cancelButtonText: 'Cancel',
     background: '#fff',
-    color: '#212529',                // Darker text for strong readability
-    iconColor: '#d9534f',            // Matches confirm button for visual coherence
+    color: '#212529',
+    iconColor: '#d9534f',
     position: 'center',
     customClass: {
       popup: 'custom-swal-popup',
@@ -182,55 +175,93 @@ document.addEventListener('DOMContentLoaded', () => {
       cancelButton: 'custom-cancel-btn'
     },
     buttonsStyling: false,
+  }).then((result) => {
+    if (result.isConfirmed) {
+      const userUid = filteredLogs[globalIndex]?.userUid;
+      const rdanaId = filteredLogs[globalIndex]?.rdanaId;
+      if (!userUid || !rdanaId) {
+        console.error("Invalid userUid or rdanaId:", { userUid, rdanaId, log: filteredLogs[globalIndex] });
+        Swal.fire({
+          icon: 'error',
+          title: 'Delete Error',
+          text: 'Invalid user or RDANA ID. Cannot delete.',
+        });
+        return;
+      }
 
+      // Find the correct key by matching rdanaId
+      database.ref('rdana/approved').orderByChild('rdanaId').equalTo(rdanaId).once('value')
+        .then(snapshot => {
+          const reports = snapshot.val();
+          if (!reports) {
+            console.warn(`RDANA log with rdanaId ${rdanaId} not found in rdana/approved. Proceeding with UI update.`);
+            return Promise.resolve();
+          }
 
+          // Get the actual key (there should only be one match since rdanaId is unique)
+          const actualKey = Object.keys(reports)[0];
+          const logData = reports[actualKey];
+          if (!actualKey || !logData) {
+            console.warn(`RDANA log with rdanaId ${rdanaId} not found in rdana/approved. Proceeding with UI update.`);
+            return Promise.resolve();
+          }
 
-    }).then((result) => {
-      if (result.isConfirmed) {
-        // Delete from Firebase
-        Promise.all([
-          database.ref(`rdana/approved/${firebaseKey}`).remove(),
-          database.ref(`users/${filteredLogs[globalIndex].userUid}/rdanaReports/${firebaseKey}`).remove()
-        ])
-          .then(() => {
-            // Remove from local arrays
-            const rdanaIdToDelete = filteredLogs[globalIndex].rdanaId;
-            filteredLogs.splice(globalIndex, 1);
-            const mainIndex = rdanaLogs.findIndex(log => log.rdanaId === rdanaIdToDelete);
-            if (mainIndex > -1) rdanaLogs.splice(mainIndex, 1);
+          // Move to deletedrdana with the actual key
+          return database.ref(`deletedrdana/${actualKey}`).set({
+            ...logData,
+            deletedAt: new Date().toISOString()
+          }).then(() => ({ actualKey }));
+        })
+        .then(result => {
+          if (!result) {
+            // If the log wasn't found, proceed with UI update
+            return Promise.resolve();
+          }
+          const { actualKey } = result;
+          // Remove from rdana/approved and users/${userUid}/rdanaReports using the actual key
+          return Promise.all([
+            database.ref(`rdana/approved/${actualKey}`).remove(),
+            database.ref(`users/${userUid}/rdanaReports/${actualKey}`).remove()
+          ]);
+        })
+        .then(() => {
+          // Update local arrays
+          filteredLogs.splice(globalIndex, 1);
+          const mainIndex = rdanaLogs.findIndex(log => log.rdanaId === rdanaId);
+          if (mainIndex > -1) rdanaLogs.splice(mainIndex, 1);
 
-            // Adjust current page if needed
-            const totalPages = Math.ceil(filteredLogs.length / rowsPerPage);
-            if (currentPage > totalPages) currentPage = totalPages || 1;
+          // Adjust current page
+          const totalPages = Math.ceil(filteredLogs.length / rowsPerPage);
+          if (currentPage > totalPages) currentPage = totalPages || 1;
 
-            renderTable(filteredLogs);
-            Swal.fire({
+          renderTable(filteredLogs);
+          Swal.fire({
             icon: 'success',
-            title: 'Log Permanently Deleted',
-            text: 'This action cannot be undone. The RDANA log has been permanently removed.',
+            title: 'Deleted',
+            text: 'RDANA log has been moved to the deleted list or was already removed.',
             timer: 2500,
             showConfirmButton: false,
-            background: '#fff5f5',           // subtle red-pink background to imply caution
-            color: '#b71c1c',                // strong red text for emphasis
-            iconColor: '#d32f2f',            // red icon for seriousness
+            background: '#fff5f5',
+            color: '#b71c1c',
+            iconColor: '#d32f2f',
             customClass: {
               popup: 'swal2-popup-delete',
               title: 'swal2-title-delete',
               content: 'swal2-text-delete'
             }
           });
-          })
-          .catch(error => {
-            console.error("Error deleting RDANA log:", error);
-            Swal.fire({
-              icon: 'error',
-              title: 'Error',
-              text: 'Failed to delete RDANA log: ' + error.message,
-            });
+        })
+        .catch(error => {
+          console.error("Delete error:", error);
+          Swal.fire({
+            icon: 'error',
+            title: 'Delete Error',
+            text: error.message,
           });
-      }
-    });
-  }
+        });
+    }
+  });
+}
 
   function formatLargeNumber(numStr) {
       let num = BigInt(numStr || "0");

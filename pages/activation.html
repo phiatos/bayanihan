@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,16 +9,274 @@
     <link rel="stylesheet" href="../css/global.css" />
     <link rel='stylesheet' href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css'/>
 
-    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
-    <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    
-    
+
+
     <title>Activation</title>
+        <style>
+        /* MODAL STYLES (Add this to activation.css or directly here for quick testing) */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 1000; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+            display: flex; /* Use flexbox for centering */
+            align-items: center; /* Center vertically */
+            justify-content: center; /* Center horizontally */
+        }
+
+        .modal-content {
+            background-color: var(--light-bg); 
+            margin: auto; /* For browsers that don't support flex centering */
+            padding: 30px;
+            border: 1px solid #888;
+            width: 80%; /* Could be responsive */
+            max-width: 600px; /* Max width for readability */
+            box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);
+            border-radius: 8px;
+            position: relative;
+            animation-name: animatetop;
+            animation-duration: 0.4s;
+            display: flex; /* Flex container for modal content */
+            flex-direction: column; /* Stack children vertically */
+        }
+
+        /* Add Animation */
+        @keyframes animatetop {
+            from {top: -300px; opacity: 0}
+            to {top: 0; opacity: 1}
+        }
+
+        .close-button {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            position: absolute;
+            top: 10px;
+            right: 20px;
+        }
+
+        .close-button:hover,
+        .close-button:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .modal-content h2 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .modal-details p {
+            margin-bottom: 10px;
+            font-size: 1.1em;
+            color: #555;
+        }
+
+        .modal-details strong {
+            color: #333;
+        }
+
+        .modal-action-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .modal-action-buttons button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+        }
+
+        .modal-action-buttons .btn-primary {
+            background-color: var(--primary-color); /* Assuming you have a blue color variable */
+            color: var(--white);
+            width: fit-content;
+        }
+        .modal-action-buttons .btn-secondary {
+            background-color: var(--primary-color);
+            color: var(--white);
+        }
+
+        /* Table Specific Styles for the "Action" button */
+        .action-button {
+            padding: 8px 15px;
+            background-color: var(--red-hover); /* For Deactivate/View */
+            color: rgb(255, 255, 255);
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+
+        .action-button-endorse-button {
+            background-color: var(--primary-color); /* For Endorse */
+        }
+
+        .action-button:hover {
+            opacity: 0.9;
+        }
+
+        /* Calamity Type and Typhoon Name in Modal */
+        .modal-calamity-container {
+            display: flex;
+            flex-direction: column; /* Stack label and input */
+            gap: 5px;
+            margin-bottom: 15px;
+        }
+        .modal-calamity-container select,
+        .modal-calamity-container input[type="text"] {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 1em;
+            width: 100%; /* Full width within container */
+            box-sizing: border-box; /* Include padding/border in width */
+        }
+
+        /* Area Input in Modal */
+        .modal-area-input-container { /* New container for the input field */
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            margin-bottom: 15px;
+        }
+        #modalAreaInput { /* New ID for the text input */
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 1em;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        /* Specific styles for the "Add Activation" button */
+        .add-activation-btn {
+            background-color: var(--primary-color);
+            color: var(--white);
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            width: fit-content; /* Adjust width to content */
+            /* margin-left: 20px; */
+        }
+        .add-activation-btn:hover {
+            opacity: 0.9;
+        }
+
+        /* Styles for the two steps in the modal */
+        .modal-step {
+            display: none; /* Hide steps by default */
+            flex-direction: column;
+            gap: 15px;
+        }
+        .modal-step.active {
+            display: flex; /* Show the active step */
+        }
+
+        /* Group selection dropdown */
+        #selectGroupDropdown {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 1em;
+            box-sizing: border-box;
+        }
+
+        /* --- Endorse Modal Specific Styles --- */
+        .endorse-modal-content { 
+            background-color: #fefefe;
+            margin: 10% auto; 
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            width: 90%; 
+            max-width: 500px; 
+            display: flex;
+            flex-direction: column;
+            gap: 15px; 
+        }
+        .endorse-modal-content label {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #333;
+            display: block; 
+        }
+        .endorse-modal-content input[type="number"],
+        .endorse-modal-content input[type="text"] {
+            width: calc(100% - 20px); 
+            padding: 12px 10px;
+            margin-bottom: 15px; 
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 1rem;
+            box-sizing: border-box;
+            transition: border-color 0.3s ease;
+        }
+        .endorse-modal-content input[type="number"]:focus,
+        .endorse-modal-content input[type="text"]:focus {
+            border-color: #007bff; 
+            outline: none; 
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25); 
+        }
+        #submitReliefBtn {
+            background-color: #28a745; 
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 5px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            align-self: flex-end; 
+        }
+        #submitReliefBtn:hover {
+            background-color: #218838; 
+            transform: translateY(-2px); 
+        }
+
+        #submitReliefBtn:active {
+            background-color: #1e7e34; 
+            transform: translateY(0);
+        }
+        .endorse-modal {
+            display: none; 
+            position: fixed;
+            z-index: 1000; 
+            left: 0;
+            top: 0;
+            width: 100%; 
+            height: 100%; 
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4); 
+            justify-content: center; 
+            align-items: center; 
+        }
+
+        
+    </style>
 </head>
 <body>
     <div class="main-container">
@@ -29,8 +288,16 @@
                 </div>
                 <div class="controls_right">
                     <div class="search-wrapper">
+                        <button class="add-activation-btn" id="addActivationBtn">
+                        <i class='bx bx-plus'></i> Add New Activation
+                        </button>
+                    </div>
+                    <div class="search-wrapper">
                         <i class="fa fa-search"></i>
                         <input type="text" placeholder="Search" id="searchInput" />
+                        <button onclick="clearDInputs()" class="clear-btn">
+                            <i class='bx bx-x'></i>
+                        </button>
                     </div>
                     <div class="custom-select-wrapper">
                         <select id="sortSelect">
@@ -56,13 +323,12 @@
                         <th>Email</th>
                         <th>Mobile Number</th>
                         <th>Calamity Type</th>
-                        <th>Activation</th>
                         <th>Status</th>
+                        <th>Actions</th> 
                     </tr>
                 </thead>
                 <tbody id="tableBody">
-                    <!-- Rows will be injected here by JS -->
-                </tbody>
+                    </tbody>
             </table>
             <div class="pagination-info">
                 <span id="entriesInfo">Showing 0 to 0 of 0 entries</span>
@@ -71,21 +337,79 @@
         </div>
     </div>
 
+    <div id="activationModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close-button" id="closeActivationModal">&times;</span>
+            <h2 id="modalTitle">Add New Activation</h2>
+
+            <div id="modalStep1" class="modal-step active">
+                <label for="selectGroupDropdown">Select Organization:</label>
+                <select id="selectGroupDropdown">
+                    <option value="">-- Select an Organization --</option>
+                    </select>
+                <div class="modal-action-buttons">
+                    <button id="modalNextStepBtn" class="btn-primary" disabled>Next</button>
+                    <button class="btn-secondary" onclick="closeActivationModal()">Cancel</button>
+                </div>
+            </div>
+
+            <div id="modalStep2" class="modal-step">
+                <h3>Configure Activation for: <span id="selectedOrgName"></span></h3>
+
+                <div class="modal-area-input-container">
+                    <label for="modalAreaInput">Area of Operations:</label>
+                    <input type="text" id="modalAreaInput" placeholder="e.g., Brgy. San Jose, Antipolo City" required>
+                    <button type="button" id="pinLocationBtn" class="btn btn-secondary" style="margin-top: 10px;">
+                        <i class="fas fa-map-marker-alt"></i> Pin Location
+                </div>
+
+                <div class="modal-calamity-container">
+                    <label for="modalCalamitySelect">Calamity Type:</label>
+                    <select class="calamity-select" id="modalCalamitySelect" required>
+                        </select>
+                    <input
+                        type="text"
+                        class="typhoon-name-input"
+                        id="modalTyphoonNameInput"
+                        placeholder="Enter typhoon name"
+                        style="display: none;"
+                    />
+                </div>
+
+                <div class="modal-action-buttons">
+                    <button id="modalActivateSubmitBtn" class="btn-primary">Activate Group</button>
+                    <button id="modalPrevStepBtn" class="btn-secondary">Back</button>
+                    <button class="btn-secondary" onclick="closeActivationModal()">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="endorseModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close-button" id="closeEndorseModal">&times;</span>
+            <h2>Send Relief Assistance</h2>
+                <label>Relief Assistance Amount</label>
+                <input type="number" id="modalAreaInput" placeholder="1,000,000.00" required />
+            
+                <label>Relief Assistance Purpose</label>
+                <input type="text" id="modalAreaInput"placeholder="e.g for hot meals" required />
+                <div class="modal-action-buttons">
+                    <button id="modalNextStepBtn" class="btn-primary">Submit</button>
+                </div>
+            </div>
+          
+        </div>
+    </div>
+
     <script>
-        // Fetch the sidebar HTML and inject it into the page
         fetch('../components/sidebar.html')
         .then(response => response.text())
         .then(data => {
             document.querySelector('.sidebar-placeholder').innerHTML = data;
-
-            // Create a new script element
             const sidebarScript = document.createElement('script');
-            sidebarScript.src = '../components/sidebar.js'; 
-
-            // Call initSidebar when the script has loaded and executed
+            sidebarScript.src = '../components/sidebar.js';
             sidebarScript.onload = function() {};
-
-            // Append the script element to the sidebar-placeholder
             document.querySelector('.sidebar-placeholder').appendChild(sidebarScript);
         })
         .catch(error => {
