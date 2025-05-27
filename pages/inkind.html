@@ -3,14 +3,12 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>In-Kind Donations</title>
-
     <link rel="stylesheet" href="../components/sidebar.css" />
     <link rel="stylesheet" href="../css/inkind.css" />
     <link rel="stylesheet" href="../css/global.css" />
     <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" />
 
-    <!-- Firebase Compat SDK (updated to 9.22.0) -->
+    <!-- Firebase Compat SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
@@ -23,6 +21,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 
+    <title>In-Kind Donation</title>
 </head>
 <body>
     <div class="main-container">
@@ -94,8 +93,8 @@
                             </div>
                         </div>
 
-                        <button type="submit">Add Donation</button>
-                        <button type="button" id="clearFormBtn" class="clear-button">Clear Form</button> 
+                        <button type="submit" class="bayanihanBtn">Add Donation</button>
+                        <button type="button" id="clearFormBtn" class="bayanihanBtn">Clear Form</button> 
                     </form>
                 </div>
             </div>
@@ -103,7 +102,7 @@
             <section>
                 <div class="controls">
                     <div class="controls_left">
-                        <h2>In-Kind Donations</h2>
+                        <h2>In-Kind Donations Log</h2>
                     </div>
                     <div class="controls_right">
                         <div class="search-wrapper">
@@ -199,8 +198,8 @@
                 </div>
 
                 <br>
-                <button id="exportBtn" type="button">Export to Excel</button>
-                <button id="savePdfBtn" type="button">Save to PDF</button>
+                <button id="exportBtn" class="pdf-button" type="button"><i class='bx bxs-file-pdf'></i>Export to Excel</button>
+                <button id="savePdfBtn" class="excel-button" type="button"><i class='bx bxs-file-export'></i>Save to PDF</button>
             </section>
 
             <div class="modal" id="endorseModal" style="display:none;">

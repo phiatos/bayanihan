@@ -206,6 +206,26 @@ document.addEventListener('DOMContentLoaded', () => {
       .trim();
   }
 
+  function formatLargeNumber(numStr) {
+  let num = BigInt(numStr || "0");
+  const trillion = 1_000_000_000_000n;
+  const billion = 1_000_000_000n;
+  const million = 1_000_000n;
+  const thousand = 1_000n;
+
+  if (num >= trillion) {
+    return (Number(num) / Number(trillion)).toFixed(2).replace(/\.?0+$/, '') + 'T';
+  } else if (num >= billion) {
+    return (Number(num) / Number(billion)).toFixed(2).replace(/\.?0+$/, '') + 'B';
+  } else if (num >= million) {
+    return (Number(num) / Number(million)).toFixed(2).replace(/\.?0+$/, '') + 'M';
+  } else if (num >= thousand) {
+    return (Number(num) / Number(thousand)).toFixed(2).replace(/\.?0+$/, '') + 'k';
+  }
+  return num.toString();
+}
+
+
   function showDetails(report) {
     const modal = document.getElementById("reportModal");
     const modalDetails = document.getElementById("modalReportDetails");
@@ -225,13 +245,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     modalityHTML += `</table></div>`;
 
+    
     let summaryHTML = `<h3>Summary of Disaster/Incident</h3><p>${report.summary || "N/A"}</p>`;
 
     let affectedHTML = `<h3>Affected Communities</h3><div class='table-scroll'><table class='preview-table' id='rdanalog-table'><tr>
       <th>Community</th><th>Total Pop.</th><th>Affected Pop.</th><th>Deaths</th><th>Injured</th><th>Missing</th><th>Children</th><th>Women</th><th>Seniors</th><th>PWD</th></tr>`;
     (report.affectedCommunities || []).forEach(c => {
-      affectedHTML += `<tr>
-        <td>${c.community || "-"}</td>
+    affectedHTML += `<tr>
+       <td>${c.community || "-"}</td>
         <td>${c.totalPop || 0}</td>
         <td>${c.affected || 0}</td>
         <td>${c.deaths || 0}</td>
@@ -241,8 +262,9 @@ document.addEventListener('DOMContentLoaded', () => {
         <td>${c.women || 0}</td>
         <td>${c.seniors || 0}</td>
         <td>${c.pwd || 0}</td>
-      </tr>`;
-    });
+    </tr>`;
+  });
+
     affectedHTML += `</table></div>`;
 
     let structureHTML = `<h3>Status of Structures</h3><div class='table-scroll'><table class='preview-table' id='rdanalog-table'><tr><th>Structure</th><th>Status</th></tr>`;
@@ -259,11 +281,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let otherNeedsHTML = `
       <p><strong>Other Immediate Needs:</strong> ${report.otherNeeds || "N/A"}</p>
-      <p><strong>Estimated Quantity:</strong> ${report.estQty || "N/A"}</p>
+      <p><strong>Estimated Quantity:</strong> ${report.estQty}</p>
       <h3>Initial Response Actions</h3>
       <p><strong>Response Groups Involved:</strong> ${report.responseGroup || "N/A"}</p>
       <p><strong>Relief Assistance Deployed:</strong> ${report.reliefDeployed || "N/A"}</p>
-      <p><strong>Number of Families Served:</strong> ${report.familiesServed || "N/A"}</p>
+      <p><strong>Number of Families Served:</strong> ${report.familiesServed}</p>
     `;
 
     modalDetails.innerHTML = profileHTML + modalityHTML + summaryHTML + affectedHTML + structureHTML + checklistHTML + otherNeedsHTML;
@@ -300,18 +322,41 @@ document.addEventListener('DOMContentLoaded', () => {
           .then(() => {
             console.log("RDANA report approved and moved to rdana/approved");
             Swal.fire({
-              icon: 'success',
-              title: 'Report Approved',
-              text: 'The RDANA report has been approved and moved to the logs.',
-            });
+            icon: 'success',
+            title: 'Report Approved',
+            text: 'The RDANA report has been approved and moved to the logs.',
+            background: '#e6ffed',         
+            color: '#1e4620',               
+            iconColor: '#22c55e',          
+            confirmButtonColor: '#16a34a',  
+            timer: 2500,                   
+            showConfirmButton: false,
+            customClass: {
+              popup: 'swal2-popup-success-clean',
+              title: 'swal2-title-success-clean',
+              content: 'swal2-text-success-clean'
+            }
+          });
           })
           .catch(error => {
             console.error("Error during RDANA report approval:", error);
-            Swal.fire({
-              icon: 'error',
-              title: 'Error',
-              text: 'Failed to approve RDANA report: ' + error.message,
-            });
+          Swal.fire({
+          icon: 'error',
+          title: 'Approval Failed',
+          text: 'Failed to approve RDANA report: ' + error.message,
+          background: '#fdecea',         
+          color: '#611a15',               
+          iconColor: '#e02424',           
+          confirmButtonColor: '#b91c1c',  
+          timer: 3500,                   
+          showConfirmButton: true,
+          customClass: {
+            popup: 'swal2-popup-error-clean',
+            title: 'swal2-title-error-clean',
+            content: 'swal2-text-error-clean'
+          }
+        });
+
           });
       });
     });
@@ -339,10 +384,16 @@ document.addEventListener('DOMContentLoaded', () => {
         .then(() => {
           console.log("RDANA report rejected and removed");
           Swal.fire({
-            icon: 'success',
-            title: 'Report Rejected',
-            text: 'The RDANA report has been rejected and removed.',
-          });
+          icon: 'error',
+          title: 'Report Rejected',
+          text: 'The RDANA report has been rejected and removed from the system.',
+          background: '#f8d7da',         
+          color: '#721c24',               
+          iconColor: '#b02a37',         
+          confirmButtonColor: '#b02a37',  
+          timer: 3000,
+          showConfirmButton: true,
+        });
         })
         .catch(error => {
           console.error("Error during RDANA report rejection:", error);

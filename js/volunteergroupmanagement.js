@@ -344,11 +344,6 @@ function attachRowHandlers() {
             });
             button.textContent = 'Edit';
             editingRowId = null;
-            Swal.fire({
-              icon: 'success',
-              title: 'Updated',
-              text: 'Volunteer group updated successfully!'
-            });
             fetchAndRenderTable();
           })
           .catch(error => {
@@ -756,12 +751,11 @@ if (confirmSaveBtn) {
       const usersSnapshot = await database.ref('users').once('value');
       const users = usersSnapshot.val();
       
-      // New code's detailed mobile number check with logging
       console.log("All users in database:", users);
       if (users) {
         for (const userData of Object.values(users)) {
           const storedMobile = formatMobileNumber(userData.mobile);
-          const incomingMobile = formatMobileNumber(orgData.mobileNumber); // Format incoming number too
+          const incomingMobile = formatMobileNumber(orgData.mobileNumber);
 
           console.log(`Comparing mobile: ${incomingMobile} with stored: ${userData.mobile} -> ${storedMobile}`);
 
@@ -769,14 +763,14 @@ if (confirmSaveBtn) {
             console.log(`Skipping comparison due to invalid mobile number: ${incomingMobile} vs ${storedMobile}`);
             continue;
           }
-          if (storedMobile === incomingMobile) { // Use formatted incoming number for comparison
+          if (storedMobile === incomingMobile) {
             console.log(`Match found! Mobile number ${orgData.mobileNumber} already registered for user:`, userData);
             throw new Error("Mobile number already registered.");
           }
         }
       }
 
-      // Create Firebase Authentication account with the actual email (NEW CODE)
+      // Create Firebase Authentication account with the actual email
       const tempPassword = generateTempPassword();
       let userCredential;
       try {
@@ -799,7 +793,8 @@ if (confirmSaveBtn) {
         contactPerson: orgData.contactPerson,
         createdAt: new Date().toISOString(),
         isFirstLogin: true,
-        emailVerified: false
+        emailVerified: false,
+        password_needs_reset: true
       });
 
       // Save volunteer group
@@ -811,13 +806,13 @@ if (confirmSaveBtn) {
         userId: newUser.uid
       });
 
-      // Send EmailJS confirmation with temporary password using updated service and template IDs
-      await emailjs.send('service_g5f0erj', 'template_0yk865p', { // Updated to your new service ID and template ID
+      // Send EmailJS confirmation with temporary password (Updated to exclude mobileNumber)
+      await emailjs.send('service_g5f0erj', 'template_0yk865p', {
         email: orgData.email,
         organization: orgData.organization,
         tempPassword: tempPassword,
-        mobileNumber: orgData.mobileNumber,
-        message: `Your volunteer group "${orgData.organization}" has been successfully registered with Bayanihan. Please use the credentials below to log in. You will be prompted to verify your email upon your first login.`
+        message: `Your volunteer group "${orgData.organization}" has been successfully registered with Bayanihan. Please use the credentials below to log in. You will be prompted to verify your email and reset your password upon your first login.`,
+        verification_message: `Please log in using the provided email and temporary password. You will be prompted to verify your email and reset your password upon your first login.`
       });
 
       Swal.fire({

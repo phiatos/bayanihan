@@ -1,85 +1,92 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="../components/sidebar.css"/>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="../components/sidebar.css" />
+    <link rel="stylesheet" href="../css/inkind.css" />
     <link rel="stylesheet" href="../css/global.css" />
-    <link rel="stylesheet" href="../css/inkind.css"/>
-    <link rel='stylesheet' href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css'/>
+    <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" />
 
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
+    <!-- Firebase Compat SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
-     <!-- SweetAlert2 -->
-     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-     
-    <title>call for donation</title>
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Sheets -->
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+    <!-- PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+
+    <title>Call for Donation</title>
 </head>
 <body>
-        <div class="main-container">
-            <div class="sidebar-placeholder"></div>
-            <div id="main-content">
-                <header>Call For Donation</header>
-                
-                <div class="form-page-1">
-                    <div class="form first">
+    <div class="main-container">
+        <div class="sidebar-placeholder"></div>
+
+        <div id="main-content">
+            <header>Call for Donations</header>
+
+            <div class="form-page-1">
+                <div class="form-first">
                     <form id="form-container-1">
                         <div class="fields">
                             <div class="input-field">
-                                <label>Donation Drive <label style="color: red;">*</label></label>
+                                <label>Donation Drive</label>
                                 <input type="text" id="donationDrive" placeholder="Donation Drive" required>
                             </div>
                             <div class="input-field">
-                                <label>Contact Person <label style="color: red;">*</label></label>
+                                <label>Contact Person</label>
                                 <input type="text" id="contactPerson" placeholder="Contact Name" required>
                             </div>
                             <div class="input-field">
-                                <label>Contact Number <label style="color: red;">*</label></label>
+                                <label>Contact Number</label>
                                 <input type="number" id="contactNumber" placeholder="Contact Number" required>
                             </div>
-                             <div class="input-field">
-                                <label>Account Number <label style="color: red;">*</label></label>
+                            <div class="input-field">
+                                <label>Account Number</label>
                                 <input type="number" id="accountNumber" placeholder="Account Number" required>
                             </div>
                             <div class="input-field">
-                                <label>Account Name <label style="color: red;">*</label></label>
+                                <label>Account Name</label>
                                 <input type="text" id="accountName" placeholder="Account Name" required>
                             </div>
                             
                             <div class="input-field">
-                                <label class="form-label">Region <label style="color: red;">*</label></label>
+                                <label class="form-label">Region</label>
                                 <select name="region" class="form-control form-control-md" id="region"></select>
                                 <input type="hidden" class="form-control form-control-md" name="region_text" id="region-text" required>
                             </div>
 
                             <div class="input-field">
-                                <label class="form-label">Province <label style="color: red;">*</label></label>
+                                <label class="form-label">Province</label>
                                 <select name="province" class="form-control form-control-md" id="province"></select>
                                 <input type="hidden" class="form-control form-control-md" name="province_text" id="province-text" required>
                             </div>
 
                             <div class="input-field">
-                                <label class="form-label">City / Municipality <label style="color: red;">*</label></label>
+                                <label class="form-label">City / Municipality</label>
                                 <select name="city" class="form-control form-control-md" id="city"></select>
                                 <input type="hidden" class="form-control form-control-md" name="city_text" id="city-text" required>
                             </div>
 
                             <div class="input-field">
-                                <label class="form-label">Barangay <label style="color: red;">*</label></label>
+                                <label class="form-label">Barangay</label>
                                 <select name="barangay" class="form-control form-control-md" id="barangay"></select>
                                 <input type="hidden" class="form-control form-control-md" name="barangay_text" id="barangay-text" required>
                             </div>
                                                         
                             <div class="input-field">
-                                <label>Blk/Lot/Unit # <label style="color: red;">*</label></label>
+                                <label>Blk/Lot/Unit #</label>
                                 <input type="text" id="address" placeholder="(e.g 1234 Singkamas Street)" required>
                             </div>
                             
                             <div class="input-field">
                                 <label>Facebook Link</label>
-                                <input type="text" id="facebookLink" placeholder="Facebook Link">
+                                <input type="text" id="facebookLink" placeholder="Facebook Link" required>
                             </div>
 
                             <div class="input-field">
@@ -88,15 +95,16 @@
                             </div>
                         </div>
 
-                    <button type="button" class="next-btn" id="nextBtn">Add Donation</button>
-                    <button type="button" id="clearFormBtn" class="clear-button">Clear Form</button> 
+                        <button type="button" class="next-btn" id="nextBtn">Add Donation</button>
+                        <button type="button" id="clearFormBtn" class="clear-button">Clear Form</button> 
                     </form>
-                    </div>
                 </div>
+            </div>
+
             <section>
                 <div class="controls">
                     <div class="controls_left">
-                        <h2>Donation Information</h2>
+                        <h2>Call for Donations</h2>
                     </div>
                     <div class="controls_right">
                         <div class="search-wrapper">
@@ -130,50 +138,73 @@
 
                 <div class="table-responsive-container">
                     <table id="donationTable">
-                    <thead>
-                    <tr>
-                        <th>No.</th>
-                        <th>Donation Drive</th>
-                        <th>Contact Name</th>
-                        <th>Contact Number</th>
-                        <th>Account Number</th>
-                        <th>Account Name</th>
-                        <th>Exact Drop Off Address</th>
-                        <th>Facebook Link</th>
-                        <th>Action</th>
-                    </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
+                        <thead>
+                        <tr>
+                            <th>No.</th>
+                            <th>Donation Drive</th>
+                            <th>Contact Name</th>
+                            <th>Contact Number</th>
+                            <th>Account Number</th>
+                            <th>Account Name</th>
+                            <th>Exact Drop Off Address</th>
+                            <th>Facebook Link</th>
+                            <th>Action</th>
+                        </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
                 </div>
                 
-
                 <div class="pagination-info">
                     <span id="entriesInfo">Showing 0 to 0 of 0 entries</span>
                     <div id="pagination" class="pagination"></div>
                 </div>
 
                 <br>
-                <button id="exportBtn" type="button">Export In-Kind to CSV</button>
+                <button id="exportBtn" type="button">Export to Excel</button>
+                <button id="savePdfBtn" type="button">Save to PDF</button>
             </section>
 
+            <div class="modal" id="editModal" style="display:none;">
+                <div class="modal-content">
+                    <span class="close-button" id="closeEditModalBtn">×</span>
+                    <h4>Edit Donation</h4>
+                    <label>Encoder: <input type="text" id="edit-encoder"></label>
+                    <label>Name: <input type="text" id="edit-name"></label>
+                    <label>Type: <input type="text" id="edit-type"></label>
+                    <label>Address: <input type="text" id="edit-address"></label>
+                    <label>Contact Person: <input type="text" id="edit-contactPerson"></label>
+                    <label>Number: <input type="tel" id="edit-number"></label>
+                    <label>Email: <input type="email" id="edit-email"></label>
+                    <label>Type of Assistance: <input type="text" id="edit-assistance"></label>
+                    <label>Valuation: <input type="number" id="edit-valuation"></label>
+                    <label>Additional Notes: <input type="text" id="edit-additionalnotes"></label>
+                    <label>Status:
+                        <select id="edit-status">
+                            <option value="closed-successful">Closed-successful</option>
+                            <option value="pending">Pending</option>
+                            <option value="closed">Closed</option>
+                        </select>
+                    </label>
+                    <label>Staff-In Charge: <input type="text" id="edit-staffIncharge"></label>
+                    <label>Donation Date: <input type="date" id="edit-donationDate"></label>
+                    <button type="button" id="saveEditBtn">Save Changes</button>
+                    <button type="button" id="cancelEditBtn">Cancel</button>
+                </div>
             </div>
         </div>
+    </div>
 
     <script>
         fetch('../components/sidebar.html')
-        .then(response => response.text())
-        .then(data => {
-            document.querySelector('.sidebar-placeholder').innerHTML = data;
-            const sidebarScript = document.createElement('script');
-            sidebarScript.src = '../components/sidebar.js'; 
-            sidebarScript.onload = function() {
-            };
-            document.querySelector('.sidebar-placeholder').appendChild(sidebarScript);
-        })
-        .catch(error => {
-            console.error('Error loading sidebar:', error);
-        });
+            .then(res => res.text())
+            .then(data => {
+                document.querySelector('.sidebar-placeholder').innerHTML = data;
+                const script = document.createElement('script');
+                script.src = '../components/sidebar.js';
+                document.querySelector('.sidebar-placeholder').appendChild(script);
+            })
+            .catch(err => console.error('Error loading sidebar:', err));
     </script>
 
     <script src="../js/callfordonation.js"></script>

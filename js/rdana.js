@@ -66,6 +66,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+
+
+  // Input Validations
  function validatePageInputs(pageSelector) {
   const inputs = document.querySelectorAll(`${pageSelector} input[required], ${pageSelector} select[required], ${pageSelector} textarea[required]`);
   let isValid = true;
@@ -89,6 +92,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   return isValid;
 }
+
+
 
 
   // Input validation for text fields
@@ -116,237 +121,26 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  function loadSubmittedReports(userUid) {
-    console.log("Loading submitted reports for user:", userUid);
-    database.ref("rdana/submitted").on("value", snapshot => {
-      let rdanaLogs = [];
-      const reports = snapshot.val();
-      console.log("Submitted reports snapshot:", reports);
-      if (reports) {
-        Object.keys(reports).forEach(key => {
-          const report = reports[key];
-          rdanaLogs.push({
-            firebaseKey: key,
-            ...report
-          });
-        });
-      } else {
-        console.log("No submitted reports found in rdana/submitted");
-      }
-      applySearchAndSort(rdanaLogs);
-    }, error => {
-      console.error("Error fetching submitted RDANA reports:", error);
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: 'Failed to load submitted RDANA reports: ' + error.message,
-      });
-    });
-  }
-
-  function formatDate(dateStr) {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString("en-US", {
-      year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit"
-    });
-  }
-
-  function getSortValue(log, key) {
-    switch (key) {
-      case 'DateTime':
-        return new Date(log.dateTime).getTime();
-      case 'RDANAID':
-        return parseInt(log.rdanaId.split('-')[1], 10);
-      case 'Location':
-        return log.siteLocation.toLowerCase();
-      case 'DisasterType':
-        return log.disasterType.toLowerCase();
-      case 'AffectedPopulation':
-        return log.effects?.affectedPopulation ?? 0;
-      case 'Needs':
-        return (log.needs?.priority?.join(", ") ?? "").toLowerCase();
-      default:
-        return '';
-    }
-  }
-
-  function applySearchAndSort(logs) {
-    let filtered = [...logs];
-    const searchTerm = searchInput.value.toLowerCase();
-
-    if (searchTerm) {
-      filtered = filtered.filter(log =>
-        log.rdanaId.toLowerCase().includes(searchTerm) ||
-        log.siteLocation.toLowerCase().includes(searchTerm) ||
-        log.disasterType.toLowerCase().includes(searchTerm) ||
-        (log.needs?.priority?.join(", ").toLowerCase().includes(searchTerm) || false)
-      );
-    }
-
-    const sortBy = sortSelect.value;
-    if (sortBy) {
-      const [key, order] = sortBy.split("-");
-      filtered.sort((a, b) => {
-        const valA = getSortValue(a, key);
-        const valB = getSortValue(b, key);
-
-        if (typeof valA === 'string' && typeof valB === 'string') {
-          return order === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
-        }
-        return order === 'asc' ? valA - valB : valB - valA;
-      });
-    }
-
-    renderReportsTable(filtered);
-  }
-
-  function renderReportsTable(reports) {
-    submittedReportsContainer.innerHTML = "";
-    const start = (currentPage - 1) * rowsPerPage;
-    const paginated = reports.slice(start, start + rowsPerPage);
-
-    entriesInfo.textContent = `Showing ${start + 1} to ${start + paginated.length} of ${reports.length} entries`;
-
-    paginated.forEach((report, index) => {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${start + index + 1}</td>
-        <td>${report.rdanaId}</td>
-        <td>${formatDate(report.dateTime)}</td>
-        <td>${report.siteLocation}</td>
-        <td>${report.disasterType}</td>
-        <td>${report.effects?.affectedPopulation}</td>
-        <td>${report.needs?.priority?.join(", ")}</td>
-        <td>
-          <button class="viewBtn">View</button>
-          <button class="approveBtn">Approve</button>
-          <button class="rejectBtn">Reject</button>
-        </td>
-      `;
-
-      tr.querySelector(".viewBtn").addEventListener("click", () => showDetails(report));
-      tr.querySelector(".approveBtn").addEventListener("click", () => approveReport(report));
-      tr.querySelector(".rejectBtn").addEventListener("click", () => rejectReport(report));
-
-      submittedReportsContainer.appendChild(tr);
-    });
-
-    renderPagination(reports.length);
-  }
-
-  function renderPagination(totalItems) {
-    const pageCount = Math.ceil(totalItems / rowsPerPage);
-    paginationContainer.innerHTML = '';
-
-    if (pageCount === 0) {
-      paginationContainer.innerHTML = '<span>No entries to display</span>';
-      return;
-    }
-
-    const createButton = (label, page, disabled = false, isActive = false) => {
-      const btn = document.createElement('button');
-      btn.textContent = label;
-      if (disabled) btn.disabled = true;
-      if (isActive) btn.classList.add('active');
-      btn.addEventListener('click', () => {
-        currentPage = page;
-        applySearchAndSort();
-      });
-      return btn;
-    };
-
-    paginationContainer.appendChild(createButton('Prev', currentPage - 1, currentPage === 1));
-
-    const maxVisible = 5;
-    let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
-    let endPage = Math.min(pageCount, startPage + maxVisible - 1);
-    if (endPage - startPage < maxVisible - 1) {
-      startPage = Math.max(1, endPage - maxVisible + 1);
-    }
-
-    for (let i = startPage; i <= endPage; i++) {
-      paginationContainer.appendChild(createButton(i, i, false, i === currentPage));
-    }
-
-    paginationContainer.appendChild(createButton('Next', currentPage + 1, currentPage === pageCount));
-  }
-
-  function formatKey(key) {
-    return key.replace(/([A-Z])/g, " $1").replace(/^./, str => str.toUpperCase());
-  }
-
-  function showDetails(report) {
-    const modal = document.getElementById("reportModal");
-    const modalDetails = document.getElementById("modalReportDetails");
-    const closeModal = document.getElementById("closeModal");
-
-    let profileHTML = `<h3>Profile of the Disaster</h3><div class='table-scroll'><table class='preview-table'>`;
-    for (const [key, value] of Object.entries(report.profile || {})) {
-      profileHTML += `<tr><td id='label'>${formatKey(key)}</td><td>${value}</td></tr>`;
-    }
-    profileHTML += `</table></div>`;
-
-    let modalityHTML = `<h3>Modality of the Disaster</h3><div class='table-scroll'><table class='preview-table'>`;
-    for (const [key, value] of Object.entries(report.modality || {})) {
-      modalityHTML += `<tr><td id='label'>${formatKey(key)}</td><td>${value}</td></tr>`;
-    }
-    modalityHTML += `</table></div>`;
-
-    let summaryHTML = `<h3>Summary of Disaster/Incident</h3><p>${report.summary || "N/A"}</p>`;
-
-    let affectedHTML = `<h3>Affected Communities</h3><div class='table-scroll'><table class='preview-table' id='rdanalog-table'><tr>
-      <th>Community</th><th>Total Pop.</th><th>Affected Pop.</th><th>Deaths</th><th>Injured</th><th>Missing</th><th>Children</th><th>Women</th><th>Seniors</th><th>PWD</th></tr>`;
-    (report.affectedCommunities || []).forEach(c => {
-      affectedHTML += `<tr>
-        <td>${c.community || "-"}</td>
-        <td>${c.totalPop || 0}</td>
-        <td>${c.affected || 0}</td>
-        <td>${c.deaths || 0}</td>
-        <td>${c.injured || 0}</td>
-        <td>${c.missing || 0}</td>
-        <td>${c.children || 0}</td>
-        <td>${c.women || 0}</td>
-        <td>${c.seniors || 0}</td>
-        <td>${c.pwd || 0}</td>
-      </tr>`;
-    });
-    affectedHTML += `</table></div>`;
-
-    let structureHTML = `<h3>Status of Structures</h3><div class='table-scroll'><table class='preview-table' id='rdanalog-table'><tr><th>Structure</th><th>Status</th></tr>`;
-    (report.structureStatus || []).forEach(s => {
-      structureHTML += `<tr><td>${s.structure || "-"}</td><td>${s.status || "-"}</td></tr>`;
-    });
-    structureHTML += `</table></div>`;
-
-    let checklistHTML = `<h3>Initial Needs Assessment</h3><div class='table-scroll'><table class='preview-table' id='rdanalog-table'><tr><th>Item</th><th>Needed</th></tr>`;
-    (report.needsChecklist || []).forEach(n => {
-      checklistHTML += `<tr><td>${n.item || "-"}</td><td>${n.needed ? "Yes" : "No"}</td></tr>`;
-    });
-    checklistHTML += `</table></div>`;
-
-    let otherNeedsHTML = `
-      <p><strong>Other Immediate Needs:</strong> ${report.otherNeeds || "N/A"}</p>
-      <p><strong>Estimated Quantity:</strong> ${report.estQty || "N/A"}</p>
-      <h3>Initial Response Actions</h3>
-      <p><strong>Response Groups Involved:</strong> ${report.responseGroup || "N/A"}</p>
-      <p><strong>Relief Assistance Deployed:</strong> ${report.reliefDeployed || "N/A"}</p>
-      <p><strong>Number of Families Served:</strong> ${report.familiesServed || "N/A"}</p>
-    `;
-
-    modalDetails.innerHTML = profileHTML + modalityHTML + summaryHTML + affectedHTML + structureHTML + checklistHTML + otherNeedsHTML;
-
-    modal.style.display = "block";
-
-    closeModal.onclick = () => modal.style.display = "none";
-    window.onclick = e => { if (e.target === modal) modal.style.display = "none"; };
-  }
-
   // Add the submit functionality for the RDANA report
   const nextBtn4 = document.getElementById('nextBtn4');
   if (nextBtn4) {
     nextBtn4.addEventListener('click', () => {
       if (!validatePageInputs('#form-page-4')) {
-        Swal.fire("Incomplete Data", "Please fill in all required fields on this page.", "warning");
+        Swal.fire({
+            icon: 'warning',
+            title: 'Incomplete Data',
+            text: 'Please fill in all required fields on this page.',
+            background: '#fffaf0',             
+            color: '#92400e',                  
+            iconColor: '#f59e0b',              
+            confirmButtonColor: '#d97706',     
+            customClass: {
+                popup: 'swal2-popup-warning-clean',
+                title: 'swal2-title-warning-clean',
+                content: 'swal2-text-warning-clean'
+            }
+        });
+
         return;
       }
 
@@ -365,34 +159,62 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       page1Table += `</table></div>`;
 
-      // Page 2 data
-      summary = document.querySelector("#form-page-2 textarea")?.value || "";
-      let page2Table = `<h3>Summary of Disaster/Incident</h3><p>${summary}</p>`;
-      const tableRows = document.querySelectorAll("#disasterprofile-table tbody tr");
-      page2Table += `<div class='table-scroll'><table class='preview-table' id='page2preview'><tr><th>Community</th><th>Total Pop.</th><th>Affected Pop.</th><th>Deaths</th><th>Injured</th><th>Missing</th><th>Children</th><th>Women</th><th>Seniors</th><th>PWD</th></tr>`;
-      affectedCommunities = []; // Reset affectedCommunities
-      tableRows.forEach(row => {
-        const cells = row.querySelectorAll("input") || "0";
-        page2Table += "<tr>";
-        const communityData = {
-          community: cells[0].value,
-          totalPop: parseInt(cells[1].value) || 0,
-          affected: parseInt(cells[2].value) || 0,
-          deaths: parseInt(cells[3].value) || 0,
-          injured: parseInt(cells[4].value) || 0,
-          missing: parseInt(cells[5].value) || 0,
-          children: parseInt(cells[6].value) || 0,
-          women: parseInt(cells[7].value) || 0,
-          seniors: parseInt(cells[8].value) || 0,
-          pwd: parseInt(cells[9].value) || 0
-        };
-        affectedCommunities.push(communityData);
-        cells.forEach(cell => {
+     function formatLargeNumber(numStr) {
+      let num = BigInt(numStr || "0");
+      const trillion = 1_000_000_000_000n;
+      const billion = 1_000_000_000n;
+      const million = 1_000_000n;
+      const thousand = 1_000n;
+
+      if (num >= trillion) {
+        return (Number(num) / Number(trillion)).toFixed(2).replace(/\.?0+$/, '') + 'T';
+      } else if (num >= billion) {
+        return (Number(num) / Number(billion)).toFixed(2).replace(/\.?0+$/, '') + 'B';
+      } else if (num >= million) {
+        return (Number(num) / Number(million)).toFixed(2).replace(/\.?0+$/, '') + 'M';
+      } else if (num >= thousand) {
+        return (Number(num) / Number(thousand)).toFixed(2).replace(/\.?0+$/, '') + 'k';
+      }
+      return num.toString();
+    }
+
+    // Page 2 data
+    summary = document.querySelector("#form-page-2 textarea")?.value || "";
+    let page2Table = `<h3>Summary of Disaster/Incident</h3><p>${summary}</p>`;
+    const tableRows = document.querySelectorAll("#disasterprofile-table tbody tr");
+    page2Table += `<div class='table-scroll'><table class='preview-table' id='page2preview'><tr><th>Community</th><th>Total Pop.</th><th>Affected Pop.</th><th>Deaths</th><th>Injured</th><th>Missing</th><th>Children</th><th>Women</th><th>Seniors</th><th>PWD</th></tr>`;
+    affectedCommunities = []; // Reset affectedCommunities
+
+    tableRows.forEach(row => {
+      const cells = row.querySelectorAll("input") || [];
+      page2Table += "<tr>";
+      const communityData = {
+        community: cells[0]?.value || "",
+        totalPop: formatLargeNumber(cells[1]?.value) || "0",
+        affected: formatLargeNumber(cells[2]?.value) || "0",
+        deaths: formatLargeNumber(cells[3]?.value) || "0",
+        injured: formatLargeNumber(cells[4]?.value) || "0",
+        missing: formatLargeNumber(cells[5]?.value) || "0",
+        children: formatLargeNumber(cells[6]?.value) || "0",
+        women: formatLargeNumber(cells[7]?.value) || "0",
+        seniors: formatLargeNumber(cells[8]?.value) || "0",
+        pwd: formatLargeNumber(cells[9]?.value) || "0"
+      };
+      affectedCommunities.push(communityData);
+
+      cells.forEach((cell, i) => {
+        if (i === 0) {
           page2Table += `<td>${cell.value}</td>`;
-        });
-        page2Table += "</tr>";
+        } else {
+          page2Table += `<td>${formatLargeNumber(cell.value)}</td>`;
+        }
       });
-      page2Table += "</table></div>";
+
+      page2Table += "</tr>";
+    });
+
+    page2Table += "</table></div>";
+
 
       // Page 3 data
       const statusRows = document.querySelectorAll("#status-table tbody tr");
@@ -488,10 +310,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 !needsChecklist || needsChecklist.length === 0) {
               console.error("Form data is incomplete:", { profileData, affectedCommunities, needsChecklist });
               Swal.fire({
-                icon: 'error',
-                title: 'Submission Failed',
-                text: 'Form data is incomplete. Please ensure all fields are filled correctly.',
+                  icon: 'error',
+                  title: 'Submission Failed',
+                  text: 'Form data is incomplete. Please ensure all fields are filled correctly.',
+                  background: '#fef2f2',             
+                  color: '#7f1d1d',                  
+                  iconColor: '#b91c1c',               
+                  confirmButtonColor: '#991b1b',       
+                  customClass: {
+                      popup: 'swal2-popup-error-clean',
+                      title: 'swal2-title-error-clean',
+                      content: 'swal2-text-error-clean'
+                  }
               });
+
               newSubmitBtn.disabled = false;
               newSubmitBtn.textContent = "Submit Report";
               return;
@@ -536,6 +368,17 @@ document.addEventListener('DOMContentLoaded', () => {
                   icon: 'success',
                   title: 'Report Submitted',
                   text: 'Your RDANA report has been submitted for verification!',
+                  background: '#e6ffed',           // soft mint-green background for positivity
+                  color: '#065f46',                // deep green text for good readability
+                  iconColor: '#10b981',            // fresh teal-green icon to reinforce success
+                  confirmButtonColor: '#059669',  // matching green confirm button for consistency
+                  timer: 2000,                    // auto-close after 2 seconds
+                  showConfirmButton: false,
+                  customClass: {
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    content: 'swal2-text-success-clean'
+                  }
                 }).then(() => {
                   // Reset form data after successful submission
                   profileData = {};
@@ -581,9 +424,6 @@ document.addEventListener('DOMContentLoaded', () => {
                   // Navigate back to the first page
                   document.getElementById("form-page-5").style.display = "none";
                   document.getElementById("form-page-1").style.display = "block";
-
-                  // Optionally redirect to verification page
-                  window.location.href = "../pages/rdanaverification.html";
                 });
               })
               .catch(error => {
@@ -591,10 +431,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error("Error code:", error.code);
                 console.error("Error message:", error.message);
                 Swal.fire({
-                  icon: 'error',
-                  title: 'Error',
-                  text: 'Failed to submit RDANA report: ' + error.message,
-                });
+                icon: 'error',
+                title: 'Submission Failed',
+                text: 'Failed to submit RDANA report: ' + error.message,
+                background: '#fdecea',          
+                color: '#b91c1c',                
+                iconColor: '#dc2626',            
+                confirmButtonColor: '#b91c1c',  
+                timer: 3000,                    
+                showConfirmButton: true,
+                customClass: {
+                  popup: 'swal2-popup-error-clean',
+                  title: 'swal2-title-error-clean',
+                  content: 'swal2-text-error-clean'
+                }
+              });
+
               })
               .finally(() => {
                 newSubmitBtn.disabled = false;
@@ -612,13 +464,6 @@ document.addEventListener('DOMContentLoaded', () => {
     sortSelect.addEventListener("change", applySearchAndSort);
   }
 
-  const viewApprovedBtn = document.getElementById("viewApprovedBtn");
-  if (viewApprovedBtn) {
-    viewApprovedBtn.addEventListener("click", () => {
-      window.location.href = "../pages/rdanaLog.html";
-    });
-  }
-
   // Add navigation for other pages (next/back buttons)
   const nextBtn1 = document.getElementById('nextBtn1');
   const nextBtn2 = document.getElementById('nextBtn2');
@@ -634,7 +479,20 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById("form-page-1").style.display = "none";
         document.getElementById("form-page-2").style.display = "block";
       } else {
-        Swal.fire("Incomplete Data", "Please fill in all required fields on this page.", "warning");
+        Swal.fire({
+            icon: 'warning',
+            title: 'Incomplete Data',
+            text: 'Please fill in all required fields on this page.',
+            background: '#fffaf0',             
+            color: '#92400e',                  
+            iconColor: '#f59e0b',              
+            confirmButtonColor: '#d97706',     
+            customClass: {
+                popup: 'swal2-popup-warning-clean',
+                title: 'swal2-title-warning-clean',
+                content: 'swal2-text-warning-clean'
+            }
+        });
       }
     });
   }
@@ -645,7 +503,20 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById("form-page-2").style.display = "none";
         document.getElementById("form-page-3").style.display = "block";
       } else {
-        Swal.fire("Incomplete Data", "Please fill in all required fields on this page.", "warning");
+        Swal.fire({
+            icon: 'warning',
+            title: 'Incomplete Data',
+            text: 'Please fill in all required fields on this page.',
+            background: '#fffaf0',             
+            color: '#92400e',                  
+            iconColor: '#f59e0b',              
+            confirmButtonColor: '#d97706',     
+            customClass: {
+                popup: 'swal2-popup-warning-clean',
+                title: 'swal2-title-warning-clean',
+                content: 'swal2-text-warning-clean'
+            }
+        });
       }
     });
   }
@@ -656,7 +527,20 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById("form-page-3").style.display = "none";
         document.getElementById("form-page-4").style.display = "block";
       } else {
-        Swal.fire("Incomplete Data", "Please fill in all required fields on this page.", "warning");
+        Swal.fire({
+            icon: 'warning',
+            title: 'Incomplete Data',
+            text: 'Please fill in all required fields on this page.',
+            background: '#fffaf0',             
+            color: '#92400e',                  
+            iconColor: '#f59e0b',              
+            confirmButtonColor: '#d97706',     
+            customClass: {
+                popup: 'swal2-popup-warning-clean',
+                title: 'swal2-title-warning-clean',
+                content: 'swal2-text-warning-clean'
+            }
+        });
       }
     });
   }
@@ -728,3 +612,4 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 });
+

@@ -162,100 +162,6 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     });
 
-    // --- Excel Export Logic ---
-    exportExcelBtn.addEventListener('click', () => {
-        Swal.fire({
-            title: 'Generating Excel...',
-            text: 'Please wait while the Excel file is being created.',
-            allowOutsideClick: false,
-            didOpen: () => {
-                Swal.showLoading();
-            }
-        });
-
-        try {
-            const worksheetData = [];
-            
-            // Add headers
-             const headers = [
-                'No.', 'Relief ID', 'Volunteer Group Name', 'City', 'Drop-off Address',
-                'Contact Person', 'Contact Number', 'Request Category', 'Items (Name & Qty)', 'Status', 'Notes'
-            ];
-            worksheetData.push(headers);
-
-            // Add data rows
-            filteredData.forEach((item, index) => {
-                const itemsFormatted = (item.items || []).map(i => `${i.name} (Qty: ${i.quantity})`).join(', '); 
-
-                worksheetData.push([
-                    index + 1,
-                    item.id,
-                    item.group,
-                    item.city,
-                    item.address,
-                    item.contact,
-                    item.number,
-                    item.category,
-                    itemsFormatted,
-                    item.status || 'Pending',
-                    item.notes || 'N/A'
-                ]);
-            });
-
-            // Create a worksheet
-            const ws = XLSX.utils.aoa_to_sheet(worksheetData);
-
-            // Optional: Set column widths for better display in Excel
-            const wscols = [
-                {wch: 5},   // No.
-                {wch: 15},  // Relief ID
-                {wch: 30},  // Volunteer Group Name
-                {wch: 20},  // City
-                {wch: 40},  // Drop-off Address
-                {wch: 25},  // Contact Person
-                {wch: 20},  // Contact Number
-                {wch: 25},  // Request Category
-                {wch: 35},   // Items (Name & Qty) - Adjusted width
-                {wch: 15},  // Status
-                {wch: 35}   // Notes
-            ];
-            ws['!cols'] = wscols;
-
-            // Create a workbook
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Relief Requests");
-
-            // Write and download the file
-            XLSX.writeFile(wb, 'Relief_Request_Log.xlsx');
-
-            Swal.close();
-            Swal.fire({
-                title: 'Success!',
-                text: 'Excel file generated successfully!',
-                icon: 'success',
-                timer: 1500,
-                showConfirmButton: false
-            });
-
-        } catch (error) {
-            console.error('Error generating Excel:', error);
-            Swal.close();
-            Swal.fire('Error!', 'Failed to generate Excel: ' + error.message, 'error');
-        }
-    });
-
-
-    searchInput.addEventListener('input', function() {
-        const searchTerm = this.value.toLowerCase();
-        filteredData = data.filter(item => {
-            return Object.values(item).some(value => {
-                return String(value).toLowerCase().includes(searchTerm);
-            });
-        });
-        currentPage = 1;
-        renderTable();
-    });
-
     // Fetch data from Firebase
     database.ref('requestRelief/requests').on('value', (snapshot) => {
         console.log('Fetching data from Firebase');
@@ -300,49 +206,50 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function renderTable() {
-    console.log('Rendering table');
-    tableBody.innerHTML = '';
-    const start = (currentPage - 1) * rowsPerPage;
-    const end = start + rowsPerPage;
-    const currentRows = filteredData.slice(start, end);
+        console.log('Rendering table');
+        tableBody.innerHTML = '';
+        const start = (currentPage - 1) * rowsPerPage;
+        const end = start + rowsPerPage;
+        const currentRows = filteredData.slice(start, end);
 
-    currentRows.forEach((item, index) => {
-        const tr = document.createElement('tr');
-        const rowIndex = start + index;
+        currentRows.forEach((item, index) => {
+            const tr = document.createElement('tr');
+            const rowIndex = start + index;
 
-        tr.innerHTML = `
-            <td data-key="No">${rowIndex + 1}</td>
-            <td data-key="ReliefID">${item.id}</td>
-            <td data-key="VolunteerGroupName">${item.group}</td>
-            <td data-key="City">${item.city}</td>
-            <td data-key="DropoffAddress">${item.address}</td>
-            <td data-key="ContactPerson">${item.contact}</td>
-            <td data-key="ContactNumber">${item.number}</td>
-            <td data-key="RequestCategory">${item.category}</td>
+            tr.innerHTML = `
+                <td data-key="No">${rowIndex + 1}</td>
+                <td data-key="ReliefID">${item.id}</td>
+                <td data-key="VolunteerGroupName">${item.group}</td>
+                <td data-key="City">${item.city}</td>
+                <td data-key="DropoffAddress">${item.address}</td>
+                <td data-key="ContactPerson">${item.contact}</td>
+                <td data-key="ContactNumber">${item.number}</td>
+                <td data-key="RequestCategory">${item.category}</td>
 
-            <!-- Status dropdown -->
-            <td>
-                <select class="statusSelect" data-id="${item.id}">
-                    <option disabled selected value="">Select Status</option>
-                    <option value="Pending" ${item.status === "Pending" ? "selected" : ""}>Pending</option>
-                    <option value="Completed" ${item.status === "Completed" ? "selected" : ""}>Completed</option>
-                </select>
-            </td>
+                <!-- Status dropdown -->
+                <td>
+                    <select class="statusSelect" data-id="${item.id}">
+                        <option disabled selected value="">Select Status</option>
+                        <option value="Pending" ${item.status === "Pending" ? "selected" : ""}>Pending</option>
+                        <option value="Completed" ${item.status === "Completed" ? "selected" : ""}>Completed</option>
+                    </select>
+                </td>
 
-            <!-- Notes column -->
-            <td>
-                <textarea class="notesInput" rows="2" data-id="${item.id}">${item.notes || ''}</textarea>
-            </td>
+                <!-- Notes column -->
+                <td>
+                    <textarea class="notesInput" maxlength="50" rows="3" data-id="${item.id}">${item.notes || ''}</textarea>
+                </td>
 
-            <td>
-                <button class="saveBtn" data-key="${item.firebaseKey}">Save </button>
-                <button class="viewBtn" data-index="${data.indexOf(item)}">View</button>
-                <button class="deleteBtn" data-key="${item.firebaseKey}">Remove</button>
-            </td>
-        `;
+                <td>
+                    <button class="saveBtn" data-key="${item.firebaseKey}">Save </button>
+                    <button class="viewBtn" data-index="${data.indexOf(item)}">View</button>
+                    <button class="deleteBtn" data-key="${item.firebaseKey}">Remove</button>
+                    <button class="savePDFBtn" data-index="${data.indexOf(item)}">Save PDF</button>
+                </td>
+            `;
 
-        tableBody.appendChild(tr);
-    });
+            tableBody.appendChild(tr);
+        });
 
         entriesInfo.textContent = `Showing ${filteredData.length ? start + 1 : 0} to ${Math.min(end, filteredData.length)} of ${filteredData.length} entries`;
         renderPagination();
@@ -363,18 +270,32 @@ document.addEventListener('DOMContentLoaded', () => {
                 notes: notes
             }).then(() => {
                 Swal.fire({
-                    icon: 'success',
-                    title: 'Saved!',
-                    text: 'Status and notes updated successfully.',
-                    timer: 1500,
-                    showConfirmButton: false
+                icon: 'success',
+                title: 'Saved!',
+                text: 'Status and notes updated successfully.',
+                timer: 1500,
+                showConfirmButton: false,
+                timerProgressBar: true,
+                customClass: {
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    content: 'swal2-text-success-clean'
+                }
                 });
             }).catch(error => {
                 console.error('Error saving to Firebase:', error);
                 Swal.fire({
-                    icon: 'error',
-                    title: 'Save failed',
-                    text: error.message
+                icon: 'error',
+                title: 'Save failed',
+                text: error.message,
+                timer: 2500,
+                showConfirmButton: false,
+                timerProgressBar: true,
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    content: 'swal2-text-error-clean'
+                }
                 });
             });
         });
@@ -398,7 +319,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const btn = document.createElement('button');
             btn.textContent = label;
             if (disabled) btn.disabled = true;
-            if (isActive) btn.classList.add('active');
+            if (isActive) btn.classList.add('active-page');
             btn.addEventListener('click', () => {
                 currentPage = page;
                 renderTable();
@@ -481,6 +402,16 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('reliefModal').classList.remove('hidden');
         }
 
+        if (e.target.classList.contains('savePDFBtn')) {
+            const idx = parseInt(e.target.dataset.index);
+            const itemToExport = data[idx]; 
+            if (itemToExport) {
+                saveSingleReliefToPdf(itemToExport);
+            } else {
+                Swal.fire("Error", "Could not find the relief request data to export.", "error");
+            }
+        }
+
         if (e.target.classList.contains('deleteBtn')) {
             const firebaseKey = e.target.dataset.key;
             console.log('Delete button clicked for ID:', firebaseKey);
@@ -504,27 +435,265 @@ document.addEventListener('DOMContentLoaded', () => {
                             database.ref(`requestRelief/requests/${firebaseKey}`).remove(),
                             database.ref(`users/${userUid}/requests/${firebaseKey}`).remove()
                         ])
-                            .then(() => {
-                                Swal.fire(
-                                    'Deleted!',
-                                    'The request has been deleted.',
-                                    'success'
-                                );
-                                data = data.filter(item => item.firebaseKey !== firebaseKey);
-                                filteredData = [...data];
-                                renderTable();
-                            })
-                            .catch((error) => {
-                                Swal.fire(
-                                    'Error!',
-                                    'Failed to delete the request. Please try again.',
-                                    'error'
-                                );
-                                console.error('Delete failed:', error);
-                            });
+                        .then(() => {
+                            Swal.fire(
+                                'Deleted!',
+                                'The request has been deleted.',
+                                'success'
+                            );
+                            data = data.filter(item => item.firebaseKey !== firebaseKey);
+                            filteredData = [...data];
+                            renderTable();
+                        })
+                        .catch((error) => {
+                            Swal.fire(
+                                'Error!',
+                                'Failed to delete the request. Please try again.',
+                                'error'
+                            );
+                            console.error('Delete failed:', error);
+                        });
                     });
                 }
             });
         }
     });
+
+    searchInput.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        filteredData = data.filter(item => {
+            return Object.values(item).some(value => {
+                return String(value).toLowerCase().includes(searchTerm);
+            });
+        });
+        currentPage = 1;
+        renderTable();
+    });
+
+    // --- Excel Export Logic ---
+    exportExcelBtn.addEventListener('click', () => {
+        Swal.fire({
+            title: 'Generating Excel...',
+            text: 'Please wait while the Excel file is being created.',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        try {
+            const worksheetData = [];
+            
+            // Add headers
+             const headers = [
+                'No.', 'Relief ID', 'Volunteer Group Name', 'City', 'Drop-off Address',
+                'Contact Person', 'Contact Number', 'Request Category', 'Items (Name & Qty)', 'Status', 'Notes'
+            ];
+            worksheetData.push(headers);
+
+            // Add data rows
+            filteredData.forEach((item, index) => {
+                const itemsFormatted = (item.items || []).map(i => `${i.name} (Qty: ${i.quantity})`).join(', '); 
+
+                worksheetData.push([
+                    index + 1,
+                    item.id,
+                    item.group,
+                    item.city,
+                    item.address,
+                    item.contact,
+                    item.number,
+                    item.category,
+                    itemsFormatted,
+                    item.status || 'Pending',
+                    item.notes || 'N/A'
+                ]);
+            });
+
+            // Create a worksheet
+            const ws = XLSX.utils.aoa_to_sheet(worksheetData);
+
+            // Optional: Set column widths for better display in Excel
+            const wscols = [
+                {wch: 5},   // No.
+                {wch: 15},  // Relief ID
+                {wch: 30},  // Volunteer Group Name
+                {wch: 20},  // City
+                {wch: 40},  // Drop-off Address
+                {wch: 25},  // Contact Person
+                {wch: 20},  // Contact Number
+                {wch: 25},  // Request Category
+                {wch: 35},   // Items (Name & Qty) - Adjusted width
+                {wch: 15},  // Status
+                {wch: 35}   // Notes
+            ];
+            ws['!cols'] = wscols;
+
+            // Create a workbook
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Relief Requests");
+
+            // Write and download the file
+            XLSX.writeFile(wb, 'Relief_Request_Log.xlsx');
+
+            Swal.close();
+            Swal.fire({
+                title: 'Success!',
+                text: 'Excel file generated successfully!',
+                icon: 'success',
+                timer: 1500,
+                showConfirmButton: false
+            });
+
+        } catch (error) {
+            console.error('Error generating Excel:', error);
+            Swal.close();
+            Swal.fire('Error!', 'Failed to generate Excel: ' + error.message, 'error');
+        }
+    });
+
+    // --- Save Single Donation to PDF ---
+    function saveSingleReliefToPdf(item) {
+        Swal.fire({
+            title: 'Generating PDF...',
+            text: 'Please wait while the PDF file is being created.',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('portrait');
+
+        const logo = new Image();
+        logo.src = '/Bayanihan-PWA/assets/images/AB_logo.png'; // Your logo path
+
+        logo.onload = function() {
+            const pageWidth = doc.internal.pageSize.width;
+            const pageHeight = doc.internal.pageSize.height;
+            const logoWidth = 30;
+            const logoHeight = (logo.naturalHeight / logo.naturalWidth) * logoWidth;
+            const margin = 14;
+            let y = margin;
+
+            // Header for single report
+            doc.addImage(logo, 'PNG', pageWidth - logoWidth - margin, margin, logoWidth, logoHeight);
+            doc.setFontSize(18);
+            doc.text("Relief Request Details", margin, y + 8); // Updated title
+            y += 18;
+            doc.setFontSize(10);
+            doc.text(`Report Generated: ${new Date().toLocaleString()}`, margin, y);
+            y += 15;
+
+            // Helper to add details with page breaks
+            const addDetail = (label, value, isTitle = false) => {
+                if (y > pageHeight - margin - 20) { // Check if content will fit on the current page
+                    doc.addPage();
+                    y = margin; // Reset y for new page
+                    // Add header to new page
+                    doc.addImage(logo, 'PNG', pageWidth - logoWidth - margin, margin, logoWidth, logoHeight);
+                    doc.setFontSize(14);
+                    doc.text("Relief Request Details (Cont.)", margin, y + 8);
+                    y += 18;
+                }
+
+                doc.setFontSize(isTitle ? 12 : 10);
+                if (isTitle) {
+                    doc.setTextColor(20, 174, 187);
+                    doc.text(`${label}`, margin, y);
+                    doc.setTextColor(0);
+                    y += 7; // Space after title
+                } else {
+                    const text = `• ${label}: ${value || '-'}`;
+                    const splitText = doc.splitTextToSize(text, pageWidth - (2 * margin));
+                    doc.text(splitText, margin, y);
+                    y += (splitText.length * 5); // 5 is line height
+                }
+            };
+
+            // Relief ID (prominent)
+            doc.setFontSize(14);
+            doc.setTextColor(20, 174, 187);
+            doc.text(`Relief ID: ${item.id || "-"}`, margin, y);
+            y += 10;
+            doc.setTextColor(0); // Reset color
+
+            // Basic Information
+            addDetail("Basic Information", "", true);
+            addDetail("Volunteer Group Name", item.group || "[Unknown Org]");
+            addDetail("Request Category", item.category || "-");
+            addDetail("Contact Person", item.contact || "-");
+            addDetail("Contact Number", item.number || "-");
+            addDetail("Email", item.email || "-");
+            addDetail("City", item.city || "-");
+            addDetail("Drop-off Address", item.address || "-");
+            addDetail("Current Status", item.status || "Pending");
+            addDetail("Notes", item.notes || "N/A");
+            y += 5;
+
+            // Requested Items
+            if (item.items && item.items.length > 0) {
+                addDetail("Requested Items", "", true);
+                const itemsTableData = item.items.map(i => [i.name || '-', i.quantity || '-', i.notes || 'N/A']);
+                doc.autoTable({
+                    startY: y,
+                    head: [['Item Name', 'Quantity', 'Notes']],
+                    body: itemsTableData,
+                    theme: 'grid',
+                    headStyles: {
+                        fillColor: [20, 174, 187],
+                        textColor: [255, 255, 255],
+                        halign: 'center',
+                        fontSize: 8
+                    },
+                    styles: {
+                        fontSize: 8,
+                        cellPadding: 2,
+                        overflow: 'linebreak'
+                    },
+                    margin: { left: margin, right: margin }
+                });
+                y = doc.autoTable.previous.finalY + 10; // Update y after table
+            } else {
+                addDetail("Requested Items", "No items specified.");
+                y += 5;
+            }
+
+            // Footer
+            doc.setFontSize(8);
+            const footerY = pageHeight - 10;
+            const pageNumberText = `Page ${doc.internal.getNumberOfPages()}`;
+            const poweredByText = "Powered by: Appvance";
+
+            doc.text(pageNumberText, margin, footerY);
+            doc.text(poweredByText, pageWidth - margin, footerY, { align: 'right' });
+
+            doc.save(`Relief_Request_${item.id || 'Details'}.pdf`);
+
+            Swal.close();
+            Swal.fire({
+                icon: 'success',
+                title: 'PDF Generated!',
+                text: `Relief Request "${item.id || 'Details'}" saved as PDF.`,
+                timer: 2000,
+                showConfirmButton: false,
+                color: '#1b5e20',
+                iconColor: '#43a047',
+                confirmButtonColor: '#388e3c',
+                confirmButtonText: 'Great!',
+                customClass: {
+                    popup: 'swal2-popup-success-export',
+                    title: 'swal2-title-success-export',
+                    content: 'swal2-text-success-export',
+                    confirmButton: 'swal2-button-success-export'
+                }
+            });
+        };
+
+        logo.onerror = function() {
+            Swal.close();
+            Swal.fire("Error", "Failed to load logo image. Please check the path.", "error");
+        };
+    }
 });

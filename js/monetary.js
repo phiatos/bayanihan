@@ -248,11 +248,39 @@ document.addEventListener("DOMContentLoaded", () => {
             .then(() => {
                 form.reset();
                 formHasChanges = false;
-                Swal.fire("Success", "Donation added!", "success");
+                Swal.fire({
+                icon: 'success',
+                title: 'Donation Added!',
+                text: 'Your donation has been successfully recorded.',
+                timer: 2000,
+                showConfirmButton: false,
+                background: '#e6f4ea',          
+                color: '#1b5e20',               
+                iconColor: '#2e7d32',    
+                customClass: {
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    content: 'swal2-text-success-clean'
+                }
+                });
+
             })
             .catch(error => {
                 console.error("Error adding donation:", error);
-                Swal.fire("Error", "Failed to add donation: " + error.message, "error");
+                Swal.fire({
+                icon: 'error',
+                title: 'Failed to Add Donation',
+                text: 'An error occurred: ' + error.message,
+                background: '#fcebea',         
+                color: '#b71c1c',               
+                iconColor: '#c62828',           
+                confirmButtonColor: '#c62828',  
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    content: 'swal2-text-error-clean'
+                }
+                });
             });
         }
     });
@@ -280,13 +308,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (formHasChanges) {
             Swal.fire({
-                title: 'Discard Changes?',
-                text: "You have unsaved changes. Are you sure you want to clear the form?",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#d33',
-                cancelButtonColor: '#3085d6',
-                confirmButtonText: 'Yes, clear it!'
+            title: 'Discard Changes?',
+            text: 'You have unsaved changes. Are you sure you want to clear the form?',
+            icon: 'warning',                                
+            iconColor: '#f57c00',               
+            showCancelButton: true,
+            confirmButtonColor: '#c62828',      
+            cancelButtonColor: '#546e7a',        
+            confirmButtonText: 'Yes, clear it!',
+            cancelButtonText: 'No, keep editing',
+            reverseButtons: true,               
+            customClass: {
+                popup: 'swal2-popup-warning-clean',
+                title: 'swal2-title-warning-clean',
+                content: 'swal2-text-warning-clean',
+                confirmButton: 'swal2-button-confirm-clean',
+                cancelButton: 'swal2-button-cancel-clean'
+            }
             }).then((result) => {
                 if (result.isConfirmed) {
                     clearFormFields();
@@ -324,7 +362,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     <td>${d.proof ? `<a href="${d.proof}" target="_blank">View Proof</a>` : 'N/A'}</td>
                     <td>
                         <button class="editBtn">Edit</button>
-                        <button class="deleteBtn">Delete</button>
+                        <button class="deleteBtn">Remove</button>
                         <button class="savePDFBtn">Save PDF</button>
                     </td>
                 `;
@@ -389,68 +427,65 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // Event listener for search input
-searchInput.addEventListener("input", () => {
-    const searchTerm = searchInput.value.toLowerCase();
-    const currentSort = sortSelect.value;
+    searchInput.addEventListener("input", () => {
+        const searchTerm = searchInput.value.toLowerCase();
+        const currentSort = sortSelect.value;
 
-    filteredAndSortedDonations = allDonations.filter(d => {
-        if (currentSort.includes('encoder')) return (d.encoder || '').toLowerCase().includes(searchTerm);
-        if (currentSort.includes('name')) return (d.name || '').toLowerCase().includes(searchTerm);
-        if (currentSort.includes('address')) return (d.address || '').toLowerCase().includes(searchTerm);
-        if (currentSort.includes('number')) return String(d.number || '').includes(searchTerm);
-        if (currentSort.includes('amount')) return String(d.amountDonated || '').includes(searchTerm); 
-        if (currentSort.includes('invoice')) return (d.invoice || '').toLowerCase().includes(searchTerm);
-        if (currentSort.includes('dateReceived')) return (d.dateReceived || '').toLowerCase().includes(searchTerm);
-        if (currentSort.includes('email')) return (d.email || '').toLowerCase().includes(searchTerm);
-        if (currentSort.includes('bank')) return (d.bank || '').toLowerCase().includes(searchTerm);
+        filteredAndSortedDonations = allDonations.filter(d => {
+            if (currentSort.includes('encoder')) return (d.encoder || '').toLowerCase().includes(searchTerm);
+            if (currentSort.includes('name')) return (d.name || '').toLowerCase().includes(searchTerm);
+            if (currentSort.includes('address')) return (d.address || '').toLowerCase().includes(searchTerm);
+            if (currentSort.includes('number')) return String(d.number || '').includes(searchTerm);
+            if (currentSort.includes('amount')) return String(d.amountDonated || '').includes(searchTerm); 
+            if (currentSort.includes('invoice')) return (d.invoice || '').toLowerCase().includes(searchTerm);
+            if (currentSort.includes('dateReceived')) return (d.dateReceived || '').toLowerCase().includes(searchTerm);
+            if (currentSort.includes('email')) return (d.email || '').toLowerCase().includes(searchTerm);
+            if (currentSort.includes('bank')) return (d.bank || '').toLowerCase().includes(searchTerm);
 
-        // Default broad search if no specific sort or 'Sort by' is selected
-        return (d.name || '').toLowerCase().includes(searchTerm) ||
-               (d.encoder || '').toLowerCase().includes(searchTerm) ||
-               (d.address || '').toLowerCase().includes(searchTerm) ||
-               (String(d.number) || '').includes(searchTerm) ||
-               (String(d.amountDonated) || '').includes(searchTerm) ||
-               (d.invoice || '').toLowerCase().includes(searchTerm) ||
-               (d.dateReceived || '').toLowerCase().includes(searchTerm) ||
-               (d.email || '').toLowerCase().includes(searchTerm) ||
-               (d.bank || '').toLowerCase().includes(searchTerm);
+            // Default broad search if no specific sort or 'Sort by' is selected
+            return (d.name || '').toLowerCase().includes(searchTerm) ||
+                (d.encoder || '').toLowerCase().includes(searchTerm) ||
+                (d.address || '').toLowerCase().includes(searchTerm) ||
+                (String(d.number) || '').includes(searchTerm) ||
+                (String(d.amountDonated) || '').includes(searchTerm) ||
+                (d.invoice || '').toLowerCase().includes(searchTerm) ||
+                (d.dateReceived || '').toLowerCase().includes(searchTerm) ||
+                (d.email || '').toLowerCase().includes(searchTerm) ||
+                (d.bank || '').toLowerCase().includes(searchTerm);
+        });
+
+        currentPage = 1; // Reset to the first page after filtering
+        renderTable();
     });
 
-    currentPage = 1; // Reset to the first page after filtering
-    renderTable();
-});
+    // Event listener for sort select
+    sortSelect.addEventListener("change", () => {
+        const sortVal = sortSelect.value;
+        applySorting(filteredAndSortedDonations, sortVal);
+        updateSearchPlaceholder(); 
+        renderTable();
+    });
 
-// Event listener for sort select
-sortSelect.addEventListener("change", () => {
-    const sortVal = sortSelect.value;
-    // Assuming applySorting is a separate function as in your original inkind concept
-    applySorting(filteredAndSortedDonations, sortVal);
-    updateSearchPlaceholder(); // Update placeholder when sort changes
-    renderTable();
-});
-
-// You'll also need the applySorting function if you don't have it already defined like this:
-function applySorting(arr, sortVal) {
-    if (sortVal === "encoder-asc") arr.sort((a, b) => (a.encoder || '').localeCompare(b.encoder || ''));
-    else if (sortVal === "encoder-desc") arr.sort((a, b) => (b.encoder || '').localeCompare(a.encoder || ''));
-    else if (sortVal === "name-asc") arr.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-    else if (sortVal === "name-desc") arr.sort((a, b) => (b.name || '').localeCompare(a.name || ''));
-    else if (sortVal === "address-asc") arr.sort((a, b) => (a.address || '').localeCompare(b.address || ''));
-    else if (sortVal === "address-desc") arr.sort((a, b) => (b.address || '').localeCompare(a.address || ''));
-    else if (sortVal === "number-asc") arr.sort((a, b) => parseInt((a.number || '0').replace(/\D/g, '')) - parseInt((b.number || '0').replace(/\D/g, '')));
-    else if (sortVal === "number-desc") arr.sort((a, b) => parseInt((b.number || '0').replace(/\D/g, '')) - parseInt((a.number || '0').replace(/\D/g, '')));
-    else if (sortVal === "amount-asc") arr.sort((a, b) => (a.amountDonated || 0) - (b.amountDonated || 0));
-    else if (sortVal === "amount-desc") arr.sort((a, b) => (b.amountDonated || 0) - (a.amountDonated || 0));
-    else if (sortVal === "invoice-asc") arr.sort((a, b) => (a.invoice || '').localeCompare(b.invoice || ''));
-    else if (sortVal === "invoice-desc") arr.sort((a, b) => (b.invoice || '').localeCompare(a.invoice || ''));
-    else if (sortVal === "dateReceived-asc") arr.sort((a, b) => new Date(a.dateReceived || '0') - new Date(b.dateReceived || '0'));
-    else if (sortVal === "dateReceived-desc") arr.sort((a, b) => new Date(b.dateReceived || '0') - new Date(a.dateReceived || '0'));
-    else if (sortVal === "email-asc") arr.sort((a, b) => (a.email || '').localeCompare(b.email || ''));
-    else if (sortVal === "email-desc") arr.sort((a, b) => (b.email || '').localeCompare(a.email || ''));
-    else if (sortVal === "bank-asc") arr.sort((a, b) => (a.bank || '').localeCompare(b.bank || ''));
-    else if (sortVal === "bank-desc") arr.sort((a, b) => (b.bank || '').localeCompare(a.bank || ''));
-}
-
+    function applySorting(arr, sortVal) {
+        if (sortVal === "encoder-asc") arr.sort((a, b) => (a.encoder || '').localeCompare(b.encoder || ''));
+        else if (sortVal === "encoder-desc") arr.sort((a, b) => (b.encoder || '').localeCompare(a.encoder || ''));
+        else if (sortVal === "name-asc") arr.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+        else if (sortVal === "name-desc") arr.sort((a, b) => (b.name || '').localeCompare(a.name || ''));
+        else if (sortVal === "address-asc") arr.sort((a, b) => (a.address || '').localeCompare(b.address || ''));
+        else if (sortVal === "address-desc") arr.sort((a, b) => (b.address || '').localeCompare(a.address || ''));
+        else if (sortVal === "number-asc") arr.sort((a, b) => parseInt((a.number || '0').replace(/\D/g, '')) - parseInt((b.number || '0').replace(/\D/g, '')));
+        else if (sortVal === "number-desc") arr.sort((a, b) => parseInt((b.number || '0').replace(/\D/g, '')) - parseInt((a.number || '0').replace(/\D/g, '')));
+        else if (sortVal === "amount-asc") arr.sort((a, b) => (a.amountDonated || 0) - (b.amountDonated || 0));
+        else if (sortVal === "amount-desc") arr.sort((a, b) => (b.amountDonated || 0) - (a.amountDonated || 0));
+        else if (sortVal === "invoice-asc") arr.sort((a, b) => (a.invoice || '').localeCompare(b.invoice || ''));
+        else if (sortVal === "invoice-desc") arr.sort((a, b) => (b.invoice || '').localeCompare(a.invoice || ''));
+        else if (sortVal === "dateReceived-asc") arr.sort((a, b) => new Date(a.dateReceived || '0') - new Date(b.dateReceived || '0'));
+        else if (sortVal === "dateReceived-desc") arr.sort((a, b) => new Date(b.dateReceived || '0') - new Date(a.dateReceived || '0'));
+        else if (sortVal === "email-asc") arr.sort((a, b) => (a.email || '').localeCompare(b.email || ''));
+        else if (sortVal === "email-desc") arr.sort((a, b) => (b.email || '').localeCompare(a.email || ''));
+        else if (sortVal === "bank-asc") arr.sort((a, b) => (a.bank || '').localeCompare(b.bank || ''));
+        else if (sortVal === "bank-desc") arr.sort((a, b) => (b.bank || '').localeCompare(a.bank || ''));
+    }
 
     // --- Excel Export Functionality ---
     exportBtn.addEventListener("click", () => {
@@ -476,9 +511,16 @@ function applySorting(arr, sortVal) {
         const ws = XLSX.utils.json_to_sheet(dataForExport);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Monetary Donations");
-        XLSX.writeFile(wb, "monetary-donations.xlsx");
-
-        Swal.fire("Success", "Monetary Donations exported to Excel!", "success");
+        // Get current date and format it for the filename
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0'); 
+        const day = String(today.getDate()).padStart(2, '0'); 
+        const formattedDate = `${year}-${month}-${day}`;
+        // Construct the filename with the date
+        const filename = `monetary-donations_${formattedDate}.xlsx`;
+        XLSX.writeFile(wb, filename);
+        Swal.fire("Success", `Monetary Donations exported to ${filename}!`, "success");
     });
 
     // --- PDF Export Functionality (All Data)---
@@ -615,7 +657,22 @@ function applySorting(arr, sortVal) {
             doc.text(poweredByText, pageWidth - margin, footerY, { align: 'right' });
 
             doc.save(`monetary_donation_${new Date().toISOString().slice(0, 10)}.pdf`);
-            Swal.fire("Success", "Monetary donation details exported to PDF!", "success");
+            Swal.fire({
+            title: 'Export Successful!',
+            text: 'Monetary donation details have been exported to PDF.',
+            icon: 'success',
+            color: '#1b5e20',
+            iconColor: '#43a047',
+            confirmButtonColor: '#388e3c',
+            confirmButtonText: 'Great!',
+            customClass: {
+                popup: 'swal2-popup-success-export',
+                title: 'swal2-title-success-export',
+                content: 'swal2-text-success-export',
+                confirmButton: 'swal2-button-success-export'
+            }
+            });
+
         };
 
         logo.onerror = function() {
@@ -628,10 +685,20 @@ function applySorting(arr, sortVal) {
             title: 'Are you sure?',
             text: "This monetary donation entry will be deleted from the list but saved to deleted donations!",
             icon: 'warning',
+            iconColor: '#ffa000',
             showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
-            confirmButtonText: 'Yes, delete it!'
+            confirmButtonColor: '#d32f2f',  // stronger red
+            cancelButtonColor: '#546e7a',   // blue-gray
+            confirmButtonText: 'Yes, delete it!',
+            cancelButtonText: 'Cancel',
+            reverseButtons: true,
+            customClass: {
+                popup: 'swal2-popup-delete-clean',
+                title: 'swal2-title-delete-clean',
+                content: 'swal2-text-delete-clean',
+                confirmButton: 'swal2-button-confirm-clean',
+                cancelButton: 'swal2-button-cancel-clean'
+            }
         }).then((result) => {
             if (result.isConfirmed) {
                 const donationToDelete = allDonations.find(d => d.firebaseKey === firebaseKey);
@@ -752,7 +819,22 @@ function applySorting(arr, sortVal) {
                 database.ref(`donations/monetary/${editingKey}`).update(updatedDonation) // Use .update() instead of .set() to only change specified fields
                 .then(() => {
                     closeEditModal();
-                    Swal.fire("Success", "Donation updated!", "success");
+                    Swal.fire({
+                    title: 'Success!',
+                    text: 'Donation updated successfully!',
+                    icon: 'success',
+                    color: '#1b5e20',
+                    iconColor: '#43a047',
+                    confirmButtonColor: '#388e3c',
+                    confirmButtonText: 'OK',
+                    customClass: {
+                        popup: 'swal2-popup-success-clean',
+                        title: 'swal2-title-success-clean',
+                        content: 'swal2-text-success-clean',
+                        confirmButton: 'swal2-button-success-clean'
+                    }
+                    });
+
                     editingKey = null;
                 })
                 .catch(error => {

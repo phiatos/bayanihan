@@ -28,9 +28,13 @@
             </div>
             <form action="">
                 <div class="form first">
-                    <div class="form-container-1">
+                    <div class="form-container-1" id="basic-info-section">
                         <span class="title">Basic Information</span>
                         <div class="fields">
+                            <div class="input-field">
+                                <label>Role</label>
+                                <p id="profile-position">Loading...</p>
+                            </div>
                             <div class="input-field">
                                 <label>Organization Name</label>
                                 <p id="profile-org-name">Loading...</p>
@@ -57,6 +61,7 @@
                             </div>
                         </div>
                     </div>
+
                     <div class="form-container-2">
                         <span class="title">Change Password</span>
                         <div class="fields">
@@ -68,14 +73,37 @@
                                     <i class='bx bxs-lock-open-alt password-toggle-open'></i>
                                 </div>
                             </div>
+
+
                             <div class="input-field">
-                                <label>New Password</label>
-                                <div class="input-box-input-with-icon">
-                                    <input type="password" id="new-password" placeholder="Enter your new password" required>
-                                    <i class='bx bxs-lock-alt password-toggle-closed'></i>
-                                    <i class='bx bxs-lock-open-alt password-toggle-open'></i>
-                                </div>
+                            <label>New Password</label>
+                            <div class="input-box-input-with-icon">
+                                <input type="password" id="new-password" placeholder="Enter your new password" required>
+                                <i class='bx bxs-lock-alt password-toggle-closed'></i>
+                                <i class='bx bxs-lock-open-alt password-toggle-open'></i>
                             </div>
+
+                            <!-- Tooltip helper (hidden by default) -->
+                            <div id="password-tooltip" class="password-tooltip">
+                                <span> <strong> Password must include: </strong></span>
+                                <ul>
+                                    <li id="check-length">❌ At least 8 characters</li>
+                                    <li id="check-uppercase">❌ An uppercase letter</li>
+                                    <li id="check-number">❌ A number</li>
+                                    <li id="check-symbol">❌ A symbol (!@#$ etc.)</li>
+                                </ul>
+                            </div>
+
+                            <!-- Strength bar & message (hidden by default) -->
+                            <div class="strength-bar-container">
+                                <div class="strength-bar"></div>
+                            </div>
+                            <div id="password-strength-message" class="strength-message">
+                                Strength:
+                            </div>
+                        </div>
+
+
                             <div class="input-field">
                                 <label>Confirm New Password</label>
                                 <div class="input-box-input-with-icon">

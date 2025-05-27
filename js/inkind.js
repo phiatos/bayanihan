@@ -238,11 +238,38 @@ document.addEventListener("DOMContentLoaded", () => {
             .then(() => {
                 form.reset();
                 formHasChanges = false;
-                Swal.fire("Success", "Donation added!", "success");
+                Swal.fire({
+                icon: 'success',
+                title: 'Donation Added!',
+                text: 'Your donation has been successfully recorded.',
+                timer: 2000,
+                showConfirmButton: false,
+                background: '#e6f4ea',          
+                color: '#1b5e20',               
+                iconColor: '#2e7d32',    
+                customClass: {
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    content: 'swal2-text-success-clean'
+                }
+                });
             })
             .catch(error => {
                 console.error("Error adding donation:", error);
-                Swal.fire("Error", "Failed to add donation: " + error.message, "error");
+                Swal.fire({
+                icon: 'error',
+                title: 'Failed to Add Donation',
+                text: 'An error occurred: ' + error.message,
+                background: '#fcebea',         
+                color: '#b71c1c',               
+                iconColor: '#c62828',           
+                confirmButtonColor: '#c62828',  
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    content: 'swal2-text-error-clean'
+                }
+                });
             });
         }
     });
@@ -250,13 +277,23 @@ document.addEventListener("DOMContentLoaded", () => {
     clearFormBtn.addEventListener("click", () => {
         if (formHasChanges) {
             Swal.fire({
-                title: 'Discard Changes?',
-                text: "You have unsaved changes. Are you sure you want to clear the form?",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#d33',
-                cancelButtonColor: '#3085d6',
-                confirmButtonText: 'Yes, clear it!'
+            title: 'Discard Changes?',
+            text: 'You have unsaved changes. Are you sure you want to clear the form?',
+            icon: 'warning',                                
+            iconColor: '#f57c00',               
+            showCancelButton: true,
+            confirmButtonColor: '#c62828',      
+            cancelButtonColor: '#546e7a',        
+            confirmButtonText: 'Yes, clear it!',
+            cancelButtonText: 'No, keep editing',
+            reverseButtons: true,               
+            customClass: {
+                popup: 'swal2-popup-warning-clean',
+                title: 'swal2-title-warning-clean',
+                content: 'swal2-text-warning-clean',
+                confirmButton: 'swal2-button-confirm-clean',
+                cancelButton: 'swal2-button-cancel-clean'
+            }
             }).then((result) => {
                 if (result.isConfirmed) {
                     form.reset();
@@ -306,7 +343,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     <td>${d.donationDate || 'N/A'}</td>
                     <td>
                         <button class="editBtn">Edit</button>
-                        <button class="deleteBtn">Delete</button>
+                        <button class="deleteBtn">Remove</button>
                         <button class="savePDFBtn">Save PDF</button> </td>
                     </td>
                     <td>
@@ -465,9 +502,16 @@ document.addEventListener("DOMContentLoaded", () => {
         const ws = XLSX.utils.json_to_sheet(dataForExport);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "In-Kind Donations");
-        XLSX.writeFile(wb, "in-kind-donations.xlsx");
-
-        Swal.fire("Success", "In-Kind Donations exported to Excel!", "success");
+        // Get current date and format it for the filename
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0'); 
+        const day = String(today.getDate()).padStart(2, '0');
+        const formattedDate = `${year}-${month}-${day}`;
+        // Construct the filename with the date
+        const filename = `in-kind-donations_${formattedDate}.xlsx`;
+        XLSX.writeFile(wb, filename);
+        Swal.fire("Success", `In-Kind Donations exported to ${filename}!`, "success");
     });
 
     // --- PDF Export Functionality (All Data) ---
@@ -611,7 +655,22 @@ document.addEventListener("DOMContentLoaded", () => {
             doc.text(poweredByText, pageWidth - margin, footerY, { align: 'right' });
 
             doc.save(`donation_${new Date().toISOString().slice(0, 10)}.pdf`);
-            Swal.fire("Success", "Donation details exported to PDF!", "success");
+            Swal.fire({
+            title: 'Export Successful!',
+            text: 'Donation details have been exported to PDF.',
+            icon: 'success',
+            color: '#1b5e20',
+            iconColor: '#43a047',
+            confirmButtonColor: '#388e3c',
+            confirmButtonText: 'Great!',
+            customClass: {
+                popup: 'swal2-popup-success-export',
+                title: 'swal2-title-success-export',
+                content: 'swal2-text-success-export',
+                confirmButton: 'swal2-button-success-export'
+            }
+            });
+
         };
 
         logo.onerror = function() {
@@ -620,14 +679,24 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function deleteRow(firebaseKey) {
-        Swal.fire({
-            title: 'Are you sure?',
-            text: "This donation entry will be deleted from the list but saved to deleted donations!",
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
-            confirmButtonText: 'Yes, delete it!'
+       Swal.fire({
+        title: 'Are you sure?',
+        text: 'This donation entry will be removed from the list but kept in the deleted donations archive.',
+        icon: 'warning',
+        iconColor: '#ffa000',
+        showCancelButton: true,
+        confirmButtonColor: '#d32f2f',  // stronger red
+        cancelButtonColor: '#546e7a',   // blue-gray
+        confirmButtonText: 'Yes, delete it!',
+        cancelButtonText: 'Cancel',
+        reverseButtons: true,
+        customClass: {
+            popup: 'swal2-popup-delete-clean',
+            title: 'swal2-title-delete-clean',
+            content: 'swal2-text-delete-clean',
+            confirmButton: 'swal2-button-confirm-clean',
+            cancelButton: 'swal2-button-cancel-clean'
+        }
         }).then((result) => {
             if (result.isConfirmed) {
                 const donationToDelete = allDonations.find(d => d.firebaseKey === firebaseKey);
@@ -768,7 +837,22 @@ document.addEventListener("DOMContentLoaded", () => {
                 database.ref(`donations/inkind/${editingKey}`).set(updatedDonation)
                 .then(() => {
                     closeEditModal();
-                    Swal.fire("Success", "Donation updated!", "success");
+                    Swal.fire({
+                    title: 'Success!',
+                    text: 'Donation updated successfully!',
+                    icon: 'success',
+                    color: '#1b5e20',
+                    iconColor: '#43a047',
+                    confirmButtonColor: '#388e3c',
+                    confirmButtonText: 'OK',
+                    customClass: {
+                        popup: 'swal2-popup-success-clean',
+                        title: 'swal2-title-success-clean',
+                        content: 'swal2-text-success-clean',
+                        confirmButton: 'swal2-button-success-clean'
+                    }
+                    });
+
                     editingKey = null;
                 })
                 .catch(error => {

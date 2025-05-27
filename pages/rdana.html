@@ -108,7 +108,7 @@
       <!-- Page 2 -->
       <form id="form-page-2" style="display: none;">
         <div class="form-container-1">
-          <span class="title">Summary of Disaster/Incident: <span style="font-size: small; color: gray; font-style: italic;">(optional)</span></span>
+          <span class="title">Summary of Disaster/Incident (optional):</span>
           <textarea rows="6" cols="100" placeholder="Enter Summary"></textarea>
 
          
@@ -132,16 +132,17 @@
               </thead>
               <tbody id="tableBody">
                 <tr>
-                  <td><input type="text" placeholder="Enter Municipalities/Communities" required/></td>
-                  <td><input type="number" placeholder="Enter Total Population" min="0" required/></td>
-                  <td><input type="number" placeholder="Enter Affected Population" min="0" required/></td>
-                  <td><input type="number" placeholder="No. of Deaths" min="0" required/></td>
-                  <td><input type="number" placeholder="No. of Injured" min="0" required/></td>
-                  <td><input type="number" placeholder="No. of Missing" min="0" required/></td>
-                  <td><input type="number" placeholder="No. of Children" min="0" required/></td>
-                  <td><input type="number" placeholder="No. of Women" min="0" required/></td>
-                  <td><input type="number" placeholder="No. of Senior Citizens" min="0" required/></td>
-                  <td><input type="number" placeholder="No. of PWD" min="0" required/></td>
+                <td><input type="text" placeholder="Enter Municipalities/Communities" required/></td>
+                <td><input type="number" placeholder="Enter Total Population" min="0" required oninput="if(this.value < 0) this.value = 0;"/></td>
+                <td><input type="number" placeholder="Enter Affected Population" min="0" required oninput="if(this.value < 0) this.value = 0;"/></td>
+                <td><input type="number" placeholder="No. of Deaths" min="0" required oninput="if(this.value < 0) this.value = 0;"/></td>
+                <td><input type="number" placeholder="No. of Injured" min="0" required oninput="if(this.value < 0) this.value = 0;"/></td>
+                <td><input type="number" placeholder="No. of Missing" min="0" required oninput="if(this.value < 0) this.value = 0;"/></td>
+                <td><input type="number" placeholder="No. of Children" min="0" required oninput="if(this.value < 0) this.value = 0;"/></td>
+                <td><input type="number" placeholder="No. of Women" min="0" required oninput="if(this.value < 0) this.value = 0;"/></td>
+                <td><input type="number" placeholder="No. of Senior Citizens" min="0" required oninput="if(this.value < 0) this.value = 0;"/></td>
+                <td><input type="number" placeholder="No. of PWD" min="0" required oninput="if(this.value < 0) this.value = 0;"/></td>
+
                   <td><button type="reset" class="removeRowBtn">Clear</button></td>
                 </tr>
               </tbody>
@@ -159,7 +160,7 @@
       <!-- Page 3 -->
       <form id="form-page-3" style="display: none;">
         <div class="form-container-1">
-          <span class="title">Status of Lifelines, Social Structure, and Critical Facilities <span style="font-size: small; color: gray; font-style: italic;">(optional)</span></span>
+          <span class="title">Status of Lifelines, Social Structure, and Critical Facilities (optional)</span>
           <div style="overflow-x: auto; margin-top: 10px;">
             <table id="status-table">
               <thead>
@@ -267,7 +268,7 @@
       <form id="form-page-4" style="display: none;">
         <div class="form first">
           <div class="form-container-1">
-            <span class="title">Initial Needs Assessment Checklist <span style="font-size: small; color: gray; font-style: italic;">(optional)</span></span>
+            <span class="title">Initial Needs Assessment Checklist (optional)</span>
             <div style="overflow-x: auto; margin-top: 10px;">
               <table id="checklist-table">
                 <tbody>

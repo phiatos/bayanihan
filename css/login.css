@@ -126,24 +126,49 @@ form{
     z-index: 2; 
 }
 
-.error-message {
-    color: red;
-    font-size: 0.875rem;
-    margin-top: 0.3125rem; 
-    position: absolute;
-    bottom: -1.25rem; 
-    left: 0;
-    width: 100%;
-    z-index: 10;
-    text-align: left;
-    line-height: 1.4;
-    transform: translateY(100%);
-    bottom: 0;
+/*Error Message Styles*/
+
+.toast-container {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
 }
 
-.error-message {
-  transition: opacity 0.3s ease;
+
+.toast {
+    min-width: 200px;
+    max-width: 300px;
+    background-color: #d93025; /* error red */
+    color: white;
+    padding: 12px 18px;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    opacity: 0;
+    transform: translateY(-20px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    font-size: 0.9em;
 }
+
+.toast.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.toast.success {
+    background-color: #34a853;
+}
+.toast.info {
+    background-color: #4285f4;
+}
+
+
+
 
 
 /* Assistance Form Styles */
@@ -300,6 +325,7 @@ form{
     left: 20px; 
     cursor: pointer;
     z-index: 10;
+    background: transparent;
 }
 .back-btn i {
     font-size: 24px; 

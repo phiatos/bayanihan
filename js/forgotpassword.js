@@ -48,10 +48,28 @@ document.addEventListener('DOMContentLoaded', () => {
         const email = emailInput.value.trim();
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
             Swal.fire({
+                toast: true,
+                position: 'top',
                 icon: 'error',
                 title: 'Invalid Email Address',
-                text: 'Enter a valid email address.'
+                text: 'Enter a valid email address.',
+                showConfirmButton: false,
+                timer: 3000,                      // auto-dismiss after 3 seconds
+                timerProgressBar: true,           // show progress bar
+                background: '#f8d7da',           // soft pink/red background
+                color: '#721c24',                // dark red text
+                iconColor: '#721c24',            // dark red icon
+                customClass: {
+                    popup: 'my-error-toast',
+                    title: 'swal2-title-custom',    // optional custom class for title
+                    htmlContainer: 'swal2-text-custom' // optional for body text
+                },
+                didOpen: (toast) => {
+                    toast.addEventListener('mouseenter', Swal.stopTimer);
+                    toast.addEventListener('mouseleave', Swal.resumeTimer);
+                }
             });
+
             return;
         }
 
@@ -72,9 +90,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (!userFound) {
                 Swal.fire({
-                    icon: 'error',
-                    title: 'Email Not Found',
-                    text: 'No account is associated with this email address. Please try again or register.'
+                icon: 'error',
+                title: 'Email Not Found',
+                text: 'No account is associated with this email address. Please try again or register.',
+                background: '#f8d7da',             
+                color: '#721c24',                   
+                iconColor: '#721c24',                
+                confirmButtonColor: '#c82333',    
+                confirmButtonText: 'Okay',
+                customClass: {
+                popup: 'my-error-toast',
+                title: 'my-error-title',
+                confirmButton: 'my-error-button'
+                }
                 });
                 return;
             }
@@ -96,11 +124,22 @@ document.addEventListener('DOMContentLoaded', () => {
             // Display the email in Step 2
             displayEmailEl.textContent = email;
 
-            Swal.fire({
-                icon: 'success',
-                title: 'Reset Link Sent',
-                text: `A password reset link has been sent to ${email}. Please check your email (including spam/junk folder).`
-            });
+           Swal.fire({
+            icon: 'success',
+            title: 'Reset Link Sent',
+            text: `A password reset link has been sent to ${email}. Please check your email (including spam/junk folder).`,
+            background: '#f0fdf4',             
+            color: '#065f46',                   
+            iconColor: '#16a34a',               
+            confirmButtonColor: '#16a34a',      
+            confirmButtonText: 'Got it!',
+            customClass: {
+                popup: 'my-success-popup',
+                title: 'my-success-title',
+                confirmButton: 'my-success-button'
+            }
+        });
+
 
             current = 1;
             showStep(current);
