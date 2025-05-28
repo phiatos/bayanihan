@@ -10,6 +10,7 @@ planned system flow: https://docs.google.com/document/d/15CWf6rDFmi5rI86DARh8CFW
 2. You can run the project from the 'main' branch
 3. cd 'bayanihan'
 4. npm run dev (we used vite)
+5. npm install (if needed)
 
 <!-- // ================================================== // -->
 Test Walkthrough (For Review)
