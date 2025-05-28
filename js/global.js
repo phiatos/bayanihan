@@ -22,7 +22,7 @@ const auth = getAuth(app);
 const database = getDatabase(app);
 
 // Base path for redirects (keep as is)
-const BASE_PATH = "/Bayanihan-PWA";
+const BASE_PATH = "/bayanihan";
 
 document.addEventListener("DOMContentLoaded", () => {
     const container = document.querySelector(".container");
