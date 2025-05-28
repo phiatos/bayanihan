@@ -8,7 +8,7 @@
   <link rel="manifest" href="../manifest.json"/>
   <link rel="stylesheet" href="../css/login.css" />
   <link rel="stylesheet" href="../css/global.css" />
-  <script defer type="module" src="../js/global.js"></script>
+  <script type="module" src="../js/global.js"></script>
 </head>
 
 <body>
@@ -24,7 +24,7 @@
             <input type="email" id="login-email" placeholder="Enter Email" required />
             <i class="bx bxs-user"></i>
           </div>
-          <!-- Error message will go here -->
+          <div class="error-message"></div>
         </div>
 
         <div class="input-box">
@@ -34,6 +34,7 @@
             <i class='bx bxs-lock-alt'></i>
             <i class='bx bxs-lock-open-alt'></i>
           </div>
+          <div class="error-message"></div>
         </div>
 
         <div class="forgot-link">

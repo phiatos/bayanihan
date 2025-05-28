@@ -147,7 +147,7 @@ function fetchAndRenderTable() {
         showConfirmButton: false
       });
       setTimeout(() => {
-        window.location.replace("/Bayanihan-PWA/pages/login.html");
+        window.location.replace("../pages/login.html");
       }, 2000);
       return;
     }

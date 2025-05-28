@@ -393,7 +393,7 @@
                 <input type="number" id="modalAreaInput" placeholder="1,000,000.00" required />
             
                 <label>Relief Assistance Purpose</label>
-                <input type="text" id="modalAreaInput"placeholder="e.g for hot meals" required />
+                <input type="text" id="modalAreaInput" placeholder="e.g for hot meals" required />
                 <div class="modal-action-buttons">
                     <button id="modalNextStepBtn" class="btn-primary">Submit</button>
                 </div>
@@ -404,17 +404,14 @@
 
     <script>
         fetch('../components/sidebar.html')
-        .then(response => response.text())
-        .then(data => {
-            document.querySelector('.sidebar-placeholder').innerHTML = data;
-            const sidebarScript = document.createElement('script');
-            sidebarScript.src = '../components/sidebar.js';
-            sidebarScript.onload = function() {};
-            document.querySelector('.sidebar-placeholder').appendChild(sidebarScript);
-        })
-        .catch(error => {
-            console.error('Error loading sidebar:', error);
-        });
+            .then(res => res.text())
+            .then(data => {
+                document.querySelector('.sidebar-placeholder').innerHTML = data;
+                const script = document.createElement('script');
+                script.src = '../components/sidebar.js';
+                document.querySelector('.sidebar-placeholder').appendChild(script);
+            })
+            .catch(err => console.error('Error loading sidebar:', err));
     </script>
 
     <script src="../js/activation.js"></script>

@@ -1,8 +1,12 @@
 // Firebase imports
-import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js";
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-import { getAuth, sendEmailVerification, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { get, getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
+// import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js';
+// import { getAuth, sendEmailVerification, signInWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
+// import { getAnalytics } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js';
+// import { getDatabase, ref, get, set } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js';
+import { initializeApp } from 'firebase/app'; 
+import { getAuth, sendEmailVerification, signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { getAnalytics } from 'firebase/analytics';
+import { getDatabase, ref, get, set } from 'firebase/database';
 
 // Firebase config (keep as is)
 const firebaseConfig = {
@@ -17,12 +21,12 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
+// const analytics = getAnalytics(app);
 const auth = getAuth(app);
 const database = getDatabase(app);
 
 // Base path for redirects (keep as is)
-const BASE_PATH = "/Bayanihan-PWA";
+const BASE_PATH = "/bayanihan";
 
 document.addEventListener("DOMContentLoaded", () => {
     const container = document.querySelector(".container");
@@ -181,7 +185,7 @@ document.addEventListener("DOMContentLoaded", () => {
             } catch (error) {
                 // Handle Firebase authentication errors
                 if (error.code === "auth/invalid-credential" || error.code === "auth/user-not-found" || error.code === "auth/wrong-password") {
-                    showToast("Invalid email or password.", "error");
+                    showToast("Invalid email or password.");
                 } else {
                     showToast("An error occurred during login: " + error.message);
                     console.error("Login error:", error);
@@ -206,6 +210,6 @@ const showToast = (message, type = 'error') => {
     // Remove after 3 seconds
     setTimeout(() => {
         toast.classList.remove('show');
-        setTimeout(() => toast.remove(), 300); // match CSS transition
+        setTimeout(() => toast.remove(), 300); 
     }, 3000);
 };

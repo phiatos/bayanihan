@@ -130,7 +130,7 @@ function initSidebar() {
           showConfirmButton: false
         });
         setTimeout(() => {
-          window.location.replace("/Bayanihan-PWA/pages/login.html");
+          window.location.replace("../pages/login.html");
         }, 2000);
         return;
       }
@@ -145,7 +145,7 @@ function initSidebar() {
           showConfirmButton: false
         });
         setTimeout(() => {
-          window.location.replace("/Bayanihan-PWA/pages/dashboard.html");
+          window.location.replace("../pages/dashboard.html");
         }, 2000);
       }
     }

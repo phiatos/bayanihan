@@ -1,5 +1,3 @@
-// dashboard.js
-
 // Global variable to hold the map and markers
 let map;
 let markers = [];

@@ -67,7 +67,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let yOffset = 20;
         const logo = new Image();
-        logo.src = '/Bayanihan-PWA/assets/images/AB_logo.png'; // Assuming the logo path is the same
+        logo.src = '../assets/images/AB_logo.png'; // Assuming the logo path is the same
 
         logo.onload = function() {
             const pageWidth = doc.internal.pageSize.width;
@@ -567,7 +567,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const doc = new jsPDF('portrait');
 
         const logo = new Image();
-        logo.src = '/Bayanihan-PWA/assets/images/AB_logo.png'; // Your logo path
+        logo.src = '../assets/images/AB_logo.png'; // Your logo path
 
         logo.onload = function() {
             const pageWidth = doc.internal.pageSize.width;

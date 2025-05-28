@@ -1,7 +1,11 @@
 // Firebase imports (Modular SDK syntax)
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-import { getAuth, EmailAuthProvider, reauthenticateWithCredential, updatePassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { getDatabase, ref, get, update } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
+// import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+// import { getAuth, EmailAuthProvider, reauthenticateWithCredential, updatePassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+// import { getDatabase, ref, get, update } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
+
+import { initializeApp } from 'firebase/app'; 
+import { getAuth, EmailAuthProvider, reauthenticateWithCredential, updatePassword, onAuthStateChanged } from 'firebase/auth';
+import { getDatabase, ref, get, update } from 'firebase/database';
 
 // Firebase configuration (keep as is)
 const firebaseConfig = {
@@ -20,8 +24,8 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const database = getDatabase(app);
 
-// Base path for redirects
-const BASE_PATH = "/Bayanihan-PWA";
+// Base path for redirects (keep as is)
+const BASE_PATH = "/bayanihan";
 
 document.addEventListener("DOMContentLoaded", () => {
     // Helper function for consistent error display
@@ -62,7 +66,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         try {
-            // Fetch user data by UID
             const userSnapshot = await get(ref(database, 'users/' + user.uid));
             console.log("Users snapshot:", userSnapshot.val());
 
@@ -76,29 +79,45 @@ document.addEventListener("DOMContentLoaded", () => {
             let userData = userSnapshot.val();
             console.log("User data retrieved:", userData);
 
+            // --- Always display the user's role/position first ---
+            document.getElementById('profile-position').innerText = userData.role || 'N/A';
+
             // === ADMIN ROLE HANDLING ===
             if (userData.role === 'AB ADMIN') {
-                const position = userData.role; 
                 const name = userData.contactPerson;
                 const email = userData.email;
                 const mobile = userData.mobile;
 
-                // Display admin profile info on profile page
-                document.getElementById('profile-position').innerText = position || 'N/A';
                 document.getElementById('profile-contact-person').innerText = name || 'N/A';
                 document.getElementById('profile-email').innerText = email || 'N/A';
                 document.getElementById('profile-mobile').innerText = mobile || 'N/A';
-                return;
             }
 
-            if (!userData.organization) {
+            // Check if the user has an organization (applicable to ABVN, volunteer, etc.)
+            // This block will now execute for non-admin users.
+            if (!userData.organization && userData.role !== 'AB ADMIN') { // Added condition to exclude AB ADMIN
                 console.error("No organization found for user:", user.uid);
                 showError('Organization Not Found', 'Organization data not found for this user. Please contact support.');
                 setFieldsToNA();
                 return;
             }
 
-            // Fetch volunteer group data by matching organization
+            // If it's an AB ADMIN, we might not have 'organization' or 'groupData'
+            // so we should only proceed to fetch group data if it's not an admin.
+            if (userData.role === 'AB ADMIN') {
+                // For admins, we've already displayed their info.
+                // We can set group-related fields to N/A or hide them if they don't apply.
+                document.getElementById('group-title').textContent = 'Admin Account';
+                document.getElementById('group-description').textContent = 'This is an administrative account.';
+                document.getElementById('profile-org-name').textContent = 'N/A (Admin)';
+                document.getElementById('profile-hq').textContent = 'N/A (Admin)';
+                document.getElementById('profile-area').textContent = 'N/A (Admin)';
+                // Ensure the contact person, email, mobile are already set from userData for admin
+                return; // Exit after setting admin specific fields and N/A for group related fields.
+            }
+
+
+            // Fetch volunteer group data by matching organization (only for non-admin roles)
             console.log("Querying volunteerGroups node for organization:", userData.organization);
             const groupSnapshot = await get(ref(database, 'volunteerGroups'));
 
@@ -129,7 +148,7 @@ document.addEventListener("DOMContentLoaded", () => {
             document.getElementById('group-title').textContent = `Volunteer Group: ${groupData.organization || 'N/A'}`;
             document.getElementById('group-description').textContent = `You are logged in as part of the ${groupData.organization || 'N/A'} group.`;
 
-            // Display profile data
+            // Display profile data for non-admin users
             document.getElementById('profile-org-name').textContent = groupData.organization || 'N/A';
             document.getElementById('profile-hq').textContent = groupData.hq || 'N/A';
             document.getElementById('profile-contact-person').textContent = groupData.contactPerson || 'N/A';

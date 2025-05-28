@@ -512,7 +512,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const logo = new Image();
         // IMPORTANT: Verify this path is correct relative to your HTML file!
-        logo.src = '/Bayanihan-PWA/assets/images/AB_logo.png'; 
+        logo.src = '../assets/images/AB_logo.png'; 
 
         logo.onload = function() {
             const pageWidth = doc.internal.pageSize.width;
@@ -630,7 +630,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         logo.onerror = function() {
             Swal.close();
-            Swal.fire("Error", "Failed to load logo image at /Bayanihan-PWA/assets/images/AB_logo.png. Please check the path.", "error");
+            Swal.fire("Error", "Failed to load logo image at ../assets/images/AB_logo.png. Please check the path.", "error");
         };
     }
 
@@ -649,7 +649,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const doc = new jsPDF('portrait');
 
         const logo = new Image();
-        logo.src = '/Bayanihan-PWA/assets/images/AB_logo.png';
+        logo.src = '../assets/images/AB_logo.png';
 
         logo.onload = function() {
             const pageWidth = doc.internal.pageSize.width;
