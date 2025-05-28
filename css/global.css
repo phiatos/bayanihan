@@ -257,16 +257,20 @@ tr {
 ========================================================================== */
 
 .modal {
-  position: fixed;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  background: rgba(0, 0, 0, 0.5); /* slightly softer dark backdrop */
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 999;
-  backdrop-filter: blur(4px); /* adds subtle background blur for elegance */
-  transition: opacity 0.3s ease;
+  display: none; /* Hidden by default */
+  position: fixed; /* Stay in place */
+  z-index: 1000; /* Sit on top */
+  left: 0;
+  top: 0;
+  width: 100%; /* Full width */
+  height: 100%; /* Full height */
+  overflow: auto; /* Enable scroll if needed */
+  background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+  display: flex; /* Use flexbox for centering */
+  align-items: center; /* Center vertically */
+  justify-content: center; /* Center horizontally */
+  backdrop-filter: blur(5px); /* ✨ blurs background */
+  -webkit-backdrop-filter: blur(5px); /* for Safari support */
 }
 
 .modal.hidden {
@@ -276,38 +280,53 @@ tr {
 
 .modal-content {
   background: var(--light-bg);
-  padding: 40px 50px;
+  padding: 30px;
   width: 90%;
   max-width: 900px; /* keep it responsive */
   max-height: 85vh;
   overflow-y: auto;
+  box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);
   border: 3px solid var(--primary-color);
   border-radius: 16px;
   position: relative;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.25);
-  animation: modalFadeIn 0.4s ease; /* smooth entrance animation */
+  animation: animatetop 0.4s ease-out;
+  animation-duration: 0.4s;
+  display: flex; /* Flex container for modal content */
+  flex-direction: column; /* Stack children vertically */
 }
 
-/* Add smooth fade-in */
-@keyframes modalFadeIn {
-  from {
+@keyframes animatetop {
+  0% {
     opacity: 0;
-    transform: translateY(-20px);
+    transform: translateY(20px) scale(0.98);
   }
-  to {
+  100% {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
   }
 }
 
-.close {
+
+.close, .close-button {
+  color: #aaa;
+  float: right;
+  font-size: 28px;
+  font-weight: bold;
   position: absolute;
-  top: 10px; right: 15px;
-  font-size: 24px;
+  top: 10px;
+  right: 20px;
   cursor: pointer;
 }
+
+.close-button:hover,
+.close-button:focus,
+.close:hover {
+  color: black;
+
+}
+
 
 #modalTitle {
   color: var(--primary-color);
@@ -315,8 +334,71 @@ tr {
   font-weight: 600;
 }
 
+.modal-action-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
 
-h2, h4{
+.modal-action-buttons button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 1em;        
+}
+
+/* Calamity Type and Typhoon Name in Modal */
+.modal-calamity-container select,
+.modal-calamity-container input[type="text"] {
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 1em;
+  width: 100%; /* Full width within container */
+  box-sizing: border-box; /* Include padding/border in width */
+}
+
+/* Area Input in Modal */
+.modal-area-input-container { /* New container for the input field */
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 15px;
+}
+        
+#modalAreaInput { /* New ID for the text input */         
+  padding: 8px;        
+  border: 1px solid #ccc;         
+  border-radius: 4px;          
+  font-size: 1em;           
+  width: 100%;           
+  box-sizing: border-box;
+}
+
+ /* Styles for the two steps in the modal */
+.modal-step {     
+  display: none; /* Hide steps by default */      
+  flex-direction: column;      
+  gap: 15px;
+}
+        
+.modal-step.active { 
+  display: flex; /* Show the active step */ 
+}
+
+#selectGroupDropdown {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;      
+  font-size: 1em; 
+  box-sizing: border-box;
+}
+
+
+h2, h4, strong{
   color: var(--primary-color);
 }
 
@@ -346,20 +428,25 @@ h2, h4{
   color: var(--black);
 }
 
-.form-1, .form-2 {
+/* Shared form styles */
+.form-1, .form-2, .form-3 {
   box-sizing: border-box;
   padding: 10px;
+  width: 100%;
 }
-.form-1 table, .form-2 table {
+
+/* Specific adjustments */
+.form-3 {
+  margin: 20px;
+}
+
+/* Table styling inside forms */
+.form-1 table,
+.form-2 table {
   table-layout: auto;
   word-wrap: break-word;
 }
-.form-3 {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 10px;
-  margin: 20px;
-}
+
 
 table td {
   padding: 10px 0 10px 10px;
@@ -460,8 +547,9 @@ button:disabled {
 }
 
 .activation-btn, .bayanihanBtn{
-  width: 120px;
-  padding: 8px 0; /* a bit more vertical padding for comfort */
+  width: fit-content;
+  height: auto;
+  padding: 10px; /* a bit more vertical padding for comfort */
   background-color: var(--primary-color);
   color: var(--white);
   box-sizing: border-box;
@@ -472,7 +560,7 @@ button:disabled {
   letter-spacing: 0.5px;
   display: inline-block;
   text-align: center;
-  margin: 5px;
+  margin: 10px 0 0 0;
   transition: 
     background-color 0.3s ease, 
     box-shadow 0.3s ease, 
@@ -491,16 +579,17 @@ button:disabled {
   box-shadow: 0 0 0 3px rgba(20, 174, 187, 0.5);
 }
 
+
 /* Shared button styles for sleek look */
 .viewBtn, .editBtn, .deleteBtn, .approveBtn, .rejectBtn, 
-.saveBtn, .endorseBtn, .savePDFBtn{
+.saveBtn, .endorseBtn, .savePDFBtn, .action-button-endorse-button, .action-button{
   color: #fff;
   border: none;
   padding: 10px 18px;
   font-size: 12px;
   border-radius: 8px;
   cursor: pointer;
-  width: 100px;
+  width: 120px;
   transition: all 0.3s ease;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
@@ -514,11 +603,11 @@ button:disabled {
   transform: translateY(-2px);
 }
 
-.deleteBtn, .rejectBtn {
+.deleteBtn, .rejectBtn, .action-button {
   background-color: var(--red);
 }
 
-.deleteBtn:hover, .rejectBtn:hover {
+.deleteBtn:hover, .rejectBtn:hover, .action-button:hover {
   background-color: var(--red-hover);
   transform: translateY(-2px);
 }
@@ -532,11 +621,12 @@ button:disabled {
   transform: translateY(-2px);
 }
 
-.saveBtn, .endorseBtn {
+
+.saveBtn, .endorseBtn, .action-button-endorse-button {
   background-color: var(--primary-color);
 }
 
-.saveBtn:hover, .endorseBtn:hover {
+.saveBtn:hover, .endorseBtn:hover, .action-button-endorse-button:hover{
   background-color: var(--button-hover);
   transform: translateY(-2px);
 }
@@ -777,8 +867,8 @@ button:disabled {
 }
 
 /* Buttons */
-.form-page-container form .next-btn, 
-.form-page-container form .backBtn{
+.form-page-container form .next-btn, .next-btn,
+.form-page-container form .backBtn, .back-btn, .activate-btn{
     width: 200px;
     padding: 8px 0; /* a bit more vertical padding for comfort */
     background-color: var(--primary-color);
@@ -800,12 +890,68 @@ button:disabled {
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
 }
 
-.form-page-container form button:hover{
+.cancel-btn{
+  width: 200px;
+  padding: 8px 0; /* a bit more vertical padding for comfort */
+  background-color: var(--red);
+  color: var(--white);
+  box-sizing: border-box;
+  border: none;
+  border-radius: 10px; /* slightly rounder for modern feel */
+  cursor: pointer;
+  font-size: 14px; /* slightly larger for readability */
+  letter-spacing: 0.5px;
+  display: inline-block;
+  text-align: center;
+  margin-top: 10px;
+  margin-bottom: 25px;
+  transition: 
+    background-color 0.3s ease, 
+    box-shadow 0.3s ease, 
+    transform 0.2s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+.cancel-btn:hover{
+  background-color: var(--red-hover);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+  transform: translateY(-2px);
+}
+
+.form-page-container form button:hover, .next-btn:not(:disabled):hover, .back-btn:hover{
   background-color: #0c7a99; /* a deeper tone for hover */
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
   transform: translateY(-2px);
 }
 
+.activate-btn{
+  width: 200px;
+    padding: 8px 0; /* a bit more vertical padding for comfort */
+    background-color: var(--green);
+    color: var(--white);
+    box-sizing: border-box;
+    border: none;
+    border-radius: 10px; /* slightly rounder for modern feel */
+    cursor: pointer;
+    font-size: 14px; /* slightly larger for readability */
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    display: inline-block;
+    text-align: center;
+    margin-top: 10px;
+    margin-bottom: 25px;
+    transition: 
+      background-color 0.3s ease, 
+      box-shadow 0.3s ease, 
+      transform 0.2s ease;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+.activate-btn:hover{
+  background-color: var(--green-hover);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+  transform: translateY(-2px);
+}
 
 button.delete-btn{
   align-content: center;
@@ -841,7 +987,8 @@ button.delete-btn{
 /* Highlight all required inputs with a subtle border color initially */
 input[required],
 select[required],
-textarea[required] {
+textarea[required],
+.groupdropdown {
   border: 2px solid #ccc;
   transition: border-color 0.3s ease;
 }
@@ -849,7 +996,8 @@ textarea[required] {
 /* Add focus effect to required inputs */
 input[required]:focus,
 select[required]:focus,
-textarea[required]:focus {
+textarea[required]:focus,
+.groupdropdown {
   border-color: var(--primary-color);
   outline: none;
 }
