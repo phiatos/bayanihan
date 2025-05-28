@@ -1,458 +1,11 @@
-import { initializeApp } from 'firebase/app';
-import { getAuth, onAuthStateChanged } from 'firebase/auth';
-import { getDatabase, ref, get, set, update, query, orderByChild, equalTo } from 'firebase/database'; // Added query, orderByChild, equalTo
-
 // Global variables for map and markers
 let map;
 let markers = [];
 let autocomplete;
 
-document.addEventListener('DOMContentLoaded', () => {
-    const firebaseConfig = {
-        apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
-        authDomain: "bayanihan-5ce7e.firebaseapp.com",
-        databaseURL: "https://bayanihan-5ce7e-default-rtdb.asia-southeast1.firebasedatabase.app",
-        projectId: "bayanihan-5ce7e",
-        storageBucket: "bayanihan-5ce7e.appspot.com",
-        messagingSenderId: "593123849917",
-        appId: "1:593123849917:web:eb85a63a536eeff78ce9d4",
-        measurementId: "G-ZTQ9VXXVV0",
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const database = getDatabase(app);
-
-    const formPage1 = document.getElementById('form-page-1');
-    const formPage2 = document.getElementById('form-page-2');
-    const nextBtn = document.getElementById('nextBtn');
-    const backBtn = document.getElementById('backBtn');
-    const submitReportBtn = document.getElementById('submitReportBtn'); // Added for page 2 submit
-
-    const reportIdInput = document.getElementById('reportId');
-    const dateOfReportInput = document.getElementById('dateOfReport');
-    const areaOfOperationInput = document.getElementById('AreaOfOperation');
-    const calamityAreaDropdown = document.getElementById('calamityAreaDropdown');
-    const completionTimeInput = document.getElementById('completionTime');
-    const startDateInput = document.getElementById('StartDate');
-    const endDateInput = document.getElementById('EndDate');
-    const numIndividualsFamiliesInput = document.getElementById('numIndividualsFamilies');
-    const numFoodPacksInput = document.getElementById('numFoodPacks');
-    const numHotMealsInput = document.getElementById('numHotMeals');
-    const litersWaterInput = document.getElementById('litersWater');
-    const numVolunteersInput = document.getElementById('numVolunteers');
-    const numOrganizationsInput = document.getElementById('numOrganizations');
-    const valueInKindInput = document.getElementById('valueInKind');
-    const monetaryDonationsInput = document.getElementById('monetaryDonations');
-    const notesInfoTextarea = document.getElementById('notesInfo');
-    const submittedByInput = document.getElementById('SubmittedBy'); // Uncommented
-
-    const pinBtn = document.getElementById('pinBtn');
-    const mapModal = document.getElementById('mapModal');
-    const closeBtn = document.querySelector('.closeBtn');
-
-    let userUid = null;
-    let volunteerGroupName = "[Unknown Org]"; // Default to Unknown Org
-    let activeActivations = []; // To store active operations for the dropdown
-    let userDisplayName = "Anonymous"; // To store user's display name
-
-    function populateCalamityAreaDropdown() {
-        calamityAreaDropdown.innerHTML = '<option value="">-- Select an Active Operation --</option>';
-        activeActivations.forEach(activation => {
-            const option = document.createElement("option");
-            option.value = activation.id;
-
-            let displayCalamity = activation.calamityType;
-            if (activation.calamityType === "Typhoon" && activation.typhoonName) {
-                displayCalamity += ` (${activation.typhoonName})`;
-            }
-            option.textContent = `${displayCalamity} (by ${activation.organization})`;
-            calamityAreaDropdown.appendChild(option);
-        });
-
-        const savedData = JSON.parse(localStorage.getItem("reportData"));
-        if (savedData && savedData.CalamityAreaId) {
-            calamityAreaDropdown.value = savedData.CalamityAreaId;
-            if (calamityAreaDropdown.value) {
-                calamityAreaDropdown.dispatchEvent(new Event('change'));
-            }
-        }
-    }
-
-    calamityAreaDropdown.addEventListener('change', () => {
-        const selectedActivationId = calamityAreaDropdown.value;
-
-        if (selectedActivationId === "") {
-            areaOfOperationInput.value = "";
-            areaOfOperationInput.readOnly = false;
-            pinBtn.style.display = 'inline-block';
-        } else {
-            const selectedActivation = activeActivations.find(
-                (activation) => activation.id === selectedActivationId
-            );
-
-            if (selectedActivation) {
-                // Keep areaOfOperation editable and pin button visible even if an activation is selected
-                areaOfOperationInput.readOnly = false;
-                pinBtn.style.display = 'inline-block';
-            } else {
-                console.warn("Selected activation not found in activeActivations array.");
-                areaOfOperationInput.value = "";
-                areaOfOperationInput.readOnly = false;
-                pinBtn.style.display = 'inline-block';
-            }
-        }
-    });
-
-    onAuthStateChanged(auth, user => { // Changed to onAuthStateChanged for better reactivity
-        if (user) {
-            userUid = user.uid;
-            userDisplayName = user.displayName || user.email || "Anonymous"; // Get user's display name
-            submittedByInput.value = userDisplayName; // Populate SubmittedBy field
-            console.log('Logged-in user UID:', userUid);
-            console.log('Logged-in user Display Name:', userDisplayName);
-
-            get(ref(database, `users/${userUid}`))
-            .then(snapshot => {
-                const userData = snapshot.val();
-                if (userData && userData.group) {
-                    volunteerGroupName = userData.group;
-                    console.log('Volunteer group fetched from database for filtering:', volunteerGroupName);
-                } else {
-                    console.warn('User data or group not found in database for UID:', userUid);
-                }
-
-                let activationsRef = ref(database, "activations");
-                // Fetch all active activations, then filter by group
-                get(query(activationsRef, orderByChild("status"), equalTo("active")))
-                    .then(snapshot => {
-                        activeActivations = [];
-                        snapshot.forEach(childSnapshot => {
-                            const activation = { id: childSnapshot.key, ...childSnapshot.val() };
-                            // Filter activations by the user's volunteer group, if known
-                            if (volunteerGroupName && volunteerGroupName !== "[Unknown Org]") {
-                                if (activation.organization === volunteerGroupName) {
-                                    activeActivations.push(activation);
-                                }
-                            } else {
-                                activeActivations.push(activation); // Show all if no specific group or unknown
-                            }
-                        });
-                        populateCalamityAreaDropdown();
-                    })
-                    .catch(error => {
-                        console.error("Error fetching active activations:", error);
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: 'Failed to load active operations. Please try again.'
-                        });
-                    });
-            })
-            .catch(error => {
-                console.error('Error fetching user data:', error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Failed to fetch user group. Please try again.'
-                });
-            });
-
-        } else {
-            console.warn('No user is logged in. Redirecting to login page.');
-            Swal.fire({
-                icon: 'warning',
-                title: 'Not Logged In',
-                text: 'You need to be logged in to submit a report. Redirecting to login page.'
-            }).then(() => {
-                window.location.href = '../pages/login.html';
-            });
-        }
-    });
-
-    const today = new Date();
-    const formattedDate = today.toLocaleDateString('en-CA'); //YYYY-MM-DD
-    dateOfReportInput.value = formattedDate;
-
-    // Generate random report ID
-    const idInput = document.getElementById('reportId');
-    if (idInput) {
-        const randomId = 'ABRN' + Math.floor(1000000000 + Math.random() * 9000000000); // Ensures a 10-digit number after "ABRN"
-        idInput.value = randomId;
-    }
-
-    if (pinBtn && mapModal && closeBtn) {
-        pinBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            console.log("Pin button clicked!");
-            mapModal.classList.add('show');
-            console.log("mapModal classList:", mapModal.classList);
-            // Initialize the map when the modal is opened (if not already initialized)
-            if (!map) {
-                initMap();
-            } else {
-                // If map already exists, just resize it to fit the modal
-                setTimeout(() => {
-                    if (map) {
-                        google.maps.event.trigger(map, 'resize');
-                        // Center map to current area of operation if available
-                        const currentArea = areaOfOperationInput.value;
-                        if (currentArea) {
-                            const geocoder = new google.maps.Geocoder();
-                            geocoder.geocode({ 'address': currentArea }, (results, status) => {
-                                if (status === 'OK' && results[0]) {
-                                    map.setCenter(results[0].geometry.location);
-                                    // Clear existing markers and add a new one for the current area
-                                    markers.forEach((marker) => marker.setMap(null));
-                                    markers = [];
-                                    const marker = new google.maps.Marker({
-                                        map: map,
-                                        position: results[0].geometry.location,
-                                        title: currentArea,
-                                    });
-                                    markers.push(marker);
-                                }
-                            });
-                        } else {
-                            // If no area of operation, center on Philippines
-                            map.setCenter({ lat: 12.8797, lng: 121.7740 });
-                            map.setZoom(6);
-                        }
-                    }
-                }, 100); // Small delay to allow modal to render
-            }
-        });
-
-        closeBtn.addEventListener('click', () => {
-            mapModal.classList.remove('show');
-        });
-
-        window.addEventListener('click', (e) => {
-            if (e.target === mapModal) {
-                mapModal.classList.remove('show');
-            }
-        });
-    } else {
-        console.warn('Modal elements (pinBtn, mapModal, closeBtn) not found. Map functionality may be impaired.');
-    }
-
-    nextBtn.addEventListener('click', () => {
-        if (!formPage1.checkValidity()) {
-            formPage1.reportValidity();
-            return;
-        }
-
-        const startDateValue = startDateInput.value;
-        const endDateValue = endDateInput.value;
-
-        if (!startDateValue || !endDateValue) {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Missing Dates',
-                text: 'Please fill in both Start Date and End Date.'
-            });
-            if (!startDateValue) {
-                startDateInput.focus();
-            } else {
-                endDateInput.focus();
-            }
-            return;
-        }
-
-        const startDate = new Date(startDateValue + 'T00:00:00');
-        const endDate = new Date(endDateValue + 'T00:00:00');
-        const todayAtMidnight = new Date();
-        todayAtMidnight.setHours(0, 0, 0, 0);
-        const oneYearFromToday = new Date(todayAtMidnight);
-        oneYearFromToday.setFullYear(oneYearFromToday.getFullYear() + 1);
-
-        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Invalid Date',
-                text: 'Invalid date entered. Please use the date picker to select valid dates.'
-            });
-            if (isNaN(startDate.getTime())) startDateInput.focus();
-            else endDateInput.focus();
-            return;
-        }
-
-        if (startDate > todayAtMidnight) {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Future Start Date',
-                text: 'Start Date cannot be a future date.'
-            });
-            startDateInput.focus();
-            return;
-        }
-
-        if (startDate > endDate) {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Date Order Error',
-                text: 'Start Date cannot be after End Date.'
-            });
-            startDateInput.focus();
-            return;
-        }
-
-        if (endDate > oneYearFromToday) {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Excessive End Date',
-                text: 'End Date cannot be more than 1 year from today. Please enter a valid date range.'
-            });
-            endDateInput.focus();
-            return;
-        }
-
-        formPage1.style.display = "none";
-        formPage2.style.display = "block";
-    });
-
-    backBtn.addEventListener('click', () => {
-        formPage2.style.display = "none";
-        formPage1.style.display = "block";
-    });
-
-    submitReportBtn.addEventListener("click", async function (e) { // Changed to async function for Firebase write
-        e.preventDefault();
-
-        // Perform validation for formPage2 fields here before saving
-        // For example, assuming all number inputs have 'required' and 'min="0"' attributes
-        if (!numIndividualsFamiliesInput.checkValidity() ||
-            !numFoodPacksInput.checkValidity() ||
-            !numHotMealsInput.checkValidity() ||
-            !litersWaterInput.checkValidity() ||
-            !numVolunteersInput.checkValidity() ||
-            !numOrganizationsInput.checkValidity() ||
-            !valueInKindInput.checkValidity() ||
-            !monetaryDonationsInput.checkValidity()
-        ) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Validation Error',
-                text: 'Please ensure all numerical fields are filled correctly.'
-            });
-            // You might want to scroll to the first invalid field or highlight them
-            return;
-        }
-
-
-        if (!userUid) {
-            console.error('No user UID available. Cannot submit report.');
-            Swal.fire({
-                icon: 'error',
-                title: 'Authentication Error',
-                text: 'User not authenticated. Please log in again.'
-            }).then(() => {
-                window.location.href = '../pages/login.html';
-            });
-            return;
-        }
-
-        Swal.fire({
-            title: 'Submitting Report...',
-            text: 'Please wait.',
-            allowOutsideClick: false,
-            didOpen: () => {
-                Swal.showLoading();
-            }
-        });
-
-        const formData = {
-            userUid: userUid,
-            SubmittedBy: userDisplayName, // Populated from authenticated user
-            VolunteerGroupName: volunteerGroupName, // Populated from user's data
-            AreaOfOperation: areaOfOperationInput.value,
-            CalamityAreaId: calamityAreaDropdown.value,
-            TimeOfIntervention: completionTimeInput.value,
-            DateOfReport: dateOfReportInput.value,
-            ReportID: reportIdInput.value,
-            StartDate: startDateInput.value,
-            EndDate: endDateInput.value,
-            NoOfIndividualsOrFamilies: parseInt(numIndividualsFamiliesInput.value) || 0, // Parse to integer, default to 0
-            NoOfFoodPacks: parseInt(numFoodPacksInput.value) || 0,
-            NoOfHotMeals: parseInt(numHotMealsInput.value) || 0,
-            LitersOfWater: parseFloat(litersWaterInput.value) || 0, // Parse to float
-            NoOfVolunteersMobilized: parseInt(numVolunteersInput.value) || 0,
-            NoOfOrganizationsActivated: parseInt(numOrganizationsInput.value) || 0,
-            TotalValueOfInKindDonations: parseFloat(valueInKindInput.value) || 0,
-            TotalMonetaryDonations: parseFloat(monetaryDonationsInput.value) || 0,
-            NotesAdditionalInformation: notesInfoTextarea.value,
-            Status: "Pending", // Default status
-            Timestamp: new Date().toISOString() // Add submission timestamp
-        };
-
-        try {
-            // Write data to Firebase Realtime Database under 'reports' node
-            // Using set with the ReportID as the key
-            await set(ref(database, `reports/${formData.ReportID}`), formData);
-
-            Swal.fire({
-                icon: 'success',
-                title: 'Report Submitted!',
-                text: 'Your report has been successfully submitted.',
-                showConfirmButton: false,
-                timer: 2000
-            }).then(() => {
-                localStorage.removeItem("reportData"); // Clear saved data on successful submission
-                window.location.href = "../pages/reportsSummary.html";
-            });
-
-        } catch (error) {
-            console.error("Error submitting report to Firebase:", error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Submission Failed',
-                text: 'There was an error submitting your report. Please try again. ' + error.message
-            });
-        }
-    });
-
-
-    // Logic to load data if returning from reportsSummary.html
-    const returnTo = localStorage.getItem("returnToStep");
-
-    if (returnTo === "form-container-1") { // Adjusted to match the key set in the summary page if returning
-        formPage1.style.display = "block";
-        formPage2.style.display = "none";
-
-        const savedData = JSON.parse(localStorage.getItem("reportData"));
-        if (savedData) {
-            areaOfOperationInput.value = savedData.AreaOfOperation || '';
-            if (savedData.CalamityAreaId) {
-                calamityAreaDropdown.value = savedData.CalamityAreaId;
-                if (calamityAreaDropdown.value) {
-                    calamityAreaDropdown.dispatchEvent(new Event('change'));
-                }
-            }
-            completionTimeInput.value = savedData.TimeOfIntervention || '';
-            dateOfReportInput.value = savedData.DateOfReport || '';
-            reportIdInput.value = savedData.ReportID || '';
-            startDateInput.value = savedData.StartDate || '';
-            endDateInput.value = savedData.EndDate || '';
-            numIndividualsFamiliesInput.value = savedData.NoOfIndividualsOrFamilies || '';
-            numFoodPacksInput.value = savedData.NoOfFoodPacks || '';
-            numHotMealsInput.value = savedData.NoOfHotMeals || '';
-            litersWaterInput.value = savedData.LitersOfWater || '';
-            numVolunteersInput.value = savedData.NoOfVolunteersMobilized || '';
-            numOrganizationsInput.value = savedData.NoOfOrganizationsActivated || '';
-            valueInKindInput.value = savedData.TotalValueOfInKindDonations || '';
-            monetaryDonationsInput.value = savedData.TotalMonetaryDonations || '';
-            notesInfoTextarea.value = savedData.NotesAdditionalInformation || '';
-            submittedByInput.value = savedData.SubmittedBy || userDisplayName; // Load or use current user's display name
-        }
-
-        localStorage.removeItem("returnToStep"); // Clear the flag after loading
-    } else {
-        formPage1.style.display = "block";
-        formPage2.style.display = "none";
-    }
-});
-
 // Function to initialize Google Maps (adapted from dashboard.js)
+// This function needs to be globally accessible if you use callback=initMap in your script tag,
+// but for better control, we call it when the modal is opened.
 function initMap() {
     // Default to Manila, Philippines
     const defaultLocation = { lat: 14.5995, lng: 120.9842 };
@@ -601,7 +154,7 @@ function initMap() {
                     map: map,
                     title: "You are here",
                     icon: {
-                        url: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png",
+                        url: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png", // A more common blue dot icon
                     },
                 });
                 markers.push(marker);
@@ -651,8 +204,450 @@ function initMap() {
         });
     }
 }
+
 // Function to clear all markers from the map
 function clearMarkers() {
     markers.forEach(marker => marker.setMap(null));
     markers = [];
 }
+document.addEventListener('DOMContentLoaded', () => {
+    // Firebase configuration (should only be initialized once per app)
+    const firebaseConfig = {
+        apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ", // Replace with your actual API Key
+        authDomain: "bayanihan-5ce7e.firebaseapp.com",
+        databaseURL: "https://bayanihan-5ce7e-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "bayanihan-5ce7e",
+        storageBucket: "bayanihan-5ce7e.appspot.com",
+        messagingSenderId: "593123849917",
+        appId: "1:593123849917:web:eb85a63a536eeff78ce9d4",
+        measurementId: "G-ZTQ9VXXVV0",
+    };
+
+    // Initialize Firebase only if not already initialized
+    if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+    }
+    const auth = firebase.auth();
+    const database = firebase.database();
+
+    // Get references to form elements
+    const formPage1 = document.getElementById('form-page-1');
+    const formPage2 = document.getElementById('form-page-2');
+    const nextBtn = document.getElementById('nextBtn');
+    const backBtn = document.getElementById('backBtn');
+
+    const reportIdInput = document.getElementById('reportId');
+    const dateOfReportInput = document.getElementById('dateOfReport');
+    const areaOfOperationInput = document.getElementById('AreaOfOperation');
+    const calamityAreaDropdown = document.getElementById('calamityAreaDropdown');
+    const completionTimeInput = document.getElementById('completionTime');
+    const startDateInput = document.getElementById('StartDate');
+    const endDateInput = document.getElementById('EndDate');
+    const numIndividualsFamiliesInput = document.getElementById('numIndividualsFamilies');
+    const numFoodPacksInput = document.getElementById('numFoodPacks');
+    const numHotMealsInput = document.getElementById('numHotMeals');
+    const litersWaterInput = document.getElementById('litersWater');
+    const numVolunteersInput = document.getElementById('numVolunteers');
+    const numOrganizationsInput = document.getElementById('numOrganizations');
+    const valueInKindInput = document.getElementById('valueInKind');
+    const monetaryDonationsInput = document.getElementById('monetaryDonations');
+    const notesInfoTextarea = document.getElementById('notesInfo');
+    // const submittedByInput = document.getElementById('SubmittedBy'); // Keep commented out if you don't want to use it
+
+    // Map modal elements (assuming these exist in your HTML)
+    const pinBtn = document.getElementById('pinBtn'); // Ensure this element exists
+    const mapModal = document.getElementById('mapModal'); // Ensure this element exists
+    const closeBtn = document.querySelector('.closeBtn'); // Reverted to querySelector for flexibility as in first version
+
+    // Basic check for essential elements for debugging
+    if (!formPage1 || !formPage2 || !nextBtn || !backBtn || !reportIdInput || !dateOfReportInput || !areaOfOperationInput || !calamityAreaDropdown || !completionTimeInput || !startDateInput || !endDateInput || !numIndividualsFamiliesInput || !numFoodPacksInput || !numHotMealsInput || !litersWaterInput || !numVolunteersInput || !numOrganizationsInput || !valueInKindInput || !monetaryDonationsInput || !notesInfoTextarea) {
+        console.error("One or more essential form elements not found. Please check HTML IDs.");
+        // Consider stopping execution or showing a user-friendly error message here
+        return;
+    }
+
+    let userUid = null;
+    let volunteerGroupName = "[Unknown Org]"; // Default to Unknown Org
+    let activeActivations = []; // To store active operations for the dropdown
+
+    function populateCalamityAreaDropdown() {
+        calamityAreaDropdown.innerHTML = '<option value="">-- Select an Active Operation --</option>';
+        activeActivations.forEach(activation => {
+            const option = document.createElement("option");
+            option.value = activation.id;
+
+            let displayCalamity = activation.calamityType;
+            if (activation.calamityType === "Typhoon" && activation.typhoonName) {
+                displayCalamity += ` (${activation.typhoonName})`;
+            }
+            option.textContent = `${displayCalamity} (by ${activation.organization})`;
+            calamityAreaDropdown.appendChild(option);
+        });
+
+        const savedData = JSON.parse(localStorage.getItem("reportData"));
+        if (savedData && savedData.CalamityAreaId) {
+            calamityAreaDropdown.value = savedData.CalamityAreaId;
+            if (calamityAreaDropdown.value) {
+                calamityAreaDropdown.dispatchEvent(new Event('change'));
+            }
+        }
+    }
+
+    calamityAreaDropdown.addEventListener('change', () => {
+        const selectedActivationId = calamityAreaDropdown.value;
+
+        if (selectedActivationId === "") {
+            areaOfOperationInput.value = "";
+            areaOfOperationInput.readOnly = false;
+        } else {
+            const selectedActivation = activeActivations.find(
+                (activation) => activation.id === selectedActivationId
+            );
+
+            if (selectedActivation) {
+                // areaOfOperationInput.value = selectedActivation.areaOfOperation || ""; // You had this commented out
+                areaOfOperationInput.readOnly = false;
+            } else {
+                console.warn("Selected activation not found in activeActivations array.");
+                areaOfOperationInput.value = "";
+                areaOfOperationInput.readOnly = false;
+            }
+        }
+        // Ensure pinBtn is always visible regardless of selection
+        if (pinBtn) pinBtn.style.display = 'inline-block';
+    });
+
+    auth.onAuthStateChanged(user => {
+        if (user) {
+            userUid = user.uid;
+            console.log('Logged-in user UID:', userUid);
+
+            database.ref(`users/${userUid}`).once('value', snapshot => {
+                const userData = snapshot.val();
+                if (userData && userData.group) {
+                    volunteerGroupName = userData.group;
+                    console.log('Volunteer group fetched from database for filtering:', volunteerGroupName);
+                } else {
+                    console.warn('User data or group not found in database for UID:', userUid);
+                }
+
+                let activationsQuery = database.ref("activations").orderByChild("status").equalTo("active");
+
+                if (volunteerGroupName && volunteerGroupName !== "[Unknown Org]") {
+                    console.log(`Filtering activations for group: ${volunteerGroupName}`);
+                    activationsQuery.on("value", snapshot => {
+                        activeActivations = [];
+                        snapshot.forEach(childSnapshot => {
+                            const activation = { id: childSnapshot.key, ...childSnapshot.val() };
+                            if (activation.organization === volunteerGroupName) { // THIS IS THE FILTERING LOGIC
+                                activeActivations.push(activation);
+                            }
+                        });
+                        populateCalamityAreaDropdown();
+                    }, error => {
+                        console.error("Error listening for active activations with group filter:", error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Failed to load active operations. Please try again.'
+                        });
+                    });
+                } else {
+                    console.log("Showing all active activations (Unknown Org or no group).");
+                    activationsQuery.on("value", snapshot => {
+                        activeActivations = [];
+                        snapshot.forEach(childSnapshot => {
+                            activeActivations.push({ id: childSnapshot.key, ...childSnapshot.val() });
+                        });
+                        populateCalamityAreaDropdown();
+                    }, error => {
+                        console.error("Error listening for all active activations:", error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Failed to load active operations. Please try again.'
+                        });
+                    });
+                }
+            }).catch(error => {
+                console.error('Error fetching user data:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Failed to fetch user group. Please try again.'
+                });
+            });
+
+        } else {
+            console.warn('No user is logged in');
+            window.location.href = '../pages/login.html';
+        }
+    });
+
+    const today = new Date();
+    const formattedDate = today.toLocaleDateString('en-CA'); //YYYY-MM-DD
+    dateOfReportInput.value = formattedDate;
+
+    // Generate random report ID
+    const idInput = document.getElementById('reportId');
+    if (idInput) {
+        const randomId = 'ABRN' + Math.floor(10000 + Math.random() * 9000000000);
+        idInput.value = randomId;
+    }
+
+    // --- Modal Elements and Event Listeners ---
+   if (pinBtn && mapModal && closeBtn) {
+        pinBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            console.log("Pin button clicked!");
+            mapModal.classList.add('show');
+            console.log("mapModal classList:", mapModal.classList);
+            // Initialize the map when the modal is opened (if not already initialized)
+            if (!map) {
+                initMap();
+            } else {
+                // If map already exists, just resize it to fit the modal
+                setTimeout(() => {
+                    if (map) {
+                        google.maps.event.trigger(map, 'resize');
+                        // Center map to current area of operation if available
+                        const currentArea = areaOfOperationInput.value;
+                        if (currentArea) {
+                            const geocoder = new google.maps.Geocoder();
+                            geocoder.geocode({ 'address': currentArea }, (results, status) => {
+                                if (status === 'OK' && results[0]) {
+                                    map.setCenter(results[0].geometry.location);
+                                    // Clear existing markers and add a new one for the current area
+                                    markers.forEach((marker) => marker.setMap(null));
+                                    markers = [];
+                                    const marker = new google.maps.Marker({
+                                        map: map,
+                                        position: results[0].geometry.location,
+                                        title: currentArea,
+                                    });
+                                    markers.push(marker);
+                                }
+                            });
+                        } else {
+                            // If no area of operation, center on Philippines
+                            map.setCenter({ lat: 12.8797, lng: 121.7740 });
+                            map.setZoom(6);
+                        }
+                    }
+                }, 100); // Small delay to allow modal to render
+            }
+        });
+
+        closeBtn.addEventListener('click', () => {
+            mapModal.classList.remove('show');
+        });
+
+        window.addEventListener('click', (e) => {
+            if (e.target === mapModal) {
+                mapModal.classList.remove('show');
+            }
+        });
+    } else {
+        console.warn('Modal elements (pinBtn, mapModal, closeBtn) not found. Map functionality may be impaired.');
+    }
+
+    nextBtn.addEventListener('click', () => {
+        console.log("Next button clicked!"); // Debugging line
+        // Form validation on page 1
+        if (!formPage1.checkValidity()) {
+            // console.log("Form page 1 is NOT valid. Showing validation messages."); // Debugging line
+            formPage1.reportValidity();
+            return; // Stop if validation fails
+        }
+        // console.log("Form page 1 is valid."); // Debugging line
+
+        const startDateValue = startDateInput.value;
+        const endDateValue = endDateInput.value;
+
+        // console.log("Start Date:", startDateValue, "End Date:", endDateValue); // Debugging line
+
+        if (!startDateValue || !endDateValue) {
+            // console.log("Start or End Date is missing."); // Debugging line
+            Swal.fire({
+                icon: 'warning',
+                title: 'Missing Dates',
+                text: 'Please fill in both Start Date and End Date.'
+            });
+            if (!startDateValue) {
+                startDateInput.focus();
+            } else {
+                endDateInput.focus();
+            }
+            return;
+        }
+
+        const startDate = new Date(startDateValue + 'T00:00:00');
+        const endDate = new Date(endDateValue + 'T00:00:00');
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const oneYearFromNow = new Date(today);
+        oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+
+        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Invalid Date',
+                text: 'Invalid date entered. Please use the date picker to select valid dates.'
+            });
+            if (isNaN(startDate.getTime())) startDateInput.focus();
+            else endDateInput.focus();
+            return;
+        }
+
+        if (startDate > today) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Future Start Date',
+                text: 'Start Date cannot be a future date.'
+            });
+            startDateInput.focus();
+            return;
+        }
+
+        if (startDate > endDate) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Date Order Error',
+                text: 'Start Date cannot be after End Date.'
+            });
+            startDateInput.focus();
+            return;
+        }
+
+        if (endDate > oneYearFromNow) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Excessive End Date',
+                text: 'End Date cannot be more than 1 year from today. Please enter a valid date range.'
+            });
+            endDateInput.focus();
+            return;
+        }
+
+        // --- Start of NEW logic to capture combined Calamity Area details ---
+        let selectedCalamityName = "";
+        let selectedCalamityOrganization = "";
+        let selectedCalamityTyphoonName = "";
+        let calamityAreaDetailsText = "";
+
+        const selectedActivationId = calamityAreaDropdown.value;
+        if (selectedActivationId) {
+            const selectedActivation = activeActivations.find(
+                (activation) => activation.id === selectedActivationId
+            );
+            if (selectedActivation) {
+                selectedCalamityName = selectedActivation.calamityType;
+                selectedCalamityOrganization = selectedActivation.organization;
+                selectedCalamityTyphoonName = selectedActivation.typhoonName || "";
+
+                calamityAreaDetailsText = selectedCalamityName;
+                if (selectedCalamityTyphoonName) {
+                    calamityAreaDetailsText += ` (${selectedCalamityTyphoonName})`;
+                }
+                if (selectedCalamityOrganization) {
+                    calamityAreaDetailsText += ` (by ${selectedCalamityOrganization})`;
+                }
+            } else {
+                console.warn("Calamity Area ID found but no matching activation data.");
+                calamityAreaDetailsText = `ID: ${selectedActivationId} (Details Missing)`;
+            }
+        } else {
+            console.warn("No Calamity Area selected.");
+            calamityAreaDetailsText = "Not Specified";
+        }
+        // --- End of NEW logic ---
+
+        formPage1.style.display = "none";
+        formPage2.style.display = "block";
+
+        // --- Save data to localStorage when navigating to the next page ---
+        const formData = {
+            userUid: userUid,
+            VolunteerGroupName: volunteerGroupName, // Make sure this is captured
+            AreaOfOperation: areaOfOperationInput.value,
+            CalamityAreaId: calamityAreaDropdown.value,
+            CalamityName: selectedCalamityName,
+            CalamityAreaDetails: calamityAreaDetailsText, // This is the new combined field!
+            TimeOfIntervention: completionTimeInput.value,
+            DateOfReport: dateOfReportInput.value,
+            ReportID: reportIdInput.value,
+            StartDate: startDateInput.value,
+            EndDate: endDateInput.value,
+            NoOfIndividualsOrFamilies: numIndividualsFamiliesInput.value,
+            NoOfFoodPacks: numFoodPacksInput.value,
+            NoOfHotMeals: numHotMealsInput.value,
+            LitersOfWater: litersWaterInput.value,
+            NoOfVolunteersMobilized: numVolunteersInput.value,
+            NoOfOrganizationsActivated: numOrganizationsInput.value,
+            TotalValueOfInKindDonations: valueInKindInput.value,
+            TotalMonetaryDonations: monetaryDonationsInput.value,
+            NotesAdditionalInformation: notesInfoTextarea.value,
+            Status: "Pending"
+        };
+        localStorage.setItem("reportData", JSON.stringify(formData));
+        console.log("Form data saved to localStorage:", formData); // Debugging line
+    });
+
+    backBtn.addEventListener('click', () => {
+        formPage2.style.display = "none";
+        formPage1.style.display = "block";
+    });
+
+    formPage2.addEventListener("submit", function (e) {
+        e.preventDefault();
+        window.location.href = "../pages/reportsSummary.html";
+    });
+
+    // Logic for returning from summary page (pre-filling fields)
+    const returnTo = localStorage.getItem("returnToStep");
+
+    if (returnTo) {
+        const savedData = JSON.parse(localStorage.getItem("reportData"));
+
+        if (savedData) {
+            // Pre-fill fields
+            reportIdInput.value = savedData.ReportID || '';
+            dateOfReportInput.value = savedData.DateOfReport || '';
+            areaOfOperationInput.value = savedData.AreaOfOperation || '';
+
+            // Handle Calamity Area dropdown pre-selection and triggering change
+            if (savedData.CalamityAreaId) {
+                calamityAreaDropdown.value = savedData.CalamityAreaId;
+                // Dispatch change event to ensure dependent logic (like setting areaOfOperationInput, though it's currently manual) runs
+                calamityAreaDropdown.dispatchEvent(new Event('change'));
+            }
+
+            completionTimeInput.value = savedData.TimeOfIntervention || '';
+            startDateInput.value = savedData.StartDate || '';
+            endDateInput.value = savedData.EndDate || '';
+            numIndividualsFamiliesInput.value = savedData.NoOfIndividualsOrFamilies || '';
+            numFoodPacksInput.value = savedData.NoOfFoodPacks || '';
+            numHotMealsInput.value = savedData.NoOfHotMeals || '';
+            litersWaterInput.value = savedData.LitersOfWater || '';
+            numVolunteersInput.value = savedData.NoOfVolunteersMobilized || '';
+            numOrganizationsInput.value = savedData.NoOfOrganizationsActivated || '';
+            valueInKindInput.value = savedData.TotalValueOfInKindDonations || '';
+            monetaryDonationsInput.value = savedData.TotalMonetaryDonations || '';
+            NotesAdditionalInformation.value = savedData.NotesAdditionalInformation || '';
+        }
+
+        // Determine which page to show on return
+        if (returnTo === "form-container-1") {
+            formPage1.style.display = "block";
+            formPage2.style.display = "none";
+        } else if (returnTo === "form-container-2") {
+            formPage1.style.display = "none";
+            formPage2.style.display = "block";
+        }
+        localStorage.removeItem("returnToStep"); // Clear the flag after processing
+    } else {
+        // Default: If no returnToStep flag, show the first page
+        formPage1.style.display = "block";
+        formPage2.style.display = "none";
+    }
+}); // End of DOMContentLoaded
