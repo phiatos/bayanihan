@@ -8,7 +8,8 @@ planned system flow: https://docs.google.com/document/d/15CWf6rDFmi5rI86DARh8CFW
 ## How to Run the Project Locally
 1. Clone or download this repository.
 2. You can run the project from the 'main' branch
-3. Open `index.html` directly in a browser, or use a live server extension (like in VS Code).
+3. cd 'bayanihan'
+4. npm run dev (we used vite)
 
 <!-- // ================================================== // -->
 Test Walkthrough (For Review)

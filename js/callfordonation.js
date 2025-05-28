@@ -823,7 +823,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let yOffset = 20;
         const logo = new Image();
-        logo.src = '/Bayanihan-PWA/assets/images/AB_logo.png';
+        logo.src = '../assets/images/AB_logo.png';
 
         logo.onload = function() {
             const pageWidth = doc.internal.pageSize.width;
@@ -918,7 +918,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         const logo = new Image();
-        logo.src = '/Bayanihan-PWA/assets/images/AB_logo.png'; 
+        logo.src = '../assets/images/AB_logo.png'; 
 
         logo.onload = function() {
             const pageWidth = doc.internal.pageSize.width;

@@ -1,7 +1,11 @@
 // Firebase imports (Modular SDK syntax)
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-import { getAuth, EmailAuthProvider, reauthenticateWithCredential, updatePassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { getDatabase, ref, get, update } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
+// import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+// import { getAuth, EmailAuthProvider, reauthenticateWithCredential, updatePassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+// import { getDatabase, ref, get, update } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
+
+import { initializeApp } from 'firebase/app'; 
+import { getAuth, EmailAuthProvider, reauthenticateWithCredential, updatePassword, onAuthStateChanged } from 'firebase/auth';
+import { getDatabase, ref, get, update } from 'firebase/database';
 
 // Firebase configuration (keep as is)
 const firebaseConfig = {
@@ -20,8 +24,8 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const database = getDatabase(app);
 
-// Base path for redirects
-const BASE_PATH = "/Bayanihan-PWA";
+// Base path for redirects (keep as is)
+const BASE_PATH = "/bayanihan";
 
 document.addEventListener("DOMContentLoaded", () => {
     // Helper function for consistent error display
