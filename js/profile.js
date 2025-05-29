@@ -1,13 +1,14 @@
-// Firebase imports (Modular SDK syntax)
-// import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-// import { getAuth, EmailAuthProvider, reauthenticateWithCredential, updatePassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-// import { getDatabase, ref, get, update } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
-
-import { initializeApp } from 'firebase/app'; 
+/*
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+import { getAuth, EmailAuthProvider, reauthenticateWithCredential, updatePassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { getDatabase, ref, get, update } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
+*/
+// using vite:
+import { initializeApp } from 'firebase/app';
 import { getAuth, EmailAuthProvider, reauthenticateWithCredential, updatePassword, onAuthStateChanged } from 'firebase/auth';
 import { getDatabase, ref, get, update } from 'firebase/database';
 
-// Firebase configuration (keep as is)
+// Firebase configuration
 const firebaseConfig = {
     apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
     authDomain: "bayanihan-5ce7e.firebaseapp.com",
@@ -19,16 +20,54 @@ const firebaseConfig = {
     measurementId: "G-ZTQ9VXXVV0"
 };
 
-// Initialize Firebase (Modular SDK)
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const database = getDatabase(app);
 
-// Base path for redirects (keep as is)
+// Base path for redirects
 const BASE_PATH = "/bayanihan";
 
 document.addEventListener("DOMContentLoaded", () => {
-    // Helper function for consistent error display
+    const groupTitleElement = document.getElementById('group-title');
+    const groupDescriptionElement = document.getElementById('group-description');
+    const profilePositionElement = document.getElementById('profile-position');
+    const profileOrgNameElement = document.getElementById('profile-org-name');
+    const profileHqElement = document.getElementById('profile-hq');
+    const profileContactPersonElement = document.getElementById('profile-contact-person');
+    const profileEmailElement = document.getElementById('profile-email');
+    const profileMobileElement = document.getElementById('profile-mobile');
+    const profileAreaElement = document.getElementById('profile-area');
+
+    // Parent containers for organization/HQ/area
+    const orgNameFieldContainer = document.getElementById('org-name-field');
+    const hqFieldContainer = document.getElementById('hq-field');
+    const areaFieldContainer = document.getElementById('area-field');
+
+    // Terms and Conditions Modal elements
+    const termsModal = document.getElementById('termsAndConditionsModal');
+    const agreeCheckbox = document.getElementById('agreeCheckbox');
+    const agreeButton = document.getElementById('agreeButton');
+    const navLinks = document.querySelectorAll('.sidebar a, .header a');
+    const currentTermsVersion = 1; // Increment this number when terms change
+
+    // Form sections
+    const basicInfoSection = document.getElementById('basic-info-section');
+    const changePasswordFormContainer = document.querySelector('.form-container-2');
+
+    // Password Strength Indicator elements
+    const newPasswordInput = document.getElementById('new-password');
+    const strengthMessage = document.getElementById('password-strength-message');
+    const strengthBar = document.querySelector('.strength-bar');
+    const strengthContainer = document.querySelector('.strength-bar-container');
+    const tooltip = document.getElementById('password-tooltip');
+    const checkLength = document.getElementById('check-length');
+    const checkUppercase = document.getElementById('check-uppercase');
+    const checkNumber = document.getElementById('check-number');
+    const checkSymbol = document.getElementById('check-symbol');
+
+    let isNavigationBlocked = false;
+
     const showError = (title, text, redirectToLogin = false) => {
         Swal.fire({
             icon: 'error',
@@ -41,20 +80,18 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     };
 
-    // Function to update UI with "N/A" if data fetch fails
     const setFieldsToNA = () => {
-        console.log("Setting profile fields to N/A due to data fetch failure.");
-        document.getElementById('group-title').textContent = 'Group Information Unavailable';
-        document.getElementById('group-description').textContent = 'Unable to fetch group details.';
-        document.getElementById('profile-org-name').textContent = 'N/A';
-        document.getElementById('profile-hq').textContent = 'N/A';
-        document.getElementById('profile-contact-person').textContent = 'N/A';
-        document.getElementById('profile-email').textContent = 'N/A';
-        document.getElementById('profile-mobile').textContent = 'N/A';
-        document.getElementById('profile-area').textContent = 'N/A';
+        console.log("Setting profile fields to N/A due to data fetch failure or irrelevance.");
+        if (groupTitleElement) groupTitleElement.textContent = 'Group Information Unavailable';
+        if (groupDescriptionElement) groupDescriptionElement.textContent = 'Unable to fetch group details.';
+        if (profileOrgNameElement) profileOrgNameElement.textContent = 'N/A';
+        if (profileHqElement) profileHqElement.textContent = 'N/A';
+        if (profileContactPersonElement) profileContactPersonElement.textContent = 'N/A';
+        if (profileEmailElement) profileEmailElement.textContent = 'N/A';
+        if (profileMobileElement) profileMobileElement.textContent = 'N/A';
+        if (profileAreaElement) profileAreaElement.textContent = 'N/A';
     };
 
-    // Function to fetch user data and display profile information
     const fetchUserData = async (user) => {
         const userEmail = localStorage.getItem("userEmail");
         console.log("Fetching data for user email:", userEmail);
@@ -72,52 +109,49 @@ document.addEventListener("DOMContentLoaded", () => {
             if (!userSnapshot.exists()) {
                 console.error("No user found with UID:", user.uid);
                 showError('User Not Found', 'User data not found in the database. Please contact support.');
-                setFieldsToNA();
+                setFieldsToNA(); 
                 return;
             }
 
             let userData = userSnapshot.val();
             console.log("User data retrieved:", userData);
 
-            // --- Always display the user's role/position first ---
-            document.getElementById('profile-position').innerText = userData.role || 'N/A';
+            if (profilePositionElement) profilePositionElement.innerText = userData.role || 'N/A';
 
             // === ADMIN ROLE HANDLING ===
             if (userData.role === 'AB ADMIN') {
-                const name = userData.contactPerson;
-                const email = userData.email;
-                const mobile = userData.mobile;
+                console.log("User is AB ADMIN. Adjusting display.");
 
-                document.getElementById('profile-contact-person').innerText = name || 'N/A';
-                document.getElementById('profile-email').innerText = email || 'N/A';
-                document.getElementById('profile-mobile').innerText = mobile || 'N/A';
+                if (profileContactPersonElement) profileContactPersonElement.innerText = userData.contactPerson || 'N/A';
+                if (profileEmailElement) profileEmailElement.innerText = userData.email || 'N/A';
+                if (profileMobileElement) profileMobileElement.innerText = userData.mobile || 'N/A';
+
+                // Explicitly handle group-related display for AB ADMIN
+                if (groupTitleElement) groupTitleElement.textContent = 'Admin Account';
+                if (groupDescriptionElement) groupDescriptionElement.textContent = 'This is an administrative account. Group-specific information is not applicable.';
+
+                // Hide the relevant profile fields containers for admins
+                if (orgNameFieldContainer) orgNameFieldContainer.style.display = 'none';
+                if (hqFieldContainer) hqFieldContainer.style.display = 'none';
+                if (areaFieldContainer) areaFieldContainer.style.display = 'none';
+
+                return; 
             }
 
+            // --- This block runs ONLY for non-admin roles (ABVN, volunteer, etc.) ---
+            if (orgNameFieldContainer) orgNameFieldContainer.style.display = 'flex';
+            if (hqFieldContainer) hqFieldContainer.style.display = 'flex';
+            if (areaFieldContainer) areaFieldContainer.style.display = 'flex';
+
             // Check if the user has an organization (applicable to ABVN, volunteer, etc.)
-            // This block will now execute for non-admin users.
-            if (!userData.organization && userData.role !== 'AB ADMIN') { // Added condition to exclude AB ADMIN
+            if (!userData.organization) {
                 console.error("No organization found for user:", user.uid);
                 showError('Organization Not Found', 'Organization data not found for this user. Please contact support.');
-                setFieldsToNA();
+                setFieldsToNA(); 
                 return;
             }
 
-            // If it's an AB ADMIN, we might not have 'organization' or 'groupData'
-            // so we should only proceed to fetch group data if it's not an admin.
-            if (userData.role === 'AB ADMIN') {
-                // For admins, we've already displayed their info.
-                // We can set group-related fields to N/A or hide them if they don't apply.
-                document.getElementById('group-title').textContent = 'Admin Account';
-                document.getElementById('group-description').textContent = 'This is an administrative account.';
-                document.getElementById('profile-org-name').textContent = 'N/A (Admin)';
-                document.getElementById('profile-hq').textContent = 'N/A (Admin)';
-                document.getElementById('profile-area').textContent = 'N/A (Admin)';
-                // Ensure the contact person, email, mobile are already set from userData for admin
-                return; // Exit after setting admin specific fields and N/A for group related fields.
-            }
-
-
-            // Fetch volunteer group data by matching organization (only for non-admin roles)
+            // Fetch volunteer group data by matching organization
             console.log("Querying volunteerGroups node for organization:", userData.organization);
             const groupSnapshot = await get(ref(database, 'volunteerGroups'));
 
@@ -129,7 +163,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     if (childSnapshot.val().organization === userData.organization) {
                         groupId = childSnapshot.key;
                         groupData = childSnapshot.val();
-                        return true; // Stop iterating
+                        return true; 
                     }
                 });
             }
@@ -145,16 +179,16 @@ document.addEventListener("DOMContentLoaded", () => {
             console.log("Volunteer group data retrieved:", groupData);
 
             // Display group information at the top
-            document.getElementById('group-title').textContent = `Volunteer Group: ${groupData.organization || 'N/A'}`;
-            document.getElementById('group-description').textContent = `You are logged in as part of the ${groupData.organization || 'N/A'} group.`;
+            if (groupTitleElement) groupTitleElement.textContent = `Volunteer Group: ${groupData.organization || 'N/A'}`;
+            if (groupDescriptionElement) groupDescriptionElement.textContent = `You are logged in as part of the ${groupData.organization || 'N/A'} group.`;
 
             // Display profile data for non-admin users
-            document.getElementById('profile-org-name').textContent = groupData.organization || 'N/A';
-            document.getElementById('profile-hq').textContent = groupData.hq || 'N/A';
-            document.getElementById('profile-contact-person').textContent = groupData.contactPerson || 'N/A';
-            document.getElementById('profile-email').textContent = groupData.email || 'N/A';
-            document.getElementById('profile-mobile').textContent = groupData.mobileNumber || userData.mobile || 'N/A';
-            document.getElementById('profile-area').textContent = groupData.areaOfOperation || 'N/A';
+            if (profileOrgNameElement) profileOrgNameElement.textContent = groupData.organization || 'N/A';
+            if (profileHqElement) profileHqElement.textContent = groupData.hq || 'N/A';
+            if (profileContactPersonElement) profileContactPersonElement.textContent = groupData.contactPerson || 'N/A';
+            if (profileEmailElement) profileEmailElement.textContent = groupData.email || 'N/A';
+            if (profileMobileElement) profileMobileElement.textContent = groupData.mobileNumber || userData.mobile || 'N/A';
+            if (profileAreaElement) profileAreaElement.textContent = groupData.areaOfOperation || 'N/A';
 
             // Store group data in localStorage for use in volunteergroupmanagement.html
             localStorage.setItem('loggedInVolunteerGroup', JSON.stringify({
@@ -176,18 +210,6 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     // --- Terms and Conditions Modal Logic ---
-    const termsModal = document.getElementById('termsAndConditionsModal');
-    const agreeCheckbox = document.getElementById('agreeCheckbox');
-    const agreeButton = document.getElementById('agreeButton');
-    const navLinks = document.querySelectorAll('.sidebar a, .header a');
-    const currentTermsVersion = 1; // Increment this number when terms change
-
-    // Get the basic info and change password sections
-    const basicInfoSection = document.getElementById('basic-info-section');
-    const changePasswordFormContainer = document.querySelector('.form-container-2');
-
-    let isNavigationBlocked = false; // Flag to indicate if navigation is currently blocked
-
     function showTermsModal() {
         if (termsModal) {
             termsModal.classList.remove('hidden');
@@ -204,7 +226,7 @@ document.addEventListener("DOMContentLoaded", () => {
             window.removeEventListener('popstate', handlePopState);
             window.addEventListener('popstate', handlePopState);
 
-            // MODIFIED: When showing terms modal, hide other sections
+            // When showing terms modal, hide other sections
             if (basicInfoSection) basicInfoSection.style.display = 'none';
             if (changePasswordFormContainer) changePasswordFormContainer.style.display = 'none';
         }
@@ -223,19 +245,19 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // NEW: Function to apply or remove navigation blocking based on isNavigationBlocked flag
+    // Function to apply or remove navigation blocking based on isNavigationBlocked flag
     function applyNavigationBlocking() {
         navLinks.forEach(link => {
             if (isNavigationBlocked) {
                 if (!link.dataset.originalHref) {
                     link.dataset.originalHref = link.href;
                 }
-                link.href = '#'; // Temporarily disable navigation
+                link.href = '#'; 
                 link.removeEventListener('click', preventNavigation);
                 link.addEventListener('click', preventNavigation);
             } else {
                 if (link.dataset.originalHref) {
-                    link.href = link.dataset.originalHref; // Restore original href
+                    link.href = link.dataset.originalHref; 
                 }
                 link.removeEventListener('click', preventNavigation);
             }
@@ -245,7 +267,7 @@ document.addEventListener("DOMContentLoaded", () => {
     function preventNavigation(e) {
         e.preventDefault();
         // Check if the current page is 'profile.html' or 'dashboard.html'
-        const currentPage = window.location.pathname.split('/').pop();
+        // const currentPage = window.location.pathname.split('/').pop(); // Currently not used
         
         let message = 'You must complete the required actions to navigate the application.';
 
@@ -260,8 +282,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function handlePopState(event) {
-        history.pushState(null, null, location.href); 
-        onAuthStateChanged(auth, async (user) => { /* This will trigger the main logic to display correct UI */ });
+        history.pushState(null, null, location.href);
     }
 
     // Main authentication state check for profile and terms modal (Modular SDK)
@@ -274,62 +295,56 @@ document.addEventListener("DOMContentLoaded", () => {
                 const snapshot = await get(ref(database, 'users/' + user.uid));
                 const userDataFromDb = snapshot.val();
                 const userAgreedVersion = userDataFromDb ? (userDataFromDb.terms_agreed_version || 0) : 0;
-                // Get the password_needs_reset flag from the database
                 const passwordNeedsReset = userDataFromDb ? (userDataFromDb.password_needs_reset || false) : false;
 
                 const localStorageUserData = JSON.parse(localStorage.getItem("userData"));
                 const isFirstLogin = localStorageUserData ? (localStorageUserData.isFirstLogin === true) : false;
                 const termsAcceptedInLocalStorage = localStorageUserData ? (localStorageUserData.termsAccepted === true) : false;
 
-                // ADDED: Determine if terms acceptance is pending
+                // Determine if terms acceptance is pending
                 const termsPending = userAgreedVersion < currentTermsVersion || (isFirstLogin && !termsAcceptedInLocalStorage);
 
-                // MODIFIED: Check conditions for showing terms modal or forcing password reset
-                if (termsPending) { // Changed condition to use termsPending
+                // Check conditions for showing terms modal or forcing password reset
+                if (termsPending) {
                     console.log("Showing terms modal: termsPending=true");
                     showTermsModal();
-                    // Navigation is blocked inside showTermsModal
                 } else if (passwordNeedsReset) {
                     // Terms accepted, but password reset is still required
                     console.log("Password change required: passwordNeedsReset=true");
-                    hideTermsModal(); // Ensure modal is hidden if already accepted terms
+                    hideTermsModal(); 
 
                     // Set navigation blocked state for password reset
                     isNavigationBlocked = true;
-                    applyNavigationBlocking(); // Apply blocking for password reset
+                    applyNavigationBlocking(); 
 
-                    // MODIFIED: Explicitly show/hide sections
-                    if (basicInfoSection) basicInfoSection.style.display = 'none'; // Hide basic info
-                    if (changePasswordFormContainer) changePasswordFormContainer.style.display = 'block'; // Show password form
+                    // Explicitly show/hide sections
+                    if (basicInfoSection) basicInfoSection.style.display = 'none'; 
+                    if (changePasswordFormContainer) changePasswordFormContainer.style.display = 'block'; 
 
-                    // ADDED: Only show this Swal if it's the *first* time this state is encountered on page load
+                    // Only show this Swal if it's the *first* time this state is encountered on page load
                     const passwordChangePromptShown = sessionStorage.getItem('passwordChangePromptShown');
                     if (!passwordChangePromptShown) {
                         Swal.fire({
                             icon: 'info',
                             title: 'Password Change Required',
                             text: 'For security reasons, please change your password.',
-                            allowOutsideClick: false, // Prevent closing
-                            allowEscapeKey: false,   // Prevent closing
-                            showConfirmButton: true, // Allow user to acknowledge
+                            allowOutsideClick: false, 
+                            allowEscapeKey: false,   
+                            showConfirmButton: true, 
                             confirmButtonText: 'Understood'
                         });
-                        sessionStorage.setItem('passwordChangePromptShown', 'true'); // ADDED: Set flag
+                        sessionStorage.setItem('passwordChangePromptShown', 'true'); 
                     }
 
                 } else {
-                    // All conditions met: terms accepted and password does not need reset
                     console.log("No action required: full profile visible");
-                    // MODIFIED: Logging updated to reflect the new state handling
-                    hideTermsModal(); // Ensure terms modal is hidden
-                    // Ensure navigation is unblocked
+                    hideTermsModal(); 
                     isNavigationBlocked = false;
                     applyNavigationBlocking();
 
-                    // MODIFIED: Ensure full profile is visible
+                    // Ensure full profile is visible
                     if (basicInfoSection) basicInfoSection.style.display = 'block';
                     if (changePasswordFormContainer) changePasswordFormContainer.style.display = 'block';
-                    // ADDED: Clear the session storage flag if no action is needed
                     sessionStorage.removeItem('passwordChangePromptShown');
                 }
             } catch (error) {
@@ -339,7 +354,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     title: 'Agreement/Password Check Failed',
                     text: 'Could not verify your account status. Please review and agree to terms or change password if prompted.'
                 }).then(() => {
-                    // Fallback to showing terms if there's an error, as a safe default
                     showTermsModal();
                 });
             }
@@ -347,90 +361,93 @@ document.addEventListener("DOMContentLoaded", () => {
             console.error("No user is authenticated. Redirecting to login.");
             showError('Not Logged In', 'Please log in to view your profile.', true);
         }
-
-        
     });
 
     // Enable/disable the Agree button based on checkbox state
-    agreeCheckbox.addEventListener('change', () => {
-        agreeButton.disabled = !agreeCheckbox.checked;
-    });
+    if (agreeCheckbox) { 
+        agreeCheckbox.addEventListener('change', () => {
+            if (agreeButton) {
+                agreeButton.disabled = !agreeCheckbox.checked;
+            }
+        });
+    }
 
     // Handle 'Agree and Continue' button click (Modular SDK)
-    agreeButton.addEventListener('click', async () => {
-        if (agreeCheckbox.checked) {
-            const user = auth.currentUser;
-            if (user) {
-                try {
-                    const currentLocalStorageUserData = JSON.parse(localStorage.getItem("userData"));
-                    const wasFirstLoginBeforeAgreement = currentLocalStorageUserData ? (currentLocalStorageUserData.isFirstLogin === true) : false;
+    if (agreeButton) { 
+        agreeButton.addEventListener('click', async () => {
+            if (agreeCheckbox.checked) {
+                const user = auth.currentUser;
+                if (user) {
+                    try {
+                        const currentLocalStorageUserData = JSON.parse(localStorage.getItem("userData"));
+                        const wasFirstLoginBeforeAgreement = currentLocalStorageUserData ? (currentLocalStorageUserData.isFirstLogin === true) : false;
 
-                    // 1. Update terms agreed version and mark as not first login
-                    await update(ref(database, 'users/' + user.uid), {
-                        terms_agreed_version: currentTermsVersion,
-                        terms_agreed_at: new Date().toISOString(),
-                        isFirstLogin: false, // Mark as not first login after agreement
-                        termsAccepted: true // Explicitly mark terms as accepted
-                    });
-
-                    // Update localStorage userData to reflect the change
-                    if (currentLocalStorageUserData) {
-                        currentLocalStorageUserData.isFirstLogin = false;
-                        currentLocalStorageUserData.termsAccepted = true;
-                        localStorage.setItem("userData", JSON.stringify(currentLocalStorageUserData));
-                    }
-
-                    // 2. Re-fetch user data to get the latest password_needs_reset status
-                    const snapshotAfterAgreement = await get(ref(database, 'users/' + user.uid));
-                    const userDataAfterAgreement = snapshotAfterAgreement.val();
-                    const passwordNeedsResetAfterTerms = userDataAfterAgreement ? (userDataAfterAgreement.password_needs_reset || false) : false;
-
-                    // MODIFIED: Always hide the terms modal once agreed
-                    hideTermsModal();
-
-                    if (passwordNeedsResetAfterTerms) {
-                        await Swal.fire({
-                            icon: 'success', 
-                            title: 'Agreement Accepted & Password Change Required!', 
-                            text: 'Thank you for accepting the Terms and Conditions. For security reasons, please proceed to change your temporary password now.', 
-                            allowOutsideClick: false,
-                            allowEscapeKey: false,
-                            showConfirmButton: true,
-                            confirmButtonText: 'Continue to Password Change'
-                        });
-                        if (basicInfoSection) basicInfoSection.style.display = 'none';
-                        if (changePasswordFormContainer) changePasswordFormContainer.style.display = 'block';
-                        window.location.replace(`${BASE_PATH}/pages/profile.html`); 
-                    } else {
-                        await Swal.fire({
-                            icon: 'success',
-                            title: 'Agreement Accepted!',
-                            text: 'Thank you for accepting the Terms and Conditions.',
-                            timer: 2000,
-                            showConfirmButton: false
+                        // 1. Update terms agreed version and mark as not first login
+                        await update(ref(database, 'users/' + user.uid), {
+                            terms_agreed_version: currentTermsVersion,
+                            terms_agreed_at: new Date().toISOString(),
+                            isFirstLogin: false, 
+                            termsAccepted: true 
                         });
 
-                        const userRole = localStorage.getItem("userRole");
-                        let redirectPath = `${BASE_PATH}/pages/dashboard.html`; // Default redirect
-
-                        if (wasFirstLoginBeforeAgreement) {
-                            if (userRole === "ABVN" || userRole === "volunteer") {
-                                redirectPath = `${BASE_PATH}/pages/profile.html`;
-                            }
+                        // Update localStorage userData to reflect the change
+                        if (currentLocalStorageUserData) {
+                            currentLocalStorageUserData.isFirstLogin = false;
+                            currentLocalStorageUserData.termsAccepted = true;
+                            localStorage.setItem("userData", JSON.stringify(currentLocalStorageUserData));
                         }
-                        window.location.replace(redirectPath);
+
+                        // 2. Re-fetch user data to get the latest password_needs_reset status
+                        const snapshotAfterAgreement = await get(ref(database, 'users/' + user.uid));
+                        const userDataAfterAgreement = snapshotAfterAgreement.val();
+                        const passwordNeedsResetAfterTerms = userDataAfterAgreement ? (userDataAfterAgreement.password_needs_reset || false) : false;
+
+                        // Always hide the terms modal once agreed
+                        hideTermsModal();
+
+                        if (passwordNeedsResetAfterTerms) {
+                            await Swal.fire({
+                                icon: 'success',
+                                title: 'Agreement Accepted & Password Change Required!',
+                                text: 'Thank you for accepting the Terms and Conditions. For security reasons, please proceed to change your temporary password now.',
+                                allowOutsideClick: false,
+                                allowEscapeKey: false,
+                                showConfirmButton: true,
+                                confirmButtonText: 'Continue to Password Change'
+                            });
+                            if (basicInfoSection) basicInfoSection.style.display = 'none';
+                            if (changePasswordFormContainer) changePasswordFormContainer.style.display = 'block';
+                            window.location.replace(`${BASE_PATH}/pages/profile.html`);
+                        } else {
+                            await Swal.fire({
+                                icon: 'success',
+                                title: 'Agreement Accepted!',
+                                text: 'Thank you for accepting the Terms and Conditions.',
+                                timer: 2000,
+                                showConfirmButton: false
+                            });
+
+                            const userRole = localStorage.getItem("userRole");
+                            let redirectPath = `${BASE_PATH}/pages/dashboard.html`; 
+
+                            if (wasFirstLoginBeforeAgreement) {
+                                if (userRole === "ABVN" || userRole === "volunteer") {
+                                    redirectPath = `${BASE_PATH}/pages/profile.html`;
+                                }
+                            }
+                            window.location.replace(redirectPath);
+                        }
+
+                    } catch (error) {
+                        console.error("Error updating terms agreement:", error);
+                        showError('Oops...', 'Failed to record your agreement. Please try again.');
                     }
-
-                } catch (error) {
-                    console.error("Error updating terms agreement:", error);
-                    showError('Oops...', 'Failed to record your agreement. Please try again.');
+                } else {
+                    showError('Authentication Error', 'User not logged in. Please refresh and try again.', true);
                 }
-            } else {
-                showError('Authentication Error', 'User not logged in. Please refresh and try again.', true);
             }
-        }
-    });
-
+        });
+    }
 
     // --- Password Toggle Functionality ---
     const setupPasswordToggle = (passwordInputId) => {
@@ -441,7 +458,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (lockIcon && openLockIcon && passwordInput && parentDiv) {
             openLockIcon.style.display = 'none';
-            lockIcon.style.display = 'inline'; 
+            lockIcon.style.display = 'inline';
 
             lockIcon.addEventListener('click', () => {
                 passwordInput.type = 'text';
@@ -450,7 +467,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             openLockIcon.addEventListener('click', () => {
                 passwordInput.type = 'password';
-                parentDiv.classList.remove('show-open-lock'); 
+                parentDiv.classList.remove('show-open-lock');
             });
         } else {
             console.warn(`Password toggle icons or input not found for ${passwordInputId}`);
@@ -489,7 +506,17 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
 
-            // Validate password length and complexity (using the same logic as strength indicator for consistency)
+            // Same Password Check
+            if (newPassword === currentPassword) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Same Password',
+                    text: 'Your new password cannot be the same as your current password.'
+                });
+                return; // Stop the function here
+            }
+
+            // Validate password length and complexity
             const hasLength = newPassword.length >= 8;
             const hasUppercase = /[A-Z]/.test(newPassword);
             const hasNumber = /[0-9]/.test(newPassword);
@@ -511,7 +538,6 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             try {
-                
                 const credential = EmailAuthProvider.credential(userEmail, currentPassword);
                 await reauthenticateWithCredential(user, credential);
 
@@ -519,7 +545,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 await update(ref(database, `users/${user.uid}`), {
                     lastPasswordChange: new Date().toISOString(),
-                    password_needs_reset: false 
+                    password_needs_reset: false
                 });
 
                 Swal.fire({
@@ -530,7 +556,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     showConfirmButton: false
                 }).then(() => {
                     form.reset();
-                    sessionStorage.removeItem('passwordChangePromptShown');
+                    sessionStorage.removeItem('passwordChangePromptShown'); 
                     window.location.replace(`${BASE_PATH}/pages/profile.html`);
                 });
 
@@ -548,18 +574,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // Password Strength Logic
-    const newPasswordInput = document.getElementById('new-password');
-    const strengthMessage = document.getElementById('password-strength-message');
-    const strengthBar = document.querySelector('.strength-bar');
-    const strengthContainer = document.querySelector('.strength-bar-container');
-    const tooltip = document.getElementById('password-tooltip');
-
-    const checkLength = document.getElementById('check-length');
-    const checkUppercase = document.getElementById('check-uppercase');
-    const checkNumber = document.getElementById('check-number');
-    const checkSymbol = document.getElementById('check-symbol');
-
-    if (newPasswordInput) {
+    if (newPasswordInput && strengthMessage && strengthBar && strengthContainer && tooltip && checkLength && checkUppercase && checkNumber && checkSymbol) {
         newPasswordInput.addEventListener('input', function() {
             const password = this.value.trim();
 
@@ -578,7 +593,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const hasLength = password.length >= 8;
             const hasUppercase = /[A-Z]/.test(password);
             const hasNumber = /[0-9]/.test(password);
-            const hasSymbol = /[^A-Za-z0-9]/.test(password); 
+            const hasSymbol = /[^A-Za-z0-9]/.test(password);
 
             checkLength.textContent = (hasLength ? '✅' : '❌') + ' At least 8 characters';
             checkUppercase.textContent = (hasUppercase ? '✅' : '❌') + ' An uppercase letter';
@@ -589,14 +604,14 @@ document.addEventListener("DOMContentLoaded", () => {
             let strength = '';
             let strengthClass = '';
             let barWidth = '0%';
-            let barColor = 'red'; 
+            let barColor = 'red';
 
             const passedChecks = [hasLength, hasUppercase, hasNumber, hasSymbol].filter(Boolean).length;
 
             if (passedChecks <= 1) {
                 strength = 'Weak';
                 strengthClass = 'strength-weak';
-                barWidth = '25%'; 
+                barWidth = '25%';
                 barColor = 'red';
             } else if (passedChecks === 2) {
                 strength = 'Medium';
@@ -607,7 +622,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 strength = 'Good';
                 strengthClass = 'strength-good';
                 barWidth = '75%';
-                barColor = 'yellowgreen'; 
+                barColor = 'yellowgreen';
             } else if (passedChecks === 4) {
                 strength = 'Strong';
                 strengthClass = 'strength-strong';
@@ -616,10 +631,12 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             strengthMessage.textContent = 'Strength: ' + strength;
-            strengthMessage.className = 'strength-message ' + strengthClass; 
+            strengthMessage.className = 'strength-message ' + strengthClass;
 
             strengthBar.style.width = barWidth;
             strengthBar.style.backgroundColor = barColor;
         });
+    } else {
+        console.warn("Password strength indicator elements not found. Skipping password strength logic.");
     }
 });

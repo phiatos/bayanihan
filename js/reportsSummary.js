@@ -70,12 +70,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const categories = {
             "Basic Information": [
                 "ReportID",
-                "VolunteerGroupName",
                 "AreaOfOperation",
                 "DateOfReport"
             ],
             "Relief Operations": [
-                "CalamityAreaId",
+                "CalamityAreaDetails",
                 "TimeOfIntervention",
                 "StartDate",
                 "EndDate",
@@ -102,44 +101,47 @@ document.addEventListener('DOMContentLoaded', () => {
             title.textContent = category;
             section.appendChild(title);
 
-            categories[category].forEach(item => {
-                if (summaryData[item]) {
-                    let displayKey = item
-                        .replace(/([A-Z])/g, ' $1')
-                        .replace(/^./, str => str.toUpperCase());
-                    displayKey = displayKey
-                        .replace('AreaOfOperation', 'Area of Operation')
-                        .replace('TimeOfIntervention', 'Completion of Time Intervention')
-                        .replace('CalamityAreaId', 'Calamity Area ID')
-                        .replace('DateOfReport', 'Date of Report')
-                        .replace('ReportID', 'Report ID')
-                        .replace('StartDate', 'Start Date')
-                        .replace('EndDate', 'End Date')
-                        .replace('VolunteerGroupName', 'Volunteer Group')
-                        .replace('NoOfIndividualsOrFamilies', 'No. of Individuals or Families')
-                        .replace('NoOfFoodPacks', 'No. of Food Packs')
-                        .replace('NoOfHotMeals', 'No. of Hot Meals')
-                        .replace('LitersOfWater', 'Liters of Water')
-                        .replace('NoOfVolunteersMobilized', 'No. of Volunteers Mobilized')
-                        .replace('NoOfOrganizationsActivated', 'No. of Organizations Activated')
-                        .replace('TotalValueOfInKindDonations', 'Total Value of In-Kind Donations')
-                        .replace('TotalMonetaryDonations', 'Total Monetary Donations')
-                        .replace('NotesAdditionalInformation', 'Notes/additional information');
+categories[category].forEach(item => {
+    // Change this line:
+    // if (summaryData[item]) {
+    // To this:
+    if (summaryData.hasOwnProperty(item)) { // Checks if the property exists
+        let displayKey = item
+            .replace(/([A-Z])/g, ' $1')
+            .replace(/^./, str => str.toUpperCase());
+        displayKey = displayKey
+            .replace('AreaOfOperation', 'Area of Operation')
+            .replace('TimeOfIntervention', 'Completion of Time Intervention')
+            .replace('CalamityAreaDetails', 'Calamity Area')
+            .replace('DateOfReport', 'Date of Report')
+            .replace('ReportID', 'Report ID')
+            .replace('StartDate', 'Start Date')
+            .replace('EndDate', 'End Date')
+            .replace('VolunteerGroupName', 'Volunteer Group')
+            .replace('NoOfIndividualsOrFamilies', 'No. of Individuals or Families')
+            .replace('NoOfFoodPacks', 'No. of Food Packs')
+            .replace('NoOfHotMeals', 'No. of Hot Meals')
+            .replace('LitersOfWater', 'Liters of Water')
+            .replace('NoOfVolunteersMobilized', 'No. of Volunteers Mobilized')
+            .replace('NoOfOrganizationsActivated', 'No. of Organizations Activated')
+            .replace('TotalValueOfInKindDonations', 'Total Value of In-Kind Donations')
+            .replace('TotalMonetaryDonations', 'Total Monetary Donations')
+            .replace('NotesAdditionalInformation', 'Notes/additional information');
 
-                    let value = summaryData[item];
+        let value = summaryData[item];
 
-                    if (item === "DateOfReport" || item === "StartDate" || item === "EndDate") {
-                        value = formatDate(value);
-                    } else if (item === "TimeOfIntervention") {
-                        value = formatTime(value);
-                    }
+        if (item === "DateOfReport" || item === "StartDate" || item === "EndDate") {
+            value = formatDate(value);
+        } else if (item === "TimeOfIntervention") {
+            value = formatTime(value);
+        }
 
-                    const fieldDiv = document.createElement("div");
-                    fieldDiv.className = "summary-box";
-                    fieldDiv.innerHTML = `<strong>${displayKey}:</strong> <span>${value}</span>`;
-                    section.appendChild(fieldDiv);
-                }
-            });
+        const fieldDiv = document.createElement("div");
+        fieldDiv.className = "summary-box";
+        fieldDiv.innerHTML = `<strong>${displayKey}:</strong> <span>${value === '' ? 'N/A' : value}</span>`; // Added 'N/A' for empty values
+        section.appendChild(fieldDiv);
+    }
+});
 
             container.appendChild(section);
         }

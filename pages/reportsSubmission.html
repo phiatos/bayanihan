@@ -13,8 +13,6 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <!-- Google Maps API -->
-    <!-- <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBDtlY28p-MvLHRtxnjiibSAadSETvM3VU&libraries=places&callback=initMap" async defer></script> -->
     <script async defer loading="async" src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBDtlY28p-MvLHRtxnjiibSAadSETvM3VU&libraries=places&callback=initMap" ></script>
 
     <title>Submit a Report</title>
@@ -36,16 +34,12 @@
                             </div>
                             <div class="input-field">
                                 <label for="AreaOfOperation">Area of Operation:</label>
-                                <input type="text" id="AreaOfOperation" name="AreaOfOperation" placeholder="e.g. Purok 2, Brgy. Maligaya, Rosario" required>
+                                <input type="text" id="AreaOfOperation" name="AreaOfOperation" placeholder="e.g. Purok 2, Brgy. Maligaya, Rosario" readonly />
                                 <button id="pinBtn" type="button">📍 Pin Location</button>
                             </div>
                             <div class="input-field">
                                 <label>Date of Report</label>
                                 <input type="text" id="dateOfReport" placeholder="Date of Report" readonly/>
-                            </div>
-                            <div class="input-field">
-                                <label>Submitted By</label>
-                                <input type="text" id="SubmittedBy" placeholder="Submitted By" readonly />
                             </div>
                         </div>
                     </div>
@@ -120,7 +114,7 @@
                 </div>
                 <div class="button-group">
                     <button type="button" class="next-btn" id="backBtn">Back</button>
-                    <button type="button" class="next-btn" id="submitReportBtn">Submit Report</button>
+                    <button type="submit" class="next-btn">Next</button>
                 </div>
             </form>
         </div>
@@ -135,8 +129,6 @@
             <div id="mapContainer"></div>
         </div>
     </div>
-
-    <button id="pinBtn">Pin Location</button>
 
     <script>
         fetch('../components/sidebar.html')

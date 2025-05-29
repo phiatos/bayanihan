@@ -208,6 +208,8 @@ function initSidebar() {
       reportsSubmission: document.querySelector(".menu-reports-submission"),
       reportsVerification: document.querySelector(".menu-reports-verification"),
       reportsLog: document.querySelector(".menu-reports-log"),
+      inkind: document.querySelector(".menu-inkind"),
+      monetary: document.querySelector(".menu-monetary"),
     };
 
     console.log("Restricting menu access for role:", role);
@@ -234,7 +236,9 @@ function initSidebar() {
         menuItems.rdanaLog,
         menuItems.reliefsLog,
         menuItems.reportsVerification,
-        menuItems.reportsLog
+        menuItems.reportsLog,
+        menuItems.inkind,
+        menuItems.monetary,
       ];
 
       // Show allowed items

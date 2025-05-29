@@ -22,9 +22,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const sortSelect = document.getElementById('sortSelect');
     const exportBtn = document.getElementById("exportBtn");
     const savePdfBtn = document.getElementById("savePdfBtn");
+    const exportCsvButton = document.getElementById("exportCsvButton"); // Assuming this exists for the toggle function
     const entriesInfo = document.getElementById('entriesInfo');
     const paginationContainer = document.getElementById("pagination");
-    const clearFormBtn = document.getElementById("clearFormBtn"); 
+    const clearFormBtn = document.getElementById("clearFormBtn");
     const submitButton = document.getElementById('nextBtn');
 
     const regionSelect = document.getElementById('region');
@@ -42,7 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentPage = 1;
     let allDonations = [];
     let filteredAndSortedDonations = [];
-    let viewingApproved = false;
+    let viewingApproved = false; // This variable seems unused in the provided code
 
     // Variable to track if the form has changes
     let formHasChanges = false;
@@ -402,25 +403,17 @@ document.addEventListener('DOMContentLoaded', () => {
         if (facebookLink) facebookLink.disabled = !enable;
     }
 
-    // Function to handle button visibility in the table
-    function updateTableButtons() {
-        const deleteButtons = document.querySelectorAll('.delete-btn');
+    // Function to handle the visibility of the "Remove" button only
+    function updateRemoveButtonVisibility() {
+        const deleteButtons = document.querySelectorAll('.deleteBtn');
         if (userRole === 'ABVN') {
             deleteButtons.forEach(button => {
                 button.style.display = 'none';
             });
-            const formPage1 = document.querySelector('.form-page-1');
-            if(formPage1) {
-                formPage1.style.display = 'none';
-            }
         } else {
             deleteButtons.forEach(button => {
                 button.style.display = 'inline-block';
             });
-            const formPage1 = document.querySelector('.form-page-1');
-            if(formPage1) {
-                formPage1.style.display = 'block';
-            }
         }
     }
 
@@ -613,6 +606,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         updatePaginationInfo();
         renderPagination();
+        updateRemoveButtonVisibility(); // Ensure remove button visibility is updated after rendering table
     }
 
     function updatePaginationInfo() {
@@ -705,7 +699,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         city: city,
                         barangay: barangay,
                         street: address,
-                        fullAddress: `${address}, ${barangay}, ${city}, ${province}, ${region}`
+                        fullAddress: `${address}, ${barangay}, ${city}, ${province}, ${region}` // Corrected full address
                     },
                     facebookLink: facebookLink || "N/A",
                     image: base64Image || '',
@@ -724,7 +718,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         document.getElementById('accountNumber').value = '';
                         document.getElementById('accountName').value = '';
 
-                        my_handlers.fill_regions();
+                        my_handlers.fill_regions(); // Reset location dropdowns
 
                         document.getElementById('address').value = '';
                         document.getElementById('facebookLink').value = '';
@@ -796,7 +790,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Get current date and format it for the filename
         const today = new Date();
         const year = today.getFullYear();
-        const month = String(today.getMonth() + 1).padStart(2, '0'); 
+        const month = String(today.getMonth() + 1).padStart(2, '0');
         const day = String(today.getDate()).padStart(2, '0');
         const formattedDate = `${year}-${month}-${day}`;
         // Construct the filename with the date
@@ -824,6 +818,17 @@ document.addEventListener('DOMContentLoaded', () => {
         let yOffset = 20;
         const logo = new Image();
         logo.src = '../assets/images/AB_logo.png';
+
+        // Show a loading indicator while the PDF is being generated
+        Swal.fire({
+            title: 'Generating PDF...',
+            text: 'Please wait while your PDF is being created.',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
 
         logo.onload = function() {
             const pageWidth = doc.internal.pageSize.width;
@@ -899,6 +904,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         logo.onerror = function() {
+            Swal.close(); // Close loading Swal
             Swal.fire("Error", "Failed to load logo image. Please check the path.", "error");
         };
     });
@@ -906,7 +912,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Save Single CFD Donation to PDF ---
     function saveSingleCfdDonationPdf(donation) {
         const { jsPDF } = window.jspdf;
-        const doc = new jsPDF(); 
+        const doc = new jsPDF();
 
         Swal.fire({
             title: 'Generating PDF...',
@@ -918,27 +924,27 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         const logo = new Image();
-        logo.src = '../assets/images/AB_logo.png'; 
+        logo.src = '../assets/images/AB_logo.png';
 
         logo.onload = function() {
             const pageWidth = doc.internal.pageSize.width;
             const logoWidth = 30;
             const logoHeight = (logo.naturalHeight / logo.naturalWidth) * logoWidth;
-            const margin = 14; 
+            const margin = 14;
 
-            
+
             doc.addImage(logo, 'PNG', pageWidth - logoWidth - margin, margin, logoWidth, logoHeight);
 
             doc.setFontSize(18);
-            doc.text("Call for Donation Details", margin, 22); 
+            doc.text("Call for Donation Details", margin, 22);
             doc.setFontSize(10);
             doc.text(`Report Generated: ${new Date().toLocaleString()}`, margin, 30);
-            
-            let y = 45; 
+
+            let y = 45;
 
             const addDetail = (label, value) => {
                 doc.text(`${label}: ${value || 'N/A'}`, margin, y);
-                y += 7; 
+                y += 7;
             };
 
             addDetail("Donation Drive", donation.donationDrive);
@@ -957,35 +963,32 @@ document.addEventListener('DOMContentLoaded', () => {
             addDetail("Submitted Date/Time", new Date(donation.dateTime).toLocaleString());
 
             if (donation.image) {
-                y += 10; 
+                y += 10;
                 const imgWidth = 80;
-                const imgHeight = (imgWidth / logo.naturalWidth) * logo.naturalHeight; 
+                const imgHeight = (imgWidth / logo.naturalWidth) * logo.naturalHeight;
                 const imgX = margin;
                 if (y + imgHeight > doc.internal.pageSize.height - margin) {
                     doc.addPage();
                     y = margin;
                 }
                 doc.text("Attached Image:", margin, y);
-                y += 5; 
+                y += 5;
                 doc.addImage(donation.image, 'JPEG', imgX, y, imgWidth, imgHeight);
             }
 
             // Footer
             doc.setFontSize(8);
             const footerY = doc.internal.pageSize.height - 10;
-            const pageNumberText = `Page 1 of 1`; 
+            const pageNumberText = `Page 1 of 1`;
             const poweredByText = "Powered by: Appvance";
 
             doc.text(pageNumberText, margin, footerY);
             doc.text(poweredByText, pageWidth - margin, footerY, { align: 'right' });
 
-            // Generate filename with relevant donation ID
-            // const filename = `donation_details_${donation.donationId || donation.firebaseKey}.pdf`;
-            // doc.save(filename);
             doc.save(`cfd_donation_${new Date().toISOString().slice(0, 10)}.pdf`);
 
-            
-            Swal.close(); 
+
+            Swal.close();
             Swal.fire({
                 title: 'Export Successful!',
                 text: `Donation details for "${donation.donationDrive}" have been exported to PDF.`,
@@ -1011,6 +1014,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initial calls when the DOM content is loaded
     toggleExportCsvButton();
-    updateTableButtons();
+    updateRemoveButtonVisibility();
     applyChange();
 });
