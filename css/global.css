@@ -447,15 +447,6 @@ h2, h4, strong{
   word-wrap: break-word;
 }
 
-
-table td {
-  padding: 10px 0 10px 10px;
-  text-align: center;
-  align-content: center;
-  font-size: 12px;
-  vertical-align: top;
-}
-
 .info-table {
   width: 10%;
   border-collapse: collapse;
@@ -470,52 +461,146 @@ table td {
 /* ==========================================================================
   Table Styling (reliefslog, reportslog, activation)
 ========================================================================== */
-table {
+/* Table wrapper for horizontal scroll on small screens */
+.table-container {
   width: 100%;
-  border-collapse: collapse;
-  min-width: unset;
-  table-layout: auto;
+  height: 550px;
+  overflow-x: auto;
   overflow-y: auto;
 }
 
+table {
+  width: 100%;
+  min-width: 400px;   /* minimum width for readability */
+  max-width: 1200px;  /* maximum width to avoid stretching too wide */
+  margin: 0 auto;     /* center table if smaller than container */
+  
+  border-collapse: collapse;
+  border-spacing: 0;
+  background-color: #fff;
+  
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+
+/* Table header and body */
 th, td {
-  border: 1px solid #e0e0e0;
-  padding: 14px 12px;
-  border-left: none;
-  border-right: none;
-  font-weight: 500    ;
+  padding: 10px 8px;       /* reduced padding for a tighter look */
+  font-size: 12px;         /* smaller but readable font */
   text-align: center;
   vertical-align: middle;
   align-content: center;
-  font-size: 11px;
-  background-color: var(--white);
-  word-wrap: break-word;
-  overflow-wrap: break-word;
+  color: #333;
+  border-bottom: 1px solid #f0f0f0;
+  word-break: break-word;
+  min-width: 120px;         /* slightly smaller min width */
+  max-width: 300px;        /* reduced max width */
+  white-space: normal;     /* allow wrapping */
+}
+
+td {
+  font-size: 11px;         /* smaller font for data cells */
+  vertical-align: top;
+  padding: 8px 8px;
 }
 
 th {
-  background-color: var(--white);
-  color: #aaa;
-  border: none;
+  position: sticky;
+  top: 0;
+  background-color: #f8f9fa;
   font-weight: 600;
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  color: #555;
+  padding: 12px 10px;
+  border-bottom: 2px solid #ddd;
+  z-index: 10;
+
+  white-space: normal;       /* allow wrapping */
+  word-break: break-word;    /* break long words */
+  hyphens: auto;             /* add hyphenation */
+  text-align: center;
+  
+  box-shadow: inset 0 -1px 0 #ccc;  /* subtle underline effect */
+  user-select: none;          /* prevent accidental text selection */
+  cursor: default;            /* indicate non-interactive header */
+  transition: background-color 0.3s ease;
 }
 
-/* Inputs inside Table */
+
+/* Row hover effect */
+tr:hover {
+  background-color: #f5f7fa;
+}
+
+/* Inputs inside table */
 td input[type="text"],
 td input[type="tel"],
 td input[type="email"],
 td input[type="number"],
 td select {
-  width: 90%; 
-  padding: 5px;
-  margin: 5px auto; 
-  display: inline-block;
-  font-size: 12px;
-  background-color: #e7e7e7;
-  border: none;
-  border-radius: 4px;
+  width: 100%;
+  padding: 10px 12px; /* slightly more padding for comfort */
+  font-size: 14px; /* match table font size */
+  background-color: #f9fafb; /* lighter, modern shade */
+  border: 1px solid #d0d5da;
+  border-radius: 6px; /* slightly rounder for a softer feel */
   box-sizing: border-box;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
+
+td input[type="text"]:focus,
+td input[type="tel"]:focus,
+td input[type="email"]:focus,
+td input[type="number"]:focus,
+td select:focus {
+  border-color: #4c9aff; /* subtle blue highlight */
+  box-shadow: 0 0 0 2px rgba(76, 154, 255, 0.2); /* focus ring */
+  outline: none;
+}
+
+
+/* Responsive collapse: stack table on small screens */
+@media (max-width: 768px) {
+  table, thead, tbody, th, td, tr {
+    display: block;
+  }
+
+  thead tr {
+    position: absolute;
+    top: -9999px;
+    left: -9999px;
+  }
+
+  tr {
+    margin-bottom: 15px;
+    border-bottom: 2px solid #ddd;
+    padding: 10px 0;
+  }
+
+  td {
+    text-align: right;
+    padding-left: 50%;
+    position: relative;
+  }
+
+  td::before {
+    position: absolute;
+    top: 50%;
+    left: 16px;
+    transform: translateY(-50%);
+    width: 45%;
+    white-space: nowrap;
+    font-weight: 600;
+    text-align: left;
+    content: attr(data-label);
+    color: #555;
+  }
+}
+
 
 /* ==========================================================================
   Buttons Styling
