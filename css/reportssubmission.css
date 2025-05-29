@@ -60,14 +60,7 @@ textarea:focus {
     box-shadow: 0 0 5px rgba(20, 174, 187, 0.5);
 }
 
-#pinBtn{
-    width: 100%;
-    margin-left: 0%;
-}
-
 /* Modal */
-
-/* Enhanced Modal Styling */
 #mapModal {
     display: none;
     position: fixed;

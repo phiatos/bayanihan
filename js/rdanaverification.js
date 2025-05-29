@@ -174,7 +174,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const btn = document.createElement('button');
       btn.textContent = label;
       if (disabled) btn.disabled = true;
-      if (isActive) btn.classList.add('active');
+      if (isActive) btn.classList.add('active-page');
       btn.addEventListener('click', () => {
         currentPage = page;
         applySearchAndSort();
@@ -206,95 +206,86 @@ document.addEventListener('DOMContentLoaded', () => {
       .trim();
   }
 
-  function formatLargeNumber(numStr) {
-  let num = BigInt(numStr || "0");
-  const trillion = 1_000_000_000_000n;
-  const billion = 1_000_000_000n;
-  const million = 1_000_000n;
-  const thousand = 1_000n;
-
-  if (num >= trillion) {
-    return (Number(num) / Number(trillion)).toFixed(2).replace(/\.?0+$/, '') + 'T';
-  } else if (num >= billion) {
-    return (Number(num) / Number(billion)).toFixed(2).replace(/\.?0+$/, '') + 'B';
-  } else if (num >= million) {
-    return (Number(num) / Number(million)).toFixed(2).replace(/\.?0+$/, '') + 'M';
-  } else if (num >= thousand) {
-    return (Number(num) / Number(thousand)).toFixed(2).replace(/\.?0+$/, '') + 'k';
-  }
-  return num.toString();
-}
-
-
   function showDetails(report) {
-    const modal = document.getElementById("reportModal");
-    const modalDetails = document.getElementById("modalReportDetails");
-    const closeModal = document.getElementById("closeModal");
+    const modal = document.getElementById("previewModal");
+    const modalDetails = document.getElementById("modalContent");
 
-    // Profile of the Disaster - Include Type of Disaster
+    // Profile Section
     let profileHTML = `<h3>Profile of the Disaster</h3><div class='table-scroll'><table class='preview-table'>`;
     profileHTML += `<tr><td id='label'>Type of Disaster</td><td>${report.disasterType || "N/A"}</td></tr>`;
     for (const [key, value] of Object.entries(report.profile || {})) {
-      profileHTML += `<tr><td id='label'>${formatKey(key)}</td><td>${value}</td></tr>`;
+        const label = formatKey(key);
+        profileHTML += `<tr><td id='label'>${label}</td><td>${value}</td></tr>`;
     }
     profileHTML += `</table></div>`;
 
+    // Modality Section
     let modalityHTML = `<h3>Modality of the Disaster</h3><div class='table-scroll'><table class='preview-table'>`;
     for (const [key, value] of Object.entries(report.modality || {})) {
-      modalityHTML += `<tr><td id='label'>${formatKey(key)}</td><td>${value}</td></tr>`;
+        const label = formatKey(key);
+        modalityHTML += `<tr><td id='label'>${label}</td><td>${value}</td></tr>`;
     }
     modalityHTML += `</table></div>`;
 
-    
+    // Summary Section
     let summaryHTML = `<h3>Summary of Disaster/Incident</h3><p>${report.summary || "N/A"}</p>`;
 
+    // Affected Communities Table
     let affectedHTML = `<h3>Affected Communities</h3><div class='table-scroll'><table class='preview-table' id='rdanalog-table'><tr>
-      <th>Community</th><th>Total Pop.</th><th>Affected Pop.</th><th>Deaths</th><th>Injured</th><th>Missing</th><th>Children</th><th>Women</th><th>Seniors</th><th>PWD</th></tr>`;
+        <th>Community</th><th>Total Pop.</th><th>Affected Pop.</th><th>Deaths</th><th>Injured</th><th>Missing</th><th>Children</th><th>Women</th><th>Seniors</th><th>PWD</th></tr>`;
     (report.affectedCommunities || []).forEach(c => {
-    affectedHTML += `<tr>
-       <td>${c.community || "-"}</td>
-        <td>${c.totalPop || 0}</td>
-        <td>${c.affected || 0}</td>
-        <td>${c.deaths || 0}</td>
-        <td>${c.injured || 0}</td>
-        <td>${c.missing || 0}</td>
-        <td>${c.children || 0}</td>
-        <td>${c.women || 0}</td>
-        <td>${c.seniors || 0}</td>
-        <td>${c.pwd || 0}</td>
-    </tr>`;
-  });
-
+        affectedHTML += `<tr>
+            <td>${c.community || "-"}</td>
+            <td>${c.totalPop || 0}</td>
+            <td>${c.affected || 0}</td>
+            <td>${c.deaths || 0}</td>
+            <td>${c.injured || 0}</td>
+            <td>${c.missing || 0}</td>
+            <td>${c.children || 0}</td>
+            <td>${c.women || 0}</td>
+            <td>${c.seniors || 0}</td>
+            <td>${c.pwd || 0}</td>
+        </tr>`;
+    });
     affectedHTML += `</table></div>`;
 
+    // Structure Status Table
     let structureHTML = `<h3>Status of Structures</h3><div class='table-scroll'><table class='preview-table' id='rdanalog-table'><tr><th>Structure</th><th>Status</th></tr>`;
     (report.structureStatus || []).forEach(s => {
-      structureHTML += `<tr><td>${s.structure || "-"}</td><td>${s.status || "-"}</td></tr>`;
+        structureHTML += `<tr><td>${s.structure || "-"}</td><td>${s.status || "-"}</td></tr>`;
     });
     structureHTML += `</table></div>`;
 
+    // Needs Checklist Table
     let checklistHTML = `<h3>Initial Needs Assessment</h3><div class='table-scroll'><table class='preview-table' id='rdanalog-table'><tr><th>Item</th><th>Needed</th></tr>`;
     (report.needsChecklist || []).forEach(n => {
-      checklistHTML += `<tr><td>${n.item || "-"}</td><td>${n.needed ? "Yes" : "No"}</td></tr>`;
+        checklistHTML += `<tr><td>${n.item || "-"}</td><td>${n.needed ? "Yes" : "No"}</td></tr>`;
     });
     checklistHTML += `</table></div>`;
 
+    // Other Needs and Response Section (with margin styling)
     let otherNeedsHTML = `
-      <p><strong>Other Immediate Needs:</strong> ${report.otherNeeds || "N/A"}</p>
-      <p><strong>Estimated Quantity:</strong> ${report.estQty}</p>
-      <h3>Initial Response Actions</h3>
-      <p><strong>Response Groups Involved:</strong> ${report.responseGroup || "N/A"}</p>
-      <p><strong>Relief Assistance Deployed:</strong> ${report.reliefDeployed || "N/A"}</p>
-      <p><strong>Number of Families Served:</strong> ${report.familiesServed}</p>
+        <p><strong>Other Immediate Needs:</strong> ${report.otherNeeds || "N/A"}</p>
+        <p><strong>Estimated Quantity:</strong> ${report.estQty || "N/A"}</p>
+        <h3 style="margin-top: 15px; margin-bottom: 10px;">Initial Response Actions</h3>
+        <p><strong>Response Groups Involved:</strong> ${report.responseGroup || "N/A"}</p>
+        <p><strong>Relief Assistance Deployed:</strong> ${report.reliefDeployed || "N/A"}</p>
+        <p><strong>Number of Families Served:</strong> ${report.familiesServed || "N/A"}</p>
     `;
 
+    // Combine all sections
     modalDetails.innerHTML = profileHTML + modalityHTML + summaryHTML + affectedHTML + structureHTML + checklistHTML + otherNeedsHTML;
 
+    // Show modal
     modal.style.display = "block";
 
-    closeModal.onclick = () => modal.style.display = "none";
+    // Modal close actions
+    const closeModal = document.getElementById("closeModal");
+    closeModal.onclick = () => { modal.style.display = "none"; };
     window.onclick = e => { if (e.target === modal) modal.style.display = "none"; };
-  }
+}
+
+
 
   function approveReport(report) {
     auth.onAuthStateChanged(user => {

@@ -1,8 +1,15 @@
 // Firebase imports
-import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js";
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-import { getAuth, sendEmailVerification, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { get, getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
+// import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js';
+// import { getAuth, sendEmailVerification, signInWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
+// import { getAnalytics } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js';
+// import { getDatabase, ref, get, set } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js';
+import { initializeApp } from 'firebase/app'; 
+import { getAuth, sendEmailVerification, signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { getAnalytics } from 'firebase/analytics';
+import { getDatabase, ref, get, set } from 'firebase/database';
+
+import { validateEmail, validatePassword, displayError, clearError } from '../js/login.js';
+
 
 // Firebase config (keep as is)
 const firebaseConfig = {
@@ -17,81 +24,123 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
+// const analytics = getAnalytics(app);
 const auth = getAuth(app);
 const database = getDatabase(app);
 
 // Base path for redirects (keep as is)
-const BASE_PATH = "/Bayanihan-PWA";
+const BASE_PATH = "/bayanihan";
+
+// Function to display error messages
+// const showToast = (message, type = 'error') => {
+//     const toastContainer = document.querySelector('.toast-container');
+//     const toast = document.createElement('div');
+//     toast.className = `toast ${type}`;
+//     toast.textContent = message;
+
+//     toastContainer.appendChild(toast);
+
+//     // Trigger animation
+//     setTimeout(() => toast.classList.add('show'));
+
+//     // Remove after 3 seconds
+//     setTimeout(() => {
+//         toast.classList.remove('show');
+//         setTimeout(() => toast.remove(), 300); 
+//     }, 3000);
+// };
+
+const showToast = (message, type = 'error') => {
+    const toastContainer = document.querySelector('.toast-container');
+    if (!toastContainer) {
+        console.error("Toast container not found!");
+        return;
+    }
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.textContent = message;
+    toastContainer.appendChild(toast);
+    setTimeout(() => toast.classList.add('show'), 10);
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+    }, 4000);
+};
 
 document.addEventListener("DOMContentLoaded", () => {
     const container = document.querySelector(".container");
     const registerBtn = document.querySelector(".register-btn");
     const loginBtn = document.querySelector(".login-btn");
-    const registerForm = document.querySelector(".register-form");
     const loginForm = document.querySelector(".login form");
+    const emailInputElem = document.getElementById("login-email");
+    const passwordInputElem = document.getElementById("login-password");
 
     // Handle redirect after email verification
     const urlParams = new URLSearchParams(window.location.search);
     const mode = urlParams.get("mode");
     const oobCode = urlParams.get("oobCode");
     if (mode === "verifyEmail" && oobCode) {
-        alert("Email verified successfully! Please log in.");
+        showToast("Email verified successfully! Please log in.");
         // Clear query parameters from the URL
         window.history.replaceState({}, document.title, `${BASE_PATH}/pages/login.html`);
     }
 
     // Switch to Register form
-    if (registerBtn) {
+    if (registerBtn && container) {
         registerBtn.addEventListener("click", () => {
             container.classList.add("active");
-            loginForm.reset();
+            if (loginForm) loginForm.reset(); 
+            if (emailInputElem) clearError(emailInputElem);
+            if (passwordInputElem) clearError(passwordInputElem);
         });
     }
 
     // Switch to Login form
-    if (loginBtn) {
+    if (loginBtn && container) {
         loginBtn.addEventListener("click", () => {
             container.classList.remove("active");
-            registerForm.reset();
+            if (emailInputElem) clearError(emailInputElem);
+            if (passwordInputElem) clearError(passwordInputElem);
         });
     }
 
     // Handle Login
-    if (loginForm) {
+    if (loginForm && emailInputElem && passwordInputElem) { // Ensure elements exist
         loginForm.addEventListener("submit", async (e) => {
-            e.preventDefault();
+            e.preventDefault(); // Always prevent default here, as this is the main submit handler
 
-            // Get email and password directly from the form
-            const emailInput = document.getElementById("login-email").value.trim();
-            const password = document.getElementById("login-password").value;
+            // Run client-side validations using imported functions
+            const isEmailValid = validateEmail(emailInputElem);
+            const isPasswordValid = validatePassword(passwordInputElem);
 
-            if (!emailInput || !password) {
-                alert("Please enter both email and password.");
-                return;
+            if (!isEmailValid || !isPasswordValid) {
+                showToast("Please correct the errors in the form.", 'error');
+                console.log('Login failed due to client-side validation errors.');
+                return; // Stop execution if validation fails
             }
 
-            console.log("Attempting to sign in with email:", { email: emailInput });
+            // Get validated email and password values
+            const email = emailInputElem.value.trim();
+            const password = passwordInputElem.value;
+
+            console.log("Attempting to sign in with email:", { email: email });
 
             try {
-                // Sign in with email and password using Firebase Authentication
-                const userCredential = await signInWithEmailAndPassword(auth, emailInput, password);
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
                 const user = userCredential.user;
 
-                // Fetch user data from Realtime Database using the authenticated user's UID
                 const userSnapshot = await get(ref(database, `users/${user.uid}`));
                 let userData = userSnapshot.val();
 
-                // If user data doesn't exist in the database, create a default entry
                 if (!userData) {
                     console.warn("User data not found in Realtime Database for UID:", user.uid, "Creating a default entry.");
                     userData = {
-                        role: "ABVN", // Default role for new users
+                        role: "ABVN", 
                         name: "New User",
                         group: "N/A",
                         contactPerson: "N/A",
                         email: user.email,
-                        mobile: "", // Mobile will be empty or set during registration
+                        mobile: "", 
                         createdAt: new Date().toISOString(),
                         emailVerified: user.emailVerified,
                         isFirstLogin: true,
@@ -112,12 +161,12 @@ document.addEventListener("DOMContentLoaded", () => {
                         console.log("Sending verification email to:", user.email);
                         await sendEmailVerification(user, actionCodeSettings);
                         console.log("Verification email sent successfully to:", user.email);
-                        alert("Your email address is not verified. A verification email has been sent to your email address. Please verify your email to proceed with login (check spam/junk folder).");
+                        showToast("Your email address is not verified. A verification email has been sent to your email address. Please verify your email to proceed with login (check spam/junk folder).");
                     } catch (error) {
                         console.error("Error sending verification email:", error);
-                        alert("Failed to send verification email: " + error.message);
+                        showToast("Failed to send verification email: " + error.message);
                     }
-                    await signOut(auth); // Sign out the user until email is verified
+                    await signOut(auth); 
                     return;
                 }
 
@@ -141,10 +190,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 // Store user data in localStorage
                 localStorage.setItem("userData", JSON.stringify(updatedUserData));
-                localStorage.setItem("userEmail", user.email); // Store email instead of mobile
+                localStorage.setItem("userEmail", user.email); 
                 localStorage.setItem("userRole", userData.role);
 
-                alert("Login successful!");
+                showToast("Login successful!", 'success');
 
                 // Dispatch event to update sidebar (if applicable)
                 const event = new Event("updateSidebar");
@@ -160,33 +209,37 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
 
                 // Redirection Logic
-                if (isAdmin && !isFirstLogin && termsAccepted) {
-                    console.log("Redirecting Admin to dashboard.");
-                    window.location.replace(`${BASE_PATH}/pages/dashboard.html`);
-                } else if (isFirstLogin || !termsAccepted) {
-                    console.log("Redirecting to profile.html for first login or unaccepted terms.");
-                    window.location.replace(`${BASE_PATH}/pages/profile.html`);
-                } else {
-                    console.log("Redirecting based on role.");
-                    const userRole = userData.role;
-
-                    if (userRole === "ABVN") {
+                 setTimeout(() => {
+                    // Redirection Logic
+                    if (isAdmin && !isFirstLogin && termsAccepted) {
+                        console.log("Redirecting Admin to dashboard.");
                         window.location.replace(`${BASE_PATH}/pages/dashboard.html`);
+                    } else if (isFirstLogin || !termsAccepted) {
+                        console.log("Redirecting to profile.html for first login or unaccepted terms.");
+                        window.location.replace(`${BASE_PATH}/pages/profile.html`);
                     } else {
-                        console.error("Unknown user role or unhandled redirection:", userRole);
-                        window.location.replace(`${BASE_PATH}/pages/dashboard.html`); // Fallback
+                        console.log("Redirecting based on role.");
+                        const userRole = userData.role;
+
+                        if (userRole === "ABVN") {
+                            window.location.replace(`${BASE_PATH}/pages/dashboard.html`);
+                        } else {
+                            console.error("Unknown user role or unhandled redirection:", userRole);
+                            window.location.replace(`${BASE_PATH}/pages/dashboard.html`); // Fallback
+                        }
                     }
-                }
+                }, 2000); 
 
             } catch (error) {
                 // Handle Firebase authentication errors
                 if (error.code === "auth/invalid-credential" || error.code === "auth/user-not-found" || error.code === "auth/wrong-password") {
-                    alert("Invalid email or password.");
+                    showToast("Invalid email or password.", 'error');
                 } else {
-                    alert("An error occurred during login: " + error.message);
+                    showToast("An error occurred during login: " + error.message);
                     console.error("Login error:", error);
                 }
             }
         });
     }
 });
+

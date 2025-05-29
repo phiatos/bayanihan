@@ -1,125 +1,219 @@
-button.inactive {
-  background-color: #34c579; /* green */
-}
+ /* MODAL STYLES (Add this to activation.css or directly here for quick testing) */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 1000; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+            display: flex; /* Use flexbox for centering */
+            align-items: center; /* Center vertically */
+            justify-content: center; /* Center horizontally */
+        }
 
-button.active {
-  background-color: red; /* red */
-}
+        .modal-content {
+            background-color: var(--light-bg); 
+            margin: auto; /* For browsers that don't support flex centering */
+            padding: 30px;
+            border: 1px solid #888;
+            width: 80%; /* Could be responsive */
+            max-width: 600px; /* Max width for readability */
+            box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);
+            border-radius: 8px;
+            position: relative;
+            animation-name: animatetop;
+            animation-duration: 0.4s;
+            display: flex; /* Flex container for modal content */
+            flex-direction: column; /* Stack children vertically */
+        }
 
-/* Status Indicators */
-.status-circle {
-  display: inline-block;
-  align-items: center;
-  width: 25px;
-  height: 25px;
-  border-radius: 50%;
-}
+        /* Add Animation */
+        @keyframes animatetop {
+            from {top: -300px; opacity: 0}
+            to {top: 0; opacity: 1}
+        }
 
-.status-circle.green { background-color: #34c579; }
-.status-circle.red { background-color: red; }
-.status-circle.gray { background-color: #e7e7e7; }
+        .close-button {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            position: absolute;
+            top: 10px;
+            right: 20px;
+        }
 
-.area-dropdown {
-  position: relative;
-  display: inline-block;
-  width: 100%;
-}
+        .close-button:hover,
+        .close-button:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
 
-.area-dropbtn {
-  width: 100%;
-  background-color: #e7e7e7;
-  color: black;
-  padding: 6px;
-  font-size: 12px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
+        .modal-content h2 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            color: #333;
+        }
 
-.area-dropdown-content {
-  display: none;
-  position: absolute;
-  background-color: #e7e7e7;
-  min-width: 160px;
-  border: 1px solid #ddd;
-  text-align: left;
-  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
-  z-index: 1;
-  padding: 10px;
-  border-radius: 4px;
-  max-height: 150px;
-  overflow-y: auto;
-}
+        .modal-details p {
+            margin-bottom: 10px;
+            font-size: 1.1em;
+            color: #555;
+        }
 
-.area-dropdown-content label {
-  display: block;
-  font-size: 12px;
-  margin-bottom: 5px;
-}
+        .modal-details strong {
+            color: #333;
+        }
 
-.area-dropdown-content input[type="checkbox"] {
-  margin-right: 6px;
-}
+        .modal-action-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
 
-/* Show dropdown on button click */
-.area-dropdown.show .area-dropdown-content {
-  display: block;
-}
+        .modal-action-buttons button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+        }
 
-@media (max-width: 1024px) {
-  #main-content {
-    padding: 30px;
-    margin: 30px 20px;
-  }
+        .modal-action-buttons .btn-primary {
+            background-color: var(--primary-color); /* Assuming you have a blue color variable */
+            color: var(--white);
+            width: fit-content;
+        }
+        .modal-action-buttons .btn-secondary {
+            background-color: var(--primary-color);
+            color: var(--white);
+        }
 
-  table {
-    min-width: 800px;
-  }
-}
+        /* Calamity Type and Typhoon Name in Modal */
+        .modal-calamity-container {
+            display: flex;
+            flex-direction: column; /* Stack label and input */
+            gap: 5px;
+            margin-bottom: 15px;
+        }
+        .modal-calamity-container select,
+        .modal-calamity-container input[type="text"] {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 1em;
+            width: 100%; /* Full width within container */
+            box-sizing: border-box; /* Include padding/border in width */
+        }
 
-@media (max-width: 768px) {
+        /* Area Input in Modal */
+        .modal-area-input-container { /* New container for the input field */
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            margin-bottom: 15px;
+        }
+        #modalAreaInput { /* New ID for the text input */
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 1em;
+            width: 100%;
+            box-sizing: border-box;
+        }
 
-  table {
-    min-width: 100%;
-    font-size: 10px;
-    overflow-x: auto;
-    display: block;
-  }
 
-  .pagination-info {
-    flex-direction: column;
-    gap: 10px;
-    text-align: center;
-  }
+        /* Styles for the two steps in the modal */
+        .modal-step {
+            display: none; /* Hide steps by default */
+            flex-direction: column;
+            gap: 15px;
+        }
+        .modal-step.active {
+            display: flex; /* Show the active step */
+        }
 
-  .pagination-info span {
-    text-align: center;
-  }
-}
+        /* Group selection dropdown */
+        #selectGroupDropdown {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 1em;
+            box-sizing: border-box;
+        }
 
-@media (max-width: 480px) {
+        /* --- Endorse Modal Specific Styles --- */
+        .endorse-modal-content { 
+            background-color: #fefefe;
+            margin: 10% auto; 
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            width: 90%; 
+            max-width: 500px; 
+            display: flex;
+            flex-direction: column;
+            gap: 15px; 
+        }
+        .endorse-modal-content label {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #333;
+            display: block; 
+        }
+        .endorse-modal-content input[type="number"],
+        .endorse-modal-content input[type="text"] {
+            width: calc(100% - 20px); 
+            padding: 12px 10px;
+            margin-bottom: 15px; 
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 1rem;
+            box-sizing: border-box;
+            transition: border-color 0.3s ease;
+        }
+        .endorse-modal-content input[type="number"]:focus,
+        .endorse-modal-content input[type="text"]:focus {
+            border-color: #007bff; 
+            outline: none; 
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25); 
+        }
+        #submitReliefBtn {
+            background-color: #28a745; 
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 5px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            align-self: flex-end; 
+        }
+        #submitReliefBtn:hover {
+            background-color: #218838; 
+            transform: translateY(-2px); 
+        }
 
-  button, .edit-btn {
-    font-size: 11px;
-    padding: 6px 10px;
-  }
-
-  .pagination-info {
-    flex-direction: column;
-    font-size: 1px;
-    text-align: center;
-  }
-
-  #pagination button {
-    padding: 8px;
-    font-size: 12px;
-   
-  }
-
-  td input[type="text"],
-  td select,
-  .area-dropbtn {
-    font-size: 11px;
-    padding: 4px;
-  }
-}
+        #submitReliefBtn:active {
+            background-color: #1e7e34; 
+            transform: translateY(0);
+        }
+        .endorse-modal {
+            display: none; 
+            position: fixed;
+            z-index: 1000; 
+            left: 0;
+            top: 0;
+            width: 100%; 
+            height: 100%; 
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4); 
+            justify-content: center; 
+            align-items: center; 
+        }

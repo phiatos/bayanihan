@@ -130,7 +130,7 @@ function initSidebar() {
           showConfirmButton: false
         });
         setTimeout(() => {
-          window.location.replace("/Bayanihan-PWA/pages/login.html");
+          window.location.replace("../pages/login.html");
         }, 2000);
         return;
       }
@@ -145,7 +145,7 @@ function initSidebar() {
           showConfirmButton: false
         });
         setTimeout(() => {
-          window.location.replace("/Bayanihan-PWA/pages/dashboard.html");
+          window.location.replace("../pages/dashboard.html");
         }, 2000);
       }
     }
@@ -208,6 +208,8 @@ function initSidebar() {
       reportsSubmission: document.querySelector(".menu-reports-submission"),
       reportsVerification: document.querySelector(".menu-reports-verification"),
       reportsLog: document.querySelector(".menu-reports-log"),
+      inkind: document.querySelector(".menu-inkind"),
+      monetary: document.querySelector(".menu-monetary"),
     };
 
     console.log("Restricting menu access for role:", role);
@@ -234,7 +236,9 @@ function initSidebar() {
         menuItems.rdanaLog,
         menuItems.reliefsLog,
         menuItems.reportsVerification,
-        menuItems.reportsLog
+        menuItems.reportsLog,
+        menuItems.inkind,
+        menuItems.monetary,
       ];
 
       // Show allowed items

@@ -263,25 +263,6 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 }
 
-  function formatLargeNumber(numStr) {
-      let num = BigInt(numStr || "0");
-      const trillion = 1_000_000_000_000n;
-      const billion = 1_000_000_000n;
-      const million = 1_000_000n;
-      const thousand = 1_000n;
-
-      if (num >= trillion) {
-        return (Number(num) / Number(trillion)).toFixed(2).replace(/\.?0+$/, '') + 'T';
-      } else if (num >= billion) {
-        return (Number(num) / Number(billion)).toFixed(2).replace(/\.?0+$/, '') + 'B';
-      } else if (num >= million) {
-        return (Number(num) / Number(million)).toFixed(2).replace(/\.?0+$/, '') + 'M';
-      } else if (num >= thousand) {
-        return (Number(num) / Number(thousand)).toFixed(2).replace(/\.?0+$/, '') + 'k';
-      }
-      return num.toString();
-    }
-
   function viewLog(globalIndex) {
     const log = filteredLogs[globalIndex];
     const previewDiv = document.getElementById("modalContent");
@@ -354,6 +335,10 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById("previewModal").style.display = "block";
   }
 
+  document.getElementById("closeModal").addEventListener("click", () => {
+    document.getElementById("previewModal").style.display = "none";
+  });
+
   function formatKey(key) {
     return key
       .replace(/_/g, " ")
@@ -361,11 +346,7 @@ document.addEventListener('DOMContentLoaded', () => {
       .replace(/^./, str => str.toUpperCase())
       .trim();
   }
-
-  document.getElementById("closeModal").addEventListener("click", () => {
-    document.getElementById("previewModal").style.display = "none";
-  });
-
+  
   document.getElementById("searchInput").addEventListener("input", function () {
     const value = this.value.toLowerCase();
     filteredLogs = rdanaLogs.filter(log =>
@@ -545,7 +526,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const logo = new Image();
-    logo.src = '/Bayanihan-PWA/assets/images/AB_logo.png';
+    logo.src = '../assets/images/AB_logo.png';
 
     logo.onload = function() {
       const pageWidth = doc.internal.pageSize.width;
@@ -751,7 +732,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     logo.onerror = function() {
       Swal.close();
-      Swal.fire("Error", "Failed to load logo image at /Bayanihan-PWA/assets/images/AB_logo.png. Please check the path.", "error");
+      Swal.fire("Error", "Failed to load logo image at ../assets/images/AB_logo.png. Please check the path.", "error");
     };
   }
 
@@ -761,7 +742,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const doc = new jsPDF('portrait');
 
     const logo = new Image();
-    logo.src = '/Bayanihan-PWA/assets/images/AB_logo.png';
+    logo.src = '../assets/images/AB_logo.png';
 
     logo.onload = function() {
       const pageWidth = doc.internal.pageSize.width;
