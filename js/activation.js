@@ -14,9 +14,8 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
 
-// Data array to store fetched volunteer groups (for modal dropdown)
+// Data arrays
 let allVolunteerGroups = [];
-// Data array to store CURRENTLY ACTIVE activation records for table display
 let currentActiveActivations = [];
 
 const calamityOptions = [
@@ -26,6 +25,7 @@ const calamityOptions = [
 let currentPage = 1;
 const rowsPerPage = 5;
 
+// DOM Elements
 const tableBody = document.querySelector("#orgTable tbody");
 const searchInput = document.querySelector("#searchInput");
 const sortSelect = document.querySelector("#sortSelect");
@@ -36,12 +36,15 @@ const addActivationBtn = document.getElementById("addActivationBtn");
 
 // Modals and their elements
 const activationModal = document.getElementById("activationModal");
-const closeActivationModalBtn = document.getElementById("closeActivationModal"); // Specific close button for activation modal
+const closeActivationModalBtn = document.getElementById("closeActivationModal");
 const modalTitle = document.getElementById("modalTitle");
-
-const endorseModal = document.getElementById("endorseModal"); // NEW: Endorse Modal element
-const closeEndorseModalBtn = document.getElementById("closeEndorseModal"); // NEW: Close button for endorse modal
-
+const endorseModal = document.getElementById("endorseModal");
+const closeEndorseModalBtn = document.getElementById("closeEndorseModal");
+const mapModal = document.getElementById("mapModal");
+const closeMapModalBtn = document.getElementById("closeMapModal");
+const cancelMapModalBtn = document.getElementById("cancelMapModalBtn");
+const saveLocationBtn = document.getElementById("saveLocationBtn");
+const mapSearchInput = document.getElementById("mapSearchInput");
 
 // Step 1 Elements
 const modalStep1 = document.getElementById("modalStep1");
@@ -52,28 +55,237 @@ const modalNextStepBtn = document.getElementById("modalNextStepBtn");
 const modalStep2 = document.getElementById("modalStep2");
 const selectedOrgName = document.getElementById("selectedOrgName");
 const modalAreaInput = document.getElementById("modalAreaInput");
+const modalLatitudeInput = document.getElementById("modalLatitudeInput");
+const modalLongitudeInput = document.getElementById("modalLongitudeInput");
 const modalCalamitySelect = document.getElementById("modalCalamitySelect");
 const modalTyphoonNameInput = document.getElementById("modalTyphoonNameInput");
 const modalActivateSubmitBtn = document.getElementById("modalActivateSubmitBtn");
 const modalPrevStepBtn = document.getElementById("modalPrevStepBtn");
-
-// NEW: Pin Location button element
 const pinLocationBtn = document.getElementById("pinLocationBtn");
 
+let selectedGroupForActivation = null;
+let map, markers = [], autocomplete, geocoder;
 
-let selectedGroupForActivation = null; // Stores the group object selected in Step 1
+// Initialize Google Maps for Map Modal
+function initMap() {
+    const defaultLocation = { lat: 14.5995, lng: 120.9842 }; // Manila, Philippines
 
-// Monitor authentication state and fetch data only when authenticated
+    map = new google.maps.Map(document.getElementById("mapContainer"), {
+        center: defaultLocation,
+        zoom: 10,
+        mapTypeId: "roadmap",
+    });
+
+    geocoder = new google.maps.Geocoder();
+
+    autocomplete = new google.maps.places.Autocomplete(mapSearchInput, {
+        componentRestrictions: { country: "PH" },
+    });
+    autocomplete.bindTo("bounds", map);
+
+    autocomplete.addListener("place_changed", () => {
+        const place = autocomplete.getPlace();
+        if (!place.geometry || !place.geometry.location) {
+            Swal.fire({
+                icon: "error",
+                title: "Location Not Found",
+                text: "Please select a valid location from the dropdown.",
+            });
+            return;
+        }
+
+        map.setCenter(place.geometry.location);
+        map.setZoom(16);
+
+        clearMarkers();
+
+        const marker = new google.maps.Marker({
+            position: place.geometry.location,
+            map: map,
+            title: place.name,
+        });
+        markers.push(marker);
+
+        const infowindow = new google.maps.InfoWindow({
+            content: `<strong>${place.name}</strong><br>${place.formatted_address}`,
+        });
+        marker.addListener("click", () => {
+            infowindow.open(map, marker);
+        });
+        infowindow.open(map, marker);
+
+        modalAreaInput.value = place.formatted_address;
+        modalLatitudeInput.value = place.geometry.location.lat();
+        modalLongitudeInput.value = place.geometry.location.lng();
+    });
+
+    map.addListener("click", (event) => {
+        clearMarkers();
+
+        const marker = new google.maps.Marker({
+            position: event.latLng,
+            map: map,
+            title: "Pinned Location",
+        });
+        markers.push(marker);
+
+        geocoder.geocode({ location: event.latLng }, (results, status) => {
+            let infoContent = `Pinned Location<br>Lat: ${event.latLng.lat()}, Lng: ${event.latLng.lng()}`;
+            if (status === "OK" && results[0]) {
+                infoContent = `Pinned Location<br>${results[0].formatted_address}`;
+                modalAreaInput.value = results[0].formatted_address;
+            } else {
+                modalAreaInput.value = `Lat: ${event.latLng.lat()}, Lng: ${event.latLng.lng()}`;
+            }
+            modalLatitudeInput.value = event.latLng.lat();
+            modalLongitudeInput.value = event.latLng.lng();
+
+            const infowindow = new google.maps.InfoWindow({
+                content: infoContent,
+            });
+            marker.addListener("click", () => {
+                infowindow.open(map, marker);
+            });
+            infowindow.open(map, marker);
+        });
+
+        map.setCenter(event.latLng);
+        map.setZoom(16);
+    });
+
+    // Add "My Location" button
+    const returnButton = document.createElement("button");
+    returnButton.textContent = "My Location";
+    returnButton.style.cssText = `
+        background-color: #007bff;
+        color: white;
+        padding: 10px 15px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 14px;
+        margin: 10px;
+    `;
+    returnButton.addEventListener("click", returnToUserLocation);
+    map.controls[google.maps.ControlPosition.TOP_RIGHT].push(returnButton);
+
+    // Try to center on user's location
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const userLocation = {
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude,
+                };
+                map.setCenter(userLocation);
+                map.setZoom(16);
+                clearMarkers();
+                const marker = new google.maps.Marker({
+                    position: userLocation,
+                    map: map,
+                    title: "You are here",
+                    icon: { url: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png" },
+                });
+                markers.push(marker);
+
+                geocoder.geocode({ location: userLocation }, (results, status) => {
+                    let infoContent = "You are here";
+                    if (status === "OK" && results[0]) {
+                        infoContent = `You are here<br>${results[0].formatted_address}`;
+                        modalAreaInput.value = results[0].formatted_address;
+                        modalLatitudeInput.value = userLocation.lat;
+                        modalLongitudeInput.value = userLocation.lng;
+                    }
+                    const infowindow = new google.maps.InfoWindow({ content: infoContent });
+                    marker.addListener("click", () => infowindow.open(map, marker));
+                    infowindow.open(map, marker);
+                });
+            },
+            (error) => {
+                console.error("Geolocation error:", error);
+                Swal.fire({
+                    icon: "error",
+                    title: "Location Error",
+                    text: getGeolocationErrorMessage(error),
+                });
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+    }
+}
+
+function clearMarkers() {
+    markers.forEach(marker => marker.setMap(null));
+    markers = [];
+}
+
+function returnToUserLocation() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const userLocation = {
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude,
+                };
+                map.setCenter(userLocation);
+                map.setZoom(16);
+                clearMarkers();
+                const marker = new google.maps.Marker({
+                    position: userLocation,
+                    map: map,
+                    title: "You are here",
+                    icon: { url: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png" },
+                });
+                markers.push(marker);
+
+                geocoder.geocode({ location: userLocation }, (results, status) => {
+                    let infoContent = "You are here";
+                    if (status === "OK" && results[0]) {
+                        infoContent = `You are here<br>${results[0].formatted_address}`;
+                        modalAreaInput.value = results[0].formatted_address;
+                        modalLatitudeInput.value = userLocation.lat;
+                        modalLongitudeInput.value = userLocation.lng;
+                    }
+                    const infowindow = new google.maps.InfoWindow({ content: infoContent });
+                    marker.addListener("click", () => infowindow.open(map, marker));
+                    infowindow.open(map, marker);
+                });
+            },
+            (error) => {
+                console.error("Geolocation error:", error);
+                Swal.fire({
+                    icon: "error",
+                    title: "Location Error",
+                    text: getGeolocationErrorMessage(error),
+                });
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+    }
+}
+
+function getGeolocationErrorMessage(error) {
+    switch (error.code) {
+        case error.PERMISSION_DENIED:
+            return "Location access denied. Please allow location access in your browser settings.";
+        case error.POSITION_UNAVAILABLE:
+            return "Location information is unavailable. Ensure your device has a working GPS or network connection.";
+        case error.TIMEOUT:
+            return "Location request timed out. Please try again.";
+        default:
+            return "Unable to retrieve your location.";
+    }
+}
+
+// Authentication and Data Listeners
 firebase.auth().onAuthStateChanged(user => {
     if (user) {
         console.log("User is authenticated:", user.uid);
-        listenForDataUpdates(); // Listen for both volunteerGroups and activations
+        listenForDataUpdates();
     } else {
         console.log("No user is authenticated. Attempting anonymous sign-in...");
         firebase.auth().signInAnonymously()
-            .then(() => {
-                console.log("Signed in anonymously");
-            })
+            .then(() => console.log("Signed in anonymously"))
             .catch(error => {
                 console.error("Anonymous auth failed:", error.code, error.message);
                 Swal.fire({
@@ -85,7 +297,6 @@ firebase.auth().onAuthStateChanged(user => {
     }
 });
 
-// Listen for real-time updates from Firebase
 function listenForDataUpdates() {
     console.log("Setting up real-time listener for volunteerGroups...");
     database.ref("volunteerGroups").on("value", snapshot => {
@@ -106,7 +317,7 @@ function listenForDataUpdates() {
             }
             allVolunteerGroups.sort((a, b) => a.no - b.no);
         }
-        populateGroupDropdown(); // Populate dropdown with all groups
+        populateGroupDropdown();
     }, error => {
         console.error("Error listening for volunteerGroups:", error.code, error.message);
         Swal.fire({
@@ -125,13 +336,11 @@ function listenForDataUpdates() {
         if (fetchedActivations) {
             for (let key in fetchedActivations) {
                 const activation = fetchedActivations[key];
-                // Only display active activations in the main table
                 if (activation.status === 'active') {
-                    // Find the corresponding volunteer group for additional details
                     const volunteerGroup = allVolunteerGroups.find(group => group.no === activation.groupId);
-
                     currentActiveActivations.push({
                         id: key,
+                        no: activation.no || 0,
                         groupId: activation.groupId,
                         organization: activation.organization || "Unknown",
                         hq: activation.hq || "Not specified",
@@ -140,18 +349,20 @@ function listenForDataUpdates() {
                         typhoonName: activation.typhoonName || "",
                         status: activation.status,
                         activationDate: activation.activationDate,
-                        // ADD THESE FIELDS by looking up in allVolunteerGroups
                         contactPerson: volunteerGroup ? volunteerGroup.contactPerson : "N/A",
                         email: volunteerGroup ? volunteerGroup.email : "N/A",
                         mobileNumber: volunteerGroup ? volunteerGroup.mobileNumber : "N/A",
-                        // NEW: Add latitude and longitude if available from activation data
                         latitude: activation.latitude || null,
                         longitude: activation.longitude || null
                     });
                 }
             }
-            // Sort by activationDate (most recent first, or as desired)
-            currentActiveActivations.sort((a, b) => new Date(b.activationDate) - new Date(a.activationDate));
+            // Sort by activationDate (newest first)
+            currentActiveActivations.sort((a, b) => {
+                const dateA = new Date(a.activationDate);
+                const dateB = new Date(b.activationDate);
+                return dateB - dateA;
+            });
         }
         renderTable();
     }, error => {
@@ -164,7 +375,6 @@ function listenForDataUpdates() {
     });
 }
 
-// Function to populate the group selection dropdown in the modal
 function populateGroupDropdown() {
     selectGroupDropdown.innerHTML = '<option value="">-- Select an Organization --</option>';
     allVolunteerGroups.forEach(group => {
@@ -175,8 +385,7 @@ function populateGroupDropdown() {
     });
 }
 
-// Render Table (MODIFIED to include Endorse button and new columns)
-function renderTable(filteredData = currentActiveActivations) { // Default to currentActiveActivations
+function renderTable(filteredData = currentActiveActivations) {
     tableBody.innerHTML = "";
     const start = (currentPage - 1) * rowsPerPage;
     const end = start + rowsPerPage;
@@ -184,24 +393,24 @@ function renderTable(filteredData = currentActiveActivations) { // Default to cu
 
     if (pageData.length === 0 && filteredData.length > 0 && currentPage > 1) {
         currentPage--;
-        renderTable(filteredData); // Re-render if current page becomes empty
+        renderTable(filteredData);
         return;
     } else if (pageData.length === 0 && filteredData.length === 0) {
         const noDataRow = document.createElement("tr");
-        noDataRow.innerHTML = `<td colspan="9" style="text-align: center;">No active group activations to display.</td>`; // Adjusted colspan
+        noDataRow.innerHTML = `<td colspan="10" style="text-align: center;">No active group activations to display.</td>`;
         tableBody.appendChild(noDataRow);
     }
 
-    pageData.forEach((row, index) => { // Use original index for 'No.' display
+    pageData.forEach((row, index) => {
+        const displayNumber = start + index + 1;
         const tr = document.createElement("tr");
-
         let calamityDisplay = row.calamity;
         if (row.calamity === "Typhoon" && row.typhoonName) {
             calamityDisplay += ` (${row.typhoonName})`;
         }
 
         tr.innerHTML = `
-            <td>${start + index + 1}</td>
+            <td>${displayNumber}</td>
             <td>${row.organization}</td>
             <td>${row.hq}</td>
             <td>${row.areaOfOperation || 'N/A'}</td>
@@ -219,20 +428,16 @@ function renderTable(filteredData = currentActiveActivations) { // Default to cu
     });
 
     entriesInfo.textContent = `Showing ${start + 1} to ${Math.min(end, filteredData.length)} of ${filteredData.length} entries`;
-
     renderPagination(filteredData.length);
 }
 
-// Search Functionality (now searches currentActiveActivations)
 function handleSearch() {
     const query = searchInput.value.trim().toLowerCase();
     clearBtn.style.display = query ? 'flex' : 'none';
-
-    currentPage = 1; // Reset to first page on search
+    currentPage = 1;
     renderTable(filterAndSort());
 }
 
-// Clear search input and reset table
 function clearDInputs() {
     searchInput.value = '';
     clearBtn.style.display = 'none';
@@ -241,28 +446,26 @@ function clearDInputs() {
     searchInput.focus();
 }
 
-// Initialize clear button visibility
 clearBtn.style.display = 'none';
-
-// Attach search input event listener
 searchInput.addEventListener('input', handleSearch);
 
-// MODAL FUNCTIONS - ACTIVATION MODAL
 function openAddActivationModal() {
     modalTitle.textContent = "Add New Activation";
     modalStep1.classList.add('active');
     modalStep2.classList.remove('active');
-    selectGroupDropdown.value = ""; // Reset dropdown
-    modalNextStepBtn.disabled = true; // Disable next button initially
-    selectedGroupForActivation = null; // Clear selected group
-    resetModalStep2Fields(); // Clear fields in step 2
-    populateGroupDropdown(); // Ensure dropdown is fresh
-    activationModal.style.display = "flex"; // Show the modal
+    selectGroupDropdown.value = "";
+    modalNextStepBtn.disabled = true;
+    selectedGroupForActivation = null;
+    resetModalStep2Fields();
+    populateGroupDropdown();
+    activationModal.style.display = "flex";
 }
 
 function resetModalStep2Fields() {
     selectedOrgName.textContent = "";
-    modalAreaInput.value = ""; // Reset input field
+    modalAreaInput.value = "";
+    modalLatitudeInput.value = "";
+    modalLongitudeInput.value = "";
     modalCalamitySelect.innerHTML = calamityOptions
         .map((opt, index) => {
             if (index === 0) {
@@ -273,9 +476,6 @@ function resetModalStep2Fields() {
         .join("");
     modalTyphoonNameInput.style.display = "none";
     modalTyphoonNameInput.value = "";
-    // Clear any previously set coordinates (if you were storing them in the input)
-    // For example: modalAreaInput.dataset.latitude = '';
-    // For example: modalAreaInput.dataset.longitude = '';
 }
 
 function showStep1() {
@@ -284,9 +484,9 @@ function showStep1() {
     modalStep2.classList.remove('active');
     selectedGroupForActivation = null;
     modalNextStepBtn.disabled = true;
-    selectGroupDropdown.value = ""; // Reset dropdown selection
+    selectGroupDropdown.value = "";
     resetModalStep2Fields();
-    populateGroupDropdown(); // Re-populate dropdown just in case
+    populateGroupDropdown();
 }
 
 function showStep2() {
@@ -300,8 +500,8 @@ function showStep2() {
     }
     modalStep1.classList.remove('active');
     modalStep2.classList.add('active');
+    selectedOrgName.textContent = selectedGroupForActivation.organization;
 
-    // Populate Calamity Select (always fresh)
     modalCalamitySelect.innerHTML = calamityOptions
         .map((opt, index) => {
             if (index === 0) {
@@ -312,26 +512,63 @@ function showStep2() {
         .join("");
     modalTyphoonNameInput.style.display = "none";
     modalTyphoonNameInput.value = "";
-
-    // Reset area input
     modalAreaInput.value = "";
+    modalLatitudeInput.value = "";
+    modalLongitudeInput.value = "";
 }
 
-// Renamed for clarity to avoid conflict with a new closeModal for endorseModal
 function closeActivationModal() {
     activationModal.style.display = "none";
-    selectedGroupForActivation = null; // Clear selected group
-    showStep1(); // Always reset to step 1 when closing
+    selectedGroupForActivation = null;
+    showStep1();
 }
 
-// Event Listeners for Activation Modal Flow (updated close button)
-addActivationBtn.addEventListener("click", openAddActivationModal); // Opens step 1
-closeActivationModalBtn.addEventListener("click", closeActivationModal); // Use specific close button
+function openMapModal() {
+    mapModal.style.display = "flex";
+    setTimeout(() => {
+        if (!map) {
+            initMap();
+        } else {
+            google.maps.event.trigger(map, 'resize');
+            const currentArea = modalAreaInput.value;
+            if (currentArea) {
+                geocoder.geocode({ 'address': currentArea }, (results, status) => {
+                    if (status === 'OK' && results[0]) {
+                        map.setCenter(results[0].geometry.location);
+                        clearMarkers();
+                        const marker = new google.maps.Marker({
+                            map: map,
+                            position: results[0].geometry.location,
+                            title: currentArea,
+                        });
+                        markers.push(marker);
+                    }
+                });
+            } else {
+                map.setCenter({ lat: 14.5995, lng: 120.9842 });
+                map.setZoom(10);
+            }
+        }
+    }, 100);
+}
 
-// Close modal when clicking outside of it
+function closeMapModal() {
+    mapModal.style.display = "none";
+    clearMarkers();
+}
+
+// Event Listeners
+addActivationBtn.addEventListener("click", openAddActivationModal);
+closeActivationModalBtn.addEventListener("click", closeActivationModal);
+closeMapModalBtn.addEventListener("click", closeMapModal);
+cancelMapModalBtn.addEventListener("click", closeMapModal);
 window.addEventListener("click", (event) => {
     if (event.target === activationModal) {
         closeActivationModal();
+    } else if (event.target === mapModal) {
+        closeMapModal();
+    } else if (event.target === endorseModal) {
+        closeEndorseModal();
     }
 });
 
@@ -344,7 +581,6 @@ selectGroupDropdown.addEventListener("change", (e) => {
 modalNextStepBtn.addEventListener("click", showStep2);
 modalPrevStepBtn.addEventListener("click", showStep1);
 
-// Handle Calamity Type Change in Modal (Step 2)
 modalCalamitySelect.addEventListener("change", () => {
     if (modalCalamitySelect.value === "Typhoon") {
         modalTyphoonNameInput.style.display = "inline-block";
@@ -354,58 +590,52 @@ modalCalamitySelect.addEventListener("change", () => {
     }
 });
 
-// NEW: Event Listener for Pin Location Button
-pinLocationBtn.addEventListener("click", () => {
-    // This is where you would integrate your mapping API logic.
-    // For now, it's just a placeholder alert.
+pinLocationBtn.addEventListener("click", openMapModal);
 
-    const currentArea = modalAreaInput.value.trim();
-    Swal.fire({
-        title: 'Pin Location',
-        html: `You clicked Pin Location for: <strong>${currentArea || 'No area entered yet'}</strong>.<br><br>
-               (Here, you would typically open a map interface, allow the user to select a point,
-               and then populate hidden latitude/longitude fields or directly update the activation record.)`,
-        icon: 'info',
-        confirmButtonText: 'Got It!'
-    });
-
-    // Example of how you might get coords (requires user permission, async)
-    // navigator.geolocation.getCurrentPosition(position => {
-    //     const lat = position.coords.latitude;
-    //     const lng = position.coords.longitude;
-    //     console.log("Current Lat:", lat, "Lng:", lng);
-    //     // You might want to store these in hidden inputs or data attributes
-    //     // modalAreaInput.dataset.latitude = lat;
-    //     // modalAreaInput.dataset.longitude = lng;
-    // }, error => {
-    //     console.error("Geolocation error:", error);
-    //     Swal.fire({
-    //         icon: 'error',
-    //         title: 'Geolocation Failed',
-    //         text: 'Could not get your current location.'
-    //     });
-    // });
+saveLocationBtn.addEventListener("click", () => {
+    if (!modalAreaInput.value || !modalLatitudeInput.value || !modalLongitudeInput.value) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'No Location Selected',
+            text: 'Please select a location by searching or clicking on the map.'
+        });
+        return;
+    }
+    closeMapModal();
 });
 
+async function getNextActivationNumber() {
+    try {
+        const snapshot = await database.ref("activations").once("value");
+        const activations = snapshot.val();
+        let maxNo = 0;
+        if (activations) {
+            Object.values(activations).forEach(activation => {
+                if (activation.no && activation.no > maxNo) {
+                    maxNo = activation.no;
+                }
+            });
+        }
+        return maxNo + 1;
+    } catch (error) {
+        console.error("Error fetching max activation number:", error);
+        throw error;
+    }
+}
 
-// Submit Activation in Modal (Step 2)
 modalActivateSubmitBtn.addEventListener("click", async () => {
     if (!selectedGroupForActivation) {
         Swal.fire({ icon: 'error', title: 'Error', text: 'No organization selected for activation.' });
         return;
     }
 
-    // Get area from the text input and trim whitespace
     const areaOfOperation = modalAreaInput.value.trim();
     const calamityType = modalCalamitySelect.value;
     const typhoonName = (calamityType === "Typhoon") ? modalTyphoonNameInput.value.trim() : "";
+    const latitude = modalLatitudeInput.value;
+    const longitude = modalLongitudeInput.value;
 
-    // NEW: Get latitude and longitude if you implemented it via the pin location button
-    // const latitude = modalAreaInput.dataset.latitude || null;
-    // const longitude = modalAreaInput.dataset.longitude || null;
-
-
-    if (!areaOfOperation) { // Validate that the area input is not empty
+    if (!areaOfOperation) {
         Swal.fire({ icon: 'warning', title: 'Missing Field', text: 'Please enter an Area of Operations.' });
         return;
     }
@@ -417,6 +647,10 @@ modalActivateSubmitBtn.addEventListener("click", async () => {
         Swal.fire({ icon: 'warning', title: 'Missing Field', text: 'Please enter the Typhoon Name.' });
         return;
     }
+    if (!latitude || !longitude) {
+        Swal.fire({ icon: 'warning', title: 'Missing Location', text: 'Please pin a location on the map.' });
+        return;
+    }
 
     const user = firebase.auth().currentUser;
     if (!user) {
@@ -424,8 +658,6 @@ modalActivateSubmitBtn.addEventListener("click", async () => {
         return;
     }
 
-    // --- UPDATED VALIDATION LOGIC FOR FREE-TEXT AREA ---
-    // Query for existing active activations for the selected group
     const existingActiveQuery = database.ref("activations")
         .orderByChild("groupId")
         .equalTo(selectedGroupForActivation.no);
@@ -436,13 +668,11 @@ modalActivateSubmitBtn.addEventListener("click", async () => {
 
         snapshot.forEach(childSnapshot => {
             const activation = childSnapshot.val();
-            // Compare the input area of operation (case-insensitive and trimmed)
-            // and calamity type with existing active operations for the same group.
             if (activation.status === "active" &&
                 activation.areaOfOperation.toLowerCase() === areaOfOperation.toLowerCase() &&
                 activation.calamityType.toLowerCase() === calamityType.toLowerCase()) {
                 alreadyActiveInAreaForCalamity = true;
-                return true; // Break out of forEach
+                return true;
             }
         });
 
@@ -450,59 +680,48 @@ modalActivateSubmitBtn.addEventListener("click", async () => {
             Swal.fire({
                 icon: 'warning',
                 title: 'Activation Conflict',
-                text: `${selectedGroupForActivation.organization} is already active for "${calamityType}" in "${areaOfOperation}". 
-                Please deactivate the existing operation for this calamity in this area first, or select a different area or calamity type.`
+                text: `${selectedGroupForActivation.organization} is already active for "${calamityType}" in "${areaOfOperation}". Please deactivate the existing operation first or choose a different area or calamity.`
             });
-            return; // Stop the function here
+            return;
         }
+
+        const nextNo = await getNextActivationNumber();
+
+        const newActivationRecord = {
+            no: nextNo,
+            groupId: selectedGroupForActivation.no,
+            organization: selectedGroupForActivation.organization,
+            hq: selectedGroupForActivation.hq,
+            areaOfOperation: areaOfOperation,
+            calamityType: calamityType,
+            typhoonName: typhoonName,
+            status: "active",
+            activationDate: new Date().toISOString(),
+            latitude: parseFloat(latitude),
+            longitude: parseFloat(longitude)
+        };
+
+        console.log("Adding new activation record:", newActivationRecord);
+        await database.ref("activations").push(newActivationRecord);
+        Swal.fire({
+            icon: 'success',
+            title: 'Activated!',
+            text: `${selectedGroupForActivation.organization} has been activated for ${calamityType} in ${areaOfOperation}.`
+        });
+        closeActivationModal();
+        // Force table refresh
+        currentPage = 1;
+        renderTable();
     } catch (error) {
-        console.error("Error checking for existing activations:", error);
+        console.error("Error adding activation:", error);
         Swal.fire({
             icon: 'error',
-            title: 'Database Error',
-            text: 'Could not check for existing activations. Please try again.'
+            title: 'Error',
+            text: `Failed to activate group: ${error.message}`
         });
-        return; // Stop the function here
     }
-    // --- END UPDATED VALIDATION LOGIC ---
-
-
-    const newActivationRecord = {
-        groupId: selectedGroupForActivation.no,
-        organization: selectedGroupForActivation.organization, // Denormalize
-        hq: selectedGroupForActivation.hq, // Denormalize
-        areaOfOperation: areaOfOperation, // This is now free-text
-        calamityType: calamityType,
-        typhoonName: typhoonName,
-        status: "active",
-        activationDate: new Date().toISOString(), // Store ISO string for easy sorting/comparison
-        // NEW: Add latitude and longitude to the activation record if you're collecting them
-        // latitude: latitude,
-        // longitude: longitude
-    };
-
-    console.log("Adding new activation record:", newActivationRecord);
-    database.ref("activations").push(newActivationRecord)
-        .then(() => {
-            console.log("New activation record successfully added.");
-            Swal.fire({
-                icon: 'success',
-                title: 'Activated!',
-                text: `${selectedGroupForActivation.organization} has been activated for ${calamityType} in ${areaOfOperation}.`
-            });
-            closeActivationModal();
-        })
-        .catch(error => {
-            console.error("Error adding new activation record to Firebase:", error.code, error.message);
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: `Failed to activate group: ${error.message}`
-            });
-        });
 });
 
-// NEW: Endorse Modal Functions
 function openEndorseModal() {
     endorseModal.style.display = "flex";
 }
@@ -511,28 +730,17 @@ function closeEndorseModal() {
     endorseModal.style.display = "none";
 }
 
-// NEW: Event Listener for Endorse Modal Close Button
 closeEndorseModalBtn.addEventListener("click", closeEndorseModal);
 
-// NEW: Event Listener for clicking outside the Endorse Modal
-window.addEventListener("click", (event) => {
-    if (event.target === endorseModal) {
-        closeEndorseModal();
-    }
-});
-
-// Deactivate Group (from table) - MODIFIED to handle two button types
 tableBody.addEventListener("click", e => {
     const btn = e.target;
     const activationId = btn.getAttribute('data-activation-id');
-    const groupId = btn.getAttribute('data-group-id'); // Get these attributes once
+    const groupId = btn.getAttribute('data-group-id');
 
-    // **PRIORITIZE the more specific class first**
     if (btn.classList.contains("action-button-endorse-button")) {
         console.log(`Endorse button clicked for activation ID: ${activationId}, Group ID: ${groupId}`);
-        openEndorseModal(); // Open the new endorse modal
-    } else if (btn.classList.contains("action-button")) { // This will only be true for 'Deactivate' now
-        // Handle Deactivate button click (existing logic)
+        openEndorseModal();
+    } else if (btn.classList.contains("action-button")) {
         Swal.fire({
             title: 'Are you sure?',
             text: `Do you want to deactivate this specific operation for group ID ${groupId}?`,
@@ -545,7 +753,7 @@ tableBody.addEventListener("click", e => {
             if (result.isConfirmed) {
                 const user = firebase.auth().currentUser;
                 if (!user) {
-                    Swal.fire({ icon: 'error', title: 'Authentication Error', text: 'User not authenticated. Please refresh the page and try again.' });
+                    Swal.fire({ icon: 'error', title: 'Authentication Error', text: 'User not authenticated.' });
                     return;
                 }
 
@@ -556,21 +764,16 @@ tableBody.addEventListener("click", e => {
 
                 database.ref(`activations/${activationId}`).update(updates)
                     .then(() => {
-                        Swal.fire(
-                            'Deactivated!',
-                            `The activation has been marked inactive.`,
-                            'success'
-                        );
+                        Swal.fire('Deactivated!', `The activation has been marked inactive.`, 'success');
                     })
                     .catch(error => {
-                        console.error("Error deactivating activation record:", error.code, error.message);
+                        console.error("Error deactivating activation:", error);
                         Swal.fire({ icon: 'error', title: 'Error', text: `Failed to deactivate: ${error.message}` });
                     });
             }
         });
     }
 });
-
 
 function renderPagination(totalRows) {
     paginationContainer.innerHTML = "";
@@ -591,9 +794,7 @@ function renderPagination(totalRows) {
         return btn;
     };
 
-    if (totalPages === 0) {
-        return;
-    }
+    if (totalPages === 0) return;
 
     paginationContainer.appendChild(createButton("Prev", currentPage - 1, currentPage === 1));
 
@@ -610,7 +811,6 @@ function renderPagination(totalRows) {
 
     paginationContainer.appendChild(createButton("Next", currentPage + 1, currentPage === totalPages));
 }
-
 
 function filterAndSort() {
     let filtered = currentActiveActivations.filter(row => {
@@ -637,11 +837,17 @@ function filterAndSort() {
             }
             return 0;
         });
+    } else {
+        // Default sort by activationDate (newest first)
+        filtered.sort((a, b) => {
+            const dateA = new Date(a.activationDate);
+            const dateB = new Date(b.activationDate);
+            return dateB - dateA;
+        });
     }
 
     return filtered;
 }
-
 
 sortSelect.addEventListener("change", () => {
     currentPage = 1;

@@ -90,12 +90,12 @@ header {
     color: #656079;
 }
 
-.search-icon i{
+.search-icon i {
     align-items: center;
     justify-content: center;
 }
 
-.search-icon, .search-icon:hover{
+.search-icon, .search-icon:hover {
     all: unset;
     justify-content: center;
 }
@@ -105,7 +105,7 @@ header {
     margin: 10px 0;
     padding: 10px;
     border: 2px dashed #aaa;
-    height: 500px; /* Increased from 400px to 500px */
+    height: 500px;
     position: relative;
 }
 
@@ -182,7 +182,7 @@ header {
 
     .map-container {
         padding: 0.5rem;
-        height: 350px; /* Increased from 300px to 350px */
+        height: 350px;
     }
     .search-container {
         padding: 0 0.4rem;
