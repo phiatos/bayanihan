@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,15 +7,13 @@
     <link rel="stylesheet" href="../css/activation.css" />
     <link rel="stylesheet" href="../css/global.css" />
     <link rel='stylesheet' href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css'/>
-
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-
-<title>Activation</title>
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBDtlY28p-MvLHRtxnjiibSAadSETvM3VU&libraries=places"></script>
+    <title>Activation</title>
 </head>
 <body>
     <div class="main-container">
@@ -29,7 +26,7 @@
                 <div class="controls_right">
                     <div class="search-wrapper">
                         <button class="activation-btn" id="addActivationBtn">
-                        <i class='bx bx-plus'></i> Add New Activation
+                            <i class='bx bx-plus'></i> Add New Activation
                         </button>
                     </div>
                     <div class="search-wrapper">
@@ -51,26 +48,26 @@
                     </div>
                 </div>
             </div>
+
             
             <div class="table-container">
-            <table id="orgTable">
-                <thead>
-                    <tr>
-                        <th>No.</th>
-                        <th>Organization</th>
-                        <th>HQ</th>
-                        <th>Area of Operations</th>
-                        <th>Contact Person</th>
-                        <th>Email</th>
-                        <th>Mobile Number</th>
-                        <th>Calamity Type</th>
-                        <th>Status</th>
-                        <th>Actions</th> 
-                    </tr>
-                </thead>
-                <tbody id="tableBody">
-                    </tbody>
-            </table>
+              <table id="orgTable">
+                  <thead>
+                      <tr>
+                          <th>No.</th>
+                          <th>Organization</th>
+                          <th>HQ</th>
+                          <th>Area of Operations</th>
+                          <th>Contact Person</th>
+                          <th>Email</th>
+                          <th>Mobile Number</th>
+                          <th>Calamity Type</th>
+                          <th>Status</th>
+                          <th>Actions</th> 
+                      </tr>
+                  </thead>
+                  <tbody id="tableBody"></tbody>
+              </table>
             </div>
             
             <div class="pagination-info">
@@ -80,16 +77,17 @@
         </div>
     </div>
 
+    <!-- Activation Modal -->
     <div id="activationModal" class="modal" style="display: none;">
         <div class="modal-content">
-            <span class="close-button" id="closeActivationModal">&times;</span>
+            <span class="close-button" id="closeActivationModal">×</span>
             <h2 id="modalTitle">Add New Activation</h2>
 
             <div id="modalStep1" class="modal-step active">
                 <label for="selectGroupDropdown">Select Organization:</label>
                 <select class="groupdropdown" id="selectGroupDropdown" required>
                     <option value="">-- Select an Organization --</option>
-                    </select>
+                </select>
                 <div class="modal-action-buttons">
                     <button id="modalNextStepBtn" class="next-btn" disabled>Next</button>
                     <button class="cancel-btn" onclick="closeActivationModal()">Cancel</button>
@@ -102,14 +100,16 @@
                 <div class="modal-area-input-container">
                     <label for="modalAreaInput">Area of Operations:</label>
                     <input type="text" id="modalAreaInput" placeholder="e.g., Brgy. San Jose, Antipolo City" required>
+                    <input type="hidden" id="modalLatitudeInput" />
+                    <input type="hidden" id="modalLongitudeInput" />
                     <button type="button" id="pinLocationBtn" class="bayanihanBtn" style="margin-top: 10px;">
                         <i class="fas fa-map-marker-alt"></i> Pin Location
+                    </button>
                 </div>
 
                 <div class="modal-calamity-container">
                     <label for="modalCalamitySelect">Calamity Type:</label>
-                    <select class="calamity-select" id="modalCalamitySelect" required>
-                        </select>
+                    <select class="calamity-select" id="modalCalamitySelect" required></select>
                     <input
                         type="text"
                         class="typhoon-name-input"
@@ -128,23 +128,38 @@
         </div>
     </div>
 
+    <!-- Endorse Modal -->
     <div id="endorseModal" class="modal" style="display: none;">
         <div class="modal-content">
-            <span class="close-button" id="closeEndorseModal">&times;</span>
+            <span class="close-button" id="closeEndorseModal">×</span>
             <h2>Send Relief Assistance</h2>
             <div class="input-field" style="margin: 15px 0 10px;">
                 <label>Relief Assistance Amount</label>
-                <input type="number" id="modalAreaInput" min="0" placeholder="1,000,000.00" required />
+                <input type="number" id="reliefAmountInput" min="0" placeholder="1,000,000.00" required />
             </div>
             <div class="input-field">
                 <label>Relief Assistance Purpose</label>
-                <input type="text" id="modalAreaInput" placeholder="e.g for hot meals" required />
+                <input type="text" id="reliefPurposeInput" placeholder="e.g., for hot meals" required />
             </div>
-                <div class="modal-action-buttons">
-                    <button id="modalNextStepBtn" class="bayanihanBtn">Submit</button>
-                </div>
+            <div class="modal-action-buttons">
+                <button id="submitReliefBtn" class="bayanihanBtn">Submit</button>
             </div>
-          
+        </div>
+    </div>
+
+    <!-- Map Modal -->
+    <div id="mapModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close-button" id="closeMapModal">×</span>
+            <h2>Pin Location</h2>
+            <div class="search-bar">
+                <input type="text" id="mapSearchInput" placeholder="Search for a location..." />
+            </div>
+            <div id="mapContainer" style="height: 400px; width: 100%;"></div>
+            <div class="modal-action-buttons">
+                <button id="saveLocationBtn" class="bayanihanBtn">Save Location</button>
+                <button class="cancel-btn" id="cancelMapModalBtn">Cancel</button>
+            </div>
         </div>
     </div>
 
@@ -159,7 +174,6 @@
             })
             .catch(err => console.error('Error loading sidebar:', err));
     </script>
-
     <script src="../js/activation.js"></script>
 </body>
 </html>
