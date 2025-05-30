@@ -495,13 +495,23 @@ document.addEventListener('DOMContentLoaded', () => {
     clearFormBtn.addEventListener("click", () => {
         if (formHasChanges) {
             Swal.fire({
-                title: 'Discard Changes?',
-                text: "You have unsaved changes. Are you sure you want to clear the form?",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#d33',
-                cancelButtonColor: '#3085d6',
-                confirmButtonText: 'Yes, clear it!'
+            title: 'Discard Changes?',
+            text: 'You have unsaved changes. Are you sure you want to clear the form?',
+            icon: 'warning',                                
+            iconColor: '#f57c00',               
+            showCancelButton: true,
+            confirmButtonColor: '#c62828',      
+            cancelButtonColor: '#546e7a',        
+            confirmButtonText: 'Yes, clear it!',
+            cancelButtonText: 'No, keep editing',
+            reverseButtons: true,               
+            customClass: {
+                popup: 'swal2-popup-warning-clean',
+                title: 'swal2-title-warning-clean',
+                content: 'swal2-text-warning-clean',
+                confirmButton: 'swal2-button-confirm-clean',
+                cancelButton: 'swal2-button-cancel-clean'
+            }
             }).then((result) => {
                 if (result.isConfirmed) {
                     if (form) {
