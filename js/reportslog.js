@@ -71,15 +71,46 @@ document.addEventListener('DOMContentLoaded', () => {
             day: "numeric"
         });
     }
-        function formatTime(timeStr) {
+
+    function formatTime(timeStr) {
         if (!timeStr) return "-";
-        const date = new Date(`1970-01-01T${timeStr}`);
+        let date;
+        if (timeStr.includes('T')) {
+            date = new Date(timeStr);
+        } else {
+            date = new Date(`1970-01-01T${timeStr}`);
+        }
         if (isNaN(date)) return timeStr;
         return date.toLocaleTimeString("en-US", {
             hour: "numeric",
             minute: "2-digit",
             hour12: true
         });
+    }
+
+    function transformReportData(report) {
+        return {
+            firebaseKey: report.firebaseKey,
+            ReportID: report.reportID || report.ReportID || "-",
+            VolunteerGroupName: report.organization || report.VolunteerGroupName || "[Unknown Org]",
+            AreaOfOperation: report.AreaOfOperation || "-",
+            TimeOfIntervention: report.timeOfIntervention || report.TimeOfIntervention || "-",
+            DateOfReport: report.dateOfReport || report.DateOfReport || "-",
+            Status: report.status || report.Status || "Approved",
+            StartDate: report.operationDate || report.StartDate || "-",
+            EndDate: report.operationDate || report.EndDate || "-",
+            NoOfIndividualsOrFamilies: report.families || report.NoOfIndividualsOrFamilies || "-",
+            NoOfFoodPacks: report.foodPacks || report.NoOfFoodPacks || "-",
+            NoOfHotMeals: report.hotMeals || report.NoOfHotMeals || "-",
+            LitersOfWater: report.water || report.LitersOfWater || "-",
+            NoOfVolunteersMobilized: report.volunteers || report.NoOfVolunteersMobilized || "-",
+            NoOfOrganizationsActivated: report.NoOfOrganizationsActivated || "-",
+            TotalValueOfInKindDonations: report.inKindValue || report.TotalValueOfInKindDonations || "-",
+            TotalMonetaryDonations: report.amountRaised || report.TotalMonetaryDonations || "-",
+            NotesAdditionalInformation: report.remarks || report.urgentNeeds || report.NotesAdditionalInformation || "-",
+            userUid: report.userUid || "-",
+            submittedBy: report.submittedBy || "-",
+        };
     }
 
     function loadReportsFromFirebase() {
@@ -89,15 +120,15 @@ document.addEventListener('DOMContentLoaded', () => {
             if (reports) {
                 Object.keys(reports).forEach(key => {
                     const report = reports[key];
-                    // Log if VolunteerGroupName is missing
-                    if (!report.VolunteerGroupName) {
-                        console.warn(`Approved report ${key} is missing VolunteerGroupName. Report data:`, report);
+                    if (!report.VolunteerGroupName && !report.organization) {
+                        console.warn(`Approved report ${key} is missing VolunteerGroupName/organization. Report data:`, report);
                         report.VolunteerGroupName = "[Unknown Org]";
                     }
-                    reviewedReports.push({
+                    const transformedReport = transformReportData({
                         firebaseKey: key,
                         ...report
                     });
+                    reviewedReports.push(transformedReport);
                 });
             } else {
                 console.log("No approved reports found in Firebase");
@@ -113,7 +144,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // This function will get the currently displayed data
     function getDisplayedReportsData() {
         const searchQuery = searchInput.value.toLowerCase();
         const sortValue = sortSelect.value;
@@ -121,7 +151,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let filteredReports = reviewedReports.filter(report => {
             return Object.entries(report).some(([key, value]) => {
-                // Check if key includes "Date" for search filtering
                 if (key.includes("Date") && value) { 
                     const formattedDate = formatDate(value).toLowerCase();
                     return formattedDate.includes(searchQuery);
@@ -135,16 +164,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 const valA = a[sortBy] || "";
                 const valB = b[sortBy] || "";
 
-                // Check if sortBy includes "Date" to handle StartDate, EndDate, DateOfReport
                 if (sortBy.includes("Date")) { 
                     const dateA = new Date(valA);
                     const dateB = new Date(valB);
-                    if (isNaN(dateA) || isNaN(dateB)) return 0; // Or handle invalid dates differently (e.g., push to end)
+                    if (isNaN(dateA) || isNaN(dateB)) return 0;
                     return direction === "asc" ? dateA - dateB : dateB - dateA;
                 }
-                
-                // Handle numeric sorting for 'NoOfHotMeals', 'LitersOfWater',
-                // 'TotalValueOfInKindDonations', and 'TotalMonetaryDonations'
+
                 if (sortBy === "NoOfHotMeals" || sortBy === "LitersOfWater" ||
                     sortBy === "TotalValueOfInKindDonations" || sortBy === "TotalMonetaryDonations") {
                     const numA = parseFloat(valA);
@@ -192,7 +218,7 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
 
             const savePDFBtn = tr.querySelector(".savePDFBtn");
-        savePDFBtn.addEventListener("click", () => saveIndividualReportToPdf(report));
+            savePDFBtn.addEventListener("click", () => saveIndividualReportToPdf(report));
 
             const viewBtn = tr.querySelector('.viewBtn');
             viewBtn.addEventListener('click', () => {
@@ -220,7 +246,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         .replace('NotesAdditionalInformation', 'Notes/additional information')
                         .replace('VolunteerGroupName', 'Volunteer Group');
 
-                    const value = key.includes("Date") ? formatDate(report[key]) : report[key]; // Used includes("Date") here too
+                    const value = key.includes("Date") ? formatDate(report[key]) : report[key];
                     readableReport += `• ${displayKey}: ${value}\n`;
                 }
 
@@ -246,7 +272,6 @@ document.addEventListener('DOMContentLoaded', () => {
                             <p><strong>Volunteer Group:</strong> ${report.VolunteerGroupName || "[Unknown Org]"}</p>
                             <p class="cell"><strong>Location of Operation:</strong> ${report.AreaOfOperation || "-"}</p>
                             <p><strong>Date of Report Submitted:</strong> ${formatDate(report.DateOfReport)}</p>
-                            
                         </div>
                         <div class="form-2">
                             <h2>Relief Operations</h2>
@@ -322,7 +347,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let filteredReports = reviewedReports.filter(report => {
             return Object.entries(report).some(([key, value]) => {
-                // Check if key includes "Date" for search filtering
                 if (key.includes("Date") && value) { 
                     const formattedDate = formatDate(value).toLowerCase();
                     return formattedDate.includes(searchQuery);
@@ -336,7 +360,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 const valA = a[sortBy] || "";
                 const valB = b[sortBy] || "";
 
-                // Check if sortBy includes "Date" to handle StartDate, EndDate, DateOfReport
                 if (sortBy.includes("Date")) { 
                     const dateA = new Date(valA);
                     const dateB = new Date(valB);
@@ -344,7 +367,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     return direction === "asc" ? dateA - dateB : dateB - dateA;
                 }
 
-                // Apply numeric sorting for specified fields
                 if (sortBy === "NoOfHotMeals" || sortBy === "LitersOfWater" ||
                     sortBy === "TotalValueOfInKindDonations" || sortBy === "TotalMonetaryDonations") {
                     const numA = parseFloat(valA);
@@ -376,7 +398,6 @@ document.addEventListener('DOMContentLoaded', () => {
         applySearchAndSort();
     };
 
-    // --- Excel Export Logic ---
     exportExcelBtn.addEventListener('click', () => {
         Swal.fire({
             title: 'Generating Excel...',
@@ -388,7 +409,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         try {
-            const dataToExport = getDisplayedReportsData(); // Get all filtered and sorted data
+            const dataToExport = getDisplayedReportsData();
             
             if (dataToExport.length === 0) {
                 Swal.fire({
@@ -418,50 +439,45 @@ document.addEventListener('DOMContentLoaded', () => {
                 "NotesAdditionalInformation": "Notes/Additional Information"
             };
 
-            // Prepare data for export, mapping keys to friendly headers
             const wsData = dataToExport.map(report => {
                 const row = {};
                 for (const key in headerMap) {
                     let value = report[key];
                     if (key.includes("Date") && value) {
-                        value = formatDate(value); // Format dates for Excel
+                        value = formatDate(value);
                     } else if (key.includes("Time") && value) {
-                        value = formatTime(value); // Format times for Excel
+                        value = formatTime(value);
                     }
-                    row[headerMap[key]] = value || "-"; // Use mapped header and fallback to "-"
+                    row[headerMap[key]] = value || "-";
                 }
                 return row;
             });
 
-            // Create a worksheet
             const ws = XLSX.utils.json_to_sheet(wsData);
 
-            // Optional: Set column widths for better display in Excel
             const wscols = [
-                {wch: 15},   // Report ID
-                {wch: 30},   // Volunteer Group Name
-                {wch: 25},   // Area of Operation
-                {wch: 20},   // Operation Start Date
-                {wch: 20},   // Operation End Date
-                {wch: 18},   // No. of Hot Meals
-                {wch: 18},   // Liters of Water
-                {wch: 20},   // Report Submission Date
-                {wch: 25},   // Completion Time of Intervention
-                {wch: 25},   // No. of Individuals or Families
-                {wch: 20},   // No. of Food Packs
-                {wch: 25},   // No. of Volunteers Mobilized
-                {wch: 25},   // No. of Organizations Activated
-                {wch: 25},   // Total Value of In-Kind Donations
-                {wch: 25},   // Total Monetary Donations
-                {wch: 40}    // Notes/Additional Information
+                {wch: 15},
+                {wch: 30},
+                {wch: 25},
+                {wch: 20},
+                {wch: 20},
+                {wch: 18},
+                {wch: 18},
+                {wch: 20},
+                {wch: 25},
+                {wch: 25},
+                {wch: 20},
+                {wch: 25},
+                {wch: 25},
+                {wch: 25},
+                {wch: 25},
+                {wch: 40}
             ];
             ws['!cols'] = wscols;
 
-            // Create a workbook
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "Approved Reports");
 
-            // Write and download the file
             const fileName = `Approved_Reports_Log_${new Date().toISOString().slice(0,10)}.xlsx`;
             XLSX.writeFile(wb, fileName);
 
@@ -481,7 +497,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- PDF Export Functionality (All Data) ---
     savePdfBtn.addEventListener('click', () => {
         Swal.fire({
             title: 'Generating PDF...',
@@ -501,7 +516,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const reports = getDisplayedReportsData(); 
 
         if (reports.length === 0) {
-            Swal.close(); // Close the loading dialog
+            Swal.close();
             Swal.fire({
                 icon: 'info',
                 title: 'No Data to Export',
@@ -511,7 +526,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const logo = new Image();
-        // IMPORTANT: Verify this path is correct relative to your HTML file!
         logo.src = '../assets/images/AB_logo.png'; 
 
         logo.onload = function() {
@@ -544,10 +558,10 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             const addDetailText = (docInstance, label, value, currentY, contentAreaWidth, detailLineHeight = 5) => {
-                const text = `• ${label}: ${value || '-'}`; // Changed N/A to '-' for consistency
+                const text = `• ${label}: ${value || '-'}`;
                 const splitText = docInstance.splitTextToSize(text, contentAreaWidth);
-                docInstance.text(splitText, margin, currentY); // Use margin for initial indent
-                return currentY + (splitText.length * detailLineHeight); // Adjusted for space between lines
+                docInstance.text(splitText, margin, currentY);
+                return currentY + (splitText.length * detailLineHeight);
             };
 
             const addSectionTitle = (docInstance, title, currentY) => {
@@ -579,7 +593,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 yPos = addDetailText(doc, "Volunteer Group", report.VolunteerGroupName || "[Unknown Org]", yPos, contentWidth);
                 yPos = addDetailText(doc, "Location of Operation", report.AreaOfOperation || "-", yPos, contentWidth);
                 yPos = addDetailText(doc, "Date of Report Submitted", formatDate(report.DateOfReport), yPos, contentWidth);
-                yPos += 5; // Add some space
+                yPos += 5;
 
                 yPos = addSectionTitle(doc, "Relief Operations", yPos);
                 doc.setFontSize(10);
@@ -594,14 +608,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 yPos = addDetailText(doc, "No. of Organizations Activated", report.NoOfOrganizationsActivated || "-", yPos, contentWidth);
                 yPos = addDetailText(doc, "Total Value of In-Kind Donations", report.TotalValueOfInKindDonations || "-", yPos, contentWidth);
                 yPos = addDetailText(doc, "Total Monetary Donations", report.TotalMonetaryDonations || "-", yPos, contentWidth);
-                yPos += 5; // Add some space
+                yPos += 5;
 
                 yPos = addSectionTitle(doc, "Additional Updates", yPos);
                 doc.setFontSize(10);
                 yPos = addDetailText(doc, "Notes/Additional Information", report.NotesAdditionalInformation || "-", yPos, contentWidth);
-
-                // No autoTable for reports here, as per previous structure.
-                // The styling for success message will be applied below.
             });
 
             const date = new Date();
@@ -634,7 +645,6 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
-    // --- Save Single Donation to PDF ---
     function saveIndividualReportToPdf(report) {
         Swal.fire({
             title: 'Generating PDF...',
@@ -659,7 +669,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const margin = 14;
             let y = margin;
 
-            // Header for single report
             doc.addImage(logo, 'PNG', pageWidth - logoWidth - margin, margin, logoWidth, logoHeight);
             doc.setFontSize(18);
             doc.text("Report Details", margin, y + 8);
@@ -668,13 +677,10 @@ document.addEventListener('DOMContentLoaded', () => {
             doc.text(`Report Generated: ${new Date().toLocaleString()}`, margin, y);
             y += 15;
 
-            // Helper to add details with page breaks
             const addDetail = (label, value, isTitle = false) => {
-                // Check if content will fit on the current page
-                if (y > pageHeight - margin - 20) { // 20 is an arbitrary buffer
+                if (y > pageHeight - margin - 20) {
                     doc.addPage();
-                    y = margin; // Reset y for new page
-                    // Add header to new page
+                    y = margin;
                     doc.addImage(logo, 'PNG', pageWidth - logoWidth - margin, margin, logoWidth, logoHeight);
                     doc.setFontSize(14);
                     doc.text("Report Details (Cont.)", margin, y + 8);
@@ -686,30 +692,27 @@ document.addEventListener('DOMContentLoaded', () => {
                     doc.setTextColor(20, 174, 187);
                     doc.text(`${label}`, margin, y);
                     doc.setTextColor(0);
-                    y += 7; // Space after title
+                    y += 7;
                 } else {
                     const text = `• ${label}: ${value || '-'}`;
                     const splitText = doc.splitTextToSize(text, pageWidth - (2 * margin));
                     doc.text(splitText, margin, y);
-                    y += (splitText.length * 5); // 5 is line height
+                    y += (splitText.length * 5);
                 }
             };
 
-            // Report ID (prominent)
             doc.setFontSize(14);
             doc.setTextColor(20, 174, 187);
             doc.text(`Report ID: ${report.ReportID || "-"}`, margin, y);
             y += 10;
-            doc.setTextColor(0); // Reset color
+            doc.setTextColor(0);
 
-            // Basic Information
             addDetail("Basic Information", "", true);
             addDetail("Volunteer Group", report.VolunteerGroupName || "[Unknown Org]");
             addDetail("Location of Operation", report.AreaOfOperation || "-");
             addDetail("Date of Report Submitted", formatDate(report.DateOfReport));
             y += 5;
 
-            // Relief Operations
             addDetail("Relief Operations", "", true);
             addDetail("Completion time of intervention", formatTime(report.TimeOfIntervention));
             addDetail("Start Date of Operation", formatDate(report.StartDate) || "-");
@@ -724,12 +727,10 @@ document.addEventListener('DOMContentLoaded', () => {
             addDetail("Total Monetary Donations", report.TotalMonetaryDonations || "-");
             y += 5;
 
-            // Additional Updates
             addDetail("Additional Updates", "", true);
             addDetail("Notes/Additional Information", report.NotesAdditionalInformation || "-");
             y += 5;
 
-            // Footer
             doc.setFontSize(8);
             const footerY = pageHeight - 10;
             const pageNumberText = `Page ${doc.internal.getNumberOfPages()}`;
