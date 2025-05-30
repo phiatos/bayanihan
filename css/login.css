@@ -318,7 +318,7 @@ form{
     background: var(--accent-color);
 }
 
-.back-btn {
+.login-back-btn {
     position: absolute;
     top: 20px; 
     left: 20px; 
@@ -326,7 +326,7 @@ form{
     z-index: 10;
     background: transparent;
 }
-.back-btn i {
+.login-back-btn i {
     font-size: 24px; 
     color: var(--light-bg); 
 }
