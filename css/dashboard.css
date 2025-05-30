@@ -27,40 +27,101 @@ header {
 }
 
 .metrics-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 1.5rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 2rem;
+  padding: 1.5rem;
 }
 
 .metric-card {
-    background-color: #ffffff;
-    border-radius: 16px;
-    padding: 1.5rem;
-    border: 1px solid #0fbaba;
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.06);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 20px;
+  padding: 2.2rem 1.8rem;
+  border: 1.5px solid rgba(15, 186, 186, 0.3);
+  box-shadow:
+    0 4px 8px rgba(15, 186, 186, 0.1),
+    inset 0 0 8px rgba(255, 255, 255, 0.6);
+  transition:
+    transform 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.4s ease;
+  cursor: default;
+  opacity: 0;
+  animation: fadeInUp 0.7s ease forwards;
+  position: relative;
+  overflow: hidden;
+  will-change: transform, box-shadow, opacity;
+}
+
+.metric-card::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(120deg, #0fbaba 0%, #23d7d7 50%, #0fbaba 100%);
+  opacity: 0;
+  transform: rotate(25deg);
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+  filter: blur(40px);
+  z-index: 1;
+  border-radius: 20px;
+}
+
+.metric-card:hover::before {
+  opacity: 0.15;
 }
 
 .metric-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+  transform: translateY(-10px) scale(1.05);
+  box-shadow:
+    0 16px 32px rgba(15, 186, 186, 0.25),
+    inset 0 0 14px rgba(255, 255, 255, 0.8);
+  border-color: #0aa1a1;
+  z-index: 2;
 }
 
 .metric-card h3 {
-    text-align: center;
-    font-size: 15px;
-    font-weight: 500;
-    color: #7f8c8d;
-    margin-bottom: 0.5rem;
+  position: relative;
+  z-index: 3;
+  text-align: center;
+  font-size: clamp(1rem, 1.4vw, 1.3rem);
+  font-weight: 700;
+  color: #1f3f3f;
+  margin-bottom: 0.8rem;
+  letter-spacing: 0.05em;
+  text-shadow: 0 1px 1px rgba(255, 255, 255, 0.8);
 }
 
 .metric-card p {
-    text-align: center;
-    font-size: 2rem;
-    font-weight: bold;
-    color: #2980b9;
-    margin: 0;
+  position: relative;
+  z-index: 3;
+  text-align: center;
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 800;
+  color: #0fbaba;
+  margin: 0;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  
 }
+
+/* Fade-in animation */
+@keyframes fadeInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 
 /* Search Bar Styles */
 .search-container {
