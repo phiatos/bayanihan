@@ -410,7 +410,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
                 // Store user data in localStorage
                 localStorage.setItem("userData", JSON.stringify(updatedUserData));
-                localStorage.setItem("userEmail", updatedUser.email); // Use updatedUser here
+                localStorage.setItem("userEmail", updatedUser.email);
                 localStorage.setItem("userRole", userData.role);
 
                 showToast("Login successful!", 'success');
@@ -433,11 +433,8 @@ document.addEventListener("DOMContentLoaded", async () => {
                     if (isAdmin && !isFirstLogin && termsAccepted) {
                         console.log("Redirecting Admin to dashboard.");
                         window.location.replace('../pages/dashboard.html');
-                    } else if (isFirstLogin || !termsAccepted || password_needs_reset) {
-                        console.log("Redirecting to profile.html for first login or unaccepted terms.");
-                        window.location.replace('../pages/profile.html');
-                    } else if (isFirstLogin || !termsAccepted) {
-                        console.log("Redirecting to profile.html for first login or unaccepted terms.");
+                    } else if (!isFirstLogin || !termsAccepted || password_needs_reset) {
+                        console.log("Redirecting to profile, change temporary password.");
                         window.location.replace('../pages/profile.html');
                     } else {
                         console.log("Redirecting based on role.");
