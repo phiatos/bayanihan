@@ -282,11 +282,14 @@ function getGeolocationErrorMessage(error) {
 firebase.auth().onAuthStateChanged(user => {
     if (user) {
         console.log("User is authenticated:", user.uid);
+        console.log("Anonymous user:", user.isAnonymous);
         listenForDataUpdates();
     } else {
         console.log("No user is authenticated. Attempting anonymous sign-in...");
         firebase.auth().signInAnonymously()
-            .then(() => console.log("Signed in anonymously"))
+            .then(() => {
+                console.log("Signed in anonymously successfully.");
+            })
             .catch(error => {
                 console.error("Anonymous auth failed:", error.code, error.message);
                 Swal.fire({
@@ -358,12 +361,15 @@ function listenForDataUpdates() {
                     });
                 }
             }
+            console.log("Filtered active activations:", currentActiveActivations);
             // Sort by activationDate (newest first)
             currentActiveActivations.sort((a, b) => {
                 const dateA = new Date(a.activationDate);
                 const dateB = new Date(b.activationDate);
                 return dateB - dateA;
             });
+        } else {
+            console.log("No activations found in the database.");
         }
         renderTable();
     }, error => {
@@ -387,6 +393,7 @@ function populateGroupDropdown() {
 }
 
 function renderTable(filteredData = currentActiveActivations) {
+    console.log("Rendering table with data:", filteredData);
     tableBody.innerHTML = "";
     const start = (currentPage - 1) * rowsPerPage;
     const end = start + rowsPerPage;
@@ -434,12 +441,9 @@ function renderTable(filteredData = currentActiveActivations) {
 
 function handleSearch() {
     const query = searchInput.value.trim().toLowerCase();
-  
     currentPage = 1;
     renderTable(filterAndSort());
 }
-
-
 
 clearBtn.style.display = 'none';
 searchInput.addEventListener('input', handleSearch);
@@ -737,6 +741,7 @@ tableBody.addEventListener("click", e => {
         console.log(`Endorse button clicked for activation ID: ${activationId}, Group ID: ${groupId}`);
         openEndorseModal();
     } else if (btn.classList.contains("action-button")) {
+        console.log(`Deactivate button clicked for activation ID: ${activationId}, Group ID: ${groupId}`);
         Swal.fire({
             title: 'Are you sure?',
             text: `Do you want to deactivate this specific operation for group ID ${groupId}?`,
@@ -747,27 +752,67 @@ tableBody.addEventListener("click", e => {
             confirmButtonText: 'Yes'
         }).then((result) => {
             if (result.isConfirmed) {
+                console.log("User confirmed deactivation. Checking authentication...");
                 const user = firebase.auth().currentUser;
                 if (!user) {
+                    console.error("No authenticated user found.");
                     Swal.fire({ icon: 'error', title: 'Authentication Error', text: 'User not authenticated.' });
                     return;
                 }
+                console.log("User authenticated:", user.uid);
 
-                const updates = {
-                    status: "inactive",
-                    deactivationDate: new Date().toISOString()
-                };
+                // Reference to the activation in the database
+                const activationRef = database.ref(`activations/${activationId}`);
+                console.log(`Fetching activation data from path: activations/${activationId}`);
 
-                database.ref(`activations/${activationId}`).update(updates)
+                // Get the activation data before deleting
+                activationRef.once('value')
+                    .then(snapshot => {
+                        const activationData = snapshot.val();
+                        if (!activationData) {
+                            console.error("No activation data found at the specified path.");
+                            throw new Error('Activation data not found.');
+                        }
+                        console.log("Activation data retrieved:", activationData);
+
+                        // Add deactivation date and status to the data
+                        const deactivatedActivation = {
+                            ...activationData,
+                            status: "inactive",
+                            deactivationDate: new Date().toISOString()
+                        };
+                        console.log("Prepared deactivated activation data:", deactivatedActivation);
+
+                        // Reference to the deletedactivations node
+                        const deletedActivationRef = database.ref('deletedactivations').push();
+                        console.log("Generated new key for deletedactivations:", deletedActivationRef.key);
+
+                        // Move the activation to deletedactivations
+                        console.log("Performing copy to deletedactivations and remove from activations...");
+                        return Promise.all([
+                            deletedActivationRef.set(deactivatedActivation).then(() => {
+                                console.log("Successfully copied to deletedactivations.");
+                            }),
+                            activationRef.remove().then(() => {
+                                console.log("Successfully removed from activations.");
+                            })
+                        ]);
+                    })
                     .then(() => {
-                        Swal.fire('Deactivated!', `The activation has been marked inactive.`, 'success');
+                        console.log("Deactivation process completed successfully.");
+                        Swal.fire('Deactivated!', `The activation has been moved to deleted activations.`, 'success');
+                        renderTable(); // Force table refresh
                     })
                     .catch(error => {
-                        console.error("Error deactivating activation:", error);
+                        console.error("Error during deactivation process:", error);
                         Swal.fire({ icon: 'error', title: 'Error', text: `Failed to deactivate: ${error.message}` });
                     });
+            } else {
+                console.log("User canceled deactivation.");
             }
         });
+    } else {
+        console.log("Clicked element does not match expected buttons:", btn);
     }
 });
 
