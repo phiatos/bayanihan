@@ -118,7 +118,7 @@ auth.onAuthStateChanged(user => {
                     const position = { lat: parseFloat(activation.latitude), lng: parseFloat(activation.longitude) };
                     console.log(`Creating marker for ${activation.organization} at position:`, position);
 
-                    const logoPath = "../bayanihan/assets/images/AB_logo.png";
+                    const logoPath = "../assets/images/AB_logo.png";
                     console.log("Attempting to load logo from:", logoPath);
 
                     const markerIcon = new Image();
