@@ -14,7 +14,7 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const database = firebase.database();
 
-let map, markers = [], geocoder, autocomplete, activationsListener, reportsListener, userRole, userEmail, currentInfoWindow, singleInfoWindow, isInfoWindowClicked = false;
+let map, markers = [], geocoder, autocomplete, activationsListener, reportsListener, userRole, userEmail, userUid, currentInfoWindow, singleInfoWindow, isInfoWindowClicked = false;
 
 // Elements
 const headerEl = document.querySelector("header");
@@ -33,9 +33,6 @@ window.initializeDashboard = function () {
     // Clean up existing listeners (if any)
     cleanupDashboard();
 
-    // Initialize the map
-    initializeMap();
-
     // Check user authentication and fetch data
     auth.onAuthStateChanged(user => {
         if (!user) {
@@ -50,6 +47,7 @@ window.initializeDashboard = function () {
         }
 
         console.log(`Logged-in user UID: ${user.uid}`);
+        userUid = user.uid; // Store UID for report filtering
 
         // Fetch user role
         database.ref(`users/${user.uid}`).once("value", snapshot => {
@@ -74,8 +72,19 @@ window.initializeDashboard = function () {
 
             headerEl.textContent = userRole === "AB ADMIN" ? "Admin Dashboard" : "Volunteer Dashboard";
 
-            // Load activations and reports
+            // Initialize map for both AB ADMIN and ABVN
+            console.log(`Initializing map for role: ${userRole}`);
+            initializeMap();
             addMarkersForActiveActivations();
+            if (userRole === "ABVN") {
+                // Optional: Add ABVN-specific map restrictions
+                map.setOptions({
+                    disableDefaultUI: true, // Disable map controls for ABVN
+                    draggable: false, // Prevent dragging
+                });
+            }
+
+            // Fetch reports for both roles
             fetchReports();
         }, error => {
             console.error("Error fetching user data:", error);
@@ -124,7 +133,6 @@ function initializeMap() {
         geocoder = new google.maps.Geocoder();
 
         // Initialize Autocomplete for the search input
-        const searchInput = document.getElementById("search-input");
         if (!searchInput) {
             console.error("Search input not found");
             Swal.fire({
@@ -174,15 +182,10 @@ function initializeMap() {
     }
 }
 
-// Function to add markers for active activations (for both AB ADMIN and ABVN)
+// Function to add markers for active activations
 function addMarkersForActiveActivations() {
     if (!map) {
         console.error("Map not initialized before adding markers");
-        Swal.fire({
-            icon: "error",
-            title: "Map Error",
-            text: "Map failed to initialize. Please refresh the page.",
-        });
         return;
     }
 
@@ -306,20 +309,16 @@ function createInfoWindow(marker, activation, logoUrl) {
         </style>
     `;
 
-    // Add hover event listeners (mouseover and mouseout)
     marker.addListener("mouseover", () => {
-        // If an InfoWindow is already open due to a click, do not open a new one on hover
         if (isInfoWindowClicked) {
             console.log(`Hover ignored for ${activation.organization} because an InfoWindow is already clicked open`);
             return;
         }
 
-        // Close any existing InfoWindow (from a previous hover)
         if (currentInfoWindow && currentInfoWindow !== marker) {
             singleInfoWindow.close();
         }
 
-        // Open the InfoWindow on hover
         singleInfoWindow.setContent(content);
         singleInfoWindow.open(map, marker);
         currentInfoWindow = marker;
@@ -327,13 +326,11 @@ function createInfoWindow(marker, activation, logoUrl) {
     });
 
     marker.addListener("mouseout", () => {
-        // If an InfoWindow is open due to a click, do not close it
         if (isInfoWindowClicked) {
             console.log(`Mouseout ignored for ${activation.organization} because InfoWindow is clicked open`);
             return;
         }
 
-        // Close the InfoWindow if it was opened by a hover
         if (currentInfoWindow === marker) {
             singleInfoWindow.close();
             currentInfoWindow = null;
@@ -341,22 +338,18 @@ function createInfoWindow(marker, activation, logoUrl) {
         }
     });
 
-    // Add click event listener
     marker.addListener("click", () => {
-        // Close any existing InfoWindow
         if (currentInfoWindow && currentInfoWindow !== marker) {
             singleInfoWindow.close();
         }
 
-        // Open the InfoWindow on click
         singleInfoWindow.setContent(content);
         singleInfoWindow.open(map, marker);
         currentInfoWindow = marker;
-        isInfoWindowClicked = true; // Set the clicked state
+        isInfoWindowClicked = true;
         console.log(`InfoWindow opened on click for ${activation.organization}`);
     });
 
-    // Add a closeclick listener to reset the clicked state
     singleInfoWindow.addListener("closeclick", () => {
         isInfoWindowClicked = false;
         currentInfoWindow = null;
@@ -366,11 +359,12 @@ function createInfoWindow(marker, activation, logoUrl) {
 
 // Function to fetch approved reports
 function fetchReports() {
-    // Remove existing listener if it exists
     if (reportsListener) {
         reportsListener.off();
         console.log("Removed existing reports listener");
     }
+
+    console.log(`Fetching reports for role: ${userRole}, UID: ${userUid}`);
 
     reportsListener = database.ref("reports/approved");
     reportsListener.on("value", snapshot => {
@@ -382,31 +376,21 @@ function fetchReports() {
         let totalInKindDonations = 0;
 
         const reports = snapshot.val();
+        console.log("Fetched reports:", reports);
+
         if (reports) {
-            const reportPromises = Object.values(reports).map(async report => {
-                let submittedBy = report.SubmittedBy || "Unknown";
+            const reportEntries = Object.entries(reports);
+            console.log(`Total number of approved reports: ${reportEntries.length}`);
 
-                // If SubmittedBy is a UID, fetch the user's email
-                if (submittedBy !== "Unknown" && submittedBy.length === 28) { // Assuming UID length
-                    try {
-                        const userSnapshot = await database.ref(`users/${submittedBy}`).once('value');
-                        const userData = userSnapshot.val();
-                        submittedBy = userData?.email || "Unknown";
-                    } catch (error) {
-                        console.error(`Error fetching user for UID ${submittedBy}:`, error);
-                    }
+            reportEntries.forEach(([key, report]) => {
+                console.log(`Processing Report ${key}: Report User UID: ${report.userUid}, Current User UID: ${userUid}`);
+
+                if (userRole === "ABVN" && report.userUid !== userUid) {
+                    console.log(`Skipping report ${key} for ABVN - User UID mismatch. Report UID: ${report.userUid}, Current User UID: ${userUid}`);
+                    return;
                 }
 
-                console.log(`Report SubmittedBy: ${submittedBy}, Report Data:`, report);
-
-                if (userRole === "ABVN") {
-                    const reportSubmittedBy = submittedBy ? submittedBy.toLowerCase() : "";
-                    const currentUserEmail = userEmail ? userEmail.toLowerCase() : "";
-                    if (reportSubmittedBy !== currentUserEmail) {
-                        console.log(`Skipping report for ABVN - SubmittedBy (${submittedBy}) does not match user email (${userEmail})`);
-                        return;
-                    }
-                }
+                console.log(`Including report ${key} for ${userRole}`);
 
                 totalFoodPacks += parseFloat(report.NoOfFoodPacks || 0);
                 totalHotMeals += parseFloat(report.NoOfHotMeals || 0);
@@ -416,25 +400,17 @@ function fetchReports() {
                 totalInKindDonations += parseFloat(report.TotalValueOfInKindDonations || 0);
             });
 
-            Promise.all(reportPromises).then(() => {
-                foodPacksEl.textContent = totalFoodPacks.toLocaleString();
-                hotMealsEl.textContent = totalHotMeals.toLocaleString();
-                waterLitersEl.textContent = totalWaterLiters.toLocaleString();
-                volunteersEl.textContent = totalVolunteers.toLocaleString();
-                amountRaisedEl.textContent = `₱${totalMonetaryDonations.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                inKindDonationsEl.textContent = `₱${totalInKindDonations.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-
-                console.log(`Totals - Food Packs: ${totalFoodPacks}, Hot Meals: ${totalHotMeals}, Water Liters: ${totalWaterLiters}, Volunteers: ${totalVolunteers}, Monetary Donations: ${totalMonetaryDonations}, In-Kind Donations: ${totalInKindDonations}`);
-            });
+            console.log(`Calculated totals for ${userRole} (UID: ${userUid}) - Food Packs: ${totalFoodPacks}, Hot Meals: ${totalHotMeals}, Water Liters: ${totalWaterLiters}, Volunteers: ${totalVolunteers}, Monetary Donations: ${totalMonetaryDonations}, In-Kind Donations: ${totalInKindDonations}`);
         } else {
-            console.log("No approved reports found.");
-            foodPacksEl.textContent = "0";
-            hotMealsEl.textContent = "0";
-            waterLitersEl.textContent = "0";
-            volunteersEl.textContent = "0";
-            amountRaisedEl.textContent = "₱0.00";
-            inKindDonationsEl.textContent = "₱0.00";
+            console.log("No approved reports found in the database.");
         }
+
+        if (foodPacksEl) foodPacksEl.textContent = totalFoodPacks.toLocaleString();
+        if (hotMealsEl) hotMealsEl.textContent = totalHotMeals.toLocaleString();
+        if (waterLitersEl) waterLitersEl.textContent = totalWaterLiters.toLocaleString();
+        if (volunteersEl) volunteersEl.textContent = totalVolunteers.toLocaleString();
+        if (amountRaisedEl) amountRaisedEl.textContent = `₱${totalMonetaryDonations.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        if (inKindDonationsEl) inKindDonationsEl.textContent = `₱${totalInKindDonations.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     }, error => {
         console.error("Error fetching approved reports:", error);
         Swal.fire({
@@ -442,12 +418,12 @@ function fetchReports() {
             title: "Error",
             text: "Failed to load dashboard data. Please try again later.",
         });
-        foodPacksEl.textContent = "0";
-        hotMealsEl.textContent = "0";
-        waterLitersEl.textContent = "0";
-        volunteersEl.textContent = "0";
-        amountRaisedEl.textContent = "₱0.00 (Error)";
-        inKindDonationsEl.textContent = "₱0.00 (Error)";
+        if (foodPacksEl) foodPacksEl.textContent = "0";
+        if (hotMealsEl) hotMealsEl.textContent = "0";
+        if (waterLitersEl) waterLitersEl.textContent = "0";
+        if (volunteersEl) volunteersEl.textContent = "0";
+        if (amountRaisedEl) amountRaisedEl.textContent = "₱0.00 (Error)";
+        if (inKindDonationsEl) inKindDonationsEl.textContent = "₱0.00 (Error)";
     });
 }
 
@@ -455,7 +431,6 @@ function fetchReports() {
 function cleanupDashboard() {
     console.log("Cleaning up dashboard state");
 
-    // Remove Firebase listeners
     if (activationsListener) {
         activationsListener.off();
         activationsListener = null;
@@ -468,11 +443,9 @@ function cleanupDashboard() {
         console.log("Removed reports listener");
     }
 
-    // Clear markers
     markers.forEach(marker => marker.setMap(null));
     markers = [];
 
-    // Close any open InfoWindow and reset state
     if (singleInfoWindow) {
         singleInfoWindow.close();
         singleInfoWindow = null;
@@ -481,12 +454,10 @@ function cleanupDashboard() {
     }
 }
 
-// Listen for navigation away from the dashboard
 window.addEventListener('beforeunload', () => {
     cleanupDashboard();
 });
 
-// Listen for custom navigation-away event (if your app dispatches one)
 window.addEventListener('navigate-away', () => {
     console.log('navigate-away event: Cleaning up dashboard');
     cleanupDashboard();
