@@ -36,7 +36,8 @@ const addActivationBtn = document.getElementById("addActivationBtn");
 
 // Modals and their elements
 const activationModal = document.getElementById("activationModal");
-const closeActivationModalBtn = document.getElementById("closeActivationModal");
+const closeBtn = document.getElementById("closeActivationModal");
+const closeActivationModalBtn = document.getElementById("closeActivationModalBtn");
 const modalTitle = document.getElementById("modalTitle");
 const endorseModal = document.getElementById("endorseModal");
 const closeEndorseModalBtn = document.getElementById("closeEndorseModal");
@@ -433,18 +434,12 @@ function renderTable(filteredData = currentActiveActivations) {
 
 function handleSearch() {
     const query = searchInput.value.trim().toLowerCase();
-    clearBtn.style.display = query ? 'flex' : 'none';
+  
     currentPage = 1;
     renderTable(filterAndSort());
 }
 
-function clearDInputs() {
-    searchInput.value = '';
-    clearBtn.style.display = 'none';
-    currentPage = 1;
-    renderTable(filterAndSort());
-    searchInput.focus();
-}
+
 
 clearBtn.style.display = 'none';
 searchInput.addEventListener('input', handleSearch);
@@ -559,6 +554,7 @@ function closeMapModal() {
 
 // Event Listeners
 addActivationBtn.addEventListener("click", openAddActivationModal);
+closeBtn.addEventListener("click", closeActivationModal);
 closeActivationModalBtn.addEventListener("click", closeActivationModal);
 closeMapModalBtn.addEventListener("click", closeMapModal);
 cancelMapModalBtn.addEventListener("click", closeMapModal);

@@ -30,11 +30,12 @@
                         </button>
                     </div>
                     <div class="search-wrapper">
-                        <i class="fa fa-search"></i>
                         <input type="text" placeholder="Search" id="searchInput" />
-                        <button onclick="clearDInputs()" class="clear-btn">
-                            <i class='bx bx-x'></i>
-                        </button>
+
+                        
+                            <button onclick="clearDInputs()" class="clear-btn" style="display: none;">
+                                <i class='bx bx-x'></i>
+                            </button>
                     </div>
                     <div class="custom-select-wrapper">
                         <select id="sortSelect">
@@ -90,7 +91,7 @@
                 </select>
                 <div class="modal-action-buttons">
                     <button id="modalNextStepBtn" class="next-btn" disabled>Next</button>
-                    <button class="cancel-btn" onclick="closeActivationModal()">Cancel</button>
+                    <button class="cancel-btn" id="closeActivationModalBtn">Cancel</button>
                 </div>
             </div>
 
@@ -122,7 +123,6 @@
                 <div class="modal-action-buttons">
                     <button id="modalActivateSubmitBtn" class="activate-btn">Activate Group</button>
                     <button id="modalPrevStepBtn" class="next-btn">Back</button>
-                    <button class="cancel-btn" onclick="closeActivationModal()">Cancel</button>
                 </div>
             </div>
         </div>
@@ -157,7 +157,7 @@
             </div>
             <div id="mapContainer" style="height: 400px; width: 100%;"></div>
             <div class="modal-action-buttons">
-                <button id="saveLocationBtn" class="bayanihanBtn">Save Location</button>
+                <button id="saveLocationBtn" class="next-btn">Save Location</button>
                 <button class="cancel-btn" id="cancelMapModalBtn">Cancel</button>
             </div>
         </div>
