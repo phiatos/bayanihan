@@ -140,6 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
     tr.innerHTML = `
       <td>${start + index + 1}</td>
       <td>${report.rdanaId}</td>
+      <td>${report.rdanaGroup}</td>
       <td>${report.dateTime}</td>
       <td>${report.siteLocation || "N/A"}</td>
       <td>${report.disasterType}</td>

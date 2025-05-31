@@ -2,24 +2,29 @@ const CACHE_NAME = 'bayanihan-cache-v2';
 
 const urlsToCache = [
     '/',
-    '/index.html',
+    './index.html',
+    './index.css',
     './index.js',
     './manifest.json',
-    './assets/images/logox192.png',
-    './css/global.css',
-    './pages/login.html',
-    './css/login.css',
-    './js/login.js',
-    './js/global.js',
-    './pages/rdanaVerification.html',
-    './pages/rdanaLog.html',
-    './components/sidebar.html',
-    './components/sidebar.js',
-    './components/sidebar.css',
-    './js/rdanaLog.js',
-    './css/rdanaLog.css',
-    './assets/images/user.jpg',
-    './pages/profile.js'
+    '../assets/images/logox192.png',
+    '../assets/images/user.jpg',
+    '../css/global.css',
+    '../pages/login.html',
+    '../css/login.css',
+    '../js/login.js',
+    '../js/global.js',
+    '../js/volunteergroupmanagement.js',
+    '../pages/volunteergroupmanagement.html',
+    '../pages/rdanaVerification.html',
+    '../pages/rdanaLog.html',
+    '../components/sidebar.html',
+    '../components/sidebar.js',
+    '../components/sidebar.css',
+    '../js/rdanaLog.js',
+    '../css/rdanaLog.css',
+    '../pages/profile.js', 
+    '../pages/profile.html',
+    '../css/profile.css',
 ];
 
 self.addEventListener('install', (event) => {
@@ -55,7 +60,6 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
     const requestUrl = new URL(event.request.url);
 
-    // Bypass cache for Firebase, EmailJS, emulator, and non-GET requests
     if (
         requestUrl.origin === 'https://identitytoolkit.googleapis.com' ||
         requestUrl.origin === 'https://bayanihan-5ce7e-default-rtdb.asia-southeast1.firebasedatabase.app' ||

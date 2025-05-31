@@ -16,9 +16,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const database = firebase.database();
   const auth = firebase.auth();
 
-  let currentPage = 1;
-  const rowsPerPage = 5;
-
   // Form data variables (declared in higher scope to persist across event listeners)
   let profileData = {};
   let affectedCommunities = [];
@@ -37,6 +34,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const searchInput = document.getElementById("searchInput");
   const sortSelect = document.getElementById("sortSelect");
 
+
+  
   // Helper function to sanitize keys for Firebase
   function sanitizeKey(key) {
     return key
@@ -104,12 +103,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Allow only alphabets for names
       if (this.placeholder.includes('Name') || this.placeholder.includes('Organization')) {
-        this.value = this.value.replace(/[^a-zA-Z\s]/g, ''); // Only letters and spaces
+        this.value = this.value.replace(/[^a-zA-Z\s,-]/g, ''); // Only letters and spaces
       }
 
       // For Barangay (Letters & Numbers)
-      if (this.placeholder.includes('Barangay')) {
-        this.value = this.value.replace(/[^a-zA-Z0-9\s]/g, ''); // Alphanumeric and spaces only
+      if (this.id === 'affectedBarangayInput') {
+        this.value = this.value.replace(/[^a-zA-Z0-9\s,]/g, ''); // Alphanumeric, spaces, commas
+      }
+      else if (this.placeholder.includes('Name') || this.placeholder.includes('Organization')) {
+      // For Name and Organization → letters, spaces, commas, hyphens only
+      this.value = this.value.replace(/[^a-zA-Z\s,-]/g, '');
+      }
+      else if (this.placeholder.includes('City/Municipality') || this.placeholder.includes('Province')|| this.placeholder.includes('Relief Assistance')|| this.placeholder.includes('Items')) {
+        this.value = this.value.replace(/[^a-zA-Z\s,-]/g, ''); // Only letters and spaces
+      }
+      else{
+        // For all other text inputs → optionally set a more general rule
+        this.value = this.value.replace(/[^a-zA-Z\s]/g, ''); // Only letters and spaces
       }
 
       // For numbers (prevent negative numbers)
@@ -332,6 +342,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const reportData = {
               rdanaId: `RDANA-${Math.floor(100 + Math.random() * 900)}`,
               dateTime: new Date().toISOString(),
+              rdanaGroup: profileData[sanitizeKey("Name of the Organization's Involved")] || "N/A",
               siteLocation: profileData[sanitizeKey("Site Location/Address (Barangay)")] || "N/A",
               disasterType: profileData[sanitizeKey("Type of Disaster")] || "N/A",
               effects: { affectedPopulation: affectedCommunities.reduce((sum, c) => sum + c.affected, 0) },

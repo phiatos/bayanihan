@@ -87,6 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
       row.innerHTML = `
         <td>${start + index + 1}</td>
         <td>${log.rdanaId}</td>
+        <td>${log.rdanaGroup}</td>
         <td>${new Date(log.dateTime).toLocaleString()}</td>
         <td>${log.profile?.Site_Location_Address_Barangay || log.siteLocation || "N/A"}</td>
         <td>${log.disasterType}</td>
