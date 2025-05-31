@@ -789,7 +789,7 @@ if (confirmSaveBtn) {
       // Save user data to users/<uid>
       await database.ref(`users/${newUser.uid}`).set({
         role: "ABVN",
-        group: orgData.organization,
+        // group: orgData.organization,
         email: orgData.email,
         mobile: orgData.mobileNumber,
         organization: orgData.organization,

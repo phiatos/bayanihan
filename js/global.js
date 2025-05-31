@@ -223,7 +223,6 @@
 // Firebase imports
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js';
 import { getAuth, sendEmailVerification, signInWithEmailAndPassword, signOut, applyActionCode } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
-import { getAnalytics } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js';
 import { getDatabase, ref, get, set } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js';
 import { validateEmail, validatePassword, displayError, clearError } from '../js/login.js';
 
@@ -339,7 +338,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                     userData = {
                         role: "ABVN", 
                         name: "New User",
-                        group: "N/A",
+                        organization: "N/A",
                         contactPerson: "N/A",
                         email: user.email,
                         mobile: "", 
@@ -353,20 +352,16 @@ document.addEventListener("DOMContentLoaded", async () => {
                     await set(ref(database, `users/${user.uid}`), userData);
                 }
 
-                // --- NEW / MODIFIED: Update Realtime Database emailVerified status ---
-                // Fetch the *latest* user data from Firebase Auth before checking
-                await user.reload(); // Ensures user.emailVerified is up-to-date
-                const updatedUser = auth.currentUser; // Get the reloaded user object
+                await user.reload(); 
+                const updatedUser = auth.currentUser; 
 
                 if (updatedUser && updatedUser.emailVerified && !userData.emailVerified) {
                     console.log("Email is now verified in Auth, updating Realtime Database...");
                     await set(ref(database, `users/${updatedUser.uid}/emailVerified`), true);
-                    userData.emailVerified = true; // Update local userData object to reflect change
-                    showToast("Your email has been successfully verified upon login!", 'success'); // Optional: show a toast here
+                    userData.emailVerified = true; 
+                    showToast("Your email has been successfully verified upon login!", 'success'); 
                 }
-                // --- END NEW / MODIFIED ---
-
-                // Check for email verification (skipped for admins)
+               
                 const isAdmin = userData?.role === "AB ADMIN" || userData?.role === "admin";
                 if (!isAdmin && !updatedUser.emailVerified) {
                     try {
@@ -398,7 +393,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 const updatedUserData = {
                     name: userData.name || "",
                     role: userData.role || "",
-                    group: userData.group || "",
+                    organization: userData.organization || "",
                     contactPerson: userData.contactPerson || "",
                     isFirstLogin: isFirstLogin,
                     termsAccepted: termsAccepted,
