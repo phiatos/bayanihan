@@ -92,63 +92,7 @@ function initSidebar() {
     console.log("Logout button element NOT found (from within sidebar.js).");
   }
 
-  // function restrictPageAccess() {
-  //   // Skip if already restricted
-  //   if (isRestricted) {
-  //     console.log("Page access already restricted, skipping.");
-  //     return;
-  //   }
-
-  //   const restrictedPages = [
-  //     'volunteergroupmanagement.html',
-  //     'reportsVerification.html',
-  //     'reportsLog.html',
-  //     'activation.html',
-  //     'reliefsLog.html',
-  //     'rdanaLog.html',
-  //     'rdanaVerification.html',
-  //     'inkind.html',
-  //     'monetary.html',
-  //   ];
-
-  //   const currentPath = window.location.pathname;
-  //   const isRestrictedPage = restrictedPages.some(page => currentPath.includes(page));
-
-  //   if (isRestrictedPage) {
-  //     const userRole = localStorage.getItem("userRole");
-  //     if (!userRole) {
-  //       console.log("No user role found in localStorage, redirecting to login.");
-  //       isRestricted = true; // Set flag to prevent further triggers
-  //       Swal.fire({
-  //         icon: "warning",
-  //         title: "Authentication Required",
-  //         text: "Please sign in to continue.",
-  //         timer: 2000,
-  //         showConfirmButton: false
-  //       });
-  //       setTimeout(() => {
-  //         window.location.replace("../pages/login.html");
-  //       }, 2000);
-  //       return;
-  //     }
-  //     if (userRole === "ABVN") {
-  //       console.log("ABVN user attempted to access restricted page:", currentPath);
-  //       isRestricted = true; // Set flag to prevent further triggers
-  //       Swal.fire({
-  //         icon: "error",
-  //         title: "Access Denied",
-  //         text: "This page is for admins only.",
-  //         timer: 2000,
-  //         showConfirmButton: false
-  //       });
-  //       setTimeout(() => {
-  //         window.location.replace("../pages/dashboard.html");
-  //       }, 2000);
-  //     }
-  //   }
-  // }
-
-   function restrictPageAccess() {
+  function restrictPageAccess() {
     // Skip if already restricted
     if (isRestricted) {
       console.log("Page access already restricted, skipping.");
