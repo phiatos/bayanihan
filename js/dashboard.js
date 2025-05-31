@@ -147,8 +147,8 @@ window.initializeDashboard = function () {
             if (userRole === "ABVN") {
                 // Optional: Add ABVN-specific map restrictions
                 map.setOptions({
-                    disableDefaultUI: true, // Disable map controls for ABVN
-                    draggable: false, // Prevent dragging
+                    disableDefaultUI: true, 
+                    draggable: false, 
                 });
             }
 
@@ -186,7 +186,6 @@ function initializeMap() {
 
         const defaultLocation = { lat: 14.5995, lng: 120.9842 }; // Manila, Philippines
 
-        // Re-initialize the map if it doesn't exist or the container has changed
         if (!map || mapDiv !== map.getDiv()) {
             map = new google.maps.Map(mapDiv, {
                 center: defaultLocation,
@@ -295,7 +294,7 @@ function addMarkersForActiveActivations() {
                 map: map,
                 title: activation.organization,
                 icon: {
-                    url: "https://maps.google.com/mapfiles/ms/icons/red-dot.png", // Default red pin
+                    url: "https://maps.google.com/mapfiles/ms/icons/red-dot.png", 
                 },
             });
 
@@ -331,49 +330,130 @@ function addMarkersForActiveActivations() {
 // Function to create and manage the InfoWindow
 function createInfoWindow(marker, activation, logoUrl) {
     const content = `
-        <div class="bayanihan-infowindow" style="
-            font-family: 'Arial', sans-serif;
-            color: #333;
-            padding: 15px;
-            background: #FFFFFF;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-            max-width: 300px;
-            border-top: 5px solid #FF69B4;
-            animation: slideIn 0.3s ease-out;
-        ">
-            <h3 style="
-                margin: 0 0 10px;
-                color: #007BFF;
-                font-size: 18px;
-                display: flex;
-                align-items: center;
-                gap: 8px;
-            ">
+        <div class="bayanihan-infowindow">
+            <div class="header">
                 ${logoUrl ? 
-                    `<img src="${logoUrl}" alt="Bayanihan Logo" style="width: 24px; height: 24px;" />` : 
-                    `<span style="font-size: 24px;">🌟</span>`
+                `<img src="${logoUrl}" alt="Logo" class="logo" />` : 
+                `<div class="placeholder-icon"><i class='bx bx-building'></i></div>`
                 }
-                ${activation.organization}
-            </h3>
-            <p style="margin: 5px 0;">
-                <strong style="color: #007BFF;">📍 Location:</strong>
-                <span style="color: #333;">${activation.areaOfOperation}</span>
-            </p>
-            <p style="margin: 5px 0;">
-                <strong style="color: #007BFF;">🌍 Calamity:</strong>
-                <span style="color: #333;">${activation.calamityType}${activation.typhoonName ? ` (${activation.typhoonName})` : ''}</span>
-            </p>
-            <p style="margin: 5px 0;">
-                <strong style="color: #007BFF;">✅ Status:</strong>
-                <span style="color: #388E3C; font-weight: bold;">Active</span>
-            </p>
+                <div class="header-text">
+                <h3>${activation.organization}</h3>
+                <span class="status-badge"><i class='bx bx-check-circle'></i> Active</span>
+                </div>
+            </div>
+
+
+            <div class="info-section">
+                <div class="info-item">
+                    <i class='bx bx-map'></i>
+                    <div class="info-text">
+                        <span class="label">Location</span>
+                        <span class="value">${activation.areaOfOperation}</span>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <i class='bx bx-cloud-lightning'></i>
+                    <div class="info-text">
+                        <span class="label">Calamity</span>
+                        <span class="value">${activation.calamityType}${activation.typhoonName ? ` (${activation.typhoonName})` : ''}</span>
+                    </div>
+                </div>
+            </div>
         </div>
+        
         <style>
-            @keyframes slideIn {
-                0% { transform: translateY(10px); opacity: 0; }
-                100% { transform: translateY(0); opacity: 1; }
-            }
+        .bayanihan-infowindow {
+            font-family: 'Arial', sans-serif;
+            background: #fff;
+            border-radius: 16px;
+            max-width: 420px;
+            padding: 28px;
+            border-left: 8px solid #FF69B4;
+            animation: fadeSlideIn 0.4s ease;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 24px;
+            gap: 16px;
+        }
+        .logo, .placeholder-icon {
+        width: 80px;
+        height: 80px;
+        border-radius: 16px;
+        background:rgb(255, 255, 255);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 6px; /* add breathing space inside the box */
+        box-sizing: border-box;
+        }
+        .logo {
+        object-fit: contain;
+        max-width: 100%;
+        max-height: 100%;
+        border-radius: 12px;
+        }
+        .header-text h3 {
+            margin: 0;
+            font-size: 20px;
+            color: #007BFF;
+            line-height: 1.3;
+        }
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            margin-top: 6px;
+            font-size: 13px;
+            background: #d4edda;
+            color: #388E3C;
+            padding: 4px 10px;
+            border-radius: 16px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .status-badge i {
+            font-size: 18px;
+            margin-right: 6px;
+        }
+        .info-section {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+        .info-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            font-size: 16px;
+            color: #333;
+        }
+        .info-item i {
+            font-size: 28px;
+            color: #007BFF;
+            flex-shrink: 0;
+            margin-top: 4px;
+        }
+        .info-text {
+            display: flex;
+            flex-direction: column;
+        }
+        .label {
+            font-weight: bold;
+            color: #555;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+        .value {
+            color: #222;
+            font-size: 15px;
+        }
+        @keyframes fadeSlideIn {
+            0% { opacity: 0; transform: translateY(10px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
         </style>
     `;
 
@@ -473,12 +553,6 @@ function fetchReports() {
             console.log("No approved reports found in the database.");
         }
 
-        // if (foodPacksEl) foodPacksEl.textContent = totalFoodPacks.toLocaleString();
-        // if (hotMealsEl) hotMealsEl.textContent = totalHotMeals.toLocaleString();
-        // if (waterLitersEl) waterLitersEl.textContent = totalWaterLiters.toLocaleString();
-        // if (volunteersEl) volunteersEl.textContent = totalVolunteers.toLocaleString();
-        // if (amountRaisedEl) amountRaisedEl.textContent = `₱${totalMonetaryDonations.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-        // if (inKindDonationsEl) inKindDonationsEl.textContent = `₱${totalInKindDonations.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
         animateNumber('food-packs', totalFoodPacks, 1500, 0);
         animateNumber('hot-meals', totalHotMeals, 1500, 0);
         animateNumber('water-liters', totalWaterLiters, 1500, 0);

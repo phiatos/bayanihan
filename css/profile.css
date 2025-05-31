@@ -373,7 +373,7 @@ form .backBtn i {
 
 .modal-footer #agreeButton {
     background-color: var(--primary-color);
-    width: 120px;
+    width: 180px;
     color: white;
     padding: 12px 25px;
     border: none;

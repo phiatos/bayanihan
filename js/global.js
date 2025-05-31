@@ -367,10 +367,10 @@ document.addEventListener("DOMContentLoaded", async () => {
                     try {
                         const actionCodeSettings = {
                             // absolute url required for email verification kasi naka-firebase auth
-                            url: 'https://bayanihan.vercel.app/pages/login.html', 
-                            handleCodeInApp: true, 
-                            // url: 'http://127.0.0.1:5500/bayanihan/pages/login.html',
+                            // url: 'https://bayanihan.vercel.app/pages/login.html', 
                             // handleCodeInApp: true, 
+                            url: 'http://127.0.0.1:5500/bayanihan/pages/login.html',
+                            handleCodeInApp: true, 
                         };
                         console.log("Sending verification email to:", updatedUser.email);
                         await sendEmailVerification(updatedUser, actionCodeSettings);

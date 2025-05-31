@@ -694,7 +694,7 @@ if (confirmSaveBtn) {
                 userCredential = await secondaryAuth.createUserWithEmailAndPassword(orgData.email, tempPassword);
             } catch (error) {
                 if (error.code === 'auth/email-already-in-use') {
-                    throw new Error("Email already registered in Firebase Authentication. Please use a different email.");
+                    throw new Error("Email already registered. Please use a different email.");
                 }
                 throw new Error("Error creating user in Firebase Authentication: " + error.message);
             }
