@@ -430,11 +430,11 @@ document.addEventListener("DOMContentLoaded", async () => {
 
                 // Redirection Logic
                 setTimeout(() => {
-                    if (isAdmin && !isFirstLogin && termsAccepted) {
-                        console.log("Redirecting Admin to dashboard.");
+                    if (isAdmin && !isFirstLogin && termsAccepted && !password_needs_reset) {
+                        console.log("Redirecting Admin to dashboard (fully onboarded).");
                         window.location.replace('../pages/dashboard.html');
                     } else if (!isFirstLogin || !termsAccepted || password_needs_reset) {
-                        console.log("Redirecting to profile, change temporary password.");
+                        console.log("Redirecting to profile.html for setup (first login, unaccepted terms, or password reset).");
                         window.location.replace('../pages/profile.html');
                     } else {
                         console.log("Redirecting based on role.");
