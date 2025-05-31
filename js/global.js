@@ -28,6 +28,7 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const database = getDatabase(app);
 
+
 const showToast = (message, type = 'error') => {
     const toastContainer = document.querySelector('.toast-container');
     if (!toastContainer) {
@@ -44,6 +45,7 @@ const showToast = (message, type = 'error') => {
         setTimeout(() => toast.remove(), 300);
     }, 4000);
 };
+
 
 document.addEventListener("DOMContentLoaded", () => {
     const container = document.querySelector(".container");
