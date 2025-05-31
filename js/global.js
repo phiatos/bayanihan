@@ -1,13 +1,8 @@
 // Firebase imports
-// import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js';
-// import { getAuth, sendEmailVerification, signInWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
-// import { getAnalytics } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js';
-// import { getDatabase, ref, get, set } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js';
-import { initializeApp } from 'firebase/app'; 
-import { getAuth, sendEmailVerification, signInWithEmailAndPassword, signOut } from 'firebase/auth';
-import { getAnalytics } from 'firebase/analytics';
-import { getDatabase, ref, get, set } from 'firebase/database';
-
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js';
+import { getAuth, sendEmailVerification, signInWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
+import { getAnalytics } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js';
+import { getDatabase, ref, get, set } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js';
 import { validateEmail, validatePassword, displayError, clearError } from '../js/login.js';
 
 
