@@ -27,6 +27,9 @@ document.addEventListener('DOMContentLoaded', () => {
   let responseGroup = "";
   let reliefDeployed = "";
   let familiesServed = "";
+  let currentUserGroupName = '';  // global variable to hold the group name
+  let currentUserUid = '';        // optional: global variable for UID
+
 
   const submittedReportsContainer = document.getElementById("submittedReportsContainer");
   const paginationContainer = document.getElementById("pagination");
@@ -46,24 +49,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Check if user is authenticated
   auth.onAuthStateChanged(user => {
-    if (!user) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Authentication Required',
-        text: 'Please sign in to access RDANA reports.',
-      }).then(() => {
-        window.location.href = "../pages/login.html";
-      });
-      return;
-    }
+  if (!user) {
+    Swal.fire({
+      icon: 'error',
+      title: 'Authentication Required',
+      text: 'Please sign in to access RDANA reports.',
+    }).then(() => {
+      window.location.href = "../pages/login.html";
+    });
+    return;
+  }
 
-    console.log("User authenticated:", user.uid);
+  console.log('Logged-in user UID:', user.uid);
+  currentUserUid = user.uid;
 
-    // Only load submitted reports if the table elements exist (for rdanaverification.html)
-    if (submittedReportsContainer && paginationContainer && entriesInfo && searchInput && sortSelect) {
-      loadSubmittedReports(user.uid);
-    }
-  });
+  const volunteerGroup = JSON.parse(localStorage.getItem('loggedInVolunteerGroup'));
+  currentUserGroupName = volunteerGroup?.organization || 'Unknown Group';
+
+  console.log('Current logged-in user group:', currentUserGroupName);
+
+  if (submittedReportsContainer && paginationContainer && entriesInfo && searchInput && sortSelect) {
+    loadSubmittedReports(user.uid);
+  }
+});
+
+
 
 
 
@@ -103,7 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Allow only alphabets for names
       if (this.placeholder.includes('Name') || this.placeholder.includes('Organization')) {
-        this.value = this.value.replace(/[^a-zA-Z\s,-]/g, ''); // Letters, spaces, commas, and hyphens only
+        this.value = this.value.replace(/[^a-zA-Z\s,-]/g, ''); // Only letters and spaces
       }
 
       // For Barangay (Letters & Numbers)
@@ -342,7 +352,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const reportData = {
               rdanaId: `RDANA-${Math.floor(100 + Math.random() * 900)}`,
               dateTime: new Date().toISOString(),
-              rdanaGroup: profileData[sanitizeKey("Name of the Organization's Involved")] || "N/A",
+              rdanaGroup: currentUserGroupName,
               siteLocation: profileData[sanitizeKey("Site Location/Address (Barangay)")] || "N/A",
               disasterType: profileData[sanitizeKey("Type of Disaster")] || "N/A",
               effects: { affectedPopulation: affectedCommunities.reduce((sum, c) => sum + c.affected, 0) },
