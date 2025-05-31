@@ -103,7 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Allow only alphabets for names
       if (this.placeholder.includes('Name') || this.placeholder.includes('Organization')) {
-        this.value = this.value.replace(/[^a-zA-Z\s,-]/g, ''); // Only letters and spaces
+        this.value = this.value.replace(/[^a-zA-Z\s,-]/g, ''); // Letters, spaces, commas, and hyphens only
       }
 
       // For Barangay (Letters & Numbers)
