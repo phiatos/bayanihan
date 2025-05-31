@@ -344,7 +344,8 @@ document.addEventListener("DOMContentLoaded", async () => {
                         email: user.email,
                         mobile: "", 
                         createdAt: new Date().toISOString(),
-                        emailVerified: user.emailVerified, // Initialize with current status from Auth
+                        emailVerified: user.emailVerified, 
+                        password_needs_reset: user.password_needs_reset,
                         isFirstLogin: true,
                         termsAccepted: false,
                         terms_agreed_version: 0,
@@ -367,12 +368,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 
                 // Check for email verification (skipped for admins)
                 const isAdmin = userData?.role === "AB ADMIN" || userData?.role === "admin";
-                // Only send verification email if not an admin AND email is NOT verified
-                if (!isAdmin && !updatedUser.emailVerified) { // Use updatedUser here
+                if (!isAdmin && !updatedUser.emailVerified) {
                     try {
                         const actionCodeSettings = {
-                            url: 'https://bayanihan.vercel.app/pages/login.html', // ABSOLUTE URL required
-                            handleCodeInApp: true, // Crucial for your app to handle the verification
+                            url: 'https://bayanihan.vercel.app/pages/login.html', 
+                            handleCodeInApp: true, 
+                            // url: '../pages/login.html', 
+                            // handleCodeInApp: false, 
                         };
                         console.log("Sending verification email to:", updatedUser.email);
                         await sendEmailVerification(updatedUser, actionCodeSettings);
@@ -390,6 +392,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 const isFirstLogin = userData.isFirstLogin === true;
                 const termsAccepted = userData.termsAccepted === true;
                 const termsAgreedVersion = userData.terms_agreed_version || 0;
+                const password_needs_reset = userData.password_needs_reset === true;
 
                 // Prepare user data for localStorage
                 const updatedUserData = {
@@ -400,6 +403,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                     isFirstLogin: isFirstLogin,
                     termsAccepted: termsAccepted,
                     terms_agreed_version: termsAgreedVersion,
+                    password_needs_reset: password_needs_reset,
                 };
 
                 console.log("User Data being stored in localStorage:", updatedUserData);
@@ -429,6 +433,9 @@ document.addEventListener("DOMContentLoaded", async () => {
                     if (isAdmin && !isFirstLogin && termsAccepted) {
                         console.log("Redirecting Admin to dashboard.");
                         window.location.replace('../pages/dashboard.html');
+                    } else if (isFirstLogin || !termsAccepted || password_needs_reset) {
+                        console.log("Redirecting to profile.html for first login or unaccepted terms.");
+                        window.location.replace('../pages/profile.html');
                     } else if (isFirstLogin || !termsAccepted) {
                         console.log("Redirecting to profile.html for first login or unaccepted terms.");
                         window.location.replace('../pages/profile.html');
