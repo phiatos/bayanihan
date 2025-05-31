@@ -1,0 +1,1 @@
+import"./global-Dd8t204S.js";window.addEventListener("load",()=>{"serviceWorker"in navigator&&navigator.serviceWorker.register("./service-worker.js").then(e=>{console.log("Service Worker registered with scope:",e.scope)}).catch(e=>{console.error("Service Worker registration failed:",e)})});

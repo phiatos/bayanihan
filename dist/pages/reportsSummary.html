@@ -16,12 +16,13 @@
     <!-- Global.js for sidebar loading -->
 
     <title>Report Summary</title>
-  <script type="module" crossorigin src="/bayanihan/assets/modulepreload-polyfill-B5Qt9EMX.js"></script>
-  <script type="module" crossorigin src="/bayanihan/assets/index.esm2017-CKqBSwm5.js"></script>
-  <script type="module" crossorigin src="/bayanihan/assets/global-ol2E3RMO.js"></script>
-  <link rel="stylesheet" crossorigin href="/bayanihan/assets/reportsSummary-l7Qs8mfu.css">
-  <link rel="stylesheet" crossorigin href="/bayanihan/assets/sidebar-CSb7cCH2.css">
-  <link rel="stylesheet" crossorigin href="/bayanihan/assets/global-Bw-aSEzx.css">
+  <script type="module" crossorigin src="/assets/reportsSummary-CuB-aq_S.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/global-Dd8t204S.js">
+  <link rel="modulepreload" crossorigin href="/assets/index.esm2017-CKqBSwm5.js">
+  <link rel="modulepreload" crossorigin href="/assets/global-ol2E3RMO.js">
+  <link rel="stylesheet" crossorigin href="/assets/global-Bw-aSEzx.css">
+  <link rel="stylesheet" crossorigin href="/assets/reportsSummary-l7Qs8mfu.css">
+  <link rel="stylesheet" crossorigin href="/assets/sidebar-CSb7cCH2.css">
 </head>
 <body>
     <div class="main-container">
@@ -38,7 +39,6 @@
         </div>
     </div>
     
-    <script src="../js/reportsSummary.js"></script>
     <script>
         fetch('../components/sidebar.html')
         .then(response => response.text())
@@ -53,6 +53,7 @@
             console.error('Error loading sidebar:', error);
         });
     </script>
+
     
 </body>
 </html>
