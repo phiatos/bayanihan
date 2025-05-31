@@ -16,6 +16,74 @@ const database = firebase.database();
 
 let map, markers = [], geocoder, autocomplete, activationsListener, reportsListener, userRole, userEmail, userUid, currentInfoWindow, singleInfoWindow, isInfoWindowClicked = false;
 
+// Converts Big Quantities to Readable Ones
+function formatLargeNumber(numStr) {
+    let num = BigInt(numStr || "0");
+    const trillion = 1_000_000_000_000n;
+    const billion = 1_000_000_000n;
+    const million = 1_000_000n;
+    const thousand = 1_000n;
+
+    if (num >= trillion) {
+        return (Number(num) / Number(trillion)).toFixed(2).replace(/\.?0+$/, '') + 'T';
+    } else if (num >= billion) {
+        return (Number(num) / Number(billion)).toFixed(2).replace(/\.?0+$/, '') + 'B';
+    } else if (num >= million) {
+        return (Number(num) / Number(million)).toFixed(2).replace(/\.?0+$/, '') + 'M';
+    } else if (num >= thousand) {
+        return (Number(num) / Number(thousand)).toFixed(2).replace(/\.?0+$/, '') + 'k';
+    }
+    return num.toString();
+}
+
+function animateNumber(elementId, target, duration = 1500, decimals = 0) {
+  const el = document.getElementById(elementId);
+  if (!el) return;
+
+  let start = 0;
+  const stepTime = 16; // ~60fps
+  const steps = duration / stepTime;
+  let currentStep = 0;
+
+  const increment = target / steps;
+
+  function step() {
+    currentStep++;
+    start += increment;
+    if (currentStep >= steps) start = target;
+
+    const displayValue = decimals > 0 ? start.toFixed(decimals) : Math.floor(start);
+
+    el.textContent = formatNumber(parseFloat(displayValue), elementId);
+    highlight(el);
+
+    if (currentStep < steps) {
+      requestAnimationFrame(step);
+    }
+  }
+  requestAnimationFrame(step);
+}
+
+function formatNumber(num, id) {
+  if (id === 'amount-raised' || id === 'inkind-donations') {
+    return '₱' + num.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  // For counts, if number is large, use abbreviated format
+  if (num >= 10000) {
+    return formatLargeNumber(num.toString());
+  }
+  return num.toLocaleString();
+}
+
+function highlight(el) {
+  el.style.transition = 'color 0.3s ease';
+  el.style.color = '#FFF';
+
+  setTimeout(() => {
+    el.style.color = '#FFF';
+  }, 300);
+}
+
 // Elements
 const headerEl = document.querySelector("header");
 const foodPacksEl = document.getElementById("food-packs");
@@ -405,12 +473,18 @@ function fetchReports() {
             console.log("No approved reports found in the database.");
         }
 
-        if (foodPacksEl) foodPacksEl.textContent = totalFoodPacks.toLocaleString();
-        if (hotMealsEl) hotMealsEl.textContent = totalHotMeals.toLocaleString();
-        if (waterLitersEl) waterLitersEl.textContent = totalWaterLiters.toLocaleString();
-        if (volunteersEl) volunteersEl.textContent = totalVolunteers.toLocaleString();
-        if (amountRaisedEl) amountRaisedEl.textContent = `₱${totalMonetaryDonations.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-        if (inKindDonationsEl) inKindDonationsEl.textContent = `₱${totalInKindDonations.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        // if (foodPacksEl) foodPacksEl.textContent = totalFoodPacks.toLocaleString();
+        // if (hotMealsEl) hotMealsEl.textContent = totalHotMeals.toLocaleString();
+        // if (waterLitersEl) waterLitersEl.textContent = totalWaterLiters.toLocaleString();
+        // if (volunteersEl) volunteersEl.textContent = totalVolunteers.toLocaleString();
+        // if (amountRaisedEl) amountRaisedEl.textContent = `₱${totalMonetaryDonations.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        // if (inKindDonationsEl) inKindDonationsEl.textContent = `₱${totalInKindDonations.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        animateNumber('food-packs', totalFoodPacks, 1500, 0);
+        animateNumber('hot-meals', totalHotMeals, 1500, 0);
+        animateNumber('water-liters', totalWaterLiters, 1500, 0);
+        animateNumber('volunteers', totalVolunteers, 1500, 0);
+        animateNumber('amount-raised', totalMonetaryDonations, 1500, 2);
+        animateNumber('inkind-donations', totalInKindDonations, 1500, 2);
     }, error => {
         console.error("Error fetching approved reports:", error);
         Swal.fire({
