@@ -71,14 +71,45 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function formatTime(timeStr) {
         if (!timeStr) return "-";
-        // Create a Date object with a dummy date to parse time correctly
-        const date = new Date(`1970-01-01T${timeStr}`);
+        let date;
+        // Handle ISO date string from mobile app (e.g., "2025-05-29T05:09:56.435Z")
+        if (timeStr.includes('T')) {
+            date = new Date(timeStr);
+        } else {
+            // Handle legacy time format (HH:MM:SS)
+            date = new Date(`1970-01-01T${timeStr}`);
+        }
         if (isNaN(date)) return timeStr;
         return date.toLocaleTimeString("en-US", {
             hour: "numeric",
             minute: "2-digit",
             hour12: true
         });
+    }
+
+    function transformReportData(report) {
+        return {
+            firebaseKey: report.firebaseKey,
+            ReportID: report.reportID || report.ReportID || "-",
+            VolunteerGroupName: report.organization || report.VolunteerGroupName || "[Unknown Org]",
+            AreaOfOperation: report.AreaOfOperation || "-",
+            TimeOfIntervention: report.timeOfIntervention || report.TimeOfIntervention || "-",
+            DateOfReport: report.dateOfReport || report.DateOfReport || "-",
+            Status: report.status || report.Status || "Pending",
+            StartDate: report.operationDate || report.StartDate || "-",
+            EndDate: report.operationDate || report.EndDate || "-",
+            NoOfIndividualsOrFamilies: report.families || report.NoOfIndividualsOrFamilies || "-",
+            NoOfFoodPacks: report.foodPacks || report.NoOfFoodPacks || "-",
+            NoOfHotMeals: report.hotMeals || report.NoOfHotMeals || "-",
+            LitersOfWater: report.water || report.LitersOfWater || "-",
+            NoOfVolunteersMobilized: report.volunteers || report.NoOfVolunteersMobilized || "-",
+            NoOfOrganizationsActivated: report.NoOfOrganizationsActivated || "-",
+            TotalValueOfInKindDonations: report.inKindValue || report.TotalValueOfInKindDonations || "-",
+            TotalMonetaryDonations: report.amountRaised || report.TotalMonetaryDonations || "-",
+            NotesAdditionalInformation: report.remarks || report.urgentNeeds || report.NotesAdditionalInformation || "-",
+            userUid: report.userUid || "-",
+            submittedBy: report.submittedBy || "-",
+        };
     }
 
     function loadReportsFromFirebase() {
@@ -88,18 +119,19 @@ document.addEventListener('DOMContentLoaded', () => {
             if (reports) {
                 Object.keys(reports).forEach(key => {
                     const report = reports[key];
-                    if (!report.VolunteerGroupName) {
-                        console.warn(`Report ${key} is missing VolunteerGroupName field. Will fetch dynamically on approval.`);
+                    if (!report.VolunteerGroupName && !report.organization) {
+                        console.warn(`Report ${key} is missing VolunteerGroupName/organization field. Will fetch dynamically on approval.`);
                     }
-                    submittedReports.push({
+                    const transformedReport = transformReportData({
                         firebaseKey: key,
                         ...report
                     });
+                    submittedReports.push(transformedReport);
                 });
             } else {
                 console.log("No submitted reports found in Firebase");
             }
-            applySearchAndSort(); // Re-apply search and sort after data loads
+            applySearchAndSort();
         }, error => {
             console.error("Error fetching reports from Firebase:", error);
             Swal.fire({
@@ -116,7 +148,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (reports.length === 0) {
             submittedReportsContainer.innerHTML = "<tr><td colspan='9'>No submitted reports found on this page.</td></tr>";
             entriesInfo.textContent = "Showing 0 to 0 of 0 entries";
-            renderPagination(0); // Clear pagination if no reports
+            renderPagination(0);
             return;
         }
 
@@ -155,7 +187,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
-                // Construct readable report details for the modal
                 modalDetails.innerHTML = `
                     <div class="report-section">
                         <div class="form-1">
@@ -210,7 +241,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
-                // Fetch VolunteerGroupName from users/${userUid}/group
                 database.ref(`users/${userUid}`).once('value')
                     .then(snapshot => {
                         const userData = snapshot.val();
@@ -222,11 +252,9 @@ document.addEventListener('DOMContentLoaded', () => {
                             console.warn(`No group found for user ${userUid}. Using default: [Unknown Org]`);
                         }
 
-                        // Update the report with the correct VolunteerGroupName and Status
                         report["VolunteerGroupName"] = volunteerGroupName;
                         report["Status"] = "Approved";
 
-                        // Save to approved reports and user's reports, then remove from submitted
                         return Promise.all([
                             database.ref(`reports/approved`).push(report),
                             database.ref(`users/${userUid}/reports/${report.firebaseKey}`).set({ ...report, Status: "Approved" }),
@@ -235,36 +263,36 @@ document.addEventListener('DOMContentLoaded', () => {
                     })
                     .then(() => {
                         Swal.fire({
-                        icon: 'success',
-                        title: 'Report Approved',
-                        text: 'The report has been approved and moved to the approved logs.',
-                        background: '#f0fdf4', 
-                        color: '#065f46',     
-                        iconColor: '#059669',  
-                        confirmButtonColor: '#059669', 
-                        customClass: {
-                            popup: 'swal2-popup-success-clean',
-                            title: 'swal2-title-success-clean',
-                            content: 'swal2-text-success-clean'
-                        }
-                    });
+                            icon: 'success',
+                            title: 'Report Approved',
+                            text: 'The report has been approved and moved to the approved logs.',
+                            background: '#f0fdf4', 
+                            color: '#065f46',     
+                            iconColor: '#059669',  
+                            confirmButtonColor: '#059669', 
+                            customClass: {
+                                popup: 'swal2-popup-success-clean',
+                                title: 'swal2-title-success-clean',
+                                content: 'swal2-text-success-clean'
+                            }
+                        });
                     })
                     .catch(error => {
                         console.error("Error during report approval:", error);
-                       Swal.fire({
-                        icon: 'error',
-                        title: 'Approval Failed',
-                        text: `Failed to approve report: ${error.message}`,
-                        background: '#fef2f2',       
-                        color: '#7f1d1d',          
-                        iconColor: '#dc2626',        
-                        confirmButtonColor: '#b91c1c', 
-                        customClass: {
-                            popup: 'swal2-popup-error-clean',
-                            title: 'swal2-title-error-clean',
-                            content: 'swal2-text-error-clean'
-                        }
-                    });
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Approval Failed',
+                            text: `Failed to approve report: ${error.message}`,
+                            background: '#fef2f2',       
+                            color: '#7f1d1d',          
+                            iconColor: '#dc2626',        
+                            confirmButtonColor: '#b91c1c', 
+                            customClass: {
+                                popup: 'swal2-popup-error-clean',
+                                title: 'swal2-title-error-clean',
+                                content: 'swal2-text-error-clean'
+                            }
+                        });
                     });
             });
 
@@ -285,20 +313,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 ])
                     .then(() => {
                         Swal.fire({
-                        icon: 'info',  // using 'info' or 'warning' instead of 'success'
-                        title: 'Report Rejected',
-                        text: 'The report has been rejected and removed.',
-                        background: '#fef2f2',             // soft red background (not alarming)
-                        color: '#7f1d1d',                  // deep red text
-                        iconColor: '#dc2626',              // firm red icon
-                        confirmButtonColor: '#b91c1c',     // strong red button
-                        customClass: {
-                            popup: 'swal2-popup-rejected-clean',
-                            title: 'swal2-title-rejected-clean',
-                            content: 'swal2-text-rejected-clean'
-                        }
-                    });
-
+                            icon: 'info',
+                            title: 'Report Rejected',
+                            text: 'The report has been rejected and removed.',
+                            background: '#fef2f2',             
+                            color: '#7f1d1d',                  
+                            iconColor: '#dc2626',              
+                            confirmButtonColor: '#b91c1c',     
+                            customClass: {
+                                popup: 'swal2-popup-rejected-clean',
+                                title: 'swal2-title-rejected-clean',
+                                content: 'swal2-text-rejected-clean'
+                            }
+                        });
                     })
                     .catch(error => {
                         console.error("Error during report rejection:", error);
@@ -352,17 +379,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let filteredReports = submittedReports.filter(report => {
             return Object.entries(report).some(([key, value]) => {
-                // Handle date formatting for search
                 if (key === "DateOfReport") {
                     const formattedDate = formatDate(value).toLowerCase();
                     return formattedDate.includes(searchQuery);
                 }
-                // Handle time formatting for search (optional, but good for consistency)
                 if (key === "TimeOfIntervention") {
                     const formattedTime = formatTime(value).toLowerCase();
                     return formattedTime.includes(searchQuery);
                 }
-                // Convert other values to string for generic search
                 return value?.toString().toLowerCase().includes(searchQuery);
             });
         });
@@ -375,16 +399,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (sortBy === "DateOfReport") {
                     const dateA = new Date(valA);
                     const dateB = new Date(valB);
-                    if (isNaN(dateA) || isNaN(dateB)) return 0; // Handle invalid dates
+                    if (isNaN(dateA) || isNaN(dateB)) return 0;
                     return direction === "asc" ? dateA - dateB : dateB - dateA;
                 } else if (sortBy === "TimeOfIntervention") {
-                    // Create Date objects with a dummy date to compare times
-                    const timeA = new Date(`1970-01-01T${valA}`).getTime();
-                    const timeB = new Date(`1970-01-01T${valB}`).getTime();
-                    if (isNaN(timeA) || isNaN(timeB)) return 0; // Handle invalid times
+                    const timeA = new Date(valA.includes('T') ? valA : `1970-01-01T${valA}`).getTime();
+                    const timeB = new Date(valB.includes('T') ? valB : `1970-01-01T${valB}`).getTime();
+                    if (isNaN(timeA) || isNaN(timeB)) return 0;
                     return direction === "asc" ? timeA - timeB : timeB - timeA;
                 }
-                // Default string comparison for other fields
                 return direction === "asc"
                     ? valA.toString().localeCompare(valB.toString())
                     : valB.toString().localeCompare(valA.toString());
@@ -400,26 +422,25 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     searchInput.addEventListener('input', () => {
-        currentPage = 1; // Reset to first page on new search
+        currentPage = 1;
         applySearchAndSort();
     });
 
     sortSelect.addEventListener('change', () => {
-        currentPage = 1; // Reset to first page on new sort
+        currentPage = 1;
         applySearchAndSort();
     });
 
-    // Function to clear search input (currently commented out in HTML)
     window.clearDInputs = () => {
         searchInput.value = '';
-        currentPage = 1; // Reset to first page on clear
+        currentPage = 1;
         applySearchAndSort();
     };
 
     const viewApprovedBtn = document.getElementById("viewApprovedBtn");
     if (viewApprovedBtn) {
         viewApprovedBtn.addEventListener("click", () => {
-            window.location.href = "../pages/reportslog.html";
+            window.location.href = "../pages/reportsLog.html";
         });
     }
 });

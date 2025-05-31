@@ -3,11 +3,6 @@
   "version": "1.0.0",
   "description": "HTML, CSS, and JavaScript",
   "main": "index.js",
-  "scripts": {
-    "dev": "vite",        
-    "build": "vite build", 
-    "preview": "vite preview"
-  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/phiatos/bayanihan.git"
@@ -22,8 +17,5 @@
   "homepage": "https://github.com/phiatos/bayanihan#readme",
   "dependencies": {
     "firebase": "^11.8.1"
-  },
-  "devDependencies": {
-    "vite": "^6.3.5"
   }
 }
