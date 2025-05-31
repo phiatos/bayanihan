@@ -3,8 +3,10 @@ const CACHE_NAME = 'bayanihan-cache-v2';
 const urlsToCache = [
     '/',
     '/index.html',
-    './index.js',
-    './manifest.json',
+    '/index.css',
+    '/index.js',
+    '/manifest.json',
+
     './assets/images/logox192.png',
     './css/global.css',
     './pages/login.html',
