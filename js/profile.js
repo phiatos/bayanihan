@@ -25,9 +25,6 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const database = getDatabase(app);
 
-// Base path for redirects
-const BASE_PATH = "/bayanihan";
-
 document.addEventListener("DOMContentLoaded", () => {
     const groupTitleElement = document.getElementById('group-title');
     const groupDescriptionElement = document.getElementById('group-description');
@@ -75,7 +72,7 @@ document.addEventListener("DOMContentLoaded", () => {
             text: text
         }).then(() => {
             if (redirectToLogin) {
-                window.location.replace(`${BASE_PATH}/pages/login.html`);
+                window.location.replace('../pages/login.html');
             }
         });
     };
@@ -417,7 +414,7 @@ document.addEventListener("DOMContentLoaded", () => {
                             });
                             if (basicInfoSection) basicInfoSection.style.display = 'none';
                             if (changePasswordFormContainer) changePasswordFormContainer.style.display = 'block';
-                            window.location.replace(`${BASE_PATH}/pages/profile.html`);
+                            window.location.replace('../pages/profile.html');
                         } else {
                             await Swal.fire({
                                 icon: 'success',
@@ -428,11 +425,11 @@ document.addEventListener("DOMContentLoaded", () => {
                             });
 
                             const userRole = localStorage.getItem("userRole");
-                            let redirectPath = `${BASE_PATH}/pages/dashboard.html`; 
+                            let redirectPath = '../pages/dashboard.html'; 
 
                             if (wasFirstLoginBeforeAgreement) {
                                 if (userRole === "ABVN" || userRole === "volunteer") {
-                                    redirectPath = `${BASE_PATH}/pages/profile.html`;
+                                    redirectPath = '../pages/profile.html';
                                 }
                             }
                             window.location.replace(redirectPath);
@@ -557,7 +554,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 }).then(() => {
                     form.reset();
                     sessionStorage.removeItem('passwordChangePromptShown'); 
-                    window.location.replace(`${BASE_PATH}/pages/profile.html`);
+                    window.location.replace('../pages/profile.html');
                 });
 
             } catch (error) {

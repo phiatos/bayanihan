@@ -28,9 +28,6 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const database = getDatabase(app);
 
-// Base path for redirects (keep as is)
-const BASE_PATH = "/bayanihan";
-
 const showToast = (message, type = 'error') => {
     const toastContainer = document.querySelector('.toast-container');
     if (!toastContainer) {
