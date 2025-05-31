@@ -10,22 +10,14 @@ import { getDatabase, ref, get, update } from 'firebase/database';
 
 // Firebase configuration
 const firebaseConfig = {
-    // apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
-    // authDomain: "bayanihan-5ce7e.firebaseapp.com",
-    // databaseURL: "https://bayanihan-5ce7e-default-rtdb.asia-southeast1.firebasedatabase.app",
-    // projectId: "bayanihan-5ce7e",
-    // storageBucket: "bayanihan-5ce7e.appspot.com",
-    // messagingSenderId: "593123849917",
-    // appId: "1:593123849917:web:eb85a63a536eeff78ce9d4",
-    // measurementId: "G-ZTQ9VXXVV0"
-    apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-    databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL,
-    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-    appId: import.meta.env.VITE_FIREBASE_APP_ID,
-    measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
+    apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
+    authDomain: "bayanihan-5ce7e.firebaseapp.com",
+    databaseURL: "https://bayanihan-5ce7e-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "bayanihan-5ce7e",
+    storageBucket: "bayanihan-5ce7e.appspot.com",
+    messagingSenderId: "593123849917",
+    appId: "1:593123849917:web:eb85a63a536eeff78ce9d4",
+    measurementId: "G-ZTQ9VXXVV0"
 };
 
 // Initialize Firebase
