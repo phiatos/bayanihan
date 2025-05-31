@@ -1,8 +1,6 @@
-// Flag to prevent multiple restriction alerts
 let isRestricted = false;
 
 function initSidebar() {
-  // Prevent multiple executions of initSidebar
   if (window.sidebarInitialized) {
     console.log("initSidebar already executed, skipping.");
     return;
@@ -94,7 +92,6 @@ function initSidebar() {
     console.log("Logout button element NOT found (from within sidebar.js).");
   }
 
-  // Restrict ABVN access to specific pages
   function restrictPageAccess() {
     // Skip if already restricted
     if (isRestricted) {
@@ -112,8 +109,8 @@ function initSidebar() {
       'rdanaVerification.html',
       'inkind.html',
       'monetary.html',
-
     ];
+
     const currentPath = window.location.pathname;
     const isRestrictedPage = restrictedPages.some(page => currentPath.includes(page));
 

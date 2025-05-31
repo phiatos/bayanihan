@@ -43,7 +43,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentPage = 1;
     let allDonations = [];
     let filteredAndSortedDonations = [];
-    let viewingApproved = false; // This variable seems unused in the provided code
 
     // Variable to track if the form has changes
     let formHasChanges = false;
