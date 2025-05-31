@@ -1,316 +1,317 @@
-// Firebase configuration
-const firebaseConfig = {
-    apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
-    authDomain: "bayanihan-5ce7e.firebaseapp.com",
-    databaseURL: "https://bayanihan-5ce7e-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "bayanihan-5ce7e",
-    storageBucket: "bayanihan-5ce7e.appspot.com",
-    messagingSenderId: "593123849917",
-    appId: "1:593123849917:web:eb85a63a536eeff78ce9d4",
-    measurementId: "G-ZTQ9VXXVV0",
-};
+// Global variable to hold the map and markers
+let map;
+let markers = [];
+let autocomplete;
 
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const database = firebase.database();
-
-let map, markers = [], geocoder, autocomplete;
-
-// Initialize Google Maps for Dashboard
+// Initialize Google Maps
 function initMap() {
-    const defaultLocation = { lat: 14.5995, lng: 120.9842 }; // Manila, Philippines
+    // Default to Manila, Philippines
+    const defaultLocation = { lat: 14.5995, lng: 120.9842 };
 
+    // Initialize the map
     map = new google.maps.Map(document.getElementById("map"), {
         center: defaultLocation,
-        zoom: 6,
+        zoom: 10,
         mapTypeId: "roadmap",
     });
 
-    geocoder = new google.maps.Geocoder();
-
-    // Initialize Autocomplete for the search input
-    autocomplete = new google.maps.places.Autocomplete(searchInput, {
-        componentRestrictions: { country: "PH" },
-        types: ["geocode"],
-    });
+    // Initialize the search bar with Places Autocomplete using the existing search-input
+    const searchInput = document.getElementById("search-input");
+    autocomplete = new google.maps.places.Autocomplete(searchInput);
     autocomplete.bindTo("bounds", map);
 
+    // When a place is selected from the autocomplete dropdown
     autocomplete.addListener("place_changed", () => {
         const place = autocomplete.getPlace();
         if (!place.geometry || !place.geometry.location) {
-            console.log("No valid location selected from autocomplete.");
+            Swal.fire({
+                icon: "error",
+                title: "Location Not Found",
+                text: "Please select a valid location from the dropdown.",
+            });
             return;
         }
 
+        // Center the map on the selected location
         map.setCenter(place.geometry.location);
-        map.setZoom(12);
+        map.setZoom(16);
+
+        // Clear existing markers
+        clearMarkers();
+
+        // Add a marker at the selected location
+        const marker = new google.maps.Marker({
+            position: place.geometry.location,
+            map: map,
+            title: place.name,
+        });
+        markers.push(marker);
+
+        // Add an info window
+        const infowindow = new google.maps.InfoWindow({
+            content: `<strong>${place.name}</strong><br>${place.formatted_address}`,
+        });
+        marker.addListener("click", () => {
+            infowindow.open(map, marker);
+        });
+        infowindow.open(map, marker);
     });
-}
 
-// Elements
-const headerEl = document.querySelector("header");
-const foodPacksEl = document.getElementById("food-packs");
-const hotMealsEl = document.getElementById("hot-meals");
-const waterLitersEl = document.getElementById("water-liters");
-const volunteersEl = document.getElementById("volunteers");
-const amountRaisedEl = document.getElementById("amount-raised");
-const inKindDonationsEl = document.getElementById("inkind-donations");
-const searchInput = document.getElementById("search-input");
+    // Allow pinning a location by clicking on the map
+    map.addListener("click", (event) => {
+        // Clear existing markers
+        clearMarkers();
 
-// Check user authentication
-auth.onAuthStateChanged(user => {
-    if (!user) {
+        // Add a new marker at the clicked location
+        const marker = new google.maps.Marker({
+            position: event.latLng,
+            map: map,
+            title: "Pinned Location",
+        });
+        markers.push(marker);
+
+        // Add an info window
+        const infowindow = new google.maps.InfoWindow({
+            content: `Pinned Location<br>Lat: ${event.latLng.lat()}, Lng: ${event.latLng.lng()}`,
+        });
+        marker.addListener("click", () => {
+            infowindow.open(map, marker);
+        });
+        infowindow.open(map, marker);
+
+        // Center the map on the pinned location
+        map.setCenter(event.latLng);
+        map.setZoom(16);
+    });
+
+    // Get user's location
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const userLocation = {
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude,
+                };
+
+                // Center the map on the user's location
+                map.setCenter(userLocation);
+                map.setZoom(16);
+
+                // Add a marker for the user's location
+                const marker = new google.maps.Marker({
+                    position: userLocation,
+                    map: map,
+                    title: "You are here",
+                    icon: {
+                        url: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png", // Blue dot for user location
+                    },
+                });
+                markers.push(marker);
+
+                // Add an info window
+                const infowindow = new google.maps.InfoWindow({
+                    content: "You are here",
+                });
+                marker.addListener("click", () => {
+                    infowindow.open(map, marker);
+                });
+                infowindow.open(map, marker);
+
+                console.log("User location:", userLocation);
+            },
+            (error) => {
+                console.error("Geolocation error:", error);
+                let errorMessage = "Unable to retrieve your location.";
+                switch (error.code) {
+                    case error.PERMISSION_DENIED:
+                        errorMessage = "Location access denied. Please allow location access in your browser settings.";
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        errorMessage = "Location information is unavailable. Ensure your device has a working GPS or network connection.";
+                        break;
+                    case error.TIMEOUT:
+                        errorMessage = "Location request timed out. Please try again.";
+                        break;
+                }
+                Swal.fire({
+                    icon: "error",
+                    title: "Location Error",
+                    text: errorMessage,
+                });
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0,
+            }
+        );
+    } else {
         Swal.fire({
             icon: "error",
-            title: "Authentication Required",
-            text: "Please sign in to access the dashboard.",
-        }).then(() => {
-            window.location.href = "../pages/login.html";
+            title: "Geolocation Not Supported",
+            text: "Your browser does not support geolocation. Please use a modern browser.",
         });
-        return;
     }
+}
 
-    console.log(`Logged-in user UID: ${user.uid}`);
+// Function to clear all markers from the map
+function clearMarkers() {
+    markers.forEach(marker => marker.setMap(null));
+    markers = [];
+}
 
-    // Fetch user role
-    database.ref(`users/${user.uid}`).once("value", snapshot => {
-        const userData = snapshot.val();
-        if (!userData || !userData.role) {
-            console.error(`User data not found for UID: ${user.uid}`);
+document.addEventListener("DOMContentLoaded", () => {
+    // Firebase configuration
+    const firebaseConfig = {
+        apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
+        authDomain: "bayanihan-5ce7e.firebaseapp.com",
+        databaseURL: "https://bayanihan-5ce7e-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "bayanihan-5ce7e",
+        storageBucket: "bayanihan-5ce7e.appspot.com",
+        messagingSenderId: "593123849917",
+        appId: "1:593123849917:web:eb85a63a536eeff78ce9d4",
+        measurementId: "G-ZTQ9VXXVV0",
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const database = firebase.database();
+
+    // Elements to display metrics
+    const headerEl = document.querySelector("header");
+    const foodPacksEl = document.getElementById("food-packs");
+    const hotMealsEl = document.getElementById("hot-meals");
+    const waterLitersEl = document.getElementById("water-liters");
+    const volunteersEl = document.getElementById("volunteers");
+    const amountRaisedEl = document.getElementById("amount-raised");
+    const inKindDonationsEl = document.getElementById("inkind-donations"); // Corrected variable name
+
+    // Search bar for both metrics and map search
+    const searchInput = document.getElementById("search-input");
+    searchInput.addEventListener("input", (e) => {
+        const query = e.target.value.trim();
+        console.log("Search query for dashboard metrics (if applicable):", query);
+        // Add logic here to filter metrics based on query if needed
+    });
+
+    // Check user authentication
+    auth.onAuthStateChanged(user => {
+        if (!user) {
             Swal.fire({
                 icon: "error",
-                title: "User Data Missing",
-                text: "User role not found. Please contact an administrator.",
+                title: "Authentication Required",
+                text: "Please sign in to access the dashboard.",
             }).then(() => {
                 window.location.href = "../pages/login.html";
             });
             return;
         }
 
-        const role = userData.role;
-        const userEmail = user.email;
+        console.log(`Logged-in user UID: ${user.uid}`);
 
-        console.log(`Role of logged-in user (UID: ${user.uid}): ${role}`);
-        console.log(`User Email: ${userEmail}`);
-
-        headerEl.textContent = role === "AB ADMIN" ? "Admin Dashboard" : "Volunteer Dashboard";
-
-        // Initialize map for admin
-        if (role === "AB ADMIN") {
-            database.ref("activations").orderByChild("status").equalTo("active").on("value", snapshot => {
-                markers.forEach(marker => marker.setMap(null));
-                markers = [];
-
-                const activations = snapshot.val();
-                if (!activations) {
-                    console.log("No active activations found in Firebase.");
-                    return;
-                }
-
-                console.log("Active activations:", activations);
-
-                Object.entries(activations).forEach(([key, activation]) => {
-                    if (!activation.latitude || !activation.longitude) {
-                        console.warn(`Activation ${key} is missing latitude or longitude:`, activation);
-                        return;
-                    }
-
-                    const position = { lat: parseFloat(activation.latitude), lng: parseFloat(activation.longitude) };
-                    console.log(`Creating marker for ${activation.organization} at position:`, position);
-
-                    const logoPath = "../bayanihan/assets/images/AB_logo.png";
-                    console.log("Attempting to load logo from:", logoPath);
-
-                    const markerIcon = new Image();
-                    markerIcon.src = logoPath;
-                    markerIcon.onload = () => {
-                        console.log("Logo loaded successfully for marker:", logoPath);
-                        const marker = new google.maps.Marker({
-                            position: position,
-                            map: map,
-                            title: activation.organization,
-                            icon: {
-                                url: logoPath,
-                                scaledSize: new google.maps.Size(50, 50),
-                                labelOrigin: new google.maps.Point(25, -10),
-                            },
-                            label: {
-                                text: activation.organization.slice(0, 15) + (activation.organization.length > 15 ? "..." : ""),
-                                color: "#ffffff",
-                                fontSize: "14px",
-                                fontWeight: "bold",
-                                backgroundColor: "#007BFF",
-                                padding: "3px 6px",
-                                borderRadius: "5px",
-                            },
-                            animation: google.maps.Animation.DROP,
-                        });
-                        markers.push(marker);
-                        console.log(`Marker created for ${activation.organization}`);
-
-                        const img = new Image();
-                        img.src = logoPath;
-                        img.onload = () => {
-                            console.log("Logo loaded successfully for InfoWindow:", logoPath);
-                            createInfoWindow(marker, activation, logoPath);
-                        };
-                        img.onerror = () => {
-                            console.error("Failed to load logo for InfoWindow:", logoPath);
-                            createInfoWindow(marker, activation, null);
-                        };
-                    };
-                    markerIcon.onerror = () => {
-                        console.error("Failed to load logo for marker:", logoPath);
-                        const marker = new google.maps.Marker({
-                            position: position,
-                            map: map,
-                            title: activation.organization,
-                            icon: {
-                                url: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png",
-                                scaledSize: new google.maps.Size(50, 50),
-                                labelOrigin: new google.maps.Point(25, -10),
-                            },
-                            label: {
-                                text: activation.organization.slice(0, 15) + (activation.organization.length > 15 ? "..." : ""),
-                                color: "#ffffff",
-                                fontSize: "14px",
-                                fontWeight: "bold",
-                                backgroundColor: "#007BFF",
-                                padding: "3px 6px",
-                                borderRadius: "5px",
-                            },
-                            animation: google.maps.Animation.DROP,
-                        });
-                        markers.push(marker);
-                        console.log(`Marker created with fallback for ${activation.organization}`);
-                        createInfoWindow(marker, activation, null);
-                    };
+        // Fetch user role
+        database.ref(`users/${user.uid}`).once("value", snapshot => {
+            const userData = snapshot.val();
+            if (!userData || !userData.role) {
+                console.error(`User data not found for UID: ${user.uid}`);
+                Swal.fire({
+                    icon: "error",
+                    title: "User Data Missing",
+                    text: "User role not found. Please contact an administrator.",
+                }).then(() => {
+                    window.location.href = "../pages/login.html";
                 });
-            }, error => {
-                console.error("Error fetching activations for map:", error);
-            });
-        } else {
-            // Hide map for non-admins
-            document.querySelector(".map-container").style.display = "none";
-        }
-
-        // Fetch approved reports
-        database.ref("reports/approved").on("value", snapshot => {
-            let totalFoodPacks = 0;
-            let totalHotMeals = 0;
-            let totalWaterLiters = 0;
-            let totalVolunteers = 0;
-            let totalMonetaryDonations = 0;
-            let totalInKindDonations = 0;
-
-            const reports = snapshot.val();
-            if (reports) {
-                Object.values(reports).forEach(report => {
-                    console.log(`Report SubmittedBy: ${report.SubmittedBy}, Report Data:`, report);
-
-                    if (role === "ABVN") {
-                        const reportSubmittedBy = report.SubmittedBy ? report.SubmittedBy.toLowerCase() : "";
-                        const currentUserEmail = userEmail ? userEmail.toLowerCase() : "";
-                        if (reportSubmittedBy !== currentUserEmail) {
-                            console.log(`Skipping report for ABVN - SubmittedBy (${report.SubmittedBy}) does not match user email (${userEmail})`);
-                            return;
-                        }
-                    }
-
-                    totalFoodPacks += parseFloat(report.NoOfFoodPacks || 0);
-                    totalHotMeals += parseFloat(report.NoOfHotMeals || 0);
-                    totalWaterLiters += parseFloat(report.LitersOfWater || 0);
-                    totalVolunteers += parseFloat(report.NoOfVolunteersMobilized || 0);
-                    totalMonetaryDonations += parseFloat(report.TotalMonetaryDonations || 0);
-                    totalInKindDonations += parseFloat(report.TotalValueOfInKindDonations || 0);
-                });
-            } else {
-                console.log("No approved reports found.");
+                return;
             }
 
-            foodPacksEl.textContent = totalFoodPacks.toLocaleString();
-            hotMealsEl.textContent = totalHotMeals.toLocaleString();
-            waterLitersEl.textContent = totalWaterLiters.toLocaleString();
-            volunteersEl.textContent = totalVolunteers.toLocaleString();
-            amountRaisedEl.textContent = `₱${totalMonetaryDonations.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-            inKindDonationsEl.textContent = `₱${totalInKindDonations.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            const role = userData.role;
+            // const userEmail = user.email; 
 
-            console.log(`Totals - Food Packs: ${totalFoodPacks}, Hot Meals: ${totalHotMeals}, Water Liters: ${totalWaterLiters}, Volunteers: ${totalVolunteers}, Monetary Donations: ${totalMonetaryDonations}, In-Kind Donations: ${totalInKindDonations}`);
+            console.log(`Role of logged-in user (UID: ${user.uid}): ${role}`);
+            // console.log(`User Email: ${userEmail}`); // No longer needed for filtering
+
+            // Update the dashboard header based on role
+            headerEl.textContent = role === "AB ADMIN" ? "Admin Dashboard" : "Volunteer Dashboard";
+
+            // Fetch approved reports and aggregate data
+            database.ref("reports/approved").on("value", snapshot => {
+                let totalFoodPacks = 0;
+                let totalHotMeals = 0;
+                let totalWaterLiters = 0;
+                let totalVolunteers = 0;
+                let totalMonetaryDonations = 0;
+                let totalInKindDonations = 0;
+
+                const reports = snapshot.val();
+                if (reports) {
+                    Object.values(reports).forEach(report => {
+                        // Debug: Log the report's userUid and the current user's UID
+                        console.log(`Processing Report: ${report.ReportID}, Report User UID: ${report.userUid}, Current User UID: ${user.uid}`);
+
+                        // *** THE KEY CHANGE IS HERE: Filter by userUid for ABVN role ***
+                        if (role === "ABVN") {
+                            if (report.userUid !== user.uid) {
+                                console.log(`Skipping report ${report.ReportID} for ABVN - User UID mismatch. Report UID: ${report.userUid}, Current User UID: ${user.uid}`);
+                                return; // Skip this report, continue to the next one
+                            } else {
+                                console.log(`Including report ${report.ReportID} for ABVN - User UID match.`);
+                            }
+                        }
+
+                        // Aggregate data - use parseFloat for numbers that can have decimals
+                        // Using 'parseFloat' for all numeric values for consistency and to handle potential string numbers
+                        totalFoodPacks += parseFloat(report.NoOfFoodPacks || 0);
+                        totalHotMeals += parseFloat(report.NoOfHotMeals || 0); 
+                        totalWaterLiters += parseFloat(report.LitersOfWater || 0);
+                        totalVolunteers += parseFloat(report.NoOfVolunteersMobilized || 0);
+                        
+                        // Use the correct field name for monetary donations from your Firebase data
+                        totalMonetaryDonations += parseFloat(report.TotalMonetaryDonations || 0);
+                        
+                        // Corrected typo in field name (TotalVa1ueOfInKindDonations -> TotalValueOfInKindDonations) if it's in your data
+                        totalInKindDonations += parseFloat(report.TotalValueOfInKindDonations || 0); 
+                    });
+                } else {
+                    console.log("No approved reports found in the database.");
+                }
+
+                // Update the DOM with aggregated data, applying formatting
+                foodPacksEl.textContent = totalFoodPacks.toLocaleString();
+                hotMealsEl.textContent = totalHotMeals.toLocaleString();
+                waterLitersEl.textContent = totalWaterLiters.toLocaleString();
+                volunteersEl.textContent = totalVolunteers.toLocaleString();
+                
+                // Format monetary donations with currency symbol and 2 decimal places
+                amountRaisedEl.textContent = `₱${totalMonetaryDonations.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                
+                // Format in-kind donations with currency symbol and 2 decimal places
+                inKindDonationsEl.textContent = `₱${totalInKindDonations.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+                // Log aggregated totals
+                console.log(`Totals - Food Packs: ${totalFoodPacks}, Hot Meals: ${totalHotMeals}, Water Liters: ${totalWaterLiters}, Volunteers: ${totalVolunteers}, Monetary Donations: ${totalMonetaryDonations}, In-Kind Donations: ${totalInKindDonations}`);
+            }, error => {
+                console.error("Error fetching approved reports:", error);
+                Swal.fire({
+                    icon: "error",
+                    title: "Error",
+                    text: "Failed to load dashboard data. Please try again later.",
+                });
+                // Set display to 0 or an error message if data load fails
+                foodPacksEl.textContent = "0";
+                hotMealsEl.textContent = "0";
+                waterLitersEl.textContent = "0";
+                volunteersEl.textContent = "0";
+                amountRaisedEl.textContent = "₱0.00 (Error)";
+                inKindDonationsEl.textContent = "₱0.00 (Error)";
+            });
         }, error => {
-            console.error("Error fetching approved reports:", error);
+            console.error("Error fetching user data:", error);
             Swal.fire({
                 icon: "error",
                 title: "Error",
-                text: "Failed to load dashboard data. Please try again later.",
+                text: "Failed to load user data. Please try again later.",
             });
-            foodPacksEl.textContent = "0";
-            hotMealsEl.textContent = "0";
-            waterLitersEl.textContent = "0";
-            volunteersEl.textContent = "0";
-            amountRaisedEl.textContent = "₱0.00 (Error)";
-            inKindDonationsEl.textContent = "₱0.00 (Error)";
-        });
-    }, error => {
-        console.error("Error fetching user data:", error);
-        Swal.fire({
-            icon: "error",
-            title: "Error",
-            text: "Failed to load user data. Please try again later.",
         });
     });
 });
-
-// Function to create the InfoWindow
-function createInfoWindow(marker, activation, logoUrl) {
-    const infowindow = new google.maps.InfoWindow({
-        content: `
-            <div class="bayanihan-infowindow" style="
-                font-family: 'Arial', sans-serif;
-                color: #333;
-                padding: 15px;
-                background: #FFFFFF;
-                border-radius: 10px;
-                box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-                max-width: 300px;
-                border-top: 5px solid #FF69B4; /* Pink accent */
-                animation: slideIn 0.3s ease-out;
-            ">
-                <h3 style="
-                    margin: 0 0 10px;
-                    color: #007BFF; /* Blue */
-                    font-size: 18px;
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                ">
-                    ${logoUrl ? 
-                        `<img src="${logoUrl}" alt="Bayanihan Logo" style="width: 24px; height: 24px;" />` : 
-                        `<span style="font-size: 24px;">🌟</span>` // Fallback to star emoji if logo fails
-                    }
-                    ${activation.organization}
-                </h3>
-                <p style="margin: 5px 0;">
-                    <strong style="color: #007BFF;">📍 Location:</strong>
-                    <span style="color: #333;">${activation.areaOfOperation}</span>
-                </p>
-                <p style="margin: 5px 0;">
-                    <strong style="color: #007BFF;">🌍 Calamity:</strong>
-                    <span style="color: #333;">${activation.calamityType}${activation.typhoonName ? ` (${activation.typhoonName})` : ''}</span>
-                </p>
-                <p style="margin: 5px 0;">
-                    <strong style="color: #007BFF;">✅ Status:</strong>
-                    <span style="color: #388E3C; font-weight: bold;">Active</span>
-                </p>
-            </div>
-            <style>
-                @keyframes slideIn {
-                    0% { transform: translateY(10px); opacity: 0; }
-                    100% { transform: translateY(0); opacity: 1; }
-                }
-            </style>
-        `,
-    });
-    marker.addListener("click", () => {
-        infowindow.open(map, marker);
-    });
-}
