@@ -36,7 +36,6 @@
         </div>
     </div>
     
-    <script src="../js/reportsSummary.js"></script>
     <script>
         fetch('../components/sidebar.html')
         .then(response => response.text())
@@ -51,6 +50,8 @@
             console.error('Error loading sidebar:', error);
         });
     </script>
+
+    <script type="module" src="../js/reportsSummary.js"></script>
     
 </body>
 </html>

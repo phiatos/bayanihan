@@ -1,13 +1,8 @@
 // Firebase imports
-// import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js';
-// import { getAuth, sendEmailVerification, signInWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
-// import { getAnalytics } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js';
-// import { getDatabase, ref, get, set } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js';
-import { initializeApp } from 'firebase/app'; 
-import { getAuth, sendEmailVerification, signInWithEmailAndPassword, signOut } from 'firebase/auth';
-import { getAnalytics } from 'firebase/analytics';
-import { getDatabase, ref, get, set } from 'firebase/database';
-
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js';
+import { getAuth, sendEmailVerification, signInWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
+import { getAnalytics } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js';
+import { getDatabase, ref, get, set } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js';
 import { validateEmail, validatePassword, displayError, clearError } from '../js/login.js';
 
 
@@ -28,27 +23,6 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const database = getDatabase(app);
 
-// Base path for redirects (keep as is)
-const BASE_PATH = "/bayanihan";
-
-// Function to display error messages
-// const showToast = (message, type = 'error') => {
-//     const toastContainer = document.querySelector('.toast-container');
-//     const toast = document.createElement('div');
-//     toast.className = `toast ${type}`;
-//     toast.textContent = message;
-
-//     toastContainer.appendChild(toast);
-
-//     // Trigger animation
-//     setTimeout(() => toast.classList.add('show'));
-
-//     // Remove after 3 seconds
-//     setTimeout(() => {
-//         toast.classList.remove('show');
-//         setTimeout(() => toast.remove(), 300); 
-//     }, 3000);
-// };
 
 const showToast = (message, type = 'error') => {
     const toastContainer = document.querySelector('.toast-container');
@@ -67,6 +41,7 @@ const showToast = (message, type = 'error') => {
     }, 4000);
 };
 
+
 document.addEventListener("DOMContentLoaded", () => {
     const container = document.querySelector(".container");
     const registerBtn = document.querySelector(".register-btn");
@@ -81,8 +56,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const oobCode = urlParams.get("oobCode");
     if (mode === "verifyEmail" && oobCode) {
         showToast("Email verified successfully! Please log in.");
-        // Clear query parameters from the URL
-        window.history.replaceState({}, document.title, `${BASE_PATH}/pages/login.html`);
+        window.history.replaceState({}, document.title, 'pages/login.html');
     }
 
     // Switch to Register form
@@ -155,7 +129,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (!isAdmin && !user.emailVerified) {
                     try {
                         const actionCodeSettings = {
-                            url: `${window.location.origin}${BASE_PATH}/pages/login.html`,
+                            url: '../pages/login.html', 
                             handleCodeInApp: false,
                         };
                         console.log("Sending verification email to:", user.email);
@@ -213,19 +187,19 @@ document.addEventListener("DOMContentLoaded", () => {
                     // Redirection Logic
                     if (isAdmin && !isFirstLogin && termsAccepted) {
                         console.log("Redirecting Admin to dashboard.");
-                        window.location.replace(`${BASE_PATH}/pages/dashboard.html`);
+                        window.location.replace('../pages/dashboard.html');
                     } else if (isFirstLogin || !termsAccepted) {
                         console.log("Redirecting to profile.html for first login or unaccepted terms.");
-                        window.location.replace(`${BASE_PATH}/pages/profile.html`);
+                        window.location.replace('../pages/profile.html');
                     } else {
                         console.log("Redirecting based on role.");
                         const userRole = userData.role;
 
                         if (userRole === "ABVN") {
-                            window.location.replace(`${BASE_PATH}/pages/dashboard.html`);
+                            window.location.replace('../pages/dashboard.html');
                         } else {
                             console.error("Unknown user role or unhandled redirection:", userRole);
-                            window.location.replace(`${BASE_PATH}/pages/dashboard.html`); // Fallback
+                            window.location.replace('../pages/dashboard.html'); 
                         }
                     }
                 }, 2000); 
