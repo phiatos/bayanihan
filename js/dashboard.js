@@ -1,271 +1,39 @@
-// Global variable to hold the map and markers
-let map;
-let markers = [];
-let autocomplete;
+// Firebase configuration
+const firebaseConfig = {
+    apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
+    authDomain: "bayanihan-5ce7e.firebaseapp.com",
+    databaseURL: "https://bayanihan-5ce7e-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "bayanihan-5ce7e",
+    storageBucket: "bayanihan-5ce7e.appspot.com",
+    messagingSenderId: "593123849917",
+    appId: "1:593123849917:web:eb85a63a536eeff78ce9d4",
+    measurementId: "G-ZTQ9VXXVV0",
+};
 
-// Converts Big Quantities to Readable Ones
-function formatLargeNumber(numStr) {
-    let num = BigInt(numStr || "0");
-    const trillion = 1_000_000_000_000n;
-    const billion = 1_000_000_000n;
-    const million = 1_000_000n;
-    const thousand = 1_000n;
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const database = firebase.database();
 
-    if (num >= trillion) {
-        return (Number(num) / Number(trillion)).toFixed(2).replace(/\.?0+$/, '') + 'T';
-    } else if (num >= billion) {
-        return (Number(num) / Number(billion)).toFixed(2).replace(/\.?0+$/, '') + 'B';
-    } else if (num >= million) {
-        return (Number(num) / Number(million)).toFixed(2).replace(/\.?0+$/, '') + 'M';
-    } else if (num >= thousand) {
-        return (Number(num) / Number(thousand)).toFixed(2).replace(/\.?0+$/, '') + 'k';
-    }
-    return num.toString();
-}
+let map, markers = [], geocoder, autocomplete, activationsListener, reportsListener, userRole, userEmail, userUid, currentInfoWindow, singleInfoWindow, isInfoWindowClicked = false;
 
-function animateNumber(elementId, target, duration = 1500, decimals = 0) {
-  const el = document.getElementById(elementId);
-  if (!el) return;
+// Elements
+const headerEl = document.querySelector("header");
+const foodPacksEl = document.getElementById("food-packs");
+const hotMealsEl = document.getElementById("hot-meals");
+const waterLitersEl = document.getElementById("water-liters");
+const volunteersEl = document.getElementById("volunteers");
+const amountRaisedEl = document.getElementById("amount-raised");
+const inKindDonationsEl = document.getElementById("inkind-donations");
+const searchInput = document.getElementById("search-input");
 
-  let start = 0;
-  const stepTime = 16; // ~60fps
-  const steps = duration / stepTime;
-  let currentStep = 0;
+// Function to initialize the dashboard
+window.initializeDashboard = function () {
+    console.log("initializeDashboard called at", new Date().toISOString());
 
-  const increment = target / steps;
+    // Clean up existing listeners (if any)
+    cleanupDashboard();
 
-  function step() {
-    currentStep++;
-    start += increment;
-    if (currentStep >= steps) start = target;
-
-    const displayValue = decimals > 0 ? start.toFixed(decimals) : Math.floor(start);
-
-    el.textContent = formatNumber(parseFloat(displayValue), elementId);
-    highlight(el);
-
-    if (currentStep < steps) {
-      requestAnimationFrame(step);
-    }
-  }
-  requestAnimationFrame(step);
-}
-
-function formatNumber(num, id) {
-  if (id === 'amount-raised' || id === 'inkind-donations') {
-    return '₱' + num.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  }
-  // For counts, if number is large, use abbreviated format
-  if (num >= 10000) {
-    return formatLargeNumber(num.toString());
-  }
-  return num.toLocaleString();
-}
-
-function highlight(el) {
-  el.style.transition = 'color 0.3s ease';
-  el.style.color = '#FFF';
-
-  setTimeout(() => {
-    el.style.color = '#FFF';
-  }, 300);
-}
-
-
-
-// Initialize Google Maps
-function initMap() {
-    // Default to Manila, Philippines
-    const defaultLocation = { lat: 14.5995, lng: 120.9842 };
-
-    // Initialize the map
-    map = new google.maps.Map(document.getElementById("map"), {
-        center: defaultLocation,
-        zoom: 10,
-        mapTypeId: "roadmap",
-    });
-
-    // Initialize the search bar with Places Autocomplete using the existing search-input
-    const searchInput = document.getElementById("search-input");
-    autocomplete = new google.maps.places.Autocomplete(searchInput);
-    autocomplete.bindTo("bounds", map);
-
-    // When a place is selected from the autocomplete dropdown
-    autocomplete.addListener("place_changed", () => {
-        const place = autocomplete.getPlace();
-        if (!place.geometry || !place.geometry.location) {
-            Swal.fire({
-                icon: "error",
-                title: "Location Not Found",
-                text: "Please select a valid location from the dropdown.",
-            });
-            return;
-        }
-
-        // Center the map on the selected location
-        map.setCenter(place.geometry.location);
-        map.setZoom(16);
-
-        // Clear existing markers
-        clearMarkers();
-
-        // Add a marker at the selected location
-        const marker = new google.maps.Marker({
-            position: place.geometry.location,
-            map: map,
-            title: place.name,
-        });
-        markers.push(marker);
-
-        // Add an info window
-        const infowindow = new google.maps.InfoWindow({
-            content: `<strong>${place.name}</strong><br>${place.formatted_address}`,
-        });
-        marker.addListener("click", () => {
-            infowindow.open(map, marker);
-        });
-        infowindow.open(map, marker);
-    });
-
-    // Allow pinning a location by clicking on the map
-    map.addListener("click", (event) => {
-        // Clear existing markers
-        clearMarkers();
-
-        // Add a new marker at the clicked location
-        const marker = new google.maps.Marker({
-            position: event.latLng,
-            map: map,
-            title: "Pinned Location",
-        });
-        markers.push(marker);
-
-        // Add an info window
-        const infowindow = new google.maps.InfoWindow({
-            content: `Pinned Location<br>Lat: ${event.latLng.lat()}, Lng: ${event.latLng.lng()}`,
-        });
-        marker.addListener("click", () => {
-            infowindow.open(map, marker);
-        });
-        infowindow.open(map, marker);
-
-        // Center the map on the pinned location
-        map.setCenter(event.latLng);
-        map.setZoom(16);
-    });
-
-    // Get user's location
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const userLocation = {
-                    lat: position.coords.latitude,
-                    lng: position.coords.longitude,
-                };
-
-                // Center the map on the user's location
-                map.setCenter(userLocation);
-                map.setZoom(16);
-
-                // Add a marker for the user's location
-                const marker = new google.maps.Marker({
-                    position: userLocation,
-                    map: map,
-                    title: "You are here",
-                    icon: {
-                        url: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png", // Blue dot for user location
-                    },
-                });
-                markers.push(marker);
-
-                // Add an info window
-                const infowindow = new google.maps.InfoWindow({
-                    content: "You are here",
-                });
-                marker.addListener("click", () => {
-                    infowindow.open(map, marker);
-                });
-                infowindow.open(map, marker);
-
-                console.log("User location:", userLocation);
-            },
-            (error) => {
-                console.error("Geolocation error:", error);
-                let errorMessage = "Unable to retrieve your location.";
-                switch (error.code) {
-                    case error.PERMISSION_DENIED:
-                        errorMessage = "Location access denied. Please allow location access in your browser settings.";
-                        break;
-                    case error.POSITION_UNAVAILABLE:
-                        errorMessage = "Location information is unavailable. Ensure your device has a working GPS or network connection.";
-                        break;
-                    case error.TIMEOUT:
-                        errorMessage = "Location request timed out. Please try again.";
-                        break;
-                }
-                Swal.fire({
-                    icon: "error",
-                    title: "Location Error",
-                    text: errorMessage,
-                });
-            },
-            {
-                enableHighAccuracy: true,
-                timeout: 10000,
-                maximumAge: 0,
-            }
-        );
-    } else {
-        Swal.fire({
-            icon: "error",
-            title: "Geolocation Not Supported",
-            text: "Your browser does not support geolocation. Please use a modern browser.",
-        });
-    }
-}
-
-// Function to clear all markers from the map
-function clearMarkers() {
-    markers.forEach(marker => marker.setMap(null));
-    markers = [];
-}
-
-document.addEventListener("DOMContentLoaded", () => {
-    // Firebase configuration
-    const firebaseConfig = {
-        apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
-        authDomain: "bayanihan-5ce7e.firebaseapp.com",
-        databaseURL: "https://bayanihan-5ce7e-default-rtdb.asia-southeast1.firebasedatabase.app",
-        projectId: "bayanihan-5ce7e",
-        storageBucket: "bayanihan-5ce7e.appspot.com",
-        messagingSenderId: "593123849917",
-        appId: "1:593123849917:web:eb85a63a536eeff78ce9d4",
-        measurementId: "G-ZTQ9VXXVV0",
-    };
-
-    // Initialize Firebase
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const database = firebase.database();
-
-    // Elements to display metrics
-    const headerEl = document.querySelector("header");
-    const foodPacksEl = document.getElementById("food-packs");
-    const hotMealsEl = document.getElementById("hot-meals");
-    const waterLitersEl = document.getElementById("water-liters");
-    const volunteersEl = document.getElementById("volunteers");
-    const amountRaisedEl = document.getElementById("amount-raised");
-    const inKindDonationsEl = document.getElementById("inkind-donations"); // Corrected variable name
-
-    // Search bar for both metrics and map search
-    const searchInput = document.getElementById("search-input");
-    searchInput.addEventListener("input", (e) => {
-        const query = e.target.value.trim();
-        console.log("Search query for dashboard metrics (if applicable):", query);
-        // Add logic here to filter metrics based on query if needed
-    });
-
-    // Check user authentication
+    // Check user authentication and fetch data
     auth.onAuthStateChanged(user => {
         if (!user) {
             Swal.fire({
@@ -278,13 +46,14 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        console.log(`Logged-in user UID: ${user.uid}`);
+        console.log(Logged-in user UID: ${user.uid});
+        userUid = user.uid; // Store UID for report filtering
 
         // Fetch user role
-        database.ref(`users/${user.uid}`).once("value", snapshot => {
+        database.ref(users/${user.uid}).once("value", snapshot => {
             const userData = snapshot.val();
             if (!userData || !userData.role) {
-                console.error(`User data not found for UID: ${user.uid}`);
+                console.error(User data not found for UID: ${user.uid});
                 Swal.fire({
                     icon: "error",
                     title: "User Data Missing",
@@ -295,79 +64,28 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
 
-            const role = userData.role;
-            // const userEmail = user.email; 
+            userRole = userData.role;
+            userEmail = user.email;
 
-            console.log(`Role of logged-in user (UID: ${user.uid}): ${role}`);
-            // console.log(`User Email: ${userEmail}`); // No longer needed for filtering
+            console.log(Role of logged-in user (UID: ${user.uid}): ${userRole});
+            console.log(User Email: ${userEmail});
 
-            // Update the dashboard header based on role
-            headerEl.textContent = role === "AB ADMIN" ? "Admin Dashboard" : "Volunteer Dashboard";
+            headerEl.textContent = userRole === "AB ADMIN" ? "Admin Dashboard" : "Volunteer Dashboard";
 
-            // Fetch approved reports and aggregate data
-            database.ref("reports/approved").on("value", snapshot => {
-                let totalFoodPacks = 0;
-                let totalHotMeals = 0;
-                let totalWaterLiters = 0;
-                let totalVolunteers = 0;
-                let totalMonetaryDonations = 0;
-                let totalInKindDonations = 0;
-
-                const reports = snapshot.val();
-                if (reports) {
-                    Object.values(reports).forEach(report => {
-                        // Debug: Log the report's userUid and the current user's UID
-                        console.log(`Processing Report: ${report.ReportID}, Report User UID: ${report.userUid}, Current User UID: ${user.uid}`);
-
-                        if (role === "ABVN") {
-                            if (report.userUid !== user.uid) {
-                                console.log(`Skipping report ${report.ReportID} for ABVN - User UID mismatch. Report UID: ${report.userUid}, Current User UID: ${user.uid}`);
-                                return; // Skip this report, continue to the next one
-                            } else {
-                                console.log(`Including report ${report.ReportID} for ABVN - User UID match.`);
-                            }
-                        }
-
-                        totalFoodPacks += parseFloat(report.NoOfFoodPacks || 0);
-                        totalHotMeals += parseFloat(report.NoOfHotMeals || 0); 
-                        totalWaterLiters += parseFloat(report.LitersOfWater || 0);
-                        totalVolunteers += parseFloat(report.NoOfVolunteersMobilized || 0);
-                        
-                        totalMonetaryDonations += parseFloat(report.TotalMonetaryDonations || 0);
-                        
-                        totalInKindDonations += parseFloat(report.TotalValueOfInKindDonations || 0); 
-                    });
-                } else {
-                    console.log("No approved reports found in the database.");
-                }
-
-                // Update the DOM with aggregated data, applying formatting
-                animateNumber('food-packs', totalFoodPacks, 1500, 0);
-                animateNumber('hot-meals', totalHotMeals, 1500, 0);
-                animateNumber('water-liters', totalWaterLiters, 1500, 0);
-                animateNumber('volunteers', totalVolunteers, 1500, 0);
-                animateNumber('amount-raised', totalMonetaryDonations, 1500, 2);
-                animateNumber('inkind-donations', totalInKindDonations, 1500, 2);
-
-
-
-                // Log aggregated totals
-                console.log(`Totals - Food Packs: ${totalFoodPacks}, Hot Meals: ${totalHotMeals}, Water Liters: ${totalWaterLiters}, Volunteers: ${totalVolunteers}, Monetary Donations: ${totalMonetaryDonations}, In-Kind Donations: ${totalInKindDonations}`);
-            }, error => {
-                console.error("Error fetching approved reports:", error);
-                Swal.fire({
-                    icon: "error",
-                    title: "Error",
-                    text: "Failed to load dashboard data. Please try again later.",
+            // Initialize map for both AB ADMIN and ABVN
+            console.log(Initializing map for role: ${userRole});
+            initializeMap();
+            addMarkersForActiveActivations();
+            if (userRole === "ABVN") {
+                // Optional: Add ABVN-specific map restrictions
+                map.setOptions({
+                    disableDefaultUI: true, // Disable map controls for ABVN
+                    draggable: false, // Prevent dragging
                 });
-                // Set display to 0 or an error message if data load fails
-                foodPacksEl.textContent = "0";
-                hotMealsEl.textContent = "0";
-                waterLitersEl.textContent = "0";
-                volunteersEl.textContent = "0";
-                amountRaisedEl.textContent = "₱0.00 (Error)";
-                inKindDonationsEl.textContent = "₱0.00 (Error)";
-            });
+            }
+
+            // Fetch reports for both roles
+            fetchReports();
         }, error => {
             console.error("Error fetching user data:", error);
             Swal.fire({
@@ -377,5 +95,370 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         });
     });
+};
+
+// Function to initialize or re-initialize the map
+function initializeMap() {
+    try {
+        console.log("initializeMap called at", new Date().toISOString());
+        const mapDiv = document.getElementById("map");
+        if (!mapDiv) {
+            console.error("Map container not found");
+            Swal.fire({
+                icon: "error",
+                title: "Map Error",
+                text: "Map container not found on the page.",
+            });
+            return;
+        }
+
+        // Check map container visibility
+        const mapStyles = window.getComputedStyle(mapDiv);
+        console.log("Map container styles - display:", mapStyles.display, "visibility:", mapStyles.visibility, "height:", mapStyles.height);
+
+        const defaultLocation = { lat: 14.5995, lng: 120.9842 }; // Manila, Philippines
+
+        // Re-initialize the map if it doesn't exist or the container has changed
+        if (!map || mapDiv !== map.getDiv()) {
+            map = new google.maps.Map(mapDiv, {
+                center: defaultLocation,
+                zoom: 6,
+                mapTypeId: "roadmap",
+            });
+            console.log("Map initialized successfully");
+        } else {
+            console.log("Map already initialized, re-using existing map");
+        }
+
+        geocoder = new google.maps.Geocoder();
+
+        // Initialize Autocomplete for the search input
+        if (!searchInput) {
+            console.error("Search input not found");
+            Swal.fire({
+                icon: "error",
+                title: "Map Error",
+                text: "Search input not found on the page.",
+            });
+            return;
+        }
+
+        autocomplete = new google.maps.places.Autocomplete(searchInput, {
+            componentRestrictions: { country: "PH" },
+            types: ["geocode"],
+        });
+        autocomplete.bindTo("bounds", map);
+
+        autocomplete.addListener("place_changed", () => {
+            const place = autocomplete.getPlace();
+            if (!place.geometry || !place.geometry.location) {
+                console.log("No valid location selected from autocomplete.");
+                Swal.fire({
+                    icon: "error",
+                    title: "Location Not Found",
+                    text: "Please select a valid location from the dropdown.",
+                });
+                return;
+            }
+
+            map.setCenter(place.geometry.location);
+            map.setZoom(12);
+            console.log("Map centered on:", place.geometry.location);
+        });
+
+        // Trigger a resize event to ensure the map renders properly
+        google.maps.event.trigger(map, "resize");
+        console.log("Map resize event triggered");
+
+        // Initialize a single InfoWindow instance
+        singleInfoWindow = new google.maps.InfoWindow();
+    } catch (error) {
+        console.error("Failed to initialize Google Maps:", error);
+        Swal.fire({
+            icon: "error",
+            title: "Map Error",
+            text: "Failed to load the map. Please check your internet connection and try again.",
+        });
+    }
+}
+
+// Function to add markers for active activations
+function addMarkersForActiveActivations() {
+    if (!map) {
+        console.error("Map not initialized before adding markers");
+        return;
+    }
+
+    // Remove existing listener if it exists
+    if (activationsListener) {
+        activationsListener.off();
+        console.log("Removed existing activations listener");
+    }
+
+    activationsListener = database.ref("activations").orderByChild("status").equalTo("active");
+    activationsListener.on("value", snapshot => {
+        // Clear existing markers
+        markers.forEach(marker => marker.setMap(null));
+        markers = [];
+
+        const activations = snapshot.val();
+        if (!activations) {
+            console.log("No active activations found in Firebase.");
+            return;
+        }
+
+        console.log("Active activations:", activations);
+
+        Object.entries(activations).forEach(([key, activation]) => {
+            if (!activation.latitude || !activation.longitude) {
+                console.warn(Activation ${key} is missing latitude or longitude:, activation);
+                return;
+            }
+
+            const position = { lat: parseFloat(activation.latitude), lng: parseFloat(activation.longitude) };
+            console.log(Creating marker for ${activation.organization} at position:, position);
+
+            const logoPath = "../assets/images/AB_logo.png"; // Path for InfoWindow logo
+            console.log("Attempting to load logo for InfoWindow from:", logoPath);
+
+            // Use standard Marker
+            const marker = new google.maps.Marker({
+                position: position,
+                map: map,
+                title: activation.organization,
+                icon: {
+                    url: "https://maps.google.com/mapfiles/ms/icons/red-dot.png", // Default red pin
+                },
+            });
+
+            markers.push(marker);
+            console.log(Marker created for ${activation.organization});
+
+            // Load logo for InfoWindow and attach event listeners
+            const img = new Image();
+            img.src = logoPath;
+            img.onload = () => {
+                console.log("Logo loaded successfully for InfoWindow:", logoPath);
+                createInfoWindow(marker, activation, logoPath);
+            };
+            img.onerror = () => {
+                console.error("Failed to load logo for InfoWindow:", logoPath);
+                createInfoWindow(marker, activation, null);
+            };
+        });
+
+        // Trigger resize again after adding markers
+        google.maps.event.trigger(map, "resize");
+        console.log("Map resize event triggered after adding markers");
+    }, error => {
+        console.error("Error fetching activations for map:", error);
+        Swal.fire({
+            icon: "error",
+            title: "Error",
+            text: "Failed to load activation data for the map.",
+        });
+    });
+}
+
+// Function to create and manage the InfoWindow
+function createInfoWindow(marker, activation, logoUrl) {
+    const content = `
+        <div class="bayanihan-infowindow" style="
+            font-family: 'Arial', sans-serif;
+            color: #333;
+            padding: 15px;
+            background: #FFFFFF;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            max-width: 300px;
+            border-top: 5px solid #FF69B4;
+            animation: slideIn 0.3s ease-out;
+        ">
+            <h3 style="
+                margin: 0 0 10px;
+                color: #007BFF;
+                font-size: 18px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            ">
+                ${logoUrl ? 
+                    <img src="${logoUrl}" alt="Bayanihan Logo" style="width: 24px; height: 24px;" /> : 
+                    <span style="font-size: 24px;">🌟</span>
+                }
+                ${activation.organization}
+            </h3>
+            <p style="margin: 5px 0;">
+                <strong style="color: #007BFF;">📍 Location:</strong>
+                <span style="color: #333;">${activation.areaOfOperation}</span>
+            </p>
+            <p style="margin: 5px 0;">
+                <strong style="color: #007BFF;">🌍 Calamity:</strong>
+                <span style="color: #333;">${activation.calamityType}${activation.typhoonName ?  (${activation.typhoonName}) : ''}</span>
+            </p>
+            <p style="margin: 5px 0;">
+                <strong style="color: #007BFF;">✅ Status:</strong>
+                <span style="color: #388E3C; font-weight: bold;">Active</span>
+            </p>
+        </div>
+        <style>
+            @keyframes slideIn {
+                0% { transform: translateY(10px); opacity: 0; }
+                100% { transform: translateY(0); opacity: 1; }
+            }
+        </style>
+    `;
+
+    marker.addListener("mouseover", () => {
+        if (isInfoWindowClicked) {
+            console.log(Hover ignored for ${activation.organization} because an InfoWindow is already clicked open);
+            return;
+        }
+
+        if (currentInfoWindow && currentInfoWindow !== marker) {
+            singleInfoWindow.close();
+        }
+
+        singleInfoWindow.setContent(content);
+        singleInfoWindow.open(map, marker);
+        currentInfoWindow = marker;
+        console.log(InfoWindow opened on hover for ${activation.organization});
+    });
+
+    marker.addListener("mouseout", () => {
+        if (isInfoWindowClicked) {
+            console.log(Mouseout ignored for ${activation.organization} because InfoWindow is clicked open);
+            return;
+        }
+
+        if (currentInfoWindow === marker) {
+            singleInfoWindow.close();
+            currentInfoWindow = null;
+            console.log(InfoWindow closed on mouseout for ${activation.organization});
+        }
+    });
+
+    marker.addListener("click", () => {
+        if (currentInfoWindow && currentInfoWindow !== marker) {
+            singleInfoWindow.close();
+        }
+
+        singleInfoWindow.setContent(content);
+        singleInfoWindow.open(map, marker);
+        currentInfoWindow = marker;
+        isInfoWindowClicked = true;
+        console.log(InfoWindow opened on click for ${activation.organization});
+    });
+
+    singleInfoWindow.addListener("closeclick", () => {
+        isInfoWindowClicked = false;
+        currentInfoWindow = null;
+        console.log(InfoWindow closed manually for ${activation.organization});
+    });
+}
+
+// Function to fetch approved reports
+function fetchReports() {
+    if (reportsListener) {
+        reportsListener.off();
+        console.log("Removed existing reports listener");
+    }
+
+    console.log(Fetching reports for role: ${userRole}, UID: ${userUid});
+
+    reportsListener = database.ref("reports/approved");
+    reportsListener.on("value", snapshot => {
+        let totalFoodPacks = 0;
+        let totalHotMeals = 0;
+        let totalWaterLiters = 0;
+        let totalVolunteers = 0;
+        let totalMonetaryDonations = 0;
+        let totalInKindDonations = 0;
+
+        const reports = snapshot.val();
+        console.log("Fetched reports:", reports);
+
+        if (reports) {
+            const reportEntries = Object.entries(reports);
+            console.log(Total number of approved reports: ${reportEntries.length});
+
+            reportEntries.forEach(([key, report]) => {
+                console.log(Processing Report ${key}: Report User UID: ${report.userUid}, Current User UID: ${userUid});
+
+                if (userRole === "ABVN" && report.userUid !== userUid) {
+                    console.log(Skipping report ${key} for ABVN - User UID mismatch. Report UID: ${report.userUid}, Current User UID: ${userUid});
+                    return;
+                }
+
+                console.log(Including report ${key} for ${userRole});
+
+                totalFoodPacks += parseFloat(report.NoOfFoodPacks || 0);
+                totalHotMeals += parseFloat(report.NoOfHotMeals || 0);
+                totalWaterLiters += parseFloat(report.LitersOfWater || 0);
+                totalVolunteers += parseFloat(report.NoOfVolunteersMobilized || 0);
+                totalMonetaryDonations += parseFloat(report.TotalMonetaryDonations || 0);
+                totalInKindDonations += parseFloat(report.TotalValueOfInKindDonations || 0);
+            });
+
+            console.log(Calculated totals for ${userRole} (UID: ${userUid}) - Food Packs: ${totalFoodPacks}, Hot Meals: ${totalHotMeals}, Water Liters: ${totalWaterLiters}, Volunteers: ${totalVolunteers}, Monetary Donations: ${totalMonetaryDonations}, In-Kind Donations: ${totalInKindDonations});
+        } else {
+            console.log("No approved reports found in the database.");
+        }
+
+        if (foodPacksEl) foodPacksEl.textContent = totalFoodPacks.toLocaleString();
+        if (hotMealsEl) hotMealsEl.textContent = totalHotMeals.toLocaleString();
+        if (waterLitersEl) waterLitersEl.textContent = totalWaterLiters.toLocaleString();
+        if (volunteersEl) volunteersEl.textContent = totalVolunteers.toLocaleString();
+        if (amountRaisedEl) amountRaisedEl.textContent = ₱${totalMonetaryDonations.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })};
+        if (inKindDonationsEl) inKindDonationsEl.textContent = ₱${totalInKindDonations.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })};
+    }, error => {
+        console.error("Error fetching approved reports:", error);
+        Swal.fire({
+            icon: "error",
+            title: "Error",
+            text: "Failed to load dashboard data. Please try again later.",
+        });
+        if (foodPacksEl) foodPacksEl.textContent = "0";
+        if (hotMealsEl) hotMealsEl.textContent = "0";
+        if (waterLitersEl) waterLitersEl.textContent = "0";
+        if (volunteersEl) volunteersEl.textContent = "0";
+        if (amountRaisedEl) amountRaisedEl.textContent = "₱0.00 (Error)";
+        if (inKindDonationsEl) inKindDonationsEl.textContent = "₱0.00 (Error)";
+    });
+}
+
+// Function to clean up listeners and map state when navigating away
+function cleanupDashboard() {
+    console.log("Cleaning up dashboard state");
+
+    if (activationsListener) {
+        activationsListener.off();
+        activationsListener = null;
+        console.log("Removed activations listener");
+    }
+
+    if (reportsListener) {
+        reportsListener.off();
+        reportsListener = null;
+        console.log("Removed reports listener");
+    }
+
+    markers.forEach(marker => marker.setMap(null));
+    markers = [];
+
+    if (singleInfoWindow) {
+        singleInfoWindow.close();
+        singleInfoWindow = null;
+        currentInfoWindow = null;
+        isInfoWindowClicked = false;
+    }
+}
+
+window.addEventListener('beforeunload', () => {
+    cleanupDashboard();
 });
 
+window.addEventListener('navigate-away', () => {
+    console.log('navigate-away event: Cleaning up dashboard');
+    cleanupDashboard();
+});

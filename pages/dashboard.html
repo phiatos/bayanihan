@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -17,9 +16,6 @@
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-    <!-- Google Maps JavaScript API -->
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBDtlY28p-MvLHRtxnjiibSAadSETvM3VU&libraries=places&callback=initMap" async defer></script>
-
     <title>Dashboard</title>
 </head>
 <body>
@@ -34,7 +30,7 @@
                 </div>
             </div>
 
-            <!-- Search Bar -->
+            <!-- Search Bar (Unchanged) -->
             <div class="search-container">
                 <div class="input-container">
                     <input
@@ -49,41 +45,36 @@
                 </div>
             </div>
 
-           <div class="metrics-container" role="region" aria-label="Disaster Relief Metrics Dashboard">
-            <div class="metric-card" tabindex="0" data-description="Total number of food packs distributed to families">
-                <h3> <i class='bx bxs-box' aria-hidden="true"></i>No. of Food Packs</h3>
-                <p id="food-packs" aria-live="polite" aria-atomic="true">0</p>
+            <!-- Dashboard Metrics -->
+            <div class="metrics-container" style="padding: 1.5rem;">
+                <div class="metric-card">
+                    <h3>No. of Food Packs</h3>
+                    <p id="food-packs">0</p>
+                </div>
+                <div class="metric-card">
+                    <h3>No. of Hot Meals</h3>
+                    <p id="hot-meals">0</p>
+                </div>
+                <div class="metric-card">
+                    <h3>Liters of Water</h3>
+                    <p id="water-liters">0</p>
+                </div>
+                <div class="metric-card">
+                    <h3>No. of Volunteers Mobilized</h3>
+                    <p id="volunteers">0</p>
+                </div>
+                <div class="metric-card">
+                    <h3>Total Monetary Donations</h3>
+                    <p id="amount-raised">0</p>
+                </div>
+                <div class="metric-card">
+                    <h3>Total Value of In-Kind Donations</h3>
+                    <p id="inkind-donations">0</p>
+                </div>
             </div>
 
-            <div class="metric-card" tabindex="0" data-description="Total number of hot meals served">
-                <h3> <i class='bx bxs-bowl-hot' aria-hidden="true"></i> No. of Hot Meals</h3>
-                <p id="hot-meals" aria-live="polite" aria-atomic="true">0</p>
-            </div>
-
-            <div class="metric-card" tabindex="0" data-description="Total liters of clean water provided">
-                <h3> <i class='bx bxs-droplet' aria-hidden="true"></i> Liters of Water</h3>
-                <p id="water-liters" aria-live="polite" aria-atomic="true">0</p>
-            </div>
-
-            <div class="metric-card" tabindex="0" data-description="Number of volunteers mobilized for the relief efforts">
-                <h3> <i class='bx bxs-group' aria-hidden="true"></i> Volunteers Mobilized</h3>
-                <p id="volunteers" aria-live="polite" aria-atomic="true">0</p>
-            </div>
-
-            <div class="metric-card" tabindex="0" data-description="Total monetary donations raised in Philippine Pesos">
-                <h3>  <i class='bx bxs-bank' aria-hidden="true"></i> Monetary Donations</h3>
-                <p id="amount-raised" aria-live="polite" aria-atomic="true">₱0</p>
-            </div>
-
-            <div class="metric-card" tabindex="0" data-description="Total estimated value of in-kind donations received">
-                <h3> <i class='bx bxs-package' aria-hidden="true"></i> In-Kind Donations</h3>
-                <p id="inkind-donations" aria-live="polite" aria-atomic="true">₱0</p>
-            </div>
-            </div>
-
-
-            <!-- Map Container -->
-            <div class="map-container">
+            <!-- Map Container with Fixed Height -->
+            <div class="map-container" style="height: 400px;">
                 <div id="map" style="height: 100%; width: 100%;"></div>
             </div>
         </div>
@@ -101,8 +92,30 @@
             .catch(error => {
                 console.error('Error loading sidebar:', error);
             });
+
+        // Initialize the dashboard map on load
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('DOMContentLoaded: Initializing dashboard');
+            if (typeof initializeDashboard === 'function') {
+                initializeDashboard();
+            } else {
+                console.error('initializeDashboard function not found');
+            }
+        });
+
+        // Listen for custom navigation events (for client-side navigation)
+        window.addEventListener('dashboard-loaded', () => {
+            console.log('dashboard-loaded event: Initializing dashboard');
+            if (typeof initializeDashboard === 'function') {
+                initializeDashboard();
+            } else {
+                console.error('initializeDashboard function not found');
+            }
+        });
     </script>
 
     <script type="module" src="../js/dashboard.js"></script>
+    <!-- Load Google Maps API without callback -->
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBDtlY28p-MvLHRtxnjiibSAadSETvM3VU&libraries=places"></script>
 </body>
 </html>
