@@ -222,8 +222,7 @@
 
 // Firebase imports
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js';
-import { getAuth, sendEmailVerification, signInWithEmailAndPassword, signOut, applyActionCode } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
-import { getAnalytics } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js';
+import { getAuth, sendEmailVerification, signInWithEmailAndPassword, signOut, applyActionCode, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';import { getAnalytics } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js';
 import { getDatabase, ref, get, set } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js';
 import { validateEmail, validatePassword, displayError, clearError } from '../js/login.js';
 
@@ -292,6 +291,27 @@ document.addEventListener("DOMContentLoaded", async () => { // Made async to use
     }
     // --- END NEW / MODIFIED ---
 
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            const currentPage = window.location.pathname;
+            const profilePage = '/pages/profile.html';
+
+            try {
+                const userSnapshot = await get(ref(database, `users/${user.uid}`));
+                const userData = userSnapshot.val();
+
+                const passwordNeedsReset = userData?.password_needs_reset === true;
+
+                if (passwordNeedsReset && !currentPage.includes(profilePage)) {
+                    showToast("Please update your password to continue.", 'warning');
+                    window.location.replace(profilePage);
+                }
+
+            } catch (error) {
+                console.error("Error fetching user data for password reset check:", error);
+            }
+        }
+    });
 
     // Switch to Register form
     if (registerBtn && container) {
@@ -354,6 +374,7 @@ document.addEventListener("DOMContentLoaded", async () => { // Made async to use
                         isFirstLogin: true,
                         termsAccepted: false,
                         terms_agreed_version: 0,
+                        password_needs_reset: false,
                     };
                     await set(ref(database, `users/${user.uid}`), userData);
                 }
@@ -406,6 +427,7 @@ document.addEventListener("DOMContentLoaded", async () => { // Made async to use
                     isFirstLogin: isFirstLogin,
                     termsAccepted: termsAccepted,
                     terms_agreed_version: termsAgreedVersion,
+                    password_needs_reset: passwordNeedsReset
                 };
 
                 console.log("User Data being stored in localStorage:", updatedUserData);
@@ -430,26 +452,35 @@ document.addEventListener("DOMContentLoaded", async () => { // Made async to use
                     });
                 }
 
-                // Redirection Logic
-                setTimeout(() => {
-                    if (isAdmin && !isFirstLogin && termsAccepted) {
-                        console.log("Redirecting Admin to dashboard.");
-                        window.location.replace('../pages/dashboard.html');
-                    } else if (isFirstLogin || !termsAccepted) {
-                        console.log("Redirecting to profile.html for first login or unaccepted terms.");
-                        window.location.replace('../pages/profile.html');
-                    } else {
-                        console.log("Redirecting based on role.");
-                        const userRole = userData.role;
+              setTimeout(() => {
+                const currentPage = window.location.pathname;
+                const profilePage = '/pages/profile.html';
 
-                        if (userRole === "ABVN") {
-                            window.location.replace('../pages/dashboard.html');
-                        } else {
-                            console.error("Unknown user role or unhandled redirection:", userRole);
-                            window.location.replace('../pages/dashboard.html'); 
-                        }
+                // --- ADD THIS BLOCK FIRST ---
+                // Check if password needs reset and user is not already on the profile page
+                if (passwordNeedsReset && !currentPage.includes(profilePage)) {
+                    console.log("Redirecting to profile.html due to password reset requirement.");
+                    window.location.replace(profilePage);
+                } 
+                // --- END ADDITION ---
+                else if (isAdmin && !isFirstLogin && termsAccepted) {
+                    console.log("Redirecting Admin to dashboard.");
+                    window.location.replace('../pages/dashboard.html');
+                } else if (isFirstLogin || !termsAccepted) {
+                    console.log("Redirecting to profile.html for first login or unaccepted terms.");
+                    window.location.replace('../pages/profile.html');
+                } else {
+                    console.log("Redirecting based on role.");
+                    const userRole = userData.role;
+
+                    if (userRole === "ABVN") {
+                        window.location.replace('../pages/dashboard.html');
+                    } else {
+                        console.error("Unknown user role or unhandled redirection:", userRole);
+                        window.location.replace('../pages/dashboard.html'); 
                     }
-                }, 2000); 
+                }
+            }, 2000);
 
             } catch (error) {
                 // Handle Firebase authentication errors
