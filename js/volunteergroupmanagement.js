@@ -313,17 +313,18 @@ function renderPagination(totalRows) {
 
 // Edit and Delete functionality
 function attachRowHandlers() {
-  // Edit button handler
   document.querySelectorAll('.editBtn').forEach(button => {
     button.addEventListener('click', () => {
       const row = button.closest('tr');
       const rowId = button.getAttribute('data-id');
       const cells = row.querySelectorAll('td');
-      const isEditable = cells[0].getAttribute('contenteditable') === 'true';
+      const isEditable = cells[1].getAttribute('contenteditable') === 'true';
 
       if (!isEditable) {
         cells.forEach((cell, i) => {
-          if (i < cells.length - 1) cell.setAttribute('contenteditable', 'true');
+          if (i > 0 && i < cells.length - 1) { // skip first (index 0) and last (button column)
+            cell.setAttribute('contenteditable', 'true');
+          }
         });
         button.textContent = 'Save';
         editingRowId = rowId;
@@ -340,7 +341,9 @@ function attachRowHandlers() {
         database.ref(`volunteerGroups/${rowId}`).update(updatedData)
           .then(() => {
             cells.forEach((cell, i) => {
-              if (i < cells.length - 1) cell.setAttribute('contenteditable', 'false');
+              if (i > 0 && i < cells.length - 1) { // again skip first and last
+                cell.setAttribute('contenteditable', 'false');
+              }
             });
             button.textContent = 'Edit';
             editingRowId = null;

@@ -129,7 +129,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const btn = document.createElement('button');
       btn.textContent = label;
       if (disabled) btn.disabled = true;
-      if (isActive) btn.classList.add('active');
+      if (isActive) btn.classList.add('active-page');
       btn.addEventListener('click', () => {
         currentPage = page;
         renderTable(filteredLogs);
@@ -266,6 +266,8 @@ document.addEventListener('DOMContentLoaded', () => {
   function viewLog(globalIndex) {
     const log = filteredLogs[globalIndex];
     const previewDiv = document.getElementById("modalContent");
+
+    let reportIDHTML = `<h2>${log.rdanaId}`;
   
     // Profile Section
     let profileHTML = `<h3>Profile of the Disaster</h3><div class='table-scroll'><table class='preview-table'>`;
@@ -330,7 +332,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <p><strong>Number of Families Served:</strong> ${log.familiesServed || "N/A"}</p>
     `;
 
-    previewDiv.innerHTML = profileHTML + modalityHTML + summaryHTML + affectedHTML + structureHTML + checklistHTML + otherNeedsHTML;
+    previewDiv.innerHTML = reportIDHTML + profileHTML + modalityHTML + summaryHTML + affectedHTML + structureHTML + checklistHTML + otherNeedsHTML;
 
     document.getElementById("previewModal").style.display = "block";
   }
