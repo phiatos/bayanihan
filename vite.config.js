@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-  base: '/bayanihan/', // Or '/' if deployed at root
+  base: '/', // Or '/' if deployed at root
 
   build: {
     outDir: 'dist', 
