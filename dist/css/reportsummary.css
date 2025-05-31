@@ -1,0 +1,108 @@
+/* Container for summaries */
+#summaryContainer {
+    width: 100%;
+    margin: 0 auto;
+    padding: 0;
+}
+
+/* Category section (like Basic Information box) */
+.category-section {
+    border: 2px solid var(--primary-color); 
+    background-color: rgba(20, 174, 187, 0.1);
+    border-radius: 8px;
+    padding: 10px;
+    margin: 10px 0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+/* Category title (Basic Info, Relief Ops, etc.) */
+.category-title {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 12px;
+    font-weight: bold;
+    margin: 6px 0;
+    color: var(--primary-color);
+}
+
+/* Each field inside the category */
+.summary-box {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+/* Field name */
+.summary-box strong {
+    font-size: 0.75rem;
+    font-weight: bold;
+    color: var(--primary-color);
+}
+
+/* Field value */
+.summary-box span {
+    font-size: 0.75rem;
+    color: #555;
+}
+
+#submitBtn, #backBtn{
+    background-color: var(--primary-color);
+    color: var(--white);
+    padding: 0.75rem 2rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    cursor: pointer;
+    display: block;
+    align-items: start;
+    margin-left: 20px;
+    font-weight: 600;
+}
+
+#submitBtn:hover {
+    background-color: var(--button-hover);
+}
+.button-group {
+    display: flex;
+    flex-direction: row;
+    justify-content: start;
+}
+#submitBtn, #backBtn {
+    width: 150px;
+    margin-right: 10px; /* Add space between buttons */
+    padding: 15px;
+}
+
+
+/* RESPONSIVE BEHAVIOR */
+@media (max-width: 480px) {
+    .summary-box {
+        font-size: 10px;
+        flex-direction: row;
+        align-items: center;
+    }
+
+    .category-section {
+        padding: 10px;
+        margin: 20px 0;
+    }
+
+    .summary-box strong {
+        width: 220px;
+        font-size: 10px;
+        margin-bottom: 0; /* Remove bottom margin in row layout */
+        flex-shrink: 0;
+    }
+
+    .summary-box span {
+        flex: 1;
+    }
+
+    #submitBtn, #backBtn{
+        width: 100%;
+        padding: 10px;
+        border-radius: 8px;
+        font-size: 14px;
+        align-items: center;
+    }
+}

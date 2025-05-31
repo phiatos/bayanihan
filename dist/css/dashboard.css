@@ -1,0 +1,254 @@
+body {
+    margin: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f4f6f9;
+    color: #333;
+}
+
+.main-container {
+    display: flex;
+    height: 100vh;
+}
+
+#main-content {
+    flex: 1;
+    padding: 2rem;
+    overflow-y: auto;
+    background: #fff;
+    border-radius: 1rem 0 0 1rem;
+    box-shadow: -4px 0 10px rgba(0, 0, 0, 0.05);
+}
+
+header {
+    font-size: 2rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    color: #2c3e50;
+}
+
+.metrics-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 2rem;
+  padding: 1.5rem;
+}
+
+.metric-card {
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 20px;
+  padding: 2.2rem 1.8rem;
+  border: 1.5px solid rgba(15, 186, 186, 0.3);
+  box-shadow:
+    0 4px 8px rgba(15, 186, 186, 0.1),
+    inset 0 0 8px rgba(255, 255, 255, 0.6);
+  transition:
+    transform 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.4s ease;
+  cursor: default;
+  opacity: 0;
+  animation: fadeInUp 0.7s ease forwards;
+  position: relative;
+  overflow: hidden;
+  will-change: transform, box-shadow, opacity;
+}
+
+.metric-card::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(120deg, #0fbaba 0%, #23d7d7 50%, #0fbaba 100%);
+  opacity: 0;
+  transform: rotate(25deg);
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+  filter: blur(40px);
+  z-index: 1;
+  border-radius: 20px;
+}
+
+.metric-card:hover::before {
+  opacity: 0.15;
+}
+
+.metric-card:hover {
+  transform: translateY(-10px) scale(1.05);
+  box-shadow:
+    0 16px 32px rgba(15, 186, 186, 0.25),
+    inset 0 0 14px rgba(255, 255, 255, 0.8);
+  border-color: #0aa1a1;
+  z-index: 2;
+}
+
+.metric-card h3 {
+  position: relative;
+  z-index: 3;
+  text-align: center;
+  font-size: clamp(1rem, 1.4vw, 1.3rem);
+  font-weight: 700;
+  color: #1f3f3f;
+  margin-bottom: 0.8rem;
+  letter-spacing: 0.05em;
+  text-shadow: 0 1px 1px rgba(255, 255, 255, 0.8);
+}
+
+.metric-card p {
+  position: relative;
+  z-index: 3;
+  text-align: center;
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 800;
+  color: #0fbaba;
+  margin: 0;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  
+}
+
+/* Fade-in animation */
+@keyframes fadeInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+
+/* Search Bar Styles */
+.search-container {
+    margin: 1rem 0;
+    padding: 0 1rem;
+}
+
+.input-container {
+    display: flex;
+    align-items: center;
+    background-color: #fff;
+    border-radius: 12px;
+    padding: 0.5rem 1rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+    
+.search-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 1rem;
+    color: #333;
+    padding: 0.5rem;
+}
+
+.search-input::placeholder {
+    color: #656079;
+}
+
+.search-icon i {
+    align-items: center;
+    justify-content: center;
+}
+
+.search-icon, .search-icon:hover {
+    all: unset;
+    justify-content: center;
+}
+
+/* Map Container Styles */
+.map-container {
+    margin: 10px 0;
+    padding: 10px;
+    border: 2px dashed #aaa;
+    height: 500px;
+    position: relative;
+}
+
+@media (max-width: 1024px) {
+    .metrics-container {
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    }
+    .map-container {
+        margin: 1rem;
+        padding: 1rem;
+    }
+    .search-container {
+        padding: 0 0.8rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .metrics-container {
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); 
+    }
+
+    .metric-card {
+        width: 100%; 
+        padding: 16px; 
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between; 
+        text-align: center; 
+    }
+
+    .metric-card h3 {
+        font-size: 14px; 
+        color: #7f8c8d; 
+    }
+
+    .metric-card p {
+        font-size: 18px; 
+        font-weight: bold;
+        color: #2980b9;
+        margin: 0;
+    }
+    .map-container {
+        padding: 0.8rem;
+    }
+    .search-container {
+        padding: 0 0.6rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .metrics-container {
+        grid-template-columns: repeat(2, 1fr); 
+        gap: 1rem; 
+    }
+
+    .metric-card {
+        width: 100%; 
+        padding: 8px; 
+        display: flex;
+    }
+
+    .metric-card h3 {
+        font-size: 10px;
+        color: #7f8c8d;
+        margin-bottom: 0.25rem; 
+    }
+
+    .metric-card p {
+        font-size: 14px; 
+        font-weight: bold;
+        color: #2980b9;
+        margin: 0;
+    }
+
+    .map-container {
+        padding: 0.5rem;
+        height: 350px;
+    }
+    .search-container {
+        padding: 0 0.4rem;
+    }
+    .search-input {
+        font-size: 0.9rem;
+    }
+}
