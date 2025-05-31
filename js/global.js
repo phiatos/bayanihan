@@ -129,8 +129,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (!isAdmin && !user.emailVerified) {
                     try {
                         const actionCodeSettings = {
-                            url: '../pages/login.html', 
-                            handleCodeInApp: false,
+                            // url: '../pages/login.html', 
+                            // handleCodeInApp: false,
+                            url: 'https://bayanihan.vercel.app/pages/login.html',
+                            handleCodeInApp: true
                         };
                         console.log("Sending verification email to:", user.email);
                         await sendEmailVerification(user, actionCodeSettings);
