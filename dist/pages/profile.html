@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel='stylesheet' href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css'/>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <title>Profile Page</title>
+  <script type="module" crossorigin src="/bayanihan/assets/profile-C4zEsk98.js"></script>
+  <link rel="modulepreload" crossorigin href="/bayanihan/assets/modulepreload-polyfill-B5Qt9EMX.js">
+  <link rel="modulepreload" crossorigin href="/bayanihan/assets/index.esm2017-CKqBSwm5.js">
+  <link rel="stylesheet" crossorigin href="/bayanihan/assets/profile-D368Eqp1.css">
+  <link rel="stylesheet" crossorigin href="/bayanihan/assets/sidebar-CSb7cCH2.css">
+  <link rel="stylesheet" crossorigin href="/bayanihan/assets/global-Bw-aSEzx.css">
+</head>
+<body>
+    <div class="main-container">
+        <div class="sidebar-placeholder"></div>
+        <div id="main-content">
+            <header>Profile</header>
+            <!-- Group Information Section -->
+            <div class="group-info">
+                <h2 id="group-title">Loading Group Information...</h2>
+                <p id="group-description" style="display: none;">Fetching group details...</p>
+            </div>
+            <form action="">
+                <div class="form first">
+                    <div class="form-container-1" id="basic-info-section">
+                        <span class="title">Basic Information</span>
+                        <div class="fields">
+                            <div class="input-field">
+                                <label>Role</label>
+                                <p id="profile-position">Loading...</p>
+                            </div>
+                            <div class="input-field" id="org-name-field">
+                                <label>Organization Name</label>
+                                <p id="profile-org-name">Loading...</p>
+                            </div>
+                            <div class="input-field" id="hq-field">
+                                <label>HQ</label>
+                                <p id="profile-hq">Loading...</p>
+                            </div>
+                            <div class="input-field">
+                                <label>Contact Person</label>
+                                <p id="profile-contact-person">Loading...</p>
+                            </div>
+                            <div class="input-field">
+                                <label>Email Address</label>
+                                <p id="profile-email">Loading...</p>
+                            </div>
+                            <div class="input-field">
+                                <label>Mobile Number</label>
+                                <p id="profile-mobile">Loading...</p>
+                            </div>
+                            <div class="input-field" id="area-field">
+                                <label>Area of Operation</label>
+                                <p id="profile-area">Loading...</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-container-2">
+                        <span class="title">Change Password</span>
+                        <div class="fields">
+                            <div class="input-field">
+                                <label>Current Password</label>
+                                <div class="input-box-input-with-icon">
+                                    <input type="password" id="current-password" placeholder="Enter your temporary password" required>
+                                    <i class='bx bxs-lock-alt password-toggle-closed'></i>
+                                    <i class='bx bxs-lock-open-alt password-toggle-open'></i>
+                                </div>
+                            </div>
+
+
+                            <div class="input-field">
+                            <label>New Password</label>
+                            <div class="input-box-input-with-icon">
+                                <input type="password" id="new-password" placeholder="Enter your new password" required>
+                                <i class='bx bxs-lock-alt password-toggle-closed'></i>
+                                <i class='bx bxs-lock-open-alt password-toggle-open'></i>
+                            </div>
+
+                            <!-- Tooltip helper (hidden by default) -->
+                            <div id="password-tooltip" class="password-tooltip">
+                                <span> <strong> Password must include: </strong></span>
+                                <ul>
+                                    <li id="check-length">❌ At least 8 characters</li>
+                                    <li id="check-uppercase">❌ An uppercase letter</li>
+                                    <li id="check-number">❌ A number</li>
+                                    <li id="check-symbol">❌ A symbol (!@#$ etc.)</li>
+                                </ul>
+                            </div>
+
+                            <!-- Strength bar & message (hidden by default) -->
+                            <div class="strength-bar-container" id="strength-bar-container">
+                                <div class="strength-bar" id="strength-bar"></div>
+                            </div>
+                            <div id="password-strength-message" id="password-strength-message" class="strength-message">
+                                Strength:
+                            </div>
+                        </div>
+
+
+                            <div class="input-field">
+                                <label>Confirm New Password</label>
+                                <div class="input-box-input-with-icon">
+                                    <input type="password" id="confirm-new-password" placeholder="Confirm your new password" required>
+                                    <i class='bx bxs-lock-alt password-toggle-closed'></i>
+                                    <i class='bx bxs-lock-open-alt password-toggle-open'></i>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="submit" class="nextBtn">
+                            <span class="btnText">Change Password</span>
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+       <div id="termsAndConditionsModal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header"> 
+                    <h2>Terms and Conditions</h2>
+                </div>
+                <div class="terms-scroll-area">
+                    <h3>1. Introduction</h3>
+                    <p>Welcome to Bayanihan! These Terms and Conditions ("Terms") govern your use of the Bayanihan application and services. By accessing or using Bayanihan, you agree to be bound by these Terms.</p>
+
+                    <h3>2. User Responsibilities</h3>
+                    <ul>
+                        <li>You must provide accurate and complete information during registration and keep it updated.</li>
+                        <li>You are responsible for maintaining the confidentiality of your account password.</li>
+                        <li>You agree to use Bayanihan only for lawful purposes and in accordance with these Terms.</li>
+                    </ul>
+
+                    <h3>3. Data Collection and Privacy</h3>
+                    <p>By using Bayanihan, you consent to the collection and storage of your data for disaster response and related purposes as outlined in our Privacy Policy. Our Privacy Policy is an integral part of these Terms and Conditions. We commit to protecting your data and using it responsibly.</p>
+
+                    <h3>4. Prohibited Activities</h3>
+                    <p>You agree not to engage in any of the following prohibited activities:</p>
+                    <ul>
+                        <li>Violating any applicable laws or regulations.</li>
+                        <li>Transmitting any harmful or malicious code.</li>
+                        <li>Interfering with the operation of Bayanihan.</li>
+                        <li>Attempting to gain unauthorized access to our systems.</li>
+                    </ul>
+
+                    <h3>5. Intellectual Property</h3>
+                    <p>All content and intellectual property on Bayanihan, including but not limited to text, graphics, logos, and software, are the property of Bayanihan or its licensors and are protected by intellectual property laws.</p>
+
+                    <h3>6. Disclaimer of Warranties</h3>
+                    <p>Bayanihan is provided "as is" and "as available" without any warranties of any kind, either express or implied. We do not warrant that the service will be uninterrupted, error-free, or secure.</p>
+
+                    <h3>7. Limitation of Liability</h3>
+                    <p>To the fullest extent permitted by applicable law, Bayanihan shall not be liable for any indirect, incidental, special, consequential, or punitive damages, or any loss of profits or revenues, whether incurred directly or indirectly, or or any loss of data, use, goodwill, or other intangible losses, resulting from (a) your access to or use of or inability to access or use the service; (b) any conduct or content of any third party on the service; (c) any content obtained from the service; and (d) unauthorized access, use or alteration of your transmissions or content.</p>
+
+                    <h3>8. Governing Law</h3>
+                    <p>These Terms shall be governed and construed in accordance with the laws of the Philippines, without regard to its conflict of law provisions.</p>
+
+                    <h3>9. Changes to Terms</h3>
+                    <p>We reserve the right to modify or replace these Terms at any time. If a revision is material, we will provide at least 30 days' notice prior to any new terms taking effect. By continuing to access or use our Service after those revisions become effective, you agree to be bound by the revised terms.</p>
+
+                    <h3>10. Contact Us</h3>
+                    <p>If you have any questions about these Terms, please contact us at support@bayanihan.com.</p>
+                </div>
+                <div class="modal-footer">
+                    <label for="agreeCheckbox">
+                        <input type="checkbox" id="agreeCheckbox"> I have read and agree to the Terms and Conditions and the Privacy Policy.
+                    </label>
+                    <button id="agreeButton" disabled>Agree and Continue</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Fetch the sidebar HTML and inject it into the page
+        fetch('../components/sidebar.html')
+            .then(response => response.text())
+            .then(data => {
+                document.querySelector('.sidebar-placeholder').innerHTML = data;
+
+                // Create a new script element
+                const sidebarScript = document.createElement('script');
+                sidebarScript.src = '../components/sidebar.js'; 
+
+                // Append the script element to the sidebar-placeholder
+                document.querySelector('.sidebar-placeholder').appendChild(sidebarScript);
+            })
+            .catch(error => {
+                console.error('Error loading sidebar:', error);
+            });
+    </script>
+    
+</body>
+</html>

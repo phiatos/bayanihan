@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel='stylesheet' href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css'/>
+
+    <!-- Firebase Compat SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <title>Reports Verification</title>
+  <link rel="stylesheet" crossorigin href="/bayanihan/assets/reportsVerification-D8pXy4cF.css">
+  <link rel="stylesheet" crossorigin href="/bayanihan/assets/sidebar-CSb7cCH2.css">
+  <link rel="stylesheet" crossorigin href="/bayanihan/assets/global-Bw-aSEzx.css">
+</head>
+<body>
+    <div class="main-container">
+        <div class="sidebar-placeholder"></div>
+        <div id="main-content">
+            <div class="controls">
+                <div class="controls_left">
+                    <header>Reports Verification</header>
+                </div>
+                <div class="controls_right">
+                    <div class="search-wrapper">
+                        <i class="fa fa-search"></i>
+                        <input type="text" placeholder="Search" id="searchInput" />
+                        <!-- <button onclick="clearDInputs()" class="clear-btn">
+                            <i class='bx bx-x'></i>
+                        </button> -->
+                    </div>
+                    <div class="custom-select-wrapper">
+                        <select id="sortSelect">
+                            <option value="">Sort by</option>
+                            <optgroup label="Group">
+                                <option value="VolunteerGroupName-asc">Group Name (A–Z)</option>
+                                <option value="VolunteerGroupName-desc">Group Name (Z–A)</option>   
+                            </optgroup>
+                            <optgroup label="Location">
+                                <option value="AreaOfOperation-asc">Area of Operation (A–Z)</option>
+                                <option value="AreaOfOperation-desc">Area of Operation (Z–A)</option>
+                            </optgroup>
+                            <optgroup label="Time">
+                                <option value="TimeOfIntervention-asc">Time of Intervention (Low–High)</option>
+                                <option value="TimeOfIntervention-desc">Time of Intervention (High-Low)</option>
+                            </optgroup>
+                            <optgroup label="Date">
+                                <option value="DateOfReport-asc">Report Date (Low–High)</option>
+                                <option value="DateOfReport-desc">Report Date (High–Low)</option>
+                            </optgroup>
+                        </select>
+                        <i class='bx bx-chevron-down'></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-controls">
+                <button id="viewApprovedBtn" class="viewApprovedBtn">
+                    <i class='bx bx-show' style="font-size: 1.2rem;"></i>View Approved Reports</button>
+            </div>
+
+            <table id="reportsTable">
+                <thead>
+                    <tr>
+                        <th>No.</th>
+                        <th>Report ID</th>
+                        <th>Volunteer Group Name</th>
+                        <th>Area of Operation</th>
+                        <th>Time of Intervention</th>
+                        <th>Report Date</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="submittedReportsContainer"></tbody>
+            </table>
+            <div class="pagination-info">
+                <span id="entriesInfo">Showing 0 to 0 of 0 entries</span>
+                <div id="pagination" class="pagination"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="reportModal" class="modal hidden">
+        <div class="modal-content">
+            <span id="closeModal" class="close">&times;</span>
+            <div class="modal-header"> 
+                <h2>Report Details</h2>
+             </div>
+          <div id="modalReportDetails"></div>
+        </div>
+    </div>
+
+    <script>
+        fetch('../components/sidebar.html')
+        .then(response => response.text())
+        .then(data => {
+            document.querySelector('.sidebar-placeholder').innerHTML = data;
+            const sidebarScript = document.createElement('script');
+            sidebarScript.src = '../components/sidebar.js';
+            sidebarScript.onload = function() {};
+            document.querySelector('.sidebar-placeholder').appendChild(sidebarScript);
+        })
+        .catch(error => {
+            console.error('Error loading sidebar:', error);
+        });
+    </script>
+    <script src="../js/reportsverification.js"></script>
+</body>
+</html>

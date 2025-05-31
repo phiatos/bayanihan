@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel='stylesheet' href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css'/>
+
+    <!-- Firebase Compat SDK (updated to 9.22.0) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Sheets -->
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+    <!-- PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    
+    <title>Monetary Donations</title>
+  <link rel="stylesheet" crossorigin href="/bayanihan/assets/sidebar-CSb7cCH2.css">
+  <link rel="stylesheet" crossorigin href="/bayanihan/assets/inkind-DLcc7cLs.css">
+  <link rel="stylesheet" crossorigin href="/bayanihan/assets/global-Bw-aSEzx.css">
+</head>
+<body>
+    <div class="main-container">
+        <div class="sidebar-placeholder"></div>
+
+        <div id="main-content">
+            <header>Monetary Donations</header>
+
+            <div class="form-page-1">
+                <div class="form-first">
+                    <form id="form-container-1">
+                    <div class="fields">
+                        <div class="input-field">
+                            <label for="encoder">Encoder</label>
+                            <input type="text" id="encoder" placeholder="Enter encoder name" maxlength="70" required>
+                        </div>
+                        <div class="input-field">
+                            <label for="name">Names/Company</label>
+                            <input type="text" id="name" placeholder="Enter name or company" maxlength="100" required>
+                        </div>
+                        <div class="input-field">
+                            <label for="address">Location (at least City Address)</label>
+                            <input type="text" id="address" placeholder="Enter city or full address" maxlength="150" required>
+                        </div>
+                        <div class="input-field">
+                            <label for="number">Number</label>
+                            <input type="tel" id="number" placeholder="Enter contact number" maxlength="15" required>
+                        </div>
+                        <div class="input-field">
+                            <label for="amount">Amount Donated</label>
+                            <input type="number" id="amount" placeholder="Enter amount in PHP"  max="999999999" required>
+                        </div>
+                        <div class="input-field">
+                            <label for="invoice">Cash Invoice #</label>
+                            <input type="text" id="invoice" placeholder="Automatically generated" readonly maxlength="30">
+                        </div>
+                        <div class="input-field">
+                            <label for="dateReceived">Date Received</label>
+                            <input type="date" id="dateReceived" required>
+                        </div>
+                        <div class="input-field">
+                            <label for="email">Email</label>
+                            <input type="email" id="email" placeholder="Enter email address" maxlength="100" required>
+                        </div>
+                        <div class="input-field">
+                            <label for="bank">Bank</label>
+                            <input type="text" id="bank" placeholder="Enter bank name" maxlength="50" required>
+                        </div>
+                        <div class="input-field">
+                            <label for="proof">Proof of Transaction (Gdrive Link)</label>
+                            <input type="url" id="proof" placeholder="Enter Google Drive link" maxlength="255" required/>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="bayanihanBtn">Add Donation</button>
+                    <button type="button" id="clearFormBtn" class="bayanihanBtn">Clear Form</button>
+                    </form>
+                </div>
+            </div>
+            
+            <section>
+                <div class="controls">
+                    <div class="controls_left">
+                        <h2>Monetary Donations Log</h2>
+                    </div>
+                    <div class="controls_right">
+                        <div class="search-wrapper">
+                            <i class="fa fa-search"></i>
+                            <input type="text" placeholder="Search" id="searchInput" />
+                        </div>
+                        <div class="custom-select-wrapper">
+                            <select id="sortSelect">
+                                <option value="">Sort by</option>
+                                <optgroup label="Encoder">
+                                    <option value="encoder-asc">Encoder (A–Z)</option>
+                                    <option value="encoder-desc">Encoder (Z–A)</option>
+                                </optgroup>
+                                <optgroup label="Names/Company">
+                                    <option value="name-asc">Names/Company (A–Z)</option>
+                                    <option value="name-desc">Names/Company (Z–A)</option>
+                                </optgroup>
+                                <optgroup label="Location">
+                                    <option value="address-asc">Location (A–Z)</option>
+                                    <option value="address-desc">Location (Z–A)</option>
+                                </optgroup>
+                                <optgroup label="Number">
+                                    <option value="number-asc">Number (Low–High)</option>
+                                    <option value="number-desc">Number (High–Low)</option>
+                                </optgroup>
+                                <optgroup label="Amount Donated">
+                                    <option value="amount-asc">Amount Donated (Low–High)</option>
+                                    <option value="amount-desc">Amount Donated (High–Low)</option>
+                                </optgroup>
+                                <optgroup label="Cash Invoice #">
+                                    <option value="invoice-asc">Cash Invoice # (A–Z)</option>
+                                    <option value="invoice-desc">Cash Invoice # (Z–A)</option>
+                                </optgroup>
+                                <optgroup label="Date Received">
+                                    <option value="dateReceived-asc">Date Received (Earliest–Latest)</option>
+                                    <option value="dateReceived-desc">Date Received (Latest–Earliest)</option>
+                                </optgroup>
+                                <optgroup label="Email">
+                                    <option value="email-asc">Email (A–Z)</option>
+                                    <option value="email-desc">Email (Z–A)</option>
+                                </optgroup>
+                                <optgroup label="Bank">
+                                    <option value="bank-asc">Bank (A–Z)</option>
+                                    <option value="bank-desc">Bank (Z–A)</option>
+                                </optgroup>
+                            </select>
+                            <i class='bx bx-chevron-down'></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table id="monetaryTable">
+                    <thead>
+                    <tr>
+                        <th>No.</th>
+                        <th>Encoder</th>
+                        <th>Name/Company</th>
+                        <th>Location</th>
+                        <th>Number</th>
+                        <th>Amount Donated</th>
+                        <th>Cash Invoice #</th>
+                        <th>Date Received</th>
+                        <th>Email</th>
+                        <th>Bank</th>
+                        <th>Proof of Transaction</th>
+                        <th>Action</th>
+                    </tr>
+                    </thead>
+                    <tbody></tbody>
+                    </table>
+                </div>
+                
+                <div class="pagination-info">
+                    <span id="entriesInfo">Showing 0 to 0 of 0 entries</span>
+                    <div id="pagination" class="pagination"></div>
+                </div>
+
+                <br>
+                <button id="exportBtn" class="pdf-button" type="button"><i class='bx bxs-file-pdf'></i>Export to Excel</button>
+                <button id="savePdfBtn" class="excel-button" type="button"><i class='bx bxs-file-export'></i>Save to PDF</button>
+            </section>
+
+            <div class="modal" id="editModal" style="display:none;">
+                <div class="modal-content">
+                    <span class="close-button" id="closeEditModalBtn">×</span>
+                    <h4>Edit Monetary Donation</h4>
+                    <label>Encoder: <input type="text" id="edit-encoder"></label>
+                    <label>Name/Company: <input type="text" id="edit-name"></label>
+                    <label>Location: <input type="text" id="edit-address"></label>
+                    <label>Number: <input type="tel" id="edit-number"></label>
+                    <label>Amount Donated: <input type="number" id="edit-amount"></label>
+                    <label>Cash Invoice #: <input type="text" id="edit-invoice" readonly></label>
+                    <label>Date Received: <input type="date" id="edit-dateReceived"></label>
+                    <label>Email: <input type="email" id="edit-email"></label>
+                    <label>Bank: <input type="text" id="edit-bank"></label>
+                    <label>Proof of Transaction (Google Drive Link): <input type="url" id="edit-proof"></label>
+                    <button type="button" id="saveEditBtn">Save Changes</button>
+                    <button type="button" id="cancelEditBtn">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        fetch('../components/sidebar.html')
+            .then(response => response.text())
+            .then(data => {
+                document.querySelector('.sidebar-placeholder').innerHTML = data;
+                const sidebarScript = document.createElement('script');
+                sidebarScript.src = '../components/sidebar.js';
+                sidebarScript.onload = function() {};
+                document.querySelector('.sidebar-placeholder').appendChild(sidebarScript);
+            })
+            .catch(error => {
+                console.error('Error loading sidebar:', error);
+            });
+    </script>
+
+    <script src="../js/monetary.js"></script>
+</body>
+</html>

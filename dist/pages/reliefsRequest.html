@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css"/>
+
+  <!-- Firebase Compat SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  
+
+  <title>Request Relief</title>
+  <link rel="stylesheet" crossorigin href="/bayanihan/assets/reliefsRequest-BNd46FE4.css">
+  <link rel="stylesheet" crossorigin href="/bayanihan/assets/sidebar-CSb7cCH2.css">
+  <link rel="stylesheet" crossorigin href="/bayanihan/assets/global-Bw-aSEzx.css">
+</head>
+<body>
+  <div class="form-page-container">
+    <div class="sidebar-placeholder"></div>
+    <div id="form-main-content">
+      <header>Request Relief</header>
+      
+      <!-- Page 1 -->
+      <form id="form-page-1">
+        <div class="form first">
+          <div class="form-container-1">
+            <span class="title">Contact Information</span>
+            <div class="fields">
+                <div class="input-field">
+                    <label for="contactPerson">Contact Person</label>
+                    <input type="text" id="contactPerson" placeholder="Enter Name" required />
+                </div>
+                <div class="input-field">
+                    <label for="contactNumber">Contact Number</label>
+                    <input type="tel" id="contactNumber" placeholder="Enter Mobile Number" required />
+                </div>
+                <div class="input-field">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" placeholder="Enter Email" required />
+                </div>
+                <div class="input-field">
+                    <label for="address">Exact Drop-off Address</label>
+                    <input type="text" id="address" placeholder="Enter Drop-off Address" required />
+                </div>
+                <div class="input-field">
+                    <label for="city">City</label>
+                    <input type="text" id="city" placeholder="Enter City" required />
+                </div>
+                <div class="input-field">
+                    <label for="category">Request Category</label>
+                    <select id="category" required>
+                        <option value="" disabled selected>Select Category</option>
+                        <option value="Food">Food</option>
+                        <option value="Clothing">Clothing</option>
+                        <option value="Medicine">Medicine</option>
+                        <option value="Hygiene">Hygiene</option>
+                        <option value="Others">Others</option>
+                    </select>
+                </div>
+            </div>
+          </div>
+
+          <div class="form-container-2">
+            <div class="top-bar">
+              <span class="title">Requested Items</span>
+              <button id="addItemBtn">Add Item</button>
+            </div>
+            
+            <div class="fields" id="itemsContainer">
+                    
+              <div class="input-field">
+                  <label for="itemName">Item Name</label>
+                  <input 
+                    list="itemNameList" 
+                    id="itemName" 
+                    name="itemName" 
+                    placeholder="Select or type item" 
+                    required 
+                    disabled
+                  />
+                  <datalist id="itemNameList">
+                    <option value="Rice">
+                    <option value="Canned Goods">
+                    <option value="Water Bottles">
+                    <option value="Blankets">
+                    <option value="Medicine Kits">
+                    <option value="Hygiene Packs">
+                    <option value="Others">
+                  </datalist>
+                </div>
+
+            <div class="input-field">
+              <label>Quantity</label>
+              <input type="number" id="quantity" placeholder="Enter Quantity" min="1" required disabled />
+            </div>
+            <div class="input-field">
+              <label>Additional Notes</label>
+              <input type="text" id="notes" placeholder="Enter Notes" maxlength="50" disabled />
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table id="itemsTable">
+              <thead>
+                <tr>
+                  <th>Item Name</th>
+                  <th>Quantity</th>
+                  <th>Notes</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Items will be appended here -->
+              </tbody>
+            </table>
+          </div>
+
+            <button type="button" class="next-btn" id="nextBtn">Proceed</button>
+          </div>
+        </div>
+      </form>
+
+      <!-- Page 2 -->
+      <form id="form-page-2" style="display: none;">
+        <h2>Submission Preview</h2>
+        <div id="previewContact"></div>
+        <h3>Requested Items</h3>
+        <div class="table-preview-container">
+          <table class="preview-table">
+            <thead>
+              <tr>
+                <th id="itemname">Item Name</th>
+                <th id="qty">Quantity</th>
+                <th id="notes">Notes</th>
+              </tr>
+            </thead>
+            <tbody id="previewItemsTable">
+              <!-- Preview items will be added here -->
+            </tbody>
+          </table>
+        </div>
+        
+
+        <div class="button-group">
+          <button type="button" class="next-btn" id="backBtn">Back</button>
+          <button type="submit" class="next-btn">Submit</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Load sidebar and JS -->
+  <script>
+    fetch('../components/sidebar.html')
+      .then(response => response.text())
+      .then(data => {
+        document.querySelector('.sidebar-placeholder').innerHTML = data;
+        const sidebarScript = document.createElement('script');
+        sidebarScript.src = '../components/sidebar.js';
+        document.querySelector('.sidebar-placeholder').appendChild(sidebarScript);
+      })
+      .catch(error => console.error('Error loading sidebar:', error));
+  </script>
+
+  <script src="../js/reliefsrequest.js"></script>
+</body>
+</html>

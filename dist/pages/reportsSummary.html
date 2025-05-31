@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel='stylesheet' href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css'/>
+
+    <!-- Firebase Compat SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- Global.js for sidebar loading -->
+
+    <title>Report Summary</title>
+  <script type="module" crossorigin src="/bayanihan/assets/modulepreload-polyfill-B5Qt9EMX.js"></script>
+  <script type="module" crossorigin src="/bayanihan/assets/index.esm2017-CKqBSwm5.js"></script>
+  <script type="module" crossorigin src="/bayanihan/assets/global-ol2E3RMO.js"></script>
+  <link rel="stylesheet" crossorigin href="/bayanihan/assets/reportsSummary-l7Qs8mfu.css">
+  <link rel="stylesheet" crossorigin href="/bayanihan/assets/sidebar-CSb7cCH2.css">
+  <link rel="stylesheet" crossorigin href="/bayanihan/assets/global-Bw-aSEzx.css">
+</head>
+<body>
+    <div class="main-container">
+        <div class="sidebar-placeholder"></div>
+        <div id="main-content">
+            <header>Report Submission Preview</header>
+            <div>
+                <div id="summaryContainer"></div>
+            </div>
+            <div class="button-group">
+                <button id="backBtn">Back</button>
+                <button id="submitBtn">Submit Report</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="../js/reportsSummary.js"></script>
+    <script>
+        fetch('../components/sidebar.html')
+        .then(response => response.text())
+        .then(data => {
+            document.querySelector('.sidebar-placeholder').innerHTML = data;
+            const sidebarScript = document.createElement('script');
+            sidebarScript.src = '../components/sidebar.js';
+            sidebarScript.onload = function() {};
+            document.querySelector('.sidebar-placeholder').appendChild(sidebarScript);
+        })
+        .catch(error => {
+            console.error('Error loading sidebar:', error);
+        });
+    </script>
+    
+</body>
+</html>

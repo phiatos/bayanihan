@@ -18,7 +18,7 @@ export default defineConfig({
         rdana: 'pages/rdana.html',
         rdanaVerification: 'pages/rdanaVerification.html',
         rdanaLog: 'pages/rdanaLog.html',
-        callfordonations: 'pages/callfordonations.html',
+        callfordonation: 'pages/callfordonation.html',
         reliefsRequest: 'pages/reliefsRequest.html',
         reliefsLog: 'pages/reliefsLog.html',
         reportsSubmission: 'pages/reportsSubmission.html',
