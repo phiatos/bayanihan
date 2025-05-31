@@ -440,7 +440,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const viewApprovedBtn = document.getElementById("viewApprovedBtn");
     if (viewApprovedBtn) {
         viewApprovedBtn.addEventListener("click", () => {
-            window.location.href = "../pages/reportslog.html";
+            window.location.href = "../pages/reportsLog.html";
         });
     }
 });
