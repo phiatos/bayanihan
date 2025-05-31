@@ -64,10 +64,10 @@ function formatNumber(num, id) {
 
 function highlight(el) {
   el.style.transition = 'color 0.3s ease';
-  el.style.color = '#23d7d7';
+  el.style.color = '#FFF';
 
   setTimeout(() => {
-    el.style.color = '#0fbaba';
+    el.style.color = '#FFF';
   }, 300);
 }
 

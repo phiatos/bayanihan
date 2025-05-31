@@ -34,15 +34,16 @@ header {
 }
 
 .metric-card {
-  background: rgba(255, 255, 255, 0.55);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: linear-gradient(135deg, #0fbaba 0%, #23d7d7 52%, #18e0e0 100%);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
   border-radius: 20px;
-  padding: 2.2rem 2rem;
-  border: 1.5px solid rgba(15, 186, 186, 0.4);
+  padding: 1.8rem 1.6rem;
+  border: 1px solid rgba(255, 255, 255, 0.451);
   box-shadow:
-    0 8px 20px rgba(15, 186, 186, 0.15),
-    inset 0 0 18px rgba(255, 255, 255, 0.8);
+    0 4px 12px rgba(15, 186, 186, 0.1),
+    inset 0 0 12px rgba(255, 255, 255, 0.6);
+  transform: scale(0.85);
   transition:
     transform 0.35s cubic-bezier(0.4, 0, 0.2, 1),
     box-shadow 0.35s cubic-bezier(0.4, 0, 0.2, 1),
@@ -58,16 +59,15 @@ header {
   user-select: none;
 }
 
-/* Keyboard Focus */
-.metric-card:focus-within,
-.metric-card:focus {
-  border-color: #0bb7bd;
+
+.metric-card:hover,
+.metric-card:focus-within {
+  transform: scale(0.9) translateY(-6px);
+  background-color: rgba(255, 255, 255, 0.5);
+  border-color: rgba(255, 255, 255, 0.35);
   box-shadow:
-    0 0 0 4px rgba(11, 183, 189, 0.45),
-    0 12px 30px rgba(15, 186, 186, 0.35),
-    inset 0 0 22px rgba(255, 255, 255, 0.9);
-  transform: translateY(-6px) scale(1.04);
-  background-color: rgba(255, 255, 255, 0.82);
+    0 15px 30px rgba(15, 186, 186, 0.2),
+    inset 0 0 20px rgba(255, 255, 255, 0.8);
   z-index: 3;
 }
 
@@ -76,7 +76,7 @@ header {
 .metric-card:active {
   transform: translateY(-10px) scale(1.06);
   box-shadow:
-    0 25px 48px rgba(15, 186, 186, 0.35),
+    0 25px 48px rgba(255, 255, 255, 0.35),
     inset 0 0 24px rgba(255, 255, 255, 0.95);
   border-color: #0aa1a1;
   background-color: rgba(255, 255, 255, 0.85);
@@ -108,15 +108,18 @@ header {
 .metric-card h3 {
   position: relative;
   z-index: 3;
-  text-align: center;
   font-size: 16px;
   font-weight: 700;
-  color: #175151;
+  color: #ffffff;
   margin-bottom: 0.9rem;
   letter-spacing: 0.07em;
-  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.85);
   user-select: none;
   font-family: 'Poppins', sans-serif;
+
+  display: flex;              /* make h3 a flex container */
+  align-items: center;        /* vertically center icon and text */
+  justify-content: center;    /* center horizontally */
+  gap: 0.5rem;                /* space between icon and text */
 }
 
 .metric-card p {
@@ -124,67 +127,46 @@ header {
   z-index: 3;
   text-align: center;
   font-size: 54px;
-  font-weight: 900;
-  color: #0fbaba;
+  font-weight: 700;
+  color: #ffffff;
   margin: 0;
   line-height: 1.1;
   letter-spacing: 0.05em;
   user-select: text;
-  font-family: 'Montserrat', sans-serif;
-  text-shadow:
-    0 0 8px rgba(15, 186, 186, 0.45),
-    0 2px 4px rgba(15, 186, 186, 0.3);
+
 }
 
-/* Optional icons (use font-icons or SVG) */
 .metric-card i {
-  position: relative;
-  z-index: 3;
-  display: block;
-  font-size: 2.5rem;
-  color: #0fbaba;
-  margin: 0 auto 0.7rem auto;
+  font-size: 1.8rem;                  /* smaller icon size */
+  color: rgba(255, 255, 255);
+  filter: blur(0.2px);
+  text-shadow: 0 0 6px rgba(255, 255, 255, 0.35);
+  margin: 0;                         /* reset margin */
   user-select: none;
-  text-shadow: 0 0 6px rgba(15, 186, 186, 0.35);
+  display: inline-flex;              /* inline and flex to align better */
+  vertical-align: middle;
+  transition: color 0.35s ease, filter 0.35s ease;
 }
 
-/* Tooltip example: data-description attribute for each metric */
-.metric-card[data-description]:hover::after {
-  content: attr(data-description);
-  position: absolute;
-  bottom: 115%;
-  left: 50%;
-  transform: translateX(-50%);
-  background-color: #0bb7bd;
-  color: white;
-  padding: 7px 14px;
-  border-radius: 7px;
-  font-size: 14px;
-  white-space: nowrap;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.3s ease, visibility 0.3s ease;
-  pointer-events: none;
-  z-index: 10;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.25);
-  font-family: 'Poppins', sans-serif;
+.metric-card:hover i,
+.metric-card:focus i {
+  color: rgba(255, 255, 255);
+  filter: blur(0.2px);
+  text-shadow: 0 0 6px rgba(255, 255, 255, 0.35);
 }
 
-.metric-card[data-description]:hover::after {
-  opacity: 1;
-  visibility: visible;
-}
+
 
 /* Pulse animation to highlight updated metrics */
 @keyframes pulse-glow {
   0%, 100% {
     box-shadow:
-      0 0 14px 3px rgba(15, 186, 186, 0.4),
+      0 0 14px 3px rgba(255, 255, 255, 0.4),
       inset 0 0 14px rgba(255, 255, 255, 0.8);
   }
   50% {
     box-shadow:
-      0 0 28px 8px rgba(15, 186, 186, 0.65),
+      0 0 28px 8px rgba(255, 255, 255, 0.65),
       inset 0 0 20px rgba(255, 255, 255, 0.95);
   }
 }
@@ -192,7 +174,7 @@ header {
 /* Example usage: add class .highlight when value updates */
 .metric-card.highlight {
   animation: pulse-glow 2.5s ease infinite;
-  border-color: #14a9a9;
+  border-color: #ffffff;
 }
 
 
