@@ -794,7 +794,7 @@ if (confirmSaveBtn) {
         createdAt: new Date().toISOString(),
         isFirstLogin: true,
         emailVerified: false,
-        // password_needs_reset: true
+        password_needs_reset: true
       });
 
       // Save volunteer group

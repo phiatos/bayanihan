@@ -307,17 +307,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     // Handle Login
-    if (loginForm && emailInputElem && passwordInputElem) { 
+    if (loginForm && emailInputElem && passwordInputElem) { // Ensure elements exist
         loginForm.addEventListener("submit", async (e) => {
-            e.preventDefault();
+            e.preventDefault(); // Always prevent default here, as this is the main submit handler
 
+            // Run client-side validations using imported functions
             const isEmailValid = validateEmail(emailInputElem);
             const isPasswordValid = validatePassword(passwordInputElem);
 
             if (!isEmailValid || !isPasswordValid) {
                 showToast("Please correct the errors in the form.", 'error');
                 console.log('Login failed due to client-side validation errors.');
-                return; 
+                return; // Stop execution if validation fails
             }
 
             // Get validated email and password values
@@ -347,7 +348,6 @@ document.addEventListener("DOMContentLoaded", async () => {
                         isFirstLogin: true,
                         termsAccepted: false,
                         terms_agreed_version: 0,
-                        password_needs_reset: true,
                     };
                     await set(ref(database, `users/${user.uid}`), userData);
                 }
@@ -390,7 +390,6 @@ document.addEventListener("DOMContentLoaded", async () => {
                 const isFirstLogin = userData.isFirstLogin === true;
                 const termsAccepted = userData.termsAccepted === true;
                 const termsAgreedVersion = userData.terms_agreed_version || 0;
-                const passwordNeedsReset = userData.password_needs_reset === true; 
 
                 // Prepare user data for localStorage
                 const updatedUserData = {
@@ -401,7 +400,6 @@ document.addEventListener("DOMContentLoaded", async () => {
                     isFirstLogin: isFirstLogin,
                     termsAccepted: termsAccepted,
                     terms_agreed_version: termsAgreedVersion,
-                    password_needs_reset: passwordNeedsReset, 
                 };
 
                 console.log("User Data being stored in localStorage:", updatedUserData);
@@ -428,10 +426,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
                 // Redirection Logic
                 setTimeout(() => {
-                    if (passwordNeedsReset) {
-                        console.log("Redirecting to profile.html for password reset.");
-                        window.location.replace('../pages/profile.html');
-                    } else if (isAdmin && !isFirstLogin && termsAccepted) {
+                    if (isAdmin && !isFirstLogin && termsAccepted) {
                         console.log("Redirecting Admin to dashboard.");
                         window.location.replace('../pages/dashboard.html');
                     } else if (isFirstLogin || !termsAccepted) {
