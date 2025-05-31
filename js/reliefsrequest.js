@@ -45,6 +45,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const quantityInput = document.getElementById('quantity');
     const notesInput = document.getElementById('notes');
 
+    
+
     // Verify DOM elements exist
     if (!formPage1 || !formPage2 || !nextBtn || !backBtn || !addItemBtn || !itemsTable || !itemsTableBody || !previewContact || !previewItemsTable || !contactPersonInput || !contactNumberInput || !emailInput || !addressInput || !cityInput || !donationCategoryInput || !itemNameInput || !quantityInput || !notesInput) {
         console.error('One or more DOM elements are missing:', {
@@ -168,6 +170,26 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    //Converts Big Quantities to Readable Ones
+    function formatLargeNumber(numStr) {
+        let num = BigInt(numStr || "0");
+        const trillion = 1_000_000_000_000n;
+        const billion = 1_000_000_000n;
+        const million = 1_000_000n;
+        const thousand = 1_000n;
+
+        if (num >= trillion) {
+            return (Number(num) / Number(trillion)).toFixed(2).replace(/\.?0+$/, '') + 'T';
+        } else if (num >= billion) {
+            return (Number(num) / Number(billion)).toFixed(2).replace(/\.?0+$/, '') + 'B';
+        } else if (num >= million) {
+            return (Number(num) / Number(million)).toFixed(2).replace(/\.?0+$/, '') + 'M';
+        } else if (num >= thousand) {
+            return (Number(num) / Number(thousand)).toFixed(2).replace(/\.?0+$/, '') + 'k';
+        }
+        return num.toString();
+    }
+
     // Add Item button event listener
     addItemBtn.addEventListener('click', () => {
         console.log('Add Item button clicked');
@@ -217,15 +239,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const itemIndex = addedItems.length;
+        const formattedQuantity = formatLargeNumber(quantity);
         addedItems.push({ name, quantity, notes });
         console.log('Item added:', { name, quantity, notes, itemIndex });
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td id="prevItmName">${name}</td>
-            <td id="prevQty">${quantity}</td>
+            <td id="prevQty">${formattedQuantity}</td>
             <td id="prevNotes">${notes}</td>
-            <td><button type="button" class="delete-btn" id="deleteItmBtn" data-index="${itemIndex}">Delete</button></td>
+            <td><button type="button" class="deleteBtn" id="deleteItmBtn" data-index="${itemIndex}">Delete</button></td>
         `;
         itemsTableBody.appendChild(tr);
 

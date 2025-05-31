@@ -34,26 +34,6 @@ h2, h3{
   align-items: center;
 }
 
-#addItemBtn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: var(--primary-color);
-  color: var(--white);
-  font-size: 13px;
-  padding: 15px;
-  height: 30px;
-  width: auto;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  transition: background-color 0.3s;
-}
-
-#addItemBtn:hover {
-  background-color: #0e7781;
-}
-
 /* Submission Overview Container */
 #form-page-2 {
   animation: fadeIn 0.3s ease;
@@ -89,6 +69,7 @@ h2, h3{
 
 .preview-table {
   width: 100%;
+  border: 1px solid #ccc;
   border-collapse: collapse;
   min-width: 500px;
   background-color: #fff;
@@ -103,7 +84,7 @@ h2, h3{
 }
 
 .preview-table th {
-  background-color: #f8f9fa;
+  background-color: #f1f1f1;
   font-weight: 600;
   color: #333;
 }
