@@ -46,14 +46,14 @@ window.initializeDashboard = function () {
             return;
         }
 
-        console.log(`Logged-in user UID: ${user.uid}`);
+        console.log(Logged-in user UID: ${user.uid});
         userUid = user.uid; // Store UID for report filtering
 
         // Fetch user role
-        database.ref(`users/${user.uid}`).once("value", snapshot => {
+        database.ref(users/${user.uid}).once("value", snapshot => {
             const userData = snapshot.val();
             if (!userData || !userData.role) {
-                console.error(`User data not found for UID: ${user.uid}`);
+                console.error(User data not found for UID: ${user.uid});
                 Swal.fire({
                     icon: "error",
                     title: "User Data Missing",
@@ -67,13 +67,13 @@ window.initializeDashboard = function () {
             userRole = userData.role;
             userEmail = user.email;
 
-            console.log(`Role of logged-in user (UID: ${user.uid}): ${userRole}`);
-            console.log(`User Email: ${userEmail}`);
+            console.log(Role of logged-in user (UID: ${user.uid}): ${userRole});
+            console.log(User Email: ${userEmail});
 
             headerEl.textContent = userRole === "AB ADMIN" ? "Admin Dashboard" : "Volunteer Dashboard";
 
             // Initialize map for both AB ADMIN and ABVN
-            console.log(`Initializing map for role: ${userRole}`);
+            console.log(Initializing map for role: ${userRole});
             initializeMap();
             addMarkersForActiveActivations();
             if (userRole === "ABVN") {
@@ -211,12 +211,12 @@ function addMarkersForActiveActivations() {
 
         Object.entries(activations).forEach(([key, activation]) => {
             if (!activation.latitude || !activation.longitude) {
-                console.warn(`Activation ${key} is missing latitude or longitude:`, activation);
+                console.warn(Activation ${key} is missing latitude or longitude:, activation);
                 return;
             }
 
             const position = { lat: parseFloat(activation.latitude), lng: parseFloat(activation.longitude) };
-            console.log(`Creating marker for ${activation.organization} at position:`, position);
+            console.log(Creating marker for ${activation.organization} at position:, position);
 
             const logoPath = "../assets/images/AB_logo.png"; // Path for InfoWindow logo
             console.log("Attempting to load logo for InfoWindow from:", logoPath);
@@ -232,7 +232,7 @@ function addMarkersForActiveActivations() {
             });
 
             markers.push(marker);
-            console.log(`Marker created for ${activation.organization}`);
+            console.log(Marker created for ${activation.organization});
 
             // Load logo for InfoWindow and attach event listeners
             const img = new Image();
@@ -283,8 +283,8 @@ function createInfoWindow(marker, activation, logoUrl) {
                 gap: 8px;
             ">
                 ${logoUrl ? 
-                    `<img src="${logoUrl}" alt="Bayanihan Logo" style="width: 24px; height: 24px;" />` : 
-                    `<span style="font-size: 24px;">🌟</span>`
+                    <img src="${logoUrl}" alt="Bayanihan Logo" style="width: 24px; height: 24px;" /> : 
+                    <span style="font-size: 24px;">🌟</span>
                 }
                 ${activation.organization}
             </h3>
@@ -294,7 +294,7 @@ function createInfoWindow(marker, activation, logoUrl) {
             </p>
             <p style="margin: 5px 0;">
                 <strong style="color: #007BFF;">🌍 Calamity:</strong>
-                <span style="color: #333;">${activation.calamityType}${activation.typhoonName ? ` (${activation.typhoonName})` : ''}</span>
+                <span style="color: #333;">${activation.calamityType}${activation.typhoonName ?  (${activation.typhoonName}) : ''}</span>
             </p>
             <p style="margin: 5px 0;">
                 <strong style="color: #007BFF;">✅ Status:</strong>
@@ -311,7 +311,7 @@ function createInfoWindow(marker, activation, logoUrl) {
 
     marker.addListener("mouseover", () => {
         if (isInfoWindowClicked) {
-            console.log(`Hover ignored for ${activation.organization} because an InfoWindow is already clicked open`);
+            console.log(Hover ignored for ${activation.organization} because an InfoWindow is already clicked open);
             return;
         }
 
@@ -322,19 +322,19 @@ function createInfoWindow(marker, activation, logoUrl) {
         singleInfoWindow.setContent(content);
         singleInfoWindow.open(map, marker);
         currentInfoWindow = marker;
-        console.log(`InfoWindow opened on hover for ${activation.organization}`);
+        console.log(InfoWindow opened on hover for ${activation.organization});
     });
 
     marker.addListener("mouseout", () => {
         if (isInfoWindowClicked) {
-            console.log(`Mouseout ignored for ${activation.organization} because InfoWindow is clicked open`);
+            console.log(Mouseout ignored for ${activation.organization} because InfoWindow is clicked open);
             return;
         }
 
         if (currentInfoWindow === marker) {
             singleInfoWindow.close();
             currentInfoWindow = null;
-            console.log(`InfoWindow closed on mouseout for ${activation.organization}`);
+            console.log(InfoWindow closed on mouseout for ${activation.organization});
         }
     });
 
@@ -347,13 +347,13 @@ function createInfoWindow(marker, activation, logoUrl) {
         singleInfoWindow.open(map, marker);
         currentInfoWindow = marker;
         isInfoWindowClicked = true;
-        console.log(`InfoWindow opened on click for ${activation.organization}`);
+        console.log(InfoWindow opened on click for ${activation.organization});
     });
 
     singleInfoWindow.addListener("closeclick", () => {
         isInfoWindowClicked = false;
         currentInfoWindow = null;
-        console.log(`InfoWindow closed manually for ${activation.organization}`);
+        console.log(InfoWindow closed manually for ${activation.organization});
     });
 }
 
@@ -364,7 +364,7 @@ function fetchReports() {
         console.log("Removed existing reports listener");
     }
 
-    console.log(`Fetching reports for role: ${userRole}, UID: ${userUid}`);
+    console.log(Fetching reports for role: ${userRole}, UID: ${userUid});
 
     reportsListener = database.ref("reports/approved");
     reportsListener.on("value", snapshot => {
@@ -380,17 +380,17 @@ function fetchReports() {
 
         if (reports) {
             const reportEntries = Object.entries(reports);
-            console.log(`Total number of approved reports: ${reportEntries.length}`);
+            console.log(Total number of approved reports: ${reportEntries.length});
 
             reportEntries.forEach(([key, report]) => {
-                console.log(`Processing Report ${key}: Report User UID: ${report.userUid}, Current User UID: ${userUid}`);
+                console.log(Processing Report ${key}: Report User UID: ${report.userUid}, Current User UID: ${userUid});
 
                 if (userRole === "ABVN" && report.userUid !== userUid) {
-                    console.log(`Skipping report ${key} for ABVN - User UID mismatch. Report UID: ${report.userUid}, Current User UID: ${userUid}`);
+                    console.log(Skipping report ${key} for ABVN - User UID mismatch. Report UID: ${report.userUid}, Current User UID: ${userUid});
                     return;
                 }
 
-                console.log(`Including report ${key} for ${userRole}`);
+                console.log(Including report ${key} for ${userRole});
 
                 totalFoodPacks += parseFloat(report.NoOfFoodPacks || 0);
                 totalHotMeals += parseFloat(report.NoOfHotMeals || 0);
@@ -400,7 +400,7 @@ function fetchReports() {
                 totalInKindDonations += parseFloat(report.TotalValueOfInKindDonations || 0);
             });
 
-            console.log(`Calculated totals for ${userRole} (UID: ${userUid}) - Food Packs: ${totalFoodPacks}, Hot Meals: ${totalHotMeals}, Water Liters: ${totalWaterLiters}, Volunteers: ${totalVolunteers}, Monetary Donations: ${totalMonetaryDonations}, In-Kind Donations: ${totalInKindDonations}`);
+            console.log(Calculated totals for ${userRole} (UID: ${userUid}) - Food Packs: ${totalFoodPacks}, Hot Meals: ${totalHotMeals}, Water Liters: ${totalWaterLiters}, Volunteers: ${totalVolunteers}, Monetary Donations: ${totalMonetaryDonations}, In-Kind Donations: ${totalInKindDonations});
         } else {
             console.log("No approved reports found in the database.");
         }
@@ -409,8 +409,8 @@ function fetchReports() {
         if (hotMealsEl) hotMealsEl.textContent = totalHotMeals.toLocaleString();
         if (waterLitersEl) waterLitersEl.textContent = totalWaterLiters.toLocaleString();
         if (volunteersEl) volunteersEl.textContent = totalVolunteers.toLocaleString();
-        if (amountRaisedEl) amountRaisedEl.textContent = `₱${totalMonetaryDonations.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-        if (inKindDonationsEl) inKindDonationsEl.textContent = `₱${totalInKindDonations.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        if (amountRaisedEl) amountRaisedEl.textContent = ₱${totalMonetaryDonations.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })};
+        if (inKindDonationsEl) inKindDonationsEl.textContent = ₱${totalInKindDonations.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })};
     }, error => {
         console.error("Error fetching approved reports:", error);
         Swal.fire({

@@ -1,8 +1,6 @@
-// Flag to prevent multiple restriction alerts
 let isRestricted = false;
 
 function initSidebar() {
-  // Prevent multiple executions of initSidebar
   if (window.sidebarInitialized) {
     console.log("initSidebar already executed, skipping.");
     return;
@@ -94,7 +92,6 @@ function initSidebar() {
     console.log("Logout button element NOT found (from within sidebar.js).");
   }
 
-  // Restrict ABVN access to specific pages
   function restrictPageAccess() {
     // Skip if already restricted
     if (isRestricted) {
@@ -102,7 +99,35 @@ function initSidebar() {
       return;
     }
 
-    const restrictedPages = [
+    const currentPath = window.location.pathname;
+    const currentPage = currentPath.split('/').pop(); // Get just the filename
+
+    // Allow access to login.html without authentication
+    if (currentPage === 'login.html') {
+      return;
+    }
+
+    const userRole = localStorage.getItem("userRole");
+
+    // All pages except login.html require a user role
+    if (!userRole) {
+      console.log("No user role found in localStorage, redirecting to login.");
+      isRestricted = true; // Set flag to prevent further triggers
+      Swal.fire({
+        icon: "warning",
+        title: "Authentication Required",
+        text: "Please sign in to continue.",
+        timer: 2000,
+        showConfirmButton: false
+      });
+      setTimeout(() => {
+        window.location.replace("../pages/login.html");
+      }, 2000);
+      return;
+    }
+
+    // Specific restrictions for ABVN role on certain pages
+    const abvnRestrictedPages = [
       'volunteergroupmanagement.html',
       'reportsVerification.html',
       'reportsLog.html',
@@ -112,42 +137,23 @@ function initSidebar() {
       'rdanaVerification.html',
       'inkind.html',
       'monetary.html',
-
     ];
-    const currentPath = window.location.pathname;
-    const isRestrictedPage = restrictedPages.some(page => currentPath.includes(page));
 
-    if (isRestrictedPage) {
-      const userRole = localStorage.getItem("userRole");
-      if (!userRole) {
-        console.log("No user role found in localStorage, redirecting to login.");
-        isRestricted = true; // Set flag to prevent further triggers
-        Swal.fire({
-          icon: "warning",
-          title: "Authentication Required",
-          text: "Please sign in to continue.",
-          timer: 2000,
-          showConfirmButton: false
-        });
-        setTimeout(() => {
-          window.location.replace("../pages/login.html");
-        }, 2000);
-        return;
-      }
-      if (userRole === "ABVN") {
-        console.log("ABVN user attempted to access restricted page:", currentPath);
-        isRestricted = true; // Set flag to prevent further triggers
-        Swal.fire({
-          icon: "error",
-          title: "Access Denied",
-          text: "This page is for admins only.",
-          timer: 2000,
-          showConfirmButton: false
-        });
-        setTimeout(() => {
-          window.location.replace("../pages/dashboard.html");
-        }, 2000);
-      }
+    const isAbvnRestrictedPage = abvnRestrictedPages.some(page => currentPath.includes(page));
+
+    if (userRole === "ABVN" && isAbvnRestrictedPage) {
+      console.log("ABVN user attempted to access restricted page:", currentPath);
+      isRestricted = true; // Set flag to prevent further triggers
+      Swal.fire({
+        icon: "error",
+        title: "Access Denied",
+        text: "This page is for admins only.",
+        timer: 2000,
+        showConfirmButton: false
+      });
+      setTimeout(() => {
+        window.location.replace("../pages/dashboard.html");
+      }, 2000);
     }
   }
 

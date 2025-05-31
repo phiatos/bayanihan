@@ -28,87 +28,156 @@ header {
 
 .metrics-container {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 2rem;
-  padding: 1.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 2.5rem;
+  padding: 2rem;
 }
 
 .metric-card {
-  background: rgba(255, 255, 255, 0.65);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: linear-gradient(135deg, #0fbaba 0%, #23d7d7 52%, #18e0e0 100%);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
   border-radius: 20px;
-  padding: 2.2rem 1.8rem;
-  border: 1.5px solid rgba(15, 186, 186, 0.3);
+  padding: 1.8rem 1.6rem;
+  border: 1px solid rgba(255, 255, 255, 0.451);
   box-shadow:
-    0 4px 8px rgba(15, 186, 186, 0.1),
-    inset 0 0 8px rgba(255, 255, 255, 0.6);
+    0 4px 12px rgba(15, 186, 186, 0.1),
+    inset 0 0 12px rgba(255, 255, 255, 0.6);
+  transform: scale(0.85);
   transition:
-    transform 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-    box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-    border-color 0.4s ease;
+    transform 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.35s ease,
+    background-color 0.35s ease;
   cursor: default;
   opacity: 0;
   animation: fadeInUp 0.7s ease forwards;
   position: relative;
   overflow: hidden;
   will-change: transform, box-shadow, opacity;
+  outline-offset: 4px;
+  user-select: none;
+}
+
+
+.metric-card:hover,
+.metric-card:focus-within {
+  transform: scale(0.9) translateY(-6px);
+  background-color: rgba(255, 255, 255, 0.5);
+  border-color: rgba(255, 255, 255, 0.35);
+  box-shadow:
+    0 15px 30px rgba(15, 186, 186, 0.2),
+    inset 0 0 20px rgba(255, 255, 255, 0.8);
+  z-index: 3;
+}
+
+/* Hover and Tap */
+.metric-card:hover,
+.metric-card:active {
+  transform: translateY(-10px) scale(1.06);
+  box-shadow:
+    0 25px 48px rgba(255, 255, 255, 0.35),
+    inset 0 0 24px rgba(255, 255, 255, 0.95);
+  border-color: #0aa1a1;
+  background-color: rgba(255, 255, 255, 0.85);
+  z-index: 2;
 }
 
 .metric-card::before {
   content: "";
   position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: linear-gradient(120deg, #0fbaba 0%, #23d7d7 50%, #0fbaba 100%);
+  top: -55%;
+  left: -55%;
+  width: 210%;
+  height: 210%;
+  background: linear-gradient(130deg, #0fbaba 0%, #23d7d7 52%, #0fbaba 100%);
   opacity: 0;
-  transform: rotate(25deg);
-  transition: opacity 0.4s ease;
+  transform: rotate(30deg);
+  transition: opacity 0.5s ease, transform 0.7s ease;
   pointer-events: none;
-  filter: blur(40px);
+  filter: blur(54px);
   z-index: 1;
-  border-radius: 20px;
+  border-radius: inherit;
 }
 
 .metric-card:hover::before {
-  opacity: 0.15;
-}
-
-.metric-card:hover {
-  transform: translateY(-10px) scale(1.05);
-  box-shadow:
-    0 16px 32px rgba(15, 186, 186, 0.25),
-    inset 0 0 14px rgba(255, 255, 255, 0.8);
-  border-color: #0aa1a1;
-  z-index: 2;
+  opacity: 0.25;
+  transform: rotate(42deg);
 }
 
 .metric-card h3 {
   position: relative;
   z-index: 3;
-  text-align: center;
-  font-size: clamp(1rem, 1.4vw, 1.3rem);
+  font-size: 16px;
   font-weight: 700;
-  color: #1f3f3f;
-  margin-bottom: 0.8rem;
-  letter-spacing: 0.05em;
-  text-shadow: 0 1px 1px rgba(255, 255, 255, 0.8);
+  color: #ffffff;
+  margin-bottom: 0.9rem;
+  letter-spacing: 0.07em;
+  user-select: none;
+  font-family: 'Poppins', sans-serif;
+
+  display: flex;              /* make h3 a flex container */
+  align-items: center;        /* vertically center icon and text */
+  justify-content: center;    /* center horizontally */
+  gap: 0.5rem;                /* space between icon and text */
 }
 
 .metric-card p {
   position: relative;
   z-index: 3;
   text-align: center;
-  font-size: clamp(2rem, 4vw, 3rem);
-  font-weight: 800;
-  color: #0fbaba;
+  font-size: 54px;
+  font-weight: 700;
+  color: #ffffff;
   margin: 0;
-  line-height: 1;
-  letter-spacing: 0.04em;
-  
+  line-height: 1.1;
+  letter-spacing: 0.05em;
+  user-select: text;
+
 }
+
+.metric-card i {
+  font-size: 1.8rem;                  /* smaller icon size */
+  color: rgba(255, 255, 255);
+  filter: blur(0.2px);
+  text-shadow: 0 0 6px rgba(255, 255, 255, 0.35);
+  margin: 0;                         /* reset margin */
+  user-select: none;
+  display: inline-flex;              /* inline and flex to align better */
+  vertical-align: middle;
+  transition: color 0.35s ease, filter 0.35s ease;
+}
+
+.metric-card:hover i,
+.metric-card:focus i {
+  color: rgba(255, 255, 255);
+  filter: blur(0.2px);
+  text-shadow: 0 0 6px rgba(255, 255, 255, 0.35);
+}
+
+
+
+/* Pulse animation to highlight updated metrics */
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow:
+      0 0 14px 3px rgba(255, 255, 255, 0.4),
+      inset 0 0 14px rgba(255, 255, 255, 0.8);
+  }
+  50% {
+    box-shadow:
+      0 0 28px 8px rgba(255, 255, 255, 0.65),
+      inset 0 0 20px rgba(255, 255, 255, 0.95);
+  }
+}
+
+/* Example usage: add class .highlight when value updates */
+.metric-card.highlight {
+  animation: pulse-glow 2.5s ease infinite;
+  border-color: #ffffff;
+}
+
+
 
 /* Fade-in animation */
 @keyframes fadeInUp {

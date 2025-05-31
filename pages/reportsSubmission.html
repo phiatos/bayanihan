@@ -35,7 +35,9 @@
                             <div class="input-field">
                                 <label for="AreaOfOperation">Area of Operation:</label>
                                 <input type="text" id="AreaOfOperation" name="AreaOfOperation" placeholder="e.g. Purok 2, Brgy. Maligaya, Rosario" readonly />
-                                <button id="pinBtn" type="button">📍 Pin Location</button>
+                                <button id="pinBtn" type="button">
+                                    <i class='bx bx-map-pin'></i> Pin Location
+                                </button>
                             </div>
                             <div class="input-field">
                                 <label>Date of Report</label>
@@ -125,7 +127,7 @@
         <div class="modal-content">
             <span class="closeBtn">&times;</span>
             <h2>Select Area of Operation</h2>
-            <input type="text" id="search-input" placeholder="Search for a location...">
+            <input type="text" class="search-bar" id="search-input" placeholder="Search for a location...">
             <div id="mapContainer"></div>
         </div>
     </div>

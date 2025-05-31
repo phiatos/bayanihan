@@ -1,24 +1,30 @@
-const CACHE_NAME = 'bayanihan-cache-v2';
+const CACHE_NAME = 'bayanihan-cache-v2'; 
 
 const urlsToCache = [
-    '/bayanihan/pages/dashboard.html',
-    '/bayanihan/components/sidebar.html',
-    '/bayanihan/components/sidebar.css',
-    '/bayanihan/components/sidebar.js',
-    '/bayanihan/css/dashboard.css',
-    '/bayanihan/css/global.css',
-    '/bayanihan/js/dashboard.js',
-    '/bayanihan/assets/images/AB_logo.png',
-    '/bayanihan/assets/images/user.jpg',
-    '/bayanihan/pages/login.html',
-    '/bayanihan/css/login.css',
-    '/bayanihan/js/login.js',
-    '/bayanihan/js/global.js',
-    '/bayanihan/pages/rdanaVerification.html',
-    '/bayanihan/pages/rdanaLog.html',
-    '/bayanihan/js/rdanaLog.js',
-    '/bayanihan/css/rdanaLog.css',
-    '/bayanihan/pages/profile.js',
+    '/',
+    './index.html',
+    './index.css',
+    './index.js',
+    './manifest.json',
+    '../assets/images/logox192.png',
+    '../assets/images/user.jpg',
+    '../css/global.css',
+    '../pages/login.html',
+    '../css/login.css',
+    '../js/login.js',
+    '../js/global.js',
+    '../js/volunteergroupmanagement.js',
+    '../pages/volunteergroupmanagement.html',
+    '../pages/rdanaVerification.html',
+    '../pages/rdanaLog.html',
+    '../components/sidebar.html',
+    '../components/sidebar.js',
+    '../components/sidebar.css',
+    '../js/rdanaLog.js',
+    '../css/rdanaLog.css',
+    '../pages/profile.js', 
+    '../pages/profile.html',
+    '../css/profile.css',
 ];
 
 self.addEventListener('install', (event) => {
@@ -54,12 +60,10 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
     const requestUrl = new URL(event.request.url);
 
-    // Bypass cache for Firebase, EmailJS, emulator, Google Maps, and non-GET requests
     if (
         requestUrl.origin === 'https://identitytoolkit.googleapis.com' ||
         requestUrl.origin === 'https://bayanihan-5ce7e-default-rtdb.asia-southeast1.firebasedatabase.app' ||
         requestUrl.origin === 'http://localhost:9099' || // Explicitly bypass emulator requests
-        requestUrl.origin === 'https://maps.googleapis.com' || // Bypass Google Maps API
         event.request.url.includes('emailjs') ||
         event.request.method !== 'GET'
     ) {
@@ -67,6 +71,7 @@ self.addEventListener('fetch', (event) => {
         event.respondWith(
             fetch(event.request).catch(error => {
                 console.error('Fetch failed for bypassed request:', event.request.url, error);
+                // Return a fallback response or rethrow the error
                 throw error;
             })
         );
@@ -101,10 +106,10 @@ self.addEventListener('fetch', (event) => {
                 }).catch((error) => {
                     console.error('Fetch failed for:', event.request.url, error);
                     if (event.request.headers.get('accept').includes('text/html')) {
-                        return caches.match('/bayanihan/pages/dashboard.html');
+                        return caches.match('/index.html');
                     }
                     if (event.request.url.endsWith('.jpg') || event.request.url.endsWith('.png')) {
-                        return caches.match('/bayanihan/assets/images/AB_logo.png');
+                        return caches.match('./assets/images/placeholder.jpg');
                     }
                     throw error;
                 });
@@ -126,3 +131,4 @@ self.addEventListener('fetch', (event) => {
         );
     }
 });
+

@@ -5,73 +5,61 @@
     padding: 0;
 }
 
-/* Category section (like Basic Information box) */
+/* Category section container */
 .category-section {
-    border: 2px solid var(--primary-color); 
-    background-color: rgba(20, 174, 187, 0.1);
-    border-radius: 8px;
-    padding: 10px;
-    margin: 10px 0;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    border: 2px solid var(--primary-color);
+    background-color: rgba(20, 174, 187, 0.06);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin: 16px 0;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+    transition: box-shadow 0.3s ease, transform 0.2s ease;
 }
 
-/* Category title (Basic Info, Relief Ops, etc.) */
+.category-section:hover {
+    box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+    transform: translateY(-2px);
+}
+
+/* Section title (Basic Info, Relief Ops, etc.) */
 .category-title {
-    display: block;
-    margin-bottom: 8px;
-    font-size: 12px;
-    font-weight: bold;
-    margin: 6px 0;
+    margin-bottom: 12px;
+    font-size: 22px;
+    font-weight: 600;
     color: var(--primary-color);
+    border-bottom: 1px solid var(--primary-color);
+    padding-bottom: 6px;
 }
 
-/* Each field inside the category */
+/* Flex container for the fields */
 .summary-box {
     display: flex;
     flex-wrap: wrap;
-    gap: 15px;
+    gap: 20px;
 }
 
-/* Field name */
+/* Field label */
 .summary-box strong {
-    font-size: 0.75rem;
-    font-weight: bold;
+    font-size: 16px;
+    font-weight: 600;
     color: var(--primary-color);
+    margin-right: 5px;
+    margin-bottom: 10px;
 }
 
 /* Field value */
 .summary-box span {
-    font-size: 0.75rem;
-    color: #555;
+    font-size: 15px;
+    color: #444;
 }
 
-#submitBtn, #backBtn{
-    background-color: var(--primary-color);
-    color: var(--white);
-    padding: 0.75rem 2rem;
-    border: none;
-    border-radius: 8px;
-    font-size: 1rem;
-    cursor: pointer;
-    display: block;
-    align-items: start;
-    margin-left: 20px;
-    font-weight: 600;
-}
-
-#submitBtn:hover {
-    background-color: var(--button-hover);
-}
 .button-group {
+    margin-top: 20px;
     display: flex;
     flex-direction: row;
     justify-content: start;
 }
-#submitBtn, #backBtn {
-    width: 150px;
-    margin-right: 10px; /* Add space between buttons */
-    padding: 15px;
-}
+
 
 
 /* RESPONSIVE BEHAVIOR */

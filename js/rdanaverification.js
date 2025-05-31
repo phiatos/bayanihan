@@ -18,6 +18,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let currentPage = 1;
   const rowsPerPage = 5;
+  let allLogs = []; // Will hold your full logs array
+
 
   const submittedReportsContainer = document.getElementById("submittedReportsContainer");
   const paginationContainer = document.getElementById("pagination");
@@ -96,7 +98,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function applySearchAndSort(logs = []) {
+  function applySearchAndSort(logs = allLogs) {
     let filtered = [...logs];
     const searchTerm = searchInput.value.toLowerCase();
 
@@ -127,28 +129,28 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function renderReportsTable(reports) {
-    submittedReportsContainer.innerHTML = "";
-    const start = (currentPage - 1) * rowsPerPage;
-    const paginated = reports.slice(start, start + rowsPerPage);
+  submittedReportsContainer.innerHTML = "";
+  const start = (currentPage - 1) * rowsPerPage;
+  const paginated = reports.slice(start, start + rowsPerPage);
 
-    entriesInfo.textContent = `Showing ${start + 1} to ${start + paginated.length} of ${reports.length} entries`;
+  entriesInfo.textContent = `Showing ${start + 1} to ${start + paginated.length} of ${reports.length} entries`;
 
-    paginated.forEach((report, index) => {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${start + index + 1}</td>
-        <td>${report.rdanaId}</td>
-        <td>${formatDate(report.dateTime)}</td>
-        <td>${report.profile?.Site_Location_Address_Barangay || "N/A"}</td>
-        <td>${report.disasterType}</td>
-        <td>${report.effects?.affectedPopulation}</td>
-        <td>${report.needs?.priority?.join(", ") ?? "N/A"}</td>
-        <td>
-          <button class="viewBtn">View</button>
-          <button class="approveBtn">Approve</button>
-          <button class="rejectBtn">Reject</button>
-        </td>
-      `;
+  paginated.forEach((report, index) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${start + index + 1}</td>
+      <td>${report.rdanaId}</td>
+      <td>${report.dateTime}</td>
+      <td>${report.siteLocation || "N/A"}</td>
+      <td>${report.disasterType}</td>
+      <td>${report.effects?.affectedPopulation || "N/A"}</td>
+      <td>${report.needs?.priority?.join(", ") || "N/A"}</td>
+      <td>
+        <button class="viewBtn">View</button>
+        <button class="approveBtn">Approve</button>
+        <button class="rejectBtn">Reject</button>
+      </td>
+    `;
 
       tr.querySelector(".viewBtn").addEventListener("click", () => showDetails(report));
       tr.querySelector(".approveBtn").addEventListener("click", () => approveReport(report));
@@ -158,46 +160,49 @@ document.addEventListener('DOMContentLoaded', () => {
       console.log("Verifying Report:", report);
     });
 
-    renderPagination(reports.length);
+    renderPagination(reports.length, reports);
   }
 
-  function renderPagination(totalItems) {
-    const pageCount = Math.ceil(totalItems / rowsPerPage);
-    paginationContainer.innerHTML = '';
+function renderPagination(totalItems, filteredLogs) {
+  const totalPages = Math.ceil(totalItems / rowsPerPage);
+  paginationContainer.innerHTML = '';
 
-    if (pageCount === 0) {
-      paginationContainer.innerHTML = '<span>No entries to display</span>';
-      return;
-    }
-
-    const createButton = (label, page, disabled = false, isActive = false) => {
-      const btn = document.createElement('button');
-      btn.textContent = label;
-      if (disabled) btn.disabled = true;
-      if (isActive) btn.classList.add('active-page');
-      btn.addEventListener('click', () => {
-        currentPage = page;
-        applySearchAndSort();
-      });
-      return btn;
-    };
-
-    paginationContainer.appendChild(createButton('Prev', currentPage - 1, currentPage === 1));
-
-    const maxVisible = 5;
-    let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
-    let endPage = Math.min(pageCount, startPage + maxVisible - 1);
-    if (endPage - startPage < maxVisible - 1) {
-      startPage = Math.max(1, endPage - maxVisible + 1);
-    }
-
-    for (let i = startPage; i <= endPage; i++) {
-      paginationContainer.appendChild(createButton(i, i, false, i === currentPage));
-    }
-
-    paginationContainer.appendChild(createButton('Next', currentPage + 1, currentPage === pageCount));
+  if (totalPages === 0) {
+    paginationContainer.innerHTML = '<span>No entries to display</span>';
+    return;
   }
 
+  const createButton = (label, page, disabled = false, isActive = false) => {
+    const btn = document.createElement('button');
+    btn.textContent = label;
+    if (disabled) btn.disabled = true;
+    if (isActive) btn.classList.add('active-page');
+    btn.addEventListener('click', () => {
+      // Clamp page number to valid range
+      currentPage = Math.min(Math.max(page, 1), totalPages);
+      applySearchAndSort(filteredLogs); // Pass filtered logs here
+    });
+    return btn;
+  };
+
+  paginationContainer.appendChild(createButton('Prev', currentPage - 1, currentPage === 1));
+
+   const maxVisible = 5;
+  let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+  let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+  if (endPage - startPage < maxVisible - 1) {
+    startPage = Math.max(1, endPage - maxVisible + 1);
+  }
+
+  for (let i = startPage; i <= endPage; i++) {
+    paginationContainer.appendChild(createButton(i, i, false, i === currentPage));
+  }
+
+  paginationContainer.appendChild(createButton('Next', currentPage + 1, currentPage === totalPages));
+}
+
+
+  
   function formatKey(key) {
     return key
       .replace(/_/g, " ")
@@ -209,6 +214,8 @@ document.addEventListener('DOMContentLoaded', () => {
   function showDetails(report) {
     const modal = document.getElementById("previewModal");
     const modalDetails = document.getElementById("modalContent");
+
+    let reportIDHTML = `<h2>${report.rdanaId}`;
 
     // Profile Section
     let profileHTML = `<h3>Profile of the Disaster</h3><div class='table-scroll'><table class='preview-table'>`;
@@ -274,7 +281,7 @@ document.addEventListener('DOMContentLoaded', () => {
     `;
 
     // Combine all sections
-    modalDetails.innerHTML = profileHTML + modalityHTML + summaryHTML + affectedHTML + structureHTML + checklistHTML + otherNeedsHTML;
+    modalDetails.innerHTML = reportIDHTML + profileHTML + modalityHTML + summaryHTML + affectedHTML + structureHTML + checklistHTML + otherNeedsHTML;
 
     // Show modal
     modal.style.display = "block";

@@ -101,32 +101,55 @@ document.addEventListener('DOMContentLoaded', () => {
             title.textContent = category;
             section.appendChild(title);
 
+             // Converts Big Quantities to Readable Ones
+function formatLargeNumber(numStr) {
+    try {
+        let num = BigInt(numStr || "0");
+        const trillion = 1_000_000_000_000n;
+        const billion = 1_000_000_000n;
+        const million = 1_000_000n;
+        const thousand = 1_000n;
+
+        if (num >= trillion) {
+            return (Number(num) / Number(trillion)).toFixed(2).replace(/\.?0+$/, '') + 'T';
+        } else if (num >= billion) {
+            return (Number(num) / Number(billion)).toFixed(2).replace(/\.?0+$/, '') + 'B';
+        } else if (num >= million) {
+            return (Number(num) / Number(million)).toFixed(2).replace(/\.?0+$/, '') + 'M';
+        } else if (num >= thousand) {
+            return (Number(num) / Number(thousand)).toFixed(2).replace(/\.?0+$/, '') + 'k';
+        }
+        return num.toString();
+    } catch (error) {
+        console.warn('Invalid number input:', numStr);
+        return numStr;
+    }
+}
+
 categories[category].forEach(item => {
-    // Change this line:
-    // if (summaryData[item]) {
-    // To this:
-    if (summaryData.hasOwnProperty(item)) { // Checks if the property exists
+    if (Object.prototype.hasOwnProperty.call(summaryData, item)) { // safer check
         let displayKey = item
             .replace(/([A-Z])/g, ' $1')
             .replace(/^./, str => str.toUpperCase());
+
         displayKey = displayKey
-            .replace('AreaOfOperation', 'Area of Operation')
-            .replace('TimeOfIntervention', 'Completion of Time Intervention')
-            .replace('CalamityAreaDetails', 'Calamity Area')
-            .replace('DateOfReport', 'Date of Report')
-            .replace('ReportID', 'Report ID')
-            .replace('StartDate', 'Start Date')
-            .replace('EndDate', 'End Date')
-            .replace('VolunteerGroupName', 'Volunteer Group')
-            .replace('NoOfIndividualsOrFamilies', 'No. of Individuals or Families')
-            .replace('NoOfFoodPacks', 'No. of Food Packs')
-            .replace('NoOfHotMeals', 'No. of Hot Meals')
-            .replace('LitersOfWater', 'Liters of Water')
-            .replace('NoOfVolunteersMobilized', 'No. of Volunteers Mobilized')
-            .replace('NoOfOrganizationsActivated', 'No. of Organizations Activated')
-            .replace('TotalValueOfInKindDonations', 'Total Value of In-Kind Donations')
-            .replace('TotalMonetaryDonations', 'Total Monetary Donations')
-            .replace('NotesAdditionalInformation', 'Notes/additional information');
+            .replace('Area Of Operation', 'Area of Operation')
+            .replace('Time Of Intervention', 'Completion of Time Intervention')
+            .replace('Calamity Area Details', 'Calamity Area')
+            .replace('Date Of Report', 'Date of Report')
+            .replace('Report I D', 'Report ID')
+            .replace('Start Date', 'Start Date')
+            .replace('End Date', 'End Date')
+            .replace('Volunteer Group Name', 'Volunteer Group')
+            .replace('No Of Individuals Or Families', 'No. of Individuals or Families')
+            .replace('No Of Food Packs', 'No. of Food Packs')
+            .replace('No Of Hot Meals', 'No. of Hot Meals')
+            .replace('Liters Of Water', 'Liters of Water')
+            .replace('No Of Volunteers Mobilized', 'No. of Volunteers Mobilized')
+            .replace('No Of Organizations Activated', 'No. of Organizations Activated')
+            .replace('Total Value Of In Kind Donations', 'Total Value of In-Kind Donations')
+            .replace('Total Monetary Donations', 'Total Monetary Donations')
+            .replace('Notes Additional Information', 'Notes/additional information');
 
         let value = summaryData[item];
 
@@ -134,14 +157,18 @@ categories[category].forEach(item => {
             value = formatDate(value);
         } else if (item === "TimeOfIntervention") {
             value = formatTime(value);
+        } else if (/^NoOf|^Total/.test(item) && !isNaN(value)) {
+            // Apply large number formatting for count/total fields
+            value = formatLargeNumber(value);
         }
 
         const fieldDiv = document.createElement("div");
         fieldDiv.className = "summary-box";
-        fieldDiv.innerHTML = `<strong>${displayKey}:</strong> <span>${value === '' ? 'N/A' : value}</span>`; // Added 'N/A' for empty values
+        fieldDiv.innerHTML = `<strong>${displayKey}:</strong> <span>${value === '' ? 'N/A' : value}</span>`;
         section.appendChild(fieldDiv);
     }
 });
+
 
             container.appendChild(section);
         }
