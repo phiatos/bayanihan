@@ -24,10 +24,41 @@
         <div id="main-content">
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <header>Dashboard</header>
-                <div style="position: relative; cursor: pointer;">
-                    <i class='bx bx-bell' style="font-size: 1.8rem;"></i>
-                    <span style="position: absolute; top: 0; right: 10; width: 8px; height: 8px; background: red; border-radius: 50%; display: inline-block;"></span>
+                <!-- Notification Bell -->
+            <div id="bell">
+                <i class='bx bx-bell'></i>
+                <span id="notifDot"></span>
+            </div>
+
+            <!-- Notification Drawer -->
+            <div id="notificationDrawer">
+                <div class="drawer-header">
+                    <h3>Notifications</h3>
+                    <button id="closeDrawer" class="close-btn">×</button>
                 </div>
+                <div class="drawer-content">
+                    <ul class="notification-list">
+                        
+                        <li>
+                            <strong> 🌸 New Relief Request Added:</strong>Request for food packs in Sitio San Isidro.
+                            <span class="timestamp">5 hrs ago</span>
+                        </li>
+
+                        <li>
+                            <strong>🌸 New RDANA Report Added for Verification:</strong>Barangay health center renovation progress updated.
+                            <span class="timestamp">2 hrs ago</span>
+                        </li>
+
+                        <li>
+                            <strong>🌸 New Report Added:</strong> Supplies for typhoon victims in Quezon Province.
+                            <span class="timestamp">7 hrs ago</span>
+                        </li>
+                        
+                    </ul>
+                </div>
+            </div>
+
+
             </div>
 
             <!-- Search Bar (Unchanged) -->

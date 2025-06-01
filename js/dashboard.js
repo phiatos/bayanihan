@@ -610,3 +610,32 @@ window.addEventListener('navigate-away', () => {
     console.log('navigate-away event: Cleaning up dashboard');
     cleanupDashboard();
 });
+
+const bell = document.getElementById('bell');
+const drawer = document.getElementById('notificationDrawer');
+const closeBtn = document.getElementById('closeDrawer');
+const notifDot = document.getElementById('notifDot');
+const markAllBtn = document.getElementById('markAllRead');
+const notificationItems = document.querySelectorAll('.notification-item');
+
+bell.addEventListener('click', (e) => {
+    e.stopPropagation();
+    drawer.classList.add('open');
+    notifDot.style.display = 'none';
+});
+
+closeBtn.addEventListener('click', () => {
+    drawer.classList.remove('open');
+});
+
+document.addEventListener('click', (e) => {
+    if (!drawer.contains(e.target) && e.target !== bell && drawer.classList.contains('open')) {
+        drawer.classList.remove('open');
+    }
+});
+
+markAllBtn.addEventListener('click', () => {
+    notificationItems.forEach(item => {
+        item.classList.remove('unread');
+    });
+});

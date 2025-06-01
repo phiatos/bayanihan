@@ -16,9 +16,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const database = firebase.database();
   const auth = firebase.auth();
 
-  let currentPage = 1;
-  const rowsPerPage = 5;
-
   // Form data variables (declared in higher scope to persist across event listeners)
   let profileData = {};
   let affectedCommunities = [];
@@ -33,12 +30,15 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentUserGroupName = '';  // global variable to hold the group name
   let currentUserUid = '';        // optional: global variable for UID
 
+
   const submittedReportsContainer = document.getElementById("submittedReportsContainer");
   const paginationContainer = document.getElementById("pagination");
   const entriesInfo = document.getElementById("entriesInfo");
   const searchInput = document.getElementById("searchInput");
   const sortSelect = document.getElementById("sortSelect");
 
+
+  
   // Helper function to sanitize keys for Firebase
   function sanitizeKey(key) {
     return key
@@ -49,48 +49,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Check if user is authenticated
   auth.onAuthStateChanged(user => {
-    // if (!user) {
-    //   Swal.fire({
-    //     icon: 'error',
-    //     title: 'Authentication Required',
-    //     text: 'Please sign in to access RDANA reports.',
-    //   }).then(() => {
-    //     window.location.href = "../pages/login.html";
-    //   });
-    //   return;
-    // }
+  if (!user) {
+    Swal.fire({
+      icon: 'error',
+      title: 'Authentication Required',
+      text: 'Please sign in to access RDANA reports.',
+    }).then(() => {
+      window.location.href = "../pages/login.html";
+    });
+    return;
+  }
 
-    //   console.log("User authenticated:", user.uid);
+  console.log('Logged-in user UID:', user.uid);
+  currentUserUid = user.uid;
 
-    //   // Only load submitted reports if the table elements exist (for rdanaverification.html)
-    //   if (submittedReportsContainer && paginationContainer && entriesInfo && searchInput && sortSelect) {
-    //     loadSubmittedReports(user.uid);
-    //   }
-    // });
+  const volunteerGroup = JSON.parse(localStorage.getItem('loggedInVolunteerGroup'));
+  currentUserGroupName = volunteerGroup?.organization || 'Unknown Group';
 
-    if (!user) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Authentication Required',
-        text: 'Please sign in to access RDANA reports.',
-      }).then(() => {
-        window.location.href = "../pages/login.html";
-      });
-      return;
-    }
+  console.log('Current logged-in user group:', currentUserGroupName);
 
-    console.log('Logged-in user UID:', user.uid);
-    currentUserUid = user.uid;
+  if (submittedReportsContainer && paginationContainer && entriesInfo && searchInput && sortSelect) {
+    loadSubmittedReports(user.uid);
+  }
+});
 
-    const volunteerGroup = JSON.parse(localStorage.getItem('loggedInVolunteerGroup'));
-    currentUserGroupName = volunteerGroup?.organization || 'Unknown Group';
 
-    console.log('Current logged-in user group:', currentUserGroupName);
 
-    if (submittedReportsContainer && paginationContainer && entriesInfo && searchInput && sortSelect) {
-      loadSubmittedReports(user.uid);
-    }
-  });
+
 
   // Input Validations
  function validatePageInputs(pageSelector) {
