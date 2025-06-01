@@ -3,26 +3,20 @@ let map;
 let markers = [];
 let autocomplete;
 
-// Function to initialize Google Maps (adapted from dashboard.js)
-// This function needs to be globally accessible if you use callback=initMap in your script tag,
-// but for better control, we call it when the modal is opened.
+// Function to initialize Google Maps
 function initMap() {
-    // Default to Manila, Philippines
-    const defaultLocation = { lat: 14.5995, lng: 120.9842 };
+    const defaultLocation = { lat: 14.5995, lng: 120.9842 }; // Manila, Philippines
 
-    // Initialize the map
     map = new google.maps.Map(document.getElementById("mapContainer"), {
         center: defaultLocation,
         zoom: 10,
         mapTypeId: "roadmap",
     });
 
-    // Initialize the search bar with Places Autocomplete
     const searchInput = document.getElementById("search-input");
     autocomplete = new google.maps.places.Autocomplete(searchInput);
     autocomplete.bindTo("bounds", map);
 
-    // When a place is selected from the autocomplete dropdown
     autocomplete.addListener("place_changed", () => {
         const place = autocomplete.getPlace();
         if (!place.geometry || !place.geometry.location) {
@@ -34,21 +28,18 @@ function initMap() {
             return;
         }
 
-        // Center the map on the selected location
         map.setCenter(place.geometry.location);
         map.setZoom(16);
 
-        // Clear existing markers
         clearMarkers();
 
-        // Add a marker at the selected location
         const marker = new google.maps.Marker({
             position: place.geometry.location,
             map: map,
             title: place.name,
         });
         markers.push(marker);
-        // Add an info window
+
         const infowindow = new google.maps.InfoWindow({
             content: `<strong>${place.name}</strong><br>${place.formatted_address}`,
         });
@@ -57,25 +48,20 @@ function initMap() {
         });
         infowindow.open(map, marker);
 
-        // Populate the AreaOfOperation input with the selected location
         const areaOfOperationInput = document.getElementById('AreaOfOperation');
         if (areaOfOperationInput) {
             areaOfOperationInput.value = place.formatted_address;
         }
 
-        // Close the modal after selecting a location
         const mapModal = document.getElementById('mapModal');
         if (mapModal) {
             mapModal.classList.remove('show');
         }
     });
 
-    // Allow pinning a location by clicking on the map
     map.addListener("click", (event) => {
-        // Clear existing markers
         clearMarkers();
 
-        // Add a new marker at the clicked location
         const marker = new google.maps.Marker({
             position: event.latLng,
             map: map,
@@ -83,13 +69,11 @@ function initMap() {
         });
         markers.push(marker);
 
-        // Use Geocoder to get the address from the coordinates
         const geocoder = new google.maps.Geocoder();
         geocoder.geocode({ location: event.latLng }, (results, status) => {
             if (status === "OK" && results[0]) {
                 const address = results[0].formatted_address;
 
-                // Add an info window
                 const infowindow = new google.maps.InfoWindow({
                     content: `Pinned Location<br>${address}`,
                 });
@@ -98,13 +82,11 @@ function initMap() {
                 });
                 infowindow.open(map, marker);
 
-                // Populate the AreaOfOperation input with the pinned location
                 const areaOfOperationInput = document.getElementById('AreaOfOperation');
                 if (areaOfOperationInput) {
                     areaOfOperationInput.value = address;
                 }
 
-                // Close the modal after pinning a location
                 const mapModal = document.getElementById('mapModal');
                 if (mapModal) {
                     mapModal.classList.remove('show');
@@ -117,7 +99,6 @@ function initMap() {
                     text: "Unable to retrieve address for the pinned location.",
                 });
 
-                // Fallback: Use coordinates if geocoding fails
                 const areaOfOperationInput = document.getElementById('AreaOfOperation');
                 if (areaOfOperationInput) {
                     areaOfOperationInput.value = `Lat: ${event.latLng.lat()}, Lng: ${event.latLng.lng()}`;
@@ -130,12 +111,10 @@ function initMap() {
             }
         });
 
-        // Center the map on the pinned location
         map.setCenter(event.latLng);
         map.setZoom(16);
     });
 
-    // Get user's location
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
             (position) => {
@@ -144,22 +123,19 @@ function initMap() {
                     lng: position.coords.longitude,
                 };
 
-                // Center the map on the user's location
                 map.setCenter(userLocation);
                 map.setZoom(16);
 
-                // Add a marker for the user's location
                 const marker = new google.maps.Marker({
                     position: userLocation,
                     map: map,
                     title: "You are here",
                     icon: {
-                        url: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png", // A more common blue dot icon
+                        url: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png",
                     },
                 });
                 markers.push(marker);
 
-                // Add an info window
                 const infowindow = new google.maps.InfoWindow({
                     content: "You are here",
                 });
@@ -205,15 +181,14 @@ function initMap() {
     }
 }
 
-// Function to clear all markers from the map
 function clearMarkers() {
     markers.forEach(marker => marker.setMap(null));
     markers = [];
 }
+
 document.addEventListener('DOMContentLoaded', () => {
-    // Firebase configuration (should only be initialized once per app)
     const firebaseConfig = {
-        apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ", // Replace with your actual API Key
+        apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
         authDomain: "bayanihan-5ce7e.firebaseapp.com",
         databaseURL: "https://bayanihan-5ce7e-default-rtdb.asia-southeast1.firebasedatabase.app",
         projectId: "bayanihan-5ce7e",
@@ -223,14 +198,12 @@ document.addEventListener('DOMContentLoaded', () => {
         measurementId: "G-ZTQ9VXXVV0",
     };
 
-    // Initialize Firebase only if not already initialized
     if (!firebase.apps.length) {
         firebase.initializeApp(firebaseConfig);
     }
     const auth = firebase.auth();
     const database = firebase.database();
 
-    // Get references to form elements
     const formPage1 = document.getElementById('form-page-1');
     const formPage2 = document.getElementById('form-page-2');
     const nextBtn = document.getElementById('nextBtn');
@@ -252,23 +225,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const valueInKindInput = document.getElementById('valueInKind');
     const monetaryDonationsInput = document.getElementById('monetaryDonations');
     const notesInfoTextarea = document.getElementById('notesInfo');
-    // const submittedByInput = document.getElementById('SubmittedBy'); // Keep commented out if you don't want to use it
 
-    // Map modal elements (assuming these exist in your HTML)
-    const pinBtn = document.getElementById('pinBtn'); // Ensure this element exists
-    const mapModal = document.getElementById('mapModal'); // Ensure this element exists
-    const closeBtn = document.querySelector('.closeBtn'); // Reverted to querySelector for flexibility as in first version
+    const pinBtn = document.getElementById('pinBtn');
+    const mapModal = document.getElementById('mapModal');
+    const closeBtn = document.querySelector('.closeBtn');
 
-    // Basic check for essential elements for debugging
     if (!formPage1 || !formPage2 || !nextBtn || !backBtn || !reportIdInput || !dateOfReportInput || !areaOfOperationInput || !calamityAreaDropdown || !completionTimeInput || !startDateInput || !endDateInput || !numIndividualsFamiliesInput || !numFoodPacksInput || !numHotMealsInput || !litersWaterInput || !numVolunteersInput || !numOrganizationsInput || !valueInKindInput || !monetaryDonationsInput || !notesInfoTextarea) {
         console.error("One or more essential form elements not found. Please check HTML IDs.");
-        // Consider stopping execution or showing a user-friendly error message here
         return;
     }
 
     let userUid = null;
-    let volunteerGroupName = "[Unknown Org]"; // Default to Unknown Org
-    let activeActivations = []; // To store active operations for the dropdown
+    let volunteerGroupName = "[Unknown Org]";
+    let activeActivations = [];
 
     function populateCalamityAreaDropdown() {
         calamityAreaDropdown.innerHTML = '<option value="">-- Select an Active Operation --</option>';
@@ -305,7 +274,6 @@ document.addEventListener('DOMContentLoaded', () => {
             );
 
             if (selectedActivation) {
-                // areaOfOperationInput.value = selectedActivation.areaOfOperation || ""; // You had this commented out
                 areaOfOperationInput.readOnly = false;
             } else {
                 console.warn("Selected activation not found in activeActivations array.");
@@ -313,7 +281,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 areaOfOperationInput.readOnly = false;
             }
         }
-        // Ensure pinBtn is always visible regardless of selection
         if (pinBtn) pinBtn.style.display = 'inline-block';
     });
 
@@ -339,7 +306,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         activeActivations = [];
                         snapshot.forEach(childSnapshot => {
                             const activation = { id: childSnapshot.key, ...childSnapshot.val() };
-                            if (activation.organization === volunteerGroupName) { // THIS IS THE FILTERING LOGIC
+                            if (activation.organization === volunteerGroupName) {
                                 activeActivations.push(activation);
                             }
                         });
@@ -385,39 +352,33 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const today = new Date();
-    const formattedDate = today.toLocaleDateString('en-CA'); //YYYY-MM-DD
+    const formattedDate = today.toLocaleDateString('en-CA');
     dateOfReportInput.value = formattedDate;
 
-    // Generate random report ID
     const idInput = document.getElementById('reportId');
     if (idInput) {
-        const randomId = 'ABRN' + Math.floor(10000 + Math.random() * 9000000000);
+        const randomId = `REPORTS-${Math.floor(100000 + Math.random() * 900000)}`;
         idInput.value = randomId;
     }
 
-    // --- Modal Elements and Event Listeners ---
-   if (pinBtn && mapModal && closeBtn) {
+    if (pinBtn && mapModal && closeBtn) {
         pinBtn.addEventListener('click', (e) => {
             e.preventDefault();
             console.log("Pin button clicked!");
             mapModal.classList.add('show');
             console.log("mapModal classList:", mapModal.classList);
-            // Initialize the map when the modal is opened (if not already initialized)
             if (!map) {
                 initMap();
             } else {
-                // If map already exists, just resize it to fit the modal
                 setTimeout(() => {
                     if (map) {
                         google.maps.event.trigger(map, 'resize');
-                        // Center map to current area of operation if available
                         const currentArea = areaOfOperationInput.value;
                         if (currentArea) {
                             const geocoder = new google.maps.Geocoder();
                             geocoder.geocode({ 'address': currentArea }, (results, status) => {
                                 if (status === 'OK' && results[0]) {
                                     map.setCenter(results[0].geometry.location);
-                                    // Clear existing markers and add a new one for the current area
                                     markers.forEach((marker) => marker.setMap(null));
                                     markers = [];
                                     const marker = new google.maps.Marker({
@@ -429,12 +390,11 @@ document.addEventListener('DOMContentLoaded', () => {
                                 }
                             });
                         } else {
-                            // If no area of operation, center on Philippines
                             map.setCenter({ lat: 12.8797, lng: 121.7740 });
                             map.setZoom(6);
                         }
                     }
-                }, 100); // Small delay to allow modal to render
+                }, 100);
             }
         });
 
@@ -452,22 +412,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     nextBtn.addEventListener('click', () => {
-        console.log("Next button clicked!"); // Debugging line
-        // Form validation on page 1
         if (!formPage1.checkValidity()) {
-            // console.log("Form page 1 is NOT valid. Showing validation messages."); // Debugging line
             formPage1.reportValidity();
-            return; // Stop if validation fails
+            return;
         }
-        // console.log("Form page 1 is valid."); // Debugging line
 
         const startDateValue = startDateInput.value;
         const endDateValue = endDateInput.value;
 
-        // console.log("Start Date:", startDateValue, "End Date:", endDateValue); // Debugging line
-
         if (!startDateValue || !endDateValue) {
-            // console.log("Start or End Date is missing."); // Debugging line
             Swal.fire({
                 icon: 'warning',
                 title: 'Missing Dates',
@@ -529,7 +482,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // --- Start of NEW logic to capture combined Calamity Area details ---
         let selectedCalamityName = "";
         let selectedCalamityOrganization = "";
         let selectedCalamityTyphoonName = "";
@@ -560,37 +512,35 @@ document.addEventListener('DOMContentLoaded', () => {
             console.warn("No Calamity Area selected.");
             calamityAreaDetailsText = "Not Specified";
         }
-        // --- End of NEW logic ---
 
         formPage1.style.display = "none";
         formPage2.style.display = "block";
 
-        // --- Save data to localStorage when navigating to the next page ---
         const formData = {
             userUid: userUid,
-            VolunteerGroupName: volunteerGroupName, // Make sure this is captured
+            VolunteerGroupName: volunteerGroupName,
             AreaOfOperation: areaOfOperationInput.value,
             CalamityAreaId: calamityAreaDropdown.value,
             CalamityName: selectedCalamityName,
-            CalamityAreaDetails: calamityAreaDetailsText, // This is the new combined field!
+            CalamityAreaDetails: calamityAreaDetailsText,
             TimeOfIntervention: completionTimeInput.value,
             DateOfReport: dateOfReportInput.value,
             ReportID: reportIdInput.value,
             StartDate: startDateInput.value,
             EndDate: endDateInput.value,
-            NoOfIndividualsOrFamilies: numIndividualsFamiliesInput.value,
-            NoOfFoodPacks: numFoodPacksInput.value,
-            NoOfHotMeals: numHotMealsInput.value,
-            LitersOfWater: litersWaterInput.value,
-            NoOfVolunteersMobilized: numVolunteersInput.value,
-            NoOfOrganizationsActivated: numOrganizationsInput.value,
-            TotalValueOfInKindDonations: valueInKindInput.value,
-            TotalMonetaryDonations: monetaryDonationsInput.value,
+            NoOfIndividualsOrFamilies: parseInt(numIndividualsFamiliesInput.value) || 0,
+            NoOfFoodPacks: parseInt(numFoodPacksInput.value) || 0,
+            NoOfHotMeals: parseInt(numHotMealsInput.value) || 0,
+            LitersOfWater: parseInt(litersWaterInput.value) || 0,
+            NoOfVolunteersMobilized: parseInt(numVolunteersInput.value) || 0,
+            NoOfOrganizationsActivated: parseInt(numOrganizationsInput.value) || 0,
+            TotalValueOfInKindDonations: parseFloat(valueInKindInput.value) || 0,
+            TotalMonetaryDonations: parseFloat(monetaryDonationsInput.value) || 0,
             NotesAdditionalInformation: notesInfoTextarea.value,
             Status: "Pending"
         };
         localStorage.setItem("reportData", JSON.stringify(formData));
-        console.log("Form data saved to localStorage:", formData); // Debugging line
+        console.log("Form data saved to localStorage:", formData);
     });
 
     backBtn.addEventListener('click', () => {
@@ -603,22 +553,18 @@ document.addEventListener('DOMContentLoaded', () => {
         window.location.href = "../pages/reportsSummary.html";
     });
 
-    // Logic for returning from summary page (pre-filling fields)
     const returnTo = localStorage.getItem("returnToStep");
 
     if (returnTo) {
         const savedData = JSON.parse(localStorage.getItem("reportData"));
 
         if (savedData) {
-            // Pre-fill fields
             reportIdInput.value = savedData.ReportID || '';
             dateOfReportInput.value = savedData.DateOfReport || '';
             areaOfOperationInput.value = savedData.AreaOfOperation || '';
 
-            // Handle Calamity Area dropdown pre-selection and triggering change
             if (savedData.CalamityAreaId) {
                 calamityAreaDropdown.value = savedData.CalamityAreaId;
-                // Dispatch change event to ensure dependent logic (like setting areaOfOperationInput, though it's currently manual) runs
                 calamityAreaDropdown.dispatchEvent(new Event('change'));
             }
 
@@ -633,10 +579,9 @@ document.addEventListener('DOMContentLoaded', () => {
             numOrganizationsInput.value = savedData.NoOfOrganizationsActivated || '';
             valueInKindInput.value = savedData.TotalValueOfInKindDonations || '';
             monetaryDonationsInput.value = savedData.TotalMonetaryDonations || '';
-            NotesAdditionalInformation.value = savedData.NotesAdditionalInformation || '';
+            notesInfoTextarea.value = savedData.NotesAdditionalInformation || '';
         }
 
-        // Determine which page to show on return
         if (returnTo === "form-container-1") {
             formPage1.style.display = "block";
             formPage2.style.display = "none";
@@ -644,10 +589,9 @@ document.addEventListener('DOMContentLoaded', () => {
             formPage1.style.display = "none";
             formPage2.style.display = "block";
         }
-        localStorage.removeItem("returnToStep"); // Clear the flag after processing
+        localStorage.removeItem("returnToStep");
     } else {
-        // Default: If no returnToStep flag, show the first page
         formPage1.style.display = "block";
         formPage2.style.display = "none";
     }
-}); // End of DOMContentLoaded
+});
