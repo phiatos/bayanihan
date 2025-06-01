@@ -245,8 +245,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     .then(snapshot => {
                         const userData = snapshot.val();
                         let volunteerGroupName = "[Unknown Org]";
-                        if (userData && userData.group) {
-                            volunteerGroupName = userData.group;
+                        if (userData && userData.organization) {
+                            volunteerGroupName = userData.organization;
                             console.log(`Workspaceed VolunteerGroupName for user ${userUid}: ${volunteerGroupName}`);
                         } else {
                             console.warn(`No group found for user ${userUid}. Using default: [Unknown Org]`);

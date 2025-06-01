@@ -165,7 +165,7 @@ function initSidebar() {
 
     console.log("User Data retrieved in sidebar:", user);
 
-    const group = user.group || "";
+    const group = user.organization || "";
     const contactPerson = user.contactPerson || "";
     const role = user.role || "";
 

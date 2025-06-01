@@ -30,6 +30,8 @@ document.addEventListener('DOMContentLoaded', () => {
   let responseGroup = "";
   let reliefDeployed = "";
   let familiesServed = "";
+  let currentUserGroupName = '';  // global variable to hold the group name
+  let currentUserUid = '';        // optional: global variable for UID
 
   const submittedReportsContainer = document.getElementById("submittedReportsContainer");
   const paginationContainer = document.getElementById("pagination");
@@ -40,13 +42,32 @@ document.addEventListener('DOMContentLoaded', () => {
   // Helper function to sanitize keys for Firebase
   function sanitizeKey(key) {
     return key
-      .replace(/[.#$/[\]]/g, '_') // Replace invalid characters with underscore
-      .replace(/\s+/g, '_') // Replace spaces with underscore
-      .replace(/[^a-zA-Z0-9_]/g, ''); // Remove any remaining invalid characters
+      .replace(/[.#$/[\]]/g, '_') 
+      .replace(/\s+/g, '_') 
+      .replace(/[^a-zA-Z0-9_]/g, ''); 
   }
 
   // Check if user is authenticated
   auth.onAuthStateChanged(user => {
+    // if (!user) {
+    //   Swal.fire({
+    //     icon: 'error',
+    //     title: 'Authentication Required',
+    //     text: 'Please sign in to access RDANA reports.',
+    //   }).then(() => {
+    //     window.location.href = "../pages/login.html";
+    //   });
+    //   return;
+    // }
+
+    //   console.log("User authenticated:", user.uid);
+
+    //   // Only load submitted reports if the table elements exist (for rdanaverification.html)
+    //   if (submittedReportsContainer && paginationContainer && entriesInfo && searchInput && sortSelect) {
+    //     loadSubmittedReports(user.uid);
+    //   }
+    // });
+
     if (!user) {
       Swal.fire({
         icon: 'error',
@@ -58,15 +79,18 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    console.log("User authenticated:", user.uid);
+    console.log('Logged-in user UID:', user.uid);
+    currentUserUid = user.uid;
 
-    // Only load submitted reports if the table elements exist (for rdanaverification.html)
+    const volunteerGroup = JSON.parse(localStorage.getItem('loggedInVolunteerGroup'));
+    currentUserGroupName = volunteerGroup?.organization || 'Unknown Group';
+
+    console.log('Current logged-in user group:', currentUserGroupName);
+
     if (submittedReportsContainer && paginationContainer && entriesInfo && searchInput && sortSelect) {
       loadSubmittedReports(user.uid);
     }
   });
-
-
 
   // Input Validations
  function validatePageInputs(pageSelector) {
@@ -94,8 +118,6 @@ document.addEventListener('DOMContentLoaded', () => {
 }
 
 
-
-
   // Input validation for text fields
   document.querySelectorAll('input[type="text"]').forEach(input => {
     input.addEventListener('input', function () {
@@ -104,12 +126,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Allow only alphabets for names
       if (this.placeholder.includes('Name') || this.placeholder.includes('Organization')) {
-        this.value = this.value.replace(/[^a-zA-Z\s]/g, ''); // Only letters and spaces
+        this.value = this.value.replace(/[^a-zA-Z\s,-]/g, ''); // Only letters and spaces
       }
 
       // For Barangay (Letters & Numbers)
-      if (this.placeholder.includes('Barangay')) {
-        this.value = this.value.replace(/[^a-zA-Z0-9\s]/g, ''); // Alphanumeric and spaces only
+      if (this.id === 'affectedBarangayInput') {
+        this.value = this.value.replace(/[^a-zA-Z0-9\s,]/g, ''); // Alphanumeric, spaces, commas
+      }
+      else if (this.placeholder.includes('Name') || this.placeholder.includes('Organization')) {
+      // For Name and Organization → letters, spaces, commas, hyphens only
+      this.value = this.value.replace(/[^a-zA-Z\s,-]/g, '');
+      }
+      else if (this.placeholder.includes('City/Municipality') || this.placeholder.includes('Province')|| this.placeholder.includes('Relief Assistance')|| this.placeholder.includes('Items')) {
+        this.value = this.value.replace(/[^a-zA-Z\s,-]/g, ''); // Only letters and spaces
+      }
+      else{
+        // For all other text inputs → optionally set a more general rule
+        this.value = this.value.replace(/[^a-zA-Z\s]/g, ''); // Only letters and spaces
       }
 
       // For numbers (prevent negative numbers)
@@ -332,6 +365,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const reportData = {
               rdanaId: `RDANA-${Math.floor(100 + Math.random() * 900)}`,
               dateTime: new Date().toISOString(),
+              rdanaGroup: currentUserGroupName,
               siteLocation: profileData[sanitizeKey("Site Location/Address (Barangay)")] || "N/A",
               disasterType: profileData[sanitizeKey("Type of Disaster")] || "N/A",
               effects: { affectedPopulation: affectedCommunities.reduce((sum, c) => sum + c.affected, 0) },

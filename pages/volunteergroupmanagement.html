@@ -8,15 +8,12 @@
     <link rel="stylesheet" href="../css/global.css" />
     <link rel='stylesheet' href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css'/>
 
-    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
-    <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-    <!-- EMAILJS -->
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
     
     <title>Volunteer Group Management</title>
@@ -43,8 +40,7 @@
                                 <option value="">Sort by</option>
                                 <option value="organization">Organization</option>
                                 <option value="hq">HQ</option>
-                                <option value="areaOfOperation">Area of Operation</option>
-                            </select>
+                                </select>
                             <i class='bx bx-chevron-down'></i>
                         </div>
                     </div>
@@ -58,7 +54,6 @@
                             <th>No.</th>
                             <th>Organization</th>
                             <th>HQ</th>
-                            <th>Area of Operations</th>
                             <th>Contact Person</th>
                             <th>Email</th>
                             <th>Mobile Number</th>
@@ -67,8 +62,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <!-- Rows will be injected here by JS -->
-                    </tbody>
+                        </tbody>
                 </table>
 
                 </div>
@@ -78,24 +72,23 @@
                       <i class='bx bx-plus' style="color: white; font-size: 30px;"></i>
                     </button>
                   </div>
-                  
+                    
                 
                 <div class="pagination-info">
                     <span id="entriesInfo">Showing 0 to 0 of 0 entries</span>
                     <div id="pagination" class="pagination"></div>
                 </div>
-            </div>  
+            </div> 
             
-            <!-- Edit HQ and Location -->
             <div id="addressModal" class="modal" style="display:none;">
                 <div class="modal-content">
-                    <span class="close" onclick="closeModal()" style="display: flex; justify-content: right;">  
+                    <span class="close" onclick="closeModal()" style="display: flex; justify-content: right;"> 
                         <i class='bx bx-x' style="font-size: 25px"></i>
                     </span>
                     <div class="addressModal">
                         <div class="addressHeader">
                             <label for="hqProvinceInput">HQ</label>
-                            <button onclick="clearInputs()" id="clear">Clear</button>  
+                            <button onclick="clearInputs()" id="clear">Clear</button> 
                         </div>
                         <div class="input-group">
                             <input list="hqProvinceOptions" id="hqProvinceInput" placeholder="Province" required> 
@@ -112,37 +105,17 @@
                             <i class='bx bx-chevron-down'></i>
                             <datalist id="hqBarangayOptions"></datalist>
                         </div>
-                        <div class="addressHeader">
-                            <label for="locProvinceInput">Location</label>
-                            <button onclick="clearInputs()" id="clear">Clear</button>  
                         </div>
-                        <div class="input-group">
-                            <input list="locProvinceOptions" id="locProvinceInput" placeholder="Province" required>
-                            <i class='bx bx-chevron-down'></i>
-                            <datalist id="locProvinceOptions"></datalist>
-                        </div>
-                        <div class="input-group">
-                            <input list="locCityOptions" id="locCityInput" placeholder="City/Municipality (optional)" required>
-                            <i class='bx bx-chevron-down'></i>
-                            <datalist id="locCityOptions"></datalist>
-                        </div>
-                        <div class="input-group">
-                            <input list="locBarangayOptions" id="locBarangayInput" placeholder="Barangay (optional)" required>
-                            <i class='bx bx-chevron-down'></i>
-                            <datalist id="locBarangayOptions"></datalist>
-                        </div>
-                    </div>
                     <div style="text-align: center;">
                         <button onclick="applyChanges()">Save</button>
                     </div>
                 </div>
             </div>
 
-            <!-- New Volunteer Group -->
             <div class="add-org-modal" id="addOrgModal" style="display: none;">
                 <div class="add-org-modal-content">
                     <div class="add-org-header">
-                        <h2 style="color: #4059A5; font-size: 20px; justify-content: center; text-align: center;">Add Volunteer New Group</h2>
+                        <h2 style="color: #4059A5; font-size: 20px; justify-content: center; text-align: center;">Add New Volunteer Group</h2>
                         <span class="close" onclick="closeAModal()" style="display: flex; justify-content: right;">
                             <i class='bx bx-x' style="font-size: 25px "></i>
                         </span>
@@ -164,11 +137,6 @@
                         <input type="number" name="mobileNumber" placeholder="Enter the mobile number of the Contact Person" required>
                         <label>Social Media</label>
                         <input type="text" name="socialMedia" placeholder="Enter Social Media Link (Optional)">
-                        <h2 style="color: #4059A5; font-size: 20px; padding-top: 20px;">Area of Operations</h2>
-                        <div id="areaOperationContainer">
-                            <!-- New inputs will appear here -->
-                        </div>
-                        <button type="button" id="addOperationArea" style="margin-top: 10px;">Add Area of Operation</button>
                         <div style="margin-top: 20px;">
                             <button type="submit" style="width: 25%;">Next</button>
                         </div>
@@ -176,30 +144,6 @@
                 </div>
             </div>
 
-            <!-- Area of Operation -->
-            <div id="areaOperationModal" class="operation-modal" style="display:none;">
-                <div class="operation-modal-content">
-                    <span class="close" onclick="closeAOOModal()" style="display: flex; justify-content: right;">
-                        <i class='bx bx-x' style="font-size: 25px "></i>
-                    </span>
-                    <h2>Area of Operation</h2>
-                    <hr>
-                    <form id="areaOperationForm">
-                        <label for="barangayInput">Barangay</label>
-                        <input list="barangayList" id="barangayInput" name="barangay" placeholder="Enter Barangay" required>
-                        <datalist id="barangayList"></datalist>
-                        <label for="cityInput">City/ Municipality</label>
-                        <input list="cityList" id="cityInput" name="city" placeholder="Enter City/ Municipality" required>
-                        <datalist id="cityList"></datalist>
-                        <label for="provinceInput">Province:</label>
-                        <input list="provinceList" id="provinceInput" name="province" placeholder="Enter Province" required>
-                        <datalist id="provinceList"></datalist>
-                        <button type="submit">Add Area of Operation</button>
-                    </form>
-                </div>
-            </div>
-            
-            <!-- Confirm Modal -->
             <div class="confirm-modal" id="confirmModal" style="display:none;">
                 <div class="confirm-modal-content">
                     <h2 style="color: #4059A5; font-size: 20px;">Confirm Details</h2>
@@ -211,7 +155,6 @@
                 </div>
             </div>
             
-            <!-- Success Modal -->
             <div class="success-modal" id="successModal" style="display:none;">
                 <div class="success-modal-content">
                     <h2 style="color: #4059A5; font-size: 18px;">Volunteer Group Successfully Added</h2>
@@ -219,7 +162,7 @@
                     <p><i class='bx bxs-check-circle'></i></p>
                     <button id="closeSuccessBtn">Continue</button>
                 </div>
-            </div>  
+            </div> 
         </div>
     </div>
 

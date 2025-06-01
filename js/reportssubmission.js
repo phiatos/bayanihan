@@ -324,8 +324,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             database.ref(`users/${userUid}`).once('value', snapshot => {
                 const userData = snapshot.val();
-                if (userData && userData.group) {
-                    volunteerGroupName = userData.group;
+                if (userData && userData.organization) {
+                    volunteerGroupName = userData.organization;
                     console.log('Volunteer group fetched from database for filtering:', volunteerGroupName);
                 } else {
                     console.warn('User data or group not found in database for UID:', userUid);
