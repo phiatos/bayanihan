@@ -409,7 +409,10 @@ document.addEventListener("DOMContentLoaded", () => {
                             });
                             if (basicInfoSection) basicInfoSection.style.display = 'none';
                             if (changePasswordFormContainer) changePasswordFormContainer.style.display = 'block';
-                            window.location.replace('../pages/profile.html');
+                            // window.location.replace('../pages/profile.html');
+
+                            isNavigationBlocked = true;
+                            applyNavigationBlocking();
                         } else {
                             await Swal.fire({
                                 icon: 'success',

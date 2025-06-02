@@ -267,6 +267,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const loginForm = document.querySelector(".login form");
     const emailInputElem = document.getElementById("login-email");
     const passwordInputElem = document.getElementById("login-password");
+    const loginSubmitButton = document.querySelector(".loginform-btn");
 
     const urlParams = new URLSearchParams(window.location.search);
     const mode = urlParams.get("mode");
@@ -326,6 +327,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
             console.log("Attempting to sign in with email:", { email: email });
 
+            loginSubmitButton.disabled = true;
+            loginSubmitButton.textContent = 'Logging In...';
+
             try {
                 const userCredential = await signInWithEmailAndPassword(auth, email, password);
                 const user = userCredential.user;
@@ -384,6 +388,8 @@ document.addEventListener("DOMContentLoaded", async () => {
                         showToast("Failed to send verification email: " + error.message);
                     }
                     await signOut(auth); // Sign out user until they verify email
+                    loginSubmitButton.disabled = false;
+                    loginSubmitButton.textContent = 'Login';
                     return;
                 }
 
@@ -449,6 +455,9 @@ document.addEventListener("DOMContentLoaded", async () => {
                 }, 2000); 
 
             } catch (error) {
+                loginSubmitButton.disabled = false;
+                loginSubmitButton.textContent = 'Login';
+                
                 // Handle Firebase authentication errors
                 if (error.code === "auth/invalid-credential" || error.code === "auth/user-not-found" || error.code === "auth/wrong-password") {
                     showToast("Invalid email or password.", 'error');
