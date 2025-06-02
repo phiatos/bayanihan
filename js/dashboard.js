@@ -66,13 +66,25 @@ function animateNumber(elementId, target, duration = 1500, decimals = 0) {
 
 function formatNumber(num, id) {
   if (id === 'amount-raised' || id === 'inkind-donations') {
-    return '₱' + num.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return '₱' + abbreviateNumber(num);
   }
-  // For counts, if number is large, use abbreviated format
   if (num >= 10000) {
     return formatLargeNumber(num.toString());
   }
   return num.toLocaleString();
+}
+
+function abbreviateNumber(number) {
+  const absNumber = Math.abs(number);
+  if (absNumber >= 1.0e+9) {
+    return (number / 1.0e+9).toFixed(2) + "B";
+  } else if (absNumber >= 1.0e+6) {
+    return (number / 1.0e+6).toFixed(2) + "M";
+  } else if (absNumber >= 1.0e+3) {
+    return (number / 1.0e+3).toFixed(2) + "K";
+  } else {
+    return number.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
 }
 
 function highlight(el) {

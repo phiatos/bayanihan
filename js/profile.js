@@ -399,26 +399,34 @@ document.addEventListener("DOMContentLoaded", () => {
 
                         if (passwordNeedsResetAfterTerms) {
                             await Swal.fire({
-                                icon: 'success',
-                                title: 'Agreement Accepted & Password Change Required!',
-                                text: 'Thank you for accepting the Terms and Conditions. For security reasons, please proceed to change your temporary password now.',
-                                allowOutsideClick: false,
-                                allowEscapeKey: false,
-                                showConfirmButton: true,
-                                confirmButtonText: 'Continue to Password Change'
-                            });
+                                    icon: 'success',
+                                    title: 'Agreement Accepted',
+                                    text: 'Thank you for accepting the Terms and Conditions. Please change your temporary password now for security.',
+                                    allowOutsideClick: false,
+                                    allowEscapeKey: false,
+                                    confirmButtonText: 'Change Password',
+                                    width: '400px',
+                                    padding: '1.5em',
+                                    background: '#ffffff',
+                                    color: '#333333',
+                                    confirmButtonColor: '#3085d6'
+                                });
                             if (basicInfoSection) basicInfoSection.style.display = 'none';
                             if (changePasswordFormContainer) changePasswordFormContainer.style.display = 'block';
                             window.location.replace('../pages/profile.html');
                         } else {
                             await Swal.fire({
-                                icon: 'success',
-                                title: 'Agreement Accepted!',
-                                text: 'Thank you for accepting the Terms and Conditions.',
-                                timer: 2000,
-                                showConfirmButton: false
-                            });
-
+                                    icon: 'success',
+                                    title: 'Agreement Accepted!',
+                                    text: 'Thank you for accepting the Terms and Conditions.',
+                                    timer: 2000,
+                                    showConfirmButton: false,
+                                    timerProgressBar: true,
+                                    background: '#fff',
+                                    color: '#333',
+                                    padding: '1.5em',
+                                    width: '360px',
+                                    });
                             const userRole = localStorage.getItem("userRole");
                             let redirectPath = '../pages/dashboard.html'; 
 
@@ -518,8 +526,30 @@ document.addEventListener("DOMContentLoaded", () => {
                 Swal.fire({
                     icon: 'error',
                     title: 'Weak Password',
-                    text: 'Your new password does not meet the complexity requirements. Please ensure it has at least 8 characters, one uppercase letter, one number, and one symbol.'
-                });
+                    text: 'Your new password must have at least 8 characters, including one uppercase letter, one number, and one symbol.',
+                    confirmButtonText: 'Got it',
+                    background: '#fff',
+                    color: '#333',
+                    padding: '1.5em',
+                    width: '360px',
+                    showClass: {
+                        popup: 'swal2-show animate__animated animate__fadeInDown',
+                    },
+                    hideClass: {
+                        popup: 'animate__animated animate__fadeOutUp',
+                    },
+                    didOpen: () => {
+                        const btn = Swal.getConfirmButton();
+                        btn.style.transition = 'transform 0.3s ease';
+                        btn.addEventListener('mouseenter', () => {
+                        btn.style.transform = 'scale(1.1)';
+                        });
+                        btn.addEventListener('mouseleave', () => {
+                        btn.style.transform = 'scale(1)';
+                        });
+                    }
+                    });
+
                 return;
             }
 
@@ -545,7 +575,15 @@ document.addEventListener("DOMContentLoaded", () => {
                     title: 'Password Changed',
                     text: 'Your password has been updated successfully. You can now access your full profile.',
                     timer: 3000,
-                    showConfirmButton: false
+                    showConfirmButton: false,
+                    timerProgressBar: true,
+                    background: '#fff',
+                    color: '#333',
+                    width: '360px',
+                    padding: '1.5em',
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
                 }).then(() => {
                     form.reset();
                     sessionStorage.removeItem('passwordChangePromptShown'); 
