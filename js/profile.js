@@ -20,6 +20,52 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const database = getDatabase(app);
 
+// Variables for inactivity detection
+let inactivityTimeout;
+const INACTIVITY_TIME = 1800000; // 30 minutes in milliseconds
+
+// Function to reset the inactivity timer
+function resetInactivityTimer() {
+    clearTimeout(inactivityTimeout);
+    inactivityTimeout = setTimeout(checkInactivity, INACTIVITY_TIME);
+    console.log("Inactivity timer reset.");
+}
+
+// Function to check for inactivity and prompt the user
+function checkInactivity() {
+    Swal.fire({
+        title: 'Are you still there?',
+        text: 'You\'ve been inactive for a while. Do you want to continue your session or log out?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Stay Login',
+        cancelButtonText: 'Log Out',
+        allowOutsideClick: false,
+        reverseButtons: true
+    }).then((result) => {
+        if (result.isConfirmed) {
+            resetInactivityTimer(); // User chose to continue, reset the timer
+            console.log("User chose to continue session.");
+        } else if (result.dismiss === Swal.DismissReason.cancel) {
+            // User chose to log out
+            auth.signOut().then(() => {
+                console.log("User logged out due to inactivity.");
+                window.location.href = "../pages/login.html"; // Redirect to login page
+            }).catch((error) => {
+                console.error("Error logging out:", error);
+                Swal.fire('Error', 'Failed to log out. Please try again.', 'error');
+            });
+        }
+    });
+}
+
+// Attach event listeners to detect user activity
+['mousemove', 'keydown', 'scroll', 'click'].forEach(eventType => {
+    document.addEventListener(eventType, resetInactivityTimer);
+});
+
 document.addEventListener("DOMContentLoaded", () => {
     const groupTitleElement = document.getElementById('group-title');
     const groupDescriptionElement = document.getElementById('group-description');
@@ -281,6 +327,7 @@ document.addEventListener("DOMContentLoaded", () => {
     onAuthStateChanged(auth, async (user) => {
         if (user) {
             console.log("User is authenticated:", user.uid);
+            resetInactivityTimer();
             await fetchUserData(user); 
 
             try {
@@ -312,7 +359,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     // Explicitly show/hide sections
                     if (basicInfoSection) basicInfoSection.style.display = 'none'; 
                     if (changePasswordFormContainer) changePasswordFormContainer.style.display = 'block'; 
-
+                    
                     // Only show this Swal if it's the *first* time this state is encountered on page load
                     const passwordChangePromptShown = sessionStorage.getItem('passwordChangePromptShown');
                     if (!passwordChangePromptShown) {
@@ -333,11 +380,10 @@ document.addEventListener("DOMContentLoaded", () => {
                     hideTermsModal(); 
                     isNavigationBlocked = false;
                     applyNavigationBlocking();
-
-                    // Ensure full profile is visible
-                    if (basicInfoSection) basicInfoSection.style.display = 'block';
-                    if (changePasswordFormContainer) changePasswordFormContainer.style.display = 'block';
                     sessionStorage.removeItem('passwordChangePromptShown');
+
+                    // Redirect to dashboard.html
+                    window.location.replace('../pages/dashboard.html');
                 }
             } catch (error) {
                 console.error("Error fetching user terms agreement or password reset status:", error);
@@ -400,12 +446,16 @@ document.addEventListener("DOMContentLoaded", () => {
                         if (passwordNeedsResetAfterTerms) {
                             await Swal.fire({
                                 icon: 'success',
-                                title: 'Agreement Accepted & Password Change Required!',
-                                text: 'Thank you for accepting the Terms and Conditions. For security reasons, please proceed to change your temporary password now.',
+                                title: 'Agreement Accepted',
+                                text: 'Thank you for accepting the Terms and Conditions. Please change your temporary password now for security.',
                                 allowOutsideClick: false,
                                 allowEscapeKey: false,
-                                showConfirmButton: true,
-                                confirmButtonText: 'Continue to Password Change'
+                                confirmButtonText: 'Change Password',
+                                width: '400px',
+                                padding: '1.5em',
+                                background: '#ffffff',
+                                color: '#333333',
+                                confirmButtonColor: '#3085d6'
                             });
                             if (basicInfoSection) basicInfoSection.style.display = 'none';
                             if (changePasswordFormContainer) changePasswordFormContainer.style.display = 'block';
@@ -419,7 +469,12 @@ document.addEventListener("DOMContentLoaded", () => {
                                 title: 'Agreement Accepted!',
                                 text: 'Thank you for accepting the Terms and Conditions.',
                                 timer: 2000,
-                                showConfirmButton: false
+                                showConfirmButton: false,
+                                timerProgressBar: true,
+                                background: '#fff',
+                                color: '#333',
+                                padding: '1.5em',
+                                width: '360px',
                             });
 
                             const userRole = localStorage.getItem("userRole");
@@ -521,7 +576,28 @@ document.addEventListener("DOMContentLoaded", () => {
                 Swal.fire({
                     icon: 'error',
                     title: 'Weak Password',
-                    text: 'Your new password does not meet the complexity requirements. Please ensure it has at least 8 characters, one uppercase letter, one number, and one symbol.'
+                    text: 'Your new password must have at least 8 characters, including one uppercase letter, one number, and one symbol.',
+                    confirmButtonText: 'Got it',
+                    background: '#fff',
+                    color: '#333',
+                    padding: '1.5em',
+                    width: '360px',
+                    showClass: {
+                        popup: 'swal2-show animate__animated animate__fadeInDown',
+                    },
+                    hideClass: {
+                        popup: 'animate__animated animate__fadeOutUp',
+                    },
+                    didOpen: () => {
+                        const btn = Swal.getConfirmButton();
+                        btn.style.transition = 'transform 0.3s ease';
+                        btn.addEventListener('mouseenter', () => {
+                        btn.style.transform = 'scale(1.1)';
+                        });
+                        btn.addEventListener('mouseleave', () => {
+                        btn.style.transform = 'scale(1)';
+                        });
+                    }  
                 });
                 return;
             }
@@ -548,11 +624,19 @@ document.addEventListener("DOMContentLoaded", () => {
                     title: 'Password Changed',
                     text: 'Your password has been updated successfully. You can now access your full profile.',
                     timer: 3000,
-                    showConfirmButton: false
+                    showConfirmButton: false,
+                    timerProgressBar: true,
+                    background: '#fff',
+                    color: '#333',
+                    width: '360px',
+                    padding: '1.5em',
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
                 }).then(() => {
                     form.reset();
                     sessionStorage.removeItem('passwordChangePromptShown'); 
-                    window.location.replace('../pages/profile.html');
+                    window.location.replace('../pages/dashboard.html');
                 });
 
             } catch (error) {
