@@ -27,8 +27,8 @@ document.addEventListener('DOMContentLoaded', () => {
   let responseGroup = "";
   let reliefDeployed = "";
   let familiesServed = "";
-  let currentUserGroupName = '';  // global variable to hold the group name
-  let currentUserUid = '';        // optional: global variable for UID
+  let currentUserGroupName = '';  
+  let currentUserUid = '';        
 
 
   const submittedReportsContainer = document.getElementById("submittedReportsContainer");

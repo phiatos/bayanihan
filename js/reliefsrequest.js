@@ -85,8 +85,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // Fetch user data from the database
             database.ref(`users/${userUid}`).once('value', snapshot => {
                 const userData = snapshot.val();
-                if (userData && userData.group) {
-                    volunteerOrganization = userData.group; // e.g., "RAZEL KIM ORG"
+                if (userData && userData.organization) {
+                    volunteerOrganization = userData.organization; 
                     console.log('Volunteer group fetched from database:', volunteerOrganization);
 
                     // Pre-fill form fields with user data
