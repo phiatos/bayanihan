@@ -32,23 +32,23 @@
             <div class="fields">
               <div class="input-field">
                 <label>Site Location/Address (Barangay)</label>
-                <input type="text" id="affectedBarangayInput" placeholder="Enter Affected Barangay" required/>
+                <input type="text" id="affectedBarangayInput" maxlength="50" placeholder="Enter Affected Barangay" required/>
               </div>
               <div class="input-field">
                 <label>Site Location/Address (City/Municipality)</label>
-                <input type="text" placeholder="Enter Affected City/Municipality" required/>
+                <input type="text" placeholder="Enter Affected City/Municipality" maxlength="50" required/>
               </div>
               <div class="input-field">
                 <label>Site Location/Address (Province)</label>
-                <input type="text" placeholder="Enter Affected Province" required/>
+                <input type="text" placeholder="Enter Affected Province" maxlength="50" required/>
               </div>
               <div class="input-field">
                 <label>Local Authorities/Persons Contacted for Information</label>
-                <input type="text" placeholder="Enter Name" required/>
+                <input type="text" placeholder="Enter Name" maxlength="50" required/>
               </div>
               <div class="input-field">
                 <label>Date of Information Gathered</label>
-                <input type="date" id="infoGatheredDate" name="dateInput" required/>
+                <input type="date" id="infoGatheredDate" name="dateInput" maxlength="60" required/>
               </div>
               <div class="input-field">
                 <label>Time of Information Gathered</label>
@@ -66,15 +66,15 @@
             <div class="fields">
               <div class="input-field">
                 <label>Locations and Areas Affected (Barangay)</label>
-                <input type="text" id="affectedBarangayInput" placeholder="Enter Affected Barangay" required/>
+                <input type="text" id="affectedBarangayInput" placeholder="Enter Affected Barangay" maxlength="50" required/>
               </div>
               <div class="input-field">
                 <label>Locations and Areas Affected (City/Municipality)</label>
-                <input type="text" placeholder="Enter Affected City/Municipality" required/>
+                <input type="text" placeholder="Enter Affected City/Municipality" maxlength="50" required/>
               </div>
               <div class="input-field">
                 <label>Locations and Areas Affected (Province)</label>
-                <input type="text" placeholder="Enter Affected Province" required/>
+                <input type="text" placeholder="Enter Affected Province" maxlength="50" required/>
               </div>
               <div class="input-field">
                 <label>Type of Disaster</label>
@@ -133,7 +133,7 @@
               </thead>
               <tbody id="tableBody">
                 <tr>
-                <td><input type="text" placeholder="Enter Municipalities/Communities" required/></td>
+                <td><input type="text" placeholder="Enter Municipalities/Communities" required maxlength="50"/></td>
                 <td><input type="number" placeholder="Enter Total Population" min="0" required oninput="if(this.value < 0) this.value = 0;"/></td>
                 <td><input type="number" placeholder="Enter Affected Population" min="0" required oninput="if(this.value < 0) this.value = 0;"/></td>
                 <td><input type="number" placeholder="No. of Deaths" min="0" required oninput="if(this.value < 0) this.value = 0;"/></td>
@@ -252,7 +252,7 @@
                 <tr>
                   <td id="status-td">Others</td>
                   <td>
-                    <input type="text" placeholder="Input Here (Optional)"/>
+                    <input type="text" id="OthersInput" placeholder="Input Here (Optional)" maxlength="50"/>
                   </td>
                 </tr>
               </tbody>
@@ -311,7 +311,7 @@
             <div class="fields">
               <div class="input-field">
                 <label>Other Immediate Needs:</label>
-                <input type="text" placeholder="Enter items" />
+                <input type="text" placeholder="Enter items" maxlength="50"/>
               </div>
               <div class="input-field">
                 <label>Estimated Quantity:</label>
@@ -325,11 +325,11 @@
             <div class="fields">
               <div class="input-field">
                 <label>Response Groups Involved:</label>
-                <input type="text" placeholder="Enter Name of Organization/s" required/>
+                <input type="text" placeholder="Enter Name of Organization/s" maxlength="50" required/>
               </div>
               <div class="input-field">
                 <label>Relief Assistance Deployed:</label>
-                <input type="text" placeholder="Enter Relief Assistance" required/>
+                <input type="text" placeholder="Enter Relief Assistance" maxlength="50" required/>
               </div>
               <div class="input-field">
                 <label>Number of Families Served:</label>

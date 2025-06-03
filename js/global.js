@@ -435,23 +435,43 @@ document.addEventListener("DOMContentLoaded", async () => {
 
                 // Redirection Logic
                 setTimeout(() => {
-                    if (isAdmin && !isFirstLogin && termsAccepted && !password_needs_reset) {
-                        console.log("Redirecting Admin to dashboard (fully onboarded).");
+                    // Determine if the user is an admin or an ABVN user
+                    const isAdminOrABVN = userData?.role === "AB ADMIN" || userData?.role === "admin" || userData?.role === "ABVN";
+
+                    if (isAdminOrABVN && !isFirstLogin && termsAccepted && !password_needs_reset) {
+                        console.log("Redirecting Admin/ABVN to dashboard (fully onboarded).");
                         window.location.replace('../pages/dashboard.html');
-                    } else if (!isFirstLogin || !termsAccepted || password_needs_reset) {
+                    } else if (isFirstLogin || !termsAccepted || password_needs_reset) {
                         console.log("Redirecting to profile.html for setup (first login, unaccepted terms, or password reset).");
                         window.location.replace('../pages/profile.html');
                     } else {
-                        console.log("Redirecting based on role.");
+                        console.log("Redirecting based on role (fallback).");
                         const userRole = userData.role;
 
-                        if (userRole === "ABVN") {
+                        if (userRole === "ABVN") { // This condition is now largely redundant due to the new isAdminOrABVN check
                             window.location.replace('../pages/dashboard.html');
                         } else {
                             console.error("Unknown user role or unhandled redirection:", userRole);
-                            window.location.replace('../pages/dashboard.html'); 
+                            window.location.replace('../pages/dashboard.html');
                         }
                     }
+                    // if (isAdmin && !isFirstLogin && termsAccepted && !password_needs_reset) {
+                    //     console.log("Redirecting Admin to dashboard (fully onboarded).");
+                    //     window.location.replace('../pages/dashboard.html');
+                    // } else if (!isFirstLogin || !termsAccepted || password_needs_reset) {
+                    //     console.log("Redirecting to profile.html for setup (first login, unaccepted terms, or password reset).");
+                    //     window.location.replace('../pages/profile.html');
+                    // } else {
+                    //     console.log("Redirecting based on role.");
+                    //     const userRole = userData.role;
+
+                    //     if (userRole === "ABVN") {
+                    //         window.location.replace('../pages/dashboard.html');
+                    //     } else {
+                    //         console.error("Unknown user role or unhandled redirection:", userRole);
+                    //         window.location.replace('../pages/dashboard.html'); 
+                    //     }
+                    // }
                 }, 2000); 
 
             } catch (error) {

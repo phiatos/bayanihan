@@ -348,11 +348,8 @@ document.addEventListener("DOMContentLoaded", () => {
                     console.log("Showing terms modal: termsPending=true");
                     showTermsModal();
                 } else if (passwordNeedsReset) {
-                    // Terms accepted, but password reset is still required
                     console.log("Password change required: passwordNeedsReset=true");
                     hideTermsModal(); 
-
-                    // Set navigation blocked state for password reset
                     isNavigationBlocked = true;
                     applyNavigationBlocking(); 
 
@@ -382,8 +379,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     applyNavigationBlocking();
                     sessionStorage.removeItem('passwordChangePromptShown');
 
-                    // Redirect to dashboard.html
-                    window.location.replace('../pages/dashboard.html');
                 }
             } catch (error) {
                 console.error("Error fetching user terms agreement or password reset status:", error);

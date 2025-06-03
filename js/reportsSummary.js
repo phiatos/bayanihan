@@ -149,8 +149,7 @@ categories[category].forEach(item => {
             .replace('No Of Organizations Activated', 'No. of Organizations Activated')
             .replace('Total Value Of In Kind Donations', 'Total Value of In-Kind Donations')
             .replace('Total Monetary Donations', 'Total Monetary Donations')
-            .replace('Notes Additional Information', 'Notes/additional information');
-
+            .replace('NotesAdditionalInformation', 'Notes/additional information'); 
         let value = summaryData[item];
 
         if (item === "DateOfReport" || item === "StartDate" || item === "EndDate") {
