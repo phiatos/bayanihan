@@ -212,6 +212,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const end = start + rowsPerPage;
         const currentRows = filteredData.slice(start, end);
 
+        if (currentRows.length === 0) {
+        tableBody.innerHTML = "<tr><td colspan='9'>No approved reports found on this page.</td></tr>";
+        entriesInfo.textContent = "Showing 0 to 0 of 0 entries";
+        return;
+    }
+
         currentRows.forEach((item, index) => {
             const tr = document.createElement('tr');
             const rowIndex = start + index;
