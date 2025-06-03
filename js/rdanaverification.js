@@ -133,6 +133,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const start = (currentPage - 1) * rowsPerPage;
   const paginated = reports.slice(start, start + rowsPerPage);
 
+   // Handle case when there are no reports to display
+  if (paginated.length === 0) {
+    submittedReportsContainer.innerHTML = "<tr><td colspan='9'>No approved reports found on this page.</td></tr>";
+    entriesInfo.textContent = "Showing 0 to 0 of 0 entries";
+    return;
+  }
+
+  // Update entry info normally
   entriesInfo.textContent = `Showing ${start + 1} to ${start + paginated.length} of ${reports.length} entries`;
 
   paginated.forEach((report, index) => {

@@ -82,6 +82,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const end = start + rowsPerPage;
     const pageLogs = logs.slice(start, end);
 
+    // Handle case when there are no logs to display on this page
+    if (pageLogs.length === 0) {
+      tbody.innerHTML = "<tr><td colspan='9'>No logs found on this page.</td></tr>";
+      const entriesInfo = document.getElementById("entriesInfo");
+      if (entriesInfo) {
+        entriesInfo.textContent = "Showing 0 to 0 of 0 entries";
+      }
+      return;
+    }
+
+    // Update entries info
+    const entriesInfo = document.getElementById("entriesInfo");
+    if (entriesInfo) {
+      entriesInfo.textContent = `Showing ${start + 1} to ${start + pageLogs.length} of ${totalEntries} entries`;
+    }
+    
     pageLogs.forEach((log, index) => {
       const row = document.createElement("tr");
       row.innerHTML = `
