@@ -110,16 +110,16 @@ header {
   z-index: 3;
   font-size: 16px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--white);
   margin-bottom: 0.9rem;
   letter-spacing: 0.07em;
   user-select: none;
   font-family: 'Poppins', sans-serif;
 
-  display: flex;              /* make h3 a flex container */
-  align-items: center;        /* vertically center icon and text */
-  justify-content: center;    /* center horizontally */
-  gap: 0.5rem;                /* space between icon and text */
+  display: flex;              
+  align-items: center;     
+  justify-content: center;    
+  gap: 0.5rem;                
 }
 
 .metric-card p {

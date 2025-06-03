@@ -22,9 +22,9 @@ const urlsToCache = [
     '../components/sidebar.css',
     '../js/rdanaLog.js',
     '../css/rdanaLog.css',
-    '../pages/profile.js', 
-    '../pages/profile.html',
-    '../css/profile.css',
+    // '../pages/profile.js', 
+    // '../pages/profile.html',
+    // '../css/profile.css',
 ];
 
 self.addEventListener('install', (event) => {
@@ -63,7 +63,7 @@ self.addEventListener('fetch', (event) => {
     if (
         requestUrl.origin === 'https://identitytoolkit.googleapis.com' ||
         requestUrl.origin === 'https://bayanihan-5ce7e-default-rtdb.asia-southeast1.firebasedatabase.app' ||
-        requestUrl.origin === 'http://localhost:9099' || // Explicitly bypass emulator requests
+        requestUrl.origin === 'http://localhost:9099' || 
         event.request.url.includes('emailjs') ||
         event.request.method !== 'GET'
     ) {
@@ -71,7 +71,6 @@ self.addEventListener('fetch', (event) => {
         event.respondWith(
             fetch(event.request).catch(error => {
                 console.error('Fetch failed for bypassed request:', event.request.url, error);
-                // Return a fallback response or rethrow the error
                 throw error;
             })
         );

@@ -139,119 +139,115 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-function formatDate(date) {
-  return date.toISOString().split('T')[0];
-}
+  function formatDate(date) {
+    return date.toISOString().split('T')[0];
+  }
 
-function formatTime(date) {
-  return date.toTimeString().slice(0,5);
-}
+  function formatTime(date) {
+    return date.toTimeString().slice(0,5);
+  }
 
-function setupInfoGatheredValidation(occurrenceDateInput, occurrenceTimeInput, infoDateInput, infoTimeInput) {
-  function updateInfoLimits() {
-    if (!occurrenceDateInput.value || !occurrenceTimeInput.value) return;
+  function setupInfoGatheredValidation(occurrenceDateInput, occurrenceTimeInput, infoDateInput, infoTimeInput) {
+    function updateInfoLimits() {
+      if (!occurrenceDateInput.value || !occurrenceTimeInput.value) return;
 
-    // Parse occurrence datetime
-    const [oYear, oMonth, oDay] = occurrenceDateInput.value.split('-').map(Number);
-    const [oHour, oMinute] = occurrenceTimeInput.value.split(':').map(Number);
-    const occurrenceDateTime = new Date(oYear, oMonth - 1, oDay, oHour, oMinute);
+      // Parse occurrence datetime
+      const [oYear, oMonth, oDay] = occurrenceDateInput.value.split('-').map(Number);
+      const [oHour, oMinute] = occurrenceTimeInput.value.split(':').map(Number);
+      const occurrenceDateTime = new Date(oYear, oMonth - 1, oDay, oHour, oMinute);
 
-    // Calculate 24h and 48h after occurrence
-    const minDateTime = new Date(occurrenceDateTime.getTime() + 24 * 60 * 60 * 1000);
-    const maxDateTime = new Date(occurrenceDateTime.getTime() + 48 * 60 * 60 * 1000);
+      // Calculate 24h and 48h after occurrence
+      const minDateTime = new Date(occurrenceDateTime.getTime() + 24 * 60 * 60 * 1000);
+      const maxDateTime = new Date(occurrenceDateTime.getTime() + 48 * 60 * 60 * 1000);
 
-    // Set min and max dates for infoGatheredDate input
-    infoDateInput.min = formatDate(minDateTime);
-    infoDateInput.max = formatDate(maxDateTime);
+      // Set min and max dates for infoGatheredDate input
+      infoDateInput.min = formatDate(minDateTime);
+      infoDateInput.max = formatDate(maxDateTime);
 
-    if (!infoDateInput.value) infoDateInput.value = formatDate(minDateTime);
+      if (!infoDateInput.value) infoDateInput.value = formatDate(minDateTime);
 
-    // Adjust time limits based on selected info date
-    const selectedInfoDate = new Date(infoDateInput.value + 'T00:00');
+      // Adjust time limits based on selected info date
+      const selectedInfoDate = new Date(infoDateInput.value + 'T00:00');
 
-    if (selectedInfoDate.toDateString() === minDateTime.toDateString()) {
-      infoTimeInput.min = formatTime(minDateTime);
-      infoTimeInput.max = "23:59";
-    } else if (selectedInfoDate.toDateString() === maxDateTime.toDateString()) {
-      infoTimeInput.min = "00:00";
-      infoTimeInput.max = formatTime(maxDateTime);
-    } else {
-      infoTimeInput.min = "00:00";
-      infoTimeInput.max = "23:59";
-    }
+      if (selectedInfoDate.toDateString() === minDateTime.toDateString()) {
+        infoTimeInput.min = formatTime(minDateTime);
+        infoTimeInput.max = "23:59";
+      } else if (selectedInfoDate.toDateString() === maxDateTime.toDateString()) {
+        infoTimeInput.min = "00:00";
+        infoTimeInput.max = formatTime(maxDateTime);
+      } else {
+        infoTimeInput.min = "00:00";
+        infoTimeInput.max = "23:59";
+      }
 
-    // Reset time if out of range
-    if (infoTimeInput.value) {
-      if (infoTimeInput.value < infoTimeInput.min || infoTimeInput.value > infoTimeInput.max) {
-        infoTimeInput.value = "";
+      // Reset time if out of range
+      if (infoTimeInput.value) {
+        if (infoTimeInput.value < infoTimeInput.min || infoTimeInput.value > infoTimeInput.max) {
+          infoTimeInput.value = "";
+        }
       }
     }
-  }
 
-  function validateInfoDateTime() {
-    if (!occurrenceDateInput.value || !occurrenceTimeInput.value || !infoDateInput.value || !infoTimeInput.value) return;
+    function validateInfoDateTime() {
+      if (!occurrenceDateInput.value || !occurrenceTimeInput.value || !infoDateInput.value || !infoTimeInput.value) return;
 
-    const [oYear, oMonth, oDay] = occurrenceDateInput.value.split('-').map(Number);
-    const [oHour, oMinute] = occurrenceTimeInput.value.split(':').map(Number);
-    const occurrenceDateTime = new Date(oYear, oMonth - 1, oDay, oHour, oMinute);
+      const [oYear, oMonth, oDay] = occurrenceDateInput.value.split('-').map(Number);
+      const [oHour, oMinute] = occurrenceTimeInput.value.split(':').map(Number);
+      const occurrenceDateTime = new Date(oYear, oMonth - 1, oDay, oHour, oMinute);
 
-    const [iYear, iMonth, iDay] = infoDateInput.value.split('-').map(Number);
-    const [iHour, iMinute] = infoTimeInput.value.split(':').map(Number);
-    const infoDateTime = new Date(iYear, iMonth - 1, iDay, iHour, iMinute);
+      const [iYear, iMonth, iDay] = infoDateInput.value.split('-').map(Number);
+      const [iHour, iMinute] = infoTimeInput.value.split(':').map(Number);
+      const infoDateTime = new Date(iYear, iMonth - 1, iDay, iHour, iMinute);
 
-    const minDateTime = new Date(occurrenceDateTime.getTime() + 24 * 60 * 60 * 1000);
-    const maxDateTime = new Date(occurrenceDateTime.getTime() + 48 * 60 * 60 * 1000);
+      const minDateTime = new Date(occurrenceDateTime.getTime() + 24 * 60 * 60 * 1000);
+      const maxDateTime = new Date(occurrenceDateTime.getTime() + 48 * 60 * 60 * 1000);
 
-    if (infoDateTime < minDateTime) {
-      alert('Information gathered must be at least 24 hours after the occurrence.');
-      infoTimeInput.value = '';
-      infoTimeInput.focus();
-      return;
+      if (infoDateTime < minDateTime) {
+        alert('Information gathered must be at least 24 hours after the occurrence.');
+        infoTimeInput.value = '';
+        infoTimeInput.focus();
+        return;
+      }
+
+      if (infoDateTime > maxDateTime) {
+        alert('Information gathered must be no later than 48 hours after the occurrence.');
+        infoTimeInput.value = '';
+        infoTimeInput.focus();
+        return;
+      }
     }
 
-    if (infoDateTime > maxDateTime) {
-      alert('Information gathered must be no later than 48 hours after the occurrence.');
-      infoTimeInput.value = '';
-      infoTimeInput.focus();
-      return;
-    }
+    occurrenceDateInput.addEventListener('change', () => {
+      updateInfoLimits();
+      validateInfoDateTime();
+    });
+
+    occurrenceTimeInput.addEventListener('change', () => {
+      updateInfoLimits();
+      validateInfoDateTime();
+    });
+
+    infoDateInput.addEventListener('change', () => {
+      updateInfoLimits();
+      validateInfoDateTime();
+    });
+
+    infoTimeInput.addEventListener('change', () => {
+      validateInfoDateTime();
+    });
+
+    // Initialize limits on page load if needed
+    updateInfoLimits();
   }
 
-  occurrenceDateInput.addEventListener('change', () => {
-    updateInfoLimits();
-    validateInfoDateTime();
-  });
+  // Usage:
 
-  occurrenceTimeInput.addEventListener('change', () => {
-    updateInfoLimits();
-    validateInfoDateTime();
-  });
-
-  infoDateInput.addEventListener('change', () => {
-    updateInfoLimits();
-    validateInfoDateTime();
-  });
-
-  infoTimeInput.addEventListener('change', () => {
-    validateInfoDateTime();
-  });
-
-  // Initialize limits on page load if needed
-  updateInfoLimits();
-}
-
-// Usage:
-
-setupInfoGatheredValidation(
-  document.getElementById('occurrenceDate'),
-  document.getElementById('occurrenceTime'),
-  document.getElementById('infoGatheredDate'),
-  document.getElementById('infoGatheredTime')
-);
-
-
-
-
+  setupInfoGatheredValidation(
+    document.getElementById('occurrenceDate'),
+    document.getElementById('occurrenceTime'),
+    document.getElementById('infoGatheredDate'),
+    document.getElementById('infoGatheredTime')
+  );
 
   // Add the submit functionality for the RDANA report
   const nextBtn4 = document.getElementById('nextBtn4');

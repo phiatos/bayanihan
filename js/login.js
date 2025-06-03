@@ -291,16 +291,13 @@ document.addEventListener("DOMContentLoaded", () => {
             const isPasswordValid = validatePassword(passwordInput);
 
             if (!isEmailValid || !isPasswordValid) {
-                event.preventDefault(); // Prevent form submission if validation fails
+                event.preventDefault(); 
                 console.log('Login failed due to client-side validation errors.');
             } else {
                 console.log('Login successful (client-side validation passed)!', {
                     mobile: emailInput.value,
                     password: passwordInput.value
                 });
-                // If you want to submit the form normally after success,
-                // don't preventDefault, or handle the submission via AJAX.
-                // For now, it will proceed with default submission if validation passes.
             }
         });
     }

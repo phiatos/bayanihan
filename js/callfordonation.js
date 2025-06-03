@@ -43,8 +43,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentPage = 1;
     let allDonations = [];
     let filteredAndSortedDonations = [];
-
-    // Variable to track if the form has changes
     let formHasChanges = false;
 
     // Add event listeners to the form inputs to track changes
