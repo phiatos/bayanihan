@@ -367,7 +367,7 @@ document.addEventListener("DOMContentLoaded", () => {
                             allowOutsideClick: false, 
                             allowEscapeKey: false,   
                             showConfirmButton: true, 
-                            confirmButtonText: 'Understood'
+                            confirmButtonText: 'okay'
                         });
                         sessionStorage.setItem('passwordChangePromptShown', 'true'); 
                     }
@@ -445,7 +445,7 @@ document.addEventListener("DOMContentLoaded", () => {
                                 text: 'Thank you for accepting the Terms and Conditions. Please change your temporary password now for security.',
                                 allowOutsideClick: false,
                                 allowEscapeKey: false,
-                                confirmButtonText: 'Change Password',
+                                confirmButtonText: 'Change Pass',
                                 width: '400px',
                                 padding: '1.5em',
                                 background: '#ffffff',
