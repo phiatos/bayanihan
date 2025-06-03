@@ -115,14 +115,14 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       // For Barangay (Letters & Numbers)
-      if (this.id === 'affectedBarangayInput') {
-        this.value = this.value.replace(/[^a-zA-Z0-9\s,]/g, ''); // Alphanumeric, spaces, commas
+      if (this.id === 'affectedBarangayInput'){
+        this.value = this.value.replace(/[^a-zA-Z0-9\s,-]/g, ''); // Alphanumeric, spaces, commas
       }
-      else if (this.placeholder.includes('Name') || this.placeholder.includes('Organization')) {
-      // For Name and Organization → letters, spaces, commas, hyphens only
+      else if (this.placeholder.includes('Name') || this.placeholder.includes('Organization') || (this.id === 'OthersInput') ) {
+      // For Name and Organization and Others → letters, spaces, commas, hyphens only
       this.value = this.value.replace(/[^a-zA-Z\s,-]/g, '');
       }
-      else if (this.placeholder.includes('City/Municipality') || this.placeholder.includes('Province')|| this.placeholder.includes('Relief Assistance')|| this.placeholder.includes('Items')) {
+      else if (this.placeholder.includes('City/Municipality') || this.placeholder.includes('Province')|| this.placeholder.includes('Relief Assistance')|| this.placeholder.includes('Items') || this.placeholder.includes('Barangay') ) {
         this.value = this.value.replace(/[^a-zA-Z\s,-]/g, ''); // Only letters and spaces
       }
       else{
