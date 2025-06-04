@@ -313,20 +313,9 @@ document.addEventListener('DOMContentLoaded', () => {
         entriesInfo.textContent = `Showing ${(currentPage - 1) * rowsPerPage + 1} to ${Math.min(currentPage * rowsPerPage, reports.length)} of ${reviewedReports.length} entries`;
     }
 
-    function renderPagination(totalRows) {
+   function renderPagination() {
         pagination.innerHTML = '';
         const totalPages = Math.ceil(filteredData.length / rowsPerPage);
-
-        // const createButton = (label, page = null, disabled = false, active = false) => {
-        // const btn = document.createElement("button");
-        // if (disabled) btn.disabled = true;
-        //     if (active) btn.classList.add("active-page");
-        //     if (page !== null) {
-        //         btn.addEventListener("click", () => {
-        //             currentPage = page;
-        //             applySearchAndSort();
-        //         });
-        //     }
 
         if (totalPages === 0) {
             pagination.innerHTML = '<span>No entries to display</span>';
@@ -345,13 +334,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return btn;
         };
 
-        // paginationContainer.appendChild(createButton("Prev", currentPage - 1, currentPage === 1));
-        // for (let i = 1; i <= totalPages; i++) {
-        //     paginationContainer.appendChild(createButton(i, i, false, i === currentPage));
-        // }
-        // paginationContainer.appendChild(createButton("Next", currentPage + 1, currentPage === totalPages));
-
-
         pagination.appendChild(createButton('Prev', currentPage - 1, currentPage === 1));
 
         const maxVisible = 5;
@@ -364,6 +346,7 @@ document.addEventListener('DOMContentLoaded', () => {
         for (let i = startPage; i <= endPage; i++) {
             pagination.appendChild(createButton(i, i, false, i === currentPage));
         }
+
         pagination.appendChild(createButton('Next', currentPage + 1, currentPage === totalPages));
     }
 

@@ -133,7 +133,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const start = (currentPage - 1) * rowsPerPage;
   const paginated = reports.slice(start, start + rowsPerPage);
 
-   // Handle case when there are no reports to display
+  // Handle case when there are no reports to display
   if (paginated.length === 0) {
     submittedReportsContainer.innerHTML = "<tr><td colspan='9'>No approved reports found on this page.</td></tr>";
     entriesInfo.textContent = "Showing 0 to 0 of 0 entries";
@@ -172,10 +172,12 @@ document.addEventListener('DOMContentLoaded', () => {
     renderPagination(reports.length, reports);
   }
 
+
 function renderPagination(totalItems, filteredLogs) {
   const totalPages = Math.ceil(totalItems / rowsPerPage);
   paginationContainer.innerHTML = '';
 
+  // Handle case when there are no pages
   if (totalPages === 0) {
     paginationContainer.innerHTML = '<span>No entries to display</span>';
     return;
@@ -187,16 +189,18 @@ function renderPagination(totalItems, filteredLogs) {
     if (disabled) btn.disabled = true;
     if (isActive) btn.classList.add('active-page');
     btn.addEventListener('click', () => {
-      // Clamp page number to valid range
+      // Ensure page number is within valid range
       currentPage = Math.min(Math.max(page, 1), totalPages);
-      applySearchAndSort(filteredLogs); // Pass filtered logs here
+      applySearchAndSort(filteredLogs);
     });
     return btn;
   };
 
+  // Prev button
   paginationContainer.appendChild(createButton('Prev', currentPage - 1, currentPage === 1));
 
-   const maxVisible = 5;
+  // Dynamic page numbers
+  const maxVisible = 5;
   let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
   let endPage = Math.min(totalPages, startPage + maxVisible - 1);
   if (endPage - startPage < maxVisible - 1) {
@@ -207,8 +211,10 @@ function renderPagination(totalItems, filteredLogs) {
     paginationContainer.appendChild(createButton(i, i, false, i === currentPage));
   }
 
+  // Next button
   paginationContainer.appendChild(createButton('Next', currentPage + 1, currentPage === totalPages));
 }
+
 
 
   

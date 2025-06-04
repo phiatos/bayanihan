@@ -148,9 +148,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (reports.length === 0) {
             submittedReportsContainer.innerHTML = "<tr><td colspan='9'>No approved reports found on this page.</td></tr>";
             entriesInfo.textContent = "Showing 0 to 0 of 0 entries";
-            renderPagination(0);
             return;
         }
+        
 
         reports.forEach((report, index) => {
             const tr = document.createElement('tr');
@@ -345,27 +345,7 @@ document.addEventListener('DOMContentLoaded', () => {
         entriesInfo.textContent = `Showing ${firstEntry} to ${lastEntry} of ${reports.length} entries`;
     }
 
-    // function renderPagination(totalRows) {
-    //     paginationContainer.innerHTML = "";
-    //     const totalPages = Math.ceil(totalRows / rowsPerPage);
-    // const createButton = (label, page = null, disabled = false, active = false) => {
-    //         const btn = document.createElement("button");
-    // if (active) btn.classList.add("active-page");
-    //         if (page !== null) {
-    //             btn.addEventListener("click", () => {
-    //                 currentPage = page;
-    //                 applySearchAndSort();
-    //             });
-    //         }
-    // paginationContainer.appendChild(createButton("Prev", currentPage - 1, currentPage === 1));
-
-    //     for (let i = 1; i <= totalPages; i++) {
-    //         paginationContainer.appendChild(createButton(i, i, false, i === currentPage));
-    //     }
-    // paginationContainer.appendChild(createButton("Next", currentPage + 1, currentPage === totalPages));
-
-
-    function renderPagination() {
+     function renderPagination() {
         pagination.innerHTML = '';
         const totalPages = Math.ceil(filteredData.length / rowsPerPage);
 
@@ -394,10 +374,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (endPage - startPage < maxVisible - 1) {
             startPage = Math.max(1, endPage - maxVisible + 1);
         }
+
         for (let i = startPage; i <= endPage; i++) {
             pagination.appendChild(createButton(i, i, false, i === currentPage));
         }
-        pagination.appendChild(createButton('Next', currentPage + 1, currentPage === totalPages));  
+
+        pagination.appendChild(createButton('Next', currentPage + 1, currentPage === totalPages));
     }
 
     function applySearchAndSort() {
