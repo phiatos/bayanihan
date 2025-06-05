@@ -8,9 +8,15 @@
   <link rel="stylesheet" href="../css/application.css" />
   <link rel="icon" href="../assets/images/logox192.png" />
 
+   <!-- Firebase Compat SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 </head>
@@ -79,13 +85,13 @@
           <div class="form-group">
             <label for="region">Region</label>
             <select id="region" name="region" required></select>
-            <input type="hidden" name="hq-region" />
+            <input type="hidden" id="region-text" name="hq-region-text"/>
           </div>
 
           <div class="form-group">
             <label for="province">Province</label>
             <select id="province" name="province" required></select>
-            <input type="hidden" name="hq-province" />
+            <input type="hidden" id="province-text" name="hq-province-text"/>
           </div>
 
           <div class="form-group">
@@ -97,7 +103,12 @@
           <div class="form-group">
             <label for="barangay">Barangay</label>
             <select id="barangay" name="barangay" required></select>
-            <input type="hidden" name="hq-barangay" />
+            <input type="hidden" id="barangay-text" name="hq-barangay-text"/>
+          </div>
+
+          <div class="form-group">
+            <label for="streetAddress">Block/Lot/Unit Number and Street</label>
+            <input type="text" id="streetAddress" name="streetAddress" placeholder="e.g. Blk 1 Lot 2, Main St." required />
           </div>
         </fieldset>
 
@@ -116,5 +127,6 @@
     </div>
   </footer>
 
+  <script type="module" src="../js/joinasvolunteerorg.js"></script>
 </body>
 </html>
