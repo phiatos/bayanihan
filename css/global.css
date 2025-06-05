@@ -42,8 +42,52 @@
   margin: 50px;
   max-height: calc(100vh - 100px);
   overflow-y: auto;
+  overflow-x: hidden; 
 }
 
+#main-content::-webkit-scrollbar {
+  width: 8px; /* Width for the vertical scrollbar */
+  height: 0px; /* Hides the horizontal scrollbar (making its height 0) */
+}
+
+#main-content::-webkit-scrollbar-thumb {
+  background-color: var(--primary-color);
+  border-radius: 4px;
+}
+
+#main-content::-webkit-scrollbar-thumb:hover {
+  background-color: var(--button-hover);
+}
+
+#main-content::-webkit-scrollbar-track {
+  background-color: var(--white);
+  border-radius: 4px;
+}
+
+/*----------Custom Scrollbar for the Table Container----------------*/
+.table-container {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.table-container::-webkit-scrollbar {
+  width: 8px; 
+  height: 0px; 
+}
+
+.table-container::-webkit-scrollbar-thumb {
+  background-color: var(--primary-color); 
+  border-radius: 4px; 
+}
+
+.table-container::-webkit-scrollbar-thumb:hover {
+  background-color: var(--button-hover); 
+}
+
+.table-container::-webkit-scrollbar-track {
+  background-color: var(--white);
+  border-radius: 4px;
+}
 /* ----------------------------------------------------- */
 .sidebar-placeholder {
   background-color: #FFF9F0;
