@@ -44,6 +44,20 @@
   overflow-y: auto;
 }
 
+/* Optional: Smooth scrollbar for better UX */
+#main-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+#main-content::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+#main-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
 /* ----------------------------------------------------- */
 .sidebar-placeholder {
   background-color: #FFF9F0;

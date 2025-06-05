@@ -115,7 +115,6 @@ function formatNumber(num, id) {
   if (id === 'amount-raised' || id === 'inkind-donations') {
     return '₱' + abbreviateNumber(num);
   }
-  // For counts, if number is large, use abbreviated format
   if (num >= 10000) {
     return formatLargeNumber(num.toString());
   }
