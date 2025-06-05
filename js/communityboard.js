@@ -86,27 +86,29 @@ async function createPost() {
     return;
   }
 
+  const modalPostTitle = document.getElementById('modal-post-title');
   const modalPostContent = document.getElementById('modal-post-content');
   const mediaInput = document.getElementById('modal-media-upload');
   const postButton = document.getElementById('modal-post-button');
   const modal = document.getElementById('post-modal');
   const mediaPreview = document.getElementById('modal-media-preview');
 
-  if (!modalPostContent || !mediaInput || !postButton || !modal || !mediaPreview) {
-    console.error('DOM elements missing:', { modalPostContent, mediaInput, postButton, modal, mediaPreview });
+  if (!modalPostTitle || !modalPostContent || !mediaInput || !postButton || !modal || !mediaPreview) {
+    console.error('DOM elements missing:', { modalPostTitle, modalPostContent, mediaInput, postButton, modal, mediaPreview });
     Swal.fire('Error', 'Page elements not found. Please try refreshing the page.', 'error');
     return;
   }
 
+  const title = modalPostTitle.value.trim();
   const content = modalPostContent.value.trim();
   const file = mediaInput.files[0];
-  if (!content && !file) {
-    console.log('No content or media provided');
-    Swal.fire('Please add content or media to post', '', 'warning');
+  if (!title && !content && !file) {
+    console.log('No title, content, or media provided');
+    Swal.fire('Please add a title, content, or media to post', '', 'warning');
     return;
   }
 
-  console.log('Attempting to create post with content:', content, 'and file:', file ? file.name : 'none');
+  console.log('Attempting to create post with title:', title, 'content:', content, 'and file:', file ? file.name : 'none');
   postButton.classList.add('loading');
   modal.classList.add('loading');
 
@@ -131,7 +133,7 @@ async function createPost() {
       mediaInput.value = '';
       mediaPreview.innerHTML = '';
       return;
-  }
+    }
 
     const storageRef = storage.ref(`posts/${user.uid}/${Date.now()}_${file.name}`);
     try {
@@ -150,6 +152,7 @@ async function createPost() {
 
   const { contactPerson, organization } = await fetchUserData(user.uid);
   const post = {
+    title: title,
     content: content,
     userId: user.uid,
     userName: contactPerson,
@@ -163,6 +166,7 @@ async function createPost() {
     console.log('Writing post to database:', post);
     await database.ref('posts').push(post);
     await logActivity(`${contactPerson} from ${organization} created a new post`);
+    modalPostTitle.value = '';
     modalPostContent.value = '';
     mediaInput.value = '';
     mediaPreview.innerHTML = '';
@@ -196,6 +200,7 @@ async function sharePost(id) {
 
     const { contactPerson, organization } = await fetchUserData(user.uid);
     const sharedPost = {
+      title: originalPost.title,
       content: originalPost.content,
       userId: user.uid,
       userName: contactPerson,
@@ -204,6 +209,7 @@ async function sharePost(id) {
       mediaUrl: originalPost.mediaUrl,
       mediaType: originalPost.mediaType,
       originalPostId: id,
+      originalUserName: originalPost.userName,
       isShared: true
     };
 
@@ -249,23 +255,52 @@ async function loadPosts() {
         }
 
         const canEdit = user && user.uid === post.userId;
+        const isShared = post.isShared || false;
+        const sharedInfo = isShared ? `<small class="shared-info">${post.originalUserName} shared this post</small>` : '';
+
         postElem.innerHTML = `
           <div class="post-header">
-            <strong style="color:"#121212">${post.userName}</strong>
-            <small style="color: var(--primary-color, #14AEBB); font-size: 0.9em;">${post.organization || ''}</small>
-            <small>${new Date(post.timestamp).toLocaleString()}</small>
+            <div class="post-user-info">
+              <strong style="color: #121212">${post.userName}</strong>
+              <div class="post-meta">
+                <small style="color: var(--primary-color, #14AEBB); font-size: 0.9em;">${post.organization || ''}</small>
+                <small>${new Date(post.timestamp).toLocaleString()}</small>
+              </div>
+              ${sharedInfo}
+            </div>
+            ${canEdit ? `
+              <div class="post-menu">
+                <button class="menu-button"><i class='bx bx-dots-vertical-rounded'></i></button>
+                <div class="menu-dropdown" style="display: none;">
+                  <button onclick="toggleEdit('${id}', '${post.userId}')">Edit</button>
+                  <button onclick="deletePost('${id}')">Delete</button>
+                </div>
+              </div>
+            ` : ''}
           </div>
+          ${post.title ? `<h4 class="post-title">${post.title}</h4>` : ''}
           <p class="post-content" contenteditable="false">${post.content}</p>
           ${mediaHtml}
           <div class="post-actions">
-            ${canEdit ? `
-              <button onclick="toggleEdit('${id}', '${post.userId}')">Edit</button>
-              <button onclick="deletePost('${id}')">Delete</button>
-            ` : ''}
             <button onclick="sharePost('${id}')"><i class='bx bx-share'></i> Share</button>
           </div>
         `;
         postsContainer.appendChild(postElem);
+
+        // Add event listener for menu toggle
+        if (canEdit) {
+          const menuButton = postElem.querySelector('.menu-button');
+          const menuDropdown = postElem.querySelector('.menu-dropdown');
+          menuButton.addEventListener('click', () => {
+            menuDropdown.style.display = menuDropdown.style.display === 'block' ? 'none' : 'block';
+          });
+          // Close dropdown when clicking outside
+          document.addEventListener('click', (e) => {
+            if (!postElem.contains(e.target)) {
+              menuDropdown.style.display = 'none';
+            }
+          });
+        }
       }
     } else {
       postsContainer.innerHTML = '<p>No posts available.</p>';
@@ -293,16 +328,16 @@ async function toggleEdit(id, postUserId) {
   }
 
   const contentElem = postElem.querySelector('.post-content');
-  const editButton = postElem.querySelector('button[onclick*="toggleEdit"]');
-  if (!contentElem || !editButton) {
-    console.error('Post content or edit button not found for post:', id);
+  const menuDropdown = postElem.querySelector('.menu-dropdown');
+  if (!contentElem || !menuDropdown) {
+    console.error('Post content or menu dropdown not found for post:', id);
     Swal.fire('Error', 'Post elements not found. Please try refreshing the page.', 'error');
     return;
   }
 
   if (contentElem.getAttribute('contenteditable') === 'true') {
     contentElem.setAttribute('contenteditable', 'false');
-    editButton.textContent = 'Edit';
+    menuDropdown.querySelector('button[onclick*="toggleEdit"]').textContent = 'Edit';
     try {
       console.log('Updating post content for:', id);
       await database.ref(`posts/${id}`).update({
@@ -320,7 +355,7 @@ async function toggleEdit(id, postUserId) {
   } else {
     contentElem.setAttribute('contenteditable', 'true');
     contentElem.focus();
-    editButton.textContent = 'Save';
+    menuDropdown.querySelector('button[onclick*="toggleEdit"]').textContent = 'Save';
   }
 }
 
@@ -413,15 +448,12 @@ function setupModal() {
   const mediaPreview = document.getElementById('modal-media-preview');
 
   function autoResizeTextarea() {
-    // Reset height to auto to get accurate scrollHeight
     modalPostContent.style.height = 'auto';
-    // Set height to scrollHeight, with a minimum of 80px
     const newHeight = Math.max(modalPostContent.scrollHeight, 80);
     modalPostContent.style.height = `${newHeight}px`;
     console.log('Textarea resized to:', newHeight, 'px');
   }
 
-  // Debounce resize to prevent excessive updates
   let resizeTimeout;
   function debouncedResize() {
     clearTimeout(resizeTimeout);
@@ -439,9 +471,14 @@ function setupModal() {
       if (type === 'image' || type === 'video') {
         mediaInput.accept = type === 'image' ? 'image/jpeg,image/png' : 'video/mp4,video/webm';
         mediaInput.click();
-      } else {
+      } else if (type === 'link') {
+        modalPostContent.placeholder = 'Paste your link here';
         modalPostContent.focus();
-        autoResizeTextarea(); // Initialize height on focus
+        autoResizeTextarea();
+      } else {
+        modalPostContent.placeholder = 'What\'s on your mind?';
+        modalPostContent.focus();
+        autoResizeTextarea();
       }
     });
   });
@@ -449,7 +486,9 @@ function setupModal() {
   closeButton.addEventListener('click', () => {
     modal.style.display = 'none';
     modalPostContent.value = '';
-    modalPostContent.style.height = '80px'; // Reset textarea height
+    document.getElementById('modal-post-title').value = '';
+    modalPostContent.placeholder = 'What\'s on your mind?'; // Reset placeholder
+    modalPostContent.style.height = '80px';
     mediaInput.value = '';
     mediaPreview.innerHTML = '';
   });
@@ -481,10 +520,9 @@ function setupModal() {
     }
   });
 
-  // Add event listeners for textarea resizing
   modalPostContent.addEventListener('input', debouncedResize);
   modalPostContent.addEventListener('focus', autoResizeTextarea);
-  modalPostContent.addEventListener('change', autoResizeTextarea); // Handle paste events
+  modalPostContent.addEventListener('change', autoResizeTextarea);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
