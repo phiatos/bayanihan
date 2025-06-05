@@ -47,11 +47,14 @@ async function fetchUserData(uid) {
   }
 }
 
-auth.onAuthStateChanged((currentUser) => {
+auth.onAuthStateChanged(async (currentUser) => {
   user = currentUser;
   console.log('Auth state changed:', currentUser ? { uid: currentUser.uid, displayName: currentUser.displayName } : 'No user');
   if (user) {
     loadPosts();
+    loadActivityLog();
+    const userData = await fetchUserData(user.uid);
+    updateModalUserInfo(userData);
   } else {
     Swal.fire({
       title: 'Authentication Required',
@@ -65,6 +68,15 @@ auth.onAuthStateChanged((currentUser) => {
     }
   }
 });
+
+function updateModalUserInfo(userData) {
+  const userName = document.getElementById('modal-user-name');
+  const userOrg = document.getElementById('modal-user-org');
+  if (userName && userOrg) {
+    userName.textContent = userData.contactPerson;
+    userOrg.textContent = userData.organization;
+  }
+}
 
 async function createPost() {
   console.log('createPost called');
@@ -119,7 +131,7 @@ async function createPost() {
       mediaInput.value = '';
       mediaPreview.innerHTML = '';
       return;
-    }
+  }
 
     const storageRef = storage.ref(`posts/${user.uid}/${Date.now()}_${file.name}`);
     try {
@@ -150,11 +162,12 @@ async function createPost() {
   try {
     console.log('Writing post to database:', post);
     await database.ref('posts').push(post);
-    logActivity(`${contactPerson} from ${organization} created a new post`);
+    await logActivity(`${contactPerson} from ${organization} created a new post`);
     modalPostContent.value = '';
     mediaInput.value = '';
     mediaPreview.innerHTML = '';
     modal.style.display = 'none';
+    modalPostContent.style.height = '80px'; // Reset textarea height
     console.log('Post created successfully');
     Swal.fire('Success', 'Post created successfully!', 'success');
   } catch (error) {
@@ -181,7 +194,7 @@ async function sharePost(id) {
       return;
     }
 
-    const { connectPerson, organization } = await fetchUserData(user.uid);
+    const { contactPerson, organization } = await fetchUserData(user.uid);
     const sharedPost = {
       content: originalPost.content,
       userId: user.uid,
@@ -195,11 +208,11 @@ async function sharePost(id) {
     };
 
     await database.ref('posts').push(sharedPost);
-    logActivity(`${contactPerson} from ${organization} shared a post`);
+    await logActivity(`${contactPerson} from ${organization} shared a post`);
     Swal.fire('Success', 'Post shared successfully!', 'success');
   } catch (error) {
     console.error('Error sharing post:', error.code, error.message);
-    Swal.fire('Errorsharing post', `Failed to share post: ${error.message}`, 'error');
+    Swal.fire('Error sharing post', `Failed to share post: ${error.message}`, 'error');
   }
 }
 
@@ -238,7 +251,7 @@ async function loadPosts() {
         const canEdit = user && user.uid === post.userId;
         postElem.innerHTML = `
           <div class="post-header">
-            <strong style="color: var(--primary-color, #14AEBB)">${post.userName}</strong>
+            <strong style="color:"#121212">${post.userName}</strong>
             <small style="color: var(--primary-color, #14AEBB); font-size: 0.9em;">${post.organization || ''}</small>
             <small>${new Date(post.timestamp).toLocaleString()}</small>
           </div>
@@ -297,7 +310,7 @@ async function toggleEdit(id, postUserId) {
         editedTimestamp: firebase.database.ServerValue.TIMESTAMP
       });
       const { contactPerson, organization } = await fetchUserData(user.uid);
-      logActivity(`${contactPerson} from ${organization} edited a post`);
+      await logActivity(`${contactPerson} from ${organization} edited a post`);
       console.log('Post updated successfully:', id);
       Swal.fire('Success', 'Post updated successfully!', 'success');
     } catch (error) {
@@ -334,7 +347,7 @@ async function deletePost(id) {
     console.log('Removing post from database:', id);
     await database.ref(`posts/${id}`).remove();
     const { contactPerson, organization } = await fetchUserData(user.uid);
-    logActivity(`${contactPerson} from ${organization} deleted a post`);
+    await logActivity(`${contactPerson} from ${organization} deleted a post`);
     console.log('Post deleted successfully:', id);
   } catch (error) {
     console.error('Error deleting post:', error.code, error.message);
@@ -342,22 +355,55 @@ async function deletePost(id) {
   }
 }
 
-function logActivity(message) {
+async function logActivity(message) {
   console.log('Logging activity:', message);
+  if (!user) {
+    console.error('No user logged in, cannot log activity');
+    return;
+  }
+  try {
+    await database.ref(`activity_log/${user.uid}`).push({
+      message: message,
+      timestamp: firebase.database.ServerValue.TIMESTAMP
+    });
+  } catch (error) {
+    console.error('Error logging activity:', error.code, error.message);
+  }
+}
+
+async function loadActivityLog() {
+  console.log('Loading activity log from database');
   const log = document.getElementById('activity-log');
   if (!log) {
     console.error('Activity log container not found');
     return;
   }
-  const item = document.createElement('li');
-  item.textContent = `${new Date().toLocaleTimeString()}: ${message}`;
-  if (log.children.length > 50) {
-    log.removeChild(log.lastChild);
+  if (!user) {
+    console.error('No user logged in, cannot load activity log');
+    log.innerHTML = '<p>Please log in to view your activity.</p>';
+    return;
   }
-  log.prepend(item);
+
+  database.ref(`activity_log/${user.uid}`).orderByChild('timestamp').limitToLast(50).on('value', (snapshot) => {
+    log.innerHTML = '';
+    const activities = snapshot.val();
+    if (activities) {
+      const activityArray = Object.entries(activities).map(([id, activity]) => ({ id, ...activity }));
+      activityArray.sort((a, b) => b.timestamp - a.timestamp);
+      for (const activity of activityArray) {
+        const item = document.createElement('li');
+        item.textContent = `${new Date(activity.timestamp).toLocaleTimeString()}: ${activity.message}`;
+        log.appendChild(item);
+      }
+    } else {
+      log.innerHTML = '<p>No activity available.</p>';
+    }
+  }, (error) => {
+    console.error('Error loading activity log:', error.code, error.message);
+    log.innerHTML = '<p>Error loading activity.</p>';
+  });
 }
 
-// Modal handling
 function setupModal() {
   const modal = document.getElementById('post-modal');
   const closeButton = document.querySelector('.close-button');
@@ -365,6 +411,22 @@ function setupModal() {
   const modalPostContent = document.getElementById('modal-post-content');
   const mediaInput = document.getElementById('modal-media-upload');
   const mediaPreview = document.getElementById('modal-media-preview');
+
+  function autoResizeTextarea() {
+    // Reset height to auto to get accurate scrollHeight
+    modalPostContent.style.height = 'auto';
+    // Set height to scrollHeight, with a minimum of 80px
+    const newHeight = Math.max(modalPostContent.scrollHeight, 80);
+    modalPostContent.style.height = `${newHeight}px`;
+    console.log('Textarea resized to:', newHeight, 'px');
+  }
+
+  // Debounce resize to prevent excessive updates
+  let resizeTimeout;
+  function debouncedResize() {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(autoResizeTextarea, 50);
+  }
 
   postButtons.forEach(button => {
     button.addEventListener('click', () => {
@@ -379,6 +441,7 @@ function setupModal() {
         mediaInput.click();
       } else {
         modalPostContent.focus();
+        autoResizeTextarea(); // Initialize height on focus
       }
     });
   });
@@ -386,6 +449,7 @@ function setupModal() {
   closeButton.addEventListener('click', () => {
     modal.style.display = 'none';
     modalPostContent.value = '';
+    modalPostContent.style.height = '80px'; // Reset textarea height
     mediaInput.value = '';
     mediaPreview.innerHTML = '';
   });
@@ -416,9 +480,13 @@ function setupModal() {
       }
     }
   });
+
+  // Add event listeners for textarea resizing
+  modalPostContent.addEventListener('input', debouncedResize);
+  modalPostContent.addEventListener('focus', autoResizeTextarea);
+  modalPostContent.addEventListener('change', autoResizeTextarea); // Handle paste events
 }
 
-// Attach event listeners
 document.addEventListener('DOMContentLoaded', () => {
   console.log('DOMContentLoaded: Initializing dashboard');
   setupModal();

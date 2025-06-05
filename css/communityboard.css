@@ -15,8 +15,8 @@ body {
 
 #main-content {
   flex: 1;
-  padding: 2rem;
-  overflow-y: auto;
+  padding: 0 20px;
+  overflow-y: hidden;
   background: #fff;
   border-radius: 1rem 0 0 1rem;
   box-shadow: -4px 0 10px rgba(0, 0, 0, 0.05);
@@ -24,39 +24,47 @@ body {
   flex-direction: column;
   max-width: calc(100% - 250px);
   margin-right: 250px;
+  scrollbar-width: none;
 }
 
 header {
   font-size: 2rem;
   font-weight: 600;
-  margin-bottom: 1.5rem;
+  margin-bottom: 10px;
   color: #2c3e50;
 }
 
 /* Post Container */
 .post-container {
- max-width: calc(100% - 270px);
+  max-width: calc(100% - 270px);
   background-color: transparent;
+  height: 100%;
   border-radius: 15px;
   margin-bottom: 20px;
   padding: 20px;
   box-sizing: border-box;
   overflow-y: auto;
-  
 }
 
 .post-creator {
   display: flex;
   flex-direction: column;
+    /* max-width: calc(100% - 100px); */
   gap: 10px;
+  border: 2px solid var(--primary-color); 
+  background-color: rgba(20, 174, 187, 0.1);
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  
 }
 
 .post-buttons {
   display: flex;
   gap: 10px;
+  justify-content: center;
 }
 
-.post-option {
+.post-buttons .post-option {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -93,16 +101,32 @@ header {
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  overflow: hidden;
 }
 
 .modal-content {
   background-color: #fff;
-  padding: 20px;
   border-radius: 15px;
+  margin: 5% auto;
   width: 90%;
   max-width: 500px;
-  margin: 10% auto;
   position: relative;
+  min-height: 200px; /* Minimum height for small content */
+  max-height: 90vh; /* Maximum height to prevent overflow */
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* Prevent overflow from sticky header */
+  overflow-x: hidden; /* Explicitly prevent horizontal scrolling */
+}
+
+.modal-header {
+  position: sticky;
+  top: 0;
+  background-color: #fff;
+  z-index: 10;
+  padding: 20px;
+  margin-bottom: 20px; /* Reduce padding to align with hr */
 }
 
 .close-button {
@@ -114,24 +138,89 @@ header {
   color: #333;
 }
 
-.modal-buttons {
-  margin-bottom: 15px;
+.full-width-hr {
+  width: 100%; /* Adjusted to fit within modal-content */
+  margin: 0;
+  border: none;
+  border-top: 1px solid #ccc;
+}
+
+.modal-user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.modal-user-info strong {
+  color: var(--primary-color, #14AEBB);
+  font-size: 16px;
+}
+
+.modal-user-info small {
+  color: var(--primary-color, #14AEBB);
+  font-size: 0.9em;
+}
+
+.modal-input-area {
+  overflow-y: auto; /* Scroll vertically only */
+  overflow-x: hidden; /* Prevent horizontal scrolling */
+  padding: 20px;
+  box-sizing: border-box;
+  flex-grow: 1; /* Allow it to take remaining space */
+  
+}
+
+.modal-footer {
+  /* padding: 10px 0;  */
+  display: flex;
+  gap: 400px;
+}
+
+.post-buttons.modal-buttons .post-option,
+.post-buttons.modal-buttons .post-option i {
+  margin: 0 !important;
+}
+
+.post-buttons.modal-buttons {
+  display: flex;
+  gap: 0; /* Reduced from 10px to make buttons closer */
+  justify-content: flex-end;
+  flex-wrap: wrap; /* Optional: allow wrap on small screens */
+  padding: 0;
+}
+
+.post-buttons.modal-buttons .post-option {
+  padding: 0; 
+  display: flex;
+  justify-content: center;
+  background-color: transparent;
+  border-color: transparent;
+}
+
+.post-buttons.modal-buttons i {
+  font-size: 30px;
+  color: var(--primary-color);
+  
 }
 
 .modal-input-area textarea {
   width: 100%;
-  padding: 10px;
+  padding: 20px;
   background-color: transparent;
-  border: 1px solid #ddd;
+  border: transparent;
   border-radius: 8px;
-  resize: none;
+  resize: none; /* Prevent manual resizing */
   font-size: 16px;
   margin-bottom: 10px;
+  min-height: 80px; /* Minimum height */
+  box-sizing: border-box;
+  line-height: 1.5; /* Improve readability */
+  overflow: hidden; /* Prevent horizontal scrolling */
 }
 
 .modal-input-area textarea:focus {
   outline: none;
-  /* border-color: var(--primary-color, #3498db); */
+  border-color: var(--primary-color, #3498db);
 }
 
 .modal-input-area button {
@@ -170,7 +259,14 @@ header {
 /* Posts */
 .post-created {
   width: 100%;
-  overflow: hidden;
+  overflow: auto;
+  height: 100%;
+  scrollbar-width: 0;
+  -ms-overflow-style: none;   
+}
+
+.post-created::-webkit-scrollbar {
+  display: none;                /* Chrome, Safari, Opera */
 }
 
 .post {
@@ -184,7 +280,6 @@ header {
 
 .post:hover {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  transform: translateY(-3px);
 }
 
 .post-header {
@@ -209,7 +304,6 @@ header {
 
 .post-content:focus {
   outline: none;
-  /* border: 1px solid var(--primary-color, #3498db); */
 }
 
 .post-media {
@@ -239,13 +333,22 @@ header {
   text-decoration: underline;
 }
 
+.vertical-divider {
+  position: absolute;
+  top: 0;
+  right: 250px;
+  bottom: 0;
+  width: 1px;
+  background-color: #ccc;
+  height: 100%;
+  align-self: stretch;
+  overflow: hidden;
+}
+
 /* Activity Panel */
 .activity-panel {
   width: 250px;
-  background-color: #e8fdff;
   padding: 20px;
-  border-radius: 18px 0 0 18px;
-  box-shadow: -2px 0 5px rgba(0, 0, 0, 0.05);
   position: absolute;
   top: 0;
   right: 0;
@@ -305,6 +408,10 @@ header {
     width: 100%;
   }
 
+  .vertical-divider {
+    display: none;
+  }
+
   .activity-panel {
     position: static;
     width: 100%;
@@ -315,5 +422,19 @@ header {
 
   .modal-content {
     width: 95%;
+    min-height: 150px; /* Adjusted for smaller screens */
+  }
+
+  .modal-header {
+    padding: 10px;
+    padding-bottom: 0;
+  }
+
+  .modal-input-area {
+    padding: 10px;
+  }
+
+  .modal-footer {
+    padding: 10px 0;
   }
 }
