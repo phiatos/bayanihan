@@ -1,0 +1,149 @@
+/* .abvn-registration .container {
+  max-width: 800px;
+  margin: auto;
+  padding: 2rem;
+}
+
+.form-title {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.form-subtitle {
+  font-size: 1rem;
+  color: #555;
+  margin-bottom: 2rem;
+}
+
+form fieldset {
+  border: 1px solid #ddd;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  border-radius: 8px;
+}
+
+form legend {
+  font-weight: bold;
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+}
+
+.form-group {
+  margin-bottom: 1.2rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+.btn-primary {
+  background-color: #1a73e8;
+  color: white;
+  border: none;
+  padding: 0.8rem 1.5rem;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.btn-primary:hover {
+  background-color: #1669c1;
+} */
+
+.abvn-registration .container { 
+  /* max-width: 800px;
+  margin: auto;
+  padding: 2rem; */
+  max-width: 1000px; 
+  width: 90vw; 
+  margin: auto;
+  padding: 2rem;
+}
+
+.form-title {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.form-subtitle {
+  font-size: 1rem;
+  color: #555;
+  margin-bottom: 2rem;
+}
+
+/* === Added: Layout fieldsets side by side === */
+#volunteer-org-form {
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap; 
+}
+
+#volunteer-org-form fieldset {
+  /* flex: 1; */
+  flex: 1 1 45%; 
+  min-width: 300px; 
+  border: 1px solid #ddd;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  border-radius: 8px;
+}
+/* === End of fieldset layout changes === */
+
+/* Submit button container */
+.form-group.submit-group {
+  flex-basis: 100%; /* full width */
+  display: flex;
+  justify-content: flex-start; /* left align the button */
+  margin-top: 0; /* remove extra margin if any */
+}
+
+form legend {
+  font-weight: bold;
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+}
+
+.form-group {
+  margin-bottom: 1.2rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+/* Submit button styling */
+.btn-primary {
+  background-color: #1a73e8;
+  color: white;
+  border: none;
+  padding: 0.8rem 1.5rem;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+  /* optional: make button fixed width */
+  min-width: 150px;
+}
+
+.btn-primary:hover {
+  background-color: #1669c1;
+}
