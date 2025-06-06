@@ -26,13 +26,76 @@ header {
   color: #2c3e50;
 }
 
-.metrics-container {
+/* ------------------------
+   Dashboard Container Grid
+------------------------- */
+.dashboard-container {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 2.5rem;
-  padding: 2rem;
+  grid-template-columns: 2.5fr 1.5fr; /* Left wider, right sidebar narrower */
+  grid-template-rows: auto auto 400px; /* two rows on left + bottom fixed height */
+  grid-template-areas:
+    "metrics-main metrics-sidebar"
+    "metrics-main metrics-sidebar"
+    "bottom-row bottom-row";
+  gap: 1.5rem;
+  padding: 1rem 2rem;
+  max-width: 1200px;
+  
+  height: 100%;
+  box-sizing: border-box;
 }
 
+.dashboard-container h2{
+  margin-bottom: 15px;
+}
+/* Left main metrics stacked vertically */
+.metrics-main {
+  grid-area: metrics-main;
+  padding: 1rem;
+  display: grid;
+  gap: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  border-radius: 15px;
+  overflow-y: auto;
+}
+
+/* Sidebar on the right */
+.metrics-sidebar {
+  grid-area: metrics-sidebar;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  overflow-y: auto;
+  background: #fff;
+  padding: 1.5rem;
+  border-radius: 15px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  height: 500px;
+}
+
+/* Bottom full-width map */
+.bottom-row {
+  grid-area: bottom-row;
+  background: #fff;
+  padding: 1rem;
+  border-radius: 15px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  height: max-content;
+  overflow: hidden;
+}
+
+/* Metrics containers inside left sections */
+.metrics-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); /* flexible cards */
+  gap: 1.5rem;
+  overflow-x: auto;
+  grid-auto-rows: 1fr;
+}
+
+/* ======================
+   Metric Cards
+====================== */
 .metric-card {
   background: linear-gradient(135deg, #0fbaba 0%, #23d7d7 52%, #18e0e0 100%);
   backdrop-filter: blur(25px);
@@ -70,7 +133,6 @@ header {
   z-index: 3;
 }
 
-/* Hover and Tap */
 .metric-card:hover,
 .metric-card:active {
   transform: translateY(-10px) scale(1.06);
@@ -107,24 +169,24 @@ header {
 .metric-card h3 {
   position: relative;
   z-index: 3;
-  font-size: 16px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--white);
-  margin-bottom: 0.9rem;
   letter-spacing: 0.07em;
-  user-select: none;
   font-family: 'Poppins', sans-serif;
   display: flex;
+  margin-bottom: 4px;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
+  user-select: none;
 }
 
 .metric-card p {
   position: relative;
   z-index: 3;
   text-align: center;
-  font-size: 54px;
+  font-size: 25px;
   font-weight: 700;
   color: #ffffff;
   margin: 0;
@@ -138,7 +200,6 @@ header {
   color: rgba(255, 255, 255);
   filter: blur(0.2px);
   text-shadow: 0 0 6px rgba(255, 255, 255, 0.35);
-  margin: 0;
   user-select: none;
   display: inline-flex;
   vertical-align: middle;
@@ -152,7 +213,7 @@ header {
   text-shadow: 0 0 6px rgba(255, 255, 255, 0.35);
 }
 
-/* Pulse animation to highlight updated metrics */
+/* Highlight Animation */
 @keyframes pulse-glow {
   0%, 100% {
     box-shadow:
@@ -166,13 +227,12 @@ header {
   }
 }
 
-/* Example usage: add class .highlight when value updates */
 .metric-card.highlight {
   animation: pulse-glow 2.5s ease infinite;
   border-color: #ffffff;
 }
 
-/* Fade-in animation */
+/* Entry Animation */
 @keyframes fadeInUp {
   0% {
     opacity: 0;
@@ -184,53 +244,132 @@ header {
   }
 }
 
-/* Search Bar Styles */
-.search-container {
-  margin: 1rem 0;
-  padding: 0 1rem;
+/* Progress Visuals Sidebar Grid */
+.data-visuals-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
 }
 
-.input-container {
+/* Data Metric Boxes in Sidebar */
+.data-metric-box {
+  background: #e0f7f7;
+  border-radius: 15px;
+  padding: 1rem;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  cursor: default;
+}
+
+/* Metric Box Header */
+.data-metric-head {
   display: flex;
   align-items: center;
-  background-color: #fff;
-  border-radius: 12px;
-  padding: 0.5rem 1rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  gap: 0.5rem;
+  font-weight: 600;
+  color: #007b7b;
 }
 
+/* Progress Bars */
+.data-progress-bar {
+  background: #d1e7e7;
+  border-radius: 10px;
+  height: 12px;
+  overflow: hidden;
+}
+
+.data-progress-fill {
+  height: 100%;
+  border-radius: 10px;
+}
+
+.fill-success {
+  background: #28a745;
+}
+
+.fill-warning {
+  background: #ffc107;
+}
+
+/* Data Bars for mini charts */
+.data-mini-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.4rem;
+  height: 80px;
+}
+
+.data-bar {
+  background: #007b7b;
+  width: 20%;
+  border-radius: 5px 5px 0 0;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding-bottom: 0.2rem;
+}
+
+/* Search container (optional update) */
+.search-container {
+  padding: 1rem 2rem;
+  max-width: 1200px;
+  margin: 0 auto 1rem auto;
+}
+
+/* Input container */
+.input-container {
+  display: flex;
+  width: 100%;
+  margin: 0 auto;
+  border-radius: 30px;
+  overflow: hidden;
+  border: 1px solid #ccc;
+  background: #fff;
+}
+
+/* Search input */
 .search-input {
   flex: 1;
   border: none;
-  outline: none;
+  padding: 0.8rem 1rem;
   font-size: 1rem;
-  color: #333;
-  padding: 0.5rem;
+  outline: none;
 }
 
-.search-input::placeholder {
-  color: #656079;
+/* Search button */
+.search-icon {
+  background: transparent;
+  border: none;
+  padding: 0 1rem;
+  cursor: pointer;
 }
 
-.search-icon i {
-  align-items: center;
-  justify-content: center;
-}
-
-.search-icon,
-.search-icon:hover {
-  all: unset;
-  justify-content: center;
-}
-
-/* Map Container Styles */
+/* Map Container */
 .map-container {
-  margin: 10px 0;
-  padding: 10px;
-  border: 2px dashed #aaa;
-  height: 500px;
-  position: relative;
+  height: 100%;
+  width: 100%;
+  border-radius: 15px;
+  overflow: hidden;
 }
+
+/* Animation for metric cards */
+@keyframes fadeInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(20px) scale(0.85);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+
 
 @media (max-width: 1024px) {
   .metrics-container {
@@ -443,9 +582,55 @@ header {
   margin-top: 0.2em;
 }
 
+.drawer-tabs {
+    display: flex;
+    width: 100%;
+}
+
+.tab {
+    flex: 1; /* Makes each tab fill equal space */
+    padding: 12px;
+    text-align: center;
+    cursor: pointer;
+    background-color: #f5f5f5;
+    color: #333;
+    font-weight: 600;
+    border: none;
+    border-bottom: 3px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.tab:hover {
+    background-color: #e0e0e0;
+}
+
+.tab.active {
+    background-color: var(--primary-color);
+    color: white;
+    border-bottom: 3px solid #0e7781;
+}
+
+
+.hidden {
+    display: none;
+}
+
+
 /* Define variables for consistency */
 :root {
   --white: #ffffff;
-  --accent-color: #2c3e50;
-  --primary-color: #2c3e50;
+  --primary-color: #14AEBB;
+  --accent-color: #FA3B99;
+  --accent-hover-color: #e13289;
+  --light-bg: #FFF9F0;
+  --white: #FFFFFF;
+  --black: #121212;
+  --button-hover: #0e7781;
+  --blue: #4059A5;
+  --blue-hover: #32488a;
+  --red: #FF3B30;
+  --red-hover: #d63128;
+  --green: #34C759;
+  --green-hover: #2fa84e;
+  --gray: #9e9e9e;
 }
