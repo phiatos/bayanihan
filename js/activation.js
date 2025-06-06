@@ -65,9 +65,10 @@ const modalPrevStepBtn = document.getElementById("modalPrevStepBtn");
 const pinLocationBtn = document.getElementById("pinLocationBtn");
 
 let selectedGroupForActivation = null;
-let map, markers = [], autocomplete, geocoder;
+let map, markers = [], autocomplete, geocoder; // Map for pinning location in modal
+let activationMap, activationMarkers = [], activationsListener, singleInfoWindow, currentInfoWindow, isInfoWindowClicked = false; // Map for displaying active activations
 
-// Initialize Google Maps for Map Modal
+// Initialize Google Maps for Map Modal (used for pinning location during activation creation)
 function initMap() {
     const defaultLocation = { lat: 14.5995, lng: 120.9842 }; // Manila, Philippines
 
@@ -215,6 +216,303 @@ function initMap() {
     }
 }
 
+// Initialize Google Maps for Activation Map (displays all active activations)
+function initActivationMap() {
+    const defaultLocation = { lat: 14.5995, lng: 120.9842 }; // Manila, Philippines
+
+    try {
+        const mapDiv = document.getElementById("activationMap");
+        if (!mapDiv) {
+            console.error("Activation map container not found.");
+            Swal.fire({
+                icon: "error",
+                title: "Map Error",
+                text: "Activation map container not found on the page.",
+            });
+            return;
+        }
+
+        if (!window.google || !window.google.maps) {
+            console.error("Google Maps API not loaded for activation map.");
+            Swal.fire({
+                icon: "error",
+                title: "Map Error",
+                text: "Google Maps API failed to load for the activation map.",
+            });
+            return;
+        }
+
+        activationMap = new google.maps.Map(mapDiv, {
+            center: defaultLocation,
+            zoom: 6,
+            mapTypeId: "roadmap",
+        });
+        console.log("Activation map initialized successfully.");
+
+        singleInfoWindow = new google.maps.InfoWindow();
+
+        google.maps.event.trigger(activationMap, "resize");
+        console.log("Activation map resize event triggered.");
+
+        // Load active activations onto the map
+        addMarkersForActiveActivations();
+    } catch (error) {
+        console.error("Failed to initialize Activation Map:", error);
+        Swal.fire({
+            icon: "error",
+            title: "Map Error",
+            text: "Failed to load the activation map. Check your internet connection or API key.",
+        });
+    }
+}
+
+// Add markers for active activations (Updated with Logo Support)
+function addMarkersForActiveActivations() {
+    if (!activationMap) {
+        console.error("Activation map not initialized before adding markers");
+        return;
+    }
+
+    if (activationsListener) {
+        activationsListener.off();
+        console.log("Removed existing activations listener");
+    }
+
+    activationsListener = database.ref("activations").orderByChild("status").equalTo("active").limitToLast(50);
+    activationsListener.on("value", snapshot => {
+        activationMarkers.forEach(marker => marker.setMap(null));
+        activationMarkers = [];
+
+        const activations = snapshot.val();
+        if (!activations) {
+            console.log("No active activations found in Firebase.");
+            // Set default center and zoom if no markers
+            activationMap.setCenter({ lat: 14.5995, lng: 120.9842 });
+            activationMap.setZoom(6);
+            console.log("No activation markers to display, set default map view.");
+            return;
+        }
+
+        const bounds = new google.maps.LatLngBounds();
+
+        Object.entries(activations).forEach(([key, activation]) => {
+            if (!activation.latitude || !activation.longitude) {
+                console.warn(`Activation ${key} is missing latitude or longitude:`, activation);
+                return;
+            }
+
+            const position = { lat: parseFloat(activation.latitude), lng: parseFloat(activation.longitude) };
+            const logoPath = "../assets/images/AB_logo.png";
+
+            const marker = new google.maps.Marker({
+                position: position,
+                map: activationMap,
+                title: activation.organization,
+                icon: {
+                    url: logoPath,
+                    scaledSize: new google.maps.Size(40, 40),
+                },
+            });
+
+            activationMarkers.push(marker);
+            bounds.extend(position);
+
+            const img = new Image();
+            img.src = logoPath;
+            img.onload = () => {
+                console.log("Logo loaded successfully for InfoWindow:", logoPath);
+                createInfoWindow(marker, activation, logoPath);
+            };
+            img.onerror = () => {
+                console.error("Failed to load logo for InfoWindow:", logoPath);
+                createInfoWindow(marker, activation, null);
+            };
+        });
+
+        // Adjust map bounds to fit all markers
+        if (activationMarkers.length > 0) {
+            activationMap.fitBounds(bounds);
+            console.log("Adjusted activation map bounds to fit all markers.");
+        } else {
+            // If no markers, set default center and zoom
+            activationMap.setCenter({ lat: 14.5995, lng: 120.9842 });
+            activationMap.setZoom(6);
+            console.log("No activation markers to display, set default map view.");
+        }
+
+        google.maps.event.trigger(activationMap, "resize");
+        console.log("Map resize event triggered after adding markers");
+    }, error => {
+        console.error("Error fetching activations for map:", error);
+        Swal.fire({
+            icon: "error",
+            title: "Error",
+            text: "Failed to load activation markers on the map.",
+        });
+    });
+}
+
+// Create InfoWindow for activations
+function createInfoWindow(marker, activation, logoUrl) {
+    const content = `
+        <div class="bayanihan-infowindow">
+            <div class="header">
+                ${logoUrl ? 
+                `<img src="${logoUrl}" alt="Logo" class="logo" />` : 
+                `<div class="placeholder-icon"><i class='bx bx-building'></i></div>`
+                }
+                <div class="header-text">
+                    <h3>${activation.organization}</h3>
+                    <span class="status-badge"><i class='bx bx-check-circle'></i> Active</span>
+                </div>
+            </div>
+            <div class="info-section">
+                <div class="info-item">
+                    <i class='bx bx-map'></i>
+                    <div class="info-text">
+                        <span class="label">Location</span>
+                        <span class="value">${activation.areaOfOperation}</span>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <i class='bx bx-cloud-lightning'></i>
+                    <div class="info-text">
+                        <span class="label">Calamity</span>
+                        <span class="value">${activation.calamityType}${activation.typhoonName ? ` (${activation.typhoonName})` : ''}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <style>
+        .bayanihan-infowindow {
+            font-family: 'Arial', sans-serif;
+            background: #fff;
+            border-radius: 16px;
+            max-width: 420px;
+            padding: 28px;
+            border-left: 8px solid #FF69B4;
+            animation: fadeSlideIn 0.4s ease;
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 24px;
+            gap: 16px;
+        }
+        .logo, .placeholder-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 16px;
+            background: rgb(255, 255, 255);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 6px;
+            box-sizing: border-box;
+        }
+        .logo {
+            object-fit: contain;
+            max-width: 100%;
+            max-height: 100%;
+            border-radius: 12px;
+        }
+        .header-text h3 {
+            margin: 0;
+            font-size: 20px;
+            color: #007BFF;
+            line-height: 1.3;
+        }
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            margin-top: 6px;
+            font-size: 13px;
+            background: #d4edda;
+            color: #388E3C;
+            padding: 4px 10px;
+            border-radius: 16px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .status-badge i {
+            font-size: 18px;
+            margin-right: 6px;
+        }
+        .info-section {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+        .info-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            font-size: 16px;
+            color: #333;
+        }
+        .info-item i {
+            font-size: 24px;
+            color: #007BFF;
+            flex-shrink: 0;
+            margin-top: 4px;
+        }
+        .info-text {
+            display: flex;
+            flex-direction: column;
+        }
+        .label {
+            font-weight: bold;
+            color: #555;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+        .value {
+            color: #222;
+            font-size: 15px;
+        }
+        @keyframes fadeSlideIn {
+            0% { opacity: 0; transform: translateY(10px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        </style>
+    `;
+
+    marker.addListener("mouseover", () => {
+        if (isInfoWindowClicked) return;
+        if (currentInfoWindow && currentInfoWindow !== marker) singleInfoWindow.close();
+        singleInfoWindow.setContent(content);
+        singleInfoWindow.open(activationMap, marker);
+        currentInfoWindow = marker;
+        console.log(`InfoWindow opened on hover for ${activation.organization}`);
+    });
+
+    marker.addListener("mouseout", () => {
+        if (isInfoWindowClicked) return;
+        if (currentInfoWindow === marker) {
+            singleInfoWindow.close();
+            currentInfoWindow = null;
+            console.log(`InfoWindow closed on mouseout for ${activation.organization}`);
+        }
+    });
+
+    marker.addListener("click", () => {
+        if (currentInfoWindow && currentInfoWindow !== marker) singleInfoWindow.close();
+        singleInfoWindow.setContent(content);
+        singleInfoWindow.open(activationMap, marker);
+        currentInfoWindow = marker;
+        isInfoWindowClicked = true;
+        console.log(`InfoWindow opened on click for ${activation.organization}`);
+    });
+
+    singleInfoWindow?.addListener("closeclick", () => {
+        isInfoWindowClicked = false;
+        currentInfoWindow = null;
+        console.log(`InfoWindow closed manually for ${activation.organization}`);
+    });
+}
+
 function clearMarkers() {
     markers.forEach(marker => marker.setMap(null));
     markers = [];
@@ -284,11 +582,14 @@ firebase.auth().onAuthStateChanged(user => {
         console.log("User is authenticated:", user.uid);
         console.log("Anonymous user:", user.isAnonymous);
         listenForDataUpdates();
+        // Initialize the activation map after authentication
+        initActivationMap();
     } else {
         console.log("No user is authenticated. Attempting anonymous sign-in...");
         firebase.auth().signInAnonymously()
             .then(() => {
                 console.log("Signed in anonymously successfully.");
+                initActivationMap(); // Initialize map after anonymous sign-in
             })
             .catch(error => {
                 console.error("Anonymous auth failed:", error.code, error.message);
@@ -893,4 +1194,34 @@ function filterAndSort() {
 sortSelect.addEventListener("change", () => {
     currentPage = 1;
     renderTable(filterAndSort());
+});
+
+// Cleanup function to remove listeners and clear markers when the page unloads
+function cleanupActivationPage() {
+    console.log("Cleaning up activation page state.");
+
+    if (activationsListener) {
+        activationsListener.off();
+        activationsListener = null;
+        console.log("Removed activations listener for map.");
+    }
+
+    activationMarkers.forEach(marker => marker.setMap(null));
+    activationMarkers = [];
+
+    if (singleInfoWindow) {
+        singleInfoWindow.close();
+        singleInfoWindow = null;
+        currentInfoWindow = null;
+        isInfoWindowClicked = false;
+    }
+
+    markers.forEach(marker => marker.setMap(null));
+    markers = [];
+}
+
+window.addEventListener('beforeunload', cleanupActivationPage);
+window.addEventListener('navigate-away', () => {
+    console.log('navigate-away event: Cleaning up activation page.');
+    cleanupActivationPage();
 });

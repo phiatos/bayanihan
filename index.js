@@ -1,3 +1,17 @@
+// window.addEventListener('load', () => {
+//   // Register service worker
+//   if ('serviceWorker' in navigator) {
+//     navigator.serviceWorker
+//       .register('./service-worker.js')
+//       .then((registration) => {
+//         console.log('Service Worker registered with scope:', registration.scope);
+//       })
+//       .catch((error) => {
+//         console.error('Service Worker registration failed:', error);
+//       });
+//   }
+// });
+
 let map;
 let geoJsonLayer;
 let markers = [];
@@ -162,3 +176,9 @@ function addMarkersForActiveActivations() {
     activationsListenerQuery.on("value", activationsListenerCallback);
     console.log('addMarkersForActiveActivations listener attached');
 }
+
+
+
+
+
+

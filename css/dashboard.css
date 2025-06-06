@@ -59,7 +59,6 @@ header {
   user-select: none;
 }
 
-
 .metric-card:hover,
 .metric-card:focus-within {
   transform: scale(0.9) translateY(-6px);
@@ -115,11 +114,10 @@ header {
   letter-spacing: 0.07em;
   user-select: none;
   font-family: 'Poppins', sans-serif;
-
-  display: flex;              
-  align-items: center;     
-  justify-content: center;    
-  gap: 0.5rem;                
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
 }
 
 .metric-card p {
@@ -133,19 +131,16 @@ header {
   line-height: 1.1;
   letter-spacing: 0.05em;
   user-select: text;
-
-  
-
 }
 
 .metric-card i {
-  font-size: 1.8rem;                  /* smaller icon size */
+  font-size: 1.8rem;
   color: rgba(255, 255, 255);
   filter: blur(0.2px);
   text-shadow: 0 0 6px rgba(255, 255, 255, 0.35);
-  margin: 0;                         /* reset margin */
+  margin: 0;
   user-select: none;
-  display: inline-flex;              /* inline and flex to align better */
+  display: inline-flex;
   vertical-align: middle;
   transition: color 0.35s ease, filter 0.35s ease;
 }
@@ -156,8 +151,6 @@ header {
   filter: blur(0.2px);
   text-shadow: 0 0 6px rgba(255, 255, 255, 0.35);
 }
-
-
 
 /* Pulse animation to highlight updated metrics */
 @keyframes pulse-glow {
@@ -179,8 +172,6 @@ header {
   border-color: #ffffff;
 }
 
-
-
 /* Fade-in animation */
 @keyframes fadeInUp {
   0% {
@@ -193,261 +184,268 @@ header {
   }
 }
 
-
 /* Search Bar Styles */
 .search-container {
-    margin: 1rem 0;
-    padding: 0 1rem;
+  margin: 1rem 0;
+  padding: 0 1rem;
 }
 
 .input-container {
-    display: flex;
-    align-items: center;
-    background-color: #fff;
-    border-radius: 12px;
-    padding: 0.5rem 1rem;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  background-color: #fff;
+  border-radius: 12px;
+  padding: 0.5rem 1rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
-    
+
 .search-input {
-    flex: 1;
-    border: none;
-    outline: none;
-    font-size: 1rem;
-    color: #333;
-    padding: 0.5rem;
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 1rem;
+  color: #333;
+  padding: 0.5rem;
 }
 
 .search-input::placeholder {
-    color: #656079;
+  color: #656079;
 }
 
 .search-icon i {
-    align-items: center;
-    justify-content: center;
+  align-items: center;
+  justify-content: center;
 }
 
-.search-icon, .search-icon:hover {
-    all: unset;
-    justify-content: center;
+.search-icon,
+.search-icon:hover {
+  all: unset;
+  justify-content: center;
 }
 
 /* Map Container Styles */
 .map-container {
-    margin: 10px 0;
-    padding: 10px;
-    border: 2px dashed #aaa;
-    height: 500px;
-    position: relative;
+  margin: 10px 0;
+  padding: 10px;
+  border: 2px dashed #aaa;
+  height: 500px;
+  position: relative;
 }
 
 @media (max-width: 1024px) {
-    .metrics-container {
-        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    }
-    .map-container {
-        margin: 1rem;
-        padding: 1rem;
-    }
-    .search-container {
-        padding: 0 0.8rem;
-    }
+  .metrics-container {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  }
+  .map-container {
+    margin: 1rem;
+    padding: 1rem;
+  }
+  .search-container {
+    padding: 0 0.8rem;
+  }
 }
 
 @media (max-width: 768px) {
-    .metrics-container {
-        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); 
-    }
+  .metrics-container {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  }
 
-    .metric-card {
-        width: 100%; 
-        padding: 16px; 
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between; 
-        text-align: center; 
-    }
+  .metric-card {
+    width: 100%;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    text-align: center;
+  }
 
-    .metric-card h3 {
-        font-size: 14px; 
-        color: #7f8c8d; 
-    }
+  .metric-card h3 {
+    font-size: 14px;
+    color: #7f8c8d;
+  }
 
-    .metric-card p {
-        font-size: 18px; 
-        font-weight: bold;
-        color: #2980b9;
-        margin: 0;
-    }
-    .map-container {
-        padding: 0.8rem;
-    }
-    .search-container {
-        padding: 0 0.6rem;
-    }
+  .metric-card p {
+    font-size: 18px;
+    font-weight: bold;
+    color: #2980b9;
+    margin: 0;
+  }
+  .map-container {
+    padding: 0.8rem;
+  }
+  .search-container {
+    padding: 0 0.6rem;
+  }
 }
 
 @media (max-width: 480px) {
-    .metrics-container {
-        grid-template-columns: repeat(2, 1fr); 
-        gap: 1rem; 
-    }
+  .metrics-container {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
 
-    .metric-card {
-        width: 100%; 
-        padding: 8px; 
-        display: flex;
-    }
+  .metric-card {
+    width: 100%;
+    padding: 8px;
+    display: flex;
+  }
 
-    .metric-card h3 {
-        font-size: 10px;
-        color: #7f8c8d;
-        margin-bottom: 0.25rem; 
-    }
+  .metric-card h3 {
+    font-size: 10px;
+    color: #7f8c8d;
+    margin-bottom: 0.25rem;
+  }
 
-    .metric-card p {
-        font-size: 14px; 
-        font-weight: bold;
-        color: #2980b9;
-        margin: 0;
-    }
+  .metric-card p {
+    font-size: 14px;
+    font-weight: bold;
+    color: #2980b9;
+    margin: 0;
+  }
 
-    .map-container {
-        padding: 0.5rem;
-        height: 350px;
-    }
-    .search-container {
-        padding: 0 0.4rem;
-    }
-    .search-input {
-        font-size: 0.9rem;
-    }
+  .map-container {
+    padding: 0.5rem;
+    height: 350px;
+  }
+  .search-container {
+    padding: 0 0.4rem;
+  }
+  .search-input {
+    font-size: 0.9rem;
+  }
 }
 
 #bell {
-    position: relative;
-    cursor: pointer;
+  position: relative;
+  cursor: pointer;
 }
 
 #bell i {
-    font-size: 1.8rem;
-    transition: transform 0.2s ease;
+  font-size: 1.8rem;
+  transition: transform 0.2s ease;
 }
 
 #bell:hover i {
-    transform: rotate(10deg);
+  transform: rotate(10deg);
 }
 
 #notifDot {
-    position: absolute;
-    top: 2px;
-    right: 2px;
-    width: 10px;
-    height: 10px;
-    background: red;
-    border-radius: 50%;
-    display: inline-block;
-    box-shadow: 0 0 4px rgba(0,0,0,0.5);
-    animation: pop 0.3s ease;
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 10px;
+  height: 10px;
+  background: red;
+  border-radius: 50%;
+  display: inline-block;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+  animation: pop 0.3s ease;
 }
 
 @keyframes pop {
-    0% { transform: scale(0); }
-    50% { transform: scale(1.4); }
-    100% { transform: scale(1); }
+  0% { transform: scale(0); }
+  50% { transform: scale(1.4); }
+  100% { transform: scale(1); }
 }
 
 /* Notification Drawer */
 #notificationDrawer {
-    position: fixed;
-    top: 0;
-    right: -320px;
-    width: 300px;
-    height: 100%;
-    background: #fff;
-    box-shadow: -2px 0 10px rgba(0,0,0,0.3);
-    transition: right 0.3s ease;
-    display: flex;
-    flex-direction: column;
-    z-index: 1000;
-    border-top-left-radius: 8px;
-    border-bottom-left-radius: 8px;
+  position: fixed;
+  top: 0;
+  right: -320px;
+  width: 300px;
+  height: 100%;
+  background: #fff;
+  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.3);
+  transition: right 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  z-index: 1000;
+  border-top-left-radius: 8px;
+  border-bottom-left-radius: 8px;
 }
 
 #notificationDrawer.open {
-    right: 0;
+  right: 0;
 }
 
 .drawer-header {
-    padding: 1em;
-    background: var(--accent-color);
-    color: white;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    position: relative;
-    border-top-left-radius: 8px;
+  padding: 1em;
+  background: var(--accent-color);
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  border-top-left-radius: 8px;
 }
 
 .drawer-header h3 {
-    margin: 0;
-    font-size: 1.2rem;
+  margin: 0;
+  font-size: 1.2rem;
 }
 
 .close-btn {
-    position: absolute;
-    top: 0.6em;
-    right: -20px;
-    background: none;
-    border: none;
-    color: white;
-    font-size: 1.5em;
-    cursor: pointer;
-    transition: transform 0.2s;
-    padding: 0;
-    line-height: 1;
-    z-index: 10;
+  position: absolute;
+  top: 0.6em;
+  right: -20px;
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.5em;
+  cursor: pointer;
+  transition: transform 0.2s;
+  padding: 0;
+  line-height: 1;
+  z-index: 10;
 }
 
 .close-btn:hover {
-    transform: rotate(90deg);
+  transform: rotate(90deg);
 }
+
 .drawer-content {
-    padding: 1em;
-    overflow-y: auto;
-    flex: 1;
+  padding: 1em;
+  overflow-y: auto;
+  flex: 1;
 }
 
 .drawer-content p {
-    margin: 0;
-    color: #555;
-    font-size: 0.95rem;
-    text-align: center;
+  margin: 0;
+  color: #555;
+  font-size: 0.95rem;
+  text-align: center;
 }
 
 .notification-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
+  list-style: none;
+  padding: 0;
+  margin: 0;
 }
 
 .notification-list li {
-    padding: 0.6em 0;
-    border-bottom: 1px solid #eee;
-    font-size: 0.95rem;
-    color: #333;
+  padding: 0.6em 0;
+  border-bottom: 1px solid #eee;
+  font-size: 0.95rem;
+  color: #333;
 }
 
 .notification-list li strong {
-    display: block;
-    margin-bottom: 0.3em;
-    color: var(--primary-color);
+  display: block;
+  margin-bottom: 0.3em;
+  color: var(--primary-color);
 }
 
 .notification-list li .timestamp {
-    display: block;
-    font-size: 0.8rem;
-    color: #888;
-    margin-top: 0.2em;
+  display: block;
+  font-size: 0.8rem;
+  color: #888;
+  margin-top: 0.2em;
 }
 
+/* Define variables for consistency */
+:root {
+  --white: #ffffff;
+  --accent-color: #2c3e50;
+  --primary-color: #2c3e50;
+}
