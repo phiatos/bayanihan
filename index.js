@@ -1,4 +1,3 @@
-// Register service worker
 window.addEventListener('load', () => {
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker
@@ -10,6 +9,9 @@ window.addEventListener('load', () => {
                 console.error('Service Worker registration failed:', error);
             });
     }
+
+    fetchVolunteerGroups();
+    initializeMap();
 });
 
 let map;
@@ -18,6 +20,7 @@ let markers = [];
 let activationsListenerQuery;
 let activationsListenerCallback;
 let allVolunteerGroups = [];
+let approvedReports = []; // Store approved reports
 
 const firebaseConfig = {
     apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
@@ -31,7 +34,6 @@ const firebaseConfig = {
 };
 
 firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
 const database = firebase.database();
 
 console.log('Firebase DB initialized:', database);
@@ -95,7 +97,7 @@ function highlight(element) {
     setTimeout(() => element.style.color = '#FFF', 300);
 }
 
-// Elements
+// Elements for Reports
 const evacueesEl = document.getElementById("evacuees");
 const foodPacksEl = document.getElementById("food-packs");
 const hotMealsEl = document.getElementById("hot-meals");
@@ -113,7 +115,6 @@ function fetchReports() {
         if (reports) {
             const reportEntries = Object.entries(reports);
             reportEntries.forEach(([key, report]) => {
-                // Align with the field names from the new script's transformReportData
                 totalEvacuees += parseFloat(report.NoOfIndividualsOrFamilies || report.families || 0);
                 totalFoodPacks += parseFloat(report.NoOfFoodPacks || report.foodPacks || 0);
                 totalHotMeals += parseFloat(report.NoOfHotMeals || report.hotMeals || 0);
@@ -173,7 +174,6 @@ function initializeMap() {
         mapTypeId: "roadmap"
     });
 
-    // Load GeoJSON
     fetch('./json/ph_admin1.geojson')
         .then(res => {
             if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
@@ -186,7 +186,7 @@ function initializeMap() {
             geoJsonLayer.addGeoJson(data);
 
             geoJsonLayer.setStyle({
-                fillColor: '#FA3B99',
+                fillColor: '#FA3C99',
                 fillOpacity: 0.5,
                 strokeColor: '#FFF',
                 strokeWeight: 1,
@@ -202,7 +202,6 @@ function initializeMap() {
             });
 
             geoJsonLayer.addListener('click', event => {
-                const props = event.feature.getProperties ? event.feature.getProperty("name") : {};
                 const name = event.feature.getProperty("name") || event.feature.getProperty("NAME_1") || "Unnamed Province";
                 const content = `<strong>${name}</strong>`;
                 const infowindow = new google.maps.InfoWindow({
@@ -212,9 +211,17 @@ function initializeMap() {
                 infowindow.open(map);
             });
 
-            // After loading GeoJSON, add markers and fetch reports
-            addMarkersForActiveActivations();
-            fetchReports();
+            // Ensure approved reports are loaded before adding markers
+            loadApprovedReports().then(() => {
+                console.log("Approved reports loaded before adding markers");
+                addMarkersForActiveActivations();
+                fetchReports();
+            }).catch(error => {
+                console.error("Failed to load approved reports before adding markers:", error);
+                // Proceed anyway to avoid blocking the map
+                addMarkersForActiveActivations();
+                fetchReports();
+            });
         })
         .catch(err => {
             console.error("Failed to load GeoJSON:", err);
@@ -226,13 +233,55 @@ function initializeMap() {
         });
 }
 
-function addMarkersForActiveActivations() {
+async function loadApprovedReports() {
+    try {
+        const snapshot = await database.ref("reports/approved").once("value");
+        const reports = snapshot.val();
+        approvedReports = [];
+        if (reports) {
+            Object.keys(reports).forEach(key => {
+                const report = reports[key];
+                console.log(`Loading report ${key}:`, report); // Debug log
+                const transformedReport = {
+                    firebaseKey: key,
+                    ReportID: report.reportID || report.ReportID || "-",
+                    VolunteerGroupName: report.organization || report.VolunteerGroupName || "[Unknown Org]",
+                    AreaOfOperation: report.AreaOfOperation || "-",
+                    TimeOfIntervention: report.timeOfIntervention || report.TimeOfIntervention || "-",
+                    DateOfReport: report.dateOfReport || report.DateOfReport || "-",
+                    Status: report.status || report.Status || "Approved",
+                    StartDate: report.operationDate || report.StartDate || "-",
+                    EndDate: report.operationDate || report.EndDate || "-",
+                    NoOfIndividualsOrFamilies: report.families || report.NoOfIndividualsOrFamilies || "-",
+                    NoOfFoodPacks: report.foodPacks || report.NoOfFoodPacks || "-",
+                    NoOfHotMeals: report.hotMeals || report.NoOfHotMeals || "-",
+                    LitersOfWater: report.water || report.LitersOfWater || "-",
+                    NoOfVolunteersMobilized: report.volunteers || report.NoOfVolunteersMobilized || "-",
+                    NoOfOrganizationsActivated: report.NoOfOrganizationsActivated || "-",
+                    TotalValueOfInKindDonations: report.inKindValue || report.TotalValueOfInKindDonations || "-",
+                    TotalMonetaryDonations: report.amountRaised || report.TotalMonetaryDonations || "-",
+                    NotesAdditionalInformation: report.remarks || report.urgentNeeds || report.NotesAdditionalInformation || "-",
+                    userUid: report.userUid || "-",
+                    submittedBy: report.submittedBy || "-",
+                };
+                approvedReports.push(transformedReport);
+            });
+            console.log("Approved reports loaded:", approvedReports);
+        } else {
+            console.log("No approved reports found in Firebase");
+        }
+    } catch (error) {
+        console.error("Error loading approved reports:", error);
+        throw error; // Re-throw to catch in initializeMap
+    }
+}
+
+async function addMarkersForActiveActivations() {
     if (!map) {
         console.error("Map not initialized before adding markers");
         return;
     }
 
-    // Remove old listener if exists
     if (activationsListenerQuery && activationsListenerCallback) {
         activationsListenerQuery.off("value", activationsListenerCallback);
         console.log("Removed previous activations listener");
@@ -240,7 +289,7 @@ function addMarkersForActiveActivations() {
 
     activationsListenerQuery = database.ref("activations").orderByChild("status").equalTo("active");
 
-    activationsListenerCallback = snapshot => {
+    activationsListenerCallback = async snapshot => {
         markers.forEach(marker => marker.setMap(null));
         markers = [];
 
@@ -252,31 +301,157 @@ function addMarkersForActiveActivations() {
             return;
         }
 
-        Object.entries(activations).forEach(([key, activation]) => {
+        for (const [key, activation] of Object.entries(activations)) {
             if (!activation.latitude || !activation.longitude) {
                 console.warn(`Skipping activation ${key} due to missing lat/lng`);
-                return;
+                continue;
             }
 
             const lat = parseFloat(activation.latitude);
             const lng = parseFloat(activation.longitude);
             if (isNaN(lat) || isNaN(lng)) {
                 console.warn(`Skipping activation ${key} due to invalid lat/lng`);
-                return;
+                continue;
             }
 
             const position = { lat, lng };
 
             const group = allVolunteerGroups.find(g => g.no === activation.groupId);
+            const organization = activation.organization || "unknown";
+            console.log(`Processing activation ${key} with organization: ${organization}`);
 
-            // Use default Google Maps marker (red pin)
             const marker = new google.maps.Marker({
                 position,
                 map,
                 title: activation.organization || "Organization Unknown",
             });
 
-            // Add InfoWindow with the design from createInfoWindow, including logo placeholder before ABVN Group
+            // Fetch needs assessment and approved reports
+            let needsAssessmentHtml = "<p>No needs assessment available for this activation.</p>";
+            let approvedReportsHtml = "<p>No approved reports available for this ABVN.</p>";
+            let hasRdanaData = false;
+            let hasApprovedReports = false;
+
+            try {
+                // Fetch RDANA logs
+                const rdanaSnapshot = await database.ref("rdana/approved").once("value");
+                const rdanaLogs = rdanaSnapshot.val();
+                console.log(`All RDANA logs:`, rdanaLogs);
+
+                if (rdanaLogs) {
+                    for (let rdanaKey in rdanaLogs) {
+                        const log = rdanaLogs[rdanaKey];
+                        console.log(`Checking RDANA ${rdanaKey}: rdanaGroup=${log.rdanaGroup}, activation organization=${organization}`);
+                        if (log.rdanaGroup && organization && log.rdanaGroup.toLowerCase() === organization.toLowerCase()) {
+                            const needsChecklist = log.needsChecklist || [];
+                            console.log(`Needs checklist for RDANA ${rdanaKey}:`, needsChecklist);
+
+                            if (needsChecklist.length > 0) {
+                                needsAssessmentHtml = `
+                                    <h3>Initial Needs Assessment</h3>
+                                    <ul>
+                                        ${needsChecklist.map(item => `<li>${item.item}: ${item.needed ? 'Yes' : 'No'}</li>`).join("")}
+                                    </ul>
+                                `;
+                                hasRdanaData = true;
+                            } else {
+                                needsAssessmentHtml = "<p>No specific needs identified in the RDANA report.</p>";
+                            }
+                            break;
+                        }
+                    }
+                } else {
+                    console.log("No RDANA logs found in rdana/approved.");
+                }
+
+                // Fetch approved reports submitted by this specific ABVN (organization)
+                console.log(`Approved reports array:`, approvedReports);
+
+                const relevantReports = approvedReports.filter(report => {
+                    const matchesVolunteerGroup = report.VolunteerGroupName && organization && 
+                        report.VolunteerGroupName.toLowerCase() === organization.toLowerCase();
+                    console.log(`Checking report: VolunteerGroupName=${report.VolunteerGroupName}, organization=${organization}, matches=${matchesVolunteerGroup}`);
+                    return matchesVolunteerGroup;
+                });
+
+                console.log(`Relevant reports for ${organization}:`, relevantReports);
+
+                if (relevantReports.length > 0) {
+                    approvedReportsHtml = `
+                        <h3>Approved Reports by ${organization}</h3>
+                        <ul>
+                            ${relevantReports.map(report => `
+                                <li>
+                                    Report ID: ${report.ReportID} (${formatDate(report.DateOfReport) || 'No date'})<br>
+                                    Evacuees: ${report.NoOfIndividualsOrFamilies || 0}<br>
+                                    Food Packs: ${report.NoOfFoodPacks || 0}<br>
+                                    Hot Meals: ${report.NoOfHotMeals || 0}<br>
+                                    Water (Liters): ${report.LitersOfWater || 0}<br>
+                                    Volunteers: ${report.NoOfVolunteersMobilized || 0}<br>
+                                    Monetary Donations: ₱${abbreviateNumber(parseFloat(report.TotalMonetaryDonations || 0))}<br>
+                                    In-Kind Donations: ₱${abbreviateNumber(parseFloat(report.TotalValueOfInKindDonations || 0))}
+                                </li>
+                            `).join("")}
+                        </ul>
+                    `;
+                    hasApprovedReports = true;
+                } else {
+                    // Fallback to show raw report data for debugging
+                    approvedReportsHtml = `
+                        <h3>Approved Reports by ${organization}</h3>
+                        <p>No matching reports found. Raw approved reports data:</p>
+                        <pre>${JSON.stringify(approvedReports.filter(r => r.VolunteerGroupName && organization && r.VolunteerGroupName.toLowerCase() === organization.toLowerCase()), null, 2)}</pre>
+                    `;
+                }
+            } catch (error) {
+                console.error(`Error fetching RDANA or reports for organization ${organization}:`, error);
+                needsAssessmentHtml = "<p>Error loading needs assessment.</p>";
+                approvedReportsHtml = "<p>Error loading approved reports for this ABVN.</p>";
+            }
+
+            // Initialize as empty strings to hide sections if no data exists
+            let finalNeedsAssessmentHtml = needsAssessmentHtml;
+            let finalApprovedReportsHtml = approvedReportsHtml;
+            if (needsAssessmentHtml.includes("No needs assessment") || needsAssessmentHtml.includes("Error loading")) {
+                finalNeedsAssessmentHtml = "";
+            }
+            if (approvedReportsHtml.includes("No approved reports") || approvedReportsHtml.includes("Error loading")) {
+                finalApprovedReportsHtml = "";
+            }
+
+            // Base info sections that are always displayed
+            let infoSectionContent = `
+                <div class="info-item">
+                    <i class='bx bx-map'></i>
+                    <div class="info-text">
+                        <span class="label">Location</span>
+                        <span class="value">${activation.areaOfOperation || "Not specified"}</span>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <i class='bx bx-cloud-lightning'></i>
+                    <div class="info-text">
+                        <span class="label">Calamity</span>
+                        <span class="value">${activation.calamityType || "Unknown"}${activation.typhoonName ? ` (${activation.typhoonName})` : ''}</span>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <div class="small-placeholder-icon"><i class='bx bx-building'></i></div>
+                    <div class="info-text">
+                        <span class="label">ABVN Group</span>
+                        <span class="value">${group ? group.organization : 'Unknown'}</span>
+                    </div>
+                </div>
+            `;
+
+            // If there’s RDANA or approved reports data, append those sections
+            if (hasRdanaData || hasApprovedReports) {
+                infoSectionContent += `
+                    ${finalNeedsAssessmentHtml}
+                    ${finalApprovedReportsHtml}
+                `;
+            }
+
             const infowindow = new google.maps.InfoWindow({
                 content: `
                     <div class="bayanihan-infowindow">
@@ -288,27 +463,7 @@ function addMarkersForActiveActivations() {
                             </div>
                         </div>
                         <div class="info-section">
-                            <div class="info-item">
-                                <i class='bx bx-map'></i>
-                                <div class="info-text">
-                                    <span class="label">Location</span>
-                                    <span class="value">${activation.areaOfOperation || "Not specified"}</span>
-                                </div>
-                            </div>
-                            <div class="info-item">
-                                <i class='bx bx-cloud-lightning'></i>
-                                <div class="info-text">
-                                    <span class="label">Calamity</span>
-                                    <span class="value">${activation.calamityType || "Unknown"}${activation.typhoonName ? ` (${activation.typhoonName})` : ''}</span>
-                                </div>
-                            </div>
-                            <div class="info-item">
-                                <div class="small-placeholder-icon"><i class='bx bx-building'></i></div>
-                                <div class="info-text">
-                                    <span class="label">ABVN Group</span>
-                                    <span class="value">${group ? group.organization : 'Unknown'}</span>
-                                </div>
-                            </div>
+                            ${infoSectionContent}
                         </div>
                     </div>
                     
@@ -407,6 +562,21 @@ function addMarkersForActiveActivations() {
                         color: #222;
                         font-size: 15px;
                     }
+                    ul {
+                        list-style-type: none;
+                        padding-left: 0;
+                        margin: 10px 0;
+                    }
+                    li {
+                        margin: 5px 0;
+                        font-size: 14px;
+                    }
+                    pre {
+                        background: #f0f0f0;
+                        padding: 10px;
+                        border-radius: 5px;
+                        overflow-x: auto;
+                    }
                     @keyframes fadeSlideIn {
                         0% { opacity: 0; transform: translateY(10px); }
                         100% { opacity: 1; transform: translateY(0); }
@@ -420,7 +590,7 @@ function addMarkersForActiveActivations() {
             });
 
             markers.push(marker);
-        });
+        }
 
         console.log(`Added ${markers.length} markers to the map.`);
     };
@@ -429,7 +599,6 @@ function addMarkersForActiveActivations() {
     console.log('addMarkersForActiveActivations listener attached');
 }
 
-// Fetch volunteer groups to map groupId to group details
 function fetchVolunteerGroups() {
     database.ref("volunteerGroups").once("value", snapshot => {
         allVolunteerGroups = [];
@@ -454,29 +623,6 @@ function fetchVolunteerGroups() {
     });
 }
 
-// Initialize authentication and map
-auth.onAuthStateChanged(user => {
-    if (user) {
-        fetchVolunteerGroups();
-        initializeMap();
-    } else {
-        auth.signInAnonymously()
-            .then(() => {
-                fetchVolunteerGroups();
-                initializeMap();
-            })
-            .catch(error => {
-                console.error("Anonymous auth failed:", error.code, error.message);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Authentication Error',
-                    text: `Failed to authenticate: ${error.message}. Please check your network and Firebase configuration.`
-                });
-            });
-    }
-});
-
-// Cleanup on page unload
 window.addEventListener('beforeunload', () => {
     if (activationsListenerQuery && activationsListenerCallback) {
         activationsListenerQuery.off("value", activationsListenerCallback);
@@ -484,3 +630,14 @@ window.addEventListener('beforeunload', () => {
     markers.forEach(marker => marker.setMap(null));
     markers = [];
 });
+
+// Helper function to format date (from reports.js)
+function formatDate(dateStr) {
+    const date = new Date(dateStr);
+    if (isNaN(date)) return dateStr || "-";
+    return date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric"
+    });
+}
