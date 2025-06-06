@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../components/sidebar.css" />
+    <link rel="stylesheet" href="../css/global.css" />
+    <link rel='stylesheet' href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css'/>
+
+    <!-- Firebase Compat SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <title>Pending ABVN Applications</title>
+</head>
+<body>
+    <div class="main-container">
+        <div class="sidebar-placeholder"></div>
+        <div id="main-content">
+            <div class="controls">
+                <div class="controls_left">
+                    <header>Pending ABVN Applications</header>
+                </div>
+                <div class="controls_right">
+                    <div class="search-wrapper">
+                        <i class="fa fa-search"></i>
+                        <input type="text" placeholder="Search" id="searchInput" />
+                    </div>
+                    <div class="custom-select-wrapper">
+                        <select id="sortSelect">
+                            <option value="" disabled selected hidden>Sort by</option>
+                            <optgroup label="Assessment Info">
+                                <option value="DateTime-asc">Date & Time (Oldest First)</option>
+                                <option value="DateTime-desc">Date & Time (Newest First)</option>
+                                <option value="RDANAID-asc">RDANA ID (Ascending)</option>
+                                <option value="RDANAID-desc">RDANA ID (Descending)</option>
+                            </optgroup>
+                            <optgroup label="Location">
+                                <option value="Location-asc">Location (A–Z)</option>
+                                <option value="Location-desc">Location (Z–A)</option>
+                            </optgroup>
+                            <optgroup label="Disaster Details">
+                                <option value="DisasterType-asc">Disaster Type (A–Z)</option>
+                                <option value="DisasterType-desc">Disaster Type (Z–A)</option>
+                            </optgroup>
+                            <optgroup label="Impact">
+                                <option value="AffectedPopulation-desc">Affected Population (High to Low)</option>
+                                <option value="AffectedPopulation-asc">Affected Population (Low to High)</option>
+                            </optgroup>
+                            <optgroup label="Response Actions">
+                                <option value="Needs-asc">Priority Needs (A–Z)</option>
+                                <option value="Needs-desc">Priority Needs (Z–A)</option>
+                            </optgroup>
+                        </select>
+                        <i class='bx bx-chevron-down'></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-controls">
+                <button id="viewApprovedBtn" class="viewApprovedBtn">
+                    <i class='bx bx-show' style="font-size: 1.2rem;"></i>View Approved ABVN Applications
+                </button>
+            </div>
+
+            <div class="table-container">
+                <table id="volunteerOrgsTable">
+                    <thead>
+                        <tr>
+                            <th>No.</th>
+                            <th>Organization Name</th>
+                            <th>Contact Person</th>
+                            <th>Email</th>
+                            <th>Mobile Number</th>
+                            <th>Social Media</th>
+                            <th>Region</th>
+                            <th>Province</th>
+                            <th>City</th>
+                            <th>Barangay</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="volunteerOrgsContainer"></tbody>
+                </table>
+            </div>
+
+            <div class="pagination-info">
+                <span id="entriesInfo">Showing 0 to 0 of 0 entries</span>
+                <div id="pagination" class="pagination"></div>
+            </div>   
+        </div>
+    </div>
+
+    <div id="previewModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <span id="closeModal" class="close">×</span>
+            <div id="modalContent"></div>
+        </div>
+    </div>
+
+    <script>
+        fetch('../components/sidebar.html')
+        .then(response => response.text())
+        .then(data => {
+            document.querySelector('.sidebar-placeholder').innerHTML = data;
+            const sidebarScript = document.createElement('script');
+            sidebarScript.src = '../components/sidebar.js';
+            sidebarScript.onload = function() {};
+            document.querySelector('.sidebar-placeholder').appendChild(sidebarScript);
+        })
+        .catch(error => {
+            console.error('Error loading sidebar:', error);
+        });
+
+        function clearDInputs() {
+            document.getElementById('searchInput').value = '';
+            applySearchAndSort();
+        }
+    </script>
+    <script type="module" src="../js/pendingvg.js"></script>
+</body>
+</html>

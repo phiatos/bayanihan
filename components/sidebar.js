@@ -198,29 +198,58 @@ function initSidebar() {
   function restrictMenuAccess(role) {
     // Define menu items to control visibility
     const menuItems = {
+      //admin
       dashboard: document.querySelector(".menu-dashboard"),
+      communityboard: document.querySelector(".menu-communityboard"),
       volunteergroupmanagement: document.querySelector(".menu-volunteergroupmanagement"),
       activation: document.querySelector(".menu-activation"),
       donationTracksheet: document.querySelector(".menu-donation-tracksheet"),
-      callfordonation: document.querySelector(".menu-callfordonation"),
-      rdana: document.querySelector(".menu-rdana"),
-      rdanaMain: document.querySelector(".menu-rdana-main"),
-      rdanaVerification: document.querySelector(".menu-rdana-verification"),
-      rdanaLog: document.querySelector(".menu-rdana-log"),
-      reliefs: document.querySelector(".menu-reliefs"),
-      reliefsRequest: document.querySelector(".menu-reliefs-request"),
-      reliefsLog: document.querySelector(".menu-reliefs-log"),
-      reports: document.querySelector(".menu-reports"),
-      reportsSubmission: document.querySelector(".menu-reports-submission"),
-      reportsVerification: document.querySelector(".menu-reports-verification"),
-      reportsLog: document.querySelector(".menu-reports-log"),
       inkind: document.querySelector(".menu-inkind"),
       monetary: document.querySelector(".menu-monetary"),
+      reliefsLog: document.querySelector(".menu-reliefs-log"),
+      rdanaVerification: document.querySelector(".menu-rdana-verification"),
+      rdanaLog: document.querySelector(".menu-rdana-log"),
+      reportsVerification: document.querySelector(".menu-reports-verification"),
+      reportsLog: document.querySelector(".menu-reports-log"),
+      //approvals
+      abvnApplications: document.querySelector(".menu-abvn-applications"),
+      pendingABVN: document.querySelector(".menu-pending-abvn"),
+      approvedABVN: document.querySelector(".menu-approved-abvn"),
+      volunteerApplications: document.querySelector(".menu-volunteer-applications"),
+      pendingVolunteers: document.querySelector(".menu-pending-volunteers"),
+      approvedVolunteers: document.querySelector(".menu-approved-volunteers"),
+      pendingDonations: document.querySelector(".menu-pending-donations"),
+      pendingInkind: document.querySelector(".menu-pending-inkind"),
+      pendingMonetary: document.querySelector(".menu-pending-monetary"),
+      //abvn
+      rdana: document.querySelector(".menu-rdana"),
+      rdanaMain: document.querySelector(".menu-rdana-main"),
+      callfordonation: document.querySelector(".menu-callfordonation"),
+      reliefs: document.querySelector(".menu-reliefs"),
+      reliefsRequest: document.querySelector(".menu-reliefs-request"),
+      reports: document.querySelector(".menu-reports"),
+      reportsSubmission: document.querySelector(".menu-reports-submission"),
     };
-
     console.log("Restricting menu access for role:", role);
 
+    const allTitles = document.querySelectorAll("p.title");
     if (role === "ABVN") {
+      allTitles.forEach((title) => {
+        // Hide the "Admin" title
+        if (title.textContent.trim() === "Admin") {
+          title.style.display = "none";
+        }
+        // Hide the "Pending Approvals" title and its associated list items
+        else if (title.textContent.trim() === "Pending Approvals") {
+          title.style.display = "none";
+          let next = title.nextElementSibling;
+          while (next && next.tagName.toLowerCase() === "li") {
+            next.style.display = "none";
+            next = next.nextElementSibling;
+          }
+        }
+      });
+
       // Show allowed menu items for ABVN volunteers
       const allowedItems = [
         menuItems.dashboard,
@@ -245,6 +274,9 @@ function initSidebar() {
         menuItems.reportsLog,
         menuItems.inkind,
         menuItems.monetary,
+        menuItems.abvnApplications,
+        menuItems.volunteerApplications,
+        menuItems.pendingDonations
       ];
 
       // Show allowed items
@@ -294,6 +326,10 @@ function initSidebar() {
           console.log(`Showed menu item: ${item.className}`);
         }
       });
+
+      if (titleAdmin) titleAdmin.style.display = "none";
+      if (titlePendingApprovals) titlePendingApprovals.style.display = "none";
+
     }
   }
 

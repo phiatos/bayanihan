@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
 
-    const userRole = localStorage.getItem('userRole'); // Assuming user role is stored in localStorage
+    const userRole = localStorage.getItem('userRole');
 
     // DOM elements
     const form = document.getElementById('form-container-1');
