@@ -517,13 +517,16 @@ border-color: transparent;
   color: var(--primary-color);
   font-size: 12px;
   border: 1px solid var(--primary-color);
-  padding: 5px 10px;
   border-radius: 30px;
+   font-size: 13px; 
+  padding: 10px;
+  justify-content: center;
+  align-items: center;
 }
 
-.comment-counter i {
-  font-size: 25px; 
-  padding: 0;
+.comment-counter i{
+ font-size: 20px;
+ padding: 0;
 }
 
 .action-buttons {

@@ -401,7 +401,7 @@ function toggleComments(postId) {
     if (commentsSection.style.display === 'none' || !commentsSection.style.display) {
       commentsSection.style.display = 'block';
       commentButton.classList.add('active');
-      commentCounter.innerHTML = `<i class='bx bx-x'/>Close Comments`;
+      commentCounter.innerHTML = `<i class='bx bx-x'></i>Close Comments`;
       loadComments(postId);
     } else {
       commentsSection.style.display = 'none';
