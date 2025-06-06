@@ -250,12 +250,54 @@ function initActivationMap() {
         console.log("Activation map initialized successfully.");
 
         singleInfoWindow = new google.maps.InfoWindow();
-
         google.maps.event.trigger(activationMap, "resize");
         console.log("Activation map resize event triggered.");
 
-        // Load active activations onto the map
+        // ✅ Load GeoJSON for provinces
+        fetch('../json/ph_admin1.geojson')
+            .then(res => {
+                if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+                return res.json();
+            })
+            .then(data => {
+                console.log("GeoJSON loaded:", data);
+
+                const geoJsonLayer = activationMap.data;
+                geoJsonLayer.addGeoJson(data);
+
+                geoJsonLayer.setStyle({
+                    fillColor: '#FA3B99',
+                    fillOpacity: 0.4,
+                    strokeColor: '#FFF',
+                    strokeWeight: 1.5,
+                    clickable: false,
+                });
+
+                geoJsonLayer.addListener('mouseover', event => {
+                    geoJsonLayer.overrideStyle(event.feature, { fillOpacity: 0.7 });
+                });
+
+                geoJsonLayer.addListener('mouseout', event => {
+                    geoJsonLayer.revertStyle(event.feature);
+                });
+
+                geoJsonLayer.addListener('click', event => {
+                    const name = event.feature.getProperty("name") || event.feature.getProperty("NAME_1") || "Unnamed Province";
+                    const content = `<strong>${name}</strong>`;
+                    const infowindow = new google.maps.InfoWindow({
+                        content,
+                        position: event.latLng
+                    });
+                    infowindow.open(activationMap);
+                });
+            })
+            .catch(error => {
+                console.error("Error loading GeoJSON:", error);
+            });
+
+        // ✅ Load active activations (your markers)
         addMarkersForActiveActivations();
+
     } catch (error) {
         console.error("Failed to initialize Activation Map:", error);
         Swal.fire({
@@ -265,6 +307,7 @@ function initActivationMap() {
         });
     }
 }
+
 
 // Add markers for active activations (Updated with Logo Support)
 function addMarkersForActiveActivations() {
@@ -310,7 +353,8 @@ function addMarkersForActiveActivations() {
                 title: activation.organization,
                 icon: {
                     url: logoPath,
-                    scaledSize: new google.maps.Size(40, 40),
+                    scaledSize: new google.maps.Size(40, 20),
+                    anchor: new google.maps.Point(20, 10), // center the icon
                 },
             });
 

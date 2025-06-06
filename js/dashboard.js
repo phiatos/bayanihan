@@ -1273,9 +1273,10 @@ async function generateLenlenAlert(calamityType, location, details, eventId) {
 
 // Notify admin
 const notifyAdmin = throttle(async (message, calamityType, location, details, eventId) => {
-    const notificationList = document.querySelector(".notification-list");
-    if (!notificationList) {
-        console.error("Notification list element not found.");
+    const calamityList = document.getElementById("calamityList");
+    const adminList = document.getElementById("adminList");
+    if (!calamityList || !adminList) {
+        console.error("Notification list elements not found.");
         return;
     }
 
@@ -1287,11 +1288,9 @@ const notifyAdmin = throttle(async (message, calamityType, location, details, ev
     const time = timeMatch ? timeMatch[1] : null;
 
     const identifier = generateCalamityIdentifier(calamityType, location, time, magnitude, rainfall);
-    
-    // Double-check for duplicates
     const hasDuplicate = await hasRecentNotification(eventId, calamityType, location, time, magnitude, rainfall);
     if (hasDuplicate) {
-        console.log(`Skipping saving duplicate notification - Event ID: ${eventId}, Identifier: ${identifier}`);
+        console.log(`Skipping duplicate - Event ID: ${eventId}, Identifier: ${identifier}`);
         return;
     }
 
@@ -1301,52 +1300,56 @@ const notifyAdmin = throttle(async (message, calamityType, location, details, ev
 
     const li = document.createElement("li");
     li.innerHTML = `
-        <strong>🚨 Calamity Alert:</strong> ${message}
+        <strong>${calamityType ? "🚨 Calamity Alert:" : "🔔 Admin Notification:"}</strong> ${message}
         <span class="timestamp">${new Date().toLocaleTimeString()}</span>
     `;
     li.classList.add("unread");
-    notificationList.prepend(li);
+
+    if (calamityType) {
+        calamityList.prepend(li);
+    } else {
+        adminList.prepend(li);
+    }
 
     const notifDot = document.getElementById("notifDot");
     if (notifDot) notifDot.style.display = "block";
 
     await database.ref("notifications").push({
-        message: message,
-        calamityType: calamityType,
-        location: location,
-        details: details,
-        eventId: eventId,
-        identifier: identifier,
+        message,
+        calamityType: calamityType || null,
+        location,
+        details,
+        eventId,
+        identifier,
         timestamp: Date.now(),
         read: false,
+        type: calamityType ? "calamity" : "admin"
     });
 
-    console.log(`Saved new notification - Event ID: ${eventId}, Identifier: ${identifier}, Message: ${message}`);
+    console.log(`Saved new notification - Event ID: ${eventId}`);
 }, 10000);
+
 
 // Setup admin notifications
 function setupAdminNotifications() {
     if (userRole !== "AB ADMIN") return;
 
-    const notificationList = document.querySelector(".notification-list");
+    const calamityList = document.getElementById("calamityList");
+    const adminList = document.getElementById("adminList");
     const notifDot = document.getElementById("notifDot");
 
-    if (!notificationList || !notifDot) {
-        console.error("Notification list or notifDot element not found.");
+    if (!calamityList || !adminList || !notifDot) {
+        console.error("Notification list or dot not found.");
         return;
     }
 
-    // Load notifications initially to check for unread ones
     loadNotifications();
 
     const markAllReadBtn = document.getElementById("markAllRead");
     if (markAllReadBtn) {
         markAllReadBtn.addEventListener("click", async () => {
             try {
-                if (notificationsListener) {
-                    notificationsListener.off();
-                    console.log("Temporarily detached notifications listener during Mark All Read");
-                }
+                if (notificationsListener) notificationsListener.off();
 
                 const snapshot = await database.ref("notifications").once("value");
                 const updates = {};
@@ -1358,86 +1361,90 @@ function setupAdminNotifications() {
 
                 if (Object.keys(updates).length > 0) {
                     await database.ref("notifications").update(updates);
-                    console.log("Marked all notifications as read in database.");
-                } else {
-                    console.log("No unread notifications to mark as read.");
+                    console.log("Marked all notifications as read.");
                 }
 
-                // Update UI immediately
-                notificationList.querySelectorAll("li").forEach(li => li.classList.remove("unread"));
+                calamityList.querySelectorAll("li").forEach(li => li.classList.remove("unread"));
+                adminList.querySelectorAll("li").forEach(li => li.classList.remove("unread"));
                 notifDot.style.display = "none";
 
-                // Re-initialize processed notifications to reflect database state
                 await initializeProcessedSets();
-
-                // Reload notifications to ensure consistency
                 loadNotifications();
             } catch (error) {
-                console.error("Error marking notifications as read:", error);
-                Swal.fire({
-                    icon: "error",
-                    title: "Error",
-                    text: "Failed to mark notifications as read. Please try again.",
-                });
+                console.error("Error marking read:", error);
+                Swal.fire({ icon: "error", title: "Error", text: "Failed to mark all as read." });
             }
         });
     }
 }
 
-// Load notifications and set up listener
+
+// Load and listen to notifications
 function loadNotifications() {
-    const notificationList = document.querySelector(".notification-list");
+    const calamityList = document.getElementById("calamityList");
+    const adminList = document.getElementById("adminList");
     const notifDot = document.getElementById("notifDot");
 
-    if (notificationsListener) {
-        notificationsListener.off();
-        console.log("Removed existing notifications listener");
-    }
+    if (notificationsListener) notificationsListener.off();
 
     notificationsListener = database.ref("notifications").limitToLast(50);
     notificationsListener.on("child_added", snapshot => {
         const notification = snapshot.val();
         const key = snapshot.key;
 
-        // Skip if notification is already processed or read
-        if (notification.read && processedNotifications.has(notification.eventId || notification.identifier)) {
-            console.log(`Skipping already read notification - Key: ${key}, Event ID: ${notification.eventId}`);
-            return;
-        }
-
-        // Skip if already in the list
-        if (notificationList.querySelector(`li[data-key="${key}"]`)) {
-            console.log(`Notification already in list - Key: ${key}`);
-            return;
-        }
+        if (notification.read && processedNotifications.has(notification.eventId || notification.identifier)) return;
+        if (document.querySelector(`li[data-key="${key}"]`)) return;
 
         const li = document.createElement("li");
         li.innerHTML = `
-            <strong>🚨 Calamity Alert:</strong> ${notification.message}
+            <strong>${notification.calamityType ? "🚨 Calamity Alert:" : "🔔 Admin Notification:"}</strong> ${notification.message}
             <span class="timestamp">${new Date(notification.timestamp).toLocaleTimeString()}</span>
         `;
         li.dataset.key = key;
-        if (!notification.read) {
-            li.classList.add("unread");
+        if (!notification.read) li.classList.add("unread");
+
+        if (notification.calamityType) {
+            calamityList.prepend(li);
+        } else {
+            adminList.prepend(li);
         }
-        notificationList.prepend(li);
 
         if (notification.eventId) processedNotifications.add(notification.eventId);
         if (notification.identifier) processedNotifications.add(notification.identifier);
         syncProcessedNotifications();
 
-        // Update notifDot visibility
-        const hasUnread = notificationList.querySelectorAll("li.unread").length > 0;
+        const hasUnread = calamityList.querySelectorAll("li.unread").length > 0 ||
+                          adminList.querySelectorAll("li.unread").length > 0;
         notifDot.style.display = hasUnread ? "block" : "none";
     }, error => {
-        console.error("Error fetching notifications:", error);
-        Swal.fire({
-            icon: "error",
-            title: "Error",
-            text: "Failed to load notifications. Please try again later.",
-        });
+        console.error("Fetch error:", error);
+        Swal.fire({ icon: "error", title: "Error", text: "Failed to load notifications." });
     });
 }
+
+function setupTabSwitching() {
+    const tabCalamity = document.getElementById("tabCalamity");
+    const tabAdmin = document.getElementById("tabAdmin");
+    const calamityList = document.getElementById("calamityList");
+    const adminList = document.getElementById("adminList");
+
+    if (!tabCalamity || !tabAdmin || !calamityList || !adminList) return;
+
+    tabCalamity.addEventListener("click", () => {
+        tabCalamity.classList.add("active");
+        tabAdmin.classList.remove("active");
+        calamityList.classList.remove("hidden");
+        adminList.classList.add("hidden");
+    });
+
+    tabAdmin.addEventListener("click", () => {
+        tabAdmin.classList.add("active");
+        tabCalamity.classList.remove("active");
+        adminList.classList.remove("hidden");
+        calamityList.classList.add("hidden");
+    });
+}
+
 
 // Fetch reports
 function fetchReports() {
@@ -1725,6 +1732,12 @@ document.addEventListener('click', (e) => {
         drawer.classList.remove('open');
     }
 });
+
+document.addEventListener("DOMContentLoaded", () => {
+    setupAdminNotifications();
+    setupTabSwitching();
+});
+
 
 window.addEventListener('beforeunload', cleanupDashboard);
 window.addEventListener('navigate-away', () => {

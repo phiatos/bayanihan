@@ -66,8 +66,10 @@
 
 /*----------Custom Scrollbar for the Table Container----------------*/
 .table-container {
-  overflow-x: hidden;
+  overflow-x: auto;
   overflow-y: auto;
+  max-height: 100%; 
+  max-width: 100%; 
 }
 
 .table-container::-webkit-scrollbar {
