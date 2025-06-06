@@ -74,6 +74,7 @@
     <!-- Share Modal -->
       <div id="share-post-modal" class="modal" style="display: none;">
     <div class="modal-content">
+
       <div class="modal-header">
         <span class="close-button">&times;</span>
         <div class="share-header">
@@ -81,15 +82,16 @@
           <i class='bx bx-share'></i>
           <span class="original-creator" id="share-original-creator"></span>
         </div>
-        <hr class="full-width-hr">
+        <hr class="full-width-hr" style="position:absolute; top: 60px; left: 0;">
       </div>
+
       <div class="modal-input-area">
         <div id="share-post-content" class="share-post-content"></div>
         <textarea id="share-caption-input" class="share-caption-input" placeholder="Add a caption (optional)"></textarea>
-        <hr class="full-width-hr">
+        <hr class="full-width-hr" style="position:sticky; top: 380px; left: 0; width: 200vh;">
       </div>
       <div class="modal-footer">
-        <button id="share-cancel-button" class="cancel-button">Cancel</button>
+        <button id="share-cancel-button" class="cancel-btn">Cancel</button>
         <button id="share-submit-button" class="share-button">Share</button>
       </div>
     </div>

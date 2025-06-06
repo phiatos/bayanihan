@@ -60,8 +60,6 @@
 }
 
 .post-buttons .post-option {
-  display: flex;
-  flex-direction: column;
   align-items: center;
   gap: 8px;
   padding: 12px 16px;
@@ -117,7 +115,7 @@
 .modal-header {
   position: sticky;
   top: 0;
-  background-color: #fff;
+  background-color: transparent;
   z-index: 2;
   padding: 20px;
 }
@@ -125,8 +123,10 @@
 .share-header {
   display: flex;
   align-items: center;
+  flex-direction: row;
   gap: 8px;
   margin-bottom: 10px;
+  width: 100%;
 }
 
 .share-header strong {
@@ -154,8 +154,9 @@
 }
 
 .full-width-hr {
+  position: absolute;
   width: 100%;
-  margin: 0;
+  
   border: none;
   border-top: 1px solid #ccc;
 }
@@ -178,6 +179,7 @@
 
 .modal-input-area {
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 20px;
   box-sizing: border-box;
   flex-grow: 1;
@@ -219,15 +221,18 @@ border-color: transparent;
 }
 
 .share-caption-input {
-  width: 100%;
-  padding: 8px;
+ width: 100%;
+  padding: 8px 40px 8px 8px;
   background-color: transparent;
-  border: 2px solid #ccc;
-  border-radius: 4px;
-  resize: vertical;
+  border-color: transparent;
+  border-radius: 8px;
   font-size: 14px;
   min-height: 40px;
+  max-height: 200px; /* Optional: prevent it from getting too tall */
+  resize: none; /* Let JS handle resizing */
+  overflow-y: auto;
   box-sizing: border-box;
+  scrollbar-width:none;
 }
 
 .share-caption-input:focus {
@@ -282,7 +287,7 @@ border-color: transparent;
 }
 
 .share-button {
-  background-color: var(--primary-color);
+  background-color: #14AEBB;
   color: #fff;
 }
 
@@ -516,7 +521,7 @@ border-color: transparent;
   cursor: pointer;
   color: var(--primary-color);
   font-size: 12px;
-  border: 1px solid var(--primary-color);
+  border: 2px solid var(--primary-color);
   border-radius: 30px;
    font-size: 13px; 
   padding: 10px;
@@ -539,7 +544,7 @@ border-color: transparent;
   border: none;
   color: var(--primary-color);
   cursor: pointer;
-  font-size: 16px;
+  font-size: 20px;
   padding: 5px;
 }
 

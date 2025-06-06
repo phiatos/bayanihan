@@ -72,7 +72,7 @@ auth.onAuthStateChanged(async (currentUser) => {
 
 // resize
 document.addEventListener("input", function (e) {
-    if (e.target.matches(".comment-input textarea, .reply-input textarea")) {
+    if (e.target.matches(".comment-input textarea, .reply-input textarea, .share-caption-input")) {
       e.target.style.height = "auto"; // Reset height
       e.target.style.height = e.target.scrollHeight + "px"; // Set new height
     }
