@@ -23,6 +23,7 @@ try {
 
 let user = null;
 const userOrgCache = new Map();
+let sortOrder = 'newest'; // Track sort order: 'newest' or 'oldest'
 
 async function fetchUserData(uid) {
   if (userOrgCache.has(uid)) {
@@ -69,12 +70,24 @@ auth.onAuthStateChanged(async (currentUser) => {
   }
 });
 
+// resize
+document.addEventListener("input", function (e) {
+    if (e.target.matches(".comment-input textarea, .reply-input textarea")) {
+      e.target.style.height = "auto"; // Reset height
+      e.target.style.height = e.target.scrollHeight + "px"; // Set new height
+    }
+  });
+
 function updateModalUserInfo(userData) {
   const userName = document.getElementById('modal-user-name');
   const userOrg = document.getElementById('modal-user-org');
+  const shareUserName = document.getElementById('share-modal-user-name');
   if (userName && userOrg) {
     userName.textContent = userData.contactPerson;
     userOrg.textContent = userData.organization;
+  }
+  if (shareUserName) {
+    shareUserName.textContent = userData.contactPerson;
   }
 }
 
@@ -190,50 +203,101 @@ async function sharePost(id) {
     return;
   }
 
-  Swal.fire({
-    title: 'Share Post',
-    html: `<textarea id="share-caption" placeholder="Add a caption (optional)" style="width: 100%; height: 80px;"></textarea>`,
-    showCancelButton: true,
-    confirmButtonText: 'Share',
-    preConfirm: () => {
-      return document.getElementById('share-caption').value.trim();
+  const modal = document.getElementById('share-post-modal');
+  const shareContent = document.getElementById('share-post-content');
+  const shareCaptionInput = document.getElementById('share-caption-input');
+  const originalCreator = document.getElementById('share-original-creator');
+  if (!modal || !shareContent || !shareCaptionInput || !originalCreator) {
+    console.error('Share modal elements missing');
+    Swal.fire('Error', 'Share modal elements not found. Please try refreshing the page.', 'error');
+    return;
+  }
+
+  try {
+    const postSnapshot = await database.ref(`posts/${id}`).once('value');
+    const originalPost = postSnapshot.val();
+    if (!originalPost) {
+      Swal.fire('Error', 'Post not found', 'error');
+      return;
     }
-  }).then(async (result) => {
-    if (result.isConfirmed) {
-      const caption = result.value;
-      try {
-        const postSnapshot = await database.ref(`posts/${id}`).once('value');
-        const originalPost = postSnapshot.val();
-        if (!originalPost) {
-          Swal.fire('Error', 'Post not found', 'error');
-          return;
-        }
 
-        const { contactPerson, organization } = await fetchUserData(user.uid);
-        const sharedPost = {
-          title: originalPost.title,
-          content: originalPost.content,
-          userId: user.uid,
-          userName: contactPerson,
-          organization: organization,
-          timestamp: firebase.database.ServerValue.TIMESTAMP,
-          mediaUrl: originalPost.mediaUrl,
-          mediaType: originalPost.mediaType,
-          originalPostId: id,
-          originalUserName: originalPost.userName,
-          isShared: true,
-          shareCaption: caption || ''
-        };
-
-        await database.ref('posts').push(sharedPost);
-        await logActivity(`${contactPerson}${organization ? ` from ${organization}` : ''} shared a post`);
-        Swal.fire('Success', 'Post shared successfully!', 'success');
-      } catch (error) {
-        console.error('Error sharing post:', error.code, error.message);
-        Swal.fire('Error sharing post', `Failed to share post: ${error.message}`, 'error');
+    const { contactPerson } = await fetchUserData(user.uid);
+    modal.dataset.postId = id; // Set postId for submitSharePost
+    originalCreator.textContent = originalPost.userName;
+    let mediaHtml = '';
+    if (originalPost.mediaUrl) {
+      if (originalPost.mediaType === 'image') {
+        mediaHtml = `<img src="${originalPost.mediaUrl}" class="post-media" alt="Post media" onerror="this.style.display='none'">`;
+      } else if (originalPost.mediaType === 'video') {
+        mediaHtml = `<video src="${originalPost.mediaUrl}" class="post-media" controls onerror="this.style.display='none'"></video>`;
       }
     }
-  });
+
+    shareContent.innerHTML = `
+      ${originalPost.title ? `<h4 class="post-title">${originalPost.title}</h4>` : ''}
+      <p class="post-content">${originalPost.content}</p>
+      ${mediaHtml}
+    `;
+    shareCaptionInput.value = '';
+    modal.style.display = 'block';
+    shareCaptionInput.focus();
+  } catch (error) {
+    console.error('Error preparing share modal:', error.code, error.message);
+    Swal.fire('Error', 'Failed to load post for sharing.', 'error');
+  }
+}
+
+async function submitSharePost() {
+  const modal = document.getElementById('share-post-modal');
+  const shareCaptionInput = document.getElementById('share-caption-input');
+  if (!modal || !shareCaptionInput) {
+    console.error('Share modal elements missing');
+    Swal.fire('Error', 'Share modal elements not found.', 'error');
+    return;
+  }
+
+  const postId = modal.dataset.postId;
+  if (!postId) {
+    console.error('Post ID not set in share modal');
+    Swal.fire('Error', 'Invalid post ID.', 'error');
+    return;
+  }
+
+  const caption = shareCaptionInput.value.trim();
+  try {
+    const postSnapshot = await database.ref(`posts/${postId}`).once('value');
+    const originalPost = postSnapshot.val();
+    if (!originalPost) {
+      Swal.fire('Error', 'Post not found', 'error');
+      return;
+    }
+
+    const { contactPerson, organization } = await fetchUserData(user.uid);
+    const sharedPost = {
+      title: originalPost.title,
+      content: originalPost.content,
+      userId: user.uid,
+      userName: contactPerson,
+      organization: organization,
+      timestamp: firebase.database.ServerValue.TIMESTAMP,
+      mediaUrl: originalPost.mediaUrl,
+      mediaType: originalPost.mediaType,
+      originalPostId: postId,
+      originalUserName: originalPost.userName,
+      isShared: true,
+      shareCaption: caption || ''
+    };
+
+    await database.ref('posts').push(sharedPost);
+    await logActivity(`${contactPerson}${organization ? ` from ${organization}` : ''} shared a post`);
+    modal.style.display = 'none';
+    shareCaptionInput.value = '';
+    delete modal.dataset.postId; // Clean up
+    Swal.fire('Success', 'Post shared successfully!', 'success');
+  } catch (error) {
+    console.error('Error sharing post:', error.code, error.message);
+    Swal.fire('Error sharing post', `Failed to share post: ${error.message}`, 'error');
+  }
 }
 
 async function addComment(postId, parentCommentId = null) {
@@ -337,14 +401,14 @@ function toggleComments(postId) {
     if (commentsSection.style.display === 'none' || !commentsSection.style.display) {
       commentsSection.style.display = 'block';
       commentButton.classList.add('active');
-      commentCounter.innerHTML = `<i class='bx bx-comment'></i> Close Comments`;
+      commentCounter.innerHTML = `<i class='bx bx-x'/>Close Comments`;
       loadComments(postId);
     } else {
       commentsSection.style.display = 'none';
       commentButton.classList.remove('active');
       database.ref(`posts/${postId}/comments`).once('value').then(snap => {
         const commentCount = snap.numChildren();
-        commentCounter.innerHTML = `<i class='bx bx-comment'></i> ${commentCount} ${commentCount === 1 ? 'Comment' : 'Comments'}`;
+        commentCounter.innerHTML = `<strong style="font-size: 16px;">${commentCount}</strong> ${commentCount === 1 ? 'Comment' : 'Comments'}`;
       });
     }
   }
@@ -463,7 +527,10 @@ async function loadPosts() {
     if (posts) {
       console.log('Posts retrieved:', Object.keys(posts).length);
       const postArray = Object.entries(posts).map(([id, post]) => ({ id, ...post }));
-      postArray.sort((a, b) => b.timestamp - a.timestamp);
+      // Sort based on sortOrder
+      postArray.sort((a, b) => {
+        return sortOrder === 'newest' ? b.timestamp - a.timestamp : a.timestamp - b.timestamp;
+      });
 
       for (const { id, ...post } of postArray) {
         console.log('Rendering post:', id, 'userName:', post.userName);
@@ -517,7 +584,7 @@ async function loadPosts() {
             ${mediaHtml}
             <div class="post-actions">
               <div class="comment-counter" onclick="toggleComments('${id}')">
-                <i class='bx bx-comment'></i> ${commentCount} ${commentCount === 1 ? 'Comment' : 'Comments'}
+                <strong style="font-size: 16px;">${commentCount} </strong>${commentCount === 1 ? 'Comment' : 'Comments'}
               </div>
               <div class="action-buttons">
                 <button class="share-button" onclick="sharePost('${id}')"><i class='bx bx-share'></i></button>
@@ -696,12 +763,22 @@ async function loadActivityLog() {
 }
 
 function setupModal() {
-  const modal = document.getElementById('post-modal');
-  const closeButton = document.querySelector('.close-button');
+  // Post Creation Modal
+  const postModal = document.getElementById('post-modal');
+  const postCloseButton = document.querySelector('#post-modal .close-button');
   const postButtons = document.querySelectorAll('.post-option');
   const modalPostContent = document.getElementById('modal-post-content');
   const mediaInput = document.getElementById('modal-media-upload');
   const mediaPreview = document.getElementById('modal-media-preview');
+
+  // Share Post Modal
+  const shareModal = document.getElementById('share-post-modal');
+  const shareCloseButton = document.querySelector('#share-post-modal .close-button');
+  const shareCancelButton = document.getElementById('share-cancel-button');
+  const shareSubmitButton = document.getElementById('share-submit-button');
+
+  // Sort Button
+  const sortButton = document.getElementById('sort-posts-button');
 
   function autoResizeTextarea() {
     modalPostContent.style.height = 'auto';
@@ -716,73 +793,112 @@ function setupModal() {
     resizeTimeout = setTimeout(autoResizeTextarea, 50);
   }
 
-  postButtons.forEach(button => {
-    button.addEventListener('click', () => {
-      postButtons.forEach(btn => btn.classList.remove('active'));
-      button.classList.add('active');
-      
-      const type = button.dataset.type;
-      modal.style.display = 'block';
-      
-      if (type === 'image' || type === 'video') {
-        mediaInput.accept = type === 'image' ? 'image/jpeg,image/png' : 'video/mp4,video/webm';
-        mediaInput.click();
-      } else if (type === 'link') {
-        modalPostContent.placeholder = 'Paste your link here';
-        modalPostContent.focus();
-        autoResizeTextarea();
-      } else {
-        modalPostContent.placeholder = 'What\'s on your mind?';
-        modalPostContent.focus();
-        autoResizeTextarea();
+  // Post Modal Setup
+  if (postButtons && modalPostContent && mediaInput && mediaPreview && postCloseButton) {
+    postButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        postButtons.forEach(btn => btn.classList.remove('active'));
+        button.classList.add('active');
+        
+        const type = button.dataset.type;
+        postModal.style.display = 'block';
+        
+        if (type === 'image' || type === 'video') {
+          mediaInput.accept = type === 'image' ? 'image/jpeg,image/png' : 'video/mp4,video/webm';
+          mediaInput.click();
+        } else if (type === 'link') {
+          modalPostContent.placeholder = 'Paste your link here';
+          modalPostContent.focus();
+          autoResizeTextarea();
+        } else {
+          modalPostContent.placeholder = "What's on your mind?";
+          modalPostContent.focus();
+          autoResizeTextarea();
+        }
+      });
+    });
+
+    postCloseButton.addEventListener('click', () => {
+      postModal.style.display = 'none';
+      modalPostContent.value = '';
+      document.getElementById('modal-post-title').value = '';
+      modalPostContent.placeholder = "What's on your mind?";
+      modalPostContent.style.height = '80px';
+      mediaInput.value = '';
+      mediaPreview.innerHTML = '';
+    });
+
+    mediaInput.addEventListener('change', (event) => {
+      console.log('Media input changed');
+      const file = event.target.files[0];
+      mediaPreview.innerHTML = '';
+      if (file) {
+        if (!['image/jpeg', 'image/png', 'video/mp4', 'video/webm'].includes(file.type)) {
+          console.log('Invalid file type selected:', file.type);
+          Swal.fire('Unsupported file type', 'Please upload JPEG/PNG images or MP4/WEBM videos', 'error');
+          event.target.value = '';
+          return;
+        }
+        console.log('Previewing file:', file.name);
+        if (file.type.startsWith('image/')) {
+          const img = document.createElement('img');
+          img.src = URL.createObjectURL(file);
+          img.className = 'media-preview';
+          mediaPreview.appendChild(img);
+        } else if (file.type.startsWith('video/')) {
+          const video = document.createElement('video');
+          video.src = URL.createObjectURL(file);
+          video.className = 'media-preview';
+          video.controls = true;
+          mediaPreview.appendChild(video);
+        }
       }
     });
-  });
 
-  closeButton.addEventListener('click', () => {
-    modal.style.display = 'none';
-    modalPostContent.value = '';
-    document.getElementById('modal-post-title').value = '';
-    modalPostContent.placeholder = 'What\'s on your mind?';
-    modalPostContent.style.height = '80px';
-    mediaInput.value = '';
-    mediaPreview.innerHTML = '';
-  });
+    modalPostContent.addEventListener('input', debouncedResize);
+    modalPostContent.addEventListener('focus', autoResizeTextarea);
+    modalPostContent.addEventListener('change', autoResizeTextarea);
+  } else {
+    console.error('Post modal elements missing');
+  }
 
-  mediaInput.addEventListener('change', (event) => {
-    console.log('Media input changed');
-    const file = event.target.files[0];
-    mediaPreview.innerHTML = '';
-    if (file) {
-      if (!['image/jpeg', 'image/png', 'video/mp4', 'video/webm'].includes(file.type)) {
-        console.log('Invalid file type selected:', file.type);
-        Swal.fire('Unsupported file type', 'Please upload JPEG/PNG images or MP4/WebM videos', 'error');
-        event.target.value = '';
-        return;
-      }
-      console.log('Previewing file:', file.name);
-      if (file.type.startsWith('image/')) {
-        const img = document.createElement('img');
-        img.src = URL.createObjectURL(file);
-        img.className = 'media-preview';
-        mediaPreview.appendChild(img);
-      } else if (file.type.startsWith('video/')) {
-        const video = document.createElement('video');
-        video.src = URL.createObjectURL(file);
-        video.className = 'media-preview';
-        video.controls = true;
-        mediaPreview.appendChild(video);
-      }
+  // Share Modal Setup
+  function closeShareModal() {
+    if (shareModal) {
+      shareModal.style.display = 'none';
+      const shareContent = document.getElementById('share-post-content');
+      const shareCaptionInput = document.getElementById('share-caption-input');
+      if (shareContent) shareContent.innerHTML = '';
+      if (shareCaptionInput) shareCaptionInput.value = '';
+      delete shareModal.dataset.postId;
     }
-  });
+  }
 
-  modalPostContent.addEventListener('input', debouncedResize);
-  modalPostContent.addEventListener('focus', autoResizeTextarea);
-  modalPostContent.addEventListener('change', autoResizeTextarea);
+  if (shareCloseButton) {
+    shareCloseButton.addEventListener('click', closeShareModal);
+  }
+
+  if (shareCancelButton) {
+    shareCancelButton.addEventListener('click', closeShareModal);
+  }
+
+  if (shareSubmitButton) {
+    shareSubmitButton.addEventListener('click', submitSharePost);
+  }
+
+  // Sort Button
+  if (sortButton) {
+    sortButton.addEventListener('click', () => {
+      sortOrder = sortOrder === 'newest' ? 'oldest' : 'newest';
+      const icon = sortButton.querySelector('i');
+      icon.className = sortOrder === 'newest' ? 'bx bx-sort-up' : 'bx bx-sort-down';
+      loadPosts();
+    });
+  }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('DOMContentLoaded: Initializing dashboard');
+  console.log('DOMContentLoaded: Initializing');
   setupModal();
   
   if (typeof initializeDashboard === 'function') {
@@ -796,12 +912,12 @@ document.addEventListener('DOMContentLoaded', () => {
     postButton.addEventListener('click', createPost);
   } else {
     console.error('Post button not found');
-    Swal.fire('Error', 'Post button not found. Please try refreshing the page.', 'error');
+    Swal.fire('Error', 'Post button not found. Please try reloading the page.', 'error');
   }
 });
 
 window.addEventListener('dashboard-loaded', () => {
-  console.log('dashboard-loaded event: Initializing dashboard');
+  console.log('dashboard-loaded event: Initializing');
   if (typeof initializeDashboard === 'function') {
     initializeDashboard();
   } else {

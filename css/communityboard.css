@@ -1,3 +1,5 @@
+
+
 #main-content-cb {
   flex: 1;
   padding: 30px;
@@ -7,14 +9,33 @@
   box-shadow: 0 0 30px rgba(0, 0, 0, .2);
   margin: 50px;
   max-height: calc(100vh - 100px);
-  overflow-y: hidden;
+  overflow-y: auto;
   overflow-x: hidden; 
+}
+
+.post-container-header {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 10px;
+}
+
+.sort-button {
+  background: none;
+  border: none;
+  color: var(--primary-color);
+  cursor: pointer;
+  font-size: 20px;
+  padding: 5px;
+}
+
+.sort-button:hover {
+  color: var(--primary-hover);
 }
 
 .post-container {
   max-width: calc(100% - 270px);
   background-color: transparent;
-  height: 100%;
+  height: calc(100% - 100px);
   border-radius: 15px;
   margin-bottom: 20px;
   padding: 20px;
@@ -45,7 +66,7 @@
   gap: 8px;
   padding: 12px 16px;
   background-color: transparent;
-  color: var(--primary-color, #3498db);
+  color: var(--primary-color);
   border: none;
   border-radius: 8px;
   cursor: pointer;
@@ -57,7 +78,7 @@
   font-size: 54px;
 }
 
-.post-option i:hover {
+.post-option:hover i {
   color: var(--button-hover);
   transform: translateY(-5px);
   transition: transform 0.3s ease;
@@ -90,17 +111,37 @@
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-  overflow-x: hidden;
+  overflow: auto;
 }
 
 .modal-header {
   position: sticky;
   top: 0;
   background-color: #fff;
-  z-index: 10;
+  z-index: 2;
   padding: 20px;
-  margin-bottom: 20px;
+}
+
+.share-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.share-header strong {
+  font-size: 14px;
+  color: #121212;
+}
+
+.share-header i {
+  font-size: 18px;
+  color: var(--primary-color);
+}
+
+.share-header .original-creator {
+  font-size: 14px;
+  color: #555;
 }
 
 .close-button {
@@ -117,8 +158,6 @@
   margin: 0;
   border: none;
   border-top: 1px solid #ccc;
-  position: absolute;
-  left: 0;
 }
 
 .modal-user-info {
@@ -128,18 +167,17 @@
 }
 
 .modal-user-info strong {
-  color: var(--primary-color, #14AEBB);
+  color: var(--primary-color);
   font-size: 16px;
 }
 
 .modal-user-info small {
-  color: var(--primary-color, #14AEBB);
-  font-size: 0.9em;
+  color: var(--primary-color);
+  font-size: 12px;
 }
 
 .modal-input-area {
   overflow-y: auto;
-  overflow-x: hidden;
   padding: 20px;
   box-sizing: border-box;
   flex-grow: 1;
@@ -150,81 +188,140 @@
   width: 100%;
   padding: 10px;
   background-color: transparent;
-  border-color: transparent;
-  border-radius: 8px;
-  font-size: 25px;
+  border: none;
+  border-bottom: 2px solid #ccc;
+  border-radius: 0;
+  font-size: 18px;
   box-sizing: border-box;
 }
 
 .modal-input-area input[type="text"]:focus {
   outline: none;
-  border-color: transparent;
+border-color: transparent;
 }
 
 .modal-input-area textarea {
   width: 100%;
-  padding: 20px;
+  padding: 10px;
   background-color: transparent;
-  border: transparent;
-  border-radius: 8px;
-  resize: none;
+  border-color: transparent;
+  border-radius: 4px;
+  resize: vertical;
   font-size: 16px;
   min-height: 80px;
   box-sizing: border-box;
   line-height: 1.5;
-  overflow: hidden;
 }
 
 .modal-input-area textarea:focus {
   outline: none;
-  border-color: var(--primary-color, #3498db);
+border-color: transparent;
+}
+
+.share-caption-input {
+  width: 100%;
+  padding: 8px;
+  background-color: transparent;
+  border: 2px solid #ccc;
+  border-radius: 4px;
+  resize: vertical;
+  font-size: 14px;
+  min-height: 40px;
+  box-sizing: border-box;
+}
+
+.share-caption-input:focus {
+  outline: none;
+  border-color: transparent;
+}
+
+.share-post-content {
+  margin-bottom: 20px;
+}
+
+.share-post-content .post-title {
+  font-size: 18px;
+  font-weight: bold;
+  margin: 10px 0;
+  color: #2c3e50;
+}
+
+.share-post-content .post-content {
+  font-size: 14px;
+  margin: 0;
+}
+
+.share-post-content .post-media {
+  max-width: 100%;
+  max-height: 300px;
+  margin-top: 10px;
 }
 
 .modal-footer {
   display: flex;
-  gap: 360px;
+  justify-content: space-between;
+  padding: 20px;
 }
 
-.post-buttons.modal-buttons .post-option,
-.post-buttons.modal-buttons .post-option i {
-  margin: 0 !important;
+.modal-footer button {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  border: none;
+  transition: background-color 0.3s;
+}
+
+.cancel-button {
+  background-color: #f44336;
+  color: #fff;
+}
+
+.cancel-button:hover {
+  background-color: #d32f2f;
+}
+
+.share-button {
+  background-color: var(--primary-color);
+  color: #fff;
+}
+
+.share-button:hover {
+  background-color: var(--primary-hover);
 }
 
 .post-buttons.modal-buttons {
   display: flex;
-  gap: 0;
-  justify-content: flex-end;
-  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-start;
   padding: 0;
-  margin-top: 20px;
+  margin-top: 10px;
 }
 
 .post-buttons.modal-buttons .post-option {
-  padding: 0;
-  display: flex;
-  justify-content: center;
-  background-color: transparent;
-  border-color: transparent;
+  padding: 5px;
+  background: none;
 }
 
 .post-buttons.modal-buttons i {
-  font-size: 30px;
+  font-size: 24px;
   color: var(--primary-color);
 }
 
 .modal-input-area button {
   padding: 10px 20px;
-  background-color: var(--primary-color, #3498db);
+  background-color: var(--primary-color);
   color: #fff;
   border: none;
-  border-radius: 13px;
+  border-radius: 8px;
   cursor: pointer;
   font-size: 15px;
   transition: background-color 0.3s;
+  margin-top: 10px;
 }
 
 .modal-input-area button:hover {
-  background-color: var(--primary-hover, #2980b9);
+  background-color: var(--primary-hover);
 }
 
 .modal-input-area button.loading {
@@ -243,21 +340,23 @@
   max-width: 200px;
   max-height: 200px;
   margin-top: 10px;
+  height: auto;
 }
 
-/* Posts */
+/* Post Styles */
 .post-created {
+  position: relative;
+  margin-left: 0;
   overflow: auto;
-  height: 100%;
+  height: 100vh;
   margin-top: 20px;
   scrollbar-width: none;
 }
 
-/* Custom Scrollbar for activity-panel and post-container */
+/* Custom Scrollbar */
 .activity-panel::-webkit-scrollbar,
 .post-container::-webkit-scrollbar {
-  width: 8px; 
-  height: 0px; 
+  width: 8px;
 }
 
 .activity-panel::-webkit-scrollbar-thumb,
@@ -268,7 +367,7 @@
 
 .activity-panel::-webkit-scrollbar-thumb:hover,
 .post-container::-webkit-scrollbar-thumb:hover {
-  background-color: var(--button-hover);
+  background-color: var(--primary-hover);
 }
 
 .activity-panel::-webkit-scrollbar-track,
@@ -326,6 +425,12 @@
   font-style: italic;
 }
 
+.share-caption {
+  font-size: 14px;
+  margin: 5px 0;
+  color: #333;
+}
+
 .post-title {
   font-size: 18px;
   font-weight: 600;
@@ -335,8 +440,6 @@
 
 .post-menu {
   position: relative;
-  display: flex;
-  align-items: right;
 }
 
 .menu-button {
@@ -375,7 +478,8 @@
 }
 
 .menu-dropdown button:hover {
-  color: var(--primary-color);
+  background-color: var(--primary-color);
+  color: #fff;
 }
 
 .post-content {
@@ -385,6 +489,7 @@
 
 .post-content:focus {
   outline: none;
+  border-color: transparent;
 }
 
 .post-media {
@@ -398,7 +503,10 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0;
+}
+
+.post-actions i{
+  font-size: 16px;
 }
 
 .comment-counter {
@@ -406,12 +514,16 @@
   align-items: center;
   gap: 5px;
   cursor: pointer;
-  color: var(--primary-color, #3498db);
-  font-size: 14px;
+  color: var(--primary-color);
+  font-size: 12px;
+  border: 1px solid var(--primary-color);
+  padding: 5px 10px;
+  border-radius: 30px;
 }
 
 .comment-counter i {
-  font-size: 16px;
+  font-size: 25px; 
+  padding: 0;
 }
 
 .action-buttons {
@@ -419,14 +531,10 @@
   gap: 10px;
 }
 
-.action-buttons i:active{
-  border-color: transparent;
-}
-
 .share-button, .comment-button {
-  background: transparent;
+  background: none;
   border: none;
-  color: var(--primary-color, #3498db);
+  color: var(--primary-color);
   cursor: pointer;
   font-size: 16px;
   padding: 5px;
@@ -437,28 +545,27 @@
 }
 
 .share-button:hover, .comment-button:hover {
-  color: var(--primary-hover, #2980b9);
+  color: var(--primary-hover);
 }
 
 .comments-section {
-  /* padding: 10px; */
+  margin-top: 10px;
+  padding: 10px 0;
   background: transparent;
-  
 }
 
 .comment-divider {
-  position: relative;
-  margin-left: 0;
-  margin-bottom: 20px;
-  width: 120vh;
+  width: 100%;
   border: none;
   border-top: 1px solid #ccc;
 }
 
 .comment-input {
   width: 100%;
-  padding: 0 10px;
-    margin: 20px  0;
+  margin: 20px 0;
+  border: 2px solid #ccc;
+  border-radius: 10px;
+
 }
 
 .input-container {
@@ -471,49 +578,53 @@
   width: 100%;
   padding: 8px 40px 8px 8px;
   background-color: transparent;
-  border: 2px solid var(--primary-color);
-  border-radius: 4px;
-  resize: none;
+  border-color: transparent;
+  border-radius: 8px;
   font-size: 14px;
   min-height: 40px;
-  max-height: 200px;
+  max-height: 200px; /* Optional: prevent it from getting too tall */
+  resize: none; /* Let JS handle resizing */
+  overflow-y: auto;
   box-sizing: border-box;
+  scrollbar-width:none;
 }
 
-.comment-input textarea:focus,  
+
+.comment-input textarea:focus,
 .reply-input textarea:focus {
   outline: none;
-  border-color: var(--primary-color, #3498db);
+  border-color: transparent;
 }
 
 .send-comment,
 .send-reply {
   position: absolute;
   right: 8px;
-  /* bottom: 8px; */
-  background: transparent;
+  bottom: 8px;
+  background: none;
   border: none;
-  color: var(--primary-color, #3498db);
+  color: var(--primary-color);
   cursor: pointer;
   font-size: 16px;
+  padding: 0;
 }
 
 .send-comment i,
 .send-reply i {
   font-size: 25px;
-  align-items: center;
   justify-content: center;
+  align-items: center;
 }
 
 .send-comment:hover,
 .send-reply:hover {
-  color: var(--primary-hover, #2980b9);
+  color: var(--primary-hover);
 }
 
 .comment {
   margin-bottom: 10px;
   padding-left: 10px;
-  border-left: 2px solid var(--primary-color, #3498db);
+  border-left: 2px solid var(--primary-color);
 }
 
 .comment.level-1 {
@@ -543,18 +654,17 @@
 
 .comment-user-info strong {
   font-size: 14px;
-  color: var(--black);
 }
 
 .comment-user-info small {
   font-size: 0.9em;
-  color: var(--black);
+  color: #555;
 }
 
 .delete-comment {
-  background: transparent;
+  background: none;
   border: none;
-  color: var(--primary-color, #3498db);
+  color: var(--primary-color);
   cursor: pointer;
   font-size: 14px;
   padding: 0;
@@ -565,7 +675,7 @@
 }
 
 .delete-comment:hover {
-  color: var(--primary-hover, #2980b9);
+  color: var(--primary-hover);
 }
 
 .comment-actions {
@@ -573,9 +683,9 @@
 }
 
 .reply-button {
-  background: transparent;
+  background: none;
   border: none;
-  color: var(--primary-color, #3498db);
+  color: var(--primary-color);
   cursor: pointer;
   font-size: 14px;
   display: flex;
@@ -588,7 +698,7 @@
 }
 
 .reply-button:hover {
-  color: var(--primary-hover, #2980b9);
+  color: var(--primary-hover);
 }
 
 .reply-container {
@@ -613,7 +723,6 @@
   background-color: #ccc;
   height: 100%;
   align-self: stretch;
-  overflow: hidden;
 }
 
 .activity-panel {
@@ -645,7 +754,7 @@
 
 .spinner {
   border: 4px solid #f3f3f3;
-  border-top: 4px solid #3498db;
+  border-top: 4px solid var(--primary-color);
   border-radius: 50%;
   width: 20px;
   height: 20px;
@@ -664,16 +773,16 @@
     position: static;
   }
 
-  #main-content {
+  #main-content-cb {
     border-radius: 0;
     padding: 1rem;
-    margin-right: 0;
+    margin: 0;
     max-width: 100%;
   }
 
-  .post-container,
-  .post-created {
+  .post-container {
     width: 100%;
+    max-width: 100%;
   }
 
   .vertical-divider {
@@ -703,9 +812,14 @@
   }
 
   .modal-footer {
-    padding: 10px 0;
+    padding: 10px;
     gap: 10px;
     flex-direction: column;
+    align-items: stretch;
+  }
+
+  .modal-footer button {
+    width: 100%;
   }
 
   .post-buttons.modal-buttons {
