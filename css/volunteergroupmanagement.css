@@ -225,7 +225,7 @@ button:hover {
 }
 
 /* Edit Address */
-.modal {
+/* .modal {
   display: none;
   position: absolute;
   inset: 0;
@@ -258,7 +258,7 @@ button:hover {
   cursor: pointer;
   font-size: 24px;
   color: #333;
-}
+} */
 
 .addressHeader {
   display: flex;

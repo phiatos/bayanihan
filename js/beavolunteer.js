@@ -12,11 +12,10 @@ const firebaseConfig = {
 // Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
-const auth = firebase.auth(); // Assuming you might use auth later, though not directly in this snippet
+const auth = firebase.auth(); 
 
 document.addEventListener('DOMContentLoaded', () => {
-    const volunteerForm = document.getElementById('volunteer-org-form'); // Changed ID to match HTML for beavolunteer.html
-
+    const volunteerForm = document.getElementById('volunteer-org-form');
     // DOM elements for location dropdowns
     const regionSelect = document.getElementById('region');
     const provinceSelect = document.getElementById('province');
@@ -26,8 +25,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const regionTextInput = document.getElementById('region-text');
     const provinceTextInput = document.getElementById('province-text');
-    const cityTextInput = document.querySelector('input[name="hq-city"]'); // Changed to select by name as per HTML
+    const cityTextInput = document.querySelector('input[name="hq-city"]'); 
     const barangayTextInput = document.getElementById('barangay-text');
+
+    const generalAvailabilitySelect = document.getElementById('generalAvailability');
+    const specificDaysGroup = document.getElementById('specificDaysGroup');
+
+    if (generalAvailabilitySelect && specificDaysGroup) {
+        generalAvailabilitySelect.addEventListener('change', () => {
+            if (generalAvailabilitySelect.value === 'Specific days') {
+                specificDaysGroup.style.display = 'block';
+            } else {
+                specificDaysGroup.style.display = 'none';
+                // Uncheck all specific days checkboxes when not 'Specific days'
+                const specificDaysCheckboxes = specificDaysGroup.querySelectorAll('input[type="checkbox"]');
+                specificDaysCheckboxes.forEach(checkbox => {
+                    checkbox.checked = false;
+                });
+            }
+        });
+    }
 
     var my_handlers = {
         fill_regions: function() {
@@ -376,11 +393,19 @@ document.addEventListener('DOMContentLoaded', () => {
             const selectedBarangayText = barangaySelect.options[barangaySelect.selectedIndex]?.textContent || '';
             const streetAddress = streetAddressInput.value.trim();
 
-            // Basic validation: Check if required fields are filled
-            // Added new name fields, age, and location details to required checks
+            const generalAvailability = generalAvailabilitySelect.value;
+            let specificDays = []; // Initialize as an empty array
+
+            if (generalAvailability === 'Specific days') {
+                const specificDaysCheckboxes = specificDaysGroup.querySelectorAll('input[type="checkbox"]:checked');
+                specificDaysCheckboxes.forEach(checkbox => {
+                    specificDays.push(checkbox.value);
+                });
+            }
+
             if (!firstName || !lastName || !email || !mobileNumber || !age ||
-                !selectedRegionText || !selectedProvinceText || !selectedCityText || !selectedBarangayText || !streetAddress) {
-                Swal.fire('Error', 'Please fill in all required fields (Name, Contact Information, Age, and Full Address).', 'error');
+                !selectedRegionText || !selectedProvinceText || !selectedCityText || !selectedBarangayText || !streetAddress || !generalAvailability) { // Added generalAvailability here
+                Swal.fire('Error', 'Please fill in all required fields (Name, Contact Information, Age, Full Address, and General Availability).', 'error');
                 return;
             }
 
@@ -391,6 +416,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
+            if (generalAvailability === 'Specific days' && specificDays.length === 0) {
+                Swal.fire('Error', 'Please select at least one specific day if you chose "Specific days" for availability.', 'error');
+                return;
+            }
 
             // Create an object to store in Realtime Database
             const volunteerData = {
@@ -410,18 +439,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     barangay: selectedBarangayText,
                     streetAddress: streetAddress
                 },
+                availability: {
+                    general: generalAvailability,
+                    specificDays: specificDays
+                },
                 timestamp: new Date().toISOString() 
             };
 
             try {
-                // Push data to a new unique key under the 'beAVolunteerApplications/pending' path
-                // This creates a pending state for new volunteer applications
                 await database.ref("volunteerApplications/pendingVolunteer").push(volunteerData);
 
                 console.log("Volunteer application saved to Realtime Database successfully!");
                 Swal.fire('Success', 'Your volunteer application has been submitted successfully! Thank you for your interest in helping.', 'success');
-                volunteerForm.reset(); // Clear the form after successful submission
-                my_handlers.fill_regions(); // Re-initialize location dropdowns
+                volunteerForm.reset(); 
+                my_handlers.fill_regions(); 
             } catch (error) {
                 console.error("Error adding volunteer application to Realtime Database: ", error);
                 Swal.fire('Error', 'There was an error submitting your application. Please try again.', 'error');
