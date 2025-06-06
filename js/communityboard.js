@@ -244,7 +244,7 @@ async function loadPosts() {
         const postElem = document.createElement('div');
         postElem.className = 'post';
         postElem.id = id;
-        
+
         let mediaHtml = '';
         if (post.mediaUrl) {
           if (post.mediaType === 'image') {
@@ -256,7 +256,9 @@ async function loadPosts() {
 
         const canEdit = user && user.uid === post.userId;
         const isShared = post.isShared || false;
-        const sharedInfo = isShared ? `<small class="shared-info">${post.originalUserName} shared this post</small>` : '';
+        const sharedInfo = isShared ? `<small class="shared-info">Shared from ${post.originalUserName}'s post</small>` : '';
+        const contentWrapperStyle = isShared ? `style="border-color: transparent; "` : '';
+        const contenthr = isShared ? `<hr>`: '';
 
         postElem.innerHTML = `
           <div class="post-header">
@@ -278,11 +280,14 @@ async function loadPosts() {
               </div>
             ` : ''}
           </div>
-          ${post.title ? `<h4 class="post-title">${post.title}</h4>` : ''}
-          <p class="post-content" contenteditable="false">${post.content}</p>
-          ${mediaHtml}
-          <div class="post-actions">
-            <button onclick="sharePost('${id}')"><i class='bx bx-share'></i> Share</button>
+            ${contenthr}
+          <div class="post-content-wrapper" ${contentWrapperStyle}>
+            ${post.title ? `<h4 class="post-title">${post.title}</h4>` : ''}
+            <p class="post-content" contenteditable="false">${post.content}</p>
+            ${mediaHtml}
+            <div class="post-actions">
+              <button onclick="sharePost('${id}')"><i class='bx bx-share'></i> Share</button>
+            </div>
           </div>
         `;
         postsContainer.appendChild(postElem);
@@ -440,7 +445,7 @@ async function loadActivityLog() {
 }
 
 function setupModal() {
-  const modal = document.getElementById('post-modal');
+  const modal = document.getId('post-modal');
   const closeButton = document.querySelector('.close-button');
   const postButtons = document.querySelectorAll('.post-option');
   const modalPostContent = document.getElementById('modal-post-content');
