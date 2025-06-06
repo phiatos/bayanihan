@@ -5,17 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Bayanihan | Angat Buhay Disaster Relief Portal</title>
   <link rel="stylesheet" href="../index.css" />
+  <link rel="stylesheet" href="../css/donatenearme.css" />
+  <link rel="stylesheet" href="../css/application.css" />
   <link rel="icon" href="../assets/images/logox192.png" />
 
-  <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 
-  <!-- Leaflet JS -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script> <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
 </head>
 <body>
 
-  <!-- Header -->
   <header class="navbar">
     <div class="navbar-container">
       <div class="logo">
@@ -34,17 +38,143 @@
     </div>
   </header>
 
-  <!-- Page-specific Content -->
-  <main id="page-content">
-    <!-- This section gets replaced by unique page content -->
+  <main id="page-content" class="abvn-registration">
+    <div class="container">
+      <h1 class="form-title">Donate Near Me</h1>
+      <p>Find donation centers and volunteer opportunities near you.</p>
+
+      <div class="donation-buttons">
+        <button id="inKindBtn">In Kind Donation</button>
+        <button id="monetaryBtn">Monetary Donation</button>
+      </div>
+
+      <form id="inKindDonationForm" style="display: none;">
+        <fieldset>
+          <legend>In Kind Donation Information</legend>
+
+          <div class="form-group">
+            <label for="inKindEncoder">Encoder:</label>
+            <input type="text" id="inKindEncoder" name="encoder">
+          </div>
+          <div class="form-group">
+            <label for="inKindDonorName">Partner/Donor Name:</label>
+            <input type="text" id="inKindDonorName" name="name">
+          </div>
+          <div class="form-group">
+            <label for="inKindDonorType">Partner/Donor Type:</label>
+            <input type="text" id="inKindDonorType" name="type">
+          </div>
+          <div class="form-group">
+            <label for="inKindDonorAddress">Address:</label>
+            <input type="text" id="inKindDonorAddress" name="address">
+          </div>
+          <div class="form-group">
+            <label for="inKindContactPerson">Contact Person:</label>
+            <input type="text" id="inKindContactPerson" name="contactPerson">
+          </div>
+          <div class="form-group">
+            <label for="inKindContactNumber">Number:</label>
+            <input type="number" id="inKindContactNumber" name="number">
+          </div>
+          <div class="form-group">
+            <label for="inKindDonorEmail">Email:</label>
+            <input type="email" id="inKindDonorEmail" name="email">
+          </div>
+          <div class="form-group">
+            <label for="itemType">Type of Assistance:</label>
+            <input type="text" id="itemType" name="assistance">
+          </div>
+          <div class="form-group">
+            <label for="value">Valuation:</label>
+            <input type="number" id="value" name="valuation">
+          </div>
+          <div class="form-group">
+            <label for="description">Description:</label>
+            <textarea id="description" name="additionalnotes"></textarea>
+          </div>
+          <div class="form-group">
+            <label for="status">Status:</label>
+            <select id="status" name="status">
+              <option value="">Select Status</option>
+              <option value="closed-successful">Closed - Successful</option>
+              <option value="approved">Pending</option>
+              <option value="rejected">Closed</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="staffIncharge">Staff-In Charge:</label>
+            <input type="text" id="staffIncharge" name="staffIncharge">
+          </div>
+          <div class="form-group">
+            <label for="donationDate">Donation Date:</label>
+            <input type="date" id="donationDate" name="donationDate">
+          </div>
+          <div class="form-actions">
+            <input type="submit" id="submitInKindBtn" value="Submit In Kind Donation">
+            <input type="reset" value="Reset Form">
+          </div>
+        </fieldset>
+      </form>
+
+      <form id="monetaryDonationForm" style="display: none;">
+        <fieldset>
+          <legend>Monetary Donations</legend>
+          <div class="form-group">
+            <label for="monetaryEncoder">Encoder:</label>
+            <input type="text" id="monetaryEncoder" name="monetaryEncoder">
+          </div>
+          <div class="form-group">
+            <label for="monetaryDonorName">Name/Company:</label>
+            <input type="text" id="monetaryDonorName" name="monetaryDonorName">
+          </div>
+          <div class="form-group">
+            <label for="monetaryLocation">Location (at least City Address):</label>
+            <input type="text" id="monetaryLocation" name="monetaryLocation">
+          </div>
+          <div class="form-group">
+            <label for="monetaryNumber">Number:</label>
+            <input type="number" id="monetaryNumber" name="monetaryNumber">
+          </div>
+          <div class="form-group">
+            <label for="amountDonated">Amount Donated:</label>
+            <input type="number" id="amountDonated" name="amountDonated">
+          </div>
+          <div class="form-group">
+            <label for="cashInvoice">Cash Invoice #:</label>
+            <input type="text" id="cashInvoice" name="cashInvoice">
+          </div>
+          <div class="form-group">
+            <label for="monetaryDonationDate">Date Received:</label>
+            <input type="date" id="monetaryDonationDate" name="monetaryDonationDate">
+          </div>
+          <div class="form-group">
+            <label for="monetaryEmail">Email:</label>
+            <input type="email" id="monetaryEmail" name="monetaryEmail">
+          </div>
+          <div class="form-group">
+            <label for="bank">Bank:</label>
+            <input type="text" id="bank" name="bank">
+          </div>
+          <div class="form-group">
+            <label for="proofofTransfer">Proof of Transfer:</label>
+            <input type="file" id="proofofTransfer" name="proofofTransfer">
+          </div>
+          <div class="form-actions">
+            <input type="submit" id="submitMonetaryBtn" value="Submit Monetary Donation">
+            <input type="reset" value="Reset Form">
+          </div>
+        </fieldset>
+      </form>
+    </div>
   </main>
 
-  <!-- Footer -->
   <footer class="footer">
     <div class="container">
       <p>© 2025 Bayanihan | Angat Pinas Inc. All rights reserved. | Powered by Appvance</p>
     </div>
   </footer>
+
+  <script src="../js/donatenearme.js"></script>
 
 </body>
 </html>

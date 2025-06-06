@@ -1,0 +1,90 @@
+/* Initially hide both donation forms */
+#inKindFields,
+#monetaryFields {
+    display: none;
+}
+
+/* Basic styling for form groups */
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-left: 20px;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.form-group input[type="text"],
+.form-group input[type="number"],
+.form-group input[type="email"],
+.form-group input[type="date"],
+.form-group input[type="file"], 
+.form-group textarea{
+    width: 90%;
+    margin-left: 20px;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box; /* Ensures padding doesn't add to the width */
+}
+
+ .form-group select{
+    width: 90%;
+    padding: 0.75rem;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+ }
+
+.form-group textarea {
+    resize: vertical; /* Allow vertical resizing */
+    min-height: 80px;
+}
+
+.form-actions {
+    margin-top: 20px;
+    text-align: right;
+}
+
+.form-actions input[type="submit"],
+.form-actions input[type="reset"] {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    margin: 20px;
+    
+}
+
+.form-actions input[type="submit"] {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.form-actions input[type="reset"] {
+    background-color: #f44336;
+    color: white;
+}
+
+.donation-buttons {
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+
+.donation-buttons button {
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    border: 1px solid var(--accent-color);
+    border-radius: 5px;
+    background-color: var(--accent-color);
+    color: white;
+    margin-right: 10px;
+    transition: background-color 0.3s ease;
+}
+
+.donation-buttons button:hover {
+    background-color: var(--primary-color);
+}
