@@ -445,7 +445,7 @@ async function loadActivityLog() {
 }
 
 function setupModal() {
-  const modal = document.getId('post-modal');
+  const modal = document.getElementById('post-modal');
   const closeButton = document.querySelector('.close-button');
   const postButtons = document.querySelectorAll('.post-option');
   const modalPostContent = document.getElementById('modal-post-content');

@@ -1,40 +1,16 @@
-/* General Styles */
-body {
-  margin: 0;
-  font-family: 'Poppins', Tahoma, Geneva, Verdana, sans-serif;
-  background-color: #f4f6f9;
-  color: #333;
-}
-
-/* Layout */
-.main-container {
-  display: flex;
-  height: 100vh;
-  position: relative;
-}
-
-#main-content {
+#main-content-cb {
   flex: 1;
-  padding: 0 20px;
+  padding: 30px;
+  position: relative;
+  background: var(--white);
+  border-radius: 30px;
+  box-shadow: 0 0 30px rgba(0, 0, 0, .2);
+  margin: 50px;
+  max-height: calc(100vh - 100px);
   overflow-y: hidden;
-  background: #fff;
-  border-radius: 1rem 0 0 1rem;
-  box-shadow: -4px 0 10px rgba(0, 0, 0, 0.05);
-  display: flex;
-  flex-direction: column;
-  max-width: calc(100% - 250px);
-  margin-right: 250px;
-  scrollbar-width: none;
+  overflow-x: hidden; 
 }
 
-header {
-  font-size: 2rem;
-  font-weight: 600;
-  margin-bottom: 10px;
-  color: #2c3e50;
-}
-
-/* Post Container */
 .post-container {
   max-width: calc(100% - 270px);
   background-color: transparent;
@@ -279,8 +255,28 @@ header {
   scrollbar-width: none;
 }
 
-.post-created::-webkit-scrollbar {
-  display: none;
+/* Custom Scrollbar for activity-panel and post-container */
+.activity-panel::-webkit-scrollbar,
+.post-container::-webkit-scrollbar {
+  width: 8px; 
+  height: 0px; 
+}
+
+.activity-panel::-webkit-scrollbar-thumb,
+.post-container::-webkit-scrollbar-thumb {
+  background-color: var(--primary-color);
+  border-radius: 4px;
+}
+
+.activity-panel::-webkit-scrollbar-thumb:hover,
+.post-container::-webkit-scrollbar-thumb:hover {
+  background-color: var(--button-hover);
+}
+
+.activity-panel::-webkit-scrollbar-track,
+.post-container::-webkit-scrollbar-track {
+  background-color: var(--white);
+  border-radius: 4px;
 }
 
 .post {
@@ -479,7 +475,7 @@ color:var(--primary-color);
 }
 
 /* Responsive Design */
-@media (max-width: 768px) {
+/* @media (max-width: 768px) {
   .main-container {
     flex-direction: column;
     position: static;
@@ -532,4 +528,4 @@ color:var(--primary-color);
   .post-buttons.modal-buttons {
     justify-content: center;
   }
-}
+} */
