@@ -102,9 +102,9 @@ async function createPost() {
   const title = modalPostTitle.value.trim();
   const content = modalPostContent.value.trim();
   const file = mediaInput.files[0];
-  if (!title && !content && !file) {
-    console.log('No title, content, or media provided');
-    Swal.fire('Please add a title, content, or media to post', '', 'warning');
+  if (!content && !file) {
+    console.log('No content or media provided');
+    Swal.fire('Please add content or media to post', '', 'warning');
     return;
   }
 
@@ -152,7 +152,7 @@ async function createPost() {
 
   const { contactPerson, organization } = await fetchUserData(user.uid);
   const post = {
-    title: title,
+    title: title || '',
     content: content,
     userId: user.uid,
     userName: contactPerson,
@@ -165,13 +165,13 @@ async function createPost() {
   try {
     console.log('Writing post to database:', post);
     await database.ref('posts').push(post);
-    await logActivity(`${contactPerson} from ${organization} created a new post`);
+    await logActivity(`${contactPerson}${organization ? ` from ${organization}` : ''} created a new post`);
     modalPostTitle.value = '';
     modalPostContent.value = '';
     mediaInput.value = '';
     mediaPreview.innerHTML = '';
     modal.style.display = 'none';
-    modalPostContent.style.height = '80px'; // Reset textarea height
+    modalPostContent.style.height = '80px';
     console.log('Post created successfully');
     Swal.fire('Success', 'Post created successfully!', 'success');
   } catch (error) {
@@ -190,35 +190,261 @@ async function sharePost(id) {
     return;
   }
 
-  try {
-    const postSnapshot = await database.ref(`posts/${id}`).once('value');
-    const originalPost = postSnapshot.val();
-    if (!originalPost) {
-      Swal.fire('Error', 'Post not found', 'error');
-      return;
+  Swal.fire({
+    title: 'Share Post',
+    html: `<textarea id="share-caption" placeholder="Add a caption (optional)" style="width: 100%; height: 80px;"></textarea>`,
+    showCancelButton: true,
+    confirmButtonText: 'Share',
+    preConfirm: () => {
+      return document.getElementById('share-caption').value.trim();
     }
+  }).then(async (result) => {
+    if (result.isConfirmed) {
+      const caption = result.value;
+      try {
+        const postSnapshot = await database.ref(`posts/${id}`).once('value');
+        const originalPost = postSnapshot.val();
+        if (!originalPost) {
+          Swal.fire('Error', 'Post not found', 'error');
+          return;
+        }
 
-    const { contactPerson, organization } = await fetchUserData(user.uid);
-    const sharedPost = {
-      title: originalPost.title,
-      content: originalPost.content,
-      userId: user.uid,
-      userName: contactPerson,
-      organization: organization,
-      timestamp: firebase.database.ServerValue.TIMESTAMP,
-      mediaUrl: originalPost.mediaUrl,
-      mediaType: originalPost.mediaType,
-      originalPostId: id,
-      originalUserName: originalPost.userName,
-      isShared: true
-    };
+        const { contactPerson, organization } = await fetchUserData(user.uid);
+        const sharedPost = {
+          title: originalPost.title,
+          content: originalPost.content,
+          userId: user.uid,
+          userName: contactPerson,
+          organization: organization,
+          timestamp: firebase.database.ServerValue.TIMESTAMP,
+          mediaUrl: originalPost.mediaUrl,
+          mediaType: originalPost.mediaType,
+          originalPostId: id,
+          originalUserName: originalPost.userName,
+          isShared: true,
+          shareCaption: caption || ''
+        };
 
-    await database.ref('posts').push(sharedPost);
-    await logActivity(`${contactPerson} from ${organization} shared a post`);
-    Swal.fire('Success', 'Post shared successfully!', 'success');
-  } catch (error) {
-    console.error('Error sharing post:', error.code, error.message);
-    Swal.fire('Error sharing post', `Failed to share post: ${error.message}`, 'error');
+        await database.ref('posts').push(sharedPost);
+        await logActivity(`${contactPerson}${organization ? ` from ${organization}` : ''} shared a post`);
+        Swal.fire('Success', 'Post shared successfully!', 'success');
+      } catch (error) {
+        console.error('Error sharing post:', error.code, error.message);
+        Swal.fire('Error sharing post', `Failed to share post: ${error.message}`, 'error');
+      }
+    }
+  });
+}
+
+async function addComment(postId, parentCommentId = null) {
+  console.log('addComment called for post:', postId, 'parent:', parentCommentId);
+  if (!user) {
+    Swal.fire('Please log in to comment', '', 'warning');
+    return;
+  }
+
+  const commentInput = document.getElementById(parentCommentId ? `reply-input-${parentCommentId}` : `comment-input-${postId}`);
+  if (!commentInput) {
+    console.error('Comment input not found for post:', postId, 'parent:', parentCommentId);
+    return;
+  }
+
+  const commentText = commentInput.value.trim();
+  if (!commentText) {
+    Swal.fire('Please enter a comment', '', 'warning');
+    return;
+  }
+
+  Swal.fire({
+    title: 'Post Comment',
+    text: 'Are you sure you want to post this comment?',
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonText: 'Yes',
+    cancelButtonText: 'No'
+  }).then(async (result) => {
+    if (result.isConfirmed) {
+      const { contactPerson, organization } = await fetchUserData(user.uid);
+      const comment = {
+        userId: user.uid,
+        userName: contactPerson,
+        text: commentText,
+        timestamp: firebase.database.ServerValue.TIMESTAMP,
+        parentCommentId: parentCommentId || null
+      };
+
+      try {
+        await database.ref(`posts/${postId}/comments`).push(comment);
+        commentInput.value = '';
+        await logActivity(`${contactPerson}${organization ? ` from ${organization}` : ''} ${parentCommentId ? 'replied to' : 'commented on'} a post`);
+        Swal.fire('Success', 'Comment posted successfully!', 'success');
+      } catch (error) {
+        console.error('Error adding comment:', error.code, error.message);
+        Swal.fire('Error adding comment', `Failed to add comment: ${error.message}`, 'error');
+      }
+    }
+  });
+}
+
+async function deleteComment(postId, commentId) {
+  console.log('deleteComment called for post:', postId, 'comment:', commentId);
+  if (!user) {
+    Swal.fire('Please log in to delete comments', '', 'warning');
+    return;
+  }
+
+  const commentRef = database.ref(`posts/${postId}/comments/${commentId}`);
+  const comment = (await commentRef.once('value')).val();
+  if (!comment || user.uid !== comment.userId) {
+    Swal.fire('Error', 'You are not authorized to delete this comment.', 'error');
+    return;
+  }
+
+  Swal.fire({
+    title: 'Delete Comment',
+    text: 'Are you sure you want to delete this comment and its replies?',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'Yes',
+    cancelButtonText: 'No'
+  }).then(async (result) => {
+    if (result.isConfirmed) {
+      try {
+        const subCommentsSnapshot = await database.ref(`posts/${postId}/comments`).orderByChild('parentCommentId').equalTo(commentId).once('value');
+        const subComments = subCommentsSnapshot.val();
+        if (subComments) {
+          for (const subCommentId of Object.keys(subComments)) {
+            await database.ref(`posts/${postId}/comments/${subCommentId}`).remove();
+          }
+        }
+        await commentRef.remove();
+        const { contactPerson, organization } = await fetchUserData(user.uid);
+        await logActivity(`${contactPerson}${organization ? ` from ${organization}` : ''} deleted a comment`);
+        Swal.fire('Success', 'Comment deleted successfully!', 'success');
+      } catch (error) {
+        console.error('Error deleting comment:', error.code, error.message);
+        Swal.fire('Error deleting comment', `Failed to delete comment: ${error.message}`, 'error');
+      }
+    }
+  });
+}
+
+function toggleComments(postId) {
+  const commentsSection = document.getElementById(`comments-section-${postId}`);
+  const commentButton = document.querySelector(`#post-${postId} .comment-button`);
+  const commentCounter = document.querySelector(`#post-${postId} .comment-counter`);
+  if (commentsSection && commentButton && commentCounter) {
+    if (commentsSection.style.display === 'none' || !commentsSection.style.display) {
+      commentsSection.style.display = 'block';
+      commentButton.classList.add('active');
+      commentCounter.innerHTML = `<i class='bx bx-comment'></i> Close Comments`;
+      loadComments(postId);
+    } else {
+      commentsSection.style.display = 'none';
+      commentButton.classList.remove('active');
+      database.ref(`posts/${postId}/comments`).once('value').then(snap => {
+        const commentCount = snap.numChildren();
+        commentCounter.innerHTML = `<i class='bx bx-comment'></i> ${commentCount} ${commentCount === 1 ? 'Comment' : 'Comments'}`;
+      });
+    }
+  }
+}
+
+async function loadComments(postId) {
+  const commentsContainer = document.getElementById(`comments-${postId}`);
+  if (!commentsContainer) {
+    console.error('Comments container not found for post:', postId);
+    return;
+  }
+
+  database.ref(`posts/${postId}/comments`).orderByChild('timestamp').on('value', async (snapshot) => {
+    commentsContainer.innerHTML = '';
+    const comments = snapshot.val();
+    if (comments) {
+      const commentArray = Object.entries(comments).map(([id, comment]) => ({ id, ...comment }));
+      const commentTree = buildCommentTree(commentArray);
+      renderComments(commentTree, commentsContainer, postId, 0);
+    } else {
+      commentsContainer.innerHTML = '<p>No comments yet.</p>';
+    }
+  }, (error) => {
+    console.error('Error loading comments:', error.code, error.message);
+    commentsContainer.innerHTML = '<p>Error loading comments.</p>';
+  });
+}
+
+function buildCommentTree(comments) {
+  const tree = [];
+  const lookup = {};
+
+  comments.forEach(comment => {
+    lookup[comment.id] = { ...comment, replies: [] };
+  });
+
+  comments.forEach(comment => {
+    if (comment.parentCommentId) {
+      if (lookup[comment.parentCommentId]) {
+        lookup[comment.parentCommentId].replies.push(lookup[comment.id]);
+      }
+    } else {
+      tree.push(lookup[comment.id]);
+    }
+  });
+
+  tree.sort((a, b) => a.timestamp - b.timestamp);
+  Object.values(lookup).forEach(comment => {
+    if (comment.replies) {
+      comment.replies.sort((a, b) => a.timestamp - b.timestamp);
+    }
+  });
+
+  return tree;
+}
+
+function renderComments(comments, container, postId, level) {
+  comments.forEach(({ id: commentId, ...comment }) => {
+    const commentElem = document.createElement('div');
+    commentElem.className = `comment level-${level}`;
+    const canDelete = user && user.uid === comment.userId;
+    commentElem.innerHTML = `
+      <div class="comment-header">
+        <div class="comment-user-info">
+          <strong>${comment.userName}</strong>
+          <small>${new Date(comment.timestamp).toLocaleDateString()}</small>
+        </div>
+        ${canDelete ? `<button class="delete-comment" onclick="deleteComment('${postId}', '${commentId}')"><i class='bx bx-trash'></i></button>` : ''}
+      </div>
+      <p>${comment.text}</p>
+      <div class="comment-actions">
+        <button class="reply-button" onclick="toggleReplyInput('${postId}', '${commentId}')"><i class='bx bx-reply'></i> Reply</button>
+      </div>
+      <div class="reply-container" id="reply-container-${commentId}" style="display: none;">
+        <div class="reply-input">
+          <div class="input-container">
+            <textarea id="reply-input-${commentId}" placeholder="Add a reply..."></textarea>
+            <button class="send-reply" onclick="addComment('${postId}', '${commentId}')"><i class='bx bx-send'></i></button>
+          </div>
+        </div>
+      </div>
+    `;
+    container.appendChild(commentElem);
+    if (comment.replies && comment.replies.length > 0) {
+      const repliesContainer = document.createElement('div');
+      repliesContainer.className = 'replies';
+      commentElem.appendChild(repliesContainer);
+      renderComments(comment.replies, repliesContainer, postId, level + 1);
+    }
+  });
+}
+
+function toggleReplyInput(postId, commentId) {
+  const replyContainer = document.getElementById(`reply-container-${commentId}`);
+  if (replyContainer) {
+    replyContainer.style.display = replyContainer.style.display === 'none' ? 'block' : 'none';
+    if (replyContainer.style.display === 'block') {
+      const replyInput = document.getElementById(`reply-input-${commentId}`);
+      if (replyInput) replyInput.focus();
+    }
   }
 }
 
@@ -243,7 +469,7 @@ async function loadPosts() {
         console.log('Rendering post:', id, 'userName:', post.userName);
         const postElem = document.createElement('div');
         postElem.className = 'post';
-        postElem.id = id;
+        postElem.id = `post-${id}`;
 
         let mediaHtml = '';
         if (post.mediaUrl) {
@@ -257,8 +483,11 @@ async function loadPosts() {
         const canEdit = user && user.uid === post.userId;
         const isShared = post.isShared || false;
         const sharedInfo = isShared ? `<small class="shared-info">Shared from ${post.originalUserName}'s post</small>` : '';
-        const contentWrapperStyle = isShared ? `style="border-color: transparent; "` : '';
-        const contenthr = isShared ? `<hr>`: '';
+        const contentWrapperStyle = isShared ? `style="border-color: transparent;"` : '';
+        const contenthr = isShared ? `<hr>` : '';
+        const captionHtml = isShared && post.shareCaption ? `<p class="share-caption">${post.shareCaption}</p>` : '';
+
+        const commentCount = await database.ref(`posts/${id}/comments`).once('value').then(snap => snap.numChildren());
 
         postElem.innerHTML = `
           <div class="post-header">
@@ -269,6 +498,7 @@ async function loadPosts() {
                 <small>${new Date(post.timestamp).toLocaleString()}</small>
               </div>
               ${sharedInfo}
+              ${captionHtml}
             </div>
             ${canEdit ? `
               <div class="post-menu">
@@ -280,26 +510,41 @@ async function loadPosts() {
               </div>
             ` : ''}
           </div>
-            ${contenthr}
+          ${contenthr}
           <div class="post-content-wrapper" ${contentWrapperStyle}>
-            ${post.title ? `<h4 class="post-title">${post.title}</h4>` : ''}
+            ${post.title ? `<h4 class="post-title" contenteditable="false">${post.title}</h4>` : '<h4 class="post-title" contenteditable="false" style="display: none;"></h4>'}
             <p class="post-content" contenteditable="false">${post.content}</p>
             ${mediaHtml}
             <div class="post-actions">
-              <button onclick="sharePost('${id}')"><i class='bx bx-share'></i> Share</button>
+              <div class="comment-counter" onclick="toggleComments('${id}')">
+                <i class='bx bx-comment'></i> ${commentCount} ${commentCount === 1 ? 'Comment' : 'Comments'}
+              </div>
+              <div class="action-buttons">
+                <button class="share-button" onclick="sharePost('${id}')"><i class='bx bx-share'></i></button>
+                <button class="comment-button" onclick="toggleComments('${id}')"><i class='bx bx-comment'></i></button>
+              </div>
+            </div>
+            <div class="comments-section" id="comments-section-${id}" style="display: none;">
+              <hr class="comment-divider">
+              <div class="comment-input">
+                <div class="input-container">
+                  <textarea id="comment-input-${id}" placeholder="Add a comment..."></textarea>
+                  <button class="send-comment" onclick="addComment('${id}')"><i class='bx bx-send'></i></button>
+                </div>
+              </div>
+              <hr class="comment-divider">
+              <div class="comments-list" id="comments-${id}"></div>
             </div>
           </div>
         `;
         postsContainer.appendChild(postElem);
 
-        // Add event listener for menu toggle
         if (canEdit) {
           const menuButton = postElem.querySelector('.menu-button');
           const menuDropdown = postElem.querySelector('.menu-dropdown');
           menuButton.addEventListener('click', () => {
             menuDropdown.style.display = menuDropdown.style.display === 'block' ? 'none' : 'block';
           });
-          // Close dropdown when clicking outside
           document.addEventListener('click', (e) => {
             if (!postElem.contains(e.target)) {
               menuDropdown.style.display = 'none';
@@ -319,7 +564,7 @@ async function loadPosts() {
 
 async function toggleEdit(id, postUserId) {
   console.log('toggleEdit called for post:', id);
-  const postElem = document.getElementById(id);
+  const postElem = document.getElementById(`post-${id}`);
   if (!postElem) {
     console.error('Post element not found:', id);
     Swal.fire('Error', 'Post not found. Please try refreshing the page.', 'error');
@@ -332,25 +577,29 @@ async function toggleEdit(id, postUserId) {
     return;
   }
 
+  const titleElem = postElem.querySelector('.post-title');
   const contentElem = postElem.querySelector('.post-content');
   const menuDropdown = postElem.querySelector('.menu-dropdown');
-  if (!contentElem || !menuDropdown) {
-    console.error('Post content or menu dropdown not found for post:', id);
+  if (!titleElem || !contentElem || !menuDropdown) {
+    console.error('Post title, content, or menu dropdown not found for post:', id);
     Swal.fire('Error', 'Post elements not found. Please try refreshing the page.', 'error');
     return;
   }
 
   if (contentElem.getAttribute('contenteditable') === 'true') {
+    titleElem.setAttribute('contenteditable', 'false');
     contentElem.setAttribute('contenteditable', 'false');
+    if (!titleElem.textContent.trim()) titleElem.style.display = 'none';
     menuDropdown.querySelector('button[onclick*="toggleEdit"]').textContent = 'Edit';
     try {
-      console.log('Updating post content for:', id);
+      console.log('Updating post for:', id);
       await database.ref(`posts/${id}`).update({
-        content: contentElem.textContent,
+        title: titleElem.textContent.trim(),
+        content: contentElem.textContent.trim(),
         editedTimestamp: firebase.database.ServerValue.TIMESTAMP
       });
       const { contactPerson, organization } = await fetchUserData(user.uid);
-      await logActivity(`${contactPerson} from ${organization} edited a post`);
+      await logActivity(`${contactPerson}${organization ? ` from ${organization}` : ''} edited a post`);
       console.log('Post updated successfully:', id);
       Swal.fire('Success', 'Post updated successfully!', 'success');
     } catch (error) {
@@ -358,6 +607,8 @@ async function toggleEdit(id, postUserId) {
       Swal.fire('Error updating post', `Failed to update post: ${error.message}`, 'error');
     }
   } else {
+    titleElem.setAttribute('contenteditable', 'true');
+    titleElem.style.display = 'block';
     contentElem.setAttribute('contenteditable', 'true');
     contentElem.focus();
     menuDropdown.querySelector('button[onclick*="toggleEdit"]').textContent = 'Save';
@@ -387,7 +638,7 @@ async function deletePost(id) {
     console.log('Removing post from database:', id);
     await database.ref(`posts/${id}`).remove();
     const { contactPerson, organization } = await fetchUserData(user.uid);
-    await logActivity(`${contactPerson} from ${organization} deleted a post`);
+    await logActivity(`${contactPerson}${organization ? ` from ${organization}` : ''} deleted a post`);
     console.log('Post deleted successfully:', id);
   } catch (error) {
     console.error('Error deleting post:', error.code, error.message);
@@ -492,7 +743,7 @@ function setupModal() {
     modal.style.display = 'none';
     modalPostContent.value = '';
     document.getElementById('modal-post-title').value = '';
-    modalPostContent.placeholder = 'What\'s on your mind?'; // Reset placeholder
+    modalPostContent.placeholder = 'What\'s on your mind?';
     modalPostContent.style.height = '80px';
     mediaInput.value = '';
     mediaPreview.innerHTML = '';

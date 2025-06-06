@@ -31,7 +31,7 @@
           </div>
         </div>
         <div class="post-created">
-          <h3 style="margin: 20px 0 10px 0;">Stay Updated</h3>
+          <!-- <h3 style="margin: 20px 0 10px 0;">Stay Updated</h3> -->
           <div id="posts"><div class="spinner"></div></div>
         </div>
       </div>
@@ -71,6 +71,30 @@
         </div>
       </div>
     </div>
+
+      <div id="share-post-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <span class="close-button">&times;</span>
+        <div class="share-header">
+          <strong id="share-modal-user-name"></strong>
+          <i class='bx bx-share'></i>
+          <span class="original-creator" id="share-original-creator"></span>
+        </div>
+        <hr class="full-width-hr">
+      </div>
+      <div class="modal-input-area">
+        <div id="share-post-content" class="share-post-content"></div>
+        <textarea id="share-caption-input" class="share-caption-input" placeholder="Add a caption (optional)"></textarea>
+        <hr class="full-width-hr">
+      </div>
+      <div class="modal-footer">
+        <button id="share-cancel-button" class="cancel-button">Cancel</button>
+        <button id="share-submit-button" class="share-button">Share</button>
+      </div>
+    </div>
+  </div>
+
   </div>
 
   <script>
