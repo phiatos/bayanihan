@@ -1,4 +1,3 @@
-// Initialize EmailJS with your Public Key
 emailjs.init("YOUR_EMAILJS_PUBLIC_KEY"); // Replace with your actual EmailJS Public Key
 
 const firebaseConfig = {

@@ -105,22 +105,17 @@
 
     <script>
         fetch('../components/sidebar.html')
-        .then(response => response.text())
-        .then(data => {
-            document.querySelector('.sidebar-placeholder').innerHTML = data;
-            const sidebarScript = document.createElement('script');
-            sidebarScript.src = '../components/sidebar.js';
-            sidebarScript.onload = function() {};
-            document.querySelector('.sidebar-placeholder').appendChild(sidebarScript);
-        })
-        .catch(error => {
-            console.error('Error loading sidebar:', error);
-        });
-
-        function clearDInputs() {
-            document.getElementById('searchInput').value = '';
-            applySearchAndSort();
-        }
+            .then(response => response.text())
+            .then(data => {
+                document.querySelector('.sidebar-placeholder').innerHTML = data;
+                const sidebarScript = document.createElement('script');
+                sidebarScript.src = '../components/sidebar.js';
+                sidebarScript.onload = function() {};
+                document.querySelector('.sidebar-placeholder').appendChild(sidebarScript);
+            })
+            .catch(error => {
+                console.error('Error loading sidebar:', error);
+            });
     </script>
     <script type="module" src="../js/approvedvolunteers.js"></script>
 </body>

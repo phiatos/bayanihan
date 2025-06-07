@@ -142,51 +142,47 @@ function fetchAndRenderTable() {
             return;
         }
         console.log("Fetching volunteerGroups...");
-        database.ref("volunteerGroups").once("value")
-            .then(snapshot => {
-                const fetchedData = snapshot.val();
-                console.log("Fetched volunteerGroups:", fetchedData);
-                if (!fetchedData) {
-                    console.warn("No data found in volunteerGroups node.");
-                    data = [];
-                    renderTable();
-                    Swal.fire({
-                        icon: "info",
-                        title: "No Data",
-                        text: "No volunteer groups found in the database."
-                    });
-                    return;
-                }
-                data = Object.entries(fetchedData).map(([key, entry]) => ({
-                    no: parseInt(key),
-                    organization: entry.organization || "N/A",
-                    hq: entry.hq || "N/A",
-                    // areaOfOperation: entry.areaOfOperation || "N/A", // Removed
-                    contactPerson: entry.contactPerson || "N/A",
-                    email: entry.email || "N/A",
-                    mobileNumber: entry.mobileNumber || "N/A",
-                    socialMedia: entry.socialMedia || "N/A",
-                    // activation: entry.activation || "N/A",
-                    // calamityType: entry.calamityType || "N/A"
-                }));
-                console.log("Processed Data:", data);
-                data.sort((a, b) => a.no - b.no);
-                renderTable();
-            })
-            .catch(error => {
-                console.error("Error fetching volunteerGroups:", error);
-                let errorMessage = "Failed to fetch data. Check network or database.";
-                if (error.code === "PERMISSION_DENIED") {
-                    errorMessage = "Permission denied. Ensure database rules allow read access.";
-                }
-                Swal.fire({
-                    icon: "error",
-                    title: "Fetch Error",
-                    text: errorMessage
-                });
+        // Listen for value changes to automatically update table
+        database.ref("volunteerGroups").on("value", snapshot => { // Changed to .on() for real-time updates
+            const fetchedData = snapshot.val();
+            console.log("Fetched volunteerGroups:", fetchedData);
+            if (!fetchedData) {
+                console.warn("No data found in volunteerGroups node.");
                 data = [];
                 renderTable();
-            });
+                Swal.fire({
+                    icon: "info",
+                    title: "No Data",
+                    text: "No volunteer groups found in the database.",
+                    toast: true, // Make it a small toast notification
+                    position: 'top-end', // Position it at the top-right
+                    showConfirmButton: false,
+                    timer: 3000 // Disappear after 3 seconds
+                });
+                return;
+            }
+            // Use Object.entries to get key-value pairs, where key is the unique Firebase ID
+            data = Object.entries(fetchedData).map(([key, entry]) => ({
+                id: key, // Store the Firebase unique ID as 'id'
+                organization: entry.organization || "N/A",
+                hq: entry.hq || "N/A",
+                contactPerson: entry.contactPerson || "N/A",
+                email: entry.email || "N/A",
+                mobileNumber: entry.mobileNumber || "N/A",
+                socialMedia: entry.socialMedia || "N/A",
+            }));
+            console.log("Processed Data:", data);
+            // Sorting will be handled by the sortSelect if chosen, or default alphabetical for organization
+            if (sortSelect.value === 'organization') {
+                data.sort((a, b) => a.organization.localeCompare(b.organization));
+            } else if (sortSelect.value === 'hq') {
+                data.sort((a, b) => a.hq.localeCompare(b.hq));
+            } else {
+                // Default sort (e.g., by creation time if available, or just Firebase key which is time-based)
+                // For now, no specific default sort, just rely on Firebase's order or current filters
+            }
+            renderTable(filterAndSort()); // Ensure filters/sorts are applied
+        });
     });
 }
 
@@ -198,11 +194,14 @@ function renderTable(filteredData = data) {
     const start = (currentPage - 1) * rowsPerPage;
     const end = start + rowsPerPage;
     const pageData = filteredData.slice(start, end);
+
     console.log("Page data:", pageData);
-    pageData.forEach(row => {
+
+    pageData.forEach((row, index) => {
+        const displayNo = start + index + 1; // Sequential number for display
         const tr = document.createElement("tr");
         tr.innerHTML = `
-            <td>${row.no}</td>
+            <td>${displayNo}</td>
             <td>${row.organization}</td>
             <td class="hqCell">${row.hq}</td>
             <td>${row.contactPerson}</td>
@@ -212,17 +211,16 @@ function renderTable(filteredData = data) {
             ${row.socialMedia && row.socialMedia !== 'N/A' ? `<a href="${row.socialMedia}" target="_blank" rel="noopener noreferrer">${row.socialMedia}</a>` : 'N/A'}
             </td>
             <td>
-                <button class="editBtn" data-id="${row.no}">Edit</button>
-                <button class="deleteBtn" data-id="${row.no}">Remove</button>
-            </td>
+                <button class="editBtn" data-id="${row.id}">Edit</button> <button class="deleteBtn" data-id="${row.id}">Remove</button> </td>
         `;
         tableBody.appendChild(tr);
     });
+
     if (entriesInfo) {
         entriesInfo.textContent = `Showing ${start + 1} to ${Math.min(end, filteredData.length)} of ${filteredData.length} entries`;
     }
     renderPagination(filteredData.length);
-    attachRowHandlers();
+    attachRowHandlers(); // Re-attach handlers after rendering
 }
 
 // Search functionality
