@@ -54,60 +54,55 @@
 
           <div class="form-group">
             <label for="inKindEncoder">Encoder:</label>
-            <input type="text" id="inKindEncoder" name="encoder">
+            <input type="text" id="inKindEncoder" name="encoder" value="Donor" disabled>
           </div>
           <div class="form-group">
             <label for="inKindDonorName">Partner/Donor Name:</label>
-            <input type="text" id="inKindDonorName" name="name">
+            <input type="text" id="inKindDonorName" name="name" placeholder="Enter your name or company name" required>
           </div>
           <div class="form-group">
             <label for="inKindDonorType">Partner/Donor Type:</label>
-            <input type="text" id="inKindDonorType" name="type">
+            <input type="text" id="inKindDonorType" name="type" placeholder="Enter Type (e.g., restaurant, NGO, individual)">
           </div>
           <div class="form-group">
             <label for="inKindDonorAddress">Address:</label>
-            <input type="text" id="inKindDonorAddress" name="address">
+            <input type="text" id="inKindDonorAddress" name="address" placeholder="Enter your address" required>
           </div>
           <div class="form-group">
             <label for="inKindContactPerson">Contact Person:</label>
-            <input type="text" id="inKindContactPerson" name="contactPerson">
+            <input type="text" id="inKindContactPerson" name="contactPerson" placeholder="Enter the contact person" required>
           </div>
           <div class="form-group">
             <label for="inKindContactNumber">Number:</label>
-            <input type="number" id="inKindContactNumber" name="number">
+            <input type="number" id="inKindContactNumber" name="number" placeholder="Enter your mobile number (e.g 09XXXXXXXXX)">
           </div>
           <div class="form-group">
             <label for="inKindDonorEmail">Email:</label>
-            <input type="email" id="inKindDonorEmail" name="email">
+            <input type="email" id="inKindDonorEmail" name="email" placeholder="Enter your email address" required>
           </div>
           <div class="form-group">
             <label for="itemType">Type of Assistance:</label>
-            <input type="text" id="itemType" name="assistance">
+            <input type="text" id="itemType" name="assistance" placeholder="Enter the type of assistance (e.g., food, medical, shelter)" required>
           </div>
           <div class="form-group">
             <label for="value">Valuation:</label>
-            <input type="number" id="value" name="valuation">
+            <input type="number" id="value" name="valuation" placeholder="Enter the value of the items" required>
           </div>
           <div class="form-group">
             <label for="description">Description:</label>
-            <textarea id="description" name="additionalnotes"></textarea>
+            <textarea id="description" name="additionalnotes" placeholder="Enter additional note (optional)"></textarea>
           </div>
           <div class="form-group">
             <label for="status">Status:</label>
-            <select id="status" name="status">
-              <option value="">Select Status</option>
-              <option value="closed-successful">Closed - Successful</option>
-              <option value="approved">Pending</option>
-              <option value="rejected">Closed</option>
-            </select>
+            <input type="text" id="status" name="status" value="Pending" disabled/>
           </div>
           <div class="form-group">
             <label for="staffIncharge">Staff-In Charge:</label>
-            <input type="text" id="staffIncharge" name="staffIncharge">
+            <input type="text" id="staffIncharge" name="staffIncharge" value="Not Applicable" disabled>
           </div>
           <div class="form-group">
             <label for="donationDate">Donation Date:</label>
-            <input type="date" id="donationDate" name="donationDate">
+            <input type="date" id="donationDate" name="donationDate" placeholder="Enter the donation date" required>
           </div>
           <div class="form-actions">
             <input type="submit" id="submitInKindBtn" value="Submit In Kind Donation">
@@ -119,45 +114,77 @@
       <form id="monetaryDonationForm" style="display: none;">
         <fieldset>
           <legend>Monetary Donations</legend>
+          <button type="button" id="gcashDetails">GCASH</button>
+          <button type="button" id="bankDetails">Bank Transfer</button>
+            <p style="text-align: center;">Angat Buhay operates with authorization from the Department of Social Welfare and <br>
+            Development (DSWD), bearing Solicitation Permit No. DSWD-SB-PSP-S-2025-000049.</p>
+          
+          <div id="gcashDiv" display="none">
+            <h3>GCash QR Code</h3>
+            <img src="https://www.angatbuhay.ph/wp-content/uploads/2024/09/QR-code-2048x2048.png" 
+              alt="AB QR Code" 
+              width="400" 
+              height="400" 
+              style="display: block; margin: 0 auto;">
+          </div>
+
+          <div id="bankDiv" display="none">
+            <h3>Bank Details</h3>
+            <div class="bank-info">
+              <p><strong>Banco De Oro (BDO)</strong></p>
+              <p><strong>Account Name:</strong> Angat Pinas, Inc.</p>
+              <p><strong>Account Number:</strong> 00 277 801 6986</p>
+            </div>
+            <div class="bank-info">
+              <p><strong>Bank of the Philippine Islands (BPI)</strong></p>
+              <p><strong>Account Name:</strong> Angat Pinas, Inc.</p>
+              <p><strong>Account Number:</strong> 0011-1921-65</p>
+            </div>
+          </div>
+
           <div class="form-group">
             <label for="monetaryEncoder">Encoder:</label>
-            <input type="text" id="monetaryEncoder" name="monetaryEncoder">
+            <input type="text" value="Donor" id="monetaryEncoder" name="monetaryEncoder" disabled>
           </div>
           <div class="form-group">
             <label for="monetaryDonorName">Name/Company:</label>
-            <input type="text" id="monetaryDonorName" name="monetaryDonorName">
+            <input type="text" id="monetaryDonorName" name="monetaryDonorName" placeholder="Enter your name or company name" required>
           </div>
           <div class="form-group">
             <label for="monetaryLocation">Location (at least City Address):</label>
-            <input type="text" id="monetaryLocation" name="monetaryLocation">
+            <input type="text" id="monetaryLocation" name="monetaryLocation" placeholder="Enter your address" required>
           </div>
           <div class="form-group">
             <label for="monetaryNumber">Number:</label>
-            <input type="number" id="monetaryNumber" name="monetaryNumber">
+            <input type="number" minlength="11" maxlength="11" id="monetaryNumber" name="monetaryNumber" placeholder="Enter your Mobile (e.g 09XXXXXXXXX)" required>
           </div>
           <div class="form-group">
             <label for="amountDonated">Amount Donated:</label>
-            <input type="number" id="amountDonated" name="amountDonated">
+            <input type="text" id="amountDonated" name="amountDonated" placeholder="Enter the amount (e.g 100,000)" required>
           </div>
           <div class="form-group">
             <label for="cashInvoice">Cash Invoice #:</label>
             <input type="text" id="cashInvoice" name="cashInvoice">
           </div>
           <div class="form-group">
-            <label for="monetaryDonationDate">Date Received:</label>
-            <input type="date" id="monetaryDonationDate" name="monetaryDonationDate">
+            <label for="monetaryDonationDate">Date Send:</label>
+            <input type="date" id="monetaryDonationDate" name="monetaryDonationDate" required>
           </div>
           <div class="form-group">
             <label for="monetaryEmail">Email:</label>
-            <input type="email" id="monetaryEmail" name="monetaryEmail">
+            <input type="email" id="monetaryEmail" name="monetaryEmail" placeholder="Enter your email (e.g juandelacruz@gmail.com)" required>
           </div>
           <div class="form-group">
-            <label for="bank">Bank:</label>
-            <input type="text" id="bank" name="bank">
+            <label for="bank">Bank or E-Wallet</label>
+            <select id="bank" name="bank" required>  <option value="">Select Bank or E-Wallet</option>
+              <option value="gcash">GCash</option>
+              <option value="BDO">Banco De Oro (BDO)</option>
+              <option value="BPI">Bank of the Philippine Islands (BPI)</option>
+            </select>
           </div>
           <div class="form-group">
-            <label for="proofofTransfer">Proof of Transfer:</label>
-            <input type="file" id="proofofTransfer" name="proofofTransfer">
+            <label for="proofofTransfer">Proof of Transfer: (Google Drive Link of Image)</label>
+            <input type="text" id="proofofTransfer" name="proofofTransfer" placeholder="Enter the Link" required>
           </div>
           <div class="form-actions">
             <input type="submit" id="submitMonetaryBtn" value="Submit Monetary Donation">

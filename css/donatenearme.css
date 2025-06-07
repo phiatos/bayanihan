@@ -88,3 +88,31 @@
 .donation-buttons button:hover {
     background-color: var(--primary-color);
 }
+
+/*Footer*/
+
+.Footer {
+  width: 100%;
+  padding: 1rem 1.5rem;
+  background: var(--primary-color);
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  box-shadow: 0 -6px 30px rgba(0, 0, 0, 0.15);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 24px 24px 0 0;
+  margin-top: 5rem;
+  text-align: center;
+  transition: background 0.3s ease-in-out;
+}
+
+.footer-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.footer p {
+  font-size: 1rem;
+  color: #eaeaea;
+  letter-spacing: 0.6px;
+  font-weight: 400;
+}
