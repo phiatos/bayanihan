@@ -137,8 +137,8 @@
   align-items: center;
   flex-direction: row;
   gap: 8px;
-  margin-bottom: 10px;
   width: 100%;
+  
 }
 
 .share-header strong {
@@ -158,11 +158,18 @@
 
 .close-button {
   position: absolute;
-  top: 10px;
+  top: 5px;
   right: 15px;
-  font-size: 24px;
   cursor: pointer;
   color: #333;
+}
+
+.close-button i{
+    font-size: 40px;
+}
+
+.close-button i:hover{
+  color: var(--primary-color);
 }
 
 .full-width-hr {
@@ -171,12 +178,14 @@
   width: 100%;
   border: none;
   border-top: 1px solid #ccc;
+  
 }
 
 .modal-user-info {
   display: flex;
   flex-direction: column;
   gap: 5px;
+ 
 }
 
 .modal-user-info strong {
@@ -193,9 +202,9 @@
   overflow-y: auto;
   overflow-x: hidden;
   padding: 20px;
+  padding-top: 0;
   box-sizing: border-box;
   flex-grow: 1;
-  margin-top: 30px;
   margin-bottom: 20px;
 }
 
@@ -383,8 +392,8 @@
 }
 
 .media-preview {
-  max-width: 200px;
-  max-height: 200px;
+  max-width: 350px;
+  max-height: 350px;
   margin-top: 10px;
   height: auto;
 }
@@ -787,23 +796,27 @@
 
 /* Custom Scrollbar */
 .activity-panel::-webkit-scrollbar,
-.post-created::-webkit-scrollbar {
+.post-created::-webkit-scrollbar,
+ .modal-input-area::-webkit-scrollbar{
   width: 8px;
 }
 
 .activity-panel::-webkit-scrollbar-thumb,
-.post-created::-webkit-scrollbar-thumb {
+.post-created::-webkit-scrollbar-thumb,
+.modal-input-area::-webkit-scrollbar-thumb  {
   background-color: var(--primary-color);
   border-radius: 4px;
 }
 
 .activity-panel::-webkit-scrollbar-thumb:hover,
-.post-created::-webkit-scrollbar-thumb:hover {
+.post-created::-webkit-scrollbar-thumb:hover,
+.modal-input-area::-webkit-scrollbar-thumb-hover  {
   background-color: var(--primary-hover);
 }
 
 .activity-panel::-webkit-scrollbar-track,
-.post-created::-webkit-scrollbar-track {
+.post-created::-webkit-scrollbar-track,
+.modal-input-area::-webkit-scrollbar-track {
   background-color: var(--white);
   border-radius: 4px;
 }
@@ -861,8 +874,7 @@
   }
 
   .modal-header {
-    padding: 10px;
-    padding-bottom: 0;
+    padding: 10px 0;
   }
 
   .modal-input-area {

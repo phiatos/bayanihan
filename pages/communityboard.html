@@ -45,13 +45,13 @@
     <!-- Modal for post creation -->
     <div id="post-modal" class="modal" style="display: none;">
       <div class="modal-content">
-        <span class="close-button">×</span>
+        <span class="close-button"><i class="bx  bx-x bx-tada-hover"></i></span>
         <div class="modal-user-info">
           <strong id="modal-user-name">Loading...</strong>
           <small id="modal-user-org"></small>
         </div>
         <hr class="full-width-hr" style="margin-top: 50px;">
-        <div class="modal-input-area">
+        <div class="modal-input-area" style="margin-top: 30px;">
           <input type="text" id="modal-post-title" placeholder="Title" maxlength="100">
           <div class="media-upload">
             <input type="file" id="modal-media-upload" accept="image/jpeg,image/png,video/mp4,video/webm" style="display: none;">
@@ -77,21 +77,19 @@
     <!-- Share Modal -->
       <div id="share-post-modal" class="modal" style="display: none;">
     <div class="modal-content">
-
+      <span class="close-button"><i class="bx  bx-x bx-tada-hover" ></i></span>
       <div class="modal-header">
-        <span class="close-button">×</span>
         <div class="share-header">
           <strong id="share-modal-user-name"></strong>
           <i class='bx bx-share'></i>
           <span class="original-creator" id="share-original-creator"></span>
         </div>
-        <hr class="full-width-hr" style="position:absolute; top: 60px; left: 0;">
       </div>
-
+        <hr class="full-width-hr" style="margin-top: 50px; left: 0;">
       <div class="modal-input-area">
         <div id="share-post-content" class="share-post-content"></div>
-        <textarea id="share-caption-input" class="share-caption-input" placeholder="Add a caption (optional)"></textarea>
-        <hr class="full-width-hr" style="position:sticky; top: 380px; left: 0; width: 200vh;">
+        <textarea id="share-caption-input" class="share-caption-input" placeholder="Add a caption (optional)"  style="resize: none;"></textarea>
+        <hr class="full-width-hr" >
       </div>
       <div class="modal-footer">
         <button id="share-cancel-button" class="cancel-btn">Cancel</button>
