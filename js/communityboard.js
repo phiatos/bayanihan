@@ -9,30 +9,124 @@ const firebaseConfig = {
   measurementId: "G-ZTQ9VXXVV0"
 };
 
-let auth, database, storage;
+let auth, database;
 try {
   firebase.initializeApp(firebaseConfig);
   auth = firebase.auth();
   database = firebase.database();
-  storage = firebase.storage();
-  console.log('Firebase initialized successfully');
+  console.log(`[${new Date().toISOString()}] Firebase initialized successfully`);
 } catch (error) {
-  console.error('Firebase initialization failed:', error);
+  console.error(`[${new Date().toISOString()}] Firebase initialization failed:`, error);
   Swal.fire('Error', 'Failed to initialize Firebase. Please check your configuration.', 'error');
 }
 
 let user = null;
 const userOrgCache = new Map();
-let sortOrder = 'newest'; // Track sort order: 'newest' or 'oldest'
+let sortOrder = 'newest';
+
+async function compressMedia(file) {
+  if (file.type.startsWith('image/')) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.src = URL.createObjectURL(file);
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const maxDimension = 800;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height && width > maxDimension) {
+          height *= maxDimension / width;
+          width = maxDimension;
+        } else if (height > maxDimension) {
+          width *= maxDimension / height;
+          height = maxDimension;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const base64String = canvas.toDataURL(file.type, 0.5);
+        console.log(`[${new Date().toISOString()}] Image compressed: ${file.size} bytes -> ${base64String.length} chars (base64)`);
+        resolve(base64String);
+      };
+      img.onerror = (error) => {
+        console.error(`[${new Date().toISOString()}] Image compression failed:`, error);
+        reject(error);
+      };
+    });
+  } else if (file.type.startsWith('video/')) {
+    return new Promise((resolve, reject) => {
+      const video = document.createElement('video');
+      video.src = URL.createObjectURL(file);
+      video.muted = true;
+      video.onloadedmetadata = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const maxDimension = 800;
+        let width = video.videoWidth;
+        let height = video.videoHeight;
+
+        if (width > height && width > maxDimension) {
+          height *= maxDimension / width;
+          width = maxDimension;
+        } else if (height > maxDimension) {
+          width *= maxDimension / height;
+          height = maxDimension;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        video.currentTime = 0;
+
+        const generateThumbnail = () => {
+          ctx.drawImage(video, 0, 0, width, height);
+          const base64String = canvas.toDataURL('image/jpeg', 0.5);
+          console.log(`[${new Date().toISOString()}] Video thumbnail generated: ${base64String.length} chars (base64)`);
+
+          const reader = new FileReader();
+          reader.onload = () => {
+            const base64Video = reader.result;
+            console.log(`[${new Date().toISOString()}] Video converted to base64: ${base64Video.length} chars`);
+            resolve({ video: base64Video, thumbnail: base64String });
+          };
+          reader.onerror = (error) => {
+            console.error(`[${new Date().toISOString()}] Video base64 conversion failed:`, error);
+            reject(error);
+          };
+          reader.readAsDataURL(file);
+        };
+
+        video.onseeked = generateThumbnail;
+        video.onerror = (error) => {
+          console.error(`[${new Date().toISOString()}] Video processing failed:`, error);
+          reject(error);
+        };
+
+        video.play().catch(() => {
+          video.currentTime = 0;
+        });
+      };
+      video.onerror = (error) => {
+        console.error(`[${new Date().toISOString()}] Video metadata load failed:`, error);
+        reject(error);
+      };
+    });
+  } else {
+    return Promise.reject(new Error('Unsupported media type'));
+  }
+}
 
 async function fetchUserData(uid) {
   if (userOrgCache.has(uid)) {
-    console.log('Using cached user data for user:', uid);
+    console.log(`[${new Date().toISOString()}] Using cached user data for user: ${uid}`);
     return userOrgCache.get(uid);
   }
 
   try {
-    console.log('Fetching user data for user:', uid);
+    console.log(`[${new Date().toISOString()}] Fetching user data for user: ${uid}`);
     const snapshot = await database.ref(`users/${uid}`).once('value');
     const userData = snapshot.val() || {};
     const data = {
@@ -40,17 +134,17 @@ async function fetchUserData(uid) {
       organization: userData.organization || ''
     };
     userOrgCache.set(uid, data);
-    console.log('User data fetched:', data);
+    console.log(`[${new Date().toISOString()}] User data fetched:`, data);
     return data;
   } catch (error) {
-    console.error('Error fetching user data:', error.code, error.message);
+    console.error(`[${new Date().toISOString()}] Error fetching user data:`, error);
     return { contactPerson: 'Anonymous', organization: '' };
   }
 }
 
 auth.onAuthStateChanged(async (currentUser) => {
   user = currentUser;
-  console.log('Auth state changed:', currentUser ? { uid: currentUser.uid, displayName: currentUser.displayName } : 'No user');
+  console.log(`[${new Date().toISOString()}] Auth state changed:`, currentUser ? { uid: currentUser.uid, displayName: currentUser.displayName } : 'No user');
   if (user) {
     loadPosts();
     loadActivityLog();
@@ -70,14 +164,6 @@ auth.onAuthStateChanged(async (currentUser) => {
   }
 });
 
-// resize
-document.addEventListener("input", function (e) {
-    if (e.target.matches(".comment-input textarea, .reply-input textarea, .share-caption-input")) {
-      e.target.style.height = "auto"; // Reset height
-      e.target.style.height = e.target.scrollHeight + "px"; // Set new height
-    }
-  });
-
 function updateModalUserInfo(userData) {
   const userName = document.getElementById('modal-user-name');
   const userOrg = document.getElementById('modal-user-org');
@@ -92,12 +178,14 @@ function updateModalUserInfo(userData) {
 }
 
 async function createPost() {
-  console.log('createPost called');
+  console.log(`[${new Date().toISOString()}] createPost called`);
   if (!user) {
-    console.log('No user logged in');
+    console.log(`[${new Date().toISOString()}] No user logged in`);
     Swal.fire('Please log in to post', '', 'warning');
     return;
   }
+
+  await new Promise(resolve => setTimeout(resolve, 0));
 
   const modalPostTitle = document.getElementById('modal-post-title');
   const modalPostContent = document.getElementById('modal-post-content');
@@ -107,7 +195,7 @@ async function createPost() {
   const mediaPreview = document.getElementById('modal-media-preview');
 
   if (!modalPostTitle || !modalPostContent || !mediaInput || !postButton || !modal || !mediaPreview) {
-    console.error('DOM elements missing:', { modalPostTitle, modalPostContent, mediaInput, postButton, modal, mediaPreview });
+    console.error(`[${new Date().toISOString()}] DOM elements missing:`, { modalPostTitle, modalPostContent, mediaInput, postButton, modal, mediaPreview });
     Swal.fire('Error', 'Page elements not found. Please try refreshing the page.', 'error');
     return;
   }
@@ -116,67 +204,77 @@ async function createPost() {
   const content = modalPostContent.value.trim();
   const file = mediaInput.files[0];
   if (!content && !file) {
-    console.log('No content or media provided');
+    console.log(`[${new Date().toISOString()}] No content or media provided`);
     Swal.fire('Please add content or media to post', '', 'warning');
     return;
   }
 
-  console.log('Attempting to create post with title:', title, 'content:', content, 'and file:', file ? file.name : 'none');
+  console.log(`[${new Date().toISOString()}] Posting with title: ${title}, content: ${content}, file: ${file ? file.name : 'none'}`);
   postButton.classList.add('loading');
-  modal.classList.add('loading');
-
-  let mediaUrl = '';
-  let mediaType = '';
-  
-  if (file) {
-    console.log('Uploading file:', file.name, 'Size:', file.size, 'Type:', file.type);
-    if (file.size > 10 * 1024 * 1024) {
-      console.log('File size exceeds 10MB');
-      Swal.fire('File too large', 'Maximum file size is 10MB', 'error');
-      postButton.classList.remove('loading');
-      modal.classList.remove('loading');
-      return;
-    }
-
-    if (!['image/jpeg', 'image/png', 'video/mp4', 'video/webm'].includes(file.type)) {
-      console.log('Invalid file type:', file.type);
-      Swal.fire('Unsupported file type', 'Please upload JPEG/PNG images or MP4/WebM videos', 'error');
-      postButton.classList.remove('loading');
-      modal.classList.remove('loading');
-      mediaInput.value = '';
-      mediaPreview.innerHTML = '';
-      return;
-    }
-
-    const storageRef = storage.ref(`posts/${user.uid}/${Date.now()}_${file.name}`);
-    try {
-      const snapshot = await storageRef.put(file);
-      mediaUrl = await snapshot.ref.getDownloadURL();
-      mediaType = file.type.startsWith('image/') ? 'image' : 'video';
-      console.log('Media uploaded successfully:', mediaUrl);
-    } catch (error) {
-      console.error('Error uploading media:', error.code, error.message);
-      Swal.fire('Error uploading media', `Failed to upload media: ${error.message}`, 'error');
-      postButton.classList.remove('loading');
-      modal.classList.remove('loading');
-      return;
-    }
-  }
-
-  const { contactPerson, organization } = await fetchUserData(user.uid);
-  const post = {
-    title: title || '',
-    content: content,
-    userId: user.uid,
-    userName: contactPerson,
-    organization: organization,
-    timestamp: firebase.database.ServerValue.TIMESTAMP,
-    mediaUrl: mediaUrl,
-    mediaType: mediaType
-  };
+  modal.classList.add('disabled');
 
   try {
-    console.log('Writing post to database:', post);
+    let mediaUrl = '';
+    let mediaType = '';
+    let thumbnailUrl = '';
+    if (file) {
+      if (!['image/jpeg', 'image/png', 'video/mp4', 'video/webm'].includes(file.type)) {
+        console.log(`[${new Date().toISOString()}] Invalid file type: ${file.type}`);
+        Swal.fire('Unsupported file type', 'Please upload JPEG, PNG, MP4, or WebM files', 'error');
+        mediaInput.value = null;
+        mediaPreview.innerHTML = '';
+        throw new Error('Unsupported file type');
+      }
+
+      if (file.size > 5 * 1024 * 1024) {
+        console.log(`[${new Date().toISOString()}] File size exceeds 5MB limit`);
+        Swal.fire('File too large', 'Maximum file size is 5MB', 'error');
+        mediaInput.value = null;
+        mediaPreview.innerHTML = '';
+        throw new Error('File size exceeds 5MB');
+      }
+
+      try {
+        const result = await compressMedia(file);
+        if (file.type.startsWith('image/')) {
+          mediaUrl = result;
+          mediaType = 'image';
+        } else {
+          mediaUrl = result.video;
+          thumbnailUrl = result.thumbnail;
+          mediaType = 'video';
+        }
+      } catch (error) {
+        console.error(`[${new Date().toISOString()}] Error compressing media:`, error);
+        Swal.fire('Error', 'Failed to process media.', 'error');
+        throw error;
+      }
+
+      if (mediaUrl.length > 3 * 1024 * 1024 * 4 / 3) {
+        console.log(`[${new Date().toISOString()}] Base64 string exceeds 3MB limit: ${mediaUrl.length} chars`);
+        Swal.fire('Media too large', 'Compressed media exceeds 3MB limit. Try a smaller file.', 'error');
+        mediaInput.value = null;
+        mediaPreview.innerHTML = '';
+        throw new Error('Base64 string too large');
+      }
+
+      console.log(`[${new Date().toISOString()}] Media processed successfully: ${mediaUrl.length} chars`);
+    }
+
+    const { contactPerson, organization } = await fetchUserData(user.uid);
+    const post = {
+      title: title || '',
+      content: content,
+      userId: user.uid,
+      userName: contactPerson,
+      organization: organization,
+      timestamp: firebase.database.ServerValue.TIMESTAMP,
+      mediaUrl: mediaUrl,
+      mediaType: mediaType,
+      thumbnailUrl: thumbnailUrl
+    };
+
+    console.log(`[${new Date().toISOString()}] Writing post to database:`, { ...post, mediaUrl: mediaUrl ? `${mediaUrl.slice(0, 50)}...` : '' });
     await database.ref('posts').push(post);
     await logActivity(`${contactPerson}${organization ? ` from ${organization}` : ''} created a new post`);
     modalPostTitle.value = '';
@@ -185,19 +283,22 @@ async function createPost() {
     mediaPreview.innerHTML = '';
     modal.style.display = 'none';
     modalPostContent.style.height = '80px';
-    console.log('Post created successfully');
+    console.log(`[${new Date().toISOString()}] Post created successfully`);
     Swal.fire('Success', 'Post created successfully!', 'success');
+
+    const modalButtons = modal.querySelectorAll('.modal-buttons .post-option');
+    modalButtons.forEach(btn => btn.style.display = 'inline-block');
   } catch (error) {
-    console.error('Error creating post:', error.code, error.message);
-    Swal.fire('Error creating post', `Failed to create post: ${error.message}`, 'error');
+    console.error(`[${new Date().toISOString()}] Error creating post:`, error.message);
+    Swal.fire('Error', `Failed to create post: ${error.message}`, 'error');
   } finally {
     postButton.classList.remove('loading');
-    modal.classList.remove('loading');
+    modal.classList.remove('disabled');
   }
 }
 
 async function sharePost(id) {
-  console.log('sharePost called for post:', id);
+  console.log(`[${new Date().toISOString()}] sharePost called for post: ${id}`);
   if (!user) {
     Swal.fire('Please log in to share posts', '', 'warning');
     return;
@@ -208,7 +309,7 @@ async function sharePost(id) {
   const shareCaptionInput = document.getElementById('share-caption-input');
   const originalCreator = document.getElementById('share-original-creator');
   if (!modal || !shareContent || !shareCaptionInput || !originalCreator) {
-    console.error('Share modal elements missing');
+    console.error(`[${new Date().toISOString()}] Share modal elements missing`);
     Swal.fire('Error', 'Share modal elements not found. Please try refreshing the page.', 'error');
     return;
   }
@@ -222,14 +323,14 @@ async function sharePost(id) {
     }
 
     const { contactPerson } = await fetchUserData(user.uid);
-    modal.dataset.postId = id; // Set postId for submitSharePost
+    modal.dataset.postId = id;
     originalCreator.textContent = originalPost.userName;
     let mediaHtml = '';
     if (originalPost.mediaUrl) {
       if (originalPost.mediaType === 'image') {
         mediaHtml = `<img src="${originalPost.mediaUrl}" class="post-media" alt="Post media" onerror="this.style.display='none'">`;
       } else if (originalPost.mediaType === 'video') {
-        mediaHtml = `<video src="${originalPost.mediaUrl}" class="post-media" controls onerror="this.style.display='none'"></video>`;
+        mediaHtml = `<video src="${originalPost.mediaUrl}" class="post-media" poster="${originalPost.thumbnailUrl || ''}" controls></video>`;
       }
     }
 
@@ -242,23 +343,29 @@ async function sharePost(id) {
     modal.style.display = 'block';
     shareCaptionInput.focus();
   } catch (error) {
-    console.error('Error preparing share modal:', error.code, error.message);
+    console.error(`[${new Date().toISOString()}] Error preparing share modal:`, error);
     Swal.fire('Error', 'Failed to load post for sharing.', 'error');
   }
 }
 
 async function submitSharePost() {
+  console.log(`[${new Date().toISOString()}] submitSharePost called`);
+  if (!user) {
+    Swal.fire('Please log in to share posts', '', 'warning');
+    return;
+  }
+
   const modal = document.getElementById('share-post-modal');
   const shareCaptionInput = document.getElementById('share-caption-input');
   if (!modal || !shareCaptionInput) {
-    console.error('Share modal elements missing');
+    console.error(`[${new Date().toISOString()}] Share modal elements missing`);
     Swal.fire('Error', 'Share modal elements not found.', 'error');
     return;
   }
 
   const postId = modal.dataset.postId;
   if (!postId) {
-    console.error('Post ID not set in share modal');
+    console.error(`[${new Date().toISOString()}] Post ID not set in share modal`);
     Swal.fire('Error', 'Invalid post ID.', 'error');
     return;
   }
@@ -282,6 +389,7 @@ async function submitSharePost() {
       timestamp: firebase.database.ServerValue.TIMESTAMP,
       mediaUrl: originalPost.mediaUrl,
       mediaType: originalPost.mediaType,
+      thumbnailUrl: originalPost.thumbnailUrl,
       originalPostId: postId,
       originalUserName: originalPost.userName,
       isShared: true,
@@ -292,16 +400,16 @@ async function submitSharePost() {
     await logActivity(`${contactPerson}${organization ? ` from ${organization}` : ''} shared a post`);
     modal.style.display = 'none';
     shareCaptionInput.value = '';
-    delete modal.dataset.postId; // Clean up
+    delete modal.dataset.postId;
     Swal.fire('Success', 'Post shared successfully!', 'success');
   } catch (error) {
-    console.error('Error sharing post:', error.code, error.message);
-    Swal.fire('Error sharing post', `Failed to share post: ${error.message}`, 'error');
+    console.error(`[${new Date().toISOString()}] Error sharing post:`, error);
+    Swal.fire('Error', `Failed to share post: ${error.message}`, 'error');
   }
 }
 
 async function addComment(postId, parentCommentId = null) {
-  console.log('addComment called for post:', postId, 'parent:', parentCommentId);
+  console.log(`[${new Date().toISOString()}] addComment called for post: ${postId}, parent: ${parentCommentId}`);
   if (!user) {
     Swal.fire('Please log in to comment', '', 'warning');
     return;
@@ -309,7 +417,7 @@ async function addComment(postId, parentCommentId = null) {
 
   const commentInput = document.getElementById(parentCommentId ? `reply-input-${parentCommentId}` : `comment-input-${postId}`);
   if (!commentInput) {
-    console.error('Comment input not found for post:', postId, 'parent:', parentCommentId);
+    console.error(`[${new Date().toISOString()}] Comment input not found for post: ${postId}, parent: ${parentCommentId}`);
     return;
   }
 
@@ -343,15 +451,15 @@ async function addComment(postId, parentCommentId = null) {
         await logActivity(`${contactPerson}${organization ? ` from ${organization}` : ''} ${parentCommentId ? 'replied to' : 'commented on'} a post`);
         Swal.fire('Success', 'Comment posted successfully!', 'success');
       } catch (error) {
-        console.error('Error adding comment:', error.code, error.message);
-        Swal.fire('Error adding comment', `Failed to add comment: ${error.message}`, 'error');
+        console.error(`[${new Date().toISOString()}] Error adding comment:`, error);
+        Swal.fire('Error', `Failed to add comment: ${error.message}`, 'error');
       }
     }
   });
 }
 
 async function deleteComment(postId, commentId) {
-  console.log('deleteComment called for post:', postId, 'comment:', commentId);
+  console.log(`[${new Date().toISOString()}] deleteComment called for post: ${postId}, comment: ${commentId}`);
   if (!user) {
     Swal.fire('Please log in to delete comments', '', 'warning');
     return;
@@ -386,8 +494,8 @@ async function deleteComment(postId, commentId) {
         await logActivity(`${contactPerson}${organization ? ` from ${organization}` : ''} deleted a comment`);
         Swal.fire('Success', 'Comment deleted successfully!', 'success');
       } catch (error) {
-        console.error('Error deleting comment:', error.code, error.message);
-        Swal.fire('Error deleting comment', `Failed to delete comment: ${error.message}`, 'error');
+        console.error(`[${new Date().toISOString()}] Error deleting comment:`, error);
+        Swal.fire('Error', `Failed to delete comment: ${error.message}`, 'error');
       }
     }
   });
@@ -401,14 +509,14 @@ function toggleComments(postId) {
     if (commentsSection.style.display === 'none' || !commentsSection.style.display) {
       commentsSection.style.display = 'block';
       commentButton.classList.add('active');
-      commentCounter.innerHTML = `<i class='bx bx-x'></i>Close Comments`;
+      commentCounter.innerHTML = `<i class='bx bx-comment'></i> Close Comments`;
       loadComments(postId);
     } else {
       commentsSection.style.display = 'none';
       commentButton.classList.remove('active');
       database.ref(`posts/${postId}/comments`).once('value').then(snap => {
         const commentCount = snap.numChildren();
-        commentCounter.innerHTML = `<strong style="font-size: 16px;">${commentCount}</strong> ${commentCount === 1 ? 'Comment' : 'Comments'}`;
+        commentCounter.innerHTML = `<i class='bx bx-comment'></i> ${commentCount} ${commentCount === 1 ? 'Comment' : 'Comments'}`;
       });
     }
   }
@@ -417,7 +525,7 @@ function toggleComments(postId) {
 async function loadComments(postId) {
   const commentsContainer = document.getElementById(`comments-${postId}`);
   if (!commentsContainer) {
-    console.error('Comments container not found for post:', postId);
+    console.error(`[${new Date().toISOString()}] Comments container not found for post: ${postId}`);
     return;
   }
 
@@ -432,7 +540,7 @@ async function loadComments(postId) {
       commentsContainer.innerHTML = '<p>No comments yet.</p>';
     }
   }, (error) => {
-    console.error('Error loading comments:', error.code, error.message);
+    console.error(`[${new Date().toISOString()}] Error loading comments:`, error);
     commentsContainer.innerHTML = '<p>Error loading comments.</p>';
   });
 }
@@ -513,10 +621,10 @@ function toggleReplyInput(postId, commentId) {
 }
 
 async function loadPosts() {
-  console.log('Loading posts from database');
+  console.log(`[${new Date().toISOString()}] Loading posts`);
   const postsContainer = document.getElementById('posts');
   if (!postsContainer) {
-    console.error('Posts container not found');
+    console.error(`[${new Date().toISOString()}] Posts container not found`);
     Swal.fire('Error', 'Posts container not found. Please try refreshing the page.', 'error');
     return;
   }
@@ -525,15 +633,11 @@ async function loadPosts() {
     postsContainer.innerHTML = '';
     const posts = snapshot.val();
     if (posts) {
-      console.log('Posts retrieved:', Object.keys(posts).length);
+      console.log(`[${new Date().toISOString()}] Posts retrieved: ${Object.keys(posts).length}`);
       const postArray = Object.entries(posts).map(([id, post]) => ({ id, ...post }));
-      // Sort based on sortOrder
-      postArray.sort((a, b) => {
-        return sortOrder === 'newest' ? b.timestamp - a.timestamp : a.timestamp - b.timestamp;
-      });
+      postArray.sort((a, b) => sortOrder === 'newest' ? b.timestamp - a.timestamp : a.timestamp - b.timestamp);
 
       for (const { id, ...post } of postArray) {
-        console.log('Rendering post:', id, 'userName:', post.userName);
         const postElem = document.createElement('div');
         postElem.className = 'post';
         postElem.id = `post-${id}`;
@@ -543,7 +647,7 @@ async function loadPosts() {
           if (post.mediaType === 'image') {
             mediaHtml = `<img src="${post.mediaUrl}" class="post-media" alt="Post media" onerror="this.style.display='none'">`;
           } else if (post.mediaType === 'video') {
-            mediaHtml = `<video src="${post.mediaUrl}" class="post-media" controls onerror="this.style.display='none'"></video>`;
+            mediaHtml = `<video src="${post.mediaUrl}" class="post-media" poster="${post.thumbnailUrl || ''}" controls></video>`;
           }
         }
 
@@ -551,7 +655,7 @@ async function loadPosts() {
         const isShared = post.isShared || false;
         const sharedInfo = isShared ? `<small class="shared-info">Shared from ${post.originalUserName}'s post</small>` : '';
         const contentWrapperStyle = isShared ? `style="border-color: transparent;"` : '';
-        const contenthr = isShared ? `<hr>` : '';
+        const contentHr = isShared ? `<hr>` : '';
         const captionHtml = isShared && post.shareCaption ? `<p class="share-caption">${post.shareCaption}</p>` : '';
 
         const commentCount = await database.ref(`posts/${id}/comments`).once('value').then(snap => snap.numChildren());
@@ -569,7 +673,7 @@ async function loadPosts() {
             </div>
             ${canEdit ? `
               <div class="post-menu">
-                <button class="menu-button"><i class='bx bx-dots-vertical-rounded'></i></button>
+                <button class="menu-button"><i class='bx bx-dots-horizontal-rounded'></i></button>
                 <div class="menu-dropdown" style="display: none;">
                   <button onclick="toggleEdit('${id}', '${post.userId}')">Edit</button>
                   <button onclick="deletePost('${id}')">Delete</button>
@@ -577,14 +681,14 @@ async function loadPosts() {
               </div>
             ` : ''}
           </div>
-          ${contenthr}
+          ${contentHr}
           <div class="post-content-wrapper" ${contentWrapperStyle}>
             ${post.title ? `<h4 class="post-title" contenteditable="false">${post.title}</h4>` : '<h4 class="post-title" contenteditable="false" style="display: none;"></h4>'}
             <p class="post-content" contenteditable="false">${post.content}</p>
             ${mediaHtml}
             <div class="post-actions">
               <div class="comment-counter" onclick="toggleComments('${id}')">
-                <strong style="font-size: 16px;">${commentCount} </strong>${commentCount === 1 ? 'Comment' : 'Comments'}
+                <i class='bx bx-comment'></i> ${commentCount} ${commentCount === 1 ? 'Comment' : 'Comments'}
               </div>
               <div class="action-buttons">
                 <button class="share-button" onclick="sharePost('${id}')"><i class='bx bx-share'></i></button>
@@ -596,7 +700,7 @@ async function loadPosts() {
               <div class="comment-input">
                 <div class="input-container">
                   <textarea id="comment-input-${id}" placeholder="Add a comment..."></textarea>
-                  <button class="send-comment" onclick="addComment('${id}')"><i class='bx bx-send'></i></button>
+                  <button class="send-button" onclick="addComment('${id}')"><i class='bx bx-send'></i></button>
                 </div>
               </div>
               <hr class="comment-divider">
@@ -623,23 +727,23 @@ async function loadPosts() {
       postsContainer.innerHTML = '<p>No posts available.</p>';
     }
   }, (error) => {
-    console.error('Error loading posts:', error.code, error.message);
-    Swal.fire('Error loading posts', `Failed to load posts: ${error.message}`, 'error');
+    console.error(`[${new Date().toISOString()}] Error loading posts:`, error);
+    Swal.fire('Error', `Failed to load posts: ${error.message}`, 'error');
     postsContainer.innerHTML = '<p>Error loading posts.</p>';
   });
 }
 
 async function toggleEdit(id, postUserId) {
-  console.log('toggleEdit called for post:', id);
+  console.log(`[${new Date().toISOString()}] toggleEdit called for post: ${id}`);
   const postElem = document.getElementById(`post-${id}`);
   if (!postElem) {
-    console.error('Post element not found:', id);
+    console.error(`[${new Date().toISOString()}] Post element not found: ${id}`);
     Swal.fire('Error', 'Post not found. Please try refreshing the page.', 'error');
     return;
   }
 
   if (!user || user.uid !== postUserId) {
-    console.error('Unauthorized edit attempt for post:', id, 'by user:', user?.uid);
+    console.error(`[${new Date().toISOString()}] Unauthorized edit attempt for post: ${id}, by user: ${user?.uid}`);
     Swal.fire('Error', 'You are not authorized to edit this post.', 'error');
     return;
   }
@@ -648,7 +752,7 @@ async function toggleEdit(id, postUserId) {
   const contentElem = postElem.querySelector('.post-content');
   const menuDropdown = postElem.querySelector('.menu-dropdown');
   if (!titleElem || !contentElem || !menuDropdown) {
-    console.error('Post title, content, or menu dropdown not found for post:', id);
+    console.error(`[${new Date().toISOString()}] Post title, content, or menu dropdown not found for post: ${id}`);
     Swal.fire('Error', 'Post elements not found. Please try refreshing the page.', 'error');
     return;
   }
@@ -659,7 +763,7 @@ async function toggleEdit(id, postUserId) {
     if (!titleElem.textContent.trim()) titleElem.style.display = 'none';
     menuDropdown.querySelector('button[onclick*="toggleEdit"]').textContent = 'Edit';
     try {
-      console.log('Updating post for:', id);
+      console.log(`[${new Date().toISOString()}] Updating post: ${id}`);
       await database.ref(`posts/${id}`).update({
         title: titleElem.textContent.trim(),
         content: contentElem.textContent.trim(),
@@ -667,11 +771,11 @@ async function toggleEdit(id, postUserId) {
       });
       const { contactPerson, organization } = await fetchUserData(user.uid);
       await logActivity(`${contactPerson}${organization ? ` from ${organization}` : ''} edited a post`);
-      console.log('Post updated successfully:', id);
+      console.log(`[${new Date().toISOString()}] Post updated successfully: ${id}`);
       Swal.fire('Success', 'Post updated successfully!', 'success');
     } catch (error) {
-      console.error('Error updating post:', error.code, error.message);
-      Swal.fire('Error updating post', `Failed to update post: ${error.message}`, 'error');
+      console.error(`[${new Date().toISOString()}] Error updating post:`, error);
+      Swal.fire('Error', `Failed to update post: ${error.message}`, 'error');
     }
   } else {
     titleElem.setAttribute('contenteditable', 'true');
@@ -683,40 +787,31 @@ async function toggleEdit(id, postUserId) {
 }
 
 async function deletePost(id) {
-  console.log('deletePost called for post:', id);
+  console.log(`[${new Date().toISOString()}] deletePost called for post: ${id}`);
   const post = (await database.ref(`posts/${id}`).once('value')).val();
   if (!user || user.uid !== post.userId) {
-    console.error('Unauthorized delete attempt for post:', id, 'by user:', user?.uid);
+    console.error(`[${new Date().toISOString()}] Unauthorized delete attempt for post: ${id}, by user: ${user?.uid}`);
     Swal.fire('Error', 'You are not authorized to delete this post.', 'error');
     return;
   }
 
-  if (post && post.mediaUrl) {
-    try {
-      console.log('Deleting media:', post.mediaUrl);
-      await storage.refFromURL(post.mediaUrl).delete();
-      console.log('Media deleted successfully');
-    } catch (error) {
-      console.error('Error deleting media:', error.code, error.message);
-    }
-  }
-
   try {
-    console.log('Removing post from database:', id);
+    console.log(`[${new Date().toISOString()}] Deleting post from database: ${id}`);
     await database.ref(`posts/${id}`).remove();
     const { contactPerson, organization } = await fetchUserData(user.uid);
     await logActivity(`${contactPerson}${organization ? ` from ${organization}` : ''} deleted a post`);
-    console.log('Post deleted successfully:', id);
+    console.log(`[${new Date().toISOString()}] Post deleted successfully: ${id}`);
+    Swal.fire('Success', 'Post deleted successfully!', 'success');
   } catch (error) {
-    console.error('Error deleting post:', error.code, error.message);
-    Swal.fire('Error deleting post', `Failed to delete post: ${error.message}`, 'error');
+    console.error(`[${new Date().toISOString()}] Error deleting post:`, error);
+    Swal.fire('Error', `Failed to delete post: ${error.message}`, 'error');
   }
 }
 
 async function logActivity(message) {
-  console.log('Logging activity:', message);
+  console.log(`[${new Date().toISOString()}] Logging activity: ${message}`);
   if (!user) {
-    console.error('No user logged in, cannot log activity');
+    console.error(`[${new Date().toISOString()}] No user logged in, cannot log activity`);
     return;
   }
   try {
@@ -725,19 +820,19 @@ async function logActivity(message) {
       timestamp: firebase.database.ServerValue.TIMESTAMP
     });
   } catch (error) {
-    console.error('Error logging activity:', error.code, error.message);
+    console.error(`[${new Date().toISOString()}] Error logging activity:`, error);
   }
 }
 
 async function loadActivityLog() {
-  console.log('Loading activity log from database');
+  console.log(`[${new Date().toISOString()}] Loading activity log`);
   const log = document.getElementById('activity-log');
   if (!log) {
-    console.error('Activity log container not found');
+    console.error(`[${new Date().toISOString()}] Activity log container not found`);
     return;
   }
   if (!user) {
-    console.error('No user logged in, cannot load activity log');
+    console.error(`[${new Date().toISOString()}] No user logged in, cannot load activity log`);
     log.innerHTML = '<p>Please log in to view your activity.</p>';
     return;
   }
@@ -757,112 +852,145 @@ async function loadActivityLog() {
       log.innerHTML = '<p>No activity available.</p>';
     }
   }, (error) => {
-    console.error('Error loading activity log:', error.code, error.message);
+    console.error(`[${new Date().toISOString()}] Error loading activity log:`, error);
     log.innerHTML = '<p>Error loading activity.</p>';
   });
 }
 
 function setupModal() {
-  // Post Creation Modal
-  const postModal = document.getElementById('post-modal');
+  const modal = document.getElementById('post-modal');
+  if (!modal) {
+    console.error(`[${new Date().toISOString()}] Post modal not found`);
+    Swal.fire('Error', 'Post modal not found. Please reload the page.', 'error');
+    return;
+  }
+
   const postCloseButton = document.querySelector('#post-modal .close-button');
   const postButtons = document.querySelectorAll('.post-option');
   const modalPostContent = document.getElementById('modal-post-content');
   const mediaInput = document.getElementById('modal-media-upload');
   const mediaPreview = document.getElementById('modal-media-preview');
-
-  // Share Post Modal
+  const tapToUploadButton = document.getElementById('tap-to-upload');
   const shareModal = document.getElementById('share-post-modal');
   const shareCloseButton = document.querySelector('#share-post-modal .close-button');
   const shareCancelButton = document.getElementById('share-cancel-button');
   const shareSubmitButton = document.getElementById('share-submit-button');
-
-  // Sort Button
   const sortButton = document.getElementById('sort-posts-button');
 
-  function autoResizeTextarea() {
+  function resizeTextarea() {
     modalPostContent.style.height = 'auto';
     const newHeight = Math.max(modalPostContent.scrollHeight, 80);
     modalPostContent.style.height = `${newHeight}px`;
-    console.log('Textarea resized to:', newHeight, 'px');
+    console.log(`[${new Date().toISOString()}] Textarea resized to: ${newHeight}px`);
   }
 
   let resizeTimeout;
   function debouncedResize() {
     clearTimeout(resizeTimeout);
-    resizeTimeout = setTimeout(autoResizeTextarea, 50);
+    resizeTimeout = setTimeout(resizeTextarea, 50);
   }
 
-  // Post Modal Setup
-  if (postButtons && modalPostContent && mediaInput && mediaPreview && postCloseButton) {
+  if (postButtons && modalPostContent && mediaInput && modal && postCloseButton && tapToUploadButton) {
     postButtons.forEach(button => {
       button.addEventListener('click', () => {
         postButtons.forEach(btn => btn.classList.remove('active'));
         button.classList.add('active');
-        
+
         const type = button.dataset.type;
-        postModal.style.display = 'block';
-        
-        if (type === 'image' || type === 'video') {
-          mediaInput.accept = type === 'image' ? 'image/jpeg,image/png' : 'video/mp4,video/webm';
+        modal.style.display = 'block';
+
+        const modalButtons = modal.querySelectorAll('.modal-buttons .post-option');
+        modalButtons.forEach(btn => {
+          btn.style.display = btn.dataset.type === type ? 'none' : 'inline-block';
+        });
+
+        tapToUploadButton.style.display = 'none';
+        tapToUploadButton.textContent = 'Tap to Upload Image';
+        mediaInput.value = '';
+        mediaPreview.innerHTML = '';
+
+        if (type === 'image') {
+          mediaInput.accept = 'image/jpeg,image/png';
+          tapToUploadButton.style.display = 'block';
+          setTimeout(() => {
+            mediaInput.click();
+            console.log(`[${new Date().toISOString()}] File explorer triggered for image upload`);
+          }, 0);
+        } else if (type === 'video') {
+          mediaInput.accept = 'video/mp4,video/webm';
           mediaInput.click();
         } else if (type === 'link') {
           modalPostContent.placeholder = 'Paste your link here';
           modalPostContent.focus();
-          autoResizeTextarea();
+          resizeTextarea();
         } else {
           modalPostContent.placeholder = "What's on your mind?";
           modalPostContent.focus();
-          autoResizeTextarea();
+          resizeTextarea();
         }
       });
     });
 
+    tapToUploadButton.addEventListener('click', () => {
+      console.log(`[${new Date().toISOString()}] Tap to Upload button clicked`);
+      mediaInput.click();
+    });
+
     postCloseButton.addEventListener('click', () => {
-      postModal.style.display = 'none';
+      modal.style.display = 'none';
       modalPostContent.value = '';
       document.getElementById('modal-post-title').value = '';
       modalPostContent.placeholder = "What's on your mind?";
       modalPostContent.style.height = '80px';
       mediaInput.value = '';
       mediaPreview.innerHTML = '';
+      tapToUploadButton.style.display = 'none';
+      tapToUploadButton.textContent = 'Tap to Upload Image';
+      const modalButtons = modal.querySelectorAll('.modal-buttons .post-option');
+      modalButtons.forEach(btn => btn.style.display = 'inline-block');
     });
 
     mediaInput.addEventListener('change', (event) => {
-      console.log('Media input changed');
+      console.log(`[${new Date().toISOString()}] Media input changed`);
       const file = event.target.files[0];
       mediaPreview.innerHTML = '';
       if (file) {
         if (!['image/jpeg', 'image/png', 'video/mp4', 'video/webm'].includes(file.type)) {
-          console.log('Invalid file type selected:', file.type);
-          Swal.fire('Unsupported file type', 'Please upload JPEG/PNG images or MP4/WEBM videos', 'error');
+          console.log(`[${new Date().toISOString()}] Invalid file type selected: ${file.type}`);
+          Swal.fire('Unsupported file type', 'Please upload JPEG, PNG, MP4, or WebM files', 'error');
           event.target.value = '';
+          tapToUploadButton.textContent = 'Tap to Upload Image';
           return;
         }
-        console.log('Previewing file:', file.name);
+        console.log(`[${new Date().toISOString()}] Previewing file: ${file.name}`);
+        tapToUploadButton.textContent = 'Image Selected';
+        tapToUploadButton.classList.add('image-selected');
         if (file.type.startsWith('image/')) {
           const img = document.createElement('img');
           img.src = URL.createObjectURL(file);
           img.className = 'media-preview';
           mediaPreview.appendChild(img);
-        } else if (file.type.startsWith('video/')) {
+        } else {
           const video = document.createElement('video');
           video.src = URL.createObjectURL(file);
           video.className = 'media-preview';
           video.controls = true;
           mediaPreview.appendChild(video);
         }
+      } else {
+        tapToUploadButton.textContent = 'Tap to Upload Image';
+        tapToUploadButton.classList.remove('image-selected');
       }
     });
 
     modalPostContent.addEventListener('input', debouncedResize);
-    modalPostContent.addEventListener('focus', autoResizeTextarea);
-    modalPostContent.addEventListener('change', autoResizeTextarea);
+    modalPostContent.addEventListener('focus', resizeTextarea);
+    modalPostContent.addEventListener('change', resizeTextarea);
   } else {
-    console.error('Post modal elements missing');
+    console.error(`[${new Date().toISOString()}] Post modal elements missing`);
+    Swal.fire('Error', 'Post modal elements missing. Please try refreshing the page.', 'error');
   }
 
-  // Share Modal Setup
   function closeShareModal() {
     if (shareModal) {
       shareModal.style.display = 'none';
@@ -877,16 +1005,13 @@ function setupModal() {
   if (shareCloseButton) {
     shareCloseButton.addEventListener('click', closeShareModal);
   }
-
   if (shareCancelButton) {
     shareCancelButton.addEventListener('click', closeShareModal);
   }
-
   if (shareSubmitButton) {
     shareSubmitButton.addEventListener('click', submitSharePost);
   }
 
-  // Sort Button
   if (sortButton) {
     sortButton.addEventListener('click', () => {
       sortOrder = sortOrder === 'newest' ? 'oldest' : 'newest';
@@ -898,29 +1023,28 @@ function setupModal() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('DOMContentLoaded: Initializing');
+  console.log(`[${new Date().toISOString()}] DOMContentLoaded: Initializing`);
   setupModal();
-  
-  if (typeof initializeDashboard === 'function') {
+  if (typeof initializeDashboard !== 'undefined') {
     initializeDashboard();
   } else {
-    console.error('initializeDashboard function not found');
+    console.warn(`[${new Date().toISOString()}] initializeDashboard function not found`);
   }
 
   const postButton = document.getElementById('modal-post-button');
   if (postButton) {
     postButton.addEventListener('click', createPost);
   } else {
-    console.error('Post button not found');
+    console.error(`[${new Date().toISOString()}] Post button not found`);
     Swal.fire('Error', 'Post button not found. Please try reloading the page.', 'error');
   }
 });
 
 window.addEventListener('dashboard-loaded', () => {
-  console.log('dashboard-loaded event: Initializing');
-  if (typeof initializeDashboard === 'function') {
+  console.log(`[${new Date().toISOString()}] dashboard-loaded event: Initializing`);
+  if (typeof initializeDashboard !== 'undefined') {
     initializeDashboard();
   } else {
-    console.error('initializeDashboard function not found');
+    console.warn(`[${new Date().toISOString()}] initializeDashboard function not found`);
   }
 });

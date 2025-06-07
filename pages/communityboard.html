@@ -23,7 +23,9 @@
       <header>Community Board</header>
       <div class="post-container">
         <div class="post-creator">
+          
           <div class="post-buttons">
+            <button id="sort-posts-button" ><i class='bx bx-sort-up'></i>Sort Posts</button>
             <button class="post-option" data-type="text"><i class='bx bx-text'></i> Text</button>
             <button class="post-option" data-type="image"><i class='bx bx-image'></i> Image</button>
             <button class="post-option" data-type="video"><i class='bx bx-video'></i> Video</button>
@@ -49,14 +51,16 @@
           <strong id="modal-user-name">Loading...</strong>
           <small id="modal-user-org"></small>
         </div>
-        <hr class="full-width-hr" style="position:absolute; top: 60px;">
+        <hr class="full-width-hr" style="margin-top: 50px;">
         <div class="modal-input-area">
           <input type="text" id="modal-post-title" placeholder="Title" maxlength="100">
-          <textarea id="modal-post-content" placeholder="What's on your mind?"></textarea>
           <div class="media-upload">
             <input type="file" id="modal-media-upload" accept="image/jpeg,image/png,video/mp4,video/webm" style="display: none;">
+            <button id="tap-to-upload" style="display: none;">Tap to Upload Image</button>
             <div id="modal-media-preview"></div>
           </div>
+          <textarea id="modal-post-content" placeholder="What's on your mind?" style="resize: none;"></textarea>
+          
         </div>
         <div class="modal-footer">
           <hr class="full-width-hr" > 
@@ -76,7 +80,7 @@
     <div class="modal-content">
 
       <div class="modal-header">
-        <span class="close-button">&times;</span>
+        <span class="close-button">×</span>
         <div class="share-header">
           <strong id="share-modal-user-name"></strong>
           <i class='bx bx-share'></i>
