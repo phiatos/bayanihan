@@ -15,103 +15,98 @@
 
   <!-- SweetAlert2 -->
   <script defer src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
 </head>
 <body>
-
   <script defer src="./index.js"></script>
   <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBDtlY28p-MvLHRtxnjiibSAadSETvM3VU&libraries=places&callback=initializeMap"></script>
 
   <!-- Navigation -->
   <header class="navbar">
-  <div class="navbar-container">
-    <div class="logo">
-      <img src="./assets/images/AB_logo.png" alt="Angat Buhay Logo" />
+    <div class="navbar-container">
+      <div class="logo">
+        <img src="./assets/images/AB_logo.png" alt="Angat Buhay Logo" />
+      </div>
+      <nav>
+        <ul class="nav-links">
+          <li><a href="./index.html">Home</a></li>
+          <li><a href="./pages/donatenearme.html">Donate Near Me</a></li>
+          <li><a href="./pages/joinasvolunteerorg.html">Join as Volunteer Org</a></li>
+          <li><a href="./pages/beavolunteer.html">Be a Volunteer</a></li>
+          <li><a href="./pages/askbayanihan.html">Ask Bayanihan</a></li>
+          <li><a href="./pages/login.html">Bayanihan</a></li>
+        </ul>
+      </nav>
     </div>
-    <nav>
-      <ul class="nav-links">
-        <li><a href="./index.html">Home</a></li>
-        <li><a href="./pages/donatenearme.html">Donate Near Me</a></li>
-        <li><a href="./pages/joinasvolunteerorg.html">Join as Volunteer Org</a></li>
-        <li><a href="./pages/beavolunteer.html">Be a Volunteer</a></li>
-        <li><a href="./pages/askbayanihan.html">Ask Bayanihan</a></li>
-        <li><a href="./pages/login.html">Bayanihan</a></li>
-      </ul>
-    </nav>
-  </div>
-</header>
+  </header>
 
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="hero-image-wrapper">
+      <img src="./assets/images/launchpage-bg.png" alt="Angat Buhay Background" />
+      <div class="hero-text">
+        <p>
+          <strong> Angat Pinas, Inc., </strong> commonly known as <strong>Angat Buhay</strong>, is a Filipino non-profit organization that aims to empower Filipinos to become communities of active citizens by mobilizing the largest volunteer network in implementing Bayanihan programs.
+        </p>
+      </div>
+    </div>
+  </section>
 
-<!-- Hero Section -->
-<section class="hero">
-  <div class="hero-image-wrapper">
-    <img src="./assets/images/launchpage-bg.png" alt="Angat Buhay Background" />
-    <div class="hero-text">
-      <p>
-        <strong> Angat Pinas, Inc., </strong> commonly known as <strong>Angat Buhay</strong>, is a Filipino non-profit organization that aims to empower Filipinos to become communities of active citizens by mobilizing the largest volunteer network in implementing Bayanihan programs.
+  <!-- Operations Section -->
+  <section class="operations">
+    <div class="operations-details">
+      <h1 class="relief-header">Angat Buhay Relief Operations</h1>
+      <p class="relief-description">
+        Angat Buhay operates nationwide, implementing programs, projects, and activities with partners and volunteers from different parts of Luzon, Visayas, and Mindanao, and focusing communities with limited access to education, nutrition and health services, as well as disaster-stricken areas.
       </p>
     </div>
-  </div>
-</section>
 
-<!-- Operations Section -->
- <section class="operations">
-
-  <div class="operations-details">
-  <h1 class="relief-header">Angat Buhay Relief Operations</h1>
-  <p class="relief-description">
-    Angat Buhay operates nationwide, implementing programs, projects, and activities with partners and volunteers from different parts of Luzon, Visayas, and Mindanao, and focusing communities with limited access to education, nutrition and health services, as well as disaster-stricken areas.
-  </p>
-  </div>
-
-  <div class="map-container">
-    <div id="map" class="map"></div>
-   </div>
+    <div class="map-container">
+      <div id="map" class="map"></div>
+    </div>
 
     <div class="metrics-container">
       <p class="operation-updates">As of June 9, 2025</p>
 
       <div class="row">
-      <div class="metric-card" tabindex="0" data-description="Total number of Evacuees Assisted">
-          <h3> <i class='bx bxs-box' aria-hidden="true"></i>No. of Evacuees</h3>
-          <p id="food-packs" aria-live="polite" aria-atomic="true">0</p>
-      </div>
+        <div class="metric-card" tabindex="0" data-description="Total number of Evacuees Assisted">
+          <h3><i class='bx bxs-box' aria-hidden="true"></i> No. of Evacuees</h3>
+          <p id="evacuees" aria-live="polite" aria-atomic="true">0</p>
+        </div>
 
-      <div class="metric-card" tabindex="0" data-description="Total number of food packs distributed to families">
-          <h3> <i class='bx bxs-box' aria-hidden="true"></i>No. of Food Packs</h3>
+        <div class="metric-card" tabindex="0" data-description="Total number of food packs distributed to families">
+          <h3><i class='bx bxs-box' aria-hidden="true"></i> No. of Food Packs</h3>
           <p id="food-packs" aria-live="polite" aria-atomic="true">0</p>
-      </div>
+        </div>
 
-      <div class="metric-card" tabindex="0" data-description="Total number of hot meals served">      
-        <h3> <i class='bx bxs-bowl-hot' aria-hidden="true"></i> No. of Hot Meals</h3>       
-        <p id="hot-meals" aria-live="polite" aria-atomic="true">0</p>   
-      </div>
+        <div class="metric-card" tabindex="0" data-description="Total number of hot meals served">      
+          <h3><i class='bx bxs-bowl-hot' aria-hidden="true"></i> No. of Hot Meals</h3>       
+          <p id="hot-meals" aria-live="polite" aria-atomic="true">0</p>   
+        </div>
     
-      <div class="metric-card" tabindex="0" data-description="Total liters of clean water provided">
-        <h3> <i class='bx bxs-droplet' aria-hidden="true"></i> Liters of Water</h3>         
-        <p id="water-liters" aria-live="polite" aria-atomic="true">0</p>
-      </div>
+        <div class="metric-card" tabindex="0" data-description="Total liters of clean water provided">
+          <h3><i class='bx bxs-droplet' aria-hidden="true"></i> Liters of Water</h3>         
+          <p id="water-liters" aria-live="polite" aria-atomic="true">0</p>
+        </div>
       </div>
       
       <div class="row center-row">  
-      <div class="metric-card" tabindex="0" data-description="Number of volunteers mobilized for the relief efforts">
-        <h3> <i class='bx bxs-group' aria-hidden="true"></i> Volunteers Mobilized</h3>
-        <p id="volunteers" aria-live="polite" aria-atomic="true">0</p>      
-      </div>
+        <div class="metric-card" tabindex="0" data-description="Number of volunteers mobilized for the relief efforts">
+          <h3><i class='bx bxs-group' aria-hidden="true"></i> Volunteers Mobilized</h3>
+          <p id="volunteers" aria-live="polite" aria-atomic="true">0</p>      
+        </div>
                 
-      <div class="metric-card" tabindex="0" data-description="Total monetary donations raised in Philippine Pesos">   
-        <h3>  <i class='bx bxs-bank' aria-hidden="true"></i> Monetary Donations</h3>   
-        <p id="amount-raised" aria-live="polite" aria-atomic="true">₱0</p>      
-      </div>
+        <div class="metric-card" tabindex="0" data-description="Total monetary donations raised in Philippine Pesos">   
+          <h3><i class='bx bxs-bank' aria-hidden="true"></i> Monetary Donations</h3>   
+          <p id="amount-raised" aria-live="polite" aria-atomic="true">₱0</p>      
+        </div>
                 
-      <div class="metric-card" tabindex="0" data-description="Total estimated value of in-kind donations received">            
-        <h3> <i class='bx bxs-package' aria-hidden="true"></i> In-Kind Donations</h3>
-        <p id="inkind-donations" aria-live="polite" aria-atomic="true">₱0</p>       
-      </div>
+        <div class="metric-card" tabindex="0" data-description="Total estimated value of in-kind donations received">            
+          <h3><i class='bx bxs-package' aria-hidden="true"></i> In-Kind Donations</h3>
+          <p id="inkind-donations" aria-live="polite" aria-atomic="true">₱0</p>       
+        </div>
       </div>        
-
     </div>
- </section>
+  </section>
 
   <!-- Footer -->
   <footer class="footer">
@@ -119,6 +114,5 @@
       <p>© 2025 Bayanihan | Angat Pinas Inc. All rights reserved. | Powered by Appvance</p>
     </div>
   </footer>
-
 </body>
 </html>

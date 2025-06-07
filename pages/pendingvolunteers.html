@@ -5,15 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../components/sidebar.css" />
     <link rel="stylesheet" href="../css/global.css" />
+    <link rel="stylesheet" href="../css/pending.css" />
     <link rel='stylesheet' href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css'/>
 
-    <!-- Firebase Compat SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
-    <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
     
     <title>Pending Volunteer Applications</title>
 </head>
@@ -36,24 +36,16 @@
                             <optgroup label="Assessment Info">
                                 <option value="DateTime-asc">Date & Time (Oldest First)</option>
                                 <option value="DateTime-desc">Date & Time (Newest First)</option>
-                                <option value="RDANAID-asc">RDANA ID (Ascending)</option>
-                                <option value="RDANAID-desc">RDANA ID (Descending)</option>
-                            </optgroup>
+                                </optgroup>
                             <optgroup label="Location">
                                 <option value="Location-asc">Location (A–Z)</option>
                                 <option value="Location-desc">Location (Z–A)</option>
                             </optgroup>
-                            <optgroup label="Disaster Details">
-                                <option value="DisasterType-asc">Disaster Type (A–Z)</option>
-                                <option value="DisasterType-desc">Disaster Type (Z–A)</option>
-                            </optgroup>
-                            <optgroup label="Impact">
-                                <option value="AffectedPopulation-desc">Affected Population (High to Low)</option>
-                                <option value="AffectedPopulation-asc">Affected Population (Low to High)</option>
-                            </optgroup>
-                            <optgroup label="Response Actions">
-                                <option value="Needs-asc">Priority Needs (A–Z)</option>
-                                <option value="Needs-desc">Priority Needs (Z–A)</option>
+                            <optgroup label="Volunteer Details">
+                                <option value="Name-asc">Name (A-Z)</option>
+                                <option value="Name-desc">Name (Z-A)</option>
+                                <option value="Age-asc">Age (Low to High)</option>
+                                <option value="Age-desc">Age (High to Low)</option>
                             </optgroup>
                         </select>
                         <i class='bx bx-chevron-down'></i>
@@ -82,6 +74,7 @@
                             <th>Province</th>
                             <th>City</th>
                             <th>Barangay</th>
+                            <th>Status Notes</th> 
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -91,8 +84,8 @@
 
             <div class="pagination-info">
                 <span id="entriesInfo">Showing 0 to 0 of 0 entries</span>
-                <div id="pagination" class="pagination"></div>
-            </div>   
+                <div id="pagination" class="pagination"></div> 
+            </div>    
         </div>
     </div>
 
@@ -102,6 +95,34 @@
             <div id="modalContent"></div>
         </div>
     </div>
+
+    <div id="scheduleModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <span id="closeScheduleModal" class="close">×</span>
+            <h3>Schedule Volunteer Briefing</h3>
+            <form id="scheduleForm">
+                <label for="scheduleDateTime">Date and Time:</label>
+                <input type="datetime-local" id="scheduleDateTime" required>
+                
+                <button type="submit">Confirm Schedule & Send Email</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="endorseABVNModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <span id="closeEndorseABVNModal" class="close">×</span>
+            <h3>Endorse Volunteer to ABVN</h3>
+            <form id="endorseABVNForm">
+                <p>Select a nearby ABVN to endorse this volunteer:</p>
+                <div class="abvn-radio-group" id="abvnListContainer">
+                    <p>Loading ABVN locations...</p>
+                    </div>
+                <button type="submit" id="endorseABVNSubmitBtn" disabled>Endorse to Selected ABVN</button>
+            </form>
+        </div>
+    </div>
+
 
     <script>
         fetch('../components/sidebar.html')

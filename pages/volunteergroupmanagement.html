@@ -80,7 +80,7 @@
                 </div>
             </div> 
             
-            <div id="addressModal" class="modal" style="display:none;">
+            <!-- <div id="addressModal" class="modal" style="display:none;">
                 <div class="modal-content">
                     <span class="close" onclick="closeModal()" style="display: flex; justify-content: right;"> 
                         <i class='bx bx-x' style="font-size: 25px"></i>
@@ -110,33 +110,44 @@
                         <button onclick="applyChanges()">Save</button>
                     </div>
                 </div>
-            </div>
+            </div> -->
 
-            <div class="add-org-modal" id="addOrgModal" style="display: none;">
-                <div class="add-org-modal-content">
-                    <div class="add-org-header">
-                        <h2 style="color: #4059A5; font-size: 20px; justify-content: center; text-align: center;">Add New Volunteer Group</h2>
-                        <span class="close" onclick="closeAModal()" style="display: flex; justify-content: right;">
-                            <i class='bx bx-x' style="font-size: 25px "></i>
-                        </span>
-                    </div>
+            <!-- Register ABVN Modal -->
+            <div class="modal" id="addOrgModal" style="display: none;">
+                <div class="modal-content">
+                    <span class="close-button" id="closeModalBtn">×</span>
+                    <h4 id="modalTitle">Add Volunteer Groups</h4>
                     <form id="addOrgForm">
                         <label>Organization</label>
-                        <input type="text" name="organization" placeholder="Enter Organization" required>
-                        <label>HQ Location (Barangay)</label>
-                        <input type="text" name="hq-barangay" placeholder="Enter HQ's Barangay" required>
-                        <label>HQ Location (City/ Municipality)</label>
-                        <input type="text" name="hq-city" placeholder="Enter HQ's City/ Municipality" required>
-                        <label>HQ Location (Province)</label>
-                        <input type="text" name="hq-province" placeholder="Enter HQ's Province" required>
+                        <input type="text" name="organization" id="organization" placeholder="Enter Organization" required>
+                        
+                        <label for="region">Region</label>
+                            <select id="region" name="region" required></select>
+                        <input type="hidden" id="region-text" name="hq-region-text"/>
+
+                        <label for="province">Province</label>
+                            <select id="province" name="province" required></select>
+                        <input type="hidden" id="province-text" name="hq-province-text"/>
+
+                        <label for="city">City/Municipality</label>
+                            <select id="city" name="city" required></select>
+                        <input type="hidden" id="city-text" name="hq-city" />
+
+                        <label for="barangay">Barangay</label>
+                            <select id="barangay" name="barangay" required></select>
+                        <input type="hidden" id="barangay-text" name="hq-barangay-text"/>
+
                         <label>Contact Person</label>
-                        <input type="text" name="contactPerson" placeholder="Enter Contact Person" required>
+                        <input type="text" name="contactPerson" id="contactPerson" placeholder="Enter Contact Person" required>
+                        
                         <label>Email</label>
-                        <input type="email" name="email" placeholder="Enter the email of the organization of the Contact Person" required>
+                        <input type="email" name="email" id="email" placeholder="Enter the email of the organization of the Contact Person" required>
+                        
                         <label>Mobile Number</label>
-                        <input type="number" name="mobileNumber" placeholder="Enter the mobile number of the Contact Person" required>
+                        <input type="number" name="mobileNumber" id="mobileNumber" placeholder="Enter the mobile number of the Contact Person" required>
+                        
                         <label>Social Media</label>
-                        <input type="text" name="socialMedia" placeholder="Enter Social Media Link (Optional)">
+                        <input type="text" name="socialMedia" id="socialMedia" placeholder="Enter Social Media Link (Optional)">
                         <div style="margin-top: 20px;">
                             <button type="submit" style="width: 25%;">Next</button>
                         </div>
@@ -144,9 +155,10 @@
                 </div>
             </div>
 
-            <div class="confirm-modal" id="confirmModal" style="display:none;">
-                <div class="confirm-modal-content">
-                    <h2 style="color: #4059A5; font-size: 20px;">Confirm Details</h2>
+            <!-- Confirmation Modal -->
+            <div class="modal" id="confirmModal" style="display:none;">
+                <div class="modal-content">
+                    <h2>Confirmation</h2>                    
                     <div id="confirmDetails"></div>
                     <div style="margin-top: 20px;">
                         <button type="button" id="editDetailsBtn">Return</button>
@@ -154,10 +166,11 @@
                     </div>
                 </div>
             </div>
-            
-            <div class="success-modal" id="successModal" style="display:none;">
-                <div class="success-modal-content">
-                    <h2 style="color: #4059A5; font-size: 18px;">Volunteer Group Successfully Added</h2>
+
+            <!-- Success Modal -->
+            <div class="modal" id="successModal" style="display:none;">
+                <div class="modal-content">
+                    <h2>Volunteer Group Successfully Added</h2>
                     <p style="font-weight: 500; color: #8E8E93;">A temporary password has been sent to the newly added volunteer group.</p>
                     <p><i class='bx bxs-check-circle'></i></p>
                     <button id="closeSuccessBtn">Continue</button>

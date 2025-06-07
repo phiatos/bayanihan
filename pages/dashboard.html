@@ -30,90 +30,145 @@
                 <span id="notifDot"></span>
             </div>
 
-            <!-- Notification Drawer -->
-            <div id="notificationDrawer">
+           <!-- Notification Drawer -->
+            <div id="notificationDrawer" class="drawer">
                 <div class="drawer-header">
                     <h3>Notifications</h3>
                     <button id="closeDrawer" class="close-btn">×</button>
                 </div>
+                <div class="drawer-tabs">
+                    <button id="tabCalamity" class="tab active">Calamity Alerts</button>
+                    <button id="tabAdmin" class="tab">Admin Notifications</button>
+                </div>
                 <div class="drawer-content">
-                    <ul class="notification-list">
-                        
-                        <li>
-                            <strong> 🌸 New Relief Request Added:</strong>Request for food packs in Sitio San Isidro.
-                            <span class="timestamp">5 hrs ago</span>
-                        </li>
+                    <ul class="notification-list" id="calamityList"></ul>
+                    </ul>
 
-                        <li>
-                            <strong>🌸 New RDANA Report Added for Verification:</strong>Barangay health center renovation progress updated.
-                            <span class="timestamp">2 hrs ago</span>
-                        </li>
-
-                        <li>
-                            <strong>🌸 New Report Added:</strong> Supplies for typhoon victims in Quezon Province.
-                            <span class="timestamp">7 hrs ago</span>
-                        </li>
-                        
+                    <ul class="notification-list" id="adminList"></ul>
                     </ul>
                 </div>
             </div>
 
+        </div>
 
-            </div>
+        
 
-            <!-- Search Bar (Unchanged) -->
-            <div class="search-container">
-                <div class="input-container">
-                    <input
-                        type="text"
-                        id="search-input"
-                        placeholder="Search by Location, Urgency, or Category"
-                        class="search-input"
-                    />
-                    <button class="search-icon">
-                        <i class='bx bx-search' style="font-size: 24px; color: #656079;"></i>
-                    </button>
-                </div>
-            </div>
+<!-- Dashboard Container -->
+<div class="dashboard-container">
 
-            <!-- Dashboard Metrics -->
-            <div class="metrics-container" role="region" aria-label="Disaster Relief Metrics Dashboard">
+    <!-- Left Main Metrics: Distribution Metrics & People & Contributions -->
+    <div class="metrics-main">
+        <!-- Distribution Metrics -->
+        <section class="dashboard-section" aria-label="Distribution Metrics">
+            <h2>Distribution Metrics</h2>
+            <div class="metrics-container main-metrics">
                 <div class="metric-card" tabindex="0" data-description="Total number of food packs distributed to families">
-                    <h3> <i class='bx bxs-box' aria-hidden="true"></i>No. of Food Packs</h3>
-                    <p id="food-packs" aria-live="polite" aria-atomic="true">0</p>
+                    <h3><i class='bx bxs-box'></i>No. of Food Packs</h3>
+                    <p id="food-packs">0</p>
                 </div>
-
                 <div class="metric-card" tabindex="0" data-description="Total number of hot meals served">
-                    <h3> <i class='bx bxs-bowl-hot' aria-hidden="true"></i> No. of Hot Meals</h3>
-                    <p id="hot-meals" aria-live="polite" aria-atomic="true">0</p>
+                    <h3><i class='bx bxs-bowl-hot'></i>No. of Hot Meals</h3>
+                    <p id="hot-meals">0</p>
                 </div>
-
                 <div class="metric-card" tabindex="0" data-description="Total liters of clean water provided">
-                    <h3> <i class='bx bxs-droplet' aria-hidden="true"></i> Liters of Water</h3>
-                    <p id="water-liters" aria-live="polite" aria-atomic="true">0</p>
+                    <h3><i class='bx bxs-droplet'></i>Liters of Water</h3>
+                    <p id="water-liters">0</p>
                 </div>
-
                 <div class="metric-card" tabindex="0" data-description="Number of volunteers mobilized for the relief efforts">
-                    <h3> <i class='bx bxs-group' aria-hidden="true"></i> Volunteers Mobilized</h3>
-                    <p id="volunteers" aria-live="polite" aria-atomic="true">0</p>
+                    <h3><i class='bx bxs-group'></i>Volunteers Mobilized</h3>
+                    <p id="volunteers">0</p>
                 </div>
-
                 <div class="metric-card" tabindex="0" data-description="Total monetary donations raised in Philippine Pesos">
-                    <h3>  <i class='bx bxs-bank' aria-hidden="true"></i> Monetary Donations</h3>
-                    <p id="amount-raised" aria-live="polite" aria-atomic="true">₱0</p>
+                    <h3><i class='bx bxs-bank'></i>Monetary Donations</h3>
+                    <p id="amount-raised">₱0</p>
                 </div>
-
                 <div class="metric-card" tabindex="0" data-description="Total estimated value of in-kind donations received">
-                    <h3> <i class='bx bxs-package' aria-hidden="true"></i> In-Kind Donations</h3>
-                    <p id="inkind-donations" aria-live="polite" aria-atomic="true">₱0</p>
+                    <h3><i class='bx bxs-package'></i>In-Kind Donations</h3>
+                    <p id="inkind-donations">₱0</p>
                 </div>
             </div>
+        </section>
+    </div>
 
-            <!-- Map Container with Fixed Height -->
-            <div class="map-container" style="height: 400px;">
-                <div id="map" style="height: 100%; width: 100%;"></div>
+    <!-- Right Sidebar Metrics: Progress Visualizations -->
+    <aside class="metrics-sidebar">
+        <section class="dashboard-section" aria-label="Progress & Reports">
+            <h2>Ongoing Progress</h2>
+            <div class="data-visuals-grid sidebar-metrics">
+                <div class="data-metric-box data-relief" tabindex="0">
+                    <div class="data-metric-head">
+                        <i class='bx bx-send'></i>
+                        <h3>Relief Dispatch</h3>
+                    </div>
+                    <div class="data-metric-body">
+                        <div class="data-metric-value-row">
+                            <span class="data-metric-value">80%</span>
+                            <span class="data-metric-status">On Track</span>
+                        </div>
+                        <div class="data-progress-bar">
+                            <div class="data-progress-fill fill-success" style="width: 80%;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="data-metric-box data-reports" tabindex="0">
+                    <div class="data-metric-head">
+                        <i class='bx bx-category'></i>
+                        <h3>Reports by Type</h3>
+                    </div>
+                    <div class="data-metric-body data-mini-chart">
+                        <div class="data-bar" style="height: 60%;" title="Flood"><span>Flood</span></div>
+                        <div class="data-bar" style="height: 80%;" title="Fire"><span>Fire</span></div>
+                        <div class="data-bar" style="height: 40%;" title="Landslide"><span>Landslide</span></div>
+                        <div class="data-bar" style="height: 30%;" title="Earthquake"><span>Quake</span></div>
+                    </div>
+                </div>
+
+                <div class="data-metric-box data-donation" tabindex="0">
+                    <div class="data-metric-head">
+                        <i class='bx bx-donate-heart'></i>
+                        <h3>Donation Goal</h3>
+                    </div>
+                    <div class="data-metric-body">
+                        <div class="data-metric-value-row">
+                            <span class="data-metric-value">₱750K</span>
+                            <span class="data-metric-status">75% Reached</span>
+                        </div>
+                        <div class="data-progress-bar">
+                            <div class="data-progress-fill fill-warning" style="width: 75%;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </aside>
+
+    <!-- Bottom Row: Map Overview -->
+    <section class="dashboard-section bottom-row" aria-label="Map Overview">
+        <h2>Disaster Map Overview</h2>
+
+        <!-- Search Bar -->
+        <div class="search-container">
+            <div class="input-container">
+                <input
+                    type="text"
+                    id="search-input"
+                    placeholder="Search by Location, Urgency, or Category"
+                    class="search-input"
+                />
+                <button class="search-icon">
+                    <i class='bx bx-search' style="font-size: 24px; color: #656079;"></i>
+                </button>
             </div>
         </div>
+
+        <div class="map-container" style="height: 700px;">
+            <div id="map" style="height: 100%; width: 100%;"></div>
+        </div>
+    </section>
+</div>
+
+
     </div>
 
     <script>
