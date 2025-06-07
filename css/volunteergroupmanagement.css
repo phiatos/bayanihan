@@ -1,37 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap');
-
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    font-family: 'Poppins', sans-serif;
-}
-
-i {
-    align-self: right;    
-}
-
-.main-container {
-    display: flex;
-    min-height: 100vh; 
-    margin: 0 auto;
-    justify-content: center; 
-    background-color: #FFF9F0;
-}
-
-#main-content {
-    flex: 1;
-    padding: 50px;
-    position: relative;
-    background: #FFFFFF;
-    border-radius: 30px;
-    box-shadow: 0 0 30px rgba(0, 0, 0, .2);
-    margin: 50px;
-    overflow-y: hidden;
-    max-height: calc(100vh - 100px);
-    overflow-y: auto;
-}
-
 #addNew {
   position: relative;
   bottom: -40px;
@@ -40,14 +6,14 @@ i {
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  background-color: var(--primary-color, #4059A5);
+  background-color: var(--primary-color);
   border: none;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
   display: flex;
   justify-content: center;
   align-items: center;
   cursor: pointer;
-  transition: 
+  transition:
     background-color 0.3s ease,
     box-shadow 0.3s ease,
     transform 0.2s ease;
@@ -55,12 +21,11 @@ i {
 }
 
 #addNew:hover {
-  background-color: #2d3e76;
+  background-color: var(--button-hover);
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
   transform: translateX(-50%) translateY(-4px);
 }
 
-/* Tooltip Styling */
 #addNew::after {
   content: "Add New Volunteer Group";
   position: absolute;
@@ -86,179 +51,9 @@ i {
   transform: translateX(-50%) translateY(-4px);
 }
 
-
-@media (max-width: 768px) {
-  #addNew {
-    top: 10px;
-    left: 50%;
-    transform: translateX(-50%);
-    bottom: auto;
-    width: 50px;
-    height: 50px;
-  }
-  #addNew::after {
-    bottom: auto;
-    top: 70px;
-    left: 50%;
-    transform: translateX(-50%);
-  }
-}
-
-@media (max-width: 480px) {
-  #addNew {
-    top: 10px;
-    left: 50%;
-    transform: translateX(-50%);
-    bottom: auto;
-    width: 50px;
-    height: 50px;
-  }
-  #addNew::after {
-    top: 70px;
-    left: 50%;
-    transform: translateX(-50%);
-  }
-}
-
-
-
-th {
-  background-color: #FFF;
-  color: #aaa;
-  border: none;
-  font-weight: 600;
-}
-
 td[contenteditable="true"] {
-    background-color: rgba(255, 207, 35, 0.21);
+  background-color: rgba(255, 207, 35, 0.21);
 }
-
-button {
-    padding: 8px 15px;
-    background-color: #14AEBB;
-    color: #fff;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 12px;
-    transition: background-color 0.3s;
-}
-
-button:hover {
-    background-color: #0e7781;
-}
-
-/* Style for Edit and Delete buttons */
-.editButton, .deleteButton {
-    padding: 8px 15px;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 12px;
-    transition: background-color 0.3s;
-    margin: 0 5px; /* Add some spacing between buttons */
-}
-
-.editButton {
-    background-color: #14AEBB;
-    color: #fff;
-}
-
-.editButton:hover {
-    background-color: #0e7781;
-}
-
-.deleteButton {
-    background-color: #FF4D4D; /* Red color for delete */
-    color: #fff;
-}
-
-.deleteButton:hover {
-    background-color: #CC0000; /* Darker red on hover */
-}
-
-/* Pagination */
-.pagination-info {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 20px;
-  gap: 20px;
-}
-
-.pagination-info span {
-  flex: 1 1 auto;
-  text-align: left;
-  font-size: 12px;
-  color: #6c757d;
-}
-
-#pagination button {
-  display: flex;
-  flex-wrap: wrap;
-  margin: 0 3px;
-  padding: 6px 12px;
-  font-size: 14px;
-  color: #4D5874;
-  background-color: #FFF;
-  border: 1px solid #ccc;
-  border-radius: 10px;
-  cursor: pointer;
-}
-
-#pagination button.active-page {
-  background-color: #EBEBFF;
-  color: #2222E6;
-}
-
-#pagination button:disabled {
-  background-color: #ffffff;
-  cursor: not-allowed;
-}
-
-#pagination {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-/* Edit Address */
-/* .modal {
-  display: none;
-  position: absolute;
-  inset: 0;
-  z-index: 1000;
-  align-items: center;
-  justify-content: center;
-  padding: 1rem;
-  overflow-y: auto;
-}
-
-.modal-content {
-  position: relative;
-  background-color: #fff; 
-  width: 80%;
-  height: 70%;
-  max-width: 350px;
-  padding: 24px;
-  border-radius: 30px;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-  animation: fadeIn 0.3s;
-  box-sizing: border-box;
-  font-size: 12px;
-}
-
-.modal-content .close,
-.add-org-modal .close {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  cursor: pointer;
-  font-size: 24px;
-  color: #333;
-} */
 
 .addressHeader {
   display: flex;
@@ -276,7 +71,7 @@ button:hover {
 .addressHeader #clear {
   background: transparent;
   border: none;
-  color: #0C8CE9;
+  color: var(--primary-color);
   font-weight: 500;
   cursor: pointer;
 }
@@ -288,7 +83,7 @@ button:hover {
 
 .input-group input[list] {
   width: 100%;
-  padding: 10px 20px 10px 12px;  
+  padding: 10px 20px 10px 12px;
   border: 1px solid #605D67;
   border-radius: 24px;
   font-size: 14px;
@@ -302,20 +97,18 @@ button:hover {
   transform: translateY(-50%);
   font-size: 18px;
   color: #605D67;
-  pointer-events: none; 
+  pointer-events: none;
 }
 
-/* General Reset */
 .input-group select {
-  -webkit-appearance: none;  /* Safari & Chrome */
-  -moz-appearance: none;     /* Firefox */
-  appearance: none;          /* Standard */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
   background: none;
   border: none;
 }
 
-/* Optional: Remove default styling */
-.input-group select::-ms-expand { /* IE10+ */
+.input-group select::-ms-expand {
   display: none;
 }
 
@@ -325,8 +118,8 @@ button:hover {
   width: 100%;
   padding: 12px;
   margin-top: 16px;
-  background-color: #14CECF;
-  color: #fff;
+  background-color: var(--primary-color);
+  color: var(--white);
   font-size: 16px;
   font-weight: 600;
   border: none;
@@ -336,34 +129,14 @@ button:hover {
 
 .modal-content button[type="button"]:hover,
 .modal-content button[type="submit"]:hover {
-  background-color: #0fbaba;
+  background-color: var(--button-hover);
 }
 
-/* New Volunteer Group */
-.add-org-modal {
-  display: none;
-  position: absolute;
-  inset: 0;
-  z-index: 1007;
-  padding: 1rem;
-  margin: auto 25%;
+#addOrgForm {
+  margin-top: 10px;
 }
 
-.add-org-modal-content {
-  background: #FFF9F0;
-  position: relative;
-  z-index: 1001;
-  border-radius: 30px;
-  width: 120%;
-  max-width: 550px;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
-  padding: 20px 40px;
-  box-sizing: border-box;
-}
-
-.add-org-modal-content .form-group {
+.modal-content .form-group {
   display: flex;
   flex-direction: column;
   margin-bottom: 16px;
@@ -372,14 +145,14 @@ button:hover {
   margin-right: auto;
 }
 
-.add-org-modal-content input::placeholder {
+.modal-content input::placeholder {
   font-size: 12px;
 }
 
-.add-org-modal-content input[type="text"],
-.add-org-modal-content input[type="email"],
-.add-org-modal-content input[type="number"],
-.add-org-modal-content select {
+.modal-content input[type="text"],
+.modal-content input[type="email"],
+.modal-content input[type="number"],
+.modal-content select {
   width: 100%;
   padding: 10px 14px;
   border: 1px solid #605D67;
@@ -389,7 +162,7 @@ button:hover {
   transition: border 0.2s ease;
 }
 
-.add-org-modal-content button {
+.modal-content button {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -399,416 +172,27 @@ button:hover {
   width: fit-content;
 }
 
-.add-org-header {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: center;
-  gap: 20px;
-}
-
-.add-org-modal-content table {
+.modal-content table {
   width: 100%;
   border-collapse: collapse;
   margin-top: 20px;
 }
 
-.add-org-modal-content th,
-.add-org-modal-content td {
+.modal-content th,
+.modal-content td {
   border: 1px solid #ddd;
   padding: 8px;
   text-align: left;
 }
 
-.add-org-modal-content label {
+.modal-content label {
   font-size: 13px;
   font-weight: 600;
-  color: #333;
+  color: var(--primary-color);
   margin-bottom: 6px;
 }
 
 input::placeholder,
 select::placeholder {
   color: #bbb;
-}
-
-/* Area of Operation */
-.operation-modal {
-  display: none;
-  position: absolute;
-  inset: 0;
-  z-index: 1500;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-}
-
-.operation-modal-content {
-  position: relative;
-  background-color: #FFF9F0;
-  width: 100%;
-  max-width: 350px;
-  padding: 24px;
-  border-radius: 30px;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-  animation: fadeIn 0.3s ease-in-out;
-  box-sizing: border-box;
-}
-
-.operation-modal-content h2 {
-  font-size: 20px;
-  text-align: center;
-}
-
-.operation-modal-content hr {
-  border: none;
-  height: 1px;
-  background-color: #8E8E93;
-  margin: 20px 0; 
-}
-
-.operation-modal-content label {
-  display: block;
-  font-size: 13px;
-  font-weight: 600;
-  color: #333333;
-  margin-bottom: 6px;
-}
-
-.operation-modal-content select,
-.operation-modal-content input {
-  width: 100%;
-  padding: 10px 40px 10px 12px;
-  border: 1px solid #605D67;
-  border-radius: 24px;
-  box-sizing: border-box;
-  font-size: 14px;
-}
-
-.operation-modal-content button[type="button"],
-.operation-modal-content button[type="submit"] {
-  display: block;
-  width: 100%;
-  padding: 12px;
-  margin-top: 16px;
-  background-color: #14CECF;
-  color: #fff;
-  font-size: 16px;
-  font-weight: 600;
-  border: none;
-  border-radius: 24px;
-  cursor: pointer;
-}
-
-.operation-modal-content button[type="button"]:hover,
-.operation-modal-content button[type="submit"]:hover {
-  background-color: #0fbaba;
-}
-
-/* Confirm Modal */
-.confirm-modal {
-  display: none;
-  position: absolute;
-  inset: 0;
-  z-index: 1001;
-  align-items: center;
-  justify-content: center;
-  padding: 1rem;
-  overflow-y: auto;
-}
-
-.confirm-modal-content {
-  background: #FFF9F0;
-  position: relative;
-  padding: 24px;
-  border-radius: 30px;
-  width: 100%;
-  margin: 10% 30%;
-  max-width: 450px;
-  border: 2px solid #4059A5;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-  box-sizing: border-box;
-}
-
-.confirm-modal-content #editDetailsBtn {
-  background-color: #8E8E93;
-  color: #fff;
-  border: none;
-  padding: 10px 16px;
-  border-radius: 20px;
-  cursor: pointer;
-}
-
-.confirm-modal-content #editDetailsBtn:hover {
-  background-color: #7a7a7f;
-}
-
-/* Success Modal */
-.success-modal {
-  display: none;
-  position: absolute;
-  inset: 0;
-  z-index: 1007;
-  padding: 1rem;
-}
-
-.success-modal-content {
-  background: #FFF9F0;
-  position: relative;
-  padding: 24px;
-  border-radius: 20px;
-  text-align: center;
-  width: 100%;
-  max-width: 450px;
-  border: 2px solid #4059A5;
-  box-sizing: border-box;
-  align-items: center;
-  justify-content: center;
-  margin: 10% auto;
-}
-
-.success-modal-content i {
-  color: #14AEBB;
-  font-size: 80px;
-  display: block;
-}
-
-.success-modal-content button {
-  display: block;
-  margin: 30px auto 0;
-  padding: 10px 16px;
-  width: 80%;
-  font-size: 16px;
-  font-weight: 500;
-  border-radius: 12px;
-  background-color: #14CECF;
-  color: white;
-  border: none;
-  cursor: pointer;
-}
-
-.success-modal-content button:hover {
-  background-color: #0fbaba;
-}
-
-@media (max-width: 768px) {
-  table {
-    min-width: 100%;
-    font-size: 10px;
-    overflow-x: auto;
-    display: block;
-  }
-  .pagination-info {
-    flex-direction: column;
-    gap: 10px;
-    text-align: center;
-  }
-  .pagination-info span {
-    text-align: center;
-  }
-  .modal {
-    justify-content: center;
-    align-items: center;
-  }
-  .modal-content {
-    padding: 20px;
-    border-radius: 24px;
-    overflow-y: auto;
-    font-size: 10px;
-  }
-  .input-group label {
-    font-size: 13px;
-  }
-  .input-group input {
-    font-size: 14px;
-    width: 30%;
-  }
-  .modal-content button {
-    font-size: 15.5px;
-  }
-  .add-org-modal {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 1rem;
-    width: 90%;
-    max-width: 500px;
-    height: auto;
-    margin: 100px auto 0 auto; 
-  }
-  .add-org-modal-content {
-    padding: 20px;
-    border-radius: 20px;
-    justify-content: center;
-    align-items: center;
-  }
-  .add-org-modal-content input,
-  .add-org-modal-content select,
-  .add-org-modal-content label {
-    font-size: 10px;
-    margin-top: 5px;
-  }
-  .add-org-modal-content button {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 14px;
-    padding: 0.5rem 1rem;
-    margin: 0.5rem auto;
-    width: fit-content;
-  }
-  .add-org-header {
-    flex-direction: column;
-    gap: 12px;
-  }
-  .add-org-modal h2 {
-    text-align: center;
-  }
-  .operation-modal-content {
-    max-width: 90vw;
-    padding: 20px;
-    border-radius: 24px;
-  }
-  .operation-modal-content select,
-  .operation-modal-content input {
-    font-size: 13.5px;
-  }
-  .operation-modal-content button {
-    font-size: 15px;
-  }
-  .confirm-modal {
-    position: absolute;
-    top: 0;
-    right: 0;
-    align-items: center;
-    padding: 1rem;
-  }
-  .confirm-modal-content {
-    padding: 20px;
-    border-radius: 24px;
-    font-size: 14px;
-    width: 80%;
-    margin: 10% auto;
-  }
-  .confirm-modal-content #editDetailsBtn {
-    padding: 10px 14px;
-  }
-  .confirm-modal-content #confirmSaveBtn {
-    padding: 8px 14px;
-  }
-  .success-modal {
-    display: flex;
-    padding: 1rem;
-  }
-  .success-modal-content {
-    padding: 24px 30px;
-    border-radius: 18px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    text-align: center;
-  }
-  .success-modal-content i {
-    font-size: 70px;
-  }
-  .success-modal-content button {
-    font-size: 15px;
-  }
-}
-
-@media (max-width: 480px) {
-  button, .edit-btn {
-    font-size: 11px;
-    padding: 6px 10px;
-  }
-  .pagination-info {
-    flex-direction: column;
-    font-size: 1px;
-    text-align: center;
-  }
-  #pagination button {
-    padding: 8px;
-    font-size: 12px;
-  }
-  td input[type="text"],
-  td select,
-  .area-dropbtn {
-    font-size: 11px;
-    padding: 4px;
-  }
-  .modal {
-    justify-content: center;
-    align-items: center;
-    margin: auto; 
-  }
-  .modal-content {
-    padding: 16px;
-    border-radius: 20px;
-    overflow-y: auto;
-    width: 50%;
-  }
-  .modal-content .close {
-    font-size: 20px;
-    top: 12px;
-    right: 12px;
-  }
-  .input-group input {
-    font-size: 13px;
-    padding: 10px 12px;
-  }
-  .modal-content button {
-    font-size: 15px;
-  }
-  .add-org-modal {
-    max-width: 100%;
-  }
-  .add-org-modal-content {
-    padding: 16px;
-    border-radius: 16px;
-  }
-  .add-org-modal-content label {
-    font-size: 12.5px;
-  }
-  .add-org-modal-content button {
-    font-size: 13.5px;
-  }
-  .operation-modal-content {
-    max-width: 95vw;
-    padding: 16px;
-    border-radius: 20px;
-  }
-  .operation-modal-content label {
-    font-size: 12.5px;
-  }
-  .operation-modal-content button {
-    font-size: 14px;
-  }
-  .confirm-modal-content {
-    padding: 16px;
-    border-radius: 20px;
-    width: 80%;
-    margin: 30% auto;
-  }
-  .confirm-modal-content #editDetailsBtn {
-    font-size: 13.5px;
-    padding: 10px 14px;
-  }
-  .success-modal-content {
-    padding: 20px;
-    border-radius: 16px;
-    width: 70%;
-  }
-  .success-modal-content i {
-    font-size: 60px;
-  }
-  .success-modal-content button {
-    font-size: 14px;
-    width: 100%;
-  }
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-10px); }
-  to   { opacity: 1; transform: translateY(0); }
 }

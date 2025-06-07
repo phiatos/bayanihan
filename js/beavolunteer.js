@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const regionTextInput = document.getElementById('region-text');
     const provinceTextInput = document.getElementById('province-text');
-    const cityTextInput = document.querySelector('input[name="hq-city"]'); 
+    const cityTextInput = document.querySelector('city-text'); 
     const barangayTextInput = document.getElementById('barangay-text');
 
     const generalAvailabilitySelect = document.getElementById('generalAvailability');
@@ -424,14 +424,14 @@ document.addEventListener('DOMContentLoaded', () => {
             // Create an object to store in Realtime Database
             const volunteerData = {
                 firstName: firstName,
-                middleInitial: middleInitial, // Optional field
+                middleInitial: middleInitial, 
                 lastName: lastName,
-                nameExtension: nameExtension, // Optional field
+                nameExtension: nameExtension, 
                 email: email,
                 mobileNumber: mobileNumber,
-                socialMediaLink: socialMedia, // Optional field
-                age: parsedAge, // Store age as a number
-                additionalInfo: additionalInfo, // Optional field
+                socialMediaLink: socialMedia,
+                age: parsedAge,
+                additionalInfo: additionalInfo,
                 address: {
                     region: selectedRegionText,
                     province: selectedProvinceText,

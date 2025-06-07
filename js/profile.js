@@ -320,7 +320,13 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function handlePopState(event) {
-        history.pushState(null, null, location.href);
+        // history.pushState(null, null, location.href);
+        if ((termsModal && !termsModal.classList.contains('hidden')) || 
+        (changePasswordFormContainer && changePasswordFormContainer.style.display !== 'none')) {
+            history.pushState(null, null, location.href); 
+            // Optionally, you could show a quick message here:
+            Swal.fire({ toast: true, position: 'top-end', icon: 'info', title: 'Action required!', showConfirmButton: false, timer: 1500 });
+        }
     }
 
     // Main authentication state check for profile and terms modal (Modular SDK)
@@ -357,6 +363,10 @@ document.addEventListener("DOMContentLoaded", () => {
                     if (basicInfoSection) basicInfoSection.style.display = 'none'; 
                     if (changePasswordFormContainer) changePasswordFormContainer.style.display = 'block'; 
                     
+                    history.pushState(null, null, location.href); 
+                    window.removeEventListener('popstate', handlePopState);
+                    window.addEventListener('popstate', handlePopState);
+
                     // Only show this Swal if it's the *first* time this state is encountered on page load
                     const passwordChangePromptShown = sessionStorage.getItem('passwordChangePromptShown');
                     if (!passwordChangePromptShown) {
@@ -440,17 +450,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
                         if (passwordNeedsResetAfterTerms) {
                             await Swal.fire({
-                                icon: 'success',
+                                 icon: 'success',
                                 title: 'Agreement Accepted',
-                                text: 'Thank you for accepting the Terms and Conditions. Please change your temporary password now for security.',
+                                text: 'Thank you for accepting the Terms and Conditions. For your security, please change your temporary password now.',
                                 allowOutsideClick: false,
                                 allowEscapeKey: false,
-                                confirmButtonText: 'Change Pass',
-                                width: '400px',
-                                padding: '1.5em',
-                                background: '#ffffff',
-                                color: '#333333',
-                                confirmButtonColor: '#3085d6'
+                                confirmButtonText: 'Change Password',
+                                width: '420px',
+                                padding: '1.75em',
+                                background: '#f9f9f9',
+                                color: '#2c3e50',
+                                confirmButtonColor: '#007BFF', // Bootstrap primary blue
+                                buttonsStyling: true,
+                                customClass: {
+                                    popup: 'rounded-xl shadow-lg',
+                                    title: 'text-lg font-semibold',
+                                    confirmButton: 'px-4 py-2'
+                                }
                             });
                             if (basicInfoSection) basicInfoSection.style.display = 'none';
                             if (changePasswordFormContainer) changePasswordFormContainer.style.display = 'block';

@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../components/sidebar.css" />
     <link rel="stylesheet" href="../css/global.css" />
+    <link rel="stylesheet" href="../css/pending.css" />
     <link rel='stylesheet' href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css'/>
 
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -73,6 +74,7 @@
                             <th>Province</th>
                             <th>City</th>
                             <th>Barangay</th>
+                            <th>Status Notes</th> 
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -94,19 +96,6 @@
         </div>
     </div>
 
-    <div id="actionStatusModal" class="modal" style="display:none;">
-        <div class="modal-content small-modal">
-            <span id="closeActionStatusModal" class="close">×</span>
-            <h3>Select Action Status</h3>
-            <div class="action-buttons-container">
-                <button id="confirmByABBtn" class="action-status-btn">Confirmed by AB</button>
-                <button id="cannotBeReachedBtn" class="action-status-btn">Cannot be reached</button>
-                <button id="hindiNaTutuloyBtn" class="action-status-btn">Hindi na tutuloy</button>
-                <button id="directedToABVNBtn" class="action-status-btn">Directed to ABVN</button>
-            </div>
-        </div>
-    </div>
-
     <div id="scheduleModal" class="modal" style="display:none;">
         <div class="modal-content">
             <span id="closeScheduleModal" class="close">×</span>
@@ -114,9 +103,6 @@
             <form id="scheduleForm">
                 <label for="scheduleDateTime">Date and Time:</label>
                 <input type="datetime-local" id="scheduleDateTime" required>
-                
-                <label for="abContactInfo">AB/ABVN Contact Info:</label>
-                <input type="text" id="abContactInfo" placeholder="e.g., John Doe - 09123456789" required>
                 
                 <button type="submit">Confirm Schedule & Send Email</button>
             </form>
