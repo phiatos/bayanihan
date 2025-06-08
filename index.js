@@ -111,18 +111,35 @@ function fetchReports() {
     reportsListener.on("value", snapshot => {
         let totalEvacuees = 0, totalFoodPacks = 0, totalHotMeals = 0, totalWaterLiters = 0, totalVolunteers = 0, totalMonetaryDonations = 0, totalInKindDonations = 0;
 
+        let latestDate = null;
+
         const reports = snapshot.val();
         if (reports) {
             const reportEntries = Object.entries(reports);
             reportEntries.forEach(([key, report]) => {
-                totalEvacuees += parseFloat(report.NoOfIndividualsOrFamilies || report.families || 0);
-                totalFoodPacks += parseFloat(report.NoOfFoodPacks || report.foodPacks || 0);
-                totalHotMeals += parseFloat(report.NoOfHotMeals || report.hotMeals || 0);
-                totalWaterLiters += parseFloat(report.LitersOfWater || report.water || 0);
-                totalVolunteers += parseFloat(report.NoOfVolunteersMobilized || report.volunteers || 0);
-                totalMonetaryDonations += parseFloat(report.TotalMonetaryDonations || report.amountRaised || 0);
-                totalInKindDonations += parseFloat(report.TotalValueOfInKindDonations || report.inKindValue || 0);
+                totalEvacuees += parseFloat(report.NoOfIndividualsOrFamilies || 0);
+                totalFoodPacks += parseFloat(report.NoOfFoodPacks || 0);
+                totalHotMeals += parseFloat(report.NoOfHotMeals || 0);
+                totalWaterLiters += parseFloat(report.LitersOfWater || 0);
+                totalVolunteers += parseFloat(report.NoOfVolunteersMobilized || 0);
+                totalMonetaryDonations += parseFloat(report.TotalMonetaryDonations || 0);
+                totalInKindDonations += parseFloat(report.TotalValueOfInKindDonations || 0);
+
+                // Parse DateOfReport (expected format: "YYYY-MM-DD")
+                if (report.DateOfReport) {
+                    const reportDate = new Date(report.DateOfReport);
+                    if (!latestDate || reportDate > latestDate) {
+                        latestDate = reportDate;
+                    }
+                }
             });
+
+            if (latestDate) {
+                const options = { year: 'numeric', month: 'long', day: 'numeric' };
+                document.getElementById("latest-update-date").textContent = latestDate.toLocaleDateString('en-US', options);
+            } else {
+                document.getElementById("latest-update-date").textContent = "Unknown";
+            }
         }
 
         animateNumber('evacuees', totalEvacuees, 1000, 0);
@@ -134,15 +151,10 @@ function fetchReports() {
         animateNumber('inkind-donations', totalInKindDonations, 1000, 2);
     }, error => {
         console.error("Error fetching approved reports:", error);
-        if (evacueesEl) evacueesEl.textContent = "0 (Error)";
-        if (foodPacksEl) foodPacksEl.textContent = "0 (Error)";
-        if (hotMealsEl) hotMealsEl.textContent = "0 (Error)";
-        if (waterLitersEl) waterLitersEl.textContent = "0 (Error)";
-        if (volunteersEl) volunteersEl.textContent = "0 (Error)";
-        if (amountRaisedEl) amountRaisedEl.textContent = "₱0.00 (Error)";
-        if (inKindDonationsEl) inKindDonationsEl.textContent = "₱0.00 (Error)";
+        document.getElementById("latest-update-date").textContent = "Unavailable";
     });
 }
+
 
 function initializeMap() {
     const mapDiv = document.getElementById("map");

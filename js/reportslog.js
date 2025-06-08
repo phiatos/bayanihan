@@ -191,6 +191,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderReportsTable(reports) {
         reportsBody.innerHTML = '';
+        const totalEntries = reports.length;
+        const totalPages = Math.ceil(totalEntries / rowsPerPage);
+
 
         if (reports.length === 0) {
             reportsBody.innerHTML = "<tr><td colspan='9'>No approved reports found on this page.</td></tr>";
@@ -311,61 +314,48 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         entriesInfo.textContent = `Showing ${(currentPage - 1) * rowsPerPage + 1} to ${Math.min(currentPage * rowsPerPage, reports.length)} of ${reviewedReports.length} entries`;
+
+        renderPaginationControlsForReports(totalPages);
     }
 
-    function renderPagination(totalRows) {
-        pagination.innerHTML = '';
-        const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+    function renderPaginationControlsForReports(totalPages) {
+    const pagination = document.getElementById("pagination");
+    pagination.innerHTML = '';
 
-        // const createButton = (label, page = null, disabled = false, active = false) => {
-        // const btn = document.createElement("button");
-        // if (disabled) btn.disabled = true;
-        //     if (active) btn.classList.add("active-page");
-        //     if (page !== null) {
-        //         btn.addEventListener("click", () => {
-        //             currentPage = page;
-        //             applySearchAndSort();
-        //         });
-        //     }
-
-        if (totalPages === 0) {
-            pagination.innerHTML = '<span>No entries to display</span>';
-            return;
-        }
-
-        const createButton = (label, page, disabled = false, isActive = false) => {
-            const btn = document.createElement('button');
-            btn.textContent = label;
-            if (disabled) btn.disabled = true;
-            if (isActive) btn.classList.add('active-page');
-            btn.addEventListener('click', () => {
-                currentPage = page;
-                renderReportsTable();
-            });
-            return btn;
-        };
-
-        // paginationContainer.appendChild(createButton("Prev", currentPage - 1, currentPage === 1));
-        // for (let i = 1; i <= totalPages; i++) {
-        //     paginationContainer.appendChild(createButton(i, i, false, i === currentPage));
-        // }
-        // paginationContainer.appendChild(createButton("Next", currentPage + 1, currentPage === totalPages));
-
-
-        pagination.appendChild(createButton('Prev', currentPage - 1, currentPage === 1));
-
-        const maxVisible = 5;
-        let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
-        let endPage = Math.min(totalPages, startPage + maxVisible - 1);
-        if (endPage - startPage < maxVisible - 1) {
-            startPage = Math.max(1, endPage - maxVisible + 1);
-        }
-
-        for (let i = startPage; i <= endPage; i++) {
-            pagination.appendChild(createButton(i, i, false, i === currentPage));
-        }
-        pagination.appendChild(createButton('Next', currentPage + 1, currentPage === totalPages));
+    if (totalPages === 0) {
+        pagination.innerHTML = '<span>No entries to display</span>';
+        return;
     }
+
+    const createButton = (label, page, disabled = false, isActive = false) => {
+        const btn = document.createElement('button');
+        btn.textContent = label;
+        if (disabled) btn.disabled = true;
+        if (isActive) btn.classList.add('active-page');
+        btn.addEventListener('click', () => {
+            currentPage = page;
+            renderReportsTable(paginatedReports); // this assumes your filtered data is stored in paginatedReports
+        });
+        return btn;
+    };
+
+    pagination.appendChild(createButton('Prev', currentPage - 1, currentPage === 1));
+
+    const maxVisible = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+    if (endPage - startPage < maxVisible - 1) {
+        startPage = Math.max(1, endPage - maxVisible + 1);
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+        pagination.appendChild(createButton(i, i, false, i === currentPage));
+    }
+
+    pagination.appendChild(createButton('Next', currentPage + 1, currentPage === totalPages));
+}
+
+
 
     function applySearchAndSort() {
         const searchQuery = searchInput.value.toLowerCase();

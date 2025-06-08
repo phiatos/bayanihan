@@ -950,6 +950,7 @@ var my_handlers = {
                             barangay: orgData.address.barangay
                         },
                         createdAt: new Date().toISOString(),
+                        abvnKey: abvnKey,
                         isFirstLogin: true,
                         emailVerified: false,
                         password_needs_reset: true
