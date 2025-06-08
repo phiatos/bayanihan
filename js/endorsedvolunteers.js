@@ -1,5 +1,7 @@
+// Firebase configuration (ensure this is correctly set up from firebase-config.js or directly here)
+// Example for direct inclusion (remove if using import from firebase-config.js)
 const firebaseConfig = {
-    apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
+    apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ", // Your actual API Key
     authDomain: "bayanihan-5ce7e.firebaseapp.com",
     databaseURL: "https://bayanihan-5ce7e-default-rtdb.asia-southeast1.firebasedatabase.app",
     projectId: "bayanihan-5ce7e",
@@ -9,326 +11,314 @@ const firebaseConfig = {
     measurementId: "G-ZTQ9VXXVV0",
 };
 
+// Initialize Firebase if it hasn't been initialized yet
 if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
+
 const database = firebase.database();
+const auth = firebase.auth(); 
 
-document.addEventListener('DOMContentLoaded', () => {
-    const volunteersContainer = document.getElementById('volunteersContainer');
-    const searchInput = document.getElementById('searchInput');
-    const sortSelect = document.getElementById('sortSelect');
-    const entriesInfo = document.getElementById('entriesInfo');
-    const pagination = document.getElementById('pagination');
+const volunteersContainer = document.getElementById('volunteersContainer');
+const searchInput = document.getElementById('searchInput');
+const sortSelect = document.getElementById('sortSelect');
+const paginationElement = document.getElementById('pagination');
+const entriesInfoSpan = document.getElementById('entriesInfo');
 
-    // Modals
-    const previewModal = document.getElementById('previewModal');
-    const closeModal = document.getElementById('closeModal');
-    const modalContent = document.getElementById('modalContent');
+const previewModal = document.getElementById('previewModal');
+const closeModalBtn = document.getElementById('closeModal');
+const modalContentDiv = document.getElementById('modalContent');
 
-    let allApplications = [];
-    let filteredApplications = [];
-    let currentPage = 1;
-    const rowsPerPage = 5;
+let allEndorsedVolunteers = []; 
+let filteredVolunteers = [];    
+let paginatedVolunteers = [];   
+let currentPage = 1;
+const rowsPerPage = 10; 
 
-    // --- Utility Functions ---
-    function formatDate(timestamp) {
-        if (!timestamp) return 'N/A';
-        const date = new Date(timestamp);
-        return date.toLocaleString('en-US', {
-            year: 'numeric', month: 'short', day: 'numeric',
-            hour: '2-digit', minute: '2-digit', second: '2-digit',
-            hour12: true
+function getFullName(volunteer) {
+    return `${volunteer.firstName} ${volunteer.lastName}`;
+}
+
+function formatDate(isoString) {
+    if (!isoString) return 'N/A';
+    try {
+        const date = new Date(isoString);
+        return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    } catch (error) {
+        console.error('Error formatting date:', isoString, error);
+        return 'Invalid Date';
+    }
+}
+
+function getAge(birthdateString) {
+    if (!birthdateString) return 'N/A';
+    try {
+        const birthDate = new Date(birthdateString);
+        const today = new Date();
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const m = today.getMonth() - birthDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+        }
+        return age;
+    } catch (error) {
+        console.error('Error calculating age:', birthdateString, error);
+        return 'N/A';
+    }
+}
+
+function getSocialMediaLink(socialMediaLink) {
+    if (!socialMediaLink || socialMediaLink === 'N/A') return 'N/A';
+    try {
+        new URL(socialMediaLink); // Test if it's a valid URL
+        return `<a href="${socialMediaLink}" target="_blank">${socialMediaLink}</a>`;
+    } catch (e) {
+        return socialMediaLink; // Not a valid URL, just display as text
+    }
+}
+
+
+// --- MODIFIED: Fetch Data Function to find ABVN by userId ---
+async function fetchEndorsedVolunteers(userUid) {
+    if (!userUid) {
+        console.warn("No user UID provided. Cannot fetch endorsed volunteers.");
+        allEndorsedVolunteers = [];
+        renderVolunteersTable();
+        return;
+    }
+
+    try {
+        // Query volunteerGroups to find the ABVN key associated with this userUid
+        const volunteerGroupsRef = database.ref('volunteerGroups');
+        const querySnapshot = await volunteerGroupsRef.orderByChild('userId').equalTo(userUid).once('value');
+
+        let foundAbvnKey = null;
+        querySnapshot.forEach(childSnapshot => {
+            // There should ideally be only one ABVN group per userId
+            foundAbvnKey = childSnapshot.key;
+            return true; // Stop iterating after finding the first match
         });
-    }
 
-    function getFullName(volunteer) {
-        const parts = [
-            volunteer.firstName,
-            volunteer.middleInitial ? volunteer.middleInitial + '.' : '',
-            volunteer.lastName,
-            volunteer.nameExtension
-        ].filter(Boolean); 
-        return parts.join(' ').trim();
-    }
-
-    function setupModalClose(modalElement, closeButtonElement) {
-        closeButtonElement.addEventListener('click', () => modalElement.style.display = 'none');
-        modalElement.addEventListener('click', (event) => {
-            if (event.target === modalElement) {
-                modalElement.style.display = 'none';
-            }
-        });
-    }
-
-    // Apply the setupModalClose function to the preview modal
-    setupModalClose(previewModal, closeModal);
-
-    function showPreviewModal(volunteer) {
-        const fullName = getFullName(volunteer);
-        modalContent.innerHTML = `
-            <h3 style="color: #FA3B99;">Endorsed Volunteer Details</h3>
-            <p><strong>Application Date:</strong> ${formatDate(volunteer.timestamp)}</p>
-            <p><strong>Endorsed To ABVN:</strong> ${volunteer.endorsedABVNName || 'N/A'}</p>
-            <hr>
-            <p><strong>Application Date/Time:</strong> ${formatDate(volunteer.timestamp)}</p>
-            <p><strong>Full Name:</strong> ${fullName}</p>
-            <p><strong>Email:</strong> ${volunteer.email || 'N/A'}</p>
-            <p><strong>Mobile Number:</strong> ${volunteer.mobileNumber || 'N/A'}</p>
-            <p><strong>Age:</strong> ${volunteer.age || 'N/A'}</p>
-            <p><strong>Social Media:</strong> ${volunteer.socialMediaLink ? `<a href="${volunteer.socialMediaLink}" target="_blank">${volunteer.socialMediaLink}</a>` : 'N/A'}</p>
-            <p><strong>Additional Info:</strong> ${volunteer.additionalInfo || 'N/A'}</p>
-            <h3 style="color: #FA3B99;">Address Information</h3>
-            <p><strong>Region:</strong> ${volunteer.address?.region || 'N/A'}</p>
-            <p><strong>Province:</strong> ${volunteer.address?.province || 'N/A'}</p>
-            <p><strong>City:</strong> ${volunteer.address?.city || 'N/A'}</p>
-            <p><strong>Barangay:</strong> ${volunteer.address?.barangay || 'N/A'}</p>
-            <p><strong>Street Address:</strong> ${volunteer.address?.streetAddress || 'N/A'}</p>
-            <h3 style="color: #FA3B99;">Availability</h3>
-            <p><strong>General Availability:</strong> ${volunteer.availability?.general || 'N/A'}</p>
-            <p><strong>Available Days:</strong> ${volunteer.availability?.specificDays ? volunteer.availability.specificDays.join(', ') : 'N/A'}</p>
-        `;
-        previewModal.style.display = 'block';
-    }
-
-    // --- Data Fetching Function ---
-    function fetchEndorsedVolunteers() {
-        volunteersContainer.innerHTML = '<tr><td colspan="13" style="text-align: center;">Loading endorsed volunteer applications...</td></tr>'; // Increased colspan
-
-        database.ref('volunteerApplications/endorsedToABVN').on('value', (snapshot) => {
-            allApplications = [];
-            if (snapshot.exists()) {
-                snapshot.forEach((childSnapshot) => {
-                    const volunteerData = childSnapshot.val();
-                    const volunteerKey = childSnapshot.key;
-                    allApplications.push({ key: volunteerKey, ...volunteerData });
-                });
-                console.log("Fetched endorsed volunteers:", allApplications);
-            } else {
-                console.log("No endorsed volunteer applications found.");
-            }
-            applySearchAndSort();
-        }, (error) => {
-            console.error("Error fetching endorsed volunteers: ", error);
+        if (!foundAbvnKey) {
             Swal.fire({
+                title: 'Access Denied',
+                text: 'Your account is not associated with an ABVN group to view endorsements, or the association is missing.',
                 icon: 'error',
-                title: 'Error',
-                text: 'Failed to load endorsed volunteer applications. Please try again later.',
+                showCancelButton: false,
                 confirmButtonText: 'OK'
             });
-            volunteersContainer.innerHTML = '<tr><td colspan="13" style="text-align: center; color: red;">Failed to load data.</td></tr>'; // Increased colspan
-        });
-    }
-
-    // --- Rendering Function ---
-    function renderApplications(applicationsToRender) {
-        volunteersContainer.innerHTML = '';
-        const startIndex = (currentPage - 1) * rowsPerPage;
-        const endIndex = startIndex + rowsPerPage;
-        const paginatedApplications = applicationsToRender.slice(startIndex, endIndex);
-
-        if (paginatedApplications.length === 0) {
-            volunteersContainer.innerHTML = '<tr><td colspan="13" style="text-align: center;">No endorsed volunteer applications found on this page.</td></tr>'; // Increased colspan
-            entriesInfo.textContent = 'Showing 0 to 0 of 0 entries';
-            renderPagination();
+            allEndorsedVolunteers = []; // Clear table
+            renderVolunteersTable();
             return;
         }
 
-        let i = startIndex + 1;
+        // Now that we have the specific ABVN key, fetch its endorsed volunteers
+        const endorsedVolunteersRef = database.ref(`volunteerGroups/${foundAbvnKey}/endorsedVolunteers`);
+        const snapshot = await endorsedVolunteersRef.once('value');
+        const endorsedData = snapshot.val();
 
-        paginatedApplications.forEach(volunteer => {
-            const row = volunteersContainer.insertRow();
-            row.setAttribute('data-key', volunteer.key);
-
-            const fullName = getFullName(volunteer);
-            const socialMediaDisplay = volunteer.socialMediaLink ? `<a href="${volunteer.socialMediaLink}" target="_blank" rel="noopener noreferrer">Link</a>` : 'N/A';
-
-            row.innerHTML = `
-                <td>${i++}</td>
-                <td>${fullName}</td>
-                <td>${volunteer.email || 'N/A'}</td>
-                <td>${volunteer.mobileNumber || 'N/A'}</td>
-                <td>${volunteer.age || 'N/A'}</td>
-                <td>${socialMediaDisplay}</td>
-                <td>${volunteer.additionalInfo || 'N/A'}</td>
-                <td>${volunteer.address?.region || 'N/A'}</td>
-                <td>${volunteer.address?.province || 'N/A'}</td>
-                <td>${volunteer.address?.city || 'N/A'}</td>
-                <td>${volunteer.address?.barangay || 'N/A'}</td>
-                <td>${volunteer.endorsedABVNName || 'N/A'}</td> 
-                <td>${formatDate(volunteer.timestamp)}</td> <td>
-                    <button class="viewBtn" data-key="${volunteer.key}">View</button>
-                </td>
-            `;
-        });
-
-        updateEntriesInfo(applicationsToRender.length);
-        renderPagination(applicationsToRender.length);
-    }
-
-    // --- Search and Sort Logic ---
-    function applySearchAndSort() {
-        let currentApplications = [...allApplications];
-
-        const searchTerm = searchInput.value.toLowerCase().trim();
-        if (searchTerm) {
-            currentApplications = currentApplications.filter(volunteer => {
-                const fullName = getFullName(volunteer).toLowerCase();
-                const email = (volunteer.email || '').toLowerCase();
-                const mobileNumber = (volunteer.mobileNumber || '').toLowerCase();
-                const region = (volunteer.address?.region || '').toLowerCase();
-                const province = (volunteer.address?.province || '').toLowerCase();
-                const city = (volunteer.address?.city || '').toLowerCase();
-                const barangay = (volunteer.address?.barangay || '').toLowerCase();
-                const additionalInfo = (volunteer.additionalInfo || '').toLowerCase();
-                const endorsedToABVNName = (volunteer.endorsedToABVNName || '').toLowerCase(); // Add this for search
-
-                return fullName.includes(searchTerm) ||
-                    email.includes(searchTerm) ||
-                    mobileNumber.includes(searchTerm) ||
-                    region.includes(searchTerm) ||
-                    province.includes(searchTerm) ||
-                    city.includes(searchTerm) ||
-                    barangay.includes(searchTerm) ||
-                    additionalInfo.includes(searchTerm) ||
-                    endorsedToABVNName.includes(searchTerm); // Include in search
-            });
-        }
-
-        const sortValue = sortSelect.value;
-        if (sortValue) {
-            const [sortBy, order] = sortValue.split('-');
-            currentApplications.sort((a, b) => {
-                let valA, valB;
-
-                switch (sortBy) {
-                    case 'DateTime': // Not applicable for endorsed table if you only have endorsementDate
-                        valA = new Date(a.timestamp || 0).getTime();
-                        valB = new Date(b.timestamp || 0).getTime();
-                        break;
-                    case 'Location':
-                        valA = `${a.address?.region || ''} ${a.address?.province || ''} ${a.address?.city || ''} ${a.address?.barangay || ''}`.toLowerCase();
-                        valB = `${b.address?.region || ''} ${b.address?.province || ''} ${b.address?.city || ''} ${b.address?.barangay || ''}`.toLowerCase();
-                        break;
-                    case 'Name':
-                        valA = getFullName(a).toLowerCase();
-                        valB = getFullName(b).toLowerCase();
-                        break;
-                    case 'Age':
-                        valA = parseInt(a.age) || 0;
-                        valB = parseInt(b.age) || 0;
-                        break;
-                    case 'EndorsedToABVN': // New sort case
-                        valA = (a.endorsedToABVNName || '').toLowerCase();
-                        valB = (b.endorsedToABVNName || '').toLowerCase();
-                        break;
-                    default:
-                        valA = getFullName(a).toLowerCase();
-                        valB = getFullName(b).toLowerCase();
-                        break;
-                }
-
-                if (typeof valA === 'number' && typeof valB === 'number') {
-                    return order === 'asc' ? valA - valB : valB - valA;
-                } else {
-                    return order === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
-                }
-            });
-        }
-
-        filteredApplications = currentApplications;
-        currentPage = 1;
-        renderApplications(filteredApplications);
-    }
-
-    // --- Pagination Functions ---
-    function renderPagination() {
-        pagination.innerHTML = '';
-        const totalPages = Math.ceil(filteredApplications.length / rowsPerPage);
-
-        if (totalPages === 0) {
-            pagination.innerHTML = '<span>No entries to display</span>';
-            return;
-        }
-
-        const createButton = (label, page, disabled = false, isActive = false) => {
-            const btn = document.createElement('button');
-            btn.textContent = label;
-            if (disabled) btn.disabled = true;
-            if (isActive) btn.classList.add('active-page');
-            btn.addEventListener('click', () => {
-                currentPage = page;
-                renderApplications(filteredApplications);
-            });
-            return btn;
-        };
-
-        pagination.appendChild(createButton('Prev', currentPage - 1, currentPage === 1));
-
-        const maxVisible = 5;
-        let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
-        let endPage = Math.min(totalPages, startPage + maxVisible - 1);
-
-        if (endPage - startPage + 1 < maxVisible) {
-            startPage = Math.max(1, totalPages - maxVisible + 1);
-        }
-
-        if (startPage > 1) {
-            pagination.appendChild(createButton('1', 1));
-            if (startPage > 2) {
-                const dots = document.createElement('span');
-                dots.textContent = '...';
-                pagination.appendChild(dots);
+        const tempEndorsedVolunteers = [];
+        if (endorsedData) {
+            for (const volunteerKey in endorsedData) {
+                const volunteerData = endorsedData[volunteerKey];
+                tempEndorsedVolunteers.push({
+                    key: volunteerKey,
+                    ...volunteerData
+                });
             }
         }
+        allEndorsedVolunteers = tempEndorsedVolunteers;
+        applyFiltersAndSort();
+    } catch (error) {
+        console.error("Error fetching endorsed volunteers:", error);
+        Swal.fire('Error', 'Failed to fetch endorsed volunteers.', 'error');
+    }
+}
 
-        for (let i = startPage; i <= endPage; i++) {
-            pagination.appendChild(createButton(i, i, false, i === currentPage));
-        }
+// --- Table Rendering and Management (No changes needed here) ---
 
-        if (endPage < totalPages) {
-            if (endPage < totalPages - 1) {
-                const dots = document.createElement('span');
-                dots.textContent = '...';
-                pagination.appendChild(dots);
-            }
-            pagination.appendChild(createButton(totalPages, totalPages));
-        }
+function renderVolunteersTable() {
+    volunteersContainer.innerHTML = ''; // Clear existing table rows
 
-        pagination.appendChild(createButton('Next', currentPage + 1, currentPage === totalPages));
+    if (paginatedVolunteers.length === 0) {
+        volunteersContainer.innerHTML = '<tr><td colspan="15" style="text-align: center;">No endorsed volunteers found.</td></tr>';
+        entriesInfoSpan.textContent = 'Showing 0 to 0 of 0 entries';
+        paginationElement.innerHTML = '';
+        return;
     }
 
-    function updateEntriesInfo(totalItems) {
-        const startIndex = (currentPage - 1) * rowsPerPage;
-        const endIndex = Math.min(startIndex + rowsPerPage, totalItems);
-        entriesInfo.textContent = `Showing ${totalItems ? startIndex + 1 : 0} to ${endIndex} of ${totalItems} entries`;
-    }
+    const startEntry = (currentPage - 1) * rowsPerPage + 1;
+    const endEntry = Math.min(currentPage * rowsPerPage, filteredVolunteers.length);
+    entriesInfoSpan.textContent = `Showing ${startEntry} to ${endEntry} of ${filteredVolunteers.length} entries`;
 
-    // --- Event Listeners ---
-    searchInput.addEventListener('input', applySearchAndSort);
-    sortSelect.addEventListener('change', applySearchAndSort);
+    paginatedVolunteers.forEach((volunteer, index) => {
+        const row = volunteersContainer.insertRow();
+        const rowNum = startEntry + index; // Correct row number based on pagination
 
-    volunteersContainer.addEventListener('click', (event) => {
-        const target = event.target;
-        const rowWithKey = target.closest('tr[data-key]');
+        row.insertCell().textContent = rowNum;
+        row.insertCell().textContent = getFullName(volunteer);
+        row.insertCell().textContent = volunteer.email || 'N/A';
+        row.insertCell().textContent = volunteer.mobileNumber || 'N/A';
+        row.insertCell().textContent = getAge(volunteer.birthdate);
+        row.insertCell().innerHTML = getSocialMediaLink(volunteer.socialMediaLink);
+        row.insertCell().textContent = volunteer.additionalInfo || 'N/A';
+        row.insertCell().textContent = volunteer.address?.region || 'N/A';
+        row.insertCell().textContent = volunteer.address?.province || 'N/A';
+        row.insertCell().textContent = volunteer.address?.city || 'N/A';
+        row.insertCell().textContent = volunteer.address?.barangay || 'N/A';
+        row.insertCell().textContent = volunteer.endorsedToABVNName ? `${volunteer.endorsedToABVNName} (${volunteer.endorsedToABVNLocation})` : 'N/A';
+        row.insertCell().textContent = formatDate(volunteer.endorsementDate);
 
-        if (!rowWithKey) {
-            return;
-        }
-
-        const volunteerKey = rowWithKey.dataset.key;
-        const volunteer = allApplications.find(v => v.key === volunteerKey);
-
-        if (!volunteer) {
-            console.warn("Volunteer data not found for key:", volunteerKey);
-            Swal.fire('Error', 'Volunteer data not found.', 'error');
-            return;
-        }
-
-        if (target.classList.contains('viewBtn') || target.closest('.viewBtn')) {
-            showPreviewModal(volunteer);
-        }
+        const actionsCell = row.insertCell();
+        const viewButton = document.createElement('button');
+        viewButton.textContent = 'View Info';
+        viewButton.classList.add('action-button', 'view-info-button');
+        viewButton.onclick = () => showVolunteerDetails(volunteer);
+        actionsCell.appendChild(viewButton);
     });
 
-    fetchEndorsedVolunteers();
+    renderPagination();
+}
+
+function applyFiltersAndSort() {
+    let tempVolunteers = [...allEndorsedVolunteers];
+
+    // Apply Search Filter
+    const searchTerm = searchInput.value.toLowerCase().trim();
+    if (searchTerm) {
+        tempVolunteers = tempVolunteers.filter(volunteer =>
+            getFullName(volunteer).toLowerCase().includes(searchTerm) ||
+            (volunteer.email && volunteer.email.toLowerCase().includes(searchTerm)) ||
+            (volunteer.mobileNumber && volunteer.mobileNumber.includes(searchTerm)) ||
+            (volunteer.address?.region && volunteer.address.region.toLowerCase().includes(searchTerm)) ||
+            (volunteer.address?.province && volunteer.address.province.toLowerCase().includes(searchTerm)) ||
+            (volunteer.address?.city && volunteer.address.city.toLowerCase().includes(searchTerm)) ||
+            (volunteer.address?.barangay && volunteer.address.barangay.toLowerCase().includes(searchTerm)) ||
+            (volunteer.endorsedToABVNName && volunteer.endorsedToABVNName.toLowerCase().includes(searchTerm)) ||
+            (volunteer.endorsedToABVNLocation && volunteer.endorsedToABVNLocation.toLowerCase().includes(searchTerm)) ||
+            (volunteer.socialMediaLink && volunteer.socialMediaLink.toLowerCase().includes(searchTerm))
+        );
+    }
+
+    // Apply Sort
+    const sortValue = sortSelect.value;
+    if (sortValue) {
+        const [sortBy, sortOrder] = sortValue.split('-');
+        tempVolunteers.sort((a, b) => {
+            let valA, valB;
+            if (sortBy === 'Location') {
+                valA = `${a.endorsedToABVNName || ''} ${a.endorsedToABVNLocation || ''}`.toLowerCase();
+                valB = `${b.endorsedToABVNName || ''} ${b.endorsedToABVNLocation || ''}`.toLowerCase();
+            } else if (sortBy === 'region') {
+                valA = (a.address?.region || '').toLowerCase();
+                valB = (b.address?.region || '').toLowerCase();
+            }
+            else {
+                valA = (a[sortBy] || '').toLowerCase();
+                valB = (b[sortBy] || '').toLowerCase();
+            }
+
+            if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+            if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+            return 0;
+        });
+    }
+
+    filteredVolunteers = tempVolunteers;
+    currentPage = 1;
+    paginateVolunteers();
+}
+
+function paginateVolunteers() {
+    const startIndex = (currentPage - 1) * rowsPerPage;
+    const endIndex = startIndex + rowsPerPage;
+    paginatedVolunteers = filteredVolunteers.slice(startIndex, endIndex);
+    renderVolunteersTable();
+}
+
+function renderPagination() {
+    paginationElement.innerHTML = '';
+    const totalPages = Math.ceil(filteredVolunteers.length / rowsPerPage);
+
+    if (totalPages <= 1) return;
+
+    const prevBtn = document.createElement('button');
+    prevBtn.textContent = 'Previous';
+    prevBtn.disabled = currentPage === 1;
+    prevBtn.onclick = () => { currentPage--; paginateVolunteers(); };
+    paginationElement.appendChild(prevBtn);
+
+    for (let i = 1; i <= totalPages; i++) {
+        const pageBtn = document.createElement('button');
+        pageBtn.textContent = i;
+        pageBtn.classList.toggle('active', i === currentPage);
+        pageBtn.onclick = () => { currentPage = i; paginateVolunteers(); };
+        paginationElement.appendChild(pageBtn);
+    }
+
+    const nextBtn = document.createElement('button');
+    nextBtn.textContent = 'Next';
+    nextBtn.disabled = currentPage === totalPages;
+    nextBtn.onclick = () => { currentPage++; paginateVolunteers(); };
+    paginationElement.appendChild(nextBtn);
+}
+
+// --- Modal Functionality (No changes needed here) ---
+
+function showVolunteerDetails(volunteer) {
+    let socialMediaHtml = getSocialMediaLink(volunteer.socialMediaLink);
+
+    modalContentDiv.innerHTML = `
+        <h2>Volunteer Details</h2>
+        <p><strong>Full Name:</strong> ${getFullName(volunteer)}</p>
+        <p><strong>Email:</strong> ${volunteer.email || 'N/A'}</p>
+        <p><strong>Mobile Number:</strong> ${volunteer.mobileNumber || 'N/A'}</p>
+        <p><strong>Birthdate:</strong> ${formatDate(volunteer.birthdate)} (Age: ${getAge(volunteer.birthdate)})</p>
+        <p><strong>Social Media:</strong><br>${socialMediaHtml}</p>
+        <p><strong>Additional Info:</strong> ${volunteer.additionalInfo || 'N/A'}</p>
+        <p><strong>Region:</strong> ${volunteer.address?.region || 'N/A'}</p>
+        <p><strong>Province:</strong> ${volunteer.address?.province || 'N/A'}</p>
+        <p><strong>City:</strong> ${volunteer.address?.city || 'N/A'}</p>
+        <p><strong>Barangay:</strong> ${volunteer.address?.barangay || 'N/A'}</p>
+        <p><strong>Endorsed To ABVN:</strong> ${volunteer.endorsedToABVNName ? `${volunteer.endorsedToABVNName} (${volunteer.endorsedToABVNLocation})` : 'N/A'}</p>
+        <p><strong>Endorsement Date:</strong> ${formatDate(volunteer.endorsementDate)}</p>
+    `;
+    previewModal.style.display = 'block';
+}
+
+closeModalBtn.addEventListener('click', () => {
+    previewModal.style.display = 'none';
+});
+
+window.addEventListener('click', (event) => {
+    if (event.target === previewModal) {
+        previewModal.style.display = 'none';
+    }
+});
+
+// --- Event Listeners ---
+searchInput.addEventListener('keyup', applyFiltersAndSort);
+sortSelect.addEventListener('change', applyFiltersAndSort);
+
+// --- Initial Data Load (Auth Check) ---
+document.addEventListener('DOMContentLoaded', () => {
+    auth.onAuthStateChanged(async (user) => {
+        if (user) {
+            // User is signed in. Fetch endorsed volunteers using their UID.
+            fetchEndorsedVolunteers(user.uid);
+        } else {
+            // User is signed out.
+            Swal.fire({
+                title: 'Not Logged In',
+                text: 'Please log in to view endorsed volunteers.',
+                icon: 'warning',
+                showCancelButton: false,
+                confirmButtonText: 'Go to Login'
+            }).then(() => {
+                window.location.href = '../login.html';
+            });
+            allEndorsedVolunteers = [];
+            renderVolunteersTable();
+        }
+    });
 });
