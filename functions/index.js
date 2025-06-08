@@ -5,6 +5,9 @@ const emailjs = require('@emailjs/nodejs');
 // Initialize the Admin SDK
 admin.initializeApp();
 
+exports.verifyRecaptchaAndSubmit = require('./verifyRecaptchaAndSubmit').verifyRecaptchaAndSubmit;
+// exports.sendAbvnApprovalEmail = require('./sendAbvnApprovalEmail').sendAbvnApprovalEmail;
+
 // Initialize EmailJS with your public key
 emailjs.init('ULA8rmn7VM-3fZ7ik'); // Your EmailJS public key
 

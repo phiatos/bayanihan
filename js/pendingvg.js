@@ -41,11 +41,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Data Fetching Function ---
     function fetchPendingApplications() {
-        // Show loading state
         volunteerOrgsContainer.innerHTML = '<tr><td colspan="11" style="text-align: center;">Loading applications...</td></tr>';
 
         database.ref('abvnApplications/pendingABVN').on('value', (snapshot) => {
-            allApplications = []; // Clear previous data
+            allApplications = []; 
             if (snapshot.exists()) {
                 snapshot.forEach((childSnapshot) => {
                     const appData = childSnapshot.val();
@@ -56,7 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 console.log("No pending ABVN applications found.");
             }
-            applySearchAndSort(); // Apply initial search and sort after fetching
+            applySearchAndSort(); 
         }, (error) => {
             console.error("Error fetching pending applications: ", error);
             Swal.fire({
@@ -71,7 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Rendering Function ---
     function renderApplications(applicationsToRender) {
-        volunteerOrgsContainer.innerHTML = ''; // Clear existing table rows
+        volunteerOrgsContainer.innerHTML = ''; 
 
         const startIndex = (currentPage - 1) * rowsPerPage;
         const endIndex = startIndex + rowsPerPage;
@@ -80,17 +79,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (paginatedApplications.length === 0) {
             volunteerOrgsContainer.innerHTML = '<tr><td colspan="11" style="text-align: center;">No pending applications found on this page.</td></tr>';
             entriesInfo.textContent = 'Showing 0 to 0 of 0 entries';
-            renderPagination(); // Still render pagination to show total pages
+            renderPagination(); 
             return;
         }
 
-        let i = startIndex + 1; // Counter for "No." column
+        let i = startIndex + 1; 
 
         paginatedApplications.forEach(app => {
             const row = volunteerOrgsContainer.insertRow();
-            row.setAttribute('data-key', app.key); // Store Firebase key on the row
+            row.setAttribute('data-key', app.key); 
 
-            // Format timestamp if available
             const formattedTimestamp = app.timestamp ? new Date(app.timestamp).toLocaleString('en-US', {
                 year: 'numeric', month: 'short', day: 'numeric',
                 hour: '2-digit', minute: '2-digit', second: '2-digit'
@@ -107,6 +105,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${app.headquarters?.province || 'N/A'}</td>
                 <td>${app.headquarters?.city || 'N/A'}</td>
                 <td>${app.headquarters?.barangay || 'N/A'}</td>
+                <td>${app.headquarters?.streetAddress || 'N/A'}</td>
+                <td>${formattedTimestamp || 'N/A'}</td>
                 <td>
                     <button class="approveBtn" data-key="${app.key}">Approve</button>
                     <button class="rejectBtn" data-key="${app.key}">Reject</button>
@@ -120,7 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Search and Sort Logic ---
     function applySearchAndSort() {
-        let currentApplications = [...allApplications]; // Start with all fetched data
+        let currentApplications = [...allApplications]; 
 
         // Apply search filter
         const searchTerm = searchInput.value.toLowerCase().trim();
@@ -154,40 +154,61 @@ document.addEventListener('DOMContentLoaded', () => {
                 let valA, valB;
 
                 switch (sortBy) {
-                    case 'DateTime':
-                        valA = new Date(a.timestamp || 0).getTime();
-                        valB = new Date(b.timestamp || 0).getTime();
-                        break;
-                    case 'OrganizationName': // This option is not in your HTML, but good to have
+                    case 'organizationName':
                         valA = (a.organizationName || '').toLowerCase();
                         valB = (b.organizationName || '').toLowerCase();
                         break;
-                    case 'Location':
-                        // Combine location parts for a better sort
-                        valA = `${a.headquarters?.region || ''} ${a.headquarters?.province || ''} ${a.headquarters?.city || ''} ${a.headquarters?.barangay || ''}`.toLowerCase();
-                        valB = `${b.headquarters?.region || ''} ${b.headquarters?.province || ''} ${b.headquarters?.city || ''} ${b.headquarters?.barangay || ''}`.toLowerCase();
+                    case 'contactPerson':
+                        valA = (a.contactPerson || '').toLowerCase();
+                        valB = (b.contactPerson || '').toLowerCase();
                         break;
-                    // Add more cases here if you want to sort by other specific fields
+                    case 'email':
+                        valA = (a.email || '').toLowerCase();
+                        valB = (b.email || '').toLowerCase();
+                        break;
+                    case 'mobileNumber':
+                        valA = (a.mobileNumber || '').toLowerCase();
+                        valB = (b.mobileNumber || '').toLowerCase();
+                        break;
+                    case 'region':
+                        valA = (a.headquarters?.region || '').toLowerCase();
+                        valB = (b.headquarters?.region || '').toLowerCase();
+                        break;
+                    case 'province':
+                        valA = (a.headquarters?.province || '').toLowerCase();
+                        valB = (b.headquarters?.province || '').toLowerCase();
+                        break;
+                    case 'city':
+                        valA = (a.headquarters?.city || '').toLowerCase();
+                        valB = (b.headquarters?.city || '').toLowerCase();
+                        break;
+                    case 'barangay':
+                        valA = (a.headquarters?.barangay || '').toLowerCase();
+                        valB = (b.headquarters?.barangay || '').toLowerCase();
+                        break;
                     default:
-                        // Default to organization name if no specific sort is defined or recognized
                         valA = (a.organizationName || '').toLowerCase();
                         valB = (b.organizationName || '').toLowerCase();
                         break;
                 }
 
-                if (valA < valB) return order === 'asc' ? -1 : 1;
-                if (valA > valB) return order === 'asc' ? 1 : -1;
-                return 0;
+                if (typeof valA === 'string' && typeof valB === 'string') {
+                    return order === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+                } else {
+                    if (valA < valB) return order === 'asc' ? -1 : 1;
+                    if (valA > valB) return order === 'asc' ? 1 : -1;
+                    return 0;
+                }
             });
         }
 
-        filteredApplications = currentApplications; // Update filtered applications
-        currentPage = 1; // Reset to first page after search/sort
+        filteredApplications = currentApplications; 
+        currentPage = 1; 
         renderApplications(filteredApplications);
     }
 
     // --- Pagination Functions ---
-    function renderPagination() { // Modified to use filteredData implicitly
+    function renderPagination() { 
         pagination.innerHTML = '';
         const totalPages = Math.ceil(filteredApplications.length / rowsPerPage);
 
@@ -235,7 +256,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const target = event.target;
         const appKey = target.dataset.key;
 
-        if (!appKey) return; // Not an action button
+        if (!appKey) return; 
 
         if (target.classList.contains('approveBtn')) {
             Swal.fire({

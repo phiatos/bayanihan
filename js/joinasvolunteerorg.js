@@ -325,13 +325,22 @@ document.addEventListener('DOMContentLoaded', () => {
         volunteerOrgForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 
+            // Get the reCAPTCHA response
+            const recaptchaResponse = grecaptcha.getResponse();
+            console.log('Client-side reCAPTCHA response:', recaptchaResponse);
+
+            if (!recaptchaResponse) {
+                Swal.fire('Error', 'Please complete the reCAPTCHA to prove you are not a robot.', 'error');
+                return;
+            }
+
             // Get form data
             const organization = document.getElementById('organization').value.trim();
             const contactPerson = document.getElementById('contact-person').value.trim();
             const email = document.getElementById('email').value.trim();
             const mobileNumber = document.getElementById('mobileNumber').value.trim();
             const socialMedia = document.getElementById('socialMedia').value.trim();
-            const streetAddress = streetAddressInput.value.trim(); // Get the street address value
+            const streetAddress = streetAddressInput.value.trim(); 
 
             // Get selected text content from location dropdowns, not the value code
             const selectedRegionText = regionSelect.options[regionSelect.selectedIndex]?.textContent || '';
@@ -359,22 +368,36 @@ document.addEventListener('DOMContentLoaded', () => {
                     barangay: selectedBarangayText,
                     streetAddress: streetAddress 
                 },
-                timestamp: new Date().toISOString() 
+                timestamp: new Date().toISOString(),
+                recaptchaResponse: recaptchaResponse 
             };
 
-            try {
-                // Push data to a new unique key under the 'abvnApplications' path
-                // await database.ref("abvnApplications").push(applicationData);
-                await database.ref("abvnApplications/pendingABVN").push(applicationData);
+            // Get a reference to the Cloud Function
+            const submitApplicationFunction = firebase.functions().httpsCallable('verifyRecaptchaAndSubmit');
 
-                console.log("Application saved to Realtime Database successfully!");
-                Swal.fire('Success', 'Application submitted successfully! Thank you for joining us.', 'success');
-                volunteerOrgForm.reset(); 
-                my_handlers.fill_regions(); 
+            try {
+                // Call the Cloud Function with your data and recaptcha token
+                const result = await submitApplicationFunction({
+                    applicationData: applicationData,
+                    recaptchaToken: recaptchaResponse
+                });
+
+                console.log("Cloud Function response:", result.data.message); 
+                Swal.fire('Success', result.data.message, 'success');
+                volunteerOrgForm.reset();
+                my_handlers.fill_regions();
+                grecaptcha.reset();
+
             } catch (error) {
-                console.error("Error adding application to Realtime Database: ", error);
-                Swal.fire('Error', 'There was an error submitting your application. Please try again.', 'error');
+                console.error("Error calling Cloud Function:", error);
+                // Access error details if it's an HttpsError
+                const errorMessage = error.message;
+                const errorCode = error.code; 
+                const errorDetails = error.details; 
+                Swal.fire('Error', `There was an error submitting your application: ${errorMessage}.`, 'error');
+                grecaptcha.reset(); 
             }
         });
     }
 });
+

@@ -33,27 +33,25 @@
                     <div class="custom-select-wrapper">
                         <select id="sortSelect">
                             <option value="" disabled selected hidden>Sort by</option>
-                            <optgroup label="Assessment Info">
-                                <option value="DateTime-asc">Date & Time (Oldest First)</option>
-                                <option value="DateTime-desc">Date & Time (Newest First)</option>
-                                <option value="RDANAID-asc">RDANA ID (Ascending)</option>
-                                <option value="RDANAID-desc">RDANA ID (Descending)</option>
-                            </optgroup>
+                            <optgroup label="Organization Details">
+                                <option value="organizationName-asc">Organization Name (A-Z)</option>
+                                <option value="organizationName-desc">Organization Name (Z-A)</option>
+                                <option value="contactPerson-asc">Contact Person (A-Z)</option>
+                                <option value="contactPerson-desc">Contact Person (Z-A)</option>
+                                <option value="email-asc">Email (A-Z)</option>
+                                <option value="email-desc">Email (Z-A)</option>
+                                <option value="mobileNumber-asc">Mobile Number (Ascending)</option>
+                                <option value="mobileNumber-desc">Mobile Number (Descending)</option>
+                                </optgroup>
                             <optgroup label="Location">
-                                <option value="Location-asc">Location (A–Z)</option>
-                                <option value="Location-desc">Location (Z–A)</option>
-                            </optgroup>
-                            <optgroup label="Disaster Details">
-                                <option value="DisasterType-asc">Disaster Type (A–Z)</option>
-                                <option value="DisasterType-desc">Disaster Type (Z–A)</option>
-                            </optgroup>
-                            <optgroup label="Impact">
-                                <option value="AffectedPopulation-desc">Affected Population (High to Low)</option>
-                                <option value="AffectedPopulation-asc">Affected Population (Low to High)</option>
-                            </optgroup>
-                            <optgroup label="Response Actions">
-                                <option value="Needs-asc">Priority Needs (A–Z)</option>
-                                <option value="Needs-desc">Priority Needs (Z–A)</option>
+                                <option value="region-asc">Region (A-Z)</option>
+                                <option value="region-desc">Region (Z-A)</option>
+                                <option value="province-asc">Province (A-Z)</option>
+                                <option value="province-desc">Province (Z-A)</option>
+                                <option value="city-asc">City (A-Z)</option>
+                                <option value="city-desc">City (Z-A)</option>
+                                <option value="barangay-asc">Barangay (A-Z)</option>
+                                <option value="barangay-desc">Barangay (Z-A)</option>
                             </optgroup>
                         </select>
                         <i class='bx bx-chevron-down'></i>
@@ -81,7 +79,8 @@
                             <th>Province</th>
                             <th>City</th>
                             <th>Barangay</th>
-                            <th>Actions</th>
+                            <th>Street Address</th>
+                            <th>Application Date/Time</th>
                         </tr>
                     </thead>
                     <tbody id="volunteerOrgsContainer"></tbody>

@@ -24,6 +24,7 @@
       <div class="post-container">
         <div class="post-creator">
           <div class="post-buttons">
+            <button id="sort-posts-button" ><i class='bx bx-sort-up'></i>Sort Posts</button>
             <button class="post-option" data-type="text"><i class='bx bx-text'></i> Text</button>
             <button class="post-option" data-type="image"><i class='bx bx-image'></i> Image</button>
             <button class="post-option" data-type="video"><i class='bx bx-video'></i> Video</button>
@@ -31,7 +32,6 @@
           </div>
         </div>
         <div class="post-created">
-          <h3 style="margin: 20px 0 10px 0;">Stay Updated</h3>
           <div id="posts"><div class="spinner"></div></div>
         </div>
       </div>
@@ -45,19 +45,21 @@
     <!-- Modal for post creation -->
     <div id="post-modal" class="modal" style="display: none;">
       <div class="modal-content">
-        <span class="close-button">×</span>
+        <span class="close-button"><i class="bx  bx-x bx-tada-hover"></i></span>
         <div class="modal-user-info">
           <strong id="modal-user-name">Loading...</strong>
           <small id="modal-user-org"></small>
         </div>
-        <hr class="full-width-hr" style="position:absolute; top: 60px;">
-        <div class="modal-input-area">
+        <hr class="full-width-hr" style="margin-top: 50px;">
+        <div class="modal-input-area" style="margin-top: 30px;">
           <input type="text" id="modal-post-title" placeholder="Title" maxlength="100">
-          <textarea id="modal-post-content" placeholder="What's on your mind?"></textarea>
           <div class="media-upload">
             <input type="file" id="modal-media-upload" accept="image/jpeg,image/png,video/mp4,video/webm" style="display: none;">
+            <button id="tap-to-upload" style="display: none;">Tap to Upload Image</button>
             <div id="modal-media-preview"></div>
           </div>
+          <textarea id="modal-post-content" placeholder="What's on your mind?" style="resize: none;"></textarea>
+          
         </div>
         <div class="modal-footer">
           <hr class="full-width-hr" > 
@@ -71,6 +73,31 @@
         </div>
       </div>
     </div>
+
+    <!-- Share Modal -->
+      <div id="share-post-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <span class="close-button"><i class="bx  bx-x bx-tada-hover" ></i></span>
+      <div class="modal-header">
+        <div class="share-header">
+          <strong id="share-modal-user-name"></strong>
+          <i class='bx bx-share'></i>
+          <span class="original-creator" id="share-original-creator"></span>
+        </div>
+      </div>
+        <hr class="full-width-hr" style="margin-top: 50px; left: 0;">
+      <div class="modal-input-area">
+        <div id="share-post-content" class="share-post-content"></div>
+        <textarea id="share-caption-input" class="share-caption-input" placeholder="Add a caption (optional)"  style="resize: none;"></textarea>
+        <hr class="full-width-hr" >
+      </div>
+      <div class="modal-footer">
+        <button id="share-cancel-button" class="cancel-btn">Cancel</button>
+        <button id="share-submit-button" class="share-button">Share</button>
+      </div>
+    </div>
+  </div>
+
   </div>
 
   <script>

@@ -1,4 +1,3 @@
-// Firebase configuration
 const firebaseConfig = {
     apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
     authDomain: "bayanihan-5ce7e.firebaseapp.com",
@@ -35,7 +34,7 @@ const secondaryAuth = firebase.auth(firebase.app("SecondaryApp"));
 
 // Initialize EmailJS with updated public key
 try {
-    emailjs.init('ULA8rmn7VM-3fZ7ik'); // Updated to your new public key
+    emailjs.init('ULA8rmn7VM-3fZ7ik');
     console.log("EmailJS initialized successfully");
 } catch (error) {
     console.error("EmailJS initialization failed:", error);
@@ -51,16 +50,15 @@ function generateTempPassword() {
     return password;
 }
 
-// Data arrays
-let data = [];
-
-// Table settings
+let data = []; // This will hold all fetched data
+let filteredData = []; // This will hold data after search/sort
 const rowsPerPage = 5;
 let currentPage = 1;
-let currentAddressCell = null; 
+let currentAddressCell = null;
 let editingRowId = null;
 let orgData = null;
 let isProcessing = false;
+let currentEditOrgKey = null;
 
 // DOM elements
 const tableBody = document.querySelector("#orgTable tbody");
@@ -79,6 +77,16 @@ const regionSelect = document.getElementById('region');
 const provinceSelect = document.getElementById('province');
 const citySelect = document.getElementById('city');
 const barangaySelect = document.getElementById('barangay');
+
+// --- Get Edit Modal Elements ---
+const editOrgModal = document.getElementById('editOrgModal');
+const closeEditModalBtn = document.getElementById('closeEditModalBtn');
+const editOrgForm = document.getElementById('editOrgForm');
+const editRegionSelect = document.getElementById('editRegion');
+const editProvinceSelect = document.getElementById('editProvince');
+const editCitySelect = document.getElementById('editCity');
+const editBarangaySelect = document.getElementById('editBarangay');
+const editOrgFirebaseKeyInput = document.getElementById('editOrgFirebaseKey');
 
 const regionTextInput = document.getElementById('hq-region-text');
 const provinceTextInput = document.getElementById('addOrgProvince-text');
@@ -106,15 +114,12 @@ function formatMobileNumber(mobile) {
     if (cleaned.startsWith("63") && cleaned.length === 12) {
         cleaned = "0" + cleaned.slice(2);
     }
-
     if (/^09\d{9}$/.test(cleaned)) {
         return cleaned;
     }
-
     if (/^\d{9}$/.test(cleaned) && (mobile.startsWith('9') || mobile.startsWith('+639') || mobile.startsWith('09'))) {
         return '0' + cleaned;
     }
-
     return null;
 }
 
@@ -125,7 +130,6 @@ function isValidEmail(email) {
 
 // Fetch and render table data
 function fetchAndRenderTable() {
-    console.log("Checking authentication state...");
     auth.onAuthStateChanged(user => {
         console.log("User state:", user ? `Signed in as ${user.uid}` : "No user signed in");
         if (!user) {
@@ -141,61 +145,64 @@ function fetchAndRenderTable() {
             }, 2000);
             return;
         }
-        console.log("Fetching volunteerGroups...");
-        // Listen for value changes to automatically update table
         database.ref("volunteerGroups").on("value", snapshot => { // Changed to .on() for real-time updates
             const fetchedData = snapshot.val();
             console.log("Fetched volunteerGroups:", fetchedData);
             if (!fetchedData) {
                 console.warn("No data found in volunteerGroups node.");
-                data = [];
-                renderTable();
+                data = []; // Clear data if no entries
+                filteredData = []; // Clear filtered data
+                applySearchAndSort(); // Re-render with no data
                 Swal.fire({
                     icon: "info",
                     title: "No Data",
                     text: "No volunteer groups found in the database.",
-                    toast: true, // Make it a small toast notification
-                    position: 'top-end', // Position it at the top-right
+                    toast: true,
+                    position: 'top-end',
                     showConfirmButton: false,
-                    timer: 3000 // Disappear after 3 seconds
+                    timer: 3000
                 });
                 return;
             }
-            // Use Object.entries to get key-value pairs, where key is the unique Firebase ID
             data = Object.entries(fetchedData).map(([key, entry]) => ({
                 id: key, // Store the Firebase unique ID as 'id'
                 organization: entry.organization || "N/A",
-                hq: entry.hq || "N/A",
                 contactPerson: entry.contactPerson || "N/A",
                 email: entry.email || "N/A",
                 mobileNumber: entry.mobileNumber || "N/A",
                 socialMedia: entry.socialMedia || "N/A",
+                address: {
+                    region: entry.address?.region || "N/A",
+                    province: entry.address?.province || "N/A",
+                    city: entry.address?.city || "N/A",
+                    barangay: entry.address?.barangay || "N/A",
+                    streetAddress: entry.address?.streetAddress || "N/A"
+                }
             }));
-            console.log("Processed Data:", data);
-            // Sorting will be handled by the sortSelect if chosen, or default alphabetical for organization
-            if (sortSelect.value === 'organization') {
-                data.sort((a, b) => a.organization.localeCompare(b.organization));
-            } else if (sortSelect.value === 'hq') {
-                data.sort((a, b) => a.hq.localeCompare(b.hq));
-            } else {
-                // Default sort (e.g., by creation time if available, or just Firebase key which is time-based)
-                // For now, no specific default sort, just rely on Firebase's order or current filters
-            }
-            renderTable(filterAndSort()); // Ensure filters/sorts are applied
+            applySearchAndSort();
         });
     });
 }
 
 // Render table
-function renderTable(filteredData = data) {
-    console.log("Rendering table with data:", filteredData);
+function renderTable(dataToRender = filteredData) { 
+    console.log("Rendering table with data:", dataToRender);
     if (!tableBody) return;
     tableBody.innerHTML = "";
     const start = (currentPage - 1) * rowsPerPage;
     const end = start + rowsPerPage;
-    const pageData = filteredData.slice(start, end);
+    const pageData = dataToRender.slice(start, end);
 
-    console.log("Page data:", pageData);
+    if (pageData.length === 0 && searchInput.value.trim() !== "") {
+        const noResultsRow = document.createElement("tr");
+        noResultsRow.innerHTML = `<td colspan="12" class="text-center">No results found for your search.</td>`;
+        tableBody.appendChild(noResultsRow);
+    } else if (pageData.length === 0) {
+        const noDataRow = document.createElement("tr");
+        noDataRow.innerHTML = `<td colspan="12" class="text-center">No volunteer groups to display.</td>`;
+        tableBody.appendChild(noDataRow);
+    }
+
 
     pageData.forEach((row, index) => {
         const displayNo = start + index + 1; // Sequential number for display
@@ -203,204 +210,28 @@ function renderTable(filteredData = data) {
         tr.innerHTML = `
             <td>${displayNo}</td>
             <td>${row.organization}</td>
-            <td class="hqCell">${row.hq}</td>
             <td>${row.contactPerson}</td>
             <td>${row.email}</td>
             <td>${row.mobileNumber}</td>
             <td>
             ${row.socialMedia && row.socialMedia !== 'N/A' ? `<a href="${row.socialMedia}" target="_blank" rel="noopener noreferrer">${row.socialMedia}</a>` : 'N/A'}
             </td>
+            <td>${row.address?.region || 'N/A'}</td>
+            <td>${row.address?.province || 'N/A'}</td>
+            <td>${row.address?.city || 'N/A'}</td>
+            <td>${row.address?.barangay || 'N/A'}</td>
+            <td>${row.address?.streetAddress || 'N/A'}</td>
             <td>
-                <button class="editBtn" data-id="${row.id}">Edit</button> <button class="deleteBtn" data-id="${row.id}">Remove</button> </td>
+                <button class="editBtn" data-id="${row.id}">Edit</button>
+                <button class="deleteBtn" data-id="${row.id}">Remove</button>
+            </td>
         `;
         tableBody.appendChild(tr);
     });
 
-    if (entriesInfo) {
-        entriesInfo.textContent = `Showing ${start + 1} to ${Math.min(end, filteredData.length)} of ${filteredData.length} entries`;
-    }
-    renderPagination(filteredData.length);
+    updateEntriesInfo(dataToRender.length);
+    renderPagination(dataToRender.length);
     attachRowHandlers(); // Re-attach handlers after rendering
-}
-
-// Search functionality
-function handleSearch() {
-    if (!searchInput) return;
-    const query = searchInput.value.trim().toLowerCase();
-    if (clearBtn) clearBtn.style.display = query ? 'flex' : 'none';
-    currentPage = 1;
-    renderTable(filterAndSort());
-}
-
-function clearDInputs() {
-    if (!searchInput || !clearBtn) return;
-    searchInput.value = '';
-    clearBtn.style.display = 'none';
-    currentPage = 1;
-    renderTable(filterAndSort());
-}
-
-if (clearBtn) {
-    clearBtn.style.display = 'none';
-    clearBtn.addEventListener('click', clearDInputs);
-}
-
-if (searchInput) {
-    searchInput.addEventListener('input', handleSearch);
-}
-
-// Filter and sort
-function filterAndSort() {
-    let filtered = data.filter(row =>
-        Object.values(row).some(val =>
-            typeof val === 'string' || typeof val === 'number'
-                ? val.toString().toLowerCase().includes(searchInput.value.trim().toLowerCase())
-                : false
-        )
-    );
-    if (sortSelect && sortSelect.value) {
-        filtered.sort((a, b) => a[sortSelect.value].toString().localeCompare(b[sortSelect.value].toString()));
-    }
-    return filtered;
-}
-
-if (sortSelect) {
-    sortSelect.addEventListener("change", () => {
-        currentPage = 1;
-        renderTable(filterAndSort());
-    });
-}
-
-// Pagination
-function renderPagination(totalRows) {
-    if (!paginationContainer) return;
-    paginationContainer.innerHTML = "";
-    const totalPages = Math.ceil(totalRows / rowsPerPage);
-    if (totalPages === 0) {
-        paginationContainer.textContent = "No entries to display";
-        return;
-    }
-    const createButton = (label, page, disabled = false, active = false) => {
-        const btn = document.createElement("button");
-        btn.textContent = label;
-        if (disabled) btn.disabled = true;
-        if (active) btn.classList.add("active-page");
-        if (page !== null) {
-            btn.addEventListener("click", () => {
-                currentPage = page;
-                renderTable(filterAndSort());
-            });
-        }
-        return btn;
-    };
-    paginationContainer.appendChild(createButton("Prev", currentPage > 1 ? currentPage - 1 : null, currentPage === 1));
-    for (let i = 1; i <= totalPages; i++) {
-        paginationContainer.appendChild(createButton(i, i, false, i === currentPage));
-    }
-    paginationContainer.appendChild(createButton("Next", currentPage < totalPages ? currentPage + 1 : null, currentPage === totalPages));
-}
-
-// Edit and Delete functionality
-function attachRowHandlers() {
-    document.querySelectorAll('.editBtn').forEach(button => {
-        button.addEventListener('click', () => {
-            const row = button.closest('tr');
-            const rowId = button.getAttribute('data-id');
-            const cells = row.querySelectorAll('td');
-            // Determine the number of editable cells based on the updated table structure
-            const numEditableCells = 6; // Organization, HQ, Contact Person, Email, Mobile Number, Social Media
-
-            const isEditable = cells[1].getAttribute('contenteditable') === 'true';
-
-            if (!isEditable) {
-                // Make cells editable
-                for (let i = 1; i <= numEditableCells; i++) { // Start from index 1 (Organization)
-                    cells[i].setAttribute('contenteditable', 'true');
-                }
-                button.textContent = 'Save';
-                editingRowId = rowId;
-            } else {
-                // Save updated data
-                const updatedData = {
-                    organization: cells[1].textContent.trim() || "N/A",
-                    hq: cells[2].textContent.trim() || "N/A",
-                    contactPerson: cells[3].textContent.trim() || "N/A",
-                    email: cells[4].textContent.trim() || "N/A",
-                    mobileNumber: cells[5].textContent.trim() || "N/A",
-                    socialMedia: cells[6].textContent.trim() || "N/A"
-                };
-
-                database.ref(`volunteerGroups/${rowId}`).update(updatedData)
-                    .then(() => {
-                        // Make cells non-editable
-                        for (let i = 1; i <= numEditableCells; i++) {
-                            cells[i].setAttribute('contenteditable', 'false');
-                        }
-                        button.textContent = 'Edit';
-                        editingRowId = null;
-                        fetchAndRenderTable();
-                    })
-                    .catch(error => {
-                        console.error("Update error:", error);
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Update Error',
-                            text: error.message
-                        });
-                    });
-            }
-        });
-    });
-
-    // Delete button handler
-    document.querySelectorAll('.deleteBtn').forEach(button => {
-        button.addEventListener('click', () => {
-            const rowId = button.getAttribute('data-id');
-            Swal.fire({
-                icon: 'warning',
-                title: 'Are you sure?',
-                text: 'This will remove the volunteer group from the list but keep it in the database for future access.',
-                showCancelButton: true,
-                confirmButtonText: 'Yes, delete it!',
-                cancelButtonText: 'Cancel'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    // Fetch the volunteer group data
-                    database.ref(`volunteerGroups/${rowId}`).once('value')
-                        .then(snapshot => {
-                            const groupData = snapshot.val();
-                            if (!groupData) throw new Error("Group not found.");
-
-                            // Move to deletedVolunteerGroups node with a timestamp
-                            return database.ref(`deletedVolunteerGroups/${rowId}`).set({
-                                ...groupData,
-                                deletedAt: new Date().toISOString()
-                            });
-                        })
-                        .then(() => {
-                            // Remove from volunteerGroups node
-                            return database.ref(`volunteerGroups/${rowId}`).remove();
-                        })
-                        .then(() => {
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Deleted',
-                                text: 'Volunteer group has been moved to the deleted list.'
-                            });
-                            fetchAndRenderTable(); // Refresh the table to remove the row from the UI
-                        })
-                        .catch(error => {
-                            console.error("Delete error:", error);
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Delete Error',
-                                text: error.message
-                            });
-                        });
-                }
-            });
-        });
-    });
 }
 
 var my_handlers = {
@@ -725,36 +556,42 @@ var my_handlers = {
     if (barangaySelect) barangaySelect.addEventListener('change', my_handlers.onchange_barangay);
 
     // Call the initial fill for regions directly on page load
-    my_handlers.fill_regions();
-
     fetchAndRenderTable();
-
-    // Modal for editing HQ [LAGAY HERE]
+    my_handlers.fill_regions();
 
     // Event listeners for modals and buttons
     if (addNew) {
         addNew.addEventListener('click', () => {
-            addOrgModal.style.display = 'block';
-            document.getElementById('modalTitle').textContent = 'Register New ABVN';
-            addOrgForm.reset(); 
-            my_handlers.fill_regions();
+            if (addOrgModal) {
+                addOrgModal.style.display = 'block';
+                addOrgForm.reset(); 
+                my_handlers.fill_regions(); 
+                currentAddressCell = null; 
+            }
         });
     }
 
     if (closeAddOrgModalBtn) {
         closeAddOrgModalBtn.addEventListener('click', () => {
             addOrgModal.style.display = 'none';
-            addOrgForm.reset(); // Reset form when modal is closed
+            addOrgForm.reset(); 
         });
     }
 
-    // Continue button in success modal
     if (continueSuccessBtn) {
         continueSuccessBtn.addEventListener('click', () => {
-            document.getElementById('successModal').style.display = 'none';
-            fetchAndRenderTable(); // Refresh table after successful addition
+            const successModal = document.getElementById('successModal');
+            if (successModal) {
+                successModal.style.display = 'none';
+            }
         });
     }
+
+    window.addEventListener('click', (event) => {
+        if (event.target === addOrgModal) {
+            addOrgModal.style.display = 'none';
+        }
+    });
 
     // Event listener for the form submission to show confirmation modal
     if (addOrgForm) {
@@ -764,11 +601,12 @@ var my_handlers = {
             // Get form data for organization information
             const organization = document.getElementById('organization').value.trim();
             const contactPerson = document.getElementById('contactPerson').value.trim();
-            const email = document.getElementById('email').value.trim(); 
-            const mobileNumber = document.getElementById('mobileNumber').value.trim(); 
-            const socialMedia = document.getElementById('socialMedia').value.trim(); 
+            const email = document.getElementById('email').value.trim();
+            const mobileNumber = document.getElementById('mobileNumber').value.trim();
+            const socialMedia = document.getElementById('socialMedia').value.trim();
+            const streetAddress = document.getElementById('streetAddress')?.value.trim() || '';
 
-            // Get selected text content from location dropdowns (assuming these elements are available globally or within scope)
+            // Get selected text content from location dropdowns
             const selectedRegionText = regionSelect.options[regionSelect.selectedIndex]?.textContent || '';
             const selectedProvinceText = provinceSelect.options[provinceSelect.selectedIndex]?.textContent || '';
             const selectedCityText = citySelect.options[citySelect.selectedIndex]?.textContent || '';
@@ -804,7 +642,7 @@ var my_handlers = {
             }
 
             if (!addOrgForm.checkValidity()) {
-                addOrgForm.reportValidity(); // This will show browser's default validation messages
+                addOrgForm.reportValidity();
                 return;
             }
 
@@ -819,20 +657,23 @@ var my_handlers = {
                     region: selectedRegionText,
                     province: selectedProvinceText,
                     city: selectedCityText,
-                    barangay: selectedBarangayText
+                    barangay: selectedBarangayText,
+                    streetAddress: streetAddress || "N/A"
                 },
                 timestamp: new Date().toISOString() 
             };
 
-            // Combine address into hq for display (optional, can be done when displaying)
-            orgData.hq = `${orgData.address.barangay}, ${orgData.address.city}, ${orgData.address.province}, ${orgData.address.region}`;
+            // orgData.hq = `${orgData.address.barangay}, ${orgData.address.city}, ${orgData.address.province}, ${orgData.address.region}`;
 
             // --- Display Confirmation Details ---
             const confirmDetails = document.getElementById('confirmDetails');
             if (confirmDetails) {
+                // Construct the full address string for display
+                const fullAddress = `${orgData.address.streetAddress !== 'N/A' ? orgData.address.streetAddress + ', ' : ''}${orgData.address.barangay}, ${orgData.address.city}, ${orgData.address.province}, ${orgData.address.region}`;
+
                 confirmDetails.innerHTML = `
                     <p><strong style="color: #4059A5;">Organization:</strong> ${orgData.organization}</p>
-                    <p><strong style="color: #4059A5;">HQ:</strong> ${orgData.hq}</p>
+                    <p><strong style="color: #4059A5;">Full Address:</strong> ${fullAddress}</p>
                     <p><strong style="color: #4059A5;">Contact Person:</strong> ${orgData.contactPerson}</p>
                     <p><strong style="color: #4059A5;">Email:</strong> ${orgData.email}</p>
                     <p><strong style="color: #4059A5;">Mobile:</strong> ${orgData.mobileNumber}</p>
@@ -844,169 +685,690 @@ var my_handlers = {
             if (addOrgModal) addOrgModal.style.display = 'none';
             const confirmModal = document.getElementById('confirmModal');
             if (confirmModal) confirmModal.style.display = 'block';
-
-            // --- Database Submission (Placeholder, as it was not in your original snippet) ---
-            // try {
-            //     await database.ref("organizationApplications/pendingOrganization").push(orgData);
-            //     console.log("Organization application saved to Realtime Database successfully!");
-            //     // Swal.fire('Success', 'Your organization application has been submitted successfully!', 'success');
-            //     addOrgForm.reset();
-            //     my_handlers.fill_regions(); // Assuming this is needed to repopulate dropdowns
-            // } catch (error) {
-            //     console.error("Error adding organization application to Realtime Database: ", error);
-            //     Swal.fire('Error', 'There was an error submitting your application. Please try again.', 'error');
-            // }
         });
     }
 
     const confirmSaveBtn = document.getElementById('confirmSaveBtn');
-        if (confirmSaveBtn) {
-            confirmSaveBtn.addEventListener('click', async () => {
-                if (isProcessing) return;
-                isProcessing = true;
-                confirmSaveBtn.disabled = true;
+    if (confirmSaveBtn) {
+        confirmSaveBtn.addEventListener('click', async () => {
+            if (isProcessing) return;
+            isProcessing = true;
+            confirmSaveBtn.disabled = true;
 
-                if (!orgData) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: 'No organization data found.'
-                    });
-                    isProcessing = false;
-                    confirmSaveBtn.disabled = false;
-                    return;
+            if (!orgData) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'No organization data found.'
+                });
+                isProcessing = false;
+                confirmSaveBtn.disabled = false;
+                return;
+            }
+
+            const newVolunteerGroup = {
+                organization: orgData.organization,
+                contactPerson: orgData.contactPerson,
+                email: orgData.email || "N/A",
+                mobileNumber: orgData.mobileNumber,
+                socialMedia: orgData.socialMedia,
+                address: {
+                    region: orgData.address.region,
+                    province: orgData.address.province,
+                    city: orgData.address.city,
+                    barangay: orgData.address.barangay,
+                    streetAddress: orgData.address.streetAddress
+                },
+                timestamp: orgData.timestamp 
+            };
+
+            try {
+                // Verify admin is signed in
+                const adminUser = auth.currentUser;
+                if (!adminUser) {
+                    throw new Error("No admin signed in. Please sign in again.");
+                }
+                console.log("Current admin:", adminUser.uid);
+
+                // Check if mobile number already exists
+                const usersSnapshot = await database.ref('users').once('value');
+                const users = usersSnapshot.val();
+
+                console.log("All users in database:", users);
+                if (users) {
+                    for (const userId in users) {
+                        const userData = users[userId];
+                        const storedMobile = formatMobileNumber(userData.mobile);
+                        const incomingMobile = formatMobileNumber(orgData.mobileNumber);
+
+                        console.log(`Comparing mobile: ${incomingMobile} with stored: ${userData.mobile} -> ${storedMobile}`);
+
+                        // Compare only if both are valid mobile numbers
+                        if (storedMobile && incomingMobile && storedMobile === incomingMobile) {
+                            console.log(`Match found! Mobile number ${orgData.mobileNumber} already registered for user:`, userData);
+                            throw new Error("Mobile number already registered.");
+                        }
+                    }
                 }
 
-                const newVolunteerGroup = {
+                // Create Firebase Authentication account with the actual email
+                const tempPassword = generateTempPassword();
+                let userCredential;
+                try {
+                    userCredential = await secondaryAuth.createUserWithEmailAndPassword(orgData.email, tempPassword);
+                } catch (error) {
+                    if (error.code === 'auth/email-already-in-use') {
+                        throw new Error("Email already registered. Please use a different email.");
+                    }
+                    throw new Error("Error creating user in Firebase Authentication: " + error.message);
+                }
+                const newUser = userCredential.user;
+
+                // Save user data to users/<uid>
+                await database.ref(`users/${newUser.uid}`).set({
+                    role: "ABVN",
+                    email: orgData.email,
+                    mobile: orgData.mobileNumber,
                     organization: orgData.organization,
-                    hq: orgData.hq, 
                     contactPerson: orgData.contactPerson,
-                    email: orgData.email || "N/A",
-                    mobileNumber: orgData.mobileNumber,
-                    socialMedia: orgData.socialMedia,
-                    address: {
+                    address: { 
                         region: orgData.address.region,
                         province: orgData.address.province,
                         city: orgData.address.city,
-                        barangay: orgData.address.barangay
+                        barangay: orgData.address.barangay,
+                        streetAddress: orgData.address.streetAddress
                     },
-                    timestamp: orgData.timestamp 
-                };
+                    createdAt: new Date().toISOString(),
+                    isFirstLogin: true,
+                    emailVerified: false,
+                    password_needs_reset: true
+                });
 
-                try {
-                    // Verify admin is signed in
-                    const adminUser = auth.currentUser;
-                    if (!adminUser) {
-                        throw new Error("No admin signed in. Please sign in again.");
-                    }
-                    console.log("Current admin:", adminUser.uid);
+                // Save volunteer group
+                const snapshot = await database.ref('volunteerGroups').once('value');
+                const groups = snapshot.val();
+                const nextKey = groups ? Math.max(...Object.keys(groups).map(Number)) + 1 : 1;
+                
+                await database.ref(`volunteerGroups/${nextKey}`).set({
+                    ...newVolunteerGroup,
+                    userId: newUser.uid
+                });
 
-                    // Check if mobile number already exists
-                    const usersSnapshot = await database.ref('users').once('value');
-                    const users = usersSnapshot.val();
+                // Send EmailJS confirmation with temporary password (Updated to exclude mobileNumber)
+                await emailjs.send('service_g5f0erj', 'template_0yk865p', {
+                    email: orgData.email,
+                    organization: orgData.organization,
+                    tempPassword: tempPassword,
+                    message: `Your volunteer group "${orgData.organization}" has been successfully registered with Bayanihan. Please use the credentials below to log in. You will be prompted to verify your email and reset your password upon your first login.`,
+                    verification_message: `Please log in using the provided email and temporary password. You will be prompted to verify your email and reset your password upon your first login.`
+                });
 
-                    console.log("All users in database:", users);
-                    if (users) {
-                        for (const userId in users) {
-                            const userData = users[userId];
-                            const storedMobile = formatMobileNumber(userData.mobile);
-                            const incomingMobile = formatMobileNumber(orgData.mobileNumber);
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success',
+                    text: 'Volunteer group added successfully! An email with login credentials has been sent to the user.'
+                });
 
-                            console.log(`Comparing mobile: ${incomingMobile} with stored: ${userData.mobile} -> ${storedMobile}`);
+                orgData = null;
+                const confirmModal = document.getElementById('confirmModal');
+                const successModal = document.getElementById('successModal');
+                if (confirmModal) confirmModal.style.display = 'none';
+                if (successModal) successModal.style.display = 'block';
+                fetchAndRenderTable();
 
-                            // Compare only if both are valid mobile numbers
-                            if (storedMobile && incomingMobile && storedMobile === incomingMobile) {
-                                console.log(`Match found! Mobile number ${orgData.mobileNumber} already registered for user:`, userData);
-                                throw new Error("Mobile number already registered.");
-                            }
-                        }
-                    }
+                // Sign out secondary app (important for security)
+                await secondaryAuth.signOut();
+            } catch (error) {
+                console.error('Error adding volunteer group:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: `Failed to add group: ${error.message}`
+                });
+            } finally {
+                isProcessing = false;
+                confirmSaveBtn.disabled = false;
+                console.log("Admin still signed in:", auth.currentUser?.uid);
+            }
+        });
+    }
 
-                    // Create Firebase Authentication account with the actual email
-                    const tempPassword = generateTempPassword();
-                    let userCredential;
-                    try {
-                        userCredential = await secondaryAuth.createUserWithEmailAndPassword(orgData.email, tempPassword);
-                    } catch (error) {
-                        if (error.code === 'auth/email-already-in-use') {
-                            throw new Error("Email already registered. Please use a different email.");
-                        }
-                        throw new Error("Error creating user in Firebase Authentication: " + error.message);
-                    }
-                    const newUser = userCredential.user;
+// --- Edit Modal Handlers ---
+if (closeEditModalBtn) {
+    closeEditModalBtn.addEventListener('click', () => {
+        editOrgModal.style.display = 'none';
+        editOrgForm.reset();
+        // Optionally, reset dropdowns for edit modal here if needed
+    });
+}
 
-                    // Save user data to users/<uid>
-                    await database.ref(`users/${newUser.uid}`).set({
-                        role: "ABVN",
-                        email: orgData.email,
-                        mobile: orgData.mobileNumber,
-                        organization: orgData.organization,
-                        hq: orgData.hq,
-                        contactPerson: orgData.contactPerson,
-                        address: { 
-                            region: orgData.address.region,
-                            province: orgData.address.province,
-                            city: orgData.address.city,
-                            barangay: orgData.address.barangay
-                        },
-                        createdAt: new Date().toISOString(),
-                        abvnKey: abvnKey,
-                        isFirstLogin: true,
-                        emailVerified: false,
-                        password_needs_reset: true
-                    });
+window.addEventListener('click', (event) => {
+    if (event.target === editOrgModal) {
+        editOrgModal.style.display = 'none';
+        editOrgForm.reset();
+    }
+});
 
-                    // Save volunteer group
-                    const snapshot = await database.ref('volunteerGroups').once('value');
-                    const groups = snapshot.val();
-                    const nextKey = groups ? Math.max(...Object.keys(groups).map(Number)) + 1 : 1;
-                    await database.ref(`volunteerGroups/${nextKey}`).set({
-                        ...newVolunteerGroup,
-                        userId: newUser.uid
-                    });
+// Function to populate and open the edit modal
+function openEditModal(orgId) {
+    const orgToEdit = data.find(org => org.id === orgId);
+    if (!orgToEdit) {
+        console.error("Organization not found for editing:", orgId);
+        Swal.fire('Error', 'Volunteer group not found.', 'error');
+        return;
+    }
 
-                    // Send EmailJS confirmation with temporary password (Updated to exclude mobileNumber)
-                    await emailjs.send('service_g5f0erj', 'template_0yk865p', {
-                        email: orgData.email,
-                        organization: orgData.organization,
-                        tempPassword: tempPassword,
-                        message: `Your volunteer group "${orgData.organization}" has been successfully registered with Bayanihan. Please use the credentials below to log in. You will be prompted to verify your email and reset your password upon your first login.`,
-                        verification_message: `Please log in using the provided email and temporary password. You will be prompted to verify your email and reset your password upon your first login.`
-                    });
+    currentEditOrgKey = orgId;
+    editOrgFirebaseKeyInput.value = orgId; // Store the Firebase key
 
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Success',
-                        text: 'Volunteer group added successfully! An email with login credentials has been sent to the user.'
-                    });
+    // Populate form fields
+    document.getElementById('editOrganization').value = orgToEdit.organization;
+    document.getElementById('editContactPerson').value = orgToEdit.contactPerson;
+    document.getElementById('editEmail').value = orgToEdit.email;
+    document.getElementById('editMobileNumber').value = orgToEdit.mobileNumber;
+    document.getElementById('editSocialMedia').value = orgToEdit.socialMedia === "N/A" ? "" : orgToEdit.socialMedia;
+    document.getElementById('editStreetAddress').value = orgToEdit.address.streetAddress === "N/A" ? "" : orgToEdit.address.streetAddress;
 
-                    orgData = null;
-                    const confirmModal = document.getElementById('confirmModal');
-                    const successModal = document.getElementById('successModal');
-                    if (confirmModal) confirmModal.style.display = 'none';
-                    if (successModal) successModal.style.display = 'block';
-                    fetchAndRenderTable();
+    // Populate location dropdowns for edit modal
+    populateEditLocationDropdowns(orgToEdit.address.region, orgToEdit.address.province, orgToEdit.address.city, orgToEdit.address.barangay);
 
-                    // Sign out secondary app (important for security)
-                    await secondaryAuth.signOut();
-                } catch (error) {
-                    console.error('Error adding volunteer group:', error);
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: `Failed to add group: ${error.message}`
-                    });
-                } finally {
-                    isProcessing = false;
-                    confirmSaveBtn.disabled = false;
-                    console.log("Admin still signed in:", auth.currentUser?.uid);
-                }
-            });
+    editOrgModal.style.display = 'block';
+}
+
+// Function to populate edit modal location dropdowns
+async function populateEditLocationDropdowns(selectedRegion, selectedProvince, selectedCity, selectedBarangay) {
+    // Clear and reset dropdowns
+    editRegionSelect.innerHTML = '<option value="" selected="true" disabled>Choose Region</option>';
+    editProvinceSelect.innerHTML = '<option value="" selected="true" disabled>Choose Province</option>';
+    editCitySelect.innerHTML = '<option value="" selected="true" disabled>Choose City / Municipality</option>';
+    editBarangaySelect.innerHTML = '<option value="" selected="true" disabled>Choose Barangay</option>';
+
+    try {
+        // Fetch and fill regions
+        const regionResponse = await fetch('../json/region.json');
+        if (!regionResponse.ok) throw new Error(`HTTP error! Status: ${regionResponse.status}`);
+        const regions = await regionResponse.json();
+        regions.sort((a, b) => a.region_name.localeCompare(b.region_name));
+        regions.forEach(entry => {
+            const opt = document.createElement('option');
+            opt.value = entry.region_code;
+            opt.textContent = entry.region_name;
+            editRegionSelect.appendChild(opt);
+        });
+        // Set selected region
+        const regionFound = regions.find(r => r.region_name === selectedRegion);
+        if (regionFound) {
+            editRegionSelect.value = regionFound.region_code;
         }
 
+        // Fetch and fill provinces
+        const provinceResponse = await fetch('../json/province.json');
+        if (!provinceResponse.ok) throw new Error(`HTTP error! Status: ${provinceResponse.status}`);
+        const provinces = await provinceResponse.json();
+        const filteredProvinces = provinces.filter(p => p.region_code === editRegionSelect.value);
+        filteredProvinces.sort((a, b) => a.province_name.localeCompare(b.province_name));
+        filteredProvinces.forEach(entry => {
+            const opt = document.createElement('option');
+            opt.value = entry.province_code;
+            opt.textContent = entry.province_name;
+            editProvinceSelect.appendChild(opt);
+        });
+        // Set selected province
+        const provinceFound = filteredProvinces.find(p => p.province_name === selectedProvince);
+        if (provinceFound) {
+            editProvinceSelect.value = provinceFound.province_code;
+        }
+
+        // Fetch and fill cities
+        const cityResponse = await fetch('../json/city.json');
+        if (!cityResponse.ok) throw new Error(`HTTP error! Status: ${cityResponse.status}`);
+        const cities = await cityResponse.json();
+        const filteredCities = cities.filter(c => c.province_code === editProvinceSelect.value);
+        filteredCities.sort((a, b) => a.city_name.localeCompare(b.city_name));
+        filteredCities.forEach(entry => {
+            const opt = document.createElement('option');
+            opt.value = entry.city_code;
+            opt.textContent = entry.city_name;
+            editCitySelect.appendChild(opt);
+        });
+        // Set selected city
+        const cityFound = filteredCities.find(c => c.city_name === selectedCity);
+        if (cityFound) {
+            editCitySelect.value = cityFound.city_code;
+        }
+
+        // Fetch and fill barangays
+        const barangayResponse = await fetch('../json/barangay.json');
+        if (!barangayResponse.ok) throw new Error(`HTTP error! Status: ${barangayResponse.status}`);
+        const barangays = await barangayResponse.json();
+        const filteredBarangays = barangays.filter(b => b.city_code === editCitySelect.value);
+        filteredBarangays.sort((a, b) => a.brgy_name.localeCompare(b.brgy_name));
+        filteredBarangays.forEach(entry => {
+            const opt = document.createElement('option');
+            opt.value = entry.brgy_code;
+            opt.textContent = entry.brgy_name;
+            editBarangaySelect.appendChild(opt);
+        });
+        // Set selected barangay
+        const barangayFound = filteredBarangays.find(b => b.brgy_name === selectedBarangay);
+        if (barangayFound) {
+            editBarangaySelect.value = barangayFound.brgy_code;
+        }
+
+    } catch (error) {
+        console.error("Error populating edit location dropdowns:", error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Failed to Load Location Data',
+            text: `Unable to load location data for editing: ${error.message}.`
+        });
+    }
+}
+
+// Event listeners for edit modal location dropdowns
+editRegionSelect.addEventListener('change', async () => {
+    editProvinceSelect.innerHTML = '<option value="" selected="true" disabled>Choose Province</option>';
+    editCitySelect.innerHTML = '<option value="" selected="true" disabled>Choose City / Municipality</option>';
+    editBarangaySelect.innerHTML = '<option value="" selected="true" disabled>Choose Barangay</option>';
+    const regionCode = editRegionSelect.value;
+    if (!regionCode) return;
+
+    try {
+        const response = await fetch('../json/province.json');
+        const provinces = await response.json();
+        const filteredProvinces = provinces.filter(p => p.region_code === regionCode);
+        filteredProvinces.sort((a, b) => a.province_name.localeCompare(b.province_name));
+        filteredProvinces.forEach(entry => {
+            const opt = document.createElement('option');
+            opt.value = entry.province_code;
+            opt.textContent = entry.province_name;
+            editProvinceSelect.appendChild(opt);
+        });
+    } catch (error) {
+        console.error("Error fetching provinces for edit modal:", error);
+    }
+});
+
+editProvinceSelect.addEventListener('change', async () => {
+    editCitySelect.innerHTML = '<option value="" selected="true" disabled>Choose City / Municipality</option>';
+    editBarangaySelect.innerHTML = '<option value="" selected="true" disabled>Choose Barangay</option>';
+    const provinceCode = editProvinceSelect.value;
+    if (!provinceCode) return;
+
+    try {
+        const response = await fetch('../json/city.json');
+        const cities = await response.json();
+        const filteredCities = cities.filter(c => c.province_code === provinceCode);
+        filteredCities.sort((a, b) => a.city_name.localeCompare(b.city_name));
+        filteredCities.forEach(entry => {
+            const opt = document.createElement('option');
+            opt.value = entry.city_code;
+            opt.textContent = entry.city_name;
+            editCitySelect.appendChild(opt);
+        });
+    } catch (error) {
+        console.error("Error fetching cities for edit modal:", error);
+    }
+});
+
+editCitySelect.addEventListener('change', async () => {
+    editBarangaySelect.innerHTML = '<option value="" selected="true" disabled>Choose Barangay</option>';
+    const cityCode = editCitySelect.value;
+    if (!cityCode) return;
+
+    try {
+        const response = await fetch('../json/barangay.json');
+        const barangays = await response.json();
+        const filteredBarangays = barangays.filter(b => b.city_code === cityCode);
+        filteredBarangays.sort((a, b) => a.brgy_name.localeCompare(b.brgy_name));
+        filteredBarangays.forEach(entry => {
+            const opt = document.createElement('option');
+            opt.value = entry.brgy_code;
+            opt.textContent = entry.brgy_name;
+            editBarangaySelect.appendChild(opt);
+        });
+    } catch (error) {
+        console.error("Error fetching barangays for edit modal:", error);
+    }
+});
 
 
-    const closeSuccessBtn = document.getElementById('closeSuccessBtn');
+// Event listener for the edit form submission
+if (editOrgForm) {
+    editOrgForm.addEventListener('submit', async e => {
+        e.preventDefault();
+
+        const orgId = editOrgFirebaseKeyInput.value;
+        if (!orgId) {
+            Swal.fire('Error', 'No organization ID found for editing.', 'error');
+            return;
+        }
+
+        const updatedOrganization = document.getElementById('editOrganization').value.trim();
+        const updatedContactPerson = document.getElementById('editContactPerson').value.trim();
+        const updatedEmail = document.getElementById('editEmail').value.trim();
+        const updatedMobileNumber = document.getElementById('editMobileNumber').value.trim();
+        const updatedSocialMedia = document.getElementById('editSocialMedia').value.trim();
+        const updatedStreetAddress = document.getElementById('editStreetAddress').value.trim();
+
+        const updatedRegionText = editRegionSelect.options[editRegionSelect.selectedIndex]?.textContent || '';
+        const updatedProvinceText = editProvinceSelect.options[editProvinceSelect.selectedIndex]?.textContent || '';
+        const updatedCityText = editCitySelect.options[editCitySelect.selectedIndex]?.textContent || '';
+        const updatedBarangayText = editBarangaySelect.options[editBarangaySelect.selectedIndex]?.textContent || '';
+
+        // Validation Checks (similar to add form)
+        if (!updatedOrganization || !updatedContactPerson || !updatedEmail || !updatedMobileNumber ||
+            !updatedRegionText || !updatedProvinceText || !updatedCityText || !updatedBarangayText) {
+            Swal.fire('Error', 'Please fill in all required fields (Organization, Contact Person, Contact Information, and Full Address).', 'error');
+            return;
+        }
+
+        if (!isValidEmail(updatedEmail)) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Invalid Email',
+                text: 'Please enter a valid email address.'
+            });
+            return;
+        }
+
+        const formattedUpdatedMobile = formatMobileNumber(updatedMobileNumber);
+        if (!formattedUpdatedMobile) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Invalid Mobile Number',
+                text: 'Mobile number must be 11 digits starting with "09" (e.g., 09123456789).'
+            });
+            return;
+        }
+
+        if (!editOrgForm.checkValidity()) {
+            editOrgForm.reportValidity();
+            return;
+        }
+
+        Swal.fire({
+            title: 'Confirm Changes',
+            text: "Are you sure you want to save these changes?",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, save it!',
+            cancelButtonText: 'No, cancel',
+            reverseButtons: true
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                try {
+                    const updatedData = {
+                        organization: updatedOrganization,
+                        contactPerson: updatedContactPerson,
+                        email: updatedEmail,
+                        mobileNumber: formattedUpdatedMobile,
+                        socialMedia: updatedSocialMedia || "N/A",
+                        address: {
+                            region: updatedRegionText,
+                            province: updatedProvinceText,
+                            city: updatedCityText,
+                            barangay: updatedBarangayText,
+                            streetAddress: updatedStreetAddress || "N/A"
+                        }
+                    };
+
+                    await database.ref(`volunteerGroups/${orgId}`).update(updatedData);
+                    console.log("Volunteer group updated successfully!");
+                    Swal.fire(
+                        'Updated!',
+                        'The volunteer group has been updated.',
+                        'success'
+                    );
+                    editOrgModal.style.display = 'none';
+                    editOrgForm.reset();
+                    fetchAndRenderTable(); // Re-fetch and re-render the table to show updated data
+                } catch (error) {
+                    console.error("Error updating volunteer group:", error);
+                    Swal.fire(
+                        'Error!',
+                        'Failed to update volunteer group. Please try again.',
+                        'error'
+                    );
+                }
+            } else if (result.dismiss === Swal.DismissReason.cancel) {
+                Swal.fire(
+                    'Cancelled',
+                    'Your changes were not saved.',
+                    'info'
+                );
+            }
+        });
+    });
+}
+
+// Function to attach handlers to dynamically created table rows
+function attachRowHandlers() {
+    document.querySelectorAll('.editBtn').forEach(button => {
+        button.onclick = (e) => {
+            const orgId = e.target.dataset.id;
+            openEditModal(orgId);
+        };
+    });
+
+    document.querySelectorAll('.deleteBtn').forEach(button => {
+        button.addEventListener('click', () => {
+            const rowId = button.getAttribute('data-id');
+            // Get the organization name for a more specific confirmation message
+            const orgName = button.closest('tr').children[1].textContent; 
+
+            Swal.fire({
+                icon: 'warning',
+                title: `Are you sure you want to remove "${orgName}"?`,
+                text: 'This will remove the volunteer group from the active list but keep a record in the database for future access.',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, remove it!',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Fetch the volunteer group data
+                    database.ref(`volunteerGroups/${rowId}`).once('value')
+                        .then(snapshot => {
+                            const groupData = snapshot.val();
+                            if (!groupData) throw new Error("Volunteer group not found.");
+
+                            // Move to deletedVolunteerGroups node with a timestamp
+                            return database.ref(`deletedVolunteerGroups/${rowId}`).set({
+                                ...groupData,
+                                deletedAt: new Date().toISOString(), // Add deletion timestamp
+                                // Optionally, you can also store the user who deleted it
+                                // deletedBy: auth.currentUser ? auth.currentUser.email : 'Unknown' 
+                            });
+                        })
+                        .then(() => {
+                            // Remove from the active volunteerGroups node
+                            return database.ref(`volunteerGroups/${rowId}`).remove();
+                        })
+                        .then(() => {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Removed!',
+                                text: `Volunteer group "${orgName}" has been moved to the deleted list.`,
+                                timer: 2000,
+                                showConfirmButton: false
+                            });
+                            // The table will re-render automatically due to the .on("value") listener
+                            // in your fetchAndRenderTable function, so no need to call it manually here.
+                        })
+                        .catch(error => {
+                            console.error("Volunteer group removal error:", error);
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Removal Error',
+                                text: `Failed to remove volunteer group: ${error.message}. Please try again.`,
+                                footer: 'If the issue persists, contact support.'
+                            });
+                        });
+                } else if (result.dismiss === Swal.DismissReason.cancel) {
+                    Swal.fire(
+                        'Cancelled',
+                        'The volunteer group was not removed.',
+                        'info'
+                    );
+                }
+            });
+        });
+    });
+}
+
+function updateEntriesInfo(totalItems) {
+    const startIndex = (currentPage - 1) * rowsPerPage;
+    const endIndex = Math.min(startIndex + rowsPerPage, totalItems);
+    entriesInfo.textContent = `Showing ${totalItems ? startIndex + 1 : 0} to ${endIndex} of ${totalItems} entries`;
+}
+
+// Pagination
+function renderPagination(totalRows) {
+    if (!paginationContainer) return;
+    paginationContainer.innerHTML = "";
+    const totalPages = Math.ceil(totalRows / rowsPerPage);
+    if (totalPages === 0) {
+        return;
+    }
+    const createButton = (label, page, disabled = false, active = false) => {
+        const btn = document.createElement("button");
+        btn.textContent = label;
+        if (disabled) btn.disabled = true;
+        if (active) btn.classList.add("active-page");
+        btn.addEventListener("click", () => {
+            currentPage = page;
+            renderTable(filteredData); // Re-render with filtered data
+        });
+        return btn;
+    };
+    paginationContainer.appendChild(createButton("Prev", currentPage - 1, currentPage === 1));
+
+    const maxVisiblePages = 5; // Number of page buttons to show (e.g., 1 2 3 4 5)
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+    // Adjust startPage if not enough pages after current to fill maxVisiblePages
+    if (endPage - startPage < maxVisiblePages - 1) {
+        startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+        paginationContainer.appendChild(createButton(i, i, false, i === currentPage));
+    }
+    paginationContainer.appendChild(createButton("Next", currentPage + 1, currentPage === totalPages));
+}
+
+// --- Search and Sort Logic ---
+function applySearchAndSort() {
+    let currentData = [...data]; // Start with a fresh copy of all data
+
+    // Apply search filter
+    const searchTerm = searchInput.value.toLowerCase().trim();
+    if (searchTerm) {
+        currentData = currentData.filter(item => {
+            const organization = (item.organization || '').toLowerCase();
+            const contactPerson = (item.contactPerson || '').toLowerCase();
+            const email = (item.email || '').toLowerCase();
+            const mobileNumber = (item.mobileNumber || '').toLowerCase();
+            const region = (item.address?.region || '').toLowerCase();
+            const province = (item.address?.province || '').toLowerCase();
+            const city = (item.address?.city || '').toLowerCase();
+            const barangay = (item.address?.barangay || '').toLowerCase();
+            const streetAddress = (item.address?.streetAddress || '').toLowerCase();
+
+            return organization.includes(searchTerm) ||
+                   contactPerson.includes(searchTerm) ||
+                   email.includes(searchTerm) ||
+                   mobileNumber.includes(searchTerm) ||
+                   region.includes(searchTerm) ||
+                   province.includes(searchTerm) ||
+                   city.includes(searchTerm) ||
+                   barangay.includes(searchTerm) ||
+                   streetAddress.includes(searchTerm);
+        });
+    }
+
+    // Apply sort
+    const sortValue = sortSelect.value;
+    if (sortValue) {
+        currentData.sort((a, b) => {
+            let valA, valB;
+
+            switch (sortValue) {
+                case 'organization':
+                case 'contactPerson':
+                case 'email':
+                case 'mobileNumber':
+                case 'socialMedia':
+                    valA = (a[sortValue] || '').toString().toLowerCase();
+                    valB = (b[sortValue] || '').toString().toLowerCase();
+                    break;
+                case 'region':
+                    valA = (a.address?.region || '').toLowerCase();
+                    valB = (b.address?.region || '').toLowerCase();
+                    break;
+                case 'province':
+                    valA = (a.address?.province || '').toLowerCase();
+                    valB = (b.address?.province || '').toLowerCase();
+                    break;
+                case 'city':
+                    valA = (a.address?.city || '').toLowerCase();
+                    valB = (b.address?.city || '').toLowerCase();
+                    break;
+                case 'barangay':
+                    valA = (a.address?.barangay || '').toLowerCase();
+                    valB = (b.address?.barangay || '').toLowerCase();
+                    break;
+                case 'streetAddress':
+                    valA = (a.address?.streetAddress || '').toLowerCase();
+                    valB = (b.address?.streetAddress || '').toLowerCase();
+                    break;
+                default:
+                    // Default sort if sortValue doesn't match
+                    valA = (a.organization || '').toLowerCase();
+                    valB = (b.organization || '').toLowerCase();
+                    break;
+            }
+
+            return valA.localeCompare(valB);
+        });
+    }
+
+    filteredData = currentData; // Update the global filteredData
+    currentPage = 1; // Reset to the first page after search/sort
+    renderTable(filteredData);
+}
+
+function clearDInputs() {
+    if (!searchInput || !clearBtn) return;
+    searchInput.value = '';
+    clearBtn.style.display = 'none';
+    applySearchAndSort(); // Re-apply search/sort to clear filter
+}
+
+if (clearBtn) {
+    clearBtn.style.display = 'none';
+    clearBtn.addEventListener('click', clearDInputs);
+}
+
+if (searchInput) {
+    let searchTimeout;
+    searchInput.addEventListener('keyup', () => {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            applySearchAndSort();
+            // Show/hide clear button based on search input
+            clearBtn.style.display = searchInput.value.trim() ? 'flex' : 'none';
+        }, 300); // Debounce for 300ms
+    });
+}
+
+if (sortSelect) {
+    sortSelect.addEventListener("change", applySearchAndSort);
+}
+
+
+const closeSuccessBtn = document.getElementById('closeSuccessBtn');
     if (closeSuccessBtn) {
         closeSuccessBtn.addEventListener('click', () => {
             clearAInputs();
@@ -1014,8 +1376,8 @@ var my_handlers = {
             if (successModal) successModal.style.display = 'none';
         });
     }
-
-    const editDetailsBtn = document.getElementById('editDetailsBtn');
+    
+const editDetailsBtn = document.getElementById('editDetailsBtn');
     if (editDetailsBtn) {
         editDetailsBtn.addEventListener('click', () => {
             const confirmModal = document.getElementById('confirmModal');
