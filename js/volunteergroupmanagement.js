@@ -1368,6 +1368,24 @@ if (sortSelect) {
 }
 
 
+const closeSuccessBtn = document.getElementById('closeSuccessBtn');
+    if (closeSuccessBtn) {
+        closeSuccessBtn.addEventListener('click', () => {
+            clearAInputs();
+            const successModal = document.getElementById('successModal');
+            if (successModal) successModal.style.display = 'none';
+        });
+    }
+    
+const editDetailsBtn = document.getElementById('editDetailsBtn');
+    if (editDetailsBtn) {
+        editDetailsBtn.addEventListener('click', () => {
+            const confirmModal = document.getElementById('confirmModal');
+            if (confirmModal) confirmModal.style.display = 'none';
+            if (addOrgModal) addOrgModal.style.display = 'block';
+        });
+    }
+
     // Initialize
     document.addEventListener("DOMContentLoaded", () => {
     console.log("DOM loaded, fetching data...");
