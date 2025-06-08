@@ -1,15 +1,9 @@
 const functions = require('firebase-functions');
-const admin = require('firebase-admin'); // For admin.database()
-const fetch = require('node-fetch');
+const admin = require('firebase-admin'); 
 
 exports.verifyRecaptchaAndSubmit = functions.https.onCall(async (data, context) => {
     // Access the secret key inside the function handler
-    const RECAPTCHA_SECRET_KEY = functions.config().recaptcha.secret;
-
-    // Only authenticated users to submit, uncomment the following:
-    if (!context.auth) {
-        throw new functions.https.HttpsError('unauthenticated', 'The function must be called while authenticated.');
-    }
+    const RECAPTCHA_SECRET_KEY = process.env.RECAPTCHA_SECRET_KEY;
 
     const { applicationData, recaptchaToken } = data;
 
@@ -38,7 +32,7 @@ exports.verifyRecaptchaAndSubmit = functions.https.onCall(async (data, context) 
             throw new functions.https.HttpsError(
                 'unauthenticated',
                 'reCAPTCHA verification failed.',
-                recaptchaResult['error-codes'] // Pass error codes for debugging
+                recaptchaResult['error-codes'] 
             );
         }
 
@@ -54,6 +48,21 @@ exports.verifyRecaptchaAndSubmit = functions.https.onCall(async (data, context) 
             throw error; // Re-throw already handled HTTPS errors
         }
         console.error('Error during reCAPTCHA verification or database write:', error);
-        throw new functions.https.HttpsError('internal', 'Internal server error.', error.message);
+        let errorDetails = null;
+        if (error && typeof error === 'object') {
+            if (error.message) {
+                errorDetails = { message: error.message };
+            } else {
+                try {
+                    errorDetails = JSON.parse(JSON.stringify(error));
+                } catch (e) {
+                    errorDetails = { message: 'An unknown error occurred on the server.' };
+                }
+            }   
+        } else {
+            errorDetails = { message: String(error) || 'An unknown error occurred on the server.' };
+        }
+
+        throw new functions.https.HttpsError('internal', 'Internal server error.', errorDetails);
     }
 });

@@ -21,19 +21,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const sortSelect = document.getElementById('sortSelect');
     const entriesInfo = document.getElementById('entriesInfo');
     const pagination = document.getElementById('pagination');
-    const viewPendingBtn = document.getElementById('viewApprovedBtn'); // Renamed to reflect its purpose here
-
-    if (!volunteerOrgsContainer || !searchInput || !sortSelect || !entriesInfo || !pagination || !viewPendingBtn) {
-        console.error('One or more DOM elements are missing:', {
-            volunteerOrgsContainer: !!volunteerOrgsContainer,
-            searchInput: !!searchInput,
-            sortSelect: !!sortSelect,
-            entriesInfo: !!entriesInfo,
-            pagination: !!pagination,
-            viewPendingBtn: !!viewPendingBtn
-        });
-        return;
-    }
+    const viewPendingBtn = document.getElementById('viewApprovedBtn'); 
+    
+    // --- Modal Elements ---
+    const previewModal = document.getElementById('previewModal');
+    const closeModalBtn = document.getElementById('closeModal');
+    const modalContentDiv = document.getElementById('modalContent');
 
     let allApplications = [];
     let filteredApplications = [];
@@ -90,7 +83,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const row = volunteerOrgsContainer.insertRow();
             row.setAttribute('data-key', app.key); 
 
-            const formattedTimestamp = app.timestamp ? new Date(app.timestamp).toLocaleString('en-US', {
+            const formattedTimestamp = app.applicationDateandTime ? new Date(app.applicationDateandTime).toLocaleString('en-US', {
                 year: 'numeric', month: 'short', day: 'numeric',
                 hour: '2-digit', minute: '2-digit', second: '2-digit'
             }) : 'N/A';
@@ -107,7 +100,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${app.headquarters?.city || 'N/A'}</td>
                 <td>${app.headquarters?.barangay || 'N/A'}</td>
                 <td>${app.headquarters?.streetAddress || 'N/A'}</td>
-                <td>${formattedTimestamp}</td> `;
+                <td>${formattedTimestamp}</td> 
+                <td>
+                    <button class="viewBtn" data-key="${app.key}">View</button>
+                </td>
+            `;
         });
 
         updateEntriesInfo(applicationsToRender.length);
@@ -130,7 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const province = (app.headquarters?.province || '').toLowerCase();
                 const city = (app.headquarters?.city || '').toLowerCase();
                 const barangay = (app.headquarters?.barangay || '').toLowerCase();
-                const timestamp = new Date(app.timestamp || 0).toLocaleString('en-US').toLowerCase(); // Search by formatted timestamp
+                const timestamp = new Date(app.applicationDateandTime || 0).toLocaleString('en-US').toLowerCase(); // Search by formatted timestamp
 
                 return orgName.includes(searchTerm) ||
                        contactPerson.includes(searchTerm) ||
@@ -249,6 +246,74 @@ document.addEventListener('DOMContentLoaded', () => {
         entriesInfo.textContent = `Showing ${totalItems ? startIndex + 1 : 0} to ${endIndex} of ${totalItems} entries`;
     }
 
+    function showPreviewModal(applicationData) {
+        const formattedApplicationTimestamp = applicationData.applicationDateandTime ? new Date(applicationData.applicationDateandTime).toLocaleString('en-US', {
+            year: 'numeric', month: 'short', day: 'numeric',
+            hour: '2-digit', minute: '2-digit', second: '2-digit'
+        }) : 'N/A';
+
+        const formattedApprovedTimestamp = applicationData.approvedApplicationDate ? new Date(applicationData.approvedApplicationDate).toLocaleString('en-US', {
+            year: 'numeric', month: 'short', day: 'numeric',
+            hour: '2-digit', minute: '2-digit', second: '2-digit'
+        }) : 'N/A';
+
+        let content = `
+            <h3 style="margin-bottom: 15px; color: #FA3B99;">Organization Details</h3>
+            <p><strong>Application Key:</strong> ${applicationData.key || 'N/A'}</p>
+            <p><strong>Organization Name:</strong> ${applicationData.organizationName || 'N/A'}</p>
+            <p><strong>Contact Person:</strong> ${applicationData.contactPerson || 'N/A'}</p>
+            <p><strong>Email:</strong> ${applicationData.email || 'N/A'}</p>
+            <p><strong>Mobile Number:</strong> ${applicationData.mobileNumber || 'N/A'}</p>
+            <p><strong>Social Media Link:</strong> ${applicationData.socialMediaLink ? `<a href="${applicationData.socialMediaLink}" target="_blank" rel="noopener noreferrer">${applicationData.socialMediaLink}</a>` : 'N/A'}</p>
+
+            <h4 style="margin-top: 20px; margin-bottom: 10px; color: #FA3B99;">Headquarters Address:</h4>
+            <ul>
+                <li><strong>Region:</strong> ${applicationData.headquarters?.region || 'N/A'}</li>
+                <li><strong>Province:</strong> ${applicationData.headquarters?.province || 'N/A'}</li>
+                <li><strong>City:</strong> ${applicationData.headquarters?.city || 'N/A'}</li>
+                <li><strong>Barangay:</strong> ${applicationData.headquarters?.barangay || 'N/A'}</li>
+                <li><strong>Street Address:</strong> ${applicationData.headquarters?.streetAddress || 'N/A'}</li>
+            </ul>
+
+            <h4 style="margin-top: 20px; margin-bottom: 10px; color: #FA3B99;">Organizational Background:</h4>
+            <p><strong>Mission/Background:</strong> ${applicationData.organizationalBackgroundMission || 'N/A'}</p>
+            <p><strong>Areas of Expertise/Focus:</strong> ${applicationData.areasOfExpertiseFocus || 'N/A'}</p>
+
+            <h4 style="margin-top: 20px; margin-bottom: 10px; color: #FA3B99;">Legal & Documents:</h4>
+            <p><strong>Legal Status/Registration:</strong> ${applicationData.legalStatusRegistration || 'N/A'}</p>
+            <p><strong>Required Documents:</strong> ${applicationData.requiredDocuments ? `<a href="${applicationData.requiredDocuments}" target="_blank" rel="noopener noreferrer">View Document</a>` : 'N/A'}</p>
+            
+            <p style="margin-top: 20px; font-size: 0.9em; color: #555;"><strong>Application Date and Time:</strong> ${formattedApplicationTimestamp}</p>
+            <p style="font-size: 0.9em; color: #555;"><strong>Approval Date and Time:</strong> ${formattedApprovedTimestamp}</p>
+        `;
+
+        modalContentDiv.innerHTML = content;
+        previewModal.style.display = 'block'; // Show the modal
+    }
+
+    function hidePreviewModal() {
+        previewModal.style.display = 'none'; // Hide the modal
+        modalContentDiv.innerHTML = ''; // Clear content when hidden
+    }
+
+    // --- Action Handlers (View) ---
+    volunteerOrgsContainer.addEventListener('click', async (event) => {
+        const target = event.target;
+        const appKey = target.dataset.key;
+
+        if (!appKey) return;
+
+        if (target.classList.contains('viewBtn')) {
+            // Find the application data by key
+            const applicationToView = allApplications.find(app => app.key === appKey);
+            if (applicationToView) {
+                showPreviewModal(applicationToView);
+            } else {
+                Swal.fire('Error', 'Application details not found.', 'error');
+            }
+        }
+    });
+
     // --- Event Listeners for Search and Sort ---
     if (searchInput) {
         // Debounce search input for better performance
@@ -263,6 +328,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (sortSelect) {
         sortSelect.addEventListener('change', applySearchAndSort);
     }
+
+    // --- Modal Close Listeners ---
+    closeModalBtn.addEventListener('click', hidePreviewModal);
+
+    // Close the modal if clicked outside the modal content
+    window.addEventListener('click', (event) => {
+        if (event.target === previewModal) {
+            hidePreviewModal();
+        }
+    });
 
     fetchApprovedApplications();
 

@@ -22,17 +22,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const pagination = document.getElementById('pagination');
     const viewApprovedBtn = document.getElementById('viewApprovedBtn');
 
-    if (!volunteerOrgsContainer || !searchInput || !sortSelect || !entriesInfo || !pagination || !viewApprovedBtn) {
-        console.error('One or more DOM elements are missing:', {
-            volunteerOrgsContainer: !!volunteerOrgsContainer,
-            searchInput: !!searchInput,
-            sortSelect: !!sortSelect,
-            entriesInfo: !!entriesInfo,
-            pagination: !!pagination,
-            viewApprovedBtn: !!viewApprovedBtn
-        });
-        return; 
-    }
+    // --- Modal Elements ---
+    const previewModal = document.getElementById('previewModal');
+    const closeModalBtn = document.getElementById('closeModal');
+    const modalContentDiv = document.getElementById('modalContent');
 
     let allApplications = []; 
     let filteredApplications = []; 
@@ -89,7 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const row = volunteerOrgsContainer.insertRow();
             row.setAttribute('data-key', app.key); 
 
-            const formattedTimestamp = app.timestamp ? new Date(app.timestamp).toLocaleString('en-US', {
+            const formattedTimestamp = app.applicationDateandTime ? new Date(app.applicationDateandTime).toLocaleString('en-US', {
                 year: 'numeric', month: 'short', day: 'numeric',
                 hour: '2-digit', minute: '2-digit', second: '2-digit'
             }) : 'N/A';
@@ -108,6 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${app.headquarters?.streetAddress || 'N/A'}</td>
                 <td>${formattedTimestamp || 'N/A'}</td>
                 <td>
+                    <button class="viewBtn" data-key="${app.key}">View</button>
                     <button class="approveBtn" data-key="${app.key}">Approve</button>
                     <button class="rejectBtn" data-key="${app.key}">Reject</button>
                 </td>
@@ -251,6 +245,52 @@ document.addEventListener('DOMContentLoaded', () => {
         entriesInfo.textContent = `Showing ${totalItems ? startIndex + 1 : 0} to ${endIndex} of ${totalItems} entries`;
     }
 
+
+    // --- Modal Display Functions ---
+    function showPreviewModal(applicationData) {
+        // Format the application date and time for better readability
+        const formattedTimestamp = applicationData.applicationDateandTime ? new Date(applicationData.applicationDateandTime).toLocaleString('en-US', {
+            year: 'numeric', month: 'short', day: 'numeric',
+            hour: '2-digit', minute: '2-digit', second: '2-digit'
+        }) : 'N/A';
+
+        let content = `
+            <h3 style="margin-bottom: 15px; color: #FA3B99;">Organization Details</h3>
+            <p><strong>Organization Name:</strong> ${applicationData.organizationName || 'N/A'}</p>
+            <p><strong>Contact Person:</strong> ${applicationData.contactPerson || 'N/A'}</p>
+            <p><strong>Email:</strong> ${applicationData.email || 'N/A'}</p>
+            <p><strong>Mobile Number:</strong> ${applicationData.mobileNumber || 'N/A'}</p>
+            <p><strong>Social Media Link:</strong> ${applicationData.socialMediaLink ? `<a href="${applicationData.socialMediaLink}" target="_blank" rel="noopener noreferrer">${applicationData.socialMediaLink}</a>` : 'N/A'}</p>
+
+            <h4 style="margin-top: 20px; margin-bottom: 10px; color: #FA3B99;">Headquarters Address:</h4>
+            <ul>
+                <li><strong>Region:</strong> ${applicationData.headquarters?.region || 'N/A'}</li>
+                <li><strong>Province:</strong> ${applicationData.headquarters?.province || 'N/A'}</li>
+                <li><strong>City:</strong> ${applicationData.headquarters?.city || 'N/A'}</li>
+                <li><strong>Barangay:</strong> ${applicationData.headquarters?.barangay || 'N/A'}</li>
+                <li><strong>Street Address:</strong> ${applicationData.headquarters?.streetAddress || 'N/A'}</li>
+            </ul>
+
+            <h4 style="margin-top: 20px; margin-bottom: 10px; color: #FA3B99;">Organizational Background:</h4>
+            <p><strong>Mission/Background:</strong> ${applicationData.organizationalBackgroundMission || 'N/A'}</p>
+            <p><strong>Areas of Expertise/Focus:</strong> ${applicationData.areasOfExpertiseFocus || 'N/A'}</p>
+
+            <h4 style="margin-top: 20px; margin-bottom: 10px; color: #FA3B99;">Legal & Documents:</h4>
+            <p><strong>Legal Status/Registration:</strong> ${applicationData.legalStatusRegistration || 'N/A'}</p>
+            <p><strong>Required Documents:</strong> ${applicationData.requiredDocuments ? `<a href="${applicationData.requiredDocuments}" target="_blank" rel="noopener noreferrer">View Document</a>` : 'N/A'}</p>
+            
+            <p style="margin-top: 20px; font-size: 0.9em; color: #555;"><strong>Application Date and Time:</strong> ${formattedTimestamp}</p>
+            `;
+
+        modalContentDiv.innerHTML = content;
+        previewModal.style.display = 'block'; // Show the modal
+    }
+
+    function hidePreviewModal() {
+        previewModal.style.display = 'none'; // Hide the modal
+        modalContentDiv.innerHTML = ''; // Clear content when hidden
+    }
+
     // --- Action Handlers (Approve/Reject) ---
     volunteerOrgsContainer.addEventListener('click', async (event) => {
         const target = event.target;
@@ -258,7 +298,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (!appKey) return; 
 
-        if (target.classList.contains('approveBtn')) {
+        if (target.classList.contains('viewBtn')) {
+            // Find the application data by key
+            const applicationToView = allApplications.find(app => app.key === appKey);
+            if (applicationToView) {
+                showPreviewModal(applicationToView);
+            } else {
+                Swal.fire('Error', 'Application details not found.', 'error');
+            }
+        } else if (target.classList.contains('approveBtn')) {
             Swal.fire({
                 title: 'Are you sure?',
                 text: "Do you want to approve this application?",
@@ -275,6 +323,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         const applicationData = snapshot.val();
 
                         if (applicationData) {
+                            applicationData.approvedApplicationDate = new Date().toISOString();
                             // Move to approvedABVN
                             await database.ref(`abvnApplications/approvedABVN/${appKey}`).set(applicationData);
                             // Remove from pendingABVN
@@ -322,6 +371,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (sortSelect) {
         sortSelect.addEventListener('change', applySearchAndSort);
     }
+
+     // --- Modal Close Listeners ---
+    closeModalBtn.addEventListener('click', hidePreviewModal);
+
+    // Close the modal if clicked outside the modal content
+    window.addEventListener('click', (event) => {
+        if (event.target === previewModal) {
+            hidePreviewModal();
+        }
+    });
 
     // --- Initial Load ---
     fetchPendingApplications();

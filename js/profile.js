@@ -20,7 +20,7 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const database = getDatabase(app);
 
-// Variables for inactivity detection
+// Variables for inactivity detection --------------------------------------------------------------------
 let inactivityTimeout;
 const INACTIVITY_TIME = 1800000; // 30 minutes in milliseconds
 
@@ -65,6 +65,8 @@ function checkInactivity() {
 ['mousemove', 'keydown', 'scroll', 'click'].forEach(eventType => {
     document.addEventListener(eventType, resetInactivityTimer);
 });
+
+//-------------------------------------------------------------------------------------
 
 document.addEventListener("DOMContentLoaded", () => {
     const groupTitleElement = document.getElementById('group-title');
@@ -324,7 +326,6 @@ document.addEventListener("DOMContentLoaded", () => {
         if ((termsModal && !termsModal.classList.contains('hidden')) || 
         (changePasswordFormContainer && changePasswordFormContainer.style.display !== 'none')) {
             history.pushState(null, null, location.href); 
-            // Optionally, you could show a quick message here:
             Swal.fire({ toast: true, position: 'top-end', icon: 'info', title: 'Action required!', showConfirmButton: false, timer: 1500 });
         }
     }
@@ -333,7 +334,7 @@ document.addEventListener("DOMContentLoaded", () => {
     onAuthStateChanged(auth, async (user) => {
         if (user) {
             console.log("User is authenticated:", user.uid);
-            resetInactivityTimer();
+            resetInactivityTimer(); //TSAKA ITO SA AUTH ILALAGAY
             await fetchUserData(user); 
 
             try {
