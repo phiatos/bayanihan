@@ -1,6 +1,3 @@
-// approvedvg.js
-
-// Firebase configuration (re-use or ensure it's globally available)
 const firebaseConfig = {
     apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
     authDomain: "bayanihan-5ce7e.firebaseapp.com",
@@ -45,10 +42,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Data Fetching Function ---
     function fetchApprovedApplications() {
-        // Show loading state
         volunteerOrgsContainer.innerHTML = '<tr><td colspan="10" style="text-align: center;">Loading approved applications...</td></tr>';
 
-        // *** KEY CHANGE: Fetch from 'approvedABVN' ***
         database.ref('abvnApplications/approvedABVN').on('value', (snapshot) => {
             allApplications = []; // Clear previous data
             if (snapshot.exists()) {
@@ -76,7 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Rendering Function ---
     function renderApplications(applicationsToRender) {
-        volunteerOrgsContainer.innerHTML = ''; // Clear existing table rows
+        volunteerOrgsContainer.innerHTML = ''; 
 
         const startIndex = (currentPage - 1) * rowsPerPage;
         const endIndex = startIndex + rowsPerPage;
@@ -89,18 +84,17 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        let i = startIndex + 1; // Counter for "No." column
+        let i = startIndex + 1;
 
         paginatedApplications.forEach(app => {
             const row = volunteerOrgsContainer.insertRow();
-            row.setAttribute('data-key', app.key); // Store Firebase key on the row
+            row.setAttribute('data-key', app.key); 
 
             const formattedTimestamp = app.timestamp ? new Date(app.timestamp).toLocaleString('en-US', {
                 year: 'numeric', month: 'short', day: 'numeric',
                 hour: '2-digit', minute: '2-digit', second: '2-digit'
             }) : 'N/A';
 
-            // *** KEY CHANGE: Removed the "Actions" column and the "Approve/Reject" buttons ***
             row.innerHTML = `
                 <td>${i++}</td>
                 <td>${app.organizationName || 'N/A'}</td>
@@ -112,6 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${app.headquarters?.province || 'N/A'}</td>
                 <td>${app.headquarters?.city || 'N/A'}</td>
                 <td>${app.headquarters?.barangay || 'N/A'}</td>
+                <td>${app.headquarters?.streetAddress || 'N/A'}</td>
                 <td>${formattedTimestamp}</td> `;
         });
 
@@ -121,7 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Search and Sort Logic ---
     function applySearchAndSort() {
-        let currentApplications = [...allApplications]; // Start with all fetched data
+        let currentApplications = [...allApplications]; 
 
         // Apply search filter
         const searchTerm = searchInput.value.toLowerCase().trim();
@@ -145,7 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
                        province.includes(searchTerm) ||
                        city.includes(searchTerm) ||
                        barangay.includes(searchTerm) ||
-                       timestamp.includes(searchTerm); // Allow searching by timestamp
+                       timestamp.includes(searchTerm); 
             });
         }
 
@@ -157,28 +152,51 @@ document.addEventListener('DOMContentLoaded', () => {
                 let valA, valB;
 
                 switch (sortBy) {
-                    case 'DateTime':
-                        valA = new Date(a.timestamp || 0).getTime();
-                        valB = new Date(b.timestamp || 0).getTime();
-                        break;
-                    case 'OrganizationName':
+                    case 'organizationName':
                         valA = (a.organizationName || '').toLowerCase();
                         valB = (b.organizationName || '').toLowerCase();
                         break;
-                    case 'Location':
-                        valA = `${a.headquarters?.region || ''} ${a.headquarters?.province || ''} ${a.headquarters?.city || ''} ${a.headquarters?.barangay || ''}`.toLowerCase();
-                        valB = `${b.headquarters?.region || ''} ${b.headquarters?.province || ''} ${b.headquarters?.city || ''} ${b.headquarters?.barangay || ''}`.toLowerCase();
+                    case 'contactPerson':
+                        valA = (a.contactPerson || '').toLowerCase();
+                        valB = (b.contactPerson || '').toLowerCase();
                         break;
-                    // Add more cases here if you want to sort by other specific fields relevant to approved applications
+                    case 'email':
+                        valA = (a.email || '').toLowerCase();
+                        valB = (b.email || '').toLowerCase();
+                        break;
+                    case 'mobileNumber':
+                        valA = (a.mobileNumber || '').toLowerCase();
+                        valB = (b.mobileNumber || '').toLowerCase();
+                        break;
+                    case 'region':
+                        valA = (a.headquarters?.region || '').toLowerCase();
+                        valB = (b.headquarters?.region || '').toLowerCase();
+                        break;
+                    case 'province':
+                        valA = (a.headquarters?.province || '').toLowerCase();
+                        valB = (b.headquarters?.province || '').toLowerCase();
+                        break;
+                    case 'city':
+                        valA = (a.headquarters?.city || '').toLowerCase();
+                        valB = (b.headquarters?.city || '').toLowerCase();
+                        break;
+                    case 'barangay':
+                        valA = (a.headquarters?.barangay || '').toLowerCase();
+                        valB = (b.headquarters?.barangay || '').toLowerCase();
+                        break;
                     default:
                         valA = (a.organizationName || '').toLowerCase();
                         valB = (b.organizationName || '').toLowerCase();
                         break;
                 }
 
-                if (valA < valB) return order === 'asc' ? -1 : 1;
-                if (valA > valB) return order === 'asc' ? 1 : -1;
-                return 0;
+                if (typeof valA === 'string' && typeof valB === 'string') {
+                    return order === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+                } else {
+                    if (valA < valB) return order === 'asc' ? -1 : 1;
+                    if (valA > valB) return order === 'asc' ? 1 : -1;
+                    return 0;
+                }
             });
         }
 

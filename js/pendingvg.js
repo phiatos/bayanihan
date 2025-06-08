@@ -106,6 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${app.headquarters?.city || 'N/A'}</td>
                 <td>${app.headquarters?.barangay || 'N/A'}</td>
                 <td>${app.headquarters?.streetAddress || 'N/A'}</td>
+                <td>${formattedTimestamp || 'N/A'}</td>
                 <td>
                     <button class="approveBtn" data-key="${app.key}">Approve</button>
                     <button class="rejectBtn" data-key="${app.key}">Reject</button>
