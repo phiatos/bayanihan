@@ -91,6 +91,8 @@
               name="organizationalBackgroundMission"
               rows="5"
               placeholder="Tell us about your organization, its main goals, and the impact you aim to make."
+              minlength="20"
+              maxlength="200"
               required
             ></textarea>
           </div>
@@ -102,6 +104,8 @@
               id="areasOfExpertiseFocus"
               name="areasOfExpertiseFocus"
               placeholder="e.g., Disaster Relief, Education, Environment, Community Development"
+              minlength="20"
+              maxlength="200"
               required
             />
             <small>List keywords separated by commas.</small>
@@ -151,7 +155,7 @@
           <div class="form-group">
             <label for="city">City/Municipality</label>
             <select id="city" name="city" required></select>
-            <input type="hidden" name="hq-city" />
+            <input type="hidden" id="city-text" name="hq-city-text" />
           </div>
 
           <div class="form-group">

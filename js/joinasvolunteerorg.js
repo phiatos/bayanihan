@@ -442,9 +442,54 @@ document.addEventListener('DOMContentLoaded', () => {
             const legalStatusRegistration = document.getElementById('legalStatusRegistration')?.value.trim() || '';
             const requiredDocuments = document.getElementById('requiredDocuments')?.value.trim() || '';
 
-            if (!organization || !contactPerson || !email || !mobileNumber || !selectedRegionText || !selectedProvinceText || !selectedCityText || !selectedBarangayText || !streetAddress) {
-                logActivity('FORM_VALIDATION_FAILED', { fieldsMissing: true });
-                Swal.fire('Error', 'Please fill in all required fields, including the full headquarters address (Region, Province, City, Barangay, and Street Address).', 'error');
+            // if (!organization || !contactPerson || !email || !mobileNumber || !selectedRegionText || !selectedProvinceText || !selectedCityText || !selectedBarangayText || !streetAddress) {
+            //     logActivity('FORM_VALIDATION_FAILED', { fieldsMissing: true });
+            //     Swal.fire('Error', 'Please fill in all required fields, including the full headquarters address (Region, Province, City, Barangay, and Street Address).', 'error');
+            //     return;
+            // }
+            if (!organization || !contactPerson || !email || !mobileNumber || !selectedRegionText || !selectedProvinceText || !selectedCityText || !selectedBarangayText || !streetAddress || !organizationalBackgroundMission || !areasOfExpertiseFocus || !legalStatusRegistration) {
+                logActivity('FORM_VALIDATION_FAILED', { reason: 'Missing required fields' });
+                Swal.fire('Error', 'Please fill in all required fields.', 'error');
+                return;
+            }
+
+            // Email Format Validation
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                logActivity('FORM_VALIDATION_FAILED', { field: 'email', reason: 'Invalid format' });
+                SEwal.fire('Error', 'Please enter a valid email address (e.g., example@domain.com).', 'error');
+                return;
+            }
+
+            // Mobile Number Format Validation (11 digits)
+            const mobileNumberRegex = /^[0-9]{11}$/;
+            if (!mobileNumberRegex.test(mobileNumber)) {
+                logActivity('FORM_VALIDATION_FAILED', { field: 'mobileNumber', reason: 'Invalid format' });
+                Swal.fire('Error', 'Please enter a valid 11-digit mobile number (e.g., 09171234567).', 'error');
+                return;
+            }
+
+            // Social Media Link (URL) Validation
+            if (socialMedia) {
+                try {
+                    new URL(socialMedia);
+                } catch (e) {
+                    logActivity('FORM_VALIDATION_FAILED', { field: 'socialMedia', reason: 'Invalid URL format', error: e.message });
+                    Swal.fire('Error', 'Please enter a valid URL for your social media link (e.g., https://facebook.com/yourpage).', 'error');
+                    return;
+                }
+            }
+
+            // Text Area Minimum Length Validation
+            const MIN_TEXT_LENGTH = 20; 
+            if (organizationalBackgroundMission.length < MIN_TEXT_LENGTH) {
+                logActivity('FORM_VALIDATION_FAILED', { field: 'organizationalBackgroundMission', reason: 'Too short' });
+                Swal.fire('Error', `Organizational Background & Mission must be at least ${MIN_TEXT_LENGTH} characters long.`, 'error');
+                return;
+            }
+            if (areasOfExpertiseFocus.length < MIN_TEXT_LENGTH) {
+                logActivity('FORM_VALIDATION_FAILED', { field: 'areasOfExpertiseFocus', reason: 'Too short' });
+                Swal.fire('Error', `Areas of Expertise/Focus must be at least ${MIN_TEXT_LENGTH} characters long.`, 'error');
                 return;
             }
 
@@ -463,7 +508,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     streetAddress: streetAddress
                 },
                 applicationDateandTime: new Date().toISOString(),
-                recaptchaResponse: recaptchaResponse, // This response should ideally be verified server-side
+                recaptchaResponse: recaptchaResponse, 
                 organizationalBackgroundMission: organizationalBackgroundMission,
                 areasOfExpertiseFocus: areasOfExpertiseFocus,
                 legalStatusRegistration: legalStatusRegistration,
