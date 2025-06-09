@@ -199,7 +199,13 @@ document.addEventListener("DOMContentLoaded", async () => {
                 if (!isAdmin && !updatedUser.emailVerified) {
                     try {
                         const actionCodeSettings = {
-                            url: 'https://bayanihan.vercel.app/pages/login.html', 
+                          // absolute url required for email verification kasi naka-firebase auth
+
+                            //for host
+                            // url: 'https://bayanihan-drrm.vercel.app/pages/login.html', 
+                            // handleCodeInApp: true, 
+                            //for live server       
+                            url: 'http://127.0.0.1:5500/bayanihan/pages/login.html',
                             handleCodeInApp: true, 
                         };
                         console.log("Sending verification email to:", updatedUser.email);

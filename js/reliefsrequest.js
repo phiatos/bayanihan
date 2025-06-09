@@ -77,6 +77,40 @@ document.addEventListener('DOMContentLoaded', () => {
     let volunteerOrganization = "[Unknown Org]";
 
     // Check if user is logged in and fetch their UID and group name
+    // auth.onAuthStateChanged(user => {
+    //     if (user) {
+    //         userUid = user.uid;
+    //         console.log('Logged-in user UID:', userUid);
+
+    //         // Fetch user data from the database
+    //         database.ref(`users/${userUid}`).once('value', snapshot => {
+    //             const userData = snapshot.val();
+    //             if (userData && userData.organization) {
+    //                 volunteerOrganization = userData.organization; 
+    //                 console.log('Volunteer group fetched from database:', volunteerOrganization);
+
+    //                 // Pre-fill form fields with user data
+    //                 contactPersonInput.value = userData.contactPerson || '';
+    //                 contactNumberInput.value = userData.mobile || '';
+    //                 emailInput.value = userData.email || '';
+    //             } else {
+    //                 console.warn('User data or group not found in database for UID:', userUid);
+    //             }
+    //         }).catch(error => {
+    //             console.error('Error fetching user data:', error);
+    //         });
+    //     } else {
+    //         console.warn('No user is logged in');
+    //         Swal.fire({
+    //             icon: 'error',
+    //             title: 'Not Logged In',
+    //             text: 'Please log in to submit a relief request.',
+    //         }).then(() => {
+    //             window.location.href = '../pages/login.html'; // Redirect to login page
+    //         });
+    //     }
+    // });
+
     auth.onAuthStateChanged(user => {
         if (user) {
             userUid = user.uid;
@@ -85,19 +119,60 @@ document.addEventListener('DOMContentLoaded', () => {
             // Fetch user data from the database
             database.ref(`users/${userUid}`).once('value', snapshot => {
                 const userData = snapshot.val();
-                if (userData && userData.organization) {
+                if (!userData) {
+                    console.warn('User data not found in database for UID:', userUid);
+                    // Handle case where user node might not exist, e.g., newly registered
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'User Data Missing',
+                        text: 'Your user profile is incomplete. Please contact an administrator.',
+                    }).then(() => {
+                        window.location.href = '../pages/login.html'; // Redirect to login page or profile setup
+                    });
+                    return;
+                }
+
+                // --- IMPORTANT: ADD THIS PASSWORD RESET CHECK ---
+                const passwordNeedsReset = userData.password_needs_reset || false;
+                const profilePage = 'profile.html'; // Assuming profile.html is in the same 'pages' directory
+
+                if (passwordNeedsReset) {
+                    console.log("Password change required. Redirecting to profile page.");
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Password Change Required',
+                        text: 'For security reasons, please change your password. You will be redirected to your profile.',
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                        showConfirmButton: false,
+                        timer: 2000,
+                        timerProgressBar: true
+                    }).then(() => {
+                        window.location.replace(`../pages/${profilePage}`);
+                    });
+                    return; // Stop further execution if password reset is required
+                }
+                // --- END OF PASSWORD RESET CHECK ---
+
+                if (userData.organization) {
                     volunteerOrganization = userData.organization; 
                     console.log('Volunteer group fetched from database:', volunteerOrganization);
-
-                    // Pre-fill form fields with user data
-                    contactPersonInput.value = userData.contactPerson || '';
-                    contactNumberInput.value = userData.mobile || '';
-                    emailInput.value = userData.email || '';
                 } else {
-                    console.warn('User data or group not found in database for UID:', userUid);
+                    console.warn('Volunteer organization not found for UID:', userUid);
                 }
+                
+                // Pre-fill form fields with user data
+                contactPersonInput.value = userData.contactPerson || '';
+                contactNumberInput.value = userData.mobile || '';
+                emailInput.value = userData.email || '';
+
             }).catch(error => {
                 console.error('Error fetching user data:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Failed to load user data. Please try again later.',
+                });
             });
         } else {
             console.warn('No user is logged in');

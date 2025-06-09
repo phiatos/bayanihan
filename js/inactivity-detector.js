@@ -1,5 +1,5 @@
 let inactivityTimeout;
-const INACTIVITY_TIME = 30000; // 1800000 = 30 minutes in milliseconds
+const INACTIVITY_TIME = 1800000; // 1800000 = 30 minutes in milliseconds
 
 // Function to reset the inactivity timer
 function resetInactivityTimer() {

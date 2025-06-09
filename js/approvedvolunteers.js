@@ -20,22 +20,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const sortSelect = document.getElementById('sortSelect');
     const entriesInfo = document.getElementById('entriesInfo');
     const pagination = document.getElementById('pagination');
-    const viewApprovedBtn = document.getElementById('viewApprovedBtn');
+    const viewPendingBtn = document.getElementById('viewApprovedBtn'); // Renamed to viewPendingBtn
 
-    // Modal elements (assuming they exist from previous HTML)
+    // Modals
     const previewModal = document.getElementById('previewModal');
     const closeModal = document.getElementById('closeModal');
     const modalContent = document.getElementById('modalContent');
 
-    if (!volunteersContainer || !searchInput || !sortSelect || !entriesInfo || !pagination || !viewApprovedBtn || !previewModal || !closeModal || !modalContent) {
-        console.error('One or more DOM elements are missing. Please check your HTML IDs.');
-        return;
-    }
-
-    let allApplications = []; 
-    let filteredApplications = []; 
+    let allApprovedApplications = [];
+    let filteredApprovedApplications = [];
     let currentPage = 1;
-    const rowsPerPage = 5; 
+    const rowsPerPage = 5;
+
+    // Change button text and functionality for this page
+    viewPendingBtn.innerHTML = "<i class='bx bx-show' style='font-size: 1.2rem;'></i>View Pending Volunteer Applications";
+    viewPendingBtn.addEventListener('click', () => {
+        window.location.href = '../pages/pendingvolunteers.html';
+    });
 
     // --- Utility Functions ---
     function formatDate(timestamp) {
@@ -44,61 +45,79 @@ document.addEventListener('DOMContentLoaded', () => {
         return date.toLocaleString('en-US', {
             year: 'numeric', month: 'short', day: 'numeric',
             hour: '2-digit', minute: '2-digit', second: '2-digit',
-            hour12: true // Ensures AM/PM
+            hour12: true
         });
     }
 
-    function showPreviewModal(volunteer) {
-        // Construct full name
-        const fullName = `${volunteer.firstName || ''} ${volunteer.middleInitial ? volunteer.middleInitial + '.' : ''} ${volunteer.lastName || ''} ${volunteer.nameExtension || ''}`.trim();
+    function getFullName(volunteer) {
+        const parts = [
+            volunteer.firstName,
+            volunteer.middleInitial ? volunteer.middleInitial + '.' : '',
+            volunteer.lastName,
+            volunteer.nameExtension
+        ].filter(Boolean);
+        return parts.join(' ').trim();
+    }
 
+    function setupModalClose(modalElement, closeButtonElement) {
+        closeButtonElement.addEventListener('click', () => modalElement.style.display = 'none');
+        modalElement.addEventListener('click', (event) => {
+            if (event.target === modalElement) {
+                modalElement.style.display = 'none';
+            }
+        });
+    }
+
+    // Apply the setupModalClose function to the preview modal
+    setupModalClose(previewModal, closeModal);
+
+    function showPreviewModal(volunteer) {
+        const fullName = getFullName(volunteer);
         modalContent.innerHTML = `
-            <h3>Volunteer Application Details</h3>
+            <h3 style="color: #FA3B99;">Approved Volunteer Details</h3>
+            <p><strong>Approval Date/Time:</strong> ${formatDate(volunteer.scheduledDateTime || volunteer.timestamp)}</p>
             <p><strong>Full Name:</strong> ${fullName}</p>
             <p><strong>Email:</strong> ${volunteer.email || 'N/A'}</p>
             <p><strong>Mobile Number:</strong> ${volunteer.mobileNumber || 'N/A'}</p>
             <p><strong>Age:</strong> ${volunteer.age || 'N/A'}</p>
             <p><strong>Social Media:</strong> ${volunteer.socialMediaLink ? `<a href="${volunteer.socialMediaLink}" target="_blank">${volunteer.socialMediaLink}</a>` : 'N/A'}</p>
             <p><strong>Additional Info:</strong> ${volunteer.additionalInfo || 'N/A'}</p>
-            <h4>Address:</h4>
+            <h3 style="color: #FA3B99;">Address Information</h3>
             <p><strong>Region:</strong> ${volunteer.address?.region || 'N/A'}</p>
             <p><strong>Province:</strong> ${volunteer.address?.province || 'N/A'}</p>
             <p><strong>City:</strong> ${volunteer.address?.city || 'N/A'}</p>
             <p><strong>Barangay:</strong> ${volunteer.address?.barangay || 'N/A'}</p>
             <p><strong>Street Address:</strong> ${volunteer.address?.streetAddress || 'N/A'}</p>
-            <p><strong>Application Date:</strong> ${formatDate(volunteer.timestamp)}</p>
+            <h3 style="color: #FA3B99;">Availability</h3>
+            <p><strong>General Availability:</strong> ${volunteer.availability?.general || 'N/A'}</p>
+            <p><strong>Available Days:</strong> ${volunteer.availability?.specificDays ? volunteer.availability.specificDays.join(', ') : 'N/A'}</p>
         `;
         previewModal.style.display = 'block';
     }
 
-    function hidePreviewModal() {
-        previewModal.style.display = 'none';
-    }
-
     // --- Data Fetching Function ---
-    function fetchPendingVolunteers() {
-        // Show loading state
-        volunteersContainer.innerHTML = '<tr><td colspan="12" style="text-align: center;">Loading volunteer applications...</td></tr>';
+    function fetchApprovedVolunteers() {
+        volunteersContainer.innerHTML = '<tr><td colspan="12" style="text-align: center;">Loading approved volunteer applications...</td></tr>';
 
-        database.ref('volunteerApplications/pendingVolunteer').on('value', (snapshot) => {
-            allApplications = []; // Clear previous data
+        database.ref('volunteerApplications/approvedVolunteer').on('value', (snapshot) => {
+            allApprovedApplications = [];
             if (snapshot.exists()) {
                 snapshot.forEach((childSnapshot) => {
                     const volunteerData = childSnapshot.val();
                     const volunteerKey = childSnapshot.key;
-                    allApplications.push({ key: volunteerKey, ...volunteerData });
+                    allApprovedApplications.push({ key: volunteerKey, ...volunteerData });
                 });
-                console.log("Fetched pending volunteers:", allApplications);
+                console.log("Fetched approved volunteers:", allApprovedApplications);
             } else {
-                console.log("No pending volunteer applications found.");
+                console.log("No approved volunteer applications found.");
             }
-            applySearchAndSort(); // Apply initial search and sort after fetching
+            applySearchAndSort();
         }, (error) => {
-            console.error("Error fetching pending volunteers: ", error);
+            console.error("Error fetching approved volunteers: ", error);
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
-                text: 'Failed to load pending volunteer applications. Please try again later.',
+                text: 'Failed to load approved volunteer applications. Please try again later.',
                 confirmButtonText: 'OK'
             });
             volunteersContainer.innerHTML = '<tr><td colspan="12" style="text-align: center; color: red;">Failed to load data.</td></tr>';
@@ -107,28 +126,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Rendering Function ---
     function renderApplications(applicationsToRender) {
-        volunteersContainer.innerHTML = ''; 
+        volunteersContainer.innerHTML = '';
         const startIndex = (currentPage - 1) * rowsPerPage;
         const endIndex = startIndex + rowsPerPage;
         const paginatedApplications = applicationsToRender.slice(startIndex, endIndex);
 
         if (paginatedApplications.length === 0) {
-            volunteersContainer.innerHTML = '<tr><td colspan="12" style="text-align: center;">No pending volunteer applications found on this page.</td></tr>';
+            volunteersContainer.innerHTML = '<tr><td colspan="12" style="text-align: center;">No approved volunteer applications found on this page.</td></tr>';
             entriesInfo.textContent = 'Showing 0 to 0 of 0 entries';
-            renderPagination(); 
+            renderPagination();
             return;
         }
 
-        let i = startIndex + 1; // Counter for "No." column
+        let i = startIndex + 1;
 
         paginatedApplications.forEach(volunteer => {
             const row = volunteersContainer.insertRow();
-            row.setAttribute('data-key', volunteer.key); 
+            row.setAttribute('data-key', volunteer.key);
 
-            const fullName = `${volunteer.firstName || ''} ${volunteer.middleInitial ? volunteer.middleInitial + '.' : ''} ${volunteer.lastName || ''} ${volunteer.nameExtension || ''}`.trim();
+            const fullName = getFullName(volunteer);
             const socialMediaDisplay = volunteer.socialMediaLink ? `<a href="${volunteer.socialMediaLink}" target="_blank" rel="noopener noreferrer">Link</a>` : 'N/A';
 
-
+            // Display the scheduled date/time if available, otherwise "N/A"
+            const scheduledDateTimeDisplay = volunteer.scheduledDateTime ? formatDate(volunteer.scheduledDateTime) : 'N/A';
+            
             row.innerHTML = `
                 <td>${i++}</td>
                 <td>${fullName}</td>
@@ -141,8 +162,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${volunteer.address?.province || 'N/A'}</td>
                 <td>${volunteer.address?.city || 'N/A'}</td>
                 <td>${volunteer.address?.barangay || 'N/A'}</td>
+                <td>${scheduledDateTimeDisplay}</td>
                 <td>
-                    <button class="endorseBtn" data-key="${volunteer.key}">Endorse</button>
+                    <button class="viewBtn" data-key="${volunteer.key}">View</button>
                 </td>
             `;
         });
@@ -153,13 +175,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Search and Sort Logic ---
     function applySearchAndSort() {
-        let currentApplications = [...allApplications]; 
+        let currentApplications = [...allApprovedApplications];
 
-        // Apply search filter
         const searchTerm = searchInput.value.toLowerCase().trim();
         if (searchTerm) {
             currentApplications = currentApplications.filter(volunteer => {
-                const fullName = `${volunteer.firstName || ''} ${volunteer.lastName || ''}`.toLowerCase();
+                const fullName = getFullName(volunteer).toLowerCase();
                 const email = (volunteer.email || '').toLowerCase();
                 const mobileNumber = (volunteer.mobileNumber || '').toLowerCase();
                 const region = (volunteer.address?.region || '').toLowerCase();
@@ -167,19 +188,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 const city = (volunteer.address?.city || '').toLowerCase();
                 const barangay = (volunteer.address?.barangay || '').toLowerCase();
                 const additionalInfo = (volunteer.additionalInfo || '').toLowerCase();
+                const scheduledDateTime = (volunteer.scheduledDateTime ? formatDate(volunteer.scheduledDateTime) : '').toLowerCase();
 
                 return fullName.includes(searchTerm) ||
-                       email.includes(searchTerm) ||
-                       mobileNumber.includes(searchTerm) ||
-                       region.includes(searchTerm) ||
-                       province.includes(searchTerm) ||
-                       city.includes(searchTerm) ||
-                       barangay.includes(searchTerm) ||
-                       additionalInfo.includes(searchTerm);
+                    email.includes(searchTerm) ||
+                    mobileNumber.includes(searchTerm) ||
+                    region.includes(searchTerm) ||
+                    province.includes(searchTerm) ||
+                    city.includes(searchTerm) ||
+                    barangay.includes(searchTerm) ||
+                    additionalInfo.includes(searchTerm) ||
+                    scheduledDateTime.includes(searchTerm);
             });
         }
 
-        // Apply sort
         const sortValue = sortSelect.value;
         if (sortValue) {
             const [sortBy, order] = sortValue.split('-');
@@ -188,17 +210,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 switch (sortBy) {
                     case 'DateTime':
-                        valA = new Date(a.timestamp || 0).getTime();
-                        valB = new Date(b.timestamp || 0).getTime();
+                        valA = new Date(a.scheduledDateTime || a.timestamp || 0).getTime();
+                        valB = new Date(b.scheduledDateTime || b.timestamp || 0).getTime();
                         break;
                     case 'Location':
-                        // Combine location parts for a better alphabetical sort
                         valA = `${a.address?.region || ''} ${a.address?.province || ''} ${a.address?.city || ''} ${a.address?.barangay || ''}`.toLowerCase();
                         valB = `${b.address?.region || ''} ${b.address?.province || ''} ${b.address?.city || ''} ${b.address?.barangay || ''}`.toLowerCase();
                         break;
+                    case 'Name':
+                        valA = getFullName(a).toLowerCase();
+                        valB = getFullName(b).toLowerCase();
+                        break;
+                    case 'Age':
+                        valA = parseInt(a.age) || 0;
+                        valB = parseInt(b.age) || 0;
+                        break;
                     default:
-                        valA = `${a.firstName || ''} ${a.lastName || ''}`.toLowerCase();
-                        valB = `${b.firstName || ''} ${b.lastName || ''}`.toLowerCase();
+                        valA = getFullName(a).toLowerCase();
+                        valB = getFullName(b).toLowerCase();
                         break;
                 }
 
@@ -210,18 +239,18 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        filteredApplications = currentApplications; 
-        currentPage = 1; 
-        renderApplications(filteredApplications);
+        filteredApprovedApplications = currentApplications;
+        currentPage = 1;
+        renderApplications(filteredApprovedApplications);
     }
 
     // --- Pagination Functions ---
     function renderPagination() {
         pagination.innerHTML = '';
-        const totalPages = Math.ceil(filteredApplications.length / rowsPerPage);
+        const totalPages = Math.ceil(filteredApprovedApplications.length / rowsPerPage);
 
-        if (totalPages === 0) { 
-            pagination.innerHTML = '<span>No entries to display</span>'; 
+        if (totalPages === 0) {
+            pagination.innerHTML = '<span>No entries to display</span>';
             return;
         }
 
@@ -229,26 +258,24 @@ document.addEventListener('DOMContentLoaded', () => {
             const btn = document.createElement('button');
             btn.textContent = label;
             if (disabled) btn.disabled = true;
-            if (isActive) btn.classList.add('active-page'); 
+            if (isActive) btn.classList.add('active-page');
             btn.addEventListener('click', () => {
                 currentPage = page;
-                renderApplications(filteredApplications);
+                renderApplications(filteredApprovedApplications);
             });
             return btn;
         };
 
         pagination.appendChild(createButton('Prev', currentPage - 1, currentPage === 1));
 
-        const maxVisible = 5; 
+        const maxVisible = 5;
         let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
         let endPage = Math.min(totalPages, startPage + maxVisible - 1);
 
-        
         if (endPage - startPage + 1 < maxVisible) {
             startPage = Math.max(1, totalPages - maxVisible + 1);
         }
 
-        
         if (startPage > 1) {
             pagination.appendChild(createButton('1', 1));
             if (startPage > 2) {
@@ -262,6 +289,15 @@ document.addEventListener('DOMContentLoaded', () => {
             pagination.appendChild(createButton(i, i, false, i === currentPage));
         }
 
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) {
+                const dots = document.createElement('span');
+                dots.textContent = '...';
+                pagination.appendChild(dots);
+            }
+            pagination.appendChild(createButton(totalPages, totalPages));
+        }
+
         pagination.appendChild(createButton('Next', currentPage + 1, currentPage === totalPages));
     }
 
@@ -271,96 +307,23 @@ document.addEventListener('DOMContentLoaded', () => {
         entriesInfo.textContent = `Showing ${totalItems ? startIndex + 1 : 0} to ${endIndex} of ${totalItems} entries`;
     }
 
-    // --- Action Handlers (Approve/Reject) ---
-    volunteersContainer.addEventListener('click', async (event) => {
+    // --- Event Listener for View Button ---
+    volunteersContainer.addEventListener('click', (event) => {
         const target = event.target;
+        const viewButton = target.closest('.viewBtn');
 
-        const rowWithKey = target.closest('tr[data-key]');
-        if (!rowWithKey) return;
-
-        const volunteerKey = rowWithKey.dataset.key;
-
-        if (target.classList.contains('approveBtn')) {
-            Swal.fire({
-                title: 'Are you sure?',
-                text: "Do you want to approve this volunteer application?",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#3085d6',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'Yes, approve it!'
-            }).then(async (result) => {
-                if (result.isConfirmed) {
-                    try {
-                        const volunteerRef = database.ref(`volunteerApplications/approvedVolunteer/${volunteerKey}`);
-                        const snapshot = await volunteerRef.once('value');
-                        const volunteerData = snapshot.val();
-
-                        if (volunteerData) {
-                            // Move to approvedVolunteers
-                            await database.ref(`volunteerApplications/approvedVolunteer/${volunteerKey}`).set(volunteerData);
-                            // Remove from pendingVolunteer
-                            await volunteerRef.remove();
-                            Swal.fire('Approved!', 'The volunteer application has been approved and moved.', 'success');
-                        } else {
-                            Swal.fire('Error', 'Volunteer application not found.', 'error');
-                        }
-                    } catch (error) {
-                        console.error("Error approving volunteer application: ", error);
-                        Swal.fire('Error', 'Failed to approve volunteer application. Please try again.', 'error');
-                    }
-                }
-            });
-        } else if (target.classList.contains('rejectBtn')) {
-            Swal.fire({
-                title: 'Are you sure?',
-                text: "Do you want to reject this volunteer application? It will be removed.",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#d33',
-                cancelButtonColor: '#3085d6',
-                confirmButtonText: 'Yes, reject it!'
-            }).then(async (result) => {
-                if (result.isConfirmed) {
-                    try {
-                        const volunteerRef = database.ref(`volunteerApplications/pendingVolunteer/${volunteerKey}`);
-                        await volunteerRef.remove(); // Remove from pendingVolunteer
-                        Swal.fire('Rejected!', 'The volunteer application has been rejected and removed.', 'success');
-                        // Data will re-render automatically due to .on('value') listener
-                    } catch (error) {
-                        console.error("Error rejecting volunteer application: ", error);
-                        Swal.fire('Error', 'Failed to reject volunteer application. Please try again.', 'error');
-                    }
-                }
-            });
-        } else if (target.classList.contains('viewBtn') || target.closest('.viewBtn')) {
-            // Find the volunteer data from the currently filtered/sorted array
-            const volunteer = filteredApplications.find(v => v.key === volunteerKey);
+        if (viewButton) {
+            const volunteerKey = viewButton.dataset.key;
+            const volunteer = allApprovedApplications.find(v => v.key === volunteerKey);
             if (volunteer) {
                 showPreviewModal(volunteer);
             } else {
                 console.warn("Volunteer data not found for key:", volunteerKey);
+                Swal.fire('Error', 'Volunteer data not found.', 'error');
             }
         }
     });
 
-    // --- Event Listeners for Search and Sort ---
-    searchInput.addEventListener('keyup', applySearchAndSort);
-    sortSelect.addEventListener('change', applySearchAndSort);
-
-    // --- Initial Load ---
-    fetchPendingVolunteers();
-
-    // Handle "View Approved Volunteer Applications" button
-    viewApprovedBtn.addEventListener('click', () => {
-        window.location.href = '../pages/approvedvolunteers.html';
-    });
-
-    // Event listeners for modal
-    closeModal.addEventListener('click', hidePreviewModal);
-    previewModal.addEventListener('click', (event) => {
-        if (event.target === previewModal) {
-            hidePreviewModal();
-        }
-    });
+    // Initial fetch of approved volunteers when the page loads
+    fetchApprovedVolunteers();
 });

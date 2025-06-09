@@ -265,8 +265,7 @@ function initSidebar() {
         menuItems.rdanaVerification,
         menuItems.reportsVerification,
         menuItems.pendingVolunteers,
-        menuItems.approvedVolunteers,
-        menuItems.endorsedVolunteers
+        menuItems.approvedVolunteers
       ];
 
       // Show allowed items

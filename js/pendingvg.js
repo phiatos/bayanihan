@@ -277,13 +277,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
             <h4 style="margin-top: 20px; margin-bottom: 10px; color: #FA3B99;">Legal & Documents:</h4>
             <p><strong>Legal Status/Registration:</strong> ${applicationData.legalStatusRegistration || 'N/A'}</p>
-            <p><strong>Required Documents:</strong> ${applicationData.requiredDocuments ? `<a href="${applicationData.requiredDocuments}" target="_blank" rel="noopener noreferrer">View Document</a>` : 'N/A'}</p>
+            <p><strong>Required Documents:</strong> ${applicationData.uploadedDocumentNames ? `<a href="${applicationData.requiredDocuments}" target="_blank" rel="noopener noreferrer">View Document</a>` : 'N/A'}</p>
             
             <p style="margin-top: 20px; font-size: 0.9em; color: #555;"><strong>Application Date and Time:</strong> ${formattedTimestamp}</p>
             `;
 
         modalContentDiv.innerHTML = content;
-        previewModal.style.display = 'block'; // Show the modal
+        previewModal.style.display = 'flex'; // Show the modal
     }
 
     function hidePreviewModal() {

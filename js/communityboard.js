@@ -23,6 +23,7 @@ try {
 let user = null;
 const userOrgCache = new Map();
 let sortOrder = 'newest';
+let selectedCategoryFilter = 'all';
 
 async function compressMedia(file) {
   if (file.type.startsWith('image/')) {
@@ -142,26 +143,91 @@ async function fetchUserData(uid) {
   }
 }
 
+// auth.onAuthStateChanged(async (currentUser) => {
+//   user = currentUser;
+//   console.log(`[${new Date().toISOString()}] Auth state changed:`, currentUser ? { uid: currentUser.uid, displayName: currentUser.displayName } : 'No user');
+  
+//   if (user) {
+//     loadPosts();
+//     loadActivityLog();
+//     const userData = await fetchUserData(user.uid);
+//     updateModalUserInfo(userData);
+//   } else {
+//     Swal.fire({
+//       title: 'Authentication Required',
+//       text: 'Please log in to post or view posts.',
+//       icon: 'warning',
+//       confirmButtonText: 'OK'
+//     });
+//     const postsContainer = document.getElementById('posts');
+//     if (postsContainer) {
+//       postsContainer.innerHTML = '<p>Please log in to view posts.</p>';
+//     }
+//   }
+// });
 auth.onAuthStateChanged(async (currentUser) => {
-  user = currentUser;
-  console.log(`[${new Date().toISOString()}] Auth state changed:`, currentUser ? { uid: currentUser.uid, displayName: currentUser.displayName } : 'No user');
-  if (user) {
-    loadPosts();
-    loadActivityLog();
-    const userData = await fetchUserData(user.uid);
-    updateModalUserInfo(userData);
-  } else {
-    Swal.fire({
-      title: 'Authentication Required',
-      text: 'Please log in to post or view posts.',
-      icon: 'warning',
-      confirmButtonText: 'OK'
-    });
-    const postsContainer = document.getElementById('posts');
-    if (postsContainer) {
-      postsContainer.innerHTML = '<p>Please log in to view posts.</p>';
+    user = currentUser;
+    console.log(`[${new Date().toISOString()}] Auth state changed:`, currentUser ? { uid: currentUser.uid, displayName: currentUser.displayName } : 'No user');
+
+    if (user) {
+        const profilePage = 'profile.html'; // Assuming your profile page path
+
+        try {
+            // Fetch user data from the database to check password_needs_reset status
+            const userSnapshot = await database.ref(`users/${user.uid}`).once("value");
+            const userDataFromDb = userSnapshot.val();
+            const passwordNeedsReset = userDataFromDb ? (userDataFromDb.password_needs_reset || false) : false;
+
+            if (passwordNeedsReset) {
+                console.log(`[${new Date().toISOString()}] Password change required for user ${user.uid}. Redirecting to profile page.`);
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Password Change Required',
+                    text: 'For security reasons, please change your password. You will be redirected to your profile.',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    showConfirmButton: false,
+                    timer: 2000,
+                    timerProgressBar: true
+                }).then(() => {
+                    window.location.replace(`../pages/${profilePage}`);
+                });
+                return; // IMPORTANT: Stop further execution if password reset is needed
+            }
+
+            // If password does NOT need reset, proceed with normal community board initialization
+            loadPosts();
+            loadActivityLog();
+            const userData = await fetchUserData(user.uid);
+            updateModalUserInfo(userData);
+
+        } catch (error) {
+            console.error(`[${new Date().toISOString()}] Error checking password reset status or fetching user data:`, error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Authentication Error',
+                text: 'Failed to verify account status. Please try logging in again.',
+            }).then(() => {
+                window.location.replace('../pages/login.html'); // Redirect to login on error
+            });
+            return;
+        }
+
+    } else {
+        // No user authenticated
+        Swal.fire({
+            title: 'Authentication Required',
+            text: 'Please log in to post or view posts.',
+            icon: 'warning',
+            confirmButtonText: 'OK'
+        }).then(() => {
+            window.location.replace('../pages/login.html'); // Ensure redirection to login
+        });
+        const postsContainer = document.getElementById('posts');
+        if (postsContainer) {
+            postsContainer.innerHTML = '<p>Please log in to view posts.</p>';
+        }
     }
-  }
 });
 
 function updateModalUserInfo(userData) {
@@ -189,27 +255,34 @@ async function createPost() {
 
   const modalPostTitle = document.getElementById('modal-post-title');
   const modalPostContent = document.getElementById('modal-post-content');
+  const modalPostCategory = document.getElementById('modal-post-category');
   const mediaInput = document.getElementById('modal-media-upload');
   const postButton = document.getElementById('modal-post-button');
   const modal = document.getElementById('post-modal');
   const mediaPreview = document.getElementById('modal-media-preview');
 
-  if (!modalPostTitle || !modalPostContent || !mediaInput || !postButton || !modal || !mediaPreview) {
-    console.error(`[${new Date().toISOString()}] DOM elements missing:`, { modalPostTitle, modalPostContent, mediaInput, postButton, modal, mediaPreview });
+  if (!modalPostTitle || !modalPostContent || !modalPostCategory || !mediaInput || !postButton || !modal || !mediaPreview) {
+    console.error(`[${new Date().toISOString()}] DOM elements missing:`, { modalPostTitle, modalPostContent, modalPostCategory, mediaInput, postButton, modal, mediaPreview });
     Swal.fire('Error', 'Page elements not found. Please try refreshing the page.', 'error');
     return;
   }
 
   const title = modalPostTitle.value.trim();
   const content = modalPostContent.value.trim();
+  const category = modalPostCategory.value;
   const file = mediaInput.files[0];
   if (!content && !file) {
     console.log(`[${new Date().toISOString()}] No content or media provided`);
     Swal.fire('Please add content or media to post', '', 'warning');
     return;
   }
+  if (!category) {
+    console.log(`[${new Date().toISOString()}] No category selected`);
+    Swal.fire('Please select a category', '', 'warning');
+    return;
+  }
 
-  console.log(`[${new Date().toISOString()}] Posting with title: ${title}, content: ${content}, file: ${file ? file.name : 'none'}`);
+  console.log(`[${new Date().toISOString()}] Posting with title: ${title}, content: ${content}, category: ${category}, file: ${file ? file.name : 'none'}`);
   postButton.classList.add('loading');
   modal.classList.add('disabled');
 
@@ -271,14 +344,16 @@ async function createPost() {
       timestamp: firebase.database.ServerValue.TIMESTAMP,
       mediaUrl: mediaUrl,
       mediaType: mediaType,
-      thumbnailUrl: thumbnailUrl
+      thumbnailUrl: thumbnailUrl,
+      category: category
     };
 
     console.log(`[${new Date().toISOString()}] Writing post to database:`, { ...post, mediaUrl: mediaUrl ? `${mediaUrl.slice(0, 50)}...` : '' });
     await database.ref('posts').push(post);
-    await logActivity(`${contactPerson}${organization ? ` from ${organization}` : ''} created a new post`);
+    await logActivity(`${contactPerson}${organization ? ` from ${organization}` : ''} created a new post in ${category}`);
     modalPostTitle.value = '';
     modalPostContent.value = '';
+    modalPostCategory.value = '';
     mediaInput.value = '';
     mediaPreview.innerHTML = '';
     modal.style.display = 'none';
@@ -393,11 +468,12 @@ async function submitSharePost() {
       originalPostId: postId,
       originalUserName: originalPost.userName,
       isShared: true,
-      shareCaption: caption || ''
+      shareCaption: caption || '',
+      category: originalPost.category
     };
 
     await database.ref('posts').push(sharedPost);
-    await logActivity(`${contactPerson}${organization ? ` from ${organization}` : ''} shared a post`);
+    await logActivity(`${contactPerson}${organization ? ` from ${organization}` : ''} shared a post in ${originalPost.category}`);
     modal.style.display = 'none';
     shareCaptionInput.value = '';
     delete modal.dataset.postId;
@@ -621,7 +697,7 @@ function toggleReplyInput(postId, commentId) {
 }
 
 async function loadPosts() {
-  console.log(`[${new Date().toISOString()}] Loading posts`);
+  console.log(`[${new Date().toISOString()}] Loading posts with filter: ${selectedCategoryFilter}`);
   const postsContainer = document.getElementById('posts');
   if (!postsContainer) {
     console.error(`[${new Date().toISOString()}] Posts container not found`);
@@ -634,7 +710,10 @@ async function loadPosts() {
     const posts = snapshot.val();
     if (posts) {
       console.log(`[${new Date().toISOString()}] Posts retrieved: ${Object.keys(posts).length}`);
-      const postArray = Object.entries(posts).map(([id, post]) => ({ id, ...post }));
+      let postArray = Object.entries(posts).map(([id, post]) => ({ id, ...post }));
+      if (selectedCategoryFilter !== 'all') {
+        postArray = postArray.filter(post => post.category === selectedCategoryFilter);
+      }
       postArray.sort((a, b) => sortOrder === 'newest' ? b.timestamp - a.timestamp : a.timestamp - b.timestamp);
 
       for (const { id, ...post } of postArray) {
@@ -667,6 +746,7 @@ async function loadPosts() {
               <div class="post-meta">
                 <small style="color: var(--primary-color, #14AEBB); font-size: 0.9em;">${post.organization || ''}</small>
                 <small>${new Date(post.timestamp).toLocaleString()}</small>
+                <small style="color: var(--primary-color); font-size: 0.9em;">${post.category ? post.category.charAt(0).toUpperCase() + post.category.slice(1) : ''}</small>
               </div>
               ${sharedInfo}
               ${captionHtml}
@@ -868,6 +948,7 @@ function setupModal() {
   const postCloseButton = document.querySelector('#post-modal .close-button');
   const postButtons = document.querySelectorAll('.post-option');
   const modalPostContent = document.getElementById('modal-post-content');
+  const modalPostCategory = document.getElementById('modal-post-category');
   const mediaInput = document.getElementById('modal-media-upload');
   const mediaPreview = document.getElementById('modal-media-preview');
   const tapToUploadButton = document.getElementById('tap-to-upload');
@@ -876,6 +957,7 @@ function setupModal() {
   const shareCancelButton = document.getElementById('share-cancel-button');
   const shareSubmitButton = document.getElementById('share-submit-button');
   const sortButton = document.getElementById('sort-posts-button');
+  const categoryFilter = document.getElementById('category-filter');
 
   function resizeTextarea() {
     modalPostContent.style.height = 'auto';
@@ -890,7 +972,7 @@ function setupModal() {
     resizeTimeout = setTimeout(resizeTextarea, 50);
   }
 
-  if (postButtons && modalPostContent && mediaInput && modal && postCloseButton && tapToUploadButton) {
+  if (postButtons && modalPostContent && modalPostCategory && mediaInput && modal && postCloseButton && tapToUploadButton) {
     postButtons.forEach(button => {
       button.addEventListener('click', () => {
         postButtons.forEach(btn => btn.classList.remove('active'));
@@ -923,6 +1005,8 @@ function setupModal() {
           modalPostContent.placeholder = 'Paste your link here';
           modalPostContent.focus();
           resizeTextarea();
+        } else if (type === 'category') {
+          modalPostCategory.focus();
         } else {
           modalPostContent.placeholder = "What's on your mind?";
           modalPostContent.focus();
@@ -940,6 +1024,7 @@ function setupModal() {
       modal.style.display = 'none';
       modalPostContent.value = '';
       document.getElementById('modal-post-title').value = '';
+      modalPostCategory.value = '';
       modalPostContent.placeholder = "What's on your mind?";
       modalPostContent.style.height = '80px';
       mediaInput.value = '';
@@ -1017,6 +1102,13 @@ function setupModal() {
       sortOrder = sortOrder === 'newest' ? 'oldest' : 'newest';
       const icon = sortButton.querySelector('i');
       icon.className = sortOrder === 'newest' ? 'bx bx-sort-up' : 'bx bx-sort-down';
+      loadPosts();
+    });
+  }
+
+  if (categoryFilter) {
+    categoryFilter.addEventListener('change', () => {
+      selectedCategoryFilter = categoryFilter.value;
       loadPosts();
     });
   }

@@ -1,4 +1,3 @@
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, EmailAuthProvider, reauthenticateWithCredential, updatePassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { getDatabase, ref, get, update } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
@@ -65,7 +64,6 @@ function checkInactivity() {
 ['mousemove', 'keydown', 'scroll', 'click'].forEach(eventType => {
     document.addEventListener(eventType, resetInactivityTimer);
 });
-
 //-------------------------------------------------------------------------------------
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -288,18 +286,18 @@ document.addEventListener("DOMContentLoaded", () => {
     // Function to apply or remove navigation blocking based on isNavigationBlocked flag
     function applyNavigationBlocking() {
         navLinks.forEach(link => {
+            link.removeEventListener('click', preventNavigation);
             if (isNavigationBlocked) {
                 if (!link.dataset.originalHref) {
                     link.dataset.originalHref = link.href;
                 }
                 link.href = '#'; 
-                link.removeEventListener('click', preventNavigation);
                 link.addEventListener('click', preventNavigation);
             } else {
                 if (link.dataset.originalHref) {
                     link.href = link.dataset.originalHref; 
                 }
-                link.removeEventListener('click', preventNavigation);
+                //link.removeEventListener('click', preventNavigation);
             }
         });
     }
@@ -457,7 +455,7 @@ document.addEventListener("DOMContentLoaded", () => {
                                 allowOutsideClick: false,
                                 allowEscapeKey: false,
                                 confirmButtonText: 'Change Password',
-                                width: '420px',
+                                width: '460px',
                                 padding: '1.75em',
                                 background: '#f9f9f9',
                                 color: '#2c3e50',
@@ -648,7 +646,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 }).then(() => {
                     form.reset();
                     sessionStorage.removeItem('passwordChangePromptShown'); 
-                    window.location.replace('../pages/dashboard.html');
+                    window.location.replace('../pages/login.html');
                 });
 
             } catch (error) {

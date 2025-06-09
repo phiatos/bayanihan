@@ -50,22 +50,22 @@ function formatDate(isoString) {
     }
 }
 
-function getAge(birthdateString) {
-    if (!birthdateString) return 'N/A';
-    try {
-        const birthDate = new Date(birthdateString);
-        const today = new Date();
-        let age = today.getFullYear() - birthDate.getFullYear();
-        const m = today.getMonth() - birthDate.getMonth();
-        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-            age--;
-        }
-        return age;
-    } catch (error) {
-        console.error('Error calculating age:', birthdateString, error);
-        return 'N/A';
-    }
-}
+// function getAge(birthdateString) {
+//     if (!birthdateString) return 'N/A';
+//     try {
+//         const birthDate = new Date(birthdateString);
+//         const today = new Date();
+//         let age = today.getFullYear() - birthDate.getFullYear();
+//         const m = today.getMonth() - birthDate.getMonth();
+//         if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+//             age--;
+//         }
+//         return age;
+//     } catch (error) {
+//         console.error('Error calculating age:', birthdateString, error);
+//         return 'N/A';
+//     }
+// }
 
 function getSocialMediaLink(socialMediaLink) {
     if (!socialMediaLink || socialMediaLink === 'N/A') return 'N/A';
@@ -159,7 +159,7 @@ function renderVolunteersTable() {
         row.insertCell().textContent = getFullName(volunteer);
         row.insertCell().textContent = volunteer.email || 'N/A';
         row.insertCell().textContent = volunteer.mobileNumber || 'N/A';
-        row.insertCell().textContent = getAge(volunteer.birthdate);
+        row.insertCell().textContent = volunteer.age || 'N/A';
         row.insertCell().innerHTML = getSocialMediaLink(volunteer.socialMediaLink);
         row.insertCell().textContent = volunteer.additionalInfo || 'N/A';
         row.insertCell().textContent = volunteer.address?.region || 'N/A';
@@ -273,7 +273,7 @@ function showVolunteerDetails(volunteer) {
         <p><strong>Full Name:</strong> ${getFullName(volunteer)}</p>
         <p><strong>Email:</strong> ${volunteer.email || 'N/A'}</p>
         <p><strong>Mobile Number:</strong> ${volunteer.mobileNumber || 'N/A'}</p>
-        <p><strong>Birthdate:</strong> ${formatDate(volunteer.birthdate)} (Age: ${getAge(volunteer.birthdate)})</p>
+        <p><strong>Age:</strong> ${volunteer.age || 'N/A'}</p>
         <p><strong>Social Media:</strong><br>${socialMediaHtml}</p>
         <p><strong>Additional Info:</strong> ${volunteer.additionalInfo || 'N/A'}</p>
         <p><strong>Region:</strong> ${volunteer.address?.region || 'N/A'}</p>
@@ -283,7 +283,7 @@ function showVolunteerDetails(volunteer) {
         <p><strong>Endorsed To ABVN:</strong> ${volunteer.endorsedToABVNName ? `${volunteer.endorsedToABVNName} (${volunteer.endorsedToABVNLocation})` : 'N/A'}</p>
         <p><strong>Endorsement Date:</strong> ${formatDate(volunteer.endorsementDate)}</p>
     `;
-    previewModal.style.display = 'block';
+    previewModal.style.display = 'flex';
 }
 
 closeModalBtn.addEventListener('click', () => {
@@ -302,10 +302,67 @@ sortSelect.addEventListener('change', applyFiltersAndSort);
 
 // --- Initial Data Load (Auth Check) ---
 document.addEventListener('DOMContentLoaded', () => {
+    // auth.onAuthStateChanged(async (user) => {
+    //     if (user) {
+    //         // User is signed in. Fetch endorsed volunteers using their UID.
+    //         fetchEndorsedVolunteers(user.uid);
+    //     } else {
+    //         // User is signed out.
+    //         Swal.fire({
+    //             title: 'Not Logged In',
+    //             text: 'Please log in to view endorsed volunteers.',
+    //             icon: 'warning',
+    //             showCancelButton: false,
+    //             confirmButtonText: 'Go to Login'
+    //         }).then(() => {
+    //             window.location.href = '../login.html';
+    //         });
+    //         allEndorsedVolunteers = [];
+    //         renderVolunteersTable();
+    //     }
+    // });
     auth.onAuthStateChanged(async (user) => {
         if (user) {
-            // User is signed in. Fetch endorsed volunteers using their UID.
-            fetchEndorsedVolunteers(user.uid);
+            const profilePage = 'profile.html'; // Define your profile page path
+
+            try {
+                // Fetch user data from the database to check password_needs_reset status
+                const userSnapshot = await database.ref(`users/${user.uid}`).once("value");
+                const userDataFromDb = userSnapshot.val();
+                const passwordNeedsReset = userDataFromDb ? (userDataFromDb.password_needs_reset || false) : false;
+
+                if (passwordNeedsReset) {
+                    console.log(`Password change required for user ${user.uid}. Redirecting to profile page.`);
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Password Change Required',
+                        text: 'For security reasons, please change your password. You will be redirected to your profile.',
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                        showConfirmButton: false,
+                        timer: 2000,
+                        timerProgressBar: true
+                    }).then(() => {
+                        window.location.replace(`../pages/${profilePage}`); // Use replace to prevent back button
+                    });
+                    return; // IMPORTANT: Stop further execution if password reset is needed
+                }
+
+                // If password does NOT need reset, proceed with normal logic
+                // User is signed in. Fetch endorsed volunteers using their UID.
+                fetchEndorsedVolunteers(user.uid);
+
+            } catch (error) {
+                console.error("Error checking password reset status or fetching user data:", error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Authentication Error',
+                    text: 'Failed to verify account status. Please try logging in again.',
+                }).then(() => {
+                    window.location.replace('../pages/login.html'); // Redirect to login on error
+                });
+                return;
+            }
         } else {
             // User is signed out.
             Swal.fire({
@@ -315,7 +372,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 showCancelButton: false,
                 confirmButtonText: 'Go to Login'
             }).then(() => {
-                window.location.href = '../login.html';
+                window.location.replace('../pages/login.html'); // Use replace to prevent back button
             });
             allEndorsedVolunteers = [];
             renderVolunteersTable();
