@@ -302,10 +302,67 @@ sortSelect.addEventListener('change', applyFiltersAndSort);
 
 // --- Initial Data Load (Auth Check) ---
 document.addEventListener('DOMContentLoaded', () => {
+    // auth.onAuthStateChanged(async (user) => {
+    //     if (user) {
+    //         // User is signed in. Fetch endorsed volunteers using their UID.
+    //         fetchEndorsedVolunteers(user.uid);
+    //     } else {
+    //         // User is signed out.
+    //         Swal.fire({
+    //             title: 'Not Logged In',
+    //             text: 'Please log in to view endorsed volunteers.',
+    //             icon: 'warning',
+    //             showCancelButton: false,
+    //             confirmButtonText: 'Go to Login'
+    //         }).then(() => {
+    //             window.location.href = '../login.html';
+    //         });
+    //         allEndorsedVolunteers = [];
+    //         renderVolunteersTable();
+    //     }
+    // });
     auth.onAuthStateChanged(async (user) => {
         if (user) {
-            // User is signed in. Fetch endorsed volunteers using their UID.
-            fetchEndorsedVolunteers(user.uid);
+            const profilePage = 'profile.html'; // Define your profile page path
+
+            try {
+                // Fetch user data from the database to check password_needs_reset status
+                const userSnapshot = await database.ref(`users/${user.uid}`).once("value");
+                const userDataFromDb = userSnapshot.val();
+                const passwordNeedsReset = userDataFromDb ? (userDataFromDb.password_needs_reset || false) : false;
+
+                if (passwordNeedsReset) {
+                    console.log(`Password change required for user ${user.uid}. Redirecting to profile page.`);
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Password Change Required',
+                        text: 'For security reasons, please change your password. You will be redirected to your profile.',
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                        showConfirmButton: false,
+                        timer: 2000,
+                        timerProgressBar: true
+                    }).then(() => {
+                        window.location.replace(`../pages/${profilePage}`); // Use replace to prevent back button
+                    });
+                    return; // IMPORTANT: Stop further execution if password reset is needed
+                }
+
+                // If password does NOT need reset, proceed with normal logic
+                // User is signed in. Fetch endorsed volunteers using their UID.
+                fetchEndorsedVolunteers(user.uid);
+
+            } catch (error) {
+                console.error("Error checking password reset status or fetching user data:", error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Authentication Error',
+                    text: 'Failed to verify account status. Please try logging in again.',
+                }).then(() => {
+                    window.location.replace('../pages/login.html'); // Redirect to login on error
+                });
+                return;
+            }
         } else {
             // User is signed out.
             Swal.fire({
@@ -315,7 +372,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 showCancelButton: false,
                 confirmButtonText: 'Go to Login'
             }).then(() => {
-                window.location.href = '../login.html';
+                window.location.replace('../pages/login.html'); // Use replace to prevent back button
             });
             allEndorsedVolunteers = [];
             renderVolunteersTable();

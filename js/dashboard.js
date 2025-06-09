@@ -208,6 +208,29 @@ window.initializeDashboard = function () {
                 return;
             }
 
+            // --- IMPORTANT: ADD THIS PASSWORD RESET CHECK ---
+            const passwordNeedsReset = userData.password_needs_reset || false;
+            const profilePage = '../pages/profile.html';
+
+            if (passwordNeedsReset) {
+                // If password needs reset, redirect to the profile page immediately
+                console.log("Password change required. Redirecting to profile page.");
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Password Change Required',
+                    text: 'For security reasons, please change your password. You will be redirected to your profile.',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    showConfirmButton: false,
+                    timer: 2000,
+                    timerProgressBar: true
+                }).then(() => {
+                    window.location.replace(`../pages/${profilePage}`);
+                });
+                return; 
+            }
+            // --- END OF PASSWORD RESET CHECK ---
+
             userRole = userData.role;
             userEmail = user.email;
             console.log(`Lenlen: Role: ${userRole}, Email: ${userEmail}`);

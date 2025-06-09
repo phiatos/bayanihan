@@ -12,7 +12,73 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
-const auth = firebase.auth(); 
+const auth = firebase.auth(); // Assuming you'll use Firebase Auth elsewhere
+
+// --- Logging Utility (Client-Side) ---
+// This is a simple client-side logger. For production, consider integrating
+// a dedicated analytics/error tracking service (e.g., Google Analytics, Sentry, LogRocket).
+function logActivity(eventType, details = {}) {
+    const logEntry = {
+        timestamp: new Date().toISOString(),
+        eventType: eventType,
+        userId: auth.currentUser ? auth.currentUser.uid : 'anonymous', // If user is logged in
+        sessionId: getSessionId(), // Implement a way to get/set a session ID
+        details: details,
+        location: window.location.href, // Current page
+        userAgent: navigator.userAgent,
+        // clientIp: This cannot be reliably obtained client-side. Best done server-side.
+    };
+    console.log('[ACTIVITY_LOG]', logEntry);
+    // In a real app, you might send this to a service like:
+    // fetch('/api/log', { method: 'POST', body: JSON.stringify(logEntry) });
+    // Or integrate with a client-side analytics library.
+}
+
+function logError(errorType, error, context = {}) {
+    const errorEntry = {
+        timestamp: new Date().toISOString(),
+        errorType: errorType,
+        message: error.message || 'Unknown error',
+        stack: error.stack || 'No stack trace',
+        userId: auth.currentUser ? auth.currentUser.uid : 'anonymous',
+        sessionId: getSessionId(),
+        context: context,
+        location: window.location.href,
+        userAgent: navigator.userAgent,
+    };
+    console.error('[ERROR_LOG]', errorEntry);
+    // In a real app, send this to an error monitoring service:
+    // Sentry.captureException(error);
+    // Or:
+    // fetch('/api/error-log', { method: 'POST', body: JSON.stringify(errorEntry) });
+}
+
+// Simple session ID generator (for illustrative purposes)
+function getSessionId() {
+    let sessionId = sessionStorage.getItem('sessionId');
+    if (!sessionId) {
+        sessionId = 'sess_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+        sessionStorage.setItem('sessionId', sessionId);
+    }
+    return sessionId;
+}
+
+// Global error handler for unhandled errors
+window.addEventListener('error', (event) => {
+    logError('UNHANDLED_JS_ERROR', event.error || new Error(event.message), {
+        filename: event.filename,
+        lineno: event.lineno,
+        colno: event.colno
+    });
+});
+
+window.addEventListener('unhandledrejection', (event) => {
+    logError('UNHANDLED_PROMISE_REJECTION', event.reason || new Error('Unknown promise rejection'), {
+        promise: event.promise
+    });
+});
+
+// --- End Logging Utility ---
 
 document.addEventListener('DOMContentLoaded', () => {
     logActivity('PAGE_LOAD', { page: 'volunteer-organization-form' });
@@ -26,7 +92,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const barangaySelect = document.getElementById('barangay');
     const streetAddressInput = document.getElementById('streetAddress');
 
-    // Input fields to display selected text (from the original code, assuming they exist in your HTML)
     const regionTextInput = document.getElementById('region-text');
     const provinceTextInput = document.getElementById('province-text');
     const cityTextInput = document.getElementById('city-text');
@@ -371,16 +436,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const selectedCityText = citySelect.options[citySelect.selectedIndex]?.textContent || '';
             const selectedBarangayText = barangaySelect.options[barangaySelect.selectedIndex]?.textContent || '';
 
-            // Basic validation: Check if all required fields are filled, including location and street address
-            // Note: organizationalBackgroundMission, areasOfExpertiseFocus, legalStatusRegistration, requiredDocuments
-            // are not present in your document.getElementById calls for value retrieval.
-            // Assuming they are input fields and have values, but they are not validated here.
-            // You need to ensure these elements exist and their values are retrieved correctly.
+            // Basic validation
             const organizationalBackgroundMission = document.getElementById('organizationalBackgroundMission')?.value.trim() || '';
             const areasOfExpertiseFocus = document.getElementById('areasOfExpertiseFocus')?.value.trim() || '';
             const legalStatusRegistration = document.getElementById('legalStatusRegistration')?.value.trim() || '';
             const requiredDocuments = document.getElementById('requiredDocuments')?.value.trim() || '';
-
 
             if (!organization || !contactPerson || !email || !mobileNumber || !selectedRegionText || !selectedProvinceText || !selectedCityText || !selectedBarangayText || !streetAddress) {
                 logActivity('FORM_VALIDATION_FAILED', { fieldsMissing: true });
@@ -423,8 +483,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log("Application saved to Realtime Database successfully!");
                 Swal.fire('Success', 'Application submitted successfully! Thank you for joining us.', 'success');
                 volunteerOrgForm.reset();
-                my_handlers.fill_regions(); // Re-initialize dropdowns
-                grecaptcha.reset(); // Reset reCAPTCHA
+                my_handlers.fill_regions(); 
+                grecaptcha.reset(); 
             } catch (error) {
                 logError('FIREBASE_SUBMISSION_ERROR', error, {
                     organizationName: organization,
@@ -432,7 +492,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 console.error("Error adding application to Realtime Database: ", error);
                 Swal.fire('Error', 'There was an error submitting your application. Please try again.', 'error');
-                grecaptcha.reset(); // Reset reCAPTCHA
+                grecaptcha.reset(); 
             }
         });
     }
