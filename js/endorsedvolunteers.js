@@ -50,22 +50,22 @@ function formatDate(isoString) {
     }
 }
 
-function getAge(birthdateString) {
-    if (!birthdateString) return 'N/A';
-    try {
-        const birthDate = new Date(birthdateString);
-        const today = new Date();
-        let age = today.getFullYear() - birthDate.getFullYear();
-        const m = today.getMonth() - birthDate.getMonth();
-        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-            age--;
-        }
-        return age;
-    } catch (error) {
-        console.error('Error calculating age:', birthdateString, error);
-        return 'N/A';
-    }
-}
+// function getAge(birthdateString) {
+//     if (!birthdateString) return 'N/A';
+//     try {
+//         const birthDate = new Date(birthdateString);
+//         const today = new Date();
+//         let age = today.getFullYear() - birthDate.getFullYear();
+//         const m = today.getMonth() - birthDate.getMonth();
+//         if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+//             age--;
+//         }
+//         return age;
+//     } catch (error) {
+//         console.error('Error calculating age:', birthdateString, error);
+//         return 'N/A';
+//     }
+// }
 
 function getSocialMediaLink(socialMediaLink) {
     if (!socialMediaLink || socialMediaLink === 'N/A') return 'N/A';
@@ -159,7 +159,7 @@ function renderVolunteersTable() {
         row.insertCell().textContent = getFullName(volunteer);
         row.insertCell().textContent = volunteer.email || 'N/A';
         row.insertCell().textContent = volunteer.mobileNumber || 'N/A';
-        row.insertCell().textContent = getAge(volunteer.birthdate);
+        row.insertCell().textContent = volunteer.age || 'N/A';
         row.insertCell().innerHTML = getSocialMediaLink(volunteer.socialMediaLink);
         row.insertCell().textContent = volunteer.additionalInfo || 'N/A';
         row.insertCell().textContent = volunteer.address?.region || 'N/A';
@@ -273,7 +273,7 @@ function showVolunteerDetails(volunteer) {
         <p><strong>Full Name:</strong> ${getFullName(volunteer)}</p>
         <p><strong>Email:</strong> ${volunteer.email || 'N/A'}</p>
         <p><strong>Mobile Number:</strong> ${volunteer.mobileNumber || 'N/A'}</p>
-        <p><strong>Birthdate:</strong> ${formatDate(volunteer.birthdate)} (Age: ${getAge(volunteer.birthdate)})</p>
+        <p><strong>Age:</strong> ${volunteer.age || 'N/A'}</p>
         <p><strong>Social Media:</strong><br>${socialMediaHtml}</p>
         <p><strong>Additional Info:</strong> ${volunteer.additionalInfo || 'N/A'}</p>
         <p><strong>Region:</strong> ${volunteer.address?.region || 'N/A'}</p>
@@ -283,7 +283,7 @@ function showVolunteerDetails(volunteer) {
         <p><strong>Endorsed To ABVN:</strong> ${volunteer.endorsedToABVNName ? `${volunteer.endorsedToABVNName} (${volunteer.endorsedToABVNLocation})` : 'N/A'}</p>
         <p><strong>Endorsement Date:</strong> ${formatDate(volunteer.endorsementDate)}</p>
     `;
-    previewModal.style.display = 'block';
+    previewModal.style.display = 'flex';
 }
 
 closeModalBtn.addEventListener('click', () => {

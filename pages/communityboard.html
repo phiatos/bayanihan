@@ -14,7 +14,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
   
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <title>Community board</title>
+  <title>Community Board</title>
 </head>
 <body>
   <div class="main-container">
@@ -22,16 +22,27 @@
     <div id="main-content-cb">
       <header>Community Board</header>
       <div class="post-container">
+        
         <div class="post-creator">
           <div class="post-buttons">
-            <button id="sort-posts-button" ><i class='bx bx-sort-up'></i>Sort Posts</button>
+                      <button id="sort-posts-button"><i class='bx bx-sort-up'></i>Sort Posts</button>
             <button class="post-option" data-type="text"><i class='bx bx-text'></i> Text</button>
             <button class="post-option" data-type="image"><i class='bx bx-image'></i> Image</button>
             <button class="post-option" data-type="video"><i class='bx bx-video'></i> Video</button>
             <button class="post-option" data-type="link"><i class='bx bx-link'></i> Link</button>
+            <!-- <button class="post-option" data-type="category"><i class='bx bx-category'></i> Category</button> -->
           </div>
         </div>
         <div class="post-created">
+          <div class="post-container-header">
+          <select id="category-filter">
+            <option value="all">All Categories</option>
+            <option value="announcement">Announcement</option>
+            <option value="event">Event</option>
+            <option value="resource">Resource</option>
+            <option value="discussion">Discussion</option>
+          </select>
+        </div>
           <div id="posts"><div class="spinner"></div></div>
         </div>
       </div>
@@ -45,12 +56,21 @@
     <!-- Modal for post creation -->
     <div id="post-modal" class="modal" style="display: none;">
       <div class="modal-content">
-        <span class="close-button"><i class="bx  bx-x bx-tada-hover"></i></span>
-        <div class="modal-user-info">
-          <strong id="modal-user-name">Loading...</strong>
-          <small id="modal-user-org"></small>
+        <span class="close-button"><i class="bx bx-x bx-tada-hover"></i></span>
+        <div class="modal-header">
+          <div class="modal-user-info">
+            <strong id="modal-user-name">Loading...</strong>
+            <small id="modal-user-org" style="color: black;"></small>
+          </div>
         </div>
-        <hr class="full-width-hr" style="margin-top: 50px;">
+        <hr class="full-width-hr" style="margin-top: 70px;">
+         <select id="modal-post-category">
+            <option value="" disabled selected>Select Category</option>
+            <option value="announcement">Announcement</option>
+            <option value="event">Event</option>
+            <option value="resource">Resource</option>
+            <option value="discussion">Discussion</option>
+          </select>
         <div class="modal-input-area" style="margin-top: 30px;">
           <input type="text" id="modal-post-title" placeholder="Title" maxlength="100">
           <div class="media-upload">
@@ -58,11 +78,11 @@
             <button id="tap-to-upload" style="display: none;">Tap to Upload Image</button>
             <div id="modal-media-preview"></div>
           </div>
-          <textarea id="modal-post-content" placeholder="What's on your mind?" style="resize: none;"></textarea>
-          
+          <textarea id="modal-post-content" class ="modal-post-content" placeholder="What's on your mind?" style="resize: none;" maxlength="500"></textarea>
         </div>
         <div class="modal-footer">
-          <hr class="full-width-hr" > 
+          
+          <hr class="full-width-hr">
           <button id="modal-post-button" style="top: 20px; margin-top: 20px; padding: 20px 10px;">Post</button>
           <div class="post-buttons modal-buttons">
             <button class="post-option" data-type="text"><i class='bx bx-text'></i></button>
@@ -75,29 +95,35 @@
     </div>
 
     <!-- Share Modal -->
-      <div id="share-post-modal" class="modal" style="display: none;">
-    <div class="modal-content">
-      <span class="close-button"><i class="bx  bx-x bx-tada-hover" ></i></span>
-      <div class="modal-header">
-        <div class="share-header">
-          <strong id="share-modal-user-name"></strong>
-          <i class='bx bx-share'></i>
-          <span class="original-creator" id="share-original-creator"></span>
+    <div id="share-post-modal" class="modal" style="display: none;">
+      <div class="modal-content">
+        <span class="close-button"><i class="bx bx-x bx-tada-hover"></i></span>
+        <div class="modal-header">
+          <div class="share-header">
+            <strong id="share-modal-user-name"></strong>
+            <i class='bx bx-share'></i>
+            <span class="original-creator" id="share-original-creator"></span>
+          </div>
+        </div>
+        <hr class="full-width-hr" style="margin-top: 50px; left: 0;">
+        <select id="modal-post-category">
+            <option value="" disabled selected>Select Category</option>
+            <option value="announcement">Announcement</option>
+            <option value="event">Event</option>
+            <option value="resource">Resource</option>
+            <option value="discussion">Discussion</option>
+          </select>
+        <div class="modal-input-area">
+          <div id="share-post-content" class="share-post-content"></div>
+          <textarea id="share-caption-input" class="share-caption-input" placeholder="Add a caption (optional)" style="resize: none;" maxlength="500"></textarea>
+          <hr class="full-width-hr">
+        </div>
+        <div class="modal-footer">
+          <button id="share-cancel-button" class="cancel-btn">Cancel</button>
+          <button id="share-submit-button" class="share-button">Share</button>
         </div>
       </div>
-        <hr class="full-width-hr" style="margin-top: 50px; left: 0;">
-      <div class="modal-input-area">
-        <div id="share-post-content" class="share-post-content"></div>
-        <textarea id="share-caption-input" class="share-caption-input" placeholder="Add a caption (optional)"  style="resize: none;"></textarea>
-        <hr class="full-width-hr" >
-      </div>
-      <div class="modal-footer">
-        <button id="share-cancel-button" class="cancel-btn">Cancel</button>
-        <button id="share-submit-button" class="share-button">Share</button>
-      </div>
     </div>
-  </div>
-
   </div>
 
   <script>
