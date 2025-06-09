@@ -665,15 +665,11 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             dropdown.querySelector('#dropdownConfirmByAB').addEventListener('click', () => {
-                // currentVolunteerKey and currentVolunteerData are correctly set here
                 showScheduleModal();
-                // Do NOT call resetCurrentVolunteer() here. It should be called after modal submission/cancellation.
             });
 
             dropdown.querySelector('#dropdownDirectedToABVN').addEventListener('click', () => {
-                // currentVolunteerKey and currentVolunteerData are correctly set here
                 showEndorseABVNModal();
-                // Do NOT call resetCurrentVolunteer() here. It should be called after modal submission/cancellation.
             });
 
             dropdown.querySelector('#dropdownSetStalled').addEventListener('click', async () => {
@@ -880,12 +876,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Event listener for clicks anywhere on the document to close dropdown
-    // This needs to be carefully managed to avoid interfering with modal clicks
     document.addEventListener('click', (event) => {
-        // If there's an active dropdown AND
-        // the click target is NOT inside the dropdown AND
-        // the click target is NOT the action button that opened the dropdown
         if (currentDropdown && !currentDropdown.contains(event.target) && !event.target.closest('.actionBtn')) {
             currentDropdown.remove();
             currentDropdown = null;

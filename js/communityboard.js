@@ -142,26 +142,91 @@ async function fetchUserData(uid) {
   }
 }
 
+// auth.onAuthStateChanged(async (currentUser) => {
+//   user = currentUser;
+//   console.log(`[${new Date().toISOString()}] Auth state changed:`, currentUser ? { uid: currentUser.uid, displayName: currentUser.displayName } : 'No user');
+  
+//   if (user) {
+//     loadPosts();
+//     loadActivityLog();
+//     const userData = await fetchUserData(user.uid);
+//     updateModalUserInfo(userData);
+//   } else {
+//     Swal.fire({
+//       title: 'Authentication Required',
+//       text: 'Please log in to post or view posts.',
+//       icon: 'warning',
+//       confirmButtonText: 'OK'
+//     });
+//     const postsContainer = document.getElementById('posts');
+//     if (postsContainer) {
+//       postsContainer.innerHTML = '<p>Please log in to view posts.</p>';
+//     }
+//   }
+// });
 auth.onAuthStateChanged(async (currentUser) => {
-  user = currentUser;
-  console.log(`[${new Date().toISOString()}] Auth state changed:`, currentUser ? { uid: currentUser.uid, displayName: currentUser.displayName } : 'No user');
-  if (user) {
-    loadPosts();
-    loadActivityLog();
-    const userData = await fetchUserData(user.uid);
-    updateModalUserInfo(userData);
-  } else {
-    Swal.fire({
-      title: 'Authentication Required',
-      text: 'Please log in to post or view posts.',
-      icon: 'warning',
-      confirmButtonText: 'OK'
-    });
-    const postsContainer = document.getElementById('posts');
-    if (postsContainer) {
-      postsContainer.innerHTML = '<p>Please log in to view posts.</p>';
+    user = currentUser;
+    console.log(`[${new Date().toISOString()}] Auth state changed:`, currentUser ? { uid: currentUser.uid, displayName: currentUser.displayName } : 'No user');
+
+    if (user) {
+        const profilePage = 'profile.html'; // Assuming your profile page path
+
+        try {
+            // Fetch user data from the database to check password_needs_reset status
+            const userSnapshot = await database.ref(`users/${user.uid}`).once("value");
+            const userDataFromDb = userSnapshot.val();
+            const passwordNeedsReset = userDataFromDb ? (userDataFromDb.password_needs_reset || false) : false;
+
+            if (passwordNeedsReset) {
+                console.log(`[${new Date().toISOString()}] Password change required for user ${user.uid}. Redirecting to profile page.`);
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Password Change Required',
+                    text: 'For security reasons, please change your password. You will be redirected to your profile.',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    showConfirmButton: false,
+                    timer: 2000,
+                    timerProgressBar: true
+                }).then(() => {
+                    window.location.replace(`../pages/${profilePage}`);
+                });
+                return; // IMPORTANT: Stop further execution if password reset is needed
+            }
+
+            // If password does NOT need reset, proceed with normal community board initialization
+            loadPosts();
+            loadActivityLog();
+            const userData = await fetchUserData(user.uid);
+            updateModalUserInfo(userData);
+
+        } catch (error) {
+            console.error(`[${new Date().toISOString()}] Error checking password reset status or fetching user data:`, error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Authentication Error',
+                text: 'Failed to verify account status. Please try logging in again.',
+            }).then(() => {
+                window.location.replace('../pages/login.html'); // Redirect to login on error
+            });
+            return;
+        }
+
+    } else {
+        // No user authenticated
+        Swal.fire({
+            title: 'Authentication Required',
+            text: 'Please log in to post or view posts.',
+            icon: 'warning',
+            confirmButtonText: 'OK'
+        }).then(() => {
+            window.location.replace('../pages/login.html'); // Ensure redirection to login
+        });
+        const postsContainer = document.getElementById('posts');
+        if (postsContainer) {
+            postsContainer.innerHTML = '<p>Please log in to view posts.</p>';
+        }
     }
-  }
 });
 
 function updateModalUserInfo(userData) {

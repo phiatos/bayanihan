@@ -563,7 +563,7 @@ var my_handlers = {
     if (addNew) {
         addNew.addEventListener('click', () => {
             if (addOrgModal) {
-                addOrgModal.style.display = 'block';
+                addOrgModal.style.display = 'flex';
                 addOrgForm.reset(); 
                 my_handlers.fill_regions(); 
                 currentAddressCell = null; 
@@ -684,7 +684,7 @@ var my_handlers = {
             // Hide add organization modal and show confirmation modal
             if (addOrgModal) addOrgModal.style.display = 'none';
             const confirmModal = document.getElementById('confirmModal');
-            if (confirmModal) confirmModal.style.display = 'block';
+            if (confirmModal) confirmModal.style.display = 'flex';
         });
     }
 
@@ -698,9 +698,11 @@ var my_handlers = {
             if (!orgData) {
                 Swal.fire({
                     icon: 'error',
-                    title: 'Error',
-                    text: 'No organization data found.'
+                    title: 'Organization Not Found',
+                    text: 'We couldn’t find any data for the selected organization. Please check your selection or try again.',
+                    confirmButtonText: 'OK'
                 });
+
                 isProcessing = false;
                 confirmSaveBtn.disabled = false;
                 return;
@@ -803,17 +805,21 @@ var my_handlers = {
                     verification_message: `Please log in using the provided email and temporary password. You will be prompted to verify your email and reset your password upon your first login.`
                 });
 
-                Swal.fire({
+                Swal.fire({ //Updated
                     icon: 'success',
-                    title: 'Success',
-                    text: 'Volunteer group added successfully! An email with login credentials has been sent to the user.'
+                    title: 'Volunteer Group Added!',
+                    text: 'Login credentials have been sent via email.',
+                    timer: 3000,
+                    timerProgressBar: true,
+                    showConfirmButton: false
                 });
+
 
                 orgData = null;
                 const confirmModal = document.getElementById('confirmModal');
                 const successModal = document.getElementById('successModal');
                 if (confirmModal) confirmModal.style.display = 'none';
-                if (successModal) successModal.style.display = 'block';
+                if (successModal) successModal.style.display = 'flex';
                 fetchAndRenderTable();
 
                 // Sign out secondary app (important for security)
@@ -872,7 +878,7 @@ function openEditModal(orgId) {
     // Populate location dropdowns for edit modal
     populateEditLocationDropdowns(orgToEdit.address.region, orgToEdit.address.province, orgToEdit.address.city, orgToEdit.address.barangay);
 
-    editOrgModal.style.display = 'block';
+    editOrgModal.style.display = 'flex';
 }
 
 // Function to populate edit modal location dropdowns
@@ -1089,12 +1095,21 @@ if (editOrgForm) {
 
         Swal.fire({
             title: 'Confirm Changes',
-            text: "Are you sure you want to save these changes?",
+            text: 'Are you sure you want to save these changes?',
             icon: 'question',
             showCancelButton: true,
             confirmButtonText: 'Yes, save it!',
             cancelButtonText: 'No, cancel',
-            reverseButtons: true
+            reverseButtons: true,
+            focusCancel: true,
+            allowOutsideClick: false,
+            confirmButtonColor: '#4CAF50',
+            cancelButtonColor: '#f44336',
+            padding: '1.25em',
+            customClass: {
+                confirmButton: 'swal2-confirm-large',
+                cancelButton: 'swal2-cancel-large'
+            }
         }).then(async (result) => {
             if (result.isConfirmed) {
                 try {
@@ -1382,7 +1397,7 @@ const editDetailsBtn = document.getElementById('editDetailsBtn');
         editDetailsBtn.addEventListener('click', () => {
             const confirmModal = document.getElementById('confirmModal');
             if (confirmModal) confirmModal.style.display = 'none';
-            if (addOrgModal) addOrgModal.style.display = 'block';
+            if (addOrgModal) addOrgModal.style.display = 'flex';
         });
     }
 

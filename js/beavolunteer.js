@@ -375,6 +375,15 @@ document.addEventListener('DOMContentLoaded', () => {
         volunteerForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 
+            // Get the reCAPTCHA response
+            const recaptchaResponse = grecaptcha.getResponse();
+
+            if (!recaptchaResponse) {
+                logActivity('RECAPTCHA_NOT_COMPLETED', { action: 'error' });
+                Swal.fire('Error', 'Please complete the reCAPTCHA to prove you are not a robot.', 'error');
+                return;
+            }
+
             // Get form data for volunteer information
             const firstName = document.getElementById('firstName').value.trim();
             const middleInitial = document.getElementById('middleInitial').value.trim();
@@ -443,7 +452,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     general: generalAvailability,
                     specificDays: specificDays
                 },
-                timestamp: new Date().toISOString() 
+                applicationDateandTime: new Date().toISOString(),
+                recaptchaResponse: recaptchaResponse
             };
 
             try {
@@ -453,9 +463,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 Swal.fire('Success', 'Your volunteer application has been submitted successfully! Thank you for your interest in helping.', 'success');
                 volunteerForm.reset(); 
                 my_handlers.fill_regions(); 
+                grecaptcha.reset();
             } catch (error) {
                 console.error("Error adding volunteer application to Realtime Database: ", error);
                 Swal.fire('Error', 'There was an error submitting your application. Please try again.', 'error');
+                grecaptcha.reset(); 
             }
         });
     }
