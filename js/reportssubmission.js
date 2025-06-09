@@ -267,7 +267,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-    let userUid = null;
+        let userUid = null;
     let volunteerGroupName = "[Unknown Org]"; // Default to Unknown Org
     let activeActivations = []; // To store active operations for the dropdown
 
@@ -285,7 +285,6 @@ document.addEventListener('DOMContentLoaded', () => {
             calamityAreaDropdown.appendChild(option);
         });
 
-        // This part remains to attempt to pre-select after population
         const savedData = JSON.parse(localStorage.getItem("reportData"));
         if (savedData && savedData.CalamityAreaId) {
             calamityAreaDropdown.value = savedData.CalamityAreaId;
@@ -300,7 +299,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (selectedActivationId === "") {
             areaOfOperationInput.value = "";
-            areaOfOperationInput.readOnly = false; // Allow manual input if no operation is selected
+            areaOfOperationInput.readOnly = false;
         } else {
             const selectedActivation = activeActivations.find(
                 (activation) => activation.id === selectedActivationId
@@ -308,7 +307,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (selectedActivation) {
                 // areaOfOperationInput.value = selectedActivation.areaOfOperation || ""; // You had this commented out
-                areaOfOperationInput.readOnly = false; // Still allow manual pin even if an operation is selected
+                areaOfOperationInput.readOnly = false;
             } else {
                 console.warn("Selected activation not found in activeActivations array.");
                 areaOfOperationInput.value = "";
@@ -326,8 +325,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             database.ref(`users/${userUid}`).once('value', snapshot => {
                 const userData = snapshot.val();
-                if (userData && userData.group) {
-                    volunteerGroupName = userData.group;
+                if (userData && userData.organization) {
+                    volunteerGroupName = userData.organization;
                     console.log('Volunteer group fetched from database for filtering:', volunteerGroupName);
                 } else {
                     console.warn('User data or group not found in database for UID:', userUid);
@@ -393,7 +392,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Generate random report ID
     const idInput = document.getElementById('reportId');
     if (idInput) {
-        const randomId = 'REPORTS' + Math.floor(10000 + Math.random() * 9000000000);
+        const randomId = 'REPORTS-' + Math.floor(10000 + Math.random() * 9000000000);
         idInput.value = randomId;
     }
 

@@ -205,9 +205,21 @@
 
             <div class="modal" id="endorseModal" style="display:none;">
                 <div class="modal-content">
-                    <h4>Endorse to ABVN</h4>
-                    <div id="abvnList"></div>
-                    <button type="button" id="confirmEndorseBtn">Confirm</button>
+                    <h4>Endorse In-Kind Donation to ABVN</h4>
+
+                    <div class="donation-details-summary">
+                        <p>Endorsing donation ID: <strong id="endorseDonationId"></strong></p>
+                        <p>From Donor: <strong id="endorseDonorName"></strong> (<span id="endorseDonorType"></span>)</p>
+                        <p>Assistance: <strong id="endorseAssistanceType"></strong>, Value: <strong id="endorseValuation"></strong></p>
+                    </div>
+                    <hr>
+
+                    <p>Select ABVN volunteer(s) to endorse this donation to:</p>
+                    <div id="abvnList">
+                        <p>Loading ABVN volunteers...</p>
+                    </div>
+
+                    <button type="button" id="confirmEndorseBtn">Confirm Endorsement</button>
                     <button type="button" id="cancelEndorseBtn">Cancel</button>
                 </div>
             </div>

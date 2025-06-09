@@ -645,7 +645,7 @@ firebase.auth().onAuthStateChanged(user => {
             });
     }
 });
-
+//end 
 function listenForDataUpdates() {
     console.log("Setting up real-time listener for volunteerGroups...");
     database.ref("volunteerGroups").on("value", snapshot => {
@@ -659,6 +659,7 @@ function listenForDataUpdates() {
                     no: parseInt(key),
                     organization: fetchedGroups[key].organization || "Unknown",
                     hq: fetchedGroups[key].hq || "Not specified",
+                    address: fetchedGroups[key].address || "N/A" ,
                     contactPerson: fetchedGroups[key].contactPerson || "Unknown",
                     email: fetchedGroups[key].email || "Not specified",
                     mobileNumber: fetchedGroups[key].mobileNumber || "Not specified",
@@ -676,6 +677,8 @@ function listenForDataUpdates() {
         });
     });
 
+
+    //
     console.log("Setting up real-time listener for activations...");
     database.ref("activations").orderByChild("activationDate").on("value", snapshot => {
         const fetchedActivations = snapshot.val();
@@ -732,7 +735,19 @@ function populateGroupDropdown() {
     allVolunteerGroups.forEach(group => {
         const option = document.createElement("option");
         option.value = group.no;
-        option.textContent = `${group.organization} (${group.hq})`;
+
+         // Determine the location to display
+        let locationToDisplay = 'N/A'; // Default fallback
+
+        // Check if group.address and group.address.city exist and are not empty
+        if (group.address && group.address.city && group.address.city.trim() !== '') {
+            locationToDisplay = group.address.city;
+        } else if (group.hq && group.hq.trim() !== '') { // Fallback to hq if city is not available
+            locationToDisplay = group.hq;
+        }
+
+        // option.textContent = `${group.organization} (${group.address.city}) || (${group.hq}) `;
+        option.textContent = `${group.organization} (${locationToDisplay})`;
         selectGroupDropdown.appendChild(option);
     });
 }
@@ -765,7 +780,7 @@ function renderTable(filteredData = currentActiveActivations) {
         tr.innerHTML = `
             <td>${displayNumber}</td>
             <td>${row.organization}</td>
-            <td>${row.hq}</td>
+            
             <td>${row.areaOfOperation || 'N/A'}</td>
             <td>${row.contactPerson || 'N/A'}</td>
             <td>${row.email || 'N/A'}</td>
@@ -783,6 +798,7 @@ function renderTable(filteredData = currentActiveActivations) {
     entriesInfo.textContent = `Showing ${start + 1} to ${Math.min(end, filteredData.length)} of ${filteredData.length} entries`;
     renderPagination(filteredData.length);
 }
+
 
 function handleSearch() {
     const query = searchInput.value.trim().toLowerCase();

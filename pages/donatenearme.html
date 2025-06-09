@@ -16,6 +16,8 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script> <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script async defer loading="async" src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBDtlY28p-MvLHRtxnjiibSAadSETvM3VU&libraries=places&callback=initMap" ></script>
+
 
 </head>
 <body>
@@ -52,8 +54,8 @@
         <fieldset>
           <legend>In Kind Donation Information</legend>
 
-          <div class="form-group">
-            <label for="inKindEncoder">Encoder:</label>
+          <div class="form-group-hidden">
+            <label for="inKindEncoder" id="encoder">Encoder:</label>
             <input type="text" id="inKindEncoder" name="encoder" value="Donor" disabled>
           </div>
           <div class="form-group">
@@ -66,7 +68,10 @@
           </div>
           <div class="form-group">
             <label for="inKindDonorAddress">Address:</label>
-            <input type="text" id="inKindDonorAddress" name="address" placeholder="Enter your address" required>
+            <input type="text" id="inKindDonorAddress" name="address" placeholder="Enter your address" disabled>
+            <button id="pinBtn" type="button">
+              <i class='bx bx-map-pin'></i> Pin Location
+            </button>
           </div>
           <div class="form-group">
             <label for="inKindContactPerson">Contact Person:</label>
@@ -92,11 +97,11 @@
             <label for="description">Description:</label>
             <textarea id="description" name="additionalnotes" placeholder="Enter additional note (optional)"></textarea>
           </div>
-          <div class="form-group">
+          <div class="form-group-hidden">
             <label for="status">Status:</label>
             <input type="text" id="status" name="status" value="Pending" disabled/>
           </div>
-          <div class="form-group">
+          <div class="form-group-hidden">
             <label for="staffIncharge">Staff-In Charge:</label>
             <input type="text" id="staffIncharge" name="staffIncharge" value="Not Applicable" disabled>
           </div>
@@ -142,7 +147,7 @@
             </div>
           </div>
 
-          <div class="form-group">
+          <div class="form-group-hidden">
             <label for="monetaryEncoder">Encoder:</label>
             <input type="text" value="Donor" id="monetaryEncoder" name="monetaryEncoder" disabled>
           </div>
@@ -162,7 +167,7 @@
             <label for="amountDonated">Amount Donated:</label>
             <input type="text" id="amountDonated" name="amountDonated" placeholder="Enter the amount (e.g 100,000)" required>
           </div>
-          <div class="form-group">
+          <div class="form-group-hidden">
             <label for="cashInvoice">Cash Invoice #:</label>
             <input type="text" id="cashInvoice" name="cashInvoice">
           </div>
@@ -200,6 +205,16 @@
       <p>© 2025 Bayanihan | Angat Pinas Inc. All rights reserved. | Powered by Appvance</p>
     </div>
   </footer>
+
+    <!-- Map Modal with Search Bar -->
+  <div id="mapModal" class="map-modal">
+      <div class="modal-content">
+          <span class="closeBtn">&times;</span>
+          <h2>Select Area of Operation</h2>
+          <input type="text" class="search-bar" id="search-input" placeholder="Search for a location...">
+          <div id="mapContainer"></div>
+      </div>
+  </div>
 
   <script src="../js/inactivity-detector.js"></script> 
   <script src="../js/donatenearme.js"></script>

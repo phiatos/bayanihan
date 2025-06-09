@@ -9,7 +9,6 @@ document.addEventListener('DOMContentLoaded', () => {
         appId: "1:593123849917:web:eb85a63a536eeff78ce9d4",
         measurementId: "G-ZTQ9VXXVV0",
     };
-
     let database, auth;
     try {
         firebase.initializeApp(firebaseConfig);
@@ -24,7 +23,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         return;
     }
-
     let reviewedReports = [];
     const reportsBody = document.getElementById("reportsBody");
     const paginationContainer = document.getElementById("pagination");
@@ -32,8 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchInput = document.getElementById("searchInput");
     const sortSelect = document.getElementById("sortSelect");
     const savePdfBtn = document.getElementById('savePdfBtn');
-    const exportExcelBtn = document.getElementById('exportExcelBtn'); 
-
+    const exportExcelBtn = document.getElementById('exportExcelBtn');
     let currentPage = 1;
     const rowsPerPage = 5;
 
@@ -47,7 +44,8 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-    auth.onAuthStateChanged(user => {
+    // --- User Role Check ---
+    auth.onAuthStateChanged(async user => { // Made async to use await
         if (!user) {
             Swal.fire({
                 icon: 'error',
@@ -59,8 +57,23 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        loadReportsFromFirebase();
+        let userRole = 'User'; // Default role
+        try {
+            const idTokenResult = await user.getIdTokenResult();
+            userRole = idTokenResult.claims.role || 'User'; // Get custom claim 'role'
+            console.log("Authenticated user role:", userRole); // For debugging
+        } catch (error) {
+            console.error("Error fetching user role:", error);
+            Swal.fire({
+                icon: 'warning',
+                title: 'Role Error',
+                text: 'Could not determine user role. Functionality might be limited.',
+            });
+        }
+
+        loadReportsFromFirebase(userRole);
     });
+    // --- End User Role Check ---
 
     function formatDate(dateStr) {
         const date = new Date(dateStr);
@@ -113,7 +126,8 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
-    function loadReportsFromFirebase() {
+    // Modified loadReportsFromFirebase to accept userRole
+    function loadReportsFromFirebase(userRole) {
         database.ref("reports/approved").on("value", snapshot => {
             reviewedReports = [];
             const reports = snapshot.val();
@@ -133,7 +147,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 console.log("No approved reports found in Firebase");
             }
-            applySearchAndSort();
+            applySearchAndSort(userRole); // Pass userRole to applySearchAndSort
         }, error => {
             console.error("Error fetching reports from Firebase:", error);
             Swal.fire({
@@ -144,14 +158,15 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function getDisplayedReportsData() {
+    // Modified getDisplayedReportsData to accept userRole
+    function getDisplayedReportsData() { // userRole is not directly used here for filtering/sorting
         const searchQuery = searchInput.value.toLowerCase();
         const sortValue = sortSelect.value;
         const [sortBy, direction] = sortValue.split("-");
 
         let filteredReports = reviewedReports.filter(report => {
             return Object.entries(report).some(([key, value]) => {
-                if (key.includes("Date") && value) { 
+                if (key.includes("Date") && value) {
                     const formattedDate = formatDate(value).toLowerCase();
                     return formattedDate.includes(searchQuery);
                 }
@@ -164,7 +179,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const valA = a[sortBy] || "";
                 const valB = b[sortBy] || "";
 
-                if (sortBy.includes("Date")) { 
+                if (sortBy.includes("Date")) {
                     const dateA = new Date(valA);
                     const dateB = new Date(valB);
                     if (isNaN(dateA) || isNaN(dateB)) return 0;
@@ -175,36 +190,35 @@ document.addEventListener('DOMContentLoaded', () => {
                     sortBy === "TotalValueOfInKindDonations" || sortBy === "TotalMonetaryDonations") {
                     const numA = parseFloat(valA);
                     const numB = parseFloat(valB);
-                    const finalNumA = isNaN(numA) ? 0 : numA; 
+                    const finalNumA = isNaN(numA) ? 0 : numA;
                     const finalNumB = isNaN(numB) ? 0 : numB;
-
                     return direction === "asc" ? finalNumA - finalNumB : finalNumB - finalNumA;
                 }
 
-                return direction === "asc"
-                    ? valA.toString().localeCompare(valB.toString())
-                    : valB.toString().localeCompare(valA.toString());
+                return direction === "asc" ?
+                    valA.toString().localeCompare(valB.toString()) :
+                    valB.toString().localeCompare(valA.toString());
             });
         }
         return filteredReports;
     }
 
-    function renderReportsTable(reports) {
+    // Modified renderReportsTable to accept userRole
+    function renderReportsTable(reports, userRole) {
         reportsBody.innerHTML = '';
         const totalEntries = reports.length;
         const totalPages = Math.ceil(totalEntries / rowsPerPage);
 
-
         if (reports.length === 0) {
             reportsBody.innerHTML = "<tr><td colspan='9'>No approved reports found on this page.</td></tr>";
             entriesInfo.textContent = "Showing 0 to 0 of 0 entries";
+            renderPaginationControlsForReports(0); // Update pagination for no reports
             return;
         }
 
         reports.forEach((report, index) => {
             const tr = document.createElement('tr');
             const displayIndex = (currentPage - 1) * rowsPerPage + index + 1;
-
             tr.innerHTML = `
                 <td>${displayIndex}</td>
                 <td>${report["ReportID"] || "-"}</td>
@@ -217,8 +231,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>
                     <button class="viewBtn">View</button>
                     <button class="savePDFBtn">Save PDF</button>
+                    <button class="deleteBtn">Remove</button>
                 </td>
             `;
+
+            // --- Conditional Button Visibility based on User Role ---
+            // Note: If you want to enable an 'editBtn', add it to the innerHTML above
+            // and uncomment/add logic here. The current HTML snippet doesn't have it.
+            const deleteBtn = tr.querySelector('.deleteBtn');
+
+            // If userRole is 'ABVN', hide the delete button
+            if (userRole === 'ABVN') {
+                if (deleteBtn) deleteBtn.style.display = 'none';
+            }
+            // --- End Conditional Button Visibility ---
 
             const savePDFBtn = tr.querySelector(".savePDFBtn");
             savePDFBtn.addEventListener("click", () => saveIndividualReportToPdf(report));
@@ -228,7 +254,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 let readableReport = "";
                 for (let key in report) {
                     if (key === "firebaseKey" || key === "userUid") continue;
-
                     let displayKey = key
                         .replace(/([A-Z])/g, ' $1')
                         .replace(/^./, str => str.toUpperCase());
@@ -237,8 +262,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         .replace('TimeOfIntervention', 'Time of Intervention')
                         .replace('DateOfReport', 'Date of Report')
                         .replace('ReportID', 'Report ID')
-                        .replace('StartDate', 'Start Date') 
-                        .replace('EndDate', 'End Date')    
+                        .replace('StartDate', 'Start Date')
+                        .replace('EndDate', 'End Date')
                         .replace('NoOfIndividualsOrFamilies', 'No. of Individuals or Families')
                         .replace('NoOfFoodPacks', 'No. of Food Packs')
                         .replace('NoOfHotMeals', 'No. of Hot Meals')
@@ -248,7 +273,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         .replace('TotalValueOfInKindDonations', 'Total Value of In-Kind Donations')
                         .replace('NotesAdditionalInformation', 'Notes/additional information')
                         .replace('VolunteerGroupName', 'Volunteer Group');
-
                     const value = key.includes("Date") ? formatDate(report[key]) : report[key];
                     readableReport += `• ${displayKey}: ${value}\n`;
                 }
@@ -296,123 +320,126 @@ document.addEventListener('DOMContentLoaded', () => {
                         <p><strong>Notes/Additional Information:</strong> ${report.NotesAdditionalInformation || "-"}</p>
                     </div>
                 `;
-
                 modal.classList.remove("hidden");
-
                 closeModal.addEventListener("click", () => {
                     modal.classList.add("hidden");
                 });
-
-                window.addEventListener("click", function (event) {
+                window.addEventListener("click", function(event) {
                     if (event.target === modal) {
                         modal.classList.add("hidden");
                     }
                 });
             });
 
+            // --- DELETE BUTTON LOGIC ---
+            if (deleteBtn) { // Ensure the button exists before adding listener
+                deleteBtn.addEventListener('click', async () => {
+                    // Confirmation dialog
+                    const result = await Swal.fire({
+                        title: 'Are you sure?',
+                        text: `You are about to remove Report ID: ${report.ReportID || report.firebaseKey}. This action cannot be undone.`,
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#d33',
+                        cancelButtonColor: '#3085d6',
+                        confirmButtonText: 'Yes, remove it!',
+                        cancelButtonText: 'Cancel'
+                    });
+
+                    if (result.isConfirmed) {
+                        try {
+                            // Delete from Firebase using the firebaseKey
+                            await database.ref(`reports/approved/${report.firebaseKey}`).remove();
+                            Swal.fire(
+                                'Removed!',
+                                `Report ID: ${report.ReportID || report.firebaseKey} has been removed.`,
+                                'success'
+                            );
+                            // The 'on("value")' listener in loadReportsFromFirebase will automatically
+                            // re-fetch and re-render the table, so no manual re-render needed here.
+                        } catch (error) {
+                            console.error("Error deleting report:", error);
+                            Swal.fire(
+                                'Error!',
+                                `Failed to remove report: ${error.message}`,
+                                'error'
+                            );
+                        }
+                    }
+                });
+            }
+            // --- END DELETE BUTTON LOGIC ---
+
             reportsBody.appendChild(tr);
         });
-
         entriesInfo.textContent = `Showing ${(currentPage - 1) * rowsPerPage + 1} to ${Math.min(currentPage * rowsPerPage, reports.length)} of ${reviewedReports.length} entries`;
 
         renderPaginationControlsForReports(totalPages);
     }
 
     function renderPaginationControlsForReports(totalPages) {
-    const pagination = document.getElementById("pagination");
-    pagination.innerHTML = '';
+        const pagination = document.getElementById("pagination");
+        pagination.innerHTML = '';
 
-    if (totalPages === 0) {
-        pagination.innerHTML = '<span>No entries to display</span>';
-        return;
-    }
-
-    const createButton = (label, page, disabled = false, isActive = false) => {
-        const btn = document.createElement('button');
-        btn.textContent = label;
-        if (disabled) btn.disabled = true;
-        if (isActive) btn.classList.add('active-page');
-        btn.addEventListener('click', () => {
-            currentPage = page;
-            renderReportsTable(paginatedReports); // this assumes your filtered data is stored in paginatedReports
-        });
-        return btn;
-    };
-
-    pagination.appendChild(createButton('Prev', currentPage - 1, currentPage === 1));
-
-    const maxVisible = 5;
-    let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
-    let endPage = Math.min(totalPages, startPage + maxVisible - 1);
-    if (endPage - startPage < maxVisible - 1) {
-        startPage = Math.max(1, endPage - maxVisible + 1);
-    }
-
-    for (let i = startPage; i <= endPage; i++) {
-        pagination.appendChild(createButton(i, i, false, i === currentPage));
-    }
-
-    pagination.appendChild(createButton('Next', currentPage + 1, currentPage === totalPages));
-}
-
-
-
-    function applySearchAndSort() {
-        const searchQuery = searchInput.value.toLowerCase();
-        const sortValue = sortSelect.value;
-        const [sortBy, direction] = sortValue.split("-");
-
-        let filteredReports = reviewedReports.filter(report => {
-            return Object.entries(report).some(([key, value]) => {
-                if (key.includes("Date") && value) { 
-                    const formattedDate = formatDate(value).toLowerCase();
-                    return formattedDate.includes(searchQuery);
-                }
-                return value?.toString().toLowerCase().includes(searchQuery);
-            });
-        });
-
-        if (sortBy) {
-            filteredReports.sort((a, b) => {
-                const valA = a[sortBy] || "";
-                const valB = b[sortBy] || "";
-
-                if (sortBy.includes("Date")) { 
-                    const dateA = new Date(valA);
-                    const dateB = new Date(valB);
-                    if (isNaN(dateA) || isNaN(dateB)) return 0;
-                    return direction === "asc" ? dateA - dateB : dateB - dateA;
-                }
-
-                if (sortBy === "NoOfHotMeals" || sortBy === "LitersOfWater" ||
-                    sortBy === "TotalValueOfInKindDonations" || sortBy === "TotalMonetaryDonations") {
-                    const numA = parseFloat(valA);
-                    const numB = parseFloat(valB);
-                    const finalNumA = isNaN(numA) ? 0 : numA;
-                    const finalNumB = isNaN(numB) ? 0 : numB;
-                    return direction === "asc" ? finalNumA - finalNumB : finalNumB - finalNumA;
-                }
-
-                return direction === "asc"
-                    ? valA.toString().localeCompare(valB.toString())
-                    : valB.toString().localeCompare(valA.toString());
-            });
+        if (totalPages === 0) {
+            pagination.innerHTML = '<span>No entries to display</span>';
+            return;
         }
 
-        const startIndex = (currentPage - 1) * rowsPerPage;
-        const endIndex = startIndex + rowsPerPage;
-        const currentPageReports = filteredReports.slice(startIndex, endIndex);
+        const createButton = (label, page, disabled = false, isActive = false) => {
+            const btn = document.createElement('button');
+            btn.textContent = label;
+            if (disabled) btn.disabled = true;
+            if (isActive) btn.classList.add('active-page');
+            btn.addEventListener('click', () => {
+                currentPage = page;
+                applySearchAndSort(auth.currentUser?.claims?.role || 'User'); // Re-apply to get correct page data
+            });
+            return btn;
+        };
 
-        renderReportsTable(currentPageReports);
-        renderPagination(filteredReports.length);
+        pagination.appendChild(createButton('Prev', currentPage - 1, currentPage === 1));
+
+        const maxVisible = 5;
+        let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+        let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+        if (endPage - startPage < maxVisible - 1) {
+            startPage = Math.max(1, endPage - maxVisible + 1);
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
+            pagination.appendChild(createButton(i, i, false, i === currentPage));
+        }
+
+        pagination.appendChild(createButton('Next', currentPage + 1, currentPage === totalPages));
     }
 
-    searchInput.addEventListener('input', applySearchAndSort);
-    sortSelect.addEventListener('change', applySearchAndSort);
+
+    // Modified applySearchAndSort to accept userRole
+    function applySearchAndSort(userRole) {
+        const filteredData = getDisplayedReportsData(); // No need to pass userRole here, getDisplayedReportsData doesn't use it for filtering/sorting logic
+        const startIndex = (currentPage - 1) * rowsPerPage;
+        const endIndex = startIndex + rowsPerPage;
+        const currentPageReports = filteredData.slice(startIndex, endIndex);
+
+        renderReportsTable(currentPageReports, userRole); // Pass userRole to renderReportsTable
+        // renderPagination(filteredData.length, userRole); // This call is now replaced by renderPaginationControlsForReports
+    }
+
+    // Event listeners will now trigger applySearchAndSort which will get the userRole from closure or context
+    searchInput.addEventListener('input', () => {
+        currentPage = 1; // Reset to first page on search
+        applySearchAndSort(auth.currentUser?.claims?.role || 'User');
+    });
+    sortSelect.addEventListener('change', () => {
+        currentPage = 1; // Reset to first page on sort change
+        applySearchAndSort(auth.currentUser?.claims?.role || 'User');
+    });
 
     window.clearDInputs = () => {
         searchInput.value = '';
-        applySearchAndSort();
+        currentPage = 1; // Reset to first page on clear
+        applySearchAndSort(auth.currentUser?.claims?.role || 'User');
     };
 
     exportExcelBtn.addEventListener('click', () => {
@@ -424,10 +451,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 Swal.showLoading();
             }
         });
-
         try {
             const dataToExport = getDisplayedReportsData();
-            
             if (dataToExport.length === 0) {
                 Swal.fire({
                     icon: 'info',
@@ -436,7 +461,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 return;
             }
-
             const headerMap = {
                 "ReportID": "Report ID",
                 "VolunteerGroupName": "Volunteer Group Name",
@@ -455,7 +479,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 "TotalMonetaryDonations": "Total Monetary Donations",
                 "NotesAdditionalInformation": "Notes/Additional Information"
             };
-
             const wsData = dataToExport.map(report => {
                 const row = {};
                 for (const key in headerMap) {
@@ -469,35 +492,45 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 return row;
             });
-
             const ws = XLSX.utils.json_to_sheet(wsData);
-
-            const wscols = [
-                {wch: 15},
-                {wch: 30},
-                {wch: 25},
-                {wch: 20},
-                {wch: 20},
-                {wch: 18},
-                {wch: 18},
-                {wch: 20},
-                {wch: 25},
-                {wch: 25},
-                {wch: 20},
-                {wch: 25},
-                {wch: 25},
-                {wch: 25},
-                {wch: 25},
-                {wch: 40}
-            ];
+            const wscols = [{
+                wch: 15
+            }, {
+                wch: 30
+            }, {
+                wch: 25
+            }, {
+                wch: 20
+            }, {
+                wch: 20
+            }, {
+                wch: 18
+            }, {
+                wch: 18
+            }, {
+                wch: 20
+            }, {
+                wch: 25
+            }, {
+                wch: 25
+            }, {
+                wch: 20
+            }, {
+                wch: 25
+            }, {
+                wch: 25
+            }, {
+                wch: 25
+            }, {
+                wch: 25
+            }, {
+                wch: 40
+            }];
             ws['!cols'] = wscols;
-
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "Approved Reports");
-
-            const fileName = `Approved_Reports_Log_${new Date().toISOString().slice(0,10)}.xlsx`;
+            const fileName = `Approved_Reports_Log_${new Date().toISOString().slice(0, 10)}.xlsx`;
             XLSX.writeFile(wb, fileName);
-
             Swal.close();
             Swal.fire({
                 title: 'Success!',
@@ -506,7 +539,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 timer: 1500,
                 showConfirmButton: false
             });
-
         } catch (error) {
             console.error('Error generating Excel:', error);
             Swal.close();
@@ -527,11 +559,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function generatePdf() {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF('portrait'); 
-
-        const reports = getDisplayedReportsData(); 
-
+        const {
+            jsPDF
+        } = window.jspdf;
+        const doc = new jsPDF('portrait');
+        const reports = getDisplayedReportsData();
         if (reports.length === 0) {
             Swal.close();
             Swal.fire({
@@ -541,46 +573,39 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             return;
         }
-
         const logo = new Image();
-        logo.src = '../assets/images/AB_logo.png'; 
-
+        logo.src = '../assets/images/AB_logo.png';
         logo.onload = function() {
             const pageWidth = doc.internal.pageSize.width;
             const pageHeight = doc.internal.pageSize.height;
             const logoWidth = 30;
             const logoHeight = (logo.naturalHeight / logo.naturalWidth) * logoWidth;
-            const margin = 14; 
-            const textX = margin; 
-            const contentWidth = pageWidth - (2 * margin); 
-
+            const margin = 14;
+            const textX = margin;
+            const contentWidth = pageWidth - (2 * margin);
             const addHeaderAndFooter = (docInstance, pageNum, totalPages) => {
                 let yOffset = margin;
                 docInstance.addImage(logo, 'PNG', pageWidth - logoWidth - margin, margin, logoWidth, logoHeight);
-
                 docInstance.setFontSize(18);
                 docInstance.text("Approved Reports Log", margin, yOffset + 8);
                 yOffset += 18;
-
                 docInstance.setFontSize(10);
                 docInstance.text(`Report Generated: ${new Date().toLocaleString()}`, margin, yOffset);
                 yOffset += 15;
-
                 docInstance.setFontSize(8);
                 const footerY = pageHeight - 10;
                 docInstance.text(`Page ${pageNum} of ${totalPages}`, margin, footerY);
-                docInstance.text("Powered by: Appvance", pageWidth - margin, footerY, { align: 'right' });
-
+                docInstance.text("Powered by: Appvance", pageWidth - margin, footerY, {
+                    align: 'right'
+                });
                 return yOffset;
             };
-
             const addDetailText = (docInstance, label, value, currentY, contentAreaWidth, detailLineHeight = 5) => {
                 const text = `• ${label}: ${value || '-'}`;
                 const splitText = docInstance.splitTextToSize(text, contentAreaWidth);
                 docInstance.text(splitText, margin, currentY);
                 return currentY + (splitText.length * detailLineHeight);
             };
-
             const addSectionTitle = (docInstance, title, currentY) => {
                 docInstance.setFontSize(12);
                 docInstance.setTextColor(20, 174, 187);
@@ -588,30 +613,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 docInstance.setTextColor(0);
                 return currentY + 7;
             };
-
             let currentPage = 1;
-
             reports.forEach((report, index) => {
                 if (index > 0) {
                     doc.addPage();
                     currentPage++;
                 }
-
                 let yPos = addHeaderAndFooter(doc, currentPage, reports.length);
-
                 doc.setFontSize(14);
                 doc.setTextColor(20, 174, 187);
                 doc.text(`Report ID: ${report.ReportID || "-"}`, textX, yPos);
                 yPos += 10;
                 doc.setTextColor(0);
-
                 yPos = addSectionTitle(doc, "Basic Information", yPos);
                 doc.setFontSize(10);
                 yPos = addDetailText(doc, "Volunteer Group", report.VolunteerGroupName || "[Unknown Org]", yPos, contentWidth);
                 yPos = addDetailText(doc, "Location of Operation", report.AreaOfOperation || "-", yPos, contentWidth);
                 yPos = addDetailText(doc, "Date of Report Submitted", formatDate(report.DateOfReport), yPos, contentWidth);
                 yPos += 5;
-
                 yPos = addSectionTitle(doc, "Relief Operations", yPos);
                 doc.setFontSize(10);
                 yPos = addDetailText(doc, "Completion time of intervention", formatTime(report.TimeOfIntervention), yPos, contentWidth);
@@ -626,16 +645,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 yPos = addDetailText(doc, "Total Value of In-Kind Donations", report.TotalValueOfInKindDonations || "-", yPos, contentWidth);
                 yPos = addDetailText(doc, "Total Monetary Donations", report.TotalMonetaryDonations || "-", yPos, contentWidth);
                 yPos += 5;
-
                 yPos = addSectionTitle(doc, "Additional Updates", yPos);
                 doc.setFontSize(10);
                 yPos = addDetailText(doc, "Notes/Additional Information", report.NotesAdditionalInformation || "-", yPos, contentWidth);
             });
-
             const date = new Date();
             const dateString = date.toISOString().slice(0, 10);
             doc.save(`Approved_Reports_Log_${dateString}.pdf`);
-            
             Swal.close();
             Swal.fire({
                 title: 'Success!',
@@ -655,7 +671,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         };
-
         logo.onerror = function() {
             Swal.close();
             Swal.fire("Error", "Failed to load logo image at ../assets/images/AB_logo.png. Please check the path.", "error");
@@ -671,13 +686,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 Swal.showLoading();
             }
         });
-
-        const { jsPDF } = window.jspdf;
+        const {
+            jsPDF
+        } = window.jspdf;
         const doc = new jsPDF('portrait');
-
         const logo = new Image();
         logo.src = '../assets/images/AB_logo.png';
-
         logo.onload = function() {
             const pageWidth = doc.internal.pageSize.width;
             const pageHeight = doc.internal.pageSize.height;
@@ -685,7 +699,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const logoHeight = (logo.naturalHeight / logo.naturalWidth) * logoWidth;
             const margin = 14;
             let y = margin;
-
             doc.addImage(logo, 'PNG', pageWidth - logoWidth - margin, margin, logoWidth, logoHeight);
             doc.setFontSize(18);
             doc.text("Report Details", margin, y + 8);
@@ -693,7 +706,6 @@ document.addEventListener('DOMContentLoaded', () => {
             doc.setFontSize(10);
             doc.text(`Report Generated: ${new Date().toLocaleString()}`, margin, y);
             y += 15;
-
             const addDetail = (label, value, isTitle = false) => {
                 if (y > pageHeight - margin - 20) {
                     doc.addPage();
@@ -703,7 +715,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     doc.text("Report Details (Cont.)", margin, y + 8);
                     y += 18;
                 }
-
                 doc.setFontSize(isTitle ? 12 : 10);
                 if (isTitle) {
                     doc.setTextColor(20, 174, 187);
@@ -717,19 +728,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     y += (splitText.length * 5);
                 }
             };
-
             doc.setFontSize(14);
             doc.setTextColor(20, 174, 187);
             doc.text(`Report ID: ${report.ReportID || "-"}`, margin, y);
             y += 10;
             doc.setTextColor(0);
-
             addDetail("Basic Information", "", true);
             addDetail("Volunteer Group", report.VolunteerGroupName || "[Unknown Org]");
             addDetail("Location of Operation", report.AreaOfOperation || "-");
             addDetail("Date of Report Submitted", formatDate(report.DateOfReport));
             y += 5;
-
             addDetail("Relief Operations", "", true);
             addDetail("Completion time of intervention", formatTime(report.TimeOfIntervention));
             addDetail("Start Date of Operation", formatDate(report.StartDate) || "-");
@@ -743,21 +751,18 @@ document.addEventListener('DOMContentLoaded', () => {
             addDetail("Total Value of In-Kind Donations", report.TotalValueOfInKindDonations || "-");
             addDetail("Total Monetary Donations", report.TotalMonetaryDonations || "-");
             y += 5;
-
             addDetail("Additional Updates", "", true);
             addDetail("Notes/Additional Information", report.NotesAdditionalInformation || "-");
             y += 5;
-
             doc.setFontSize(8);
             const footerY = pageHeight - 10;
             const pageNumberText = `Page ${doc.internal.getNumberOfPages()}`;
             const poweredByText = "Powered by: Appvance";
-
             doc.text(pageNumberText, margin, footerY);
-            doc.text(poweredByText, pageWidth - margin, footerY, { align: 'right' });
-
+            doc.text(poweredByText, pageWidth - margin, footerY, {
+                align: 'right'
+            });
             doc.save(`Report_${report.ReportID || 'Details'}.pdf`);
-
             Swal.close();
             Swal.fire({
                 icon: 'success',
@@ -777,7 +782,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         };
-
         logo.onerror = function() {
             Swal.close();
             Swal.fire("Error", "Failed to load logo image. Please check the path.", "error");
