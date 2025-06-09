@@ -75,6 +75,12 @@
                 <span id="entriesInfo">Showing 0 to 0 of 0 entries</span>
                 <div id="pagination" class="pagination"></div>
             </div>
+
+            <!-- Activation Map Section -->
+            <div class="map-section">
+                <h2>Active Activations Map</h2>
+                <div id="activationMap" style="height: 400px; width: 100%; margin-top: 20px;"></div>
+            </div>
         </div>
     </div>
 
@@ -135,11 +141,11 @@
             <h2>Send Relief Assistance</h2>
             <div class="input-field" style="margin: 15px 0 10px;">
                 <label>Relief Assistance Amount</label>
-                <input type="number" id="reliefAmountInput" min="0" placeholder="1,000,000.00" required />
+                <input type="number" id="reliefAmountInput" min="0" placeholder="1,000,000.00" required style="color: black;"/>
             </div>
             <div class="input-field">
                 <label>Relief Assistance Purpose</label>
-                <input type="text" id="reliefPurposeInput" placeholder="e.g., for hot meals" required />
+                <input type="text" id="reliefPurposeInput" placeholder="e.g., for hot meals" required style="color: black;"/>
             </div>
             <div class="modal-action-buttons">
                 <button id="submitReliefBtn" class="bayanihanBtn">Submit</button>
@@ -174,6 +180,8 @@
             })
             .catch(err => console.error('Error loading sidebar:', err));
     </script>
+    
+    <script src="../js/inactivity-detector.js"></script> 
     <script type="module" src="../js/activation.js"></script>
 </body>
 </html>

@@ -95,7 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return [
                     index + 1,
                     item.id || 'N/A',
-                    item.organization || 'N/A',
+                    item.volunteerOrganization || 'N/A',
                     item.city || 'N/A',
                     item.address || 'N/A',
                     item.contact || 'N/A',
@@ -176,7 +176,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 data.push({
                     id: `RR${String(index + 1).padStart(3, '0')}`,
-                    group: groupName,
+                    volunteerOrganization: groupName,
                     city: request.city,
                     address: request.address,
                     contact: request.contactPerson,
@@ -212,6 +212,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const end = start + rowsPerPage;
         const currentRows = filteredData.slice(start, end);
 
+        if (currentRows.length === 0) {
+            tableBody.innerHTML = "<tr><td colspan='9'>No approved reports found on this page.</td></tr>";
+            entriesInfo.textContent = "Showing 0 to 0 of 0 entries";
+            return;
+        }
+
         currentRows.forEach((item, index) => {
             const tr = document.createElement('tr');
             const rowIndex = start + index;
@@ -219,7 +225,7 @@ document.addEventListener('DOMContentLoaded', () => {
             tr.innerHTML = `
                 <td data-key="No">${rowIndex + 1}</td>
                 <td data-key="ReliefID">${item.id}</td>
-                <td data-key="VolunteerGroupName">${item.organization}</td>
+                <td data-key="VolunteerGroupName">${item.volunteerOrganization}</td>
                 <td data-key="City">${item.city}</td>
                 <td data-key="DropoffAddress">${item.address}</td>
                 <td data-key="ContactPerson">${item.contact}</td>
@@ -356,7 +362,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const map = {
                 No: (item, i) => i + 1,
                 ReliefID: item => item.id,
-                VolunteerGroupName: item => item.organization,
+                VolunteerGroupName: item => item.volunteerOrganization,
                 City: item => item.city,
                 DropoffAddress: item => item.address,
                 ContactPerson: item => item.contact,
@@ -385,13 +391,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const idx = parseInt(e.target.dataset.index);
             const item = data[idx];
 
-            document.getElementById('modalTitle').textContent = `Relief Request of ${item.organization}`;
+            document.getElementById('modalTitle').textContent = `Relief Request of ${item.volunteerOrganization}`;
             document.getElementById('modalContact').textContent = item.contact;
             document.getElementById('modalNumber').textContent = item.number;
             document.getElementById('modalEmail').textContent = item.email || 'N/A';
             document.getElementById('modalAddress').textContent = item.address;
             document.getElementById('modalCategory').textContent = item.category;
-            document.getElementById('modalGroup').textContent = item.organization;
+            document.getElementById('modalGroup').textContent = item.volunteerOrganization;
 
             const itemsTableBody = document.querySelector('#itemsTable tbody');
             itemsTableBody.innerHTML = '';
@@ -498,7 +504,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 worksheetData.push([
                     index + 1,
                     item.id,
-                    item.organization,
+                    item.volunteerOrganization,
                     item.city,
                     item.address,
                     item.contact,
@@ -621,7 +627,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Basic Information
             addDetail("Basic Information", "", true);
-            addDetail("Volunteer Group Name", item.organization || "[Unknown Org]");
+            addDetail("Volunteer Group Name", item.volunteerOrganization || "[Unknown Org]");
             addDetail("Request Category", item.category || "-");
             addDetail("Contact Person", item.contact || "-");
             addDetail("Contact Number", item.number || "-");

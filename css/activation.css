@@ -1,4 +1,3 @@
-
 #reliefAmountInput, #reliefPurposeInput {
   width: 100%;
   margin: 10px;
@@ -23,8 +22,6 @@
   border-color: #0bb7bd;
   box-shadow: 0 0 12px rgba(11, 183, 189, 0.4);
 }
-
-
 
 /* Calamity Type and Typhoon Name in Modal */
 .modal-calamity-container {
@@ -175,4 +172,53 @@
 
 .bayanihanBtn:hover {
     background-color: #0e8c96;
+}
+
+/* Map Section Styles */
+.map-section {
+    margin-top: 30px;
+    padding: 20px;
+    background: var(--white);
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.map-section h2 {
+    font-size: 1.5em;
+    color: var(--primary-color);
+    margin-bottom: 15px;
+}
+
+#activationMap {
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+/* Responsive Adjustments for Activation Map */
+@media (max-width: 768px) {
+    #activationMap {
+        height: 300px;
+    }
+
+    .map-section {
+        padding: 15px;
+    }
+
+    .map-section h2 {
+        font-size: 1.3em;
+    }
+}
+
+@media (max-width: 550px) {
+    #activationMap {
+        height: 250px;
+    }
+
+    .map-section {
+        padding: 10px;
+    }
+
+    .map-section h2 {
+        font-size: 1.2em;
+    }
 }

@@ -12,8 +12,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const database = firebase.database();
 
-    const userRole = localStorage.getItem('userRole'); // Assuming user role is stored in localStorage
+    const userRole = localStorage.getItem('userRole');
 
     // DOM elements
     const form = document.getElementById('form-container-1');
@@ -57,6 +59,86 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Base path for JSON files
     const baseJsonPath = '../json/';
+
+    // --- Authentication and Password Reset Check ---
+    auth.onAuthStateChanged(async (user) => {
+        if (user) {
+            const profilePage = 'profile.html'; // Define your profile page path
+
+            try {
+                // Fetch user data from the database to check password_needs_reset status
+                const userSnapshot = await database.ref(`users/${user.uid}`).once("value");
+                const userDataFromDb = userSnapshot.val();
+                const passwordNeedsReset = userDataFromDb ? (userDataFromDb.password_needs_reset || false) : false;
+
+                if (passwordNeedsReset) {
+                    console.log(`Password change required for user ${user.uid}. Redirecting to profile page.`);
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Password Change Required',
+                        text: 'For security reasons, please change your password. You will be redirected to your profile.',
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                        showConfirmButton: false,
+                        timer: 2000,
+                        timerProgressBar: true
+                    }).then(() => {
+                        window.location.replace(`../pages/${profilePage}`); // Use replace to prevent back button
+                    });
+                    return; // IMPORTANT: Stop further execution if password reset is needed
+                }
+
+                // If password does NOT need reset, proceed with normal page loading
+                // Load donations from Firebase
+                const dbRef = firebase.database().ref('callfordonation');
+                dbRef.on('value', (snapshot) => {
+                    const data = snapshot.val();
+                    allDonations = [];
+                    if (data) {
+                        Object.entries(data).forEach(([key, value]) => {
+                            allDonations.push({ ...value, firebaseKey: key });
+                        });
+                    }
+                    applyChange();
+                }, (error) => {
+                    console.error("Error fetching donations from Firebase:", error);
+                    Swal.fire('Error', 'Failed to load donations from the database.', 'error');
+                });
+
+                // Apply initial UI toggles based on role
+                toggleExportCsvButton();
+                toggleFormElements(userRole !== 'ABVN'); // ABVN cannot edit/submit forms
+                updateRemoveButtonVisibility();
+
+            } catch (error) {
+                console.error("Error checking password reset status or fetching user data:", error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Authentication Error',
+                    text: 'Failed to verify account status. Please try logging in again.',
+                }).then(() => {
+                    window.location.replace('../pages/login.html'); // Redirect to login on error
+                });
+                return;
+            }
+        } else {
+            // User is signed out.
+            Swal.fire({
+                title: 'Not Logged In',
+                text: 'Please log in to view donation calls.',
+                icon: 'warning',
+                showCancelButton: false,
+                confirmButtonText: 'Go to Login'
+            }).then(() => {
+                window.location.replace('../pages/login.html'); // Use replace to prevent back button
+            });
+            // Clear table and disable form elements if not logged in
+            allDonations = [];
+            applyChange(); // This will render an empty table
+            toggleFormElements(false); // Disable form
+            if (exportCsvButton) exportCsvButton.style.display = 'none';
+        }
+    });
 
     // Load donations from Firebase
     const dbRef = firebase.database().ref('callfordonation');

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bayanihan | Angat Buhay Disaster Relief Portal</title>
+  <link rel="stylesheet" href="../index.css" />
+  <link rel="stylesheet" href="../css/askbayanihan.css" />
+  <link rel="icon" href="../assets/images/logox192.png" />
+
+  <!-- Firebase Compat SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="navbar">
+    <div class="navbar-container">
+      <div class="logo">
+        <img src="../assets/images/AB_logo.png" alt="Angat Buhay Logo" />
+      </div>
+      <nav>
+        <ul class="nav-links">
+          <li><a href="../index.html">Home</a></li>
+          <li><a href="../pages/donatenearme.html">Donate Near Me</a></li>
+          <li><a href="../pages/joinasvolunteerorg.html">Join as Volunteer Org</a></li>
+          <li><a href="../pages/beavolunteer.html">Be a Volunteer</a></li>
+          <li><a href="../pages/askbayanihan.html">Ask Bayanihan</a></li>
+          <li><a href="../pages/login.html">Bayanihan</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Page-specific Content -->
+  <main id="page-content" class="abvn-registration">
+    <div class="container">
+      <h1 class="form-title">Ask Bayanihan</h1>
+      <p class="form-subtitle">Get answers from Lenlen, our AI assistant, about the Bayanihan system.</p>
+
+      <div class="chat-container" id="chat-container"></div>
+      <div class="chat-input">
+        <input type="text" id="chat-input" placeholder="Ask Lenlen a question..." />
+        <button id="send-button">Send</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-container">
+      <p>© 2025 Bayanihan | Angat Pinas Inc. All rights reserved. | Powered by Appvance</p>
+    </div>
+  </footer>
+
+  <script src="../js/inactivity-detector.js"></script> 
+  <script type="module" src="../js/askbayanihan.js"></script>
+</body>
+</html>

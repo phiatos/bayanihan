@@ -30,15 +30,12 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentUserGroupName = '';  
   let currentUserUid = '';        
 
-
   const submittedReportsContainer = document.getElementById("submittedReportsContainer");
   const paginationContainer = document.getElementById("pagination");
   const entriesInfo = document.getElementById("entriesInfo");
   const searchInput = document.getElementById("searchInput");
   const sortSelect = document.getElementById("sortSelect");
 
-
-  
   // Helper function to sanitize keys for Firebase
   function sanitizeKey(key) {
     return key
@@ -48,34 +45,96 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Check if user is authenticated
-  auth.onAuthStateChanged(user => {
-  if (!user) {
-    Swal.fire({
-      icon: 'error',
-      title: 'Authentication Required',
-      text: 'Please sign in to access RDANA reports.',
-    }).then(() => {
-      window.location.href = "../pages/login.html";
-    });
-    return;
-  }
+  // auth.onAuthStateChanged(user => {
+  //   if (!user) {
+  //     Swal.fire({
+  //       icon: 'error',
+  //       title: 'Authentication Required',
+  //       text: 'Please sign in to access RDANA reports.',
+  //     }).then(() => {
+  //       window.location.href = "../pages/login.html";
+  //     });
+  //     return;
+  //   }
 
-  console.log('Logged-in user UID:', user.uid);
-  currentUserUid = user.uid;
+  //   console.log('Logged-in user UID:', user.uid);
+  //   currentUserUid = user.uid;
 
-  const volunteerGroup = JSON.parse(localStorage.getItem('loggedInVolunteerGroup'));
-  currentUserGroupName = volunteerGroup?.organization || 'Unknown Group';
+  //   const volunteerGroup = JSON.parse(localStorage.getItem('loggedInVolunteerGroup'));
+  //   currentUserGroupName = volunteerGroup?.organization || 'Unknown Group';
 
-  console.log('Current logged-in user group:', currentUserGroupName);
+  //   console.log('Current logged-in user group:', currentUserGroupName);
 
-  if (submittedReportsContainer && paginationContainer && entriesInfo && searchInput && sortSelect) {
-    loadSubmittedReports(user.uid);
-  }
-});
+  //   if (submittedReportsContainer && paginationContainer && entriesInfo && searchInput && sortSelect) {
+  //     loadSubmittedReports(user.uid);
+  //   }
+  // });
+  auth.onAuthStateChanged(async user => { // Added 'async' here
+    if (!user) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Authentication Required',
+        text: 'Please sign in to access RDANA reports.',
+      }).then(() => {
+        window.location.href = "../pages/login.html"; // Use href here as they are not yet authenticated for the target page
+      });
+      return;
+    }
 
+    console.log('Logged-in user UID:', user.uid);
+    currentUserUid = user.uid;
 
+    const profilePage = 'profile.html'; // Define your profile page path
 
+    try {
+        // Fetch user data from the database to check password_needs_reset status
+        const userSnapshot = await database.ref(`users/${user.uid}`).once("value");
+        const userDataFromDb = userSnapshot.val();
+        const passwordNeedsReset = userDataFromDb ? (userDataFromDb.password_needs_reset || false) : false;
 
+        if (passwordNeedsReset) {
+            console.log(`Password change required for user ${user.uid}. Redirecting to profile page.`);
+            Swal.fire({
+                icon: 'info',
+                title: 'Password Change Required',
+                text: 'For security reasons, please change your password. You will be redirected to your profile.',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+                timer: 2000,
+                timerProgressBar: true
+            }).then(() => {
+                window.location.replace(`../pages/${profilePage}`); // Use replace to prevent back button
+            });
+            return; // IMPORTANT: Stop further execution if password reset is needed
+        }
+
+        // If password does NOT need reset, proceed with normal logic
+        const volunteerGroup = JSON.parse(localStorage.getItem('loggedInVolunteerGroup'));
+        currentUserGroupName = volunteerGroup?.organization || 'Unknown Group';
+
+        console.log('Current logged-in user group:', currentUserGroupName);
+
+        if (submittedReportsContainer && paginationContainer && entriesInfo && searchInput && sortSelect) {
+            loadSubmittedReports(user.uid);
+        }
+    } catch (error) {
+        console.error("Error checking password reset status or fetching user data:", error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Authentication Error',
+            text: 'Failed to verify account status. Please try logging in again.',
+        }).then(() => {
+            window.location.replace('../pages/login.html'); // Redirect to login on error
+        });
+        return;
+    }
+  });
+
+//   // Keep the rest of your RDANA functions here (e.g., loadSubmittedReports, renderTable, applyFiltersAndSort, etc.)
+//   // For brevity, these are omitted in this response but should remain in your file.
+//   // ... (Your existing RDANA functions like loadSubmittedReports, renderTable, etc.) ...
+// });
 
   // Input Validations
  function validatePageInputs(pageSelector) {
@@ -115,14 +174,14 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       // For Barangay (Letters & Numbers)
-      if (this.id === 'affectedBarangayInput') {
-        this.value = this.value.replace(/[^a-zA-Z0-9\s,]/g, ''); // Alphanumeric, spaces, commas
+      if (this.id === 'affectedBarangayInput'){
+        this.value = this.value.replace(/[^a-zA-Z0-9\s,-]/g, ''); // Alphanumeric, spaces, commas
       }
-      else if (this.placeholder.includes('Name') || this.placeholder.includes('Organization')) {
-      // For Name and Organization → letters, spaces, commas, hyphens only
+      else if (this.placeholder.includes('Name') || this.placeholder.includes('Organization') || (this.id === 'OthersInput') ) {
+      // For Name and Organization and Others → letters, spaces, commas, hyphens only
       this.value = this.value.replace(/[^a-zA-Z\s,-]/g, '');
       }
-      else if (this.placeholder.includes('City/Municipality') || this.placeholder.includes('Province')|| this.placeholder.includes('Relief Assistance')|| this.placeholder.includes('Items')) {
+      else if (this.placeholder.includes('City/Municipality') || this.placeholder.includes('Province')|| this.placeholder.includes('Relief Assistance')|| this.placeholder.includes('Items') || this.placeholder.includes('Barangay') ) {
         this.value = this.value.replace(/[^a-zA-Z\s,-]/g, ''); // Only letters and spaces
       }
       else{

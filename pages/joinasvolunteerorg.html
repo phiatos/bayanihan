@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bayanihan | Angat Buhay Disaster Relief Portal</title>
+  <link rel="stylesheet" href="../index.css" />
+  <link rel="stylesheet" href="../css/application.css" />
+  <link rel="icon" href="../assets/images/logox192.png" />
+
+  <!-- Firebase Compat SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-functions-compat.js"></script>
+
+
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="navbar">
+    <div class="navbar-container">
+      <div class="logo">
+        <img src="../assets/images/AB_logo.png" alt="Angat Buhay Logo" />
+      </div>
+      <nav>
+        <ul class="nav-links">
+          <li><a href="../index.html">Home</a></li>
+          <li><a href="../pages/donatenearme.html">Donate Near Me</a></li>
+          <li><a href="../pages/joinasvolunteerorg.html">Join as Volunteer Org</a></li>
+          <li><a href="../pages/beavolunteer.html">Be a Volunteer</a></li>
+          <li><a href="../pages/askbayanihan.html">Ask Bayanihan</a></li>
+          <li><a href="../pages/login.html">Bayanihan</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Page-specific Content -->
+  <main id="page-content" class="abvn-registration">
+    <div class="container">
+      <h1 class="form-title">Join as a Volunteer Organization</h1>
+      <p class="form-subtitle">Help us respond faster to disasters by registering your organization below.</p>
+
+      <form id="volunteer-org-form">
+        <!-- Organization Info -->
+        <fieldset>
+          <legend>Organization Information</legend>
+          
+          <div class="form-group">
+            <label for="organization">Organization Name</label>
+            <input type="text" id="organization" name="organization" placeholder="e.g. Tulong Kabataan PH" required />
+          </div>
+
+          <div class="form-group">
+            <label for="contact-person">Contact Person</label>
+            <input type="text" id="contact-person" name="contact-person" placeholder="e.g. Juan Dela Cruz" required />
+          </div>
+
+          <div class="form-group">
+            <label for="email">Official Email</label>
+            <input type="email" id="email" name="email" placeholder="e.g. orgname@example.com" required />
+          </div>
+
+          <div class="form-group">
+            <label for="mobileNumber">Mobile Number</label>
+            <input type="tel" id="mobileNumber" name="mobileNumber" placeholder="e.g. 09171234567" pattern="[0-9]{11}" required />
+          </div>
+
+          <div class="form-group">
+            <label for="socialMedia">Social Media Link (Facebook, Twitter, etc.)</label>
+            <input type="url" id="socialMedia" name="socialMedia" placeholder="e.g. https://facebook.com/yourpage" required />
+          </div>
+        </fieldset>
+
+        <!-- Organizational Details -->
+        <fieldset>
+          <legend>Organizational Details</legend>
+
+          <div class="form-group">
+            <label for="organizationalBackgroundMission">Organizational Background & Mission</label>
+            <textarea
+              id="organizationalBackgroundMission"
+              name="organizationalBackgroundMission"
+              rows="5"
+              placeholder="Tell us about your organization, its main goals, and the impact you aim to make."
+              required
+            ></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="areasOfExpertiseFocus">Areas of Expertise/Focus</label>
+            <input
+              type="text"
+              id="areasOfExpertiseFocus"
+              name="areasOfExpertiseFocus"
+              placeholder="e.g., Disaster Relief, Education, Environment, Community Development"
+              required
+            />
+            <small>List keywords separated by commas.</small>
+          </div>
+
+          <div class="form-group">
+            <label for="legalStatusRegistration">Legal Status / Registration</label>
+            <input
+              type="text"
+              id="legalStatusRegistration"
+              name="legalStatusRegistration"
+              placeholder="e.g., SEC Registered, DSWD Accredited, Non-profit (unregistered)"
+              required
+            />
+            <small>If applicable, state your registration status or legal form.</small>
+          </div>
+
+          <div class="form-group">
+            <label for="requiredDocuments">Upload Supporting Documents</label>
+            <input
+              type="file"
+              id="requiredDocuments"
+              name="requiredDocuments"
+              accept=".pdf,.doc,.docx,.jpg,.png"
+              multiple
+            />
+            <small>Upload your Letter of Intent, Organization Profile, SEC/DSWD registration, etc. (Max file size: 5MB per file)</small>
+          </div>
+        </fieldset>
+
+        <!-- Location Info -->
+        <fieldset>
+          <legend>Headquarters Location</legend>
+
+          <div class="form-group">
+            <label for="region">Region</label>
+            <select id="region" name="region" required></select>
+            <input type="hidden" id="region-text" name="hq-region-text"/>
+          </div>
+
+          <div class="form-group">
+            <label for="province">Province</label>
+            <select id="province" name="province" required></select>
+            <input type="hidden" id="province-text" name="hq-province-text"/>
+          </div>
+
+          <div class="form-group">
+            <label for="city">City/Municipality</label>
+            <select id="city" name="city" required></select>
+            <input type="hidden" name="hq-city" />
+          </div>
+
+          <div class="form-group">
+            <label for="barangay">Barangay</label>
+            <select id="barangay" name="barangay" required></select>
+            <input type="hidden" id="barangay-text" name="hq-barangay-text"/>
+          </div>
+
+          <div class="form-group">
+            <label for="streetAddress">Block/Lot/Unit Number and Street</label>
+            <input type="text" id="streetAddress" name="streetAddress" placeholder="e.g. Blk 1 Lot 2, Main St." required />
+          </div>
+        </fieldset>
+
+      
+        <!-- Submit -->
+        <div class="form-group submit-group">
+          <div class="g-recaptcha" data-sitekey="6LeVTVkrAAAAAMPE8sdxhmnAjaETxWrtiEY4KWqC"></div>
+        </div>
+
+        <div class="form-group submit-group">
+          <button type="submit" class="btn-primary">Submit Application</button>
+        </div>
+        
+      </form>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <p>© 2025 Bayanihan | Angat Pinas Inc. All rights reserved. | Powered by Appvance</p>
+    </div>
+  </footer>
+
+  <script src="../js/inactivity-detector.js"></script> 
+  <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+  <script type="module" src="../js/joinasvolunteerorg.js"></script>
+</body>
+</html>
