@@ -1,4 +1,3 @@
-// Initialize EmailJS with your Public Key
 emailjs.init("YOUR_EMAILJS_PUBLIC_KEY"); // Replace with your actual EmailJS Public Key
 
 const firebaseConfig = {
@@ -47,7 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const rowsPerPage = 5;
     let currentVolunteerKey = null;
     let currentVolunteerData = null;
-    let currentDropdown = null; 
+    let currentDropdown = null;
 
     viewApprovedBtn.addEventListener('click', () => {
         window.location.href = '../pages/approvedvolunteers.html';
@@ -70,7 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
             volunteer.middleInitial ? volunteer.middleInitial + '.' : '',
             volunteer.lastName,
             volunteer.nameExtension
-        ].filter(Boolean); 
+        ].filter(Boolean);
         return parts.join(' ').trim();
     }
 
@@ -117,8 +116,13 @@ document.addEventListener('DOMContentLoaded', () => {
         currentVolunteerKey = null;
         currentVolunteerData = null;
         if (currentDropdown) {
-            currentDropdown.remove(); 
+            currentDropdown.remove();
             currentDropdown = null;
+        }
+        // Ensure action button active state is removed
+        const previouslyActiveButton = document.querySelector('.actionBtn.active');
+        if (previouslyActiveButton) {
+            previouslyActiveButton.classList.remove('active');
         }
     }
 
@@ -180,15 +184,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const snapshot = await database.ref('volunteerGroups').once('value');
-            let volunteerGroups = [];
+            let allVolunteerGroups = [];
             if (snapshot.exists()) {
                 snapshot.forEach(childSnapshot => {
                     const groupData = childSnapshot.val();
-                    volunteerGroups.push({ key: childSnapshot.key, ...groupData });
+                    allVolunteerGroups.push({ key: childSnapshot.key, ...groupData });
                 });
             }
 
-            if (volunteerGroups.length === 0) {
+            if (allVolunteerGroups.length === 0) {
                 abvnListContainer.innerHTML = '<p>No volunteer groups found.</p>';
                 return;
             }
@@ -197,99 +201,104 @@ document.addEventListener('DOMContentLoaded', () => {
             let matchedGroups = [];
 
             if (volunteerLocation) {
-                // Helper function to determine match level
-                const getMatchLevel = (group) => { // Changed parameter name
-                    const volunteerCity = (volunteerLocation.city || '').toLowerCase();
-                    const volunteerBarangay = (volunteerLocation.barangay || '').toLowerCase();
-                    const volunteerProvince = (volunteerLocation.province || '').toLowerCase();
-                    const volunteerRegion = (volunteerLocation.region || '').toLowerCase();
+                const volunteerCity = (volunteerLocation.city || '').toLowerCase();
+                const volunteerBarangay = (volunteerLocation.barangay || '').toLowerCase();
+                const volunteerProvince = (volunteerLocation.province || '').toLowerCase();
 
-                    // Access group address details
-                    const groupAddress = group.address || {}; // Ensure address object exists
+                // 1. Try to find exact Barangay and City matches
+                let tempMatched = allVolunteerGroups.filter(group => {
+                    const groupAddress = group.address || {};
                     const groupCity = (groupAddress.city || '').toLowerCase();
                     const groupBarangay = (groupAddress.barangay || '').toLowerCase();
-                    const groupProvince = (groupAddress.province || '').toLowerCase();
-                    const groupRegion = (groupAddress.region || '').toLowerCase();
-
-                    // Check for exact matches, prioritizing most specific
-                    if (volunteerCity && groupCity && volunteerCity === groupCity) {
-                        if (volunteerBarangay && groupBarangay && volunteerBarangay === groupBarangay) {
-                            return 4;
-                        }
-                        return 3; // Best match: City (without barangay match)
-                    }
-                    if (volunteerProvince && groupProvince && volunteerProvince === groupProvince) {
-                        return 2; // Next best: Province
-                    }
-                    if (volunteerRegion && groupRegion && volunteerRegion === groupRegion) {
-                        return 1; // Good match: Region
-                    }
-                    return 0; // No significant location match
-                };
-
-                let bestMatchLevel = 0;
-                // Find the highest match level achieved by any group
-                volunteerGroups.forEach(group => {
-                    const level = getMatchLevel(group);
-                    if (level > bestMatchLevel) {
-                        bestMatchLevel = level;
-                    }
+                    return volunteerCity && groupCity && volunteerCity === groupCity &&
+                        volunteerBarangay && groupBarangay && volunteerBarangay === groupBarangay;
                 });
-
-                // Filter groups to only include those at the best match level
-                if (bestMatchLevel > 0) {
-                    matchedGroups = volunteerGroups.filter(group => getMatchLevel(group) === bestMatchLevel);
-                } else {
-                    // If no match by address, display all groups as a fallback
-                    matchedGroups = volunteerGroups;
+                if (tempMatched.length > 0) {
+                    matchedGroups = tempMatched;
+                    console.log("Matched by Barangay + City:", matchedGroups.map(g => g.organization));
                 }
 
-                // Sort the matched groups alphabetically by organization name
-                matchedGroups.sort((a, b) => {
-                    const nameA = (a.organization || '').toLowerCase(); // Use 'organization' property
-                    const nameB = (b.organization || '').toLowerCase();
-                    return nameA.localeCompare(nameB);
-                });
+                if (matchedGroups.length === 0) {
+                    // 2. If no Barangay+City match, try to find City-only matches
+                    tempMatched = allVolunteerGroups.filter(group => {
+                        const groupAddress = group.address || {};
+                        const groupCity = (groupAddress.city || '').toLowerCase();
+                        return volunteerCity && groupCity && volunteerCity === groupCity;
+                    });
+                    if (tempMatched.length > 0) {
+                        matchedGroups = tempMatched;
+                        console.log("Matched by City:", matchedGroups.map(g => g.organization));
+                    }
+                }
+
+                if (matchedGroups.length === 0) {
+                    // 3. If no City match, try to find Province matches
+                    tempMatched = allVolunteerGroups.filter(group => {
+                        const groupAddress = group.address || {};
+                        const groupProvince = (groupAddress.province || '').toLowerCase();
+                        return volunteerProvince && groupProvince && volunteerProvince === groupProvince;
+                    });
+                    if (tempMatched.length > 0) {
+                        matchedGroups = tempMatched;
+                        console.log("Matched by Province:", matchedGroups.map(g => g.organization));
+                    }
+                }
+
+                // 4. If still no geographical match (Barangay, City, or Province), display all groups as a final fallback
+                if (matchedGroups.length === 0) {
+                    matchedGroups = allVolunteerGroups;
+                    console.warn("No specific geographical match found (Barangay, City, or Province). Displaying all groups.");
+                    abvnListContainer.innerHTML = `<p>${volunteerLocation ? 'No specific nearby volunteer groups found. Displaying all available groups.' : 'Volunteer location not available. Displaying all available groups.'}</p>`;
+                } else {
+                    console.log("Final Matched Groups:", matchedGroups.map(g => g.organization));
+                    matchedGroups.sort((a, b) => {
+                        const nameA = (a.organization || '').toLowerCase();
+                        const nameB = (b.organization || '').toLowerCase();
+                        return nameA.localeCompare(nameB);
+                    });
+                }
+
             } else {
                 // If volunteer has no location, display all groups sorted alphabetically
-                matchedGroups = volunteerGroups.sort((a, b) => {
+                matchedGroups = allVolunteerGroups.sort((a, b) => {
                     const nameA = (a.organization || '').toLowerCase();
                     const nameB = (b.organization || '').toLowerCase();
                     return nameA.localeCompare(nameB);
                 });
+                abvnListContainer.innerHTML = '<p>Volunteer location not available. Displaying all available groups.</p>';
             }
 
             abvnListContainer.innerHTML = ''; // Clear loading message
 
             if (matchedGroups.length === 0) {
-                abvnListContainer.innerHTML = `<p>${volunteerLocation ? 'No nearby volunteer groups found for this volunteer.' : 'Volunteer location not available. No specific nearby volunteer groups found.'}</p>`;
+                abvnListContainer.innerHTML = `<p>No volunteer groups found to display.</p>`;
                 endorseABVNSubmitBtn.disabled = true;
                 return;
             }
 
-            matchedGroups.forEach(group => { // Iterate over matchedGroups
+            matchedGroups.forEach(group => {
                 const radioDiv = document.createElement('div');
-                radioDiv.classList.add('abvn-option'); // Keep class name for styling
+                radioDiv.classList.add('abvn-option');
                 const radioInput = document.createElement('input');
                 radioInput.type = 'radio';
-                radioInput.name = 'selectedABVN'; // Keep name for radio group behavior
+                radioInput.name = 'selectedABVN';
                 radioInput.value = group.key;
-                radioInput.id = `group-${group.key}`; // Updated ID
-                radioInput.dataset.name = group.organization || 'Unknown Organization'; // Use 'organization' property
+                radioInput.id = `group-${group.key}`;
+                radioInput.dataset.name = group.organization || 'Unknown Organization';
 
-                // Access address details for the group
                 const groupAddress = group.address || {};
-                radioInput.dataset.region = groupAddress.region || '';
+                // Removed region from dataset
                 radioInput.dataset.province = groupAddress.province || '';
                 radioInput.dataset.city = groupAddress.city || '';
                 radioInput.dataset.barangay = groupAddress.barangay || '';
 
-                const locationParts = [groupAddress.barangay, groupAddress.city, groupAddress.province, groupAddress.region].filter(Boolean);
+                // Removed region from displayLocation
+                const locationParts = [groupAddress.barangay, groupAddress.city, groupAddress.province].filter(Boolean);
                 const displayLocation = locationParts.join(', ');
                 radioInput.dataset.location = displayLocation;
 
                 const label = document.createElement('label');
-                label.htmlFor = `group-${group.key}`; // Updated htmlFor
+                label.htmlFor = `group-${group.key}`;
                 label.innerHTML = `<strong>${group.organization || 'N/A'}</strong> <br> (${radioInput.dataset.location || 'N/A'})`;
 
                 radioDiv.appendChild(radioInput);
@@ -300,8 +309,8 @@ document.addEventListener('DOMContentLoaded', () => {
             endorseABVNSubmitBtn.disabled = false;
 
         } catch (error) {
-            console.error("Error fetching volunteer groups: ", error); // Updated message
-            abvnListContainer.innerHTML = '<p style="color: red;">Failed to load volunteer group locations.</p>'; // Updated message
+            console.error("Error fetching volunteer groups: ", error);
+            abvnListContainer.innerHTML = '<p style="color: red;">Failed to load volunteer group locations.</p>';
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
@@ -336,11 +345,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const socialMediaDisplay = volunteer.socialMediaLink ? `<a href="${volunteer.socialMediaLink}" target="_blank" rel="noopener noreferrer">Link</a>` : 'N/A';
 
             let displayStatusNotes = '-';
-            if (Array.isArray(volunteer.statusNotes) && volunteer.statusNotes.length > 0) {
-                displayStatusNotes = volunteer.statusNotes[volunteer.statusNotes.length - 1].note;
-            } else if (typeof volunteer.statusNotes === 'string' && volunteer.statusNotes.trim() !== '') {
+            // Assuming statusNotes is intended to be a simple string for the latest note
+            if (typeof volunteer.statusNotes === 'string' && volunteer.statusNotes.trim() !== '') {
                 displayStatusNotes = volunteer.statusNotes;
+            } else if (Array.isArray(volunteer.statusNotes) && volunteer.statusNotes.length > 0) {
+                // Fallback for previous data structure, if applicable
+                displayStatusNotes = volunteer.statusNotes[volunteer.statusNotes.length - 1].note;
             }
+
 
             row.innerHTML = `
                 <td>${i++}</td>
@@ -381,7 +393,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const city = (volunteer.address?.city || '').toLowerCase();
                 const barangay = (volunteer.address?.barangay || '').toLowerCase();
                 const additionalInfo = (volunteer.additionalInfo || '').toLowerCase();
-                const statusNotes = (volunteer.statusNotes || '').toLowerCase(); 
+                const statusNotes = (volunteer.statusNotes || '').toLowerCase();
 
                 return fullName.includes(searchTerm) ||
                     email.includes(searchTerm) ||
@@ -501,7 +513,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Email Sending Function ---
-    async function sendApprovalEmail(volunteer, scheduledDate, abContact) {
+    // Removed 'abContact' parameter as its source was unclear in this context
+    async function sendApprovalEmail(volunteer, scheduledDate) {
         if (!volunteer || !volunteer.email) {
             console.error("Cannot send email: Volunteer or email missing.");
             Swal.fire('Error', 'Missing volunteer email. Cannot send confirmation.', 'error');
@@ -514,7 +527,8 @@ document.addEventListener('DOMContentLoaded', () => {
             to_name: fullName,
             to_email: volunteer.email,
             scheduled_date: scheduledDate,
-            contact_info: abContact, 
+            // If you need other contact info from your admin/organization, add it here
+            // e.g., admin_contact_info: 'Admin Name - contact@example.com'
         };
 
         try {
@@ -537,8 +551,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const volunteerFullName = getFullName(volunteer);
         const abvnOrganization = abvnGroup.organization || 'Unknown ABVN Group';
         const abvnContactPerson = abvnGroup.contactPerson || 'ABVN Admin';
-        const abvnContactEmail = abvnGroup.email; 
-        const abvnContactNumber = abvnGroup.mobileNumber || 'N/A'; 
+        const abvnContactEmail = abvnGroup.email;
+        const abvnContactNumber = abvnGroup.mobileNumber || 'N/A';
 
         const templateParams = {
             volunteer_name: volunteerFullName,
@@ -548,7 +562,7 @@ document.addEventListener('DOMContentLoaded', () => {
             abvn_contact_email: abvnContactEmail,
             abvn_contact_number: abvnContactNumber,
             volunteer_mobile: volunteer.mobileNumber || 'N/A',
-            volunteer_address: `${volunteer.address?.barangay || ''}, ${volunteer.address?.city || ''}, ${volunteer.address?.province || ''}, ${volunteer.address?.region || ''}`.trim().replace(/^,?\s*|,?\s*$/g, '').replace(/,,\s*/g, ', '), 
+            volunteer_address: `${volunteer.address?.barangay || ''}, ${volunteer.address?.city || ''}, ${volunteer.address?.province || ''}, ${volunteer.address?.region || ''}`.trim().replace(/^,?\s*|,?\s*$/g, '').replace(/,,\s*/g, ', '),
             volunteer_additional_info: volunteer.additionalInfo || 'N/A',
         };
 
@@ -572,8 +586,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const clickedActionButton = target.closest('.actionBtn');
 
         if (!rowWithKey) {
+            // Clicked outside a row or action button, close any open dropdown
             if (currentDropdown) {
-                if (!currentDropdown.contains(target)) {
+                if (!currentDropdown.contains(target)) { // Check if the click was truly outside the dropdown
                     currentDropdown.remove();
                     currentDropdown = null;
                     const previouslyActiveButton = document.querySelector('.actionBtn.active');
@@ -582,7 +597,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
             }
-            return; 
+            return;
         }
 
         const volunteerKey = rowWithKey.dataset.key;
@@ -591,30 +606,38 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!volunteer) {
             console.warn("Volunteer data not found for key:", volunteerKey);
             Swal.fire('Error', 'Volunteer data not found.', 'error');
-            resetCurrentVolunteer();
+            resetCurrentVolunteer(); // Clear state if data is missing
             return;
         }
 
-        if (clickedActionButton) { 
-            const actionButton = clickedActionButton; 
+        // Handle Action button clicks
+        if (clickedActionButton) {
+            const actionButton = clickedActionButton;
 
+            // Close existing dropdown if open, unless it's the same button
             if (currentDropdown) {
-                currentDropdown.remove();
-                currentDropdown = null;
-                const previouslyActiveButton = document.querySelector('.actionBtn.active');
-                if (previouslyActiveButton && previouslyActiveButton !== actionButton) {
-                    previouslyActiveButton.classList.remove('active');
+                if (currentDropdown.previousElementSibling === actionButton) {
+                    // Clicked the same button, toggle off
+                    currentDropdown.remove();
+                    currentDropdown = null;
+                    actionButton.classList.remove('active');
+                    return;
+                } else {
+                    // Clicked a different button, close existing
+                    currentDropdown.remove();
+                    currentDropdown = null;
+                    const previouslyActiveButton = document.querySelector('.actionBtn.active');
+                    if (previouslyActiveButton) {
+                        previouslyActiveButton.classList.remove('active');
+                    }
                 }
             }
 
-            actionButton.classList.toggle('active');
-            if (!actionButton.classList.contains('active')) {
-                return; 
-            }
+            actionButton.classList.add('active'); // Activate the clicked button
 
 
             currentVolunteerKey = volunteerKey;
-            currentVolunteerData = volunteer;
+            currentVolunteerData = volunteer; // Set current volunteer data here
 
             const rect = actionButton.getBoundingClientRect();
 
@@ -634,22 +657,19 @@ document.addEventListener('DOMContentLoaded', () => {
             // Add event listeners to the new dropdown buttons
             dropdown.querySelectorAll('button').forEach(button => {
                 button.addEventListener('click', () => {
-                    if (currentDropdown) {
-                        currentDropdown.remove();
-                        currentDropdown = null;
-                    }
-                    actionButton.classList.remove('active');
+                    // The dropdown will be closed by the general document click listener
+                    // or by specific modal open functions if they directly hide it.
+                    // For now, let the general handler manage its removal.
+                    // The 'active' class on the button should be removed by the general handler.
                 });
             });
 
             dropdown.querySelector('#dropdownConfirmByAB').addEventListener('click', () => {
                 showScheduleModal();
-                resetCurrentVolunteer();
             });
 
             dropdown.querySelector('#dropdownDirectedToABVN').addEventListener('click', () => {
                 showEndorseABVNModal();
-                resetCurrentVolunteer();
             });
 
             dropdown.querySelector('#dropdownSetStalled').addEventListener('click', async () => {
@@ -675,15 +695,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Update the status in Firebase
                     const updates = {};
                     updates[`volunteerApplications/pendingVolunteer/${currentVolunteerKey}/status`] = 'Stalled';
-                    updates[`volunteerApplications/pendingVolunteer/${currentVolunteerKey}/statusNotes`] = notes; 
+                    updates[`volunteerApplications/pendingVolunteer/${currentVolunteerKey}/statusNotes`] = notes; // Storing as a string for simplicity based on current render logic
                     updates[`volunteerApplications/pendingVolunteer/${currentVolunteerKey}/lastStatusUpdate`] = firebase.database.ServerValue.TIMESTAMP;
 
 
                     try {
                         await database.ref().update(updates);
                         Swal.fire('Success!', 'Volunteer status updated to Stalled with notes.', 'success');
-                        resetCurrentVolunteer(); 
-                        fetchPendingVolunteers(); 
+                        fetchPendingVolunteers(); // Re-fetch to update the table
                     } catch (error) {
                         console.error("Error setting volunteer to stalled:", error);
                         Swal.fire('Error', 'Failed to update volunteer status. Please try again.', 'error');
@@ -691,7 +710,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     Swal.fire('Cancelled', 'No notes entered. Status remains unchanged.', 'info');
                 }
-                resetCurrentVolunteer(); 
+                resetCurrentVolunteer(); // Reset after action (whether confirmed or cancelled)
             });
 
             dropdown.querySelector('#dropdownCancelled').addEventListener('click', async () => {
@@ -709,14 +728,16 @@ document.addEventListener('DOMContentLoaded', () => {
                             const volunteerRef = database.ref(`volunteerApplications/pendingVolunteer/${currentVolunteerKey}`);
                             await volunteerRef.remove();
                             Swal.fire('Removed!', 'The volunteer application has been removed.', 'success');
-                            resetCurrentVolunteer();
+                            fetchPendingVolunteers(); // Re-fetch to update the table
                         } catch (error) {
                             console.error("Error removing volunteer application: ", error);
                             Swal.fire('Error', 'Failed to remove volunteer application. Please try again.', 'error');
                         }
                     } else {
-                        resetCurrentVolunteer();
+                        // Action cancelled, nothing to do but maybe inform user
+                        Swal.fire('Cancelled', 'Volunteer application was not removed.', 'info');
                     }
+                    resetCurrentVolunteer(); // Reset after action (whether confirmed or cancelled)
                 });
             });
 
@@ -730,7 +751,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
             showPreviewModal(volunteer);
-            resetCurrentVolunteer();
+            resetCurrentVolunteer(); // Reset since view action is complete
         }
     });
 
@@ -741,7 +762,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (!currentVolunteerKey || !currentVolunteerData) {
             Swal.fire('Error', 'No volunteer selected for scheduling.', 'error');
-            hideScheduleModal();
+            hideScheduleModal(); // This will also call resetCurrentVolunteer()
             return;
         }
 
@@ -771,14 +792,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     await database.ref(`volunteerApplications/pendingVolunteer/${currentVolunteerKey}`).remove();
 
                     // Send email
+                    // Make sure sendApprovalEmail function only expects two arguments based on your email template
                     await sendApprovalEmail(currentVolunteerData, formatDate(new Date(scheduledDateTime).toISOString()));
 
                     Swal.fire('Scheduled & Approved!', 'Volunteer has been scheduled, approved, and confirmation email sent.', 'success');
-                    hideScheduleModal(); // This calls resetCurrentVolunteer
+                    hideScheduleModal(); // This calls resetCurrentVolunteer() and resets form
                 } catch (error) {
                     console.error("Error confirming schedule and approving volunteer: ", error);
                     Swal.fire('Error', 'Failed to schedule and approve volunteer. Please try again.', 'error');
+                    hideScheduleModal(); // Ensure modal closes and state resets even on error
                 }
+            } else {
+                hideScheduleModal(); // If cancelled, hide and reset
             }
         });
     });
@@ -795,7 +820,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (!currentVolunteerKey || !currentVolunteerData) {
             Swal.fire('Error', 'No volunteer selected for endorsement.', 'error');
-            hideEndorseABVNModal();
+            hideEndorseABVNModal(); // This will also call resetCurrentVolunteer()
             return;
         }
 
@@ -824,7 +849,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
 
                     // Move to endorsedVolunteer
-                    await database.ref(`volunteerApplications/endorsedVolunteer/${currentVolunteerKey}`).set({
+                    await database.ref(`volunteerGroups/${abvnKey}/endorsedVolunteers/${currentVolunteerKey}`).set({
                         ...currentVolunteerData,
                         status: 'directedToABVN',
                         endorsedToABVNKey: abvnKey,
@@ -839,21 +864,30 @@ document.addEventListener('DOMContentLoaded', () => {
                     await sendEndorsementEmail(currentVolunteerData, abvnGroupData);
 
                     Swal.fire('Endorsed!', 'Volunteer has been endorsed to the selected ABVN group, and an endorsement email sent.', 'success');
-                    hideEndorseABVNModal(); // This calls resetCurrentVolunteer
+                    hideEndorseABVNModal(); // This calls resetCurrentVolunteer() and resets form
                 } catch (error) {
                     console.error("Error endorsing volunteer to ABVN: ", error);
                     Swal.fire('Error', 'Failed to endorse volunteer. Please try again.', 'error');
+                    hideEndorseABVNModal(); // Ensure modal closes and state resets even on error
                 }
+            } else {
+                hideEndorseABVNModal(); // If cancelled, hide and reset
             }
         });
     });
 
-    // Event listener for clicks anywhere on the document to close dropdown
     document.addEventListener('click', (event) => {
-        if (currentDropdown && !event.target.closest('.actionBtn') && !currentDropdown.contains(event.target)) {
+        if (currentDropdown && !currentDropdown.contains(event.target) && !event.target.closest('.actionBtn')) {
             currentDropdown.remove();
             currentDropdown = null;
+            // Remove the 'active' class from the button that opened it
+            const previouslyActiveButton = document.querySelector('.actionBtn.active');
+            if (previouslyActiveButton) {
+                previouslyActiveButton.classList.remove('active');
+            }
         }
     });
+
+    // Initial fetch of pending volunteers when the page loads
     fetchPendingVolunteers();
 });

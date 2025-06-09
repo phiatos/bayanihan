@@ -22,17 +22,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const pagination = document.getElementById('pagination');
     const viewApprovedBtn = document.getElementById('viewApprovedBtn');
 
-    if (!volunteerOrgsContainer || !searchInput || !sortSelect || !entriesInfo || !pagination || !viewApprovedBtn) {
-        console.error('One or more DOM elements are missing:', {
-            volunteerOrgsContainer: !!volunteerOrgsContainer,
-            searchInput: !!searchInput,
-            sortSelect: !!sortSelect,
-            entriesInfo: !!entriesInfo,
-            pagination: !!pagination,
-            viewApprovedBtn: !!viewApprovedBtn
-        });
-        return; 
-    }
+    // --- Modal Elements ---
+    const previewModal = document.getElementById('previewModal');
+    const closeModalBtn = document.getElementById('closeModal');
+    const modalContentDiv = document.getElementById('modalContent');
 
     let allApplications = []; 
     let filteredApplications = []; 
@@ -41,11 +34,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Data Fetching Function ---
     function fetchPendingApplications() {
-        // Show loading state
         volunteerOrgsContainer.innerHTML = '<tr><td colspan="11" style="text-align: center;">Loading applications...</td></tr>';
 
         database.ref('abvnApplications/pendingABVN').on('value', (snapshot) => {
-            allApplications = []; // Clear previous data
+            allApplications = []; 
             if (snapshot.exists()) {
                 snapshot.forEach((childSnapshot) => {
                     const appData = childSnapshot.val();
@@ -56,7 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 console.log("No pending ABVN applications found.");
             }
-            applySearchAndSort(); // Apply initial search and sort after fetching
+            applySearchAndSort(); 
         }, (error) => {
             console.error("Error fetching pending applications: ", error);
             Swal.fire({
@@ -71,7 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Rendering Function ---
     function renderApplications(applicationsToRender) {
-        volunteerOrgsContainer.innerHTML = ''; // Clear existing table rows
+        volunteerOrgsContainer.innerHTML = ''; 
 
         const startIndex = (currentPage - 1) * rowsPerPage;
         const endIndex = startIndex + rowsPerPage;
@@ -80,18 +72,17 @@ document.addEventListener('DOMContentLoaded', () => {
         if (paginatedApplications.length === 0) {
             volunteerOrgsContainer.innerHTML = '<tr><td colspan="11" style="text-align: center;">No pending applications found on this page.</td></tr>';
             entriesInfo.textContent = 'Showing 0 to 0 of 0 entries';
-            renderPagination(); // Still render pagination to show total pages
+            renderPagination(); 
             return;
         }
 
-        let i = startIndex + 1; // Counter for "No." column
+        let i = startIndex + 1; 
 
         paginatedApplications.forEach(app => {
             const row = volunteerOrgsContainer.insertRow();
-            row.setAttribute('data-key', app.key); // Store Firebase key on the row
+            row.setAttribute('data-key', app.key); 
 
-            // Format timestamp if available
-            const formattedTimestamp = app.timestamp ? new Date(app.timestamp).toLocaleString('en-US', {
+            const formattedTimestamp = app.applicationDateandTime ? new Date(app.applicationDateandTime).toLocaleString('en-US', {
                 year: 'numeric', month: 'short', day: 'numeric',
                 hour: '2-digit', minute: '2-digit', second: '2-digit'
             }) : 'N/A';
@@ -107,7 +98,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${app.headquarters?.province || 'N/A'}</td>
                 <td>${app.headquarters?.city || 'N/A'}</td>
                 <td>${app.headquarters?.barangay || 'N/A'}</td>
+                <td>${app.headquarters?.streetAddress || 'N/A'}</td>
+                <td>${formattedTimestamp || 'N/A'}</td>
                 <td>
+                    <button class="viewBtn" data-key="${app.key}">View</button>
                     <button class="approveBtn" data-key="${app.key}">Approve</button>
                     <button class="rejectBtn" data-key="${app.key}">Reject</button>
                 </td>
@@ -120,7 +114,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Search and Sort Logic ---
     function applySearchAndSort() {
-        let currentApplications = [...allApplications]; // Start with all fetched data
+        let currentApplications = [...allApplications]; 
 
         // Apply search filter
         const searchTerm = searchInput.value.toLowerCase().trim();
@@ -154,40 +148,61 @@ document.addEventListener('DOMContentLoaded', () => {
                 let valA, valB;
 
                 switch (sortBy) {
-                    case 'DateTime':
-                        valA = new Date(a.timestamp || 0).getTime();
-                        valB = new Date(b.timestamp || 0).getTime();
-                        break;
-                    case 'OrganizationName': // This option is not in your HTML, but good to have
+                    case 'organizationName':
                         valA = (a.organizationName || '').toLowerCase();
                         valB = (b.organizationName || '').toLowerCase();
                         break;
-                    case 'Location':
-                        // Combine location parts for a better sort
-                        valA = `${a.headquarters?.region || ''} ${a.headquarters?.province || ''} ${a.headquarters?.city || ''} ${a.headquarters?.barangay || ''}`.toLowerCase();
-                        valB = `${b.headquarters?.region || ''} ${b.headquarters?.province || ''} ${b.headquarters?.city || ''} ${b.headquarters?.barangay || ''}`.toLowerCase();
+                    case 'contactPerson':
+                        valA = (a.contactPerson || '').toLowerCase();
+                        valB = (b.contactPerson || '').toLowerCase();
                         break;
-                    // Add more cases here if you want to sort by other specific fields
+                    case 'email':
+                        valA = (a.email || '').toLowerCase();
+                        valB = (b.email || '').toLowerCase();
+                        break;
+                    case 'mobileNumber':
+                        valA = (a.mobileNumber || '').toLowerCase();
+                        valB = (b.mobileNumber || '').toLowerCase();
+                        break;
+                    case 'region':
+                        valA = (a.headquarters?.region || '').toLowerCase();
+                        valB = (b.headquarters?.region || '').toLowerCase();
+                        break;
+                    case 'province':
+                        valA = (a.headquarters?.province || '').toLowerCase();
+                        valB = (b.headquarters?.province || '').toLowerCase();
+                        break;
+                    case 'city':
+                        valA = (a.headquarters?.city || '').toLowerCase();
+                        valB = (b.headquarters?.city || '').toLowerCase();
+                        break;
+                    case 'barangay':
+                        valA = (a.headquarters?.barangay || '').toLowerCase();
+                        valB = (b.headquarters?.barangay || '').toLowerCase();
+                        break;
                     default:
-                        // Default to organization name if no specific sort is defined or recognized
                         valA = (a.organizationName || '').toLowerCase();
                         valB = (b.organizationName || '').toLowerCase();
                         break;
                 }
 
-                if (valA < valB) return order === 'asc' ? -1 : 1;
-                if (valA > valB) return order === 'asc' ? 1 : -1;
-                return 0;
+                if (typeof valA === 'string' && typeof valB === 'string') {
+                    return order === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+                } else {
+                    if (valA < valB) return order === 'asc' ? -1 : 1;
+                    if (valA > valB) return order === 'asc' ? 1 : -1;
+                    return 0;
+                }
             });
         }
 
-        filteredApplications = currentApplications; // Update filtered applications
-        currentPage = 1; // Reset to first page after search/sort
+        filteredApplications = currentApplications; 
+        currentPage = 1; 
         renderApplications(filteredApplications);
     }
 
     // --- Pagination Functions ---
-    function renderPagination() { // Modified to use filteredData implicitly
+    function renderPagination() { 
         pagination.innerHTML = '';
         const totalPages = Math.ceil(filteredApplications.length / rowsPerPage);
 
@@ -230,14 +245,68 @@ document.addEventListener('DOMContentLoaded', () => {
         entriesInfo.textContent = `Showing ${totalItems ? startIndex + 1 : 0} to ${endIndex} of ${totalItems} entries`;
     }
 
+
+    // --- Modal Display Functions ---
+    function showPreviewModal(applicationData) {
+        // Format the application date and time for better readability
+        const formattedTimestamp = applicationData.applicationDateandTime ? new Date(applicationData.applicationDateandTime).toLocaleString('en-US', {
+            year: 'numeric', month: 'short', day: 'numeric',
+            hour: '2-digit', minute: '2-digit', second: '2-digit'
+        }) : 'N/A';
+
+        let content = `
+            <h3 style="margin-bottom: 15px; color: #FA3B99;">Organization Details</h3>
+            <p><strong>Organization Name:</strong> ${applicationData.organizationName || 'N/A'}</p>
+            <p><strong>Contact Person:</strong> ${applicationData.contactPerson || 'N/A'}</p>
+            <p><strong>Email:</strong> ${applicationData.email || 'N/A'}</p>
+            <p><strong>Mobile Number:</strong> ${applicationData.mobileNumber || 'N/A'}</p>
+            <p><strong>Social Media Link:</strong> ${applicationData.socialMediaLink ? `<a href="${applicationData.socialMediaLink}" target="_blank" rel="noopener noreferrer">${applicationData.socialMediaLink}</a>` : 'N/A'}</p>
+
+            <h4 style="margin-top: 20px; margin-bottom: 10px; color: #FA3B99;">Headquarters Address:</h4>
+            <ul>
+                <li><strong>Region:</strong> ${applicationData.headquarters?.region || 'N/A'}</li>
+                <li><strong>Province:</strong> ${applicationData.headquarters?.province || 'N/A'}</li>
+                <li><strong>City:</strong> ${applicationData.headquarters?.city || 'N/A'}</li>
+                <li><strong>Barangay:</strong> ${applicationData.headquarters?.barangay || 'N/A'}</li>
+                <li><strong>Street Address:</strong> ${applicationData.headquarters?.streetAddress || 'N/A'}</li>
+            </ul>
+
+            <h4 style="margin-top: 20px; margin-bottom: 10px; color: #FA3B99;">Organizational Background:</h4>
+            <p><strong>Mission/Background:</strong> ${applicationData.organizationalBackgroundMission || 'N/A'}</p>
+            <p><strong>Areas of Expertise/Focus:</strong> ${applicationData.areasOfExpertiseFocus || 'N/A'}</p>
+
+            <h4 style="margin-top: 20px; margin-bottom: 10px; color: #FA3B99;">Legal & Documents:</h4>
+            <p><strong>Legal Status/Registration:</strong> ${applicationData.legalStatusRegistration || 'N/A'}</p>
+            <p><strong>Required Documents:</strong> ${applicationData.requiredDocuments ? `<a href="${applicationData.requiredDocuments}" target="_blank" rel="noopener noreferrer">View Document</a>` : 'N/A'}</p>
+            
+            <p style="margin-top: 20px; font-size: 0.9em; color: #555;"><strong>Application Date and Time:</strong> ${formattedTimestamp}</p>
+            `;
+
+        modalContentDiv.innerHTML = content;
+        previewModal.style.display = 'block'; // Show the modal
+    }
+
+    function hidePreviewModal() {
+        previewModal.style.display = 'none'; // Hide the modal
+        modalContentDiv.innerHTML = ''; // Clear content when hidden
+    }
+
     // --- Action Handlers (Approve/Reject) ---
     volunteerOrgsContainer.addEventListener('click', async (event) => {
         const target = event.target;
         const appKey = target.dataset.key;
 
-        if (!appKey) return; // Not an action button
+        if (!appKey) return; 
 
-        if (target.classList.contains('approveBtn')) {
+        if (target.classList.contains('viewBtn')) {
+            // Find the application data by key
+            const applicationToView = allApplications.find(app => app.key === appKey);
+            if (applicationToView) {
+                showPreviewModal(applicationToView);
+            } else {
+                Swal.fire('Error', 'Application details not found.', 'error');
+            }
+        } else if (target.classList.contains('approveBtn')) {
             Swal.fire({
                 title: 'Are you sure?',
                 text: "Do you want to approve this application?",
@@ -254,6 +323,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         const applicationData = snapshot.val();
 
                         if (applicationData) {
+                            applicationData.approvedApplicationDate = new Date().toISOString();
                             // Move to approvedABVN
                             await database.ref(`abvnApplications/approvedABVN/${appKey}`).set(applicationData);
                             // Remove from pendingABVN
@@ -301,6 +371,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (sortSelect) {
         sortSelect.addEventListener('change', applySearchAndSort);
     }
+
+     // --- Modal Close Listeners ---
+    closeModalBtn.addEventListener('click', hidePreviewModal);
+
+    // Close the modal if clicked outside the modal content
+    window.addEventListener('click', (event) => {
+        if (event.target === previewModal) {
+            hidePreviewModal();
+        }
+    });
 
     // --- Initial Load ---
     fetchPendingApplications();

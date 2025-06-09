@@ -35,10 +35,6 @@ function syncProcessedNotifications() {
     sessionStorage.setItem(PROCESSED_NOTIFICATIONS_KEY, JSON.stringify([...processedNotifications]));
 }
 
-// Variables for inactivity detection
-let inactivityTimeout;
-const INACTIVITY_TIME = 1800000; // 30 minutes
-
 // API keys
 const WEATHER_API_KEY = "a98203b9ad890d981c589718b2d6d69d";
 const GEMINI_API_KEY = "AIzaSyDWv5Yh1VjKzP4pVIhyyr6hu54nlPvx61Y";
@@ -96,47 +92,6 @@ const throttle = (func, limit) => {
         }
     };
 };
-
-// Reset inactivity timer
-const resetInactivityTimer = throttle(() => {
-    clearTimeout(inactivityTimeout);
-    inactivityTimeout = setTimeout(checkInactivity, INACTIVITY_TIME);
-    console.log("Lenlen: Inactivity timer reset.");
-}, 500);
-
-// Check inactivity
-function checkInactivity() {
-    Swal.fire({
-        title: 'Are you still there?',
-        text: "You've been inactive for a while. Do you want to continue your session or log out?",
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33',
-        confirmButtonText: 'Stay Logged In',
-        cancelButtonText: 'Log Out',
-        allowOutsideClick: false,
-        reverseButtons: true
-    }).then((result) => {
-        if (result.isConfirmed) {
-            resetInactivityTimer();
-            console.log("Lenlen: User chose to continue session.");
-        } else if (result.dismiss === Swal.DismissReason.cancel) {
-            auth.signOut().then(() => {
-                console.log("Lenlen: User logged out due to inactivity.");
-                window.location.href = "../pages/login.html";
-            }).catch((error) => {
-                console.error("Lenlen: Error logging out:", error);
-                Swal.fire('Error', 'Failed to log out. Please try again.', 'error');
-            });
-        }
-    });
-}
-
-// Attach activity listeners
-['mousemove', 'keydown', 'click', 'scroll'].forEach(eventType => {
-    document.addEventListener(eventType, resetInactivityTimer);
-});
 
 // Format numbers
 function formatLargeNumber(numStr) {
@@ -236,7 +191,6 @@ window.initializeDashboard = function () {
             });
             return;
         }
-        resetInactivityTimer();
         userUid = user.uid;
         console.log(`Lenlen: Logged-in user UID: ${userUid}`);
 
@@ -253,6 +207,29 @@ window.initializeDashboard = function () {
                 });
                 return;
             }
+
+            // --- IMPORTANT: ADD THIS PASSWORD RESET CHECK ---
+            const passwordNeedsReset = userData.password_needs_reset || false;
+            const profilePage = '../pages/profile.html';
+
+            if (passwordNeedsReset) {
+                // If password needs reset, redirect to the profile page immediately
+                console.log("Password change required. Redirecting to profile page.");
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Password Change Required',
+                    text: 'For security reasons, please change your password. You will be redirected to your profile.',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    showConfirmButton: false,
+                    timer: 2000,
+                    timerProgressBar: true
+                }).then(() => {
+                    window.location.replace(`../pages/${profilePage}`);
+                });
+                return; 
+            }
+            // --- END OF PASSWORD RESET CHECK ---
 
             userRole = userData.role;
             userEmail = user.email;

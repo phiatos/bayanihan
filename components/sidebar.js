@@ -218,6 +218,7 @@ function initSidebar() {
       volunteerApplications: document.querySelector(".menu-volunteer-applications"),
       pendingVolunteers: document.querySelector(".menu-pending-volunteers"),
       approvedVolunteers: document.querySelector(".menu-approved-volunteers"),
+      endorsedVolunteers: document.querySelector(".menu-endorsed-volunteers"),
       pendingDonations: document.querySelector(".menu-pending-donations"),
       pendingInkind: document.querySelector(".menu-pending-inkind"),
       pendingMonetary: document.querySelector(".menu-pending-monetary"),
@@ -251,7 +252,7 @@ function initSidebar() {
         menuItems.reliefsRequest,
         menuItems.reports,
         menuItems.reportsSubmission,
-        menuItems.pendingVolunteers,
+        menuItems.endorsedVolunteers,
       ];
 
       // Hide restricted menu items for ABVN volunteers
@@ -266,6 +267,8 @@ function initSidebar() {
         menuItems.reliefsLog,
         menuItems.reportsVerification,
         menuItems.reportsLog,
+        menuItems.pendingVolunteers,
+        menuItems.approvedVolunteers
       ];
 
       // Show allowed items
