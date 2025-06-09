@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Bayanihan | Angat Buhay Disaster Relief Portal</title>
   <link rel="stylesheet" href="../index.css" />
+  <link rel="stylesheet" href="../css/global.css" />
   <link rel="stylesheet" href="../css/donatenearme.css" />
   <link rel="stylesheet" href="../css/application.css" />
   <link rel="icon" href="../assets/images/logox192.png" />
@@ -44,11 +45,11 @@
       <p>Find donation centers and volunteer opportunities near you.</p>
 
       <div class="donation-buttons">
-        <button id="inKindBtn">In Kind Donation</button>
-        <button id="monetaryBtn">Monetary Donation</button>
+        <button id="inKindBtn" class="inkind-btn">In Kind Donation</button>
+        <button id="monetaryBtn" class="monetary-btn">Monetary Donation</button>
       </div>
 
-      <form id="inKindDonationForm" style="display: none;">
+      <form id="inKindDonationForm">
         <fieldset>
           <legend>In Kind Donation Information</legend>
 
@@ -90,7 +91,7 @@
           </div>
           <div class="form-group">
             <label for="description">Description:</label>
-            <textarea id="description" name="additionalnotes" placeholder="Enter additional note (optional)"></textarea>
+            <textarea id="description" class="desc-txtarea" name="additionalnotes" placeholder="Enter additional note (optional)"></textarea>
           </div>
           <div class="form-group">
             <label for="status">Status:</label>
@@ -114,13 +115,15 @@
       <form id="monetaryDonationForm" style="display: none;">
         <fieldset>
           <legend>Monetary Donations</legend>
-          <button type="button" id="gcashDetails">GCASH</button>
-          <button type="button" id="bankDetails">Bank Transfer</button>
+          <div class="payment-options">
+            <button type="button" id="gcashDetails" class="gcash-btn">GCASH</button>
+            <button type="button" id="bankDetails" class="banktrans-btn">Bank Transfer</button>
+          </div>
             <p style="text-align: center;">Angat Buhay operates with authorization from the Department of Social Welfare and <br>
             Development (DSWD), bearing Solicitation Permit No. DSWD-SB-PSP-S-2025-000049.</p>
           
           <div id="gcashDiv" display="none">
-            <h3>GCash QR Code</h3>
+            <h3 style="text-align: center; margin: 15px;">GCash QR Code</h3>
             <img src="https://www.angatbuhay.ph/wp-content/uploads/2024/09/QR-code-2048x2048.png" 
               alt="AB QR Code" 
               width="400" 
@@ -128,19 +131,22 @@
               style="display: block; margin: 0 auto;">
           </div>
 
-          <div id="bankDiv" display="none">
+          <div id="bankDiv" style="display: none;" class="bank-section">
             <h3>Bank Details</h3>
+
             <div class="bank-info">
-              <p><strong>Banco De Oro (BDO)</strong></p>
+              <h4>Banco De Oro (BDO)</h4>
               <p><strong>Account Name:</strong> Angat Pinas, Inc.</p>
               <p><strong>Account Number:</strong> 00 277 801 6986</p>
             </div>
+
             <div class="bank-info">
-              <p><strong>Bank of the Philippine Islands (BPI)</strong></p>
+              <h4>Bank of the Philippine Islands (BPI)</h4>
               <p><strong>Account Name:</strong> Angat Pinas, Inc.</p>
               <p><strong>Account Number:</strong> 0011-1921-65</p>
             </div>
           </div>
+
 
           <div class="form-group">
             <label for="monetaryEncoder">Encoder:</label>
@@ -176,7 +182,7 @@
           </div>
           <div class="form-group">
             <label for="bank">Bank or E-Wallet</label>
-            <select id="bank" name="bank" required>  <option value="">Select Bank or E-Wallet</option>
+            <select id="bank" name="bank" required class="bank-select">  <option value="">Select Bank or E-Wallet</option>
               <option value="gcash">GCash</option>
               <option value="BDO">Banco De Oro (BDO)</option>
               <option value="BPI">Bank of the Philippine Islands (BPI)</option>
