@@ -268,7 +268,8 @@ function initSidebar() {
         menuItems.reportsVerification,
         menuItems.reportsLog,
         menuItems.pendingVolunteers,
-        menuItems.approvedVolunteers
+        menuItems.approvedVolunteers,
+        menuItems.endorsedVolunteers
       ];
 
       // Show allowed items
