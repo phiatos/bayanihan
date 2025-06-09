@@ -334,3 +334,22 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error("ERROR: Monetary Donation Form element with ID 'monetaryDonationForm' not found!");
     }
 });
+
+const donationButtons = document.querySelectorAll('.donation-buttons button');
+
+donationButtons.forEach(button => {
+    button.addEventListener('click', () => {
+        donationButtons.forEach(btn => btn.classList.remove('active'));
+        button.classList.add('active');
+    });
+});
+
+
+const buttons = document.querySelectorAll('.gcash-btn, .banktrans-btn');
+
+buttons.forEach(btn => {
+  btn.addEventListener('click', () => {
+    buttons.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  });
+});
