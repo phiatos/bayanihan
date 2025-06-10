@@ -23,6 +23,54 @@ try {
 let user = null;
 const userOrgCache = new Map();
 let sortOrder = 'newest';
+let selectedCategoryFilter = 'all';
+
+// Variables for inactivity detection --------------------------------------------------------------------
+let inactivityTimeout;
+const INACTIVITY_TIME = 1800000; // 30 minutes in milliseconds
+
+// Function to reset the inactivity timer
+function resetInactivityTimer() {
+    clearTimeout(inactivityTimeout);
+    inactivityTimeout = setTimeout(checkInactivity, INACTIVITY_TIME);
+    console.log("Inactivity timer reset.");
+}
+
+// Function to check for inactivity and prompt the user
+function checkInactivity() {
+    Swal.fire({
+        title: 'Are you still there?',
+        text: 'You\'ve been inactive for a while. Do you want to continue your session or log out?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Stay Login',
+        cancelButtonText: 'Log Out',
+        allowOutsideClick: false,
+        reverseButtons: true
+    }).then((result) => {
+        if (result.isConfirmed) {
+            resetInactivityTimer(); // User chose to continue, reset the timer
+            console.log("User chose to continue session.");
+        } else if (result.dismiss === Swal.DismissReason.cancel) {
+            // User chose to log out
+            auth.signOut().then(() => {
+                console.log("User logged out due to inactivity.");
+                window.location.href = "../pages/login.html"; // Redirect to login page
+            }).catch((error) => {
+                console.error("Error logging out:", error);
+                Swal.fire('Error', 'Failed to log out. Please try again.', 'error');
+            });
+        }
+    });
+}
+
+// Attach event listeners to detect user activity
+['mousemove', 'keydown', 'scroll', 'click'].forEach(eventType => {
+    document.addEventListener(eventType, resetInactivityTimer);
+});
+//-------------------------------------------------------------------------------------
 
 async function compressMedia(file) {
   if (file.type.startsWith('image/')) {
@@ -199,7 +247,7 @@ auth.onAuthStateChanged(async (currentUser) => {
             loadActivityLog();
             const userData = await fetchUserData(user.uid);
             updateModalUserInfo(userData);
-
+            resetInactivityTimer(); 
         } catch (error) {
             console.error(`[${new Date().toISOString()}] Error checking password reset status or fetching user data:`, error);
             Swal.fire({
@@ -254,27 +302,34 @@ async function createPost() {
 
   const modalPostTitle = document.getElementById('modal-post-title');
   const modalPostContent = document.getElementById('modal-post-content');
+  const modalPostCategory = document.getElementById('modal-post-category');
   const mediaInput = document.getElementById('modal-media-upload');
   const postButton = document.getElementById('modal-post-button');
   const modal = document.getElementById('post-modal');
   const mediaPreview = document.getElementById('modal-media-preview');
 
-  if (!modalPostTitle || !modalPostContent || !mediaInput || !postButton || !modal || !mediaPreview) {
-    console.error(`[${new Date().toISOString()}] DOM elements missing:`, { modalPostTitle, modalPostContent, mediaInput, postButton, modal, mediaPreview });
+  if (!modalPostTitle || !modalPostContent || !modalPostCategory || !mediaInput || !postButton || !modal || !mediaPreview) {
+    console.error(`[${new Date().toISOString()}] DOM elements missing:`, { modalPostTitle, modalPostContent, modalPostCategory, mediaInput, postButton, modal, mediaPreview });
     Swal.fire('Error', 'Page elements not found. Please try refreshing the page.', 'error');
     return;
   }
 
   const title = modalPostTitle.value.trim();
   const content = modalPostContent.value.trim();
+  const category = modalPostCategory.value;
   const file = mediaInput.files[0];
   if (!content && !file) {
     console.log(`[${new Date().toISOString()}] No content or media provided`);
     Swal.fire('Please add content or media to post', '', 'warning');
     return;
   }
+  if (!category) {
+    console.log(`[${new Date().toISOString()}] No category selected`);
+    Swal.fire('Please select a category', '', 'warning');
+    return;
+  }
 
-  console.log(`[${new Date().toISOString()}] Posting with title: ${title}, content: ${content}, file: ${file ? file.name : 'none'}`);
+  console.log(`[${new Date().toISOString()}] Posting with title: ${title}, content: ${content}, category: ${category}, file: ${file ? file.name : 'none'}`);
   postButton.classList.add('loading');
   modal.classList.add('disabled');
 
@@ -336,14 +391,16 @@ async function createPost() {
       timestamp: firebase.database.ServerValue.TIMESTAMP,
       mediaUrl: mediaUrl,
       mediaType: mediaType,
-      thumbnailUrl: thumbnailUrl
+      thumbnailUrl: thumbnailUrl,
+      category: category
     };
 
     console.log(`[${new Date().toISOString()}] Writing post to database:`, { ...post, mediaUrl: mediaUrl ? `${mediaUrl.slice(0, 50)}...` : '' });
     await database.ref('posts').push(post);
-    await logActivity(`${contactPerson}${organization ? ` from ${organization}` : ''} created a new post`);
+    await logActivity(`${contactPerson}${organization ? ` from ${organization}` : ''} created a new post in ${category}`);
     modalPostTitle.value = '';
     modalPostContent.value = '';
+    modalPostCategory.value = '';
     mediaInput.value = '';
     mediaPreview.innerHTML = '';
     modal.style.display = 'none';
@@ -458,11 +515,12 @@ async function submitSharePost() {
       originalPostId: postId,
       originalUserName: originalPost.userName,
       isShared: true,
-      shareCaption: caption || ''
+      shareCaption: caption || '',
+      category: originalPost.category
     };
 
     await database.ref('posts').push(sharedPost);
-    await logActivity(`${contactPerson}${organization ? ` from ${organization}` : ''} shared a post`);
+    await logActivity(`${contactPerson}${organization ? ` from ${organization}` : ''} shared a post in ${originalPost.category}`);
     modal.style.display = 'none';
     shareCaptionInput.value = '';
     delete modal.dataset.postId;
@@ -686,7 +744,7 @@ function toggleReplyInput(postId, commentId) {
 }
 
 async function loadPosts() {
-  console.log(`[${new Date().toISOString()}] Loading posts`);
+  console.log(`[${new Date().toISOString()}] Loading posts with filter: ${selectedCategoryFilter}`);
   const postsContainer = document.getElementById('posts');
   if (!postsContainer) {
     console.error(`[${new Date().toISOString()}] Posts container not found`);
@@ -699,7 +757,10 @@ async function loadPosts() {
     const posts = snapshot.val();
     if (posts) {
       console.log(`[${new Date().toISOString()}] Posts retrieved: ${Object.keys(posts).length}`);
-      const postArray = Object.entries(posts).map(([id, post]) => ({ id, ...post }));
+      let postArray = Object.entries(posts).map(([id, post]) => ({ id, ...post }));
+      if (selectedCategoryFilter !== 'all') {
+        postArray = postArray.filter(post => post.category === selectedCategoryFilter);
+      }
       postArray.sort((a, b) => sortOrder === 'newest' ? b.timestamp - a.timestamp : a.timestamp - b.timestamp);
 
       for (const { id, ...post } of postArray) {
@@ -732,6 +793,7 @@ async function loadPosts() {
               <div class="post-meta">
                 <small style="color: var(--primary-color, #14AEBB); font-size: 0.9em;">${post.organization || ''}</small>
                 <small>${new Date(post.timestamp).toLocaleString()}</small>
+                <small style="color: var(--primary-color); font-size: 0.9em;">${post.category ? post.category.charAt(0).toUpperCase() + post.category.slice(1) : ''}</small>
               </div>
               ${sharedInfo}
               ${captionHtml}
@@ -933,6 +995,7 @@ function setupModal() {
   const postCloseButton = document.querySelector('#post-modal .close-button');
   const postButtons = document.querySelectorAll('.post-option');
   const modalPostContent = document.getElementById('modal-post-content');
+  const modalPostCategory = document.getElementById('modal-post-category');
   const mediaInput = document.getElementById('modal-media-upload');
   const mediaPreview = document.getElementById('modal-media-preview');
   const tapToUploadButton = document.getElementById('tap-to-upload');
@@ -941,6 +1004,7 @@ function setupModal() {
   const shareCancelButton = document.getElementById('share-cancel-button');
   const shareSubmitButton = document.getElementById('share-submit-button');
   const sortButton = document.getElementById('sort-posts-button');
+  const categoryFilter = document.getElementById('category-filter');
 
   function resizeTextarea() {
     modalPostContent.style.height = 'auto';
@@ -955,7 +1019,7 @@ function setupModal() {
     resizeTimeout = setTimeout(resizeTextarea, 50);
   }
 
-  if (postButtons && modalPostContent && mediaInput && modal && postCloseButton && tapToUploadButton) {
+  if (postButtons && modalPostContent && modalPostCategory && mediaInput && modal && postCloseButton && tapToUploadButton) {
     postButtons.forEach(button => {
       button.addEventListener('click', () => {
         postButtons.forEach(btn => btn.classList.remove('active'));
@@ -988,6 +1052,8 @@ function setupModal() {
           modalPostContent.placeholder = 'Paste your link here';
           modalPostContent.focus();
           resizeTextarea();
+        } else if (type === 'category') {
+          modalPostCategory.focus();
         } else {
           modalPostContent.placeholder = "What's on your mind?";
           modalPostContent.focus();
@@ -1005,6 +1071,7 @@ function setupModal() {
       modal.style.display = 'none';
       modalPostContent.value = '';
       document.getElementById('modal-post-title').value = '';
+      modalPostCategory.value = '';
       modalPostContent.placeholder = "What's on your mind?";
       modalPostContent.style.height = '80px';
       mediaInput.value = '';
@@ -1082,6 +1149,13 @@ function setupModal() {
       sortOrder = sortOrder === 'newest' ? 'oldest' : 'newest';
       const icon = sortButton.querySelector('i');
       icon.className = sortOrder === 'newest' ? 'bx bx-sort-up' : 'bx bx-sort-down';
+      loadPosts();
+    });
+  }
+
+  if (categoryFilter) {
+    categoryFilter.addEventListener('change', () => {
+      selectedCategoryFilter = categoryFilter.value;
       loadPosts();
     });
   }
