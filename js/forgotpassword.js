@@ -109,7 +109,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Send password reset email
             const actionCodeSettings = {
-                url: `${window.location.origin}/pages/login.html`,
+                url: '../pages/login.html',
                 handleCodeInApp: false,
             };
             await auth.sendPasswordResetEmail(email, actionCodeSettings);
