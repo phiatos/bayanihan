@@ -113,7 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // handleCodeInApp: false,
                 //for host
                 url: 'https://bayanihan-drrm.vercel.app/pages/login.html', 
-                handleCodeInApp: true, 
+                handleCodeInApp: false, 
                 //for live server  
                 // url: 'http://127.0.0.1:5500/bayanihan/pages/login.html',
                 // handleCodeInApp: true, 
