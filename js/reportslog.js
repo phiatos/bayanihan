@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // Firebase Configuration
     const firebaseConfig = {
         apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
         authDomain: "bayanihan-5ce7e.firebaseapp.com",
@@ -9,11 +10,13 @@ document.addEventListener('DOMContentLoaded', () => {
         appId: "1:593123849917:web:eb85a63a536eeff78ce9d4",
         measurementId: "G-ZTQ9VXXVV0",
     };
+
     let database, auth;
     try {
-        firebase.initializeApp(firebaseConfig);
-        database = firebase.database();
-        auth = firebase.auth();
+        // Initialize Firebase with compat layer
+        const firebaseApp = firebase.initializeApp(firebaseConfig);
+        database = firebaseApp.database();
+        auth = firebaseApp.auth();
     } catch (error) {
         console.error("Firebase initialization failed:", error);
         Swal.fire({
@@ -23,6 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         return;
     }
+
     let reviewedReports = [];
     const reportsBody = document.getElementById("reportsBody");
     const paginationContainer = document.getElementById("pagination");
@@ -44,8 +48,9 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-    // --- User Role Check ---
-    auth.onAuthStateChanged(async user => { // Made async to use await
+    // User Role Check
+    let userRole = 'User'; // Default role
+    auth.onAuthStateChanged(async (user) => {
         if (!user) {
             Swal.fire({
                 icon: 'error',
@@ -57,11 +62,10 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        let userRole = 'User'; // Default role
         try {
             const idTokenResult = await user.getIdTokenResult();
-            userRole = idTokenResult.claims.role || 'User'; // Get custom claim 'role'
-            console.log("Authenticated user role:", userRole); // For debugging
+            userRole = idTokenResult.claims.role || 'User';
+            console.log("Authenticated user role:", userRole);
         } catch (error) {
             console.error("Error fetching user role:", error);
             Swal.fire({
@@ -73,12 +77,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         loadReportsFromFirebase(userRole);
     });
-    // --- End User Role Check ---
 
     function formatDate(dateStr) {
         const date = new Date(dateStr);
-        if (isNaN(date)) return dateStr || "-";
-        return date.toLocaleDateString("en-US", {
+        return isNaN(date) ? dateStr || "-" : date.toLocaleDateString("en-US", {
             year: "numeric",
             month: "long",
             day: "numeric"
@@ -93,17 +95,16 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             date = new Date(`1970-01-01T${timeStr}`);
         }
-        if (isNaN(date)) return timeStr;
-        return date.toLocaleTimeString("en-US", {
+        return isNaN(date) ? timeStr : date.toLocaleTimeString("en-US", {
             hour: "numeric",
             minute: "2-digit",
             hour12: true
         });
     }
 
-    function transformReportData(report) {
+    function transformReportData(report, key) {
         return {
-            firebaseKey: report.firebaseKey,
+            firebaseKey: key, // Use the actual node key as firebaseKey
             ReportID: report.reportID || report.ReportID || "-",
             VolunteerGroupName: report.organization || report.VolunteerGroupName || "[Unknown Org]",
             AreaOfOperation: report.AreaOfOperation || "-",
@@ -126,29 +127,26 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
-    // Modified loadReportsFromFirebase to accept userRole
     function loadReportsFromFirebase(userRole) {
-        database.ref("reports/approved").on("value", snapshot => {
+        database.ref("reports/approved").on("value", (snapshot) => {
             reviewedReports = [];
             const reports = snapshot.val();
             if (reports) {
-                Object.keys(reports).forEach(key => {
+                Object.keys(reports).forEach((key) => {
                     const report = reports[key];
                     if (!report.VolunteerGroupName && !report.organization) {
                         console.warn(`Approved report ${key} is missing VolunteerGroupName/organization. Report data:`, report);
                         report.VolunteerGroupName = "[Unknown Org]";
                     }
-                    const transformedReport = transformReportData({
-                        firebaseKey: key,
-                        ...report
-                    });
+                    const transformedReport = transformReportData(report, key); // Pass the key to transformReportData
                     reviewedReports.push(transformedReport);
+                    console.log(`Loaded report with key: ${key}, transformed firebaseKey: ${transformedReport.firebaseKey}`);
                 });
             } else {
                 console.log("No approved reports found in Firebase");
             }
-            applySearchAndSort(userRole); // Pass userRole to applySearchAndSort
-        }, error => {
+            applySearchAndSort(userRole);
+        }, (error) => {
             console.error("Error fetching reports from Firebase:", error);
             Swal.fire({
                 icon: 'error',
@@ -158,13 +156,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Modified getDisplayedReportsData to accept userRole
-    function getDisplayedReportsData() { // userRole is not directly used here for filtering/sorting
+    function getDisplayedReportsData() {
         const searchQuery = searchInput.value.toLowerCase();
         const sortValue = sortSelect.value;
         const [sortBy, direction] = sortValue.split("-");
 
-        let filteredReports = reviewedReports.filter(report => {
+        let filteredReports = reviewedReports.filter((report) => {
             return Object.entries(report).some(([key, value]) => {
                 if (key.includes("Date") && value) {
                     const formattedDate = formatDate(value).toLowerCase();
@@ -203,7 +200,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return filteredReports;
     }
 
-    // Modified renderReportsTable to accept userRole
     function renderReportsTable(reports, userRole) {
         reportsBody.innerHTML = '';
         const totalEntries = reports.length;
@@ -212,7 +208,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (reports.length === 0) {
             reportsBody.innerHTML = "<tr><td colspan='9'>No approved reports found on this page.</td></tr>";
             entriesInfo.textContent = "Showing 0 to 0 of 0 entries";
-            renderPaginationControlsForReports(0); // Update pagination for no reports
+            renderPaginationControlsForReports(0);
             return;
         }
 
@@ -235,48 +231,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 </td>
             `;
 
-            // --- Conditional Button Visibility based on User Role ---
-            // Note: If you want to enable an 'editBtn', add it to the innerHTML above
-            // and uncomment/add logic here. The current HTML snippet doesn't have it.
             const deleteBtn = tr.querySelector('.deleteBtn');
-
-            // If userRole is 'ABVN', hide the delete button
-            if (userRole === 'ABVN') {
-                if (deleteBtn) deleteBtn.style.display = 'none';
-            }
-            // --- End Conditional Button Visibility ---
+            if (userRole === 'ABVN' && deleteBtn) deleteBtn.style.display = 'none';
 
             const savePDFBtn = tr.querySelector(".savePDFBtn");
             savePDFBtn.addEventListener("click", () => saveIndividualReportToPdf(report));
 
             const viewBtn = tr.querySelector('.viewBtn');
             viewBtn.addEventListener('click', () => {
-                let readableReport = "";
-                for (let key in report) {
-                    if (key === "firebaseKey" || key === "userUid") continue;
-                    let displayKey = key
-                        .replace(/([A-Z])/g, ' $1')
-                        .replace(/^./, str => str.toUpperCase());
-                    displayKey = displayKey
-                        .replace('AreaOfOperation', 'Area of Operation')
-                        .replace('TimeOfIntervention', 'Time of Intervention')
-                        .replace('DateOfReport', 'Date of Report')
-                        .replace('ReportID', 'Report ID')
-                        .replace('StartDate', 'Start Date')
-                        .replace('EndDate', 'End Date')
-                        .replace('NoOfIndividualsOrFamilies', 'No. of Individuals or Families')
-                        .replace('NoOfFoodPacks', 'No. of Food Packs')
-                        .replace('NoOfHotMeals', 'No. of Hot Meals')
-                        .replace('LitersOfWater', 'Liters of Water')
-                        .replace('NoOfVolunteersMobilized', 'No. of Volunteers Mobilized')
-                        .replace('NoOfOrganizationsActivated', 'No. of Organizations Activated')
-                        .replace('TotalValueOfInKindDonations', 'Total Value of In-Kind Donations')
-                        .replace('NotesAdditionalInformation', 'Notes/additional information')
-                        .replace('VolunteerGroupName', 'Volunteer Group');
-                    const value = key.includes("Date") ? formatDate(report[key]) : report[key];
-                    readableReport += `• ${displayKey}: ${value}\n`;
-                }
-
                 const modal = document.getElementById("reportModal");
                 const modalDetails = document.getElementById("modalReportDetails");
                 const closeModal = document.getElementById("closeModal");
@@ -331,13 +293,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             });
 
-            // --- DELETE BUTTON LOGIC ---
-            if (deleteBtn) { // Ensure the button exists before adding listener
+            if (deleteBtn) {
                 deleteBtn.addEventListener('click', async () => {
-                    // Confirmation dialog
                     const result = await Swal.fire({
                         title: 'Are you sure?',
-                        text: `You are about to remove Report ID: ${report.ReportID || report.firebaseKey}. This action cannot be undone.`,
+                        text: `You are about to remove Report ID: ${report.ReportID || report.firebaseKey}. This will move it to the deletedreports node.`,
                         icon: 'warning',
                         showCancelButton: true,
                         confirmButtonColor: '#d33',
@@ -348,41 +308,47 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     if (result.isConfirmed) {
                         try {
-                            // Delete from Firebase using the firebaseKey
-                            await database.ref(`reports/approved/${report.firebaseKey}`).remove();
+                            const reportRef = database.ref(`reports/approved/${report.firebaseKey}`);
+                            const reportSnapshot = await reportRef.once('value');
+                            const reportData = reportSnapshot.val();
+
+                            if (!reportData) {
+                                throw new Error("Report not found in approved reports. It may have been already moved or deleted, or the key is incorrect. Expected key: " + report.firebaseKey);
+                            }
+
+                            await database.ref(`deletedreports/${report.firebaseKey}`).set({
+                                ...reportData,
+                                deletedAt: new Date().toISOString()
+                            });
+                            await reportRef.remove();
                             Swal.fire(
                                 'Removed!',
-                                `Report ID: ${report.ReportID || report.firebaseKey} has been removed.`,
+                                `Report ID: ${report.ReportID || report.firebaseKey} has been moved to deletedreports.`,
                                 'success'
                             );
-                            // The 'on("value")' listener in loadReportsFromFirebase will automatically
-                            // re-fetch and re-render the table, so no manual re-render needed here.
                         } catch (error) {
                             console.error("Error deleting report:", error);
                             Swal.fire(
                                 'Error!',
-                                `Failed to remove report: ${error.message}`,
+                                `Failed to remove report: ${error.message}. Please try again or contact support if the issue persists.`,
                                 'error'
                             );
                         }
                     }
                 });
             }
-            // --- END DELETE BUTTON LOGIC ---
 
             reportsBody.appendChild(tr);
         });
         entriesInfo.textContent = `Showing ${(currentPage - 1) * rowsPerPage + 1} to ${Math.min(currentPage * rowsPerPage, reports.length)} of ${reviewedReports.length} entries`;
-
         renderPaginationControlsForReports(totalPages);
     }
 
     function renderPaginationControlsForReports(totalPages) {
-        const pagination = document.getElementById("pagination");
-        pagination.innerHTML = '';
+        paginationContainer.innerHTML = '';
 
         if (totalPages === 0) {
-            pagination.innerHTML = '<span>No entries to display</span>';
+            paginationContainer.innerHTML = '<span>No entries to display</span>';
             return;
         }
 
@@ -393,12 +359,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (isActive) btn.classList.add('active-page');
             btn.addEventListener('click', () => {
                 currentPage = page;
-                applySearchAndSort(auth.currentUser?.claims?.role || 'User'); // Re-apply to get correct page data
+                applySearchAndSort(userRole);
             });
             return btn;
         };
 
-        pagination.appendChild(createButton('Prev', currentPage - 1, currentPage === 1));
+        paginationContainer.appendChild(createButton('Prev', currentPage - 1, currentPage === 1));
 
         const maxVisible = 5;
         let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
@@ -408,38 +374,34 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         for (let i = startPage; i <= endPage; i++) {
-            pagination.appendChild(createButton(i, i, false, i === currentPage));
+            paginationContainer.appendChild(createButton(i, i, false, i === currentPage));
         }
 
-        pagination.appendChild(createButton('Next', currentPage + 1, currentPage === totalPages));
+        paginationContainer.appendChild(createButton('Next', currentPage + 1, currentPage === totalPages));
     }
 
-
-    // Modified applySearchAndSort to accept userRole
     function applySearchAndSort(userRole) {
-        const filteredData = getDisplayedReportsData(); // No need to pass userRole here, getDisplayedReportsData doesn't use it for filtering/sorting logic
+        const filteredData = getDisplayedReportsData();
         const startIndex = (currentPage - 1) * rowsPerPage;
         const endIndex = startIndex + rowsPerPage;
         const currentPageReports = filteredData.slice(startIndex, endIndex);
-
-        renderReportsTable(currentPageReports, userRole); // Pass userRole to renderReportsTable
-        // renderPagination(filteredData.length, userRole); // This call is now replaced by renderPaginationControlsForReports
+        renderReportsTable(currentPageReports, userRole);
     }
 
-    // Event listeners will now trigger applySearchAndSort which will get the userRole from closure or context
     searchInput.addEventListener('input', () => {
-        currentPage = 1; // Reset to first page on search
-        applySearchAndSort(auth.currentUser?.claims?.role || 'User');
+        currentPage = 1;
+        applySearchAndSort(userRole);
     });
+
     sortSelect.addEventListener('change', () => {
-        currentPage = 1; // Reset to first page on sort change
-        applySearchAndSort(auth.currentUser?.claims?.role || 'User');
+        currentPage = 1;
+        applySearchAndSort(userRole);
     });
 
     window.clearDInputs = () => {
         searchInput.value = '';
-        currentPage = 1; // Reset to first page on clear
-        applySearchAndSort(auth.currentUser?.claims?.role || 'User');
+        currentPage = 1;
+        applySearchAndSort(userRole);
     };
 
     exportExcelBtn.addEventListener('click', () => {
@@ -493,39 +455,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 return row;
             });
             const ws = XLSX.utils.json_to_sheet(wsData);
-            const wscols = [{
-                wch: 15
-            }, {
-                wch: 30
-            }, {
-                wch: 25
-            }, {
-                wch: 20
-            }, {
-                wch: 20
-            }, {
-                wch: 18
-            }, {
-                wch: 18
-            }, {
-                wch: 20
-            }, {
-                wch: 25
-            }, {
-                wch: 25
-            }, {
-                wch: 20
-            }, {
-                wch: 25
-            }, {
-                wch: 25
-            }, {
-                wch: 25
-            }, {
-                wch: 25
-            }, {
-                wch: 40
-            }];
+            const wscols = [
+                { wch: 15 }, { wch: 30 }, { wch: 25 }, { wch: 20 }, { wch: 20 },
+                { wch: 18 }, { wch: 18 }, { wch: 20 }, { wch: 25 }, { wch: 25 },
+                { wch: 20 }, { wch: 25 }, { wch: 25 }, { wch: 25 }, { wch: 25 },
+                { wch: 40 }
+            ];
             ws['!cols'] = wscols;
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "Approved Reports");
@@ -559,9 +494,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function generatePdf() {
-        const {
-            jsPDF
-        } = window.jspdf;
+        const { jsPDF } = window.jspdf;
         const doc = new jsPDF('portrait');
         const reports = getDisplayedReportsData();
         if (reports.length === 0) {
@@ -595,9 +528,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 docInstance.setFontSize(8);
                 const footerY = pageHeight - 10;
                 docInstance.text(`Page ${pageNum} of ${totalPages}`, margin, footerY);
-                docInstance.text("Powered by: Appvance", pageWidth - margin, footerY, {
-                    align: 'right'
-                });
+                docInstance.text("Powered by: Appvance", pageWidth - margin, footerY, { align: 'right' });
                 return yOffset;
             };
             const addDetailText = (docInstance, label, value, currentY, contentAreaWidth, detailLineHeight = 5) => {
@@ -686,9 +617,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 Swal.showLoading();
             }
         });
-        const {
-            jsPDF
-        } = window.jspdf;
+        const { jsPDF } = window.jspdf;
         const doc = new jsPDF('portrait');
         const logo = new Image();
         logo.src = '../assets/images/AB_logo.png';
@@ -759,9 +688,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const pageNumberText = `Page ${doc.internal.getNumberOfPages()}`;
             const poweredByText = "Powered by: Appvance";
             doc.text(pageNumberText, margin, footerY);
-            doc.text(poweredByText, pageWidth - margin, footerY, {
-                align: 'right'
-            });
+            doc.text(poweredByText, pageWidth - margin, footerY, { align: 'right' });
             doc.save(`Report_${report.ReportID || 'Details'}.pdf`);
             Swal.close();
             Swal.fire({
