@@ -681,7 +681,6 @@ function initializeApprovedApplicationsPage(userId) {
 
         let content = `
             <h3 style="margin-bottom: 15px; color: #FA3B99;">Organization Details</h3>
-            <p><strong>Application Key:</strong> ${applicationData.key || 'N/A'}</p>
             <p><strong>Organization Name:</strong> ${applicationData.organizationName || 'N/A'}</p>
             <p><strong>Contact Person:</strong> ${applicationData.contactPerson || 'N/A'}</p>
             <p><strong>Email:</strong> ${applicationData.email || 'N/A'}</p>
@@ -710,7 +709,7 @@ function initializeApprovedApplicationsPage(userId) {
         `;
 
         modalContentDiv.innerHTML = content;
-        previewModal.style.display = 'block'; // Show the modal
+        previewModal.style.display = 'flex'; // Show the modal
     }
 
     function hidePreviewModal() {
