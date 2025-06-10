@@ -457,7 +457,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             if (!emailRegex.test(email)) {
                 logActivity('FORM_VALIDATION_FAILED', { field: 'email', reason: 'Invalid format' });
-                SEwal.fire('Error', 'Please enter a valid email address (e.g., example@domain.com).', 'error');
+                Swal.fire('Error', 'Please enter a valid email address (e.g., example@domain.com).', 'error');
                 return;
             }
 

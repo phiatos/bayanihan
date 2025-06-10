@@ -418,6 +418,30 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
+            // Email Format Validation
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                Swal.fire('Error', 'Please enter a valid email address (e.g., example@domain.com).', 'error');
+                return;
+            }
+
+            // Mobile Number Format Validation (11 digits, starts with 09)
+            const mobileNumberRegex = /^09\d{9}$/; // Starts with 09 and has 9 more digits
+            if (!mobileNumberRegex.test(mobileNumber)) {
+                Swal.fire('Error', 'Please enter a valid 11-digit mobile number starting with "09" (e.g., 09171234567).', 'error');
+                return;
+            }
+
+            // Social Media Link (URL) Validation (optional, only if provided)
+            if (socialMedia) {
+                try {
+                    new URL(socialMedia);
+                } catch (e) {
+                    Swal.fire('Error', 'Please enter a valid URL for your social media link (e.g., https://facebook.com/yourpage).', 'error');
+                    return;
+                }
+            }
+
             // Validate age
             const parsedAge = parseInt(age, 10);
             if (isNaN(parsedAge) || parsedAge < 18) {
