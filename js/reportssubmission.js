@@ -315,73 +315,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (pinBtn) pinBtn.style.display = 'inline-block';
     });
 
-    // auth.onAuthStateChanged(user => {
-    //     if (user) {
-    //         userUid = user.uid;
-    //         console.log('Logged-in user UID:', userUid);
-
-    //         database.ref(`users/${userUid}`).once('value', snapshot => {
-    //             const userData = snapshot.val();
-    //             if (userData && userData.group) {
-    //                 volunteerGroupName = userData.group;
-    //                 console.log('Volunteer group fetched from database for filtering:', volunteerGroupName);
-    //             } else {
-    //                 console.warn('User data or group not found in database for UID:', userUid);
-    //             }
-
-    //             let activationsQuery = database.ref("activations").orderByChild("status").equalTo("active");
-
-    //             if (volunteerGroupName && volunteerGroupName !== "[Unknown Org]") {
-    //                 console.log(`Filtering activations for group: ${volunteerGroupName}`);
-    //                 activationsQuery.on("value", snapshot => {
-    //                     activeActivations = [];
-    //                     snapshot.forEach(childSnapshot => {
-    //                         const activation = { id: childSnapshot.key, ...childSnapshot.val() };
-    //                         if (activation.organization === volunteerGroupName) { // THIS IS THE FILTERING LOGIC
-    //                             activeActivations.push(activation);
-    //                         }
-    //                     });
-    //                     populateCalamityAreaDropdown();
-    //                 }, error => {
-    //                     console.error("Error listening for active activations with group filter:", error);
-    //                     Swal.fire({
-    //                         icon: 'error',
-    //                         title: 'Error',
-    //                         text: 'Failed to load active operations. Please try again.'
-    //                     });
-    //                 });
-    //             } else {
-    //                 console.log("Showing all active activations (Unknown Org or no group).");
-    //                 activationsQuery.on("value", snapshot => {
-    //                     activeActivations = [];
-    //                     snapshot.forEach(childSnapshot => {
-    //                         activeActivations.push({ id: childSnapshot.key, ...childSnapshot.val() });
-    //                     });
-    //                     populateCalamityAreaDropdown();
-    //                 }, error => {
-    //                     console.error("Error listening for all active activations:", error);
-    //                     Swal.fire({
-    //                         icon: 'error',
-    //                         title: 'Error',
-    //                         text: 'Failed to load active operations. Please try again.'
-    //                     });
-    //                 });
-    //             }
-    //         }).catch(error => {
-    //             console.error('Error fetching user data:', error);
-    //             Swal.fire({
-    //                 icon: 'error',
-    //                 title: 'Error',
-    //                 text: 'Failed to fetch user group. Please try again.'
-    //             });
-    //         });
-
-    //     } else {
-    //         console.warn('No user is logged in');
-    //         window.location.href = '../pages/login.html';
-    //     }
-    // });
-    // --- onAuthStateChanged with Password Reset Logic ---
     auth.onAuthStateChanged(user => {
         if (user) {
             userUid = user.uid;
@@ -389,45 +322,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             database.ref(`users/${userUid}`).once('value', snapshot => {
                 const userData = snapshot.val();
-                if (!userData) {
-                    console.warn('User data not found in database for UID:', userUid);
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'User Data Missing',
-                        text: 'Your user profile is incomplete. Please contact an administrator.',
-                    }).then(() => {
-                        window.location.href = '../pages/login.html';
-                    });
-                    return;
-                }
-
-                // IMPORTANT: PASSWORD RESET CHECK
-                const passwordNeedsReset = userData.password_needs_reset || false;
-                const profilePage = 'profile.html'; // Assuming profile.html is in the same 'pages' directory
-
-                if (passwordNeedsReset) {
-                    console.log("Password change required. Redirecting to profile page.");
-                    Swal.fire({
-                        icon: 'info',
-                        title: 'Password Change Required',
-                        text: 'For security reasons, please change your password. You will be redirected to your profile.',
-                        allowOutsideClick: false,
-                        allowEscapeKey: false,
-                        showConfirmButton: false,
-                        timer: 2000,
-                        timerProgressBar: true
-                    }).then(() => {
-                        window.location.replace(`../pages/${profilePage}`);
-                    });
-                    return; // Stop further execution if password reset is required
-                }
-                // END OF PASSWORD RESET CHECK
-
-                if (userData.group) {
-                    volunteerGroupName = userData.group;
+                if (userData && userData.organization) {
+                    volunteerGroupName = userData.organization;
                     console.log('Volunteer group fetched from database for filtering:', volunteerGroupName);
                 } else {
-                    console.warn('Volunteer group not found for UID:', userUid);
+                    console.warn('User data or group not found in database for UID:', userUid);
                 }
 
                 let activationsQuery = database.ref("activations").orderByChild("status").equalTo("active");
@@ -479,13 +378,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } else {
             console.warn('No user is logged in');
-            Swal.fire({
-                icon: 'error',
-                title: 'Authentication Required',
-                text: 'Please log in to submit a report.',
-            }).then(() => {
-                window.location.href = '../pages/login.html';
-            });
+            window.location.href = '../pages/login.html';
         }
     });
 
