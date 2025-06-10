@@ -596,7 +596,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 "Number", "Email", "Type of Assistance", "Valuation",
                 "Additional Notes", "Staff-In Charge", "Status", "Donation Date"
             ]];
-
+// end
             const body = allDonations.map((d, i) => [
                 i + 1,
                 d.encoder || 'N/A',

@@ -241,7 +241,8 @@ window.initializeDashboard = function () {
         }
         userUid = user.uid;
         console.log(`Lenlen: Logged-in user UID: ${userUid}`);
-        resetInactivityTimer()
+        
+        
 
         database.ref(`users/${user.uid}`).once("value", snapshot => {
             const userData = snapshot.val();
