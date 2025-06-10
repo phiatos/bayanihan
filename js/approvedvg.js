@@ -710,7 +710,7 @@ function initializeApprovedApplicationsPage(userId) {
         `;
 
         modalContentDiv.innerHTML = content;
-        previewModal.style.display = 'block'; // Show the modal
+        previewModal.style.display = 'flex'; // Show the modal
     }
 
     function hidePreviewModal() {
