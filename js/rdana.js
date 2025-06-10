@@ -46,7 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Variables for inactivity detection --------------------------------------------------------------------
 let inactivityTimeout;
-const INACTIVITY_TIME = 1800000; // 30 minutes in milliseconds
+const INACTIVITY_TIME = 5000; // 30 minutes in milliseconds
 
 // Function to reset the inactivity timer
 function resetInactivityTimer() {
@@ -125,9 +125,11 @@ function checkInactivity() {
       }).then(() => {
         window.location.href = "../pages/login.html"; // Use href here as they are not yet authenticated for the target page
       });
-      resetInactivityTimer();
+      
       return;
     }
+
+    resetInactivityTimer();
 
     console.log('Logged-in user UID:', user.uid);
     currentUserUid = user.uid;
