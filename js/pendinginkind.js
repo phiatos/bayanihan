@@ -248,27 +248,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             throw new Error("Donation data not found in pendingInkind for approval.");
                         }
                     } else if (newStatus === 'Rejected') {
-                        // --- MODIFIED LOGIC FOR REJECTED ---
-                        // Per your request, the status field is NOT updated before removal.
-                        // The donation is simply removed from 'pendingInkind'.
                         await database.ref('pendingInkind/' + id).remove();
-
-                        // If you ever need to keep a record of rejected items,
-                        // you would fetch the item first and move it to a 'donations/rejectedInkind' path
-                        // without changing its status, similar to the approved logic.
-                        // Example (commented out as not requested, but for future reference):
-                        /*
-                        const snapshot = await database.ref('pendingInkind/' + id).once('value');
-                        const rejectedDonation = snapshot.val();
-                        if (rejectedDonation) {
-                            rejectedDonation.rejectedAt = new Date().toISOString(); // Add a rejected timestamp
-                            rejectedDonation.updatedAt = new Date().toISOString();
-                            await database.ref('donations/rejectedInkind/' + id).set(rejectedDonation); // Push to a rejected path
-                            await database.ref('pendingInkind/' + id).remove(); // Then remove from pending
-                        } else {
-                            throw new Error("Donation data not found in pendingInkind for rejection.");
-                        }
-                        */
                     }
 
                     // Show success message

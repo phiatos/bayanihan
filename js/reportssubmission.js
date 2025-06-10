@@ -1,3 +1,4 @@
+
 // Global variables for map and markers
 let map;
 let markers = [];
@@ -207,7 +208,6 @@ function clearMarkers() {
     markers.forEach(marker => marker.setMap(null));
     markers = [];
 }
-
 document.addEventListener('DOMContentLoaded', () => {
     // Firebase configuration (should only be initialized once per app)
     const firebaseConfig = {
@@ -282,7 +282,6 @@ document.addEventListener('DOMContentLoaded', () => {
             calamityAreaDropdown.appendChild(option);
         });
 
-        // This part remains to attempt to pre-select after population
         const savedData = JSON.parse(localStorage.getItem("reportData"));
         if (savedData && savedData.CalamityAreaId) {
             calamityAreaDropdown.value = savedData.CalamityAreaId;
@@ -297,7 +296,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (selectedActivationId === "") {
             areaOfOperationInput.value = "";
-            areaOfOperationInput.readOnly = false; // Allow manual input if no operation is selected
+            areaOfOperationInput.readOnly = false;
         } else {
             const selectedActivation = activeActivations.find(
                 (activation) => activation.id === selectedActivationId
@@ -305,7 +304,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (selectedActivation) {
                 // areaOfOperationInput.value = selectedActivation.areaOfOperation || ""; // You had this commented out
-                areaOfOperationInput.readOnly = false; // Still allow manual pin even if an operation is selected
+                areaOfOperationInput.readOnly = false;
             } else {
                 console.warn("Selected activation not found in activeActivations array.");
                 areaOfOperationInput.value = "";
@@ -494,15 +493,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const formattedDate = today.toLocaleDateString('en-CA'); //YYYY-MM-DD
     dateOfReportInput.value = formattedDate;
 
-    // Generate random report ID
+     // Generate random report ID
     const idInput = document.getElementById('reportId');
     if (idInput) {
-        const randomId = 'REPORTS' + Math.floor(10000 + Math.random() * 9000000000);
+        const randomId = 'REPORTS-' + Math.floor(10000 + Math.random() * 9000000000);
         idInput.value = randomId;
     }
 
     // --- Modal Elements and Event Listeners ---
-    if (pinBtn && mapModal && closeBtn) {
+   if (pinBtn && mapModal && closeBtn) {
         pinBtn.addEventListener('click', (e) => {
             e.preventDefault();
             console.log("Pin button clicked!");
@@ -590,7 +589,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const startDate = new Date(startDateValue + 'T00:00:00');
         const endDate = new Date(endDateValue + 'T00:00:00');
         const today = new Date();
-        today.setHours(0, 0, 0, 0); // Set to start of day for comparison
+        today.setHours(0, 0, 0, 0);
         const oneYearFromNow = new Date(today);
         oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
 
@@ -605,7 +604,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        if (startDate > today) { // Changed to today for accurate comparison (start of day)
+        if (startDate > today) {
             Swal.fire({
                 icon: 'warning',
                 title: 'Future Start Date',
@@ -668,26 +667,35 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         // --- End of NEW logic ---
 
-        // ONLY save data from form-page-1 when 'next' is clicked
+        formPage1.style.display = "none";
+        formPage2.style.display = "block";
+
+        // --- Save data to localStorage when navigating to the next page ---
         const formData = {
             userUid: userUid,
-            VolunteerGroupName: volunteerGroupName,
+            VolunteerGroupName: volunteerGroupName, // Make sure this is captured
             AreaOfOperation: areaOfOperationInput.value,
             CalamityAreaId: calamityAreaDropdown.value,
             CalamityName: selectedCalamityName,
-            CalamityAreaDetails: calamityAreaDetailsText,
+            CalamityAreaDetails: calamityAreaDetailsText, // This is the new combined field!
             TimeOfIntervention: completionTimeInput.value,
             DateOfReport: dateOfReportInput.value,
             ReportID: reportIdInput.value,
             StartDate: startDateInput.value,
             EndDate: endDateInput.value,
-            // NotesAdditionalInformation is NOT on this page, so don't save it here yet
+            NoOfIndividualsOrFamilies: numIndividualsFamiliesInput.value,
+            NoOfFoodPacks: numFoodPacksInput.value,
+            NoOfHotMeals: numHotMealsInput.value,
+            LitersOfWater: litersWaterInput.value,
+            NoOfVolunteersMobilized: numVolunteersInput.value,
+            NoOfOrganizationsActivated: numOrganizationsInput.value,
+            TotalValueOfInKindDonations: valueInKindInput.value,
+            TotalMonetaryDonations: monetaryDonationsInput.value,
+            NotesAdditionalInformation: notesInfoTextarea.value,
+            Status: "Pending"
         };
         localStorage.setItem("reportData", JSON.stringify(formData));
-        console.log("Form data (Page 1) saved to localStorage:", formData); // Debugging line
-
-        formPage1.style.display = "none";
-        formPage2.style.display = "block";
+        console.log("Form data saved to localStorage:", formData); // Debugging line
     });
 
     backBtn.addEventListener('click', () => {
@@ -695,30 +703,8 @@ document.addEventListener('DOMContentLoaded', () => {
         formPage1.style.display = "block";
     });
 
-    // THIS IS WHERE ALL FINAL DATA SHOULD BE GATHERED AND SAVED/SUBMITTED
     formPage2.addEventListener("submit", function (e) {
         e.preventDefault();
-
-        // Retrieve existing data from localStorage (from page 1)
-        const savedData = JSON.parse(localStorage.getItem("reportData")) || {};
-
-        // Add data from page 2 to the savedData object
-        savedData.NoOfIndividualsOrFamilies = numIndividualsFamiliesInput.value;
-        savedData.NoOfFoodPacks = numFoodPacksInput.value;
-        savedData.NoOfHotMeals = numHotMealsInput.value;
-        savedData.LitersOfWater = litersWaterInput.value;
-        savedData.NoOfVolunteersMobilized = numVolunteersInput.value;
-        savedData.NoOfOrganizationsActivated = numOrganizationsInput.value;
-        savedData.TotalValueOfInKindDonations = valueInKindInput.value;
-        savedData.TotalMonetaryDonations = monetaryDonationsInput.value;
-        savedData.NotesAdditionalInformation = notesInfoTextarea.value; // <--- CAPTURE HERE
-        savedData.Status = "Pending"; // Ensure status is set on final submission
-
-        // Save the complete data back to localStorage
-        localStorage.setItem("reportData", JSON.stringify(savedData));
-        console.log("Full form data saved to localStorage on Page 2 submit:", savedData);
-
-        // Then redirect
         window.location.href = "../pages/reportsSummary.html";
     });
 
@@ -729,7 +715,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const savedData = JSON.parse(localStorage.getItem("reportData"));
 
         if (savedData) {
-            // Pre-fill fields from savedData
+            // Pre-fill fields
             reportIdInput.value = savedData.ReportID || '';
             dateOfReportInput.value = savedData.DateOfReport || '';
             areaOfOperationInput.value = savedData.AreaOfOperation || '';
@@ -737,15 +723,14 @@ document.addEventListener('DOMContentLoaded', () => {
             // Handle Calamity Area dropdown pre-selection and triggering change
             if (savedData.CalamityAreaId) {
                 calamityAreaDropdown.value = savedData.CalamityAreaId;
-                // Dispatch change event to ensure dependent logic runs
+                // Dispatch change event to ensure dependent logic (like setting areaOfOperationInput, though it's currently manual) runs
                 calamityAreaDropdown.dispatchEvent(new Event('change'));
             }
-
+            
             completionTimeInput.value = savedData.TimeOfIntervention || '';
             startDateInput.value = savedData.StartDate || '';
             endDateInput.value = savedData.EndDate || '';
 
-            // Ensure these fields are also pre-filled if data exists for page 2
             numIndividualsFamiliesInput.value = savedData.NoOfIndividualsOrFamilies || '';
             numFoodPacksInput.value = savedData.NoOfFoodPacks || '';
             numHotMealsInput.value = savedData.NoOfHotMeals || '';
@@ -754,7 +739,7 @@ document.addEventListener('DOMContentLoaded', () => {
             numOrganizationsInput.value = savedData.NoOfOrganizationsActivated || '';
             valueInKindInput.value = savedData.TotalValueOfInKindDonations || '';
             monetaryDonationsInput.value = savedData.TotalMonetaryDonations || '';
-            notesInfoTextarea.value = savedData.NotesAdditionalInformation || ''; // This line is correct for pre-filling
+            notesInfoTextarea.value = savedData.NotesAdditionalInformation || ''; 
         }
 
         // Determine which page to show on return
