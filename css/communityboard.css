@@ -339,46 +339,75 @@
 .modal-footer {
   display: flex;
   justify-content: space-between;
+  /* align-items: center; */
+  padding: 0;
+}
+
+.share-modal-footer{
+  width: 50%;
+  position: sticky;  
+  display: flex;
+  left: 410px;
+  justify-content: space-between;
   padding: 20px;
+  justify-content: center;
+  align-items: center;
 }
 
-.modal-footer button {
-  padding: 10px 20px;
-  border-radius: 8px;
-  font-size: 14px;
-  cursor: pointer;
-  border: none;
-  transition: background-color 0.3s;
+#share-cancel-button, #share-submit-button{
+  border-radius: 15px;
+  padding: 10px;
 }
 
-.cancel-button {
-  background-color: #f44336;
+ #modal-post-button{
+  padding: 10px;
+  border-radius: 15px;
+  margin-top: 15px;
+}
+
+#share-cancel-button{
+  background-color: transparent;
+  color: var(--primary-color);
+  border: var(--primary-color) 2px solid;
+  transition: box-shadow 0.3s ease, transform 0.2s ease;
+  box-shadow: 0 0 0 rgba(0, 0, 0, 0); /* start without glow */
+}
+
+#share-cancel-button:hover {
+  /* background-color: var(--primary-color); */
+  color: var(--primary-color);
+   box-shadow: 0 0 10px #83cdde, 0 0 20px #83cdde, 0 0 30px #83cdde;
+  transform: scale(1.03);
+}
+
+#share-submit-button, #modal-post-button {
+  background-color: var(--primary-color);
   color: #fff;
 }
 
-.cancel-button:hover {
-  background-color: #d32f2f;
+#share-submit-button:hover, #modal-post-button:hover {
+  background-color: transparent;
+  color: var(--primary-color);
+   box-shadow: 0 0 10px #83cdde, 0 0 20px #83cdde, 0 0 30px #83cdde;
+  transform: scale(1.03);
 }
 
-.share-button {
-  background-color: #14AEBB;
-  color: #fff;
+#modal-post-button:hover{
+  background-color: transparent;
+  color: var(--primary-color);
+  box-shadow: 0 0 10px #83cdde, 0 0 20px #83cdde, 0 0 30px #83cdde;
+  transform: scale(1.03);
+  border: var(--primary-color) 2px solid;
 }
 
-.share-button:hover {
-  background-color: var(--primary-hover);
-}
 
 .post-buttons.modal-buttons {
   display: flex;
-  gap: 10px;
   justify-content: flex-start;
   padding: 0;
-  margin-top: 10px;
 }
 
 .post-buttons.modal-buttons .post-option {
-  padding: 5px;
   background: none;
 }
 
