@@ -218,6 +218,7 @@ function initSidebar() {
       volunteerApplications: document.querySelector(".menu-volunteer-applications"),
       pendingVolunteers: document.querySelector(".menu-pending-volunteers"),
       approvedVolunteers: document.querySelector(".menu-approved-volunteers"),
+      endorsedVolunteers: document.querySelector(".menu-endorsed-volunteers"),
       pendingDonations: document.querySelector(".menu-pending-donations"),
       pendingInkind: document.querySelector(".menu-pending-inkind"),
       pendingMonetary: document.querySelector(".menu-pending-monetary"),
@@ -239,15 +240,6 @@ function initSidebar() {
         if (title.textContent.trim() === "Admin") {
           title.style.display = "none";
         }
-        // Hide the "Pending Approvals" title and its associated list items
-        else if (title.textContent.trim() === "Pending Approvals") {
-          title.style.display = "none";
-          let next = title.nextElementSibling;
-          while (next && next.tagName.toLowerCase() === "li") {
-            next.style.display = "none";
-            next = next.nextElementSibling;
-          }
-        }
       });
 
       // Show allowed menu items for ABVN volunteers
@@ -260,6 +252,7 @@ function initSidebar() {
         menuItems.reliefsRequest,
         menuItems.reports,
         menuItems.reportsSubmission,
+        menuItems.endorsedVolunteers,
       ];
 
       // Hide restricted menu items for ABVN volunteers
@@ -267,16 +260,15 @@ function initSidebar() {
         menuItems.volunteergroupmanagement,
         menuItems.activation,
         menuItems.donationTracksheet,
+        menuItems.abvnApplications,
+        menuItems.pendingDonations,
         menuItems.rdanaVerification,
         menuItems.rdanaLog,
         menuItems.reliefsLog,
         menuItems.reportsVerification,
         menuItems.reportsLog,
-        menuItems.inkind,
-        menuItems.monetary,
-        menuItems.abvnApplications,
-        menuItems.volunteerApplications,
-        menuItems.pendingDonations
+        menuItems.pendingVolunteers,
+        menuItems.approvedVolunteers
       ];
 
       // Show allowed items
@@ -326,10 +318,6 @@ function initSidebar() {
           console.log(`Showed menu item: ${item.className}`);
         }
       });
-
-      if (titleAdmin) titleAdmin.style.display = "none";
-      if (titlePendingApprovals) titlePendingApprovals.style.display = "none";
-
     }
   }
 

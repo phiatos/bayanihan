@@ -35,8 +35,7 @@ a {
   object-fit: cover;
 }
 
-.user-details .title,
-.menu .title {
+.user-details .title{
   font-size: 11px;
   font-weight: 500;
   color: var(--white);
@@ -51,6 +50,17 @@ a {
   font-weight: bold;
 }
 
+.menu .title {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--white);
+  text-transform: uppercase;
+  margin-bottom: 10px; /* Increase bottom margin to create space for the border */
+  margin-top: 20px;   /* Add some top margin for separation from previous list items */
+  padding-bottom: 10px; /* Padding below the text before the border */
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+}
+
 .scrollable-content {
   flex: 1; /* Takes up remaining vertical space */
   overflow-y: auto;
@@ -59,27 +69,24 @@ a {
   scrollbar-width: none;
 }
 
-/* .main-menu-wrapper {
-  padding-right: 10px; 
-  padding-bottom: 20px; 
-} */
-
 .scrollable-content .menu:not(:last-child) {
-  padding-bottom: 10px;
-  margin-bottom: 20px;
-  border-bottom: 2px solid var(--white);
+  border-bottom: none; /* Remove this if the title border is enough */
+  margin-bottom: 10px; /* Adjust as needed after removing the strong border */
+  padding-bottom: 0;
 }
 
 .nav {
-  flex: 1; /* Ensures .nav expands within scrollable-content if needed */
+  flex: 1; 
 }
 
-.menu ul li {
+.menu ul li,
+.menu-account ul li {
   position: relative;
   list-style: none;
 }
 
-.menu ul li a {
+.menu ul li a,
+.menu-account ul li a{
   display: flex;
   align-items: center;
   gap: 10px;
@@ -132,7 +139,7 @@ a {
 .sidebar > .menu {
   padding-top: 15px; 
   margin-top: auto; 
-  border-top: 1px solid var(--white); 
+  border-top: none; 
   padding-bottom: 0; 
   margin-bottom: 0; 
 }
