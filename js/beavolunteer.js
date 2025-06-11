@@ -31,6 +31,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const generalAvailabilitySelect = document.getElementById('generalAvailability');
     const specificDaysGroup = document.getElementById('specificDaysGroup');
 
+    // A flag to prevent multiple submissions
+    let isSubmitting = false;
+    
     if (generalAvailabilitySelect && specificDaysGroup) {
         generalAvailabilitySelect.addEventListener('change', () => {
             if (generalAvailabilitySelect.value === 'Specific days') {
@@ -375,123 +378,210 @@ document.addEventListener('DOMContentLoaded', () => {
         volunteerForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            // Get the reCAPTCHA response
-            const recaptchaResponse = grecaptcha.getResponse();
+            const submitButton = document.querySelector('.btn-primary'); // Get the submit button
 
-            if (!recaptchaResponse) {
-                logActivity('RECAPTCHA_NOT_COMPLETED', { action: 'error' });
-                Swal.fire('Error', 'Please complete the reCAPTCHA to prove you are not a robot.', 'error');
+            // Prevent multiple rapid submissions
+            if (isSubmitting) {
+                console.log('Already submitting, please wait...');
                 return;
             }
 
-            // Get form data for volunteer information
-            const firstName = document.getElementById('firstName').value.trim();
-            const middleInitial = document.getElementById('middleInitial').value.trim();
-            const lastName = document.getElementById('lastName').value.trim();
-            const nameExtension = document.getElementById('nameExtension').value.trim();
-            const email = document.getElementById('email').value.trim();
-            const mobileNumber = document.getElementById('mobileNumber').value.trim();
-            const socialMedia = document.getElementById('socialMedia').value.trim();
-            const age = document.getElementById('age').value.trim(); // Get age as a string initially
-            const additionalInfo = document.getElementById('additionalInfo').value.trim();
-
-            // Get selected text content from location dropdowns
-            const selectedRegionText = regionSelect.options[regionSelect.selectedIndex]?.textContent || '';
-            const selectedProvinceText = provinceSelect.options[provinceSelect.selectedIndex]?.textContent || '';
-            const selectedCityText = citySelect.options[citySelect.selectedIndex]?.textContent || '';
-            const selectedBarangayText = barangaySelect.options[barangaySelect.selectedIndex]?.textContent || '';
-            const streetAddress = streetAddressInput.value.trim();
-
-            const generalAvailability = generalAvailabilitySelect.value;
-            let specificDays = []; // Initialize as an empty array
-
-            if (generalAvailability === 'Specific days') {
-                const specificDaysCheckboxes = specificDaysGroup.querySelectorAll('input[type="checkbox"]:checked');
-                specificDaysCheckboxes.forEach(checkbox => {
-                    specificDays.push(checkbox.value);
-                });
-            }
-
-            if (!firstName || !lastName || !email || !mobileNumber || !age ||
-                !selectedRegionText || !selectedProvinceText || !selectedCityText || !selectedBarangayText || !streetAddress || !generalAvailability) { // Added generalAvailability here
-                Swal.fire('Error', 'Please fill in all required fields (Name, Contact Information, Age, Full Address, and General Availability).', 'error');
-                return;
-            }
-
-            // Email Format Validation
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(email)) {
-                Swal.fire('Error', 'Please enter a valid email address (e.g., example@domain.com).', 'error');
-                return;
-            }
-
-            // Mobile Number Format Validation (11 digits, starts with 09)
-            const mobileNumberRegex = /^09\d{9}$/; // Starts with 09 and has 9 more digits
-            if (!mobileNumberRegex.test(mobileNumber)) {
-                Swal.fire('Error', 'Please enter a valid 11-digit mobile number starting with "09" (e.g., 09171234567).', 'error');
-                return;
-            }
-
-            // Social Media Link (URL) Validation (optional, only if provided)
-            if (socialMedia) {
-                try {
-                    new URL(socialMedia);
-                } catch (e) {
-                    Swal.fire('Error', 'Please enter a valid URL for your social media link (e.g., https://facebook.com/yourpage).', 'error');
-                    return;
-                }
-            }
-
-            // Validate age
-            const parsedAge = parseInt(age, 10);
-            if (isNaN(parsedAge) || parsedAge < 18) {
-                Swal.fire('Error', 'Volunteers must be 18 years or older. Please enter a valid age.', 'error');
-                return;
-            }
-
-            if (generalAvailability === 'Specific days' && specificDays.length === 0) {
-                Swal.fire('Error', 'Please select at least one specific day if you chose "Specific days" for availability.', 'error');
-                return;
-            }
-
-            // Create an object to store in Realtime Database
-            const volunteerData = {
-                firstName: firstName,
-                middleInitial: middleInitial, 
-                lastName: lastName,
-                nameExtension: nameExtension, 
-                email: email,
-                mobileNumber: mobileNumber,
-                socialMediaLink: socialMedia,
-                age: parsedAge,
-                additionalInfo: additionalInfo,
-                address: {
-                    region: selectedRegionText,
-                    province: selectedProvinceText,
-                    city: selectedCityText,
-                    barangay: selectedBarangayText,
-                    streetAddress: streetAddress
-                },
-                availability: {
-                    general: generalAvailability,
-                    specificDays: specificDays
-                },
-                applicationDateandTime: new Date().toISOString(),
-                recaptchaResponse: recaptchaResponse
-            };
+            // Disable the button and show submitting text
+            submitButton.disabled = true;
+            submitButton.textContent = 'Submitting...';
+            isSubmitting = true; // Set the flag
 
             try {
+                // Get the reCAPTCHA response
+                const recaptchaResponse = grecaptcha.getResponse();
+
+                if (!recaptchaResponse) {
+                    logActivity('RECAPTCHA_NOT_COMPLETED', { action: 'error' });
+                    Swal.fire('Error', 'Please complete the reCAPTCHA to prove you are not a robot.', 'error');
+                    // Re-enable the button and reset flag if reCAPTCHA is not completed
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Submit Application';
+                    isSubmitting = false;
+                    grecaptcha.reset();
+                    return; // Stop the form submission
+                }
+
+                // Get form data for volunteer information
+                const firstName = document.getElementById('firstName').value.trim();
+                const middleInitial = document.getElementById('middleInitial').value.trim();
+                const lastName = document.getElementById('lastName').value.trim();
+                const nameExtension = document.getElementById('nameExtension').value.trim();
+                const email = document.getElementById('email').value.trim();
+                const mobileNumber = document.getElementById('mobileNumber').value.trim();
+                const socialMedia = document.getElementById('socialMedia').value.trim();
+                const age = document.getElementById('age').value.trim();
+                const additionalInfo = document.getElementById('additionalInfo').value.trim();
+
+                // Get selected text content from location dropdowns
+                const selectedRegionText = regionSelect.options[regionSelect.selectedIndex]?.textContent || '';
+                const selectedProvinceText = provinceSelect.options[provinceSelect.selectedIndex]?.textContent || '';
+                const selectedCityText = citySelect.options[citySelect.selectedIndex]?.textContent || '';
+                const selectedBarangayText = barangaySelect.options[barangaySelect.selectedIndex]?.textContent || '';
+                const streetAddress = streetAddressInput.value.trim();
+
+                const generalAvailability = generalAvailabilitySelect.value;
+                let specificDays = [];
+
+                if (generalAvailability === 'Specific days') {
+                    const specificDaysCheckboxes = specificDaysGroup.querySelectorAll('input[type="checkbox"]:checked');
+                    specificDaysCheckboxes.forEach(checkbox => {
+                        specificDays.push(checkbox.value);
+                    });
+                }
+
+                // --- Form Field Validation ---
+                if (!firstName || !lastName || !email || !mobileNumber || !age ||
+                    !selectedRegionText || !selectedProvinceText || !selectedCityText || !selectedBarangayText || !streetAddress || !generalAvailability) {
+                    Swal.fire('Error', 'Please fill in all required fields (Name, Contact Information, Age, Full Address, and General Availability).', 'error');
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Submit Application';
+                    isSubmitting = false;
+                    grecaptcha.reset();
+                    return;
+                }
+
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(email)) {
+                    Swal.fire('Error', 'Please enter a valid email address (e.g., example@domain.com).', 'error');
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Submit Application';
+                    isSubmitting = false;
+                    grecaptcha.reset();
+                    return;
+                }
+
+                const mobileNumberRegex = /^09\d{9}$/;
+                if (!mobileNumberRegex.test(mobileNumber)) {
+                    Swal.fire('Error', 'Please enter a valid 11-digit mobile number starting with "09" (e.g., 09171234567).', 'error');
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Submit Application';
+                    isSubmitting = false;
+                    grecaptcha.reset();
+                    return;
+                }
+
+                if (socialMedia) {
+                    try {
+                        new URL(socialMedia);
+                    } catch (e) {
+                        Swal.fire('Error', 'Please enter a valid URL for your social media link (e.g., https://facebook.com/yourpage).', 'error');
+                        submitButton.disabled = false;
+                        submitButton.textContent = 'Submit Application';
+                        isSubmitting = false;
+                        grecaptcha.reset();
+                        return;
+                    }
+                }
+
+                const parsedAge = parseInt(age, 10);
+                if (isNaN(parsedAge) || parsedAge < 18) {
+                    Swal.fire('Error', 'Volunteers must be 18 years or older. Please enter a valid age.', 'error');
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Submit Application';
+                    isSubmitting = false;
+                    grecaptcha.reset();
+                    return;
+                }
+
+                if (generalAvailability === 'Specific days' && specificDays.length === 0) {
+                    Swal.fire('Error', 'Please select at least one specific day if you chose "Specific days" for availability.', 'error');
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Submit Application';
+                    isSubmitting = false;
+                    grecaptcha.reset();
+                    return;
+                }
+
+                // --- Check for Duplicates ---
+                const volunteersRef = database.ref("volunteerApplications/pendingVolunteer");
+                const allApplicationsSnapshot = await volunteersRef.once('value');
+                
+                let isDuplicateName = false;
+                let duplicateEmailExists = false
+
+                allApplicationsSnapshot.forEach(childSnapshot => {
+                const volunteer = childSnapshot.val();
+                    if (volunteer.firstName.toLowerCase() === firstName.toLowerCase() &&
+                        volunteer.lastName.toLowerCase() === lastName.toLowerCase()) {
+                        isDuplicateName = true;
+                        // Additionally check if the email also matches to give a more specific message
+                        if (volunteer.email.toLowerCase() === email.toLowerCase()) {
+                            duplicateEmailExists = true;
+                        }
+                        // We found a name match, we can stop iterating if we only care about name uniqueness
+                        // If you want to log all matches or check other criteria, continue.
+                        // For simply detecting if a name match exists, we can break.
+                        return true; // Breaks forEach loop early if a match is found
+                    }
+                });
+
+                if (isDuplicateName) {
+                    let errorMessage = '';
+                    if (duplicateEmailExists) {
+                        errorMessage = 'An application with this name and email already exists. Please check your details or contact support if you believe this is an error.';
+                    } else {
+                        errorMessage = 'An application with this name (first name and last name) already exists. Please ensure you are not submitting a duplicate application.';
+                    }
+                    Swal.fire('Error', errorMessage, 'error');
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Submit Application';
+                    isSubmitting = false;
+                    grecaptcha.reset();
+                    return;
+                }
+                
+
+                // Create an object to store in Realtime Database
+                const volunteerData = {
+                    firstName: firstName,
+                    middleInitial: middleInitial,
+                    lastName: lastName,
+                    nameExtension: nameExtension,
+                    email: email,
+                    mobileNumber: mobileNumber,
+                    socialMediaLink: socialMedia,
+                    age: parsedAge,
+                    additionalInfo: additionalInfo,
+                    address: {
+                        region: selectedRegionText,
+                        province: selectedProvinceText,
+                        city: selectedCityText,
+                        barangay: selectedBarangayText,
+                        streetAddress: streetAddress
+                    },
+                    availability: {
+                        general: generalAvailability,
+                        specificDays: specificDays
+                    },
+                    applicationDateandTime: new Date().toISOString(),
+                    recaptchaResponse: recaptchaResponse
+                };
+
+                // Push data to Firebase
                 await database.ref("volunteerApplications/pendingVolunteer").push(volunteerData);
 
                 console.log("Volunteer application saved to Realtime Database successfully!");
                 Swal.fire('Success', 'Your volunteer application has been submitted successfully! Thank you for your interest in helping.', 'success');
-                volunteerForm.reset(); 
-                my_handlers.fill_regions(); 
+
+                // Reset form and reCAPTCHA after successful submission
+                volunteerForm.reset();
+                my_handlers.fill_regions();
                 grecaptcha.reset();
+
             } catch (error) {
                 console.error("Error adding volunteer application to Realtime Database: ", error);
                 Swal.fire('Error', 'There was an error submitting your application. Please try again.', 'error');
-                grecaptcha.reset(); 
+            } finally {
+                // Always re-enable the button and reset the flag after the process completes (success or failure)
+                submitButton.disabled = false;
+                submitButton.textContent = 'Submit Application';
+                isSubmitting = false;
+                grecaptcha.reset(); // Reset reCAPTCHA in case of any error during submission
             }
         });
     }

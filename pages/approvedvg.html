@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../components/sidebar.css" />
     <link rel="stylesheet" href="../css/global.css" />
+    <link rel="stylesheet" href="../css/approved.css" />
     <link rel='stylesheet' href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css'/>
 
     <!-- Firebase Compat SDK -->
@@ -15,6 +16,8 @@
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+
     <title>Approved ABVN Applications</title>
 </head>
 <body>
@@ -99,6 +102,55 @@
         <div class="modal-content">
             <span id="closeModal" class="close">×</span>
             <div id="modalContent"></div>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div class="modal" id="editOrgModal" style="display: none;">
+        <div class="modal-content">
+            <span class="close-button" id="closeEditModalBtn">×</span>
+            <h4 id="editModalTitle">Edit Volunteer Group</h4>
+            <form id="editOrgForm">
+                <input type="hidden" id="editOrgFirebaseKey">
+
+                <label>Organization</label>
+                <input type="text" name="organization" id="editOrganization" placeholder="Enter Organization" required>
+                
+                <label for="editRegion">Region</label>
+                <select id="editRegion" name="region" required></select>
+                <input type="hidden" id="editRegion-text" name="region-text"/> 
+
+                <label for="editProvince">Province</label>
+                <select id="editProvince" name="province" required></select>
+                <input type="hidden" id="editProvince-text" name="province-text"/>
+
+                <label for="editCity">City/Municipality</label>
+                <select id="editCity" name="city" required></select>
+                <input type="hidden" id="editCity-text" name="city-text"/> 
+
+                <label for="editBarangay">Barangay</label>
+                <select id="editBarangay" name="barangay" required></select>
+                <input type="hidden" id="editBarangay-text" name="barangay-text"/> 
+
+                <label>Block/Lot/Unit Number and Street</label>
+                <input type="text" name="streetAddress" id="editStreetAddress" placeholder="Enter Block/Lot/Unit Number and Street" required>
+
+                <label>Contact Person</label>
+                <input type="text" name="contactPerson" id="editContactPerson" placeholder="Enter Contact Person" required>
+
+                <label>Email</label>
+                <input type="email" name="email" id="editEmail" placeholder="Enter the email of the organization of the Contact Person" required>
+
+                <label>Mobile Number</label>
+                <input type="number" name="mobileNumber" id="editMobileNumber" placeholder="Enter the mobile number of the Contact Person" required> 
+
+                <label>Social Media</label>
+                <input type="text" name="socialMedia" id="editSocialMedia" placeholder="Enter Social Media Link (Optional)">
+
+                <div style="margin-top: 20px;">
+                    <button type="submit" style="width: 25%;">Save Changes</button>
+                </div>
+            </form>
         </div>
     </div>
 
