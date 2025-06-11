@@ -266,7 +266,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let userUid = null;
     let volunteerGroupName = "[Unknown Org]"; // Default to Unknown Org
-    let activeActivations = []; // To store active operations for the dropdown
+    let activeActivations = []; // To store active operations for the dropdown\
+    let currentUserRole = null; // To store the user's role from custom claims
 
     function populateCalamityAreaDropdown() {
         calamityAreaDropdown.innerHTML = '<option value="">-- Select an Active Operation --</option>';
@@ -315,43 +316,25 @@ document.addEventListener('DOMContentLoaded', () => {
         if (pinBtn) pinBtn.style.display = 'inline-block';
     });
 
-    auth.onAuthStateChanged(user => {
-        if (user) {
-            userUid = user.uid;
-            console.log('Logged-in user UID:', userUid);
+auth.onAuthStateChanged(user => {
+    if (user) {
+        userUid = user.uid;
+        console.log('Logged-in user UID:', userUid);
 
-            database.ref(`users/${userUid}`).once('value', snapshot => {
-                const userData = snapshot.val();
-                if (userData && userData.organization) {
-                    volunteerGroupName = userData.organization;
-                    console.log('Volunteer group fetched from database for filtering:', volunteerGroupName);
-                } else {
-                    console.warn('User data or group not found in database for UID:', userUid);
-                }
+        database.ref(`users/${userUid}`).once('value', snapshot => {
+            const userData = snapshot.val();
+            if (userData) {
+                const userRole = userData.role;
+                const volunteerGroupName = userData.organization; // Get the organization name from user data
 
-                let activationsQuery = database.ref("activations").orderByChild("status").equalTo("active");
+                console.log('User Role:', userRole);
+                console.log('Volunteer Group Name:', volunteerGroupName);
 
-                if (volunteerGroupName && volunteerGroupName !== "[Unknown Org]") {
-                    console.log(`Filtering activations for group: ${volunteerGroupName}`);
-                    activationsQuery.on("value", snapshot => {
-                        activeActivations = [];
-                        snapshot.forEach(childSnapshot => {
-                            const activation = { id: childSnapshot.key, ...childSnapshot.val() };
-                            if (activation.organization === volunteerGroupName) { // THIS IS THE FILTERING LOGIC
-                                activeActivations.push(activation);
-                            }
-                        });
-                        populateCalamityAreaDropdown();
-                    }, error => {
-                        console.error("Error listening for active activations with group filter:", error);
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: 'Failed to load active operations. Please try again.'
-                        });
-                    });
-                } else {
-                    console.log("Showing all active activations (Unknown Org or no group).");
+                // --- Role-based Access Control ---
+                if (userRole === 'AB ADMIN') {
+                    console.log('AB ADMIN role detected. Allowing access to submit report without group activation check.');
+                    // AB ADMINs can always submit reports, so proceed to load all active activations
+                    let activationsQuery = database.ref("activations").orderByChild("status").equalTo("active");
                     activationsQuery.on("value", snapshot => {
                         activeActivations = [];
                         snapshot.forEach(childSnapshot => {
@@ -359,29 +342,148 @@ document.addEventListener('DOMContentLoaded', () => {
                         });
                         populateCalamityAreaDropdown();
                     }, error => {
-                        console.error("Error listening for all active activations:", error);
+                        console.error("Error listening for all active activations (AB ADMIN):", error);
                         Swal.fire({
                             icon: 'error',
                             title: 'Error',
                             text: 'Failed to load active operations. Please try again.'
                         });
                     });
+                } else if (userRole === 'ABVN') {
+                    console.log('ABVN role detected. Checking if their organization has active operations.');
+
+                    if (volunteerGroupName) {
+                        // Instead of checking a 'groups' node, we check 'activations' for the organization
+                        database.ref("activations")
+                            .orderByChild("organization")
+                            .equalTo(volunteerGroupName)
+                            .once('value', organizationActivationsSnapshot => {
+
+                                let organizationHasActiveActivations = false;
+                                organizationActivationsSnapshot.forEach(childSnapshot => {
+                                    const activation = childSnapshot.val();
+                                    if (activation.status === "active") {
+                                        organizationHasActiveActivations = true;
+                                        return true; // Stop iterating if at least one active activation is found
+                                    }
+                                });
+
+                                if (organizationHasActiveActivations) {
+                                    console.log(`User's organization "${volunteerGroupName}" has active operations for ABVN.`);
+                                    // Organization has active operations, proceed to fetch relevant activations
+                                    let activationsQuery = database.ref("activations").orderByChild("status").equalTo("active");
+
+                                    console.log(`Filtering activations for ABVN organization: ${volunteerGroupName}`);
+                                    activationsQuery.on("value", snapshot => {
+                                        activeActivations = [];
+                                        snapshot.forEach(childSnapshot => {
+                                            const activation = { id: childSnapshot.key, ...childSnapshot.val() };
+                                            if (activation.organization === volunteerGroupName) {
+                                                activeActivations.push(activation);
+                                            }
+                                        });
+                                        populateCalamityAreaDropdown();
+                                    }, error => {
+                                        console.error("Error listening for active activations with ABVN organization filter:", error);
+                                        Swal.fire({
+                                            icon: 'error',
+                                            title: 'Error',
+                                            text: 'Failed to load active operations. Please try again.'
+                                        });
+                                    });
+                                } else {
+                                    console.warn(`ABVN's organization "${volunteerGroupName}" has NO active operations.`);
+                                    Swal.fire({
+                                        icon: 'warning',
+                                        title: 'Organization Inactive',
+                                        text: 'Your organization currently has no active operations. You will be redirected to the dashboard.',
+                                        didClose: () => {
+                                            window.location.href = '../pages/dashboard.html';
+                                        }
+                                    });
+                                    // Disable form elements if no active operations for the organization
+                                    nextBtn.disabled = true;
+                                    calamityAreaDropdown.innerHTML = '<option value="">-- No Active Operations (Organization Inactive) --</option>';
+                                    calamityAreaDropdown.disabled = true;
+                                    areaOfOperationInput.disabled = true;
+                                    if (pinBtn) pinBtn.style.display = 'none';
+                                }
+                            }).catch(error => {
+                                console.error('Error checking organization active status for ABVN:', error);
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error',
+                                    text: 'Failed to check organization activation status. Please try again.'
+                                });
+                            });
+                    } else {
+                        // User has ABVN role but no organization assigned in user data
+                        console.warn('ABVN user data has no organization assigned for UID:', userUid);
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Organization Not Assigned',
+                            text: 'Your user account is not associated with an organization. Please contact support. You will be redirected to the dashboard.',
+                            didClose: () => {
+                                window.location.href = '../pages/dashboard.html';
+                            }
+                        });
+                        nextBtn.disabled = true;
+                        calamityAreaDropdown.innerHTML = '<option value="">-- No Active Operations (No Organization) --</option>';
+                        calamityAreaDropdown.disabled = true;
+                        areaOfOperationInput.disabled = true;
+                        if (pinBtn) pinBtn.style.display = 'none';
+                    }
+
+                } else {
+                    // Handle other roles or unassigned roles
+                    console.warn(`User ${userUid} has an unsupported or unassigned role: ${userRole}. Redirecting to dashboard.`);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Unauthorized Access',
+                        text: 'Your user role does not permit access to this section. You will be redirected to the dashboard.',
+                        didClose: () => {
+                            window.location.href = '../pages/dashboard.html';
+                        }
+                    });
+                    nextBtn.disabled = true;
+                    calamityAreaDropdown.innerHTML = '<option value="">-- Access Denied (Unauthorized Role) --</option>';
+                    calamityAreaDropdown.disabled = true;
+                    areaOfOperationInput.disabled = true;
+                    if (pinBtn) pinBtn.style.display = 'none';
                 }
-            }).catch(error => {
-                console.error('Error fetching user data:', error);
+
+            } else {
+                // User data not found in database for the given UID
+                console.warn('User data not found in database for UID:', userUid);
                 Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Failed to fetch user group. Please try again.'
+                    icon: 'warning',
+                    title: 'User Data Missing',
+                    text: 'Your user data could not be retrieved. Please contact support. You will be redirected to the dashboard.',
+                    didClose: () => {
+                        window.location.href = '../pages/dashboard.html';
+                    }
                 });
+                nextBtn.disabled = true;
+                calamityAreaDropdown.innerHTML = '<option value="">-- Error (User Data Missing) --</option>';
+                calamityAreaDropdown.disabled = true;
+                areaOfOperationInput.disabled = true;
+                if (pinBtn) pinBtn.style.display = 'none';
+            }
+        }).catch(error => {
+            console.error('Error fetching user data:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Failed to fetch user data. Please try again.'
             });
+        });
 
-        } else {
-            console.warn('No user is logged in');
-            window.location.href = '../pages/login.html';
-        }
-    });
-
+    } else {
+        // No user is logged in
+        console.warn('No user is logged in');
+        window.location.href = '../pages/login.html';
+    }
+});
     const today = new Date();
     const formattedDate = today.toLocaleDateString('en-CA'); //YYYY-MM-DD
     dateOfReportInput.value = formattedDate;
@@ -461,7 +563,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const startDateValue = startDateInput.value;
         const endDateValue = endDateInput.value;
-
+        
         // console.log("Start Date:", startDateValue, "End Date:", endDateValue); // Debugging line
 
         if (!startDateValue || !endDateValue) {
@@ -559,7 +661,6 @@ document.addEventListener('DOMContentLoaded', () => {
             calamityAreaDetailsText = "Not Specified";
         }
         // --- End of NEW logic ---
-
         formPage1.style.display = "none";
         formPage2.style.display = "block";
 
@@ -613,10 +714,8 @@ document.addEventListener('DOMContentLoaded', () => {
             dateOfReportInput.value = savedData.DateOfReport || '';
             areaOfOperationInput.value = savedData.AreaOfOperation || '';
 
-            // Handle Calamity Area dropdown pre-selection and triggering change
             if (savedData.CalamityAreaId) {
                 calamityAreaDropdown.value = savedData.CalamityAreaId;
-                // Dispatch change event to ensure dependent logic (like setting areaOfOperationInput, though it's currently manual) runs
                 calamityAreaDropdown.dispatchEvent(new Event('change'));
             }
             
@@ -635,7 +734,6 @@ document.addEventListener('DOMContentLoaded', () => {
             notesInfoTextarea.value = savedData.NotesAdditionalInformation || ''; 
         }
 
-        // Determine which page to show on return
         if (returnTo === "form-container-1") {
             formPage1.style.display = "block";
             formPage2.style.display = "none";
@@ -645,7 +743,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         localStorage.removeItem("returnToStep"); // Clear the flag after processing
     } else {
-        // Default: If no returnToStep flag, show the first page
         formPage1.style.display = "block";
         formPage2.style.display = "none";
     }

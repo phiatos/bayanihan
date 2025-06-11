@@ -773,17 +773,97 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    function openEndorseModal(firebaseKey) {
-        const modal = document.getElementById("endorseModal");
-        modal.style.display = "block";
-        const abvnList = document.getElementById("abvnList");
-        abvnList.innerHTML = `
-            <label><input type="radio" name="abvn" value="Group A" /> Group A</label><br/>
-            <label><input type="radio" name="abvn" value="Group B" /> Group B</label>
-            <p><b>Note:</b> Actual ABVN selection logic based on donation details would go here.</p>
-        `;
-        modal.dataset.firebaseKey = firebaseKey;
-    }
+function openEndorseModal(firebaseKey) {
+    const modal = document.getElementById("endorseModal");
+    modal.style.display = "block";
+    const abvnList = document.getElementById("abvnList");
+
+    abvnList.innerHTML = '<p>Loading organizations...</p>'; // Show a loading message
+    abvnList.innerHTML = ''; // Clear previous content
+
+    let loadedVolunteerGroups = []; // Declare a local variable to hold the volunteer groups for this function's scope
+
+    // Step 1: Fetch volunteerGroups first to get the combined HQ addresses
+    firebase.database().ref("volunteerGroups/address").once("value")
+        .then((volunteerGroupsSnapshot) => {
+            const fetchedGroups = volunteerGroupsSnapshot.val();
+            if (fetchedGroups) {
+                for (let key in fetchedGroups) {
+                    const groupData = fetchedGroups[key];
+                    const addressData = groupData.address;
+
+                    let combinedAddress = "Not specified";
+                    if (addressData) {
+                        const addressParts = [];
+                        if (addressData.region && addressData.region.trim() !== '') {
+                            addressParts.push(addressData.region.trim());
+                        }
+                        if (addressData.province && addressData.province.trim() !== '') {
+                            addressParts.push(addressData.province.trim());
+                        }
+                        if (addressData.city && addressData.city.trim() !== '') {
+                            addressParts.push(addressData.city.trim());
+                        }
+                        if (addressParts.length > 0) {
+                            combinedAddress = addressParts.join(', ');
+                        }
+                    }
+                    loadedVolunteerGroups.push({
+                        no: parseInt(key),
+                        organization: groupData.organization || "Unknown",
+                        hq: combinedAddress, // This is the combined address you need
+                    });
+                }
+            } else {
+                console.warn("No volunteer groups found.");
+            }
+
+            // Step 2: Once volunteerGroups are loaded, fetch activations
+            return firebase.database().ref('activations/').once('value');
+        })
+        .then((activationsSnapshot) => {
+            const activations = activationsSnapshot.val();
+            let groupHtml = '';
+
+            if (activations) {
+                for (const activationId in activations) {
+                    const activationData = activations[activationId];
+                    // Only process active activations for display in the modal
+                    if (activationData.status === 'active') { // Assuming you only want active ones here too
+                        const organizationName = activationData.organization;
+                        const groupId = activationData.groupId;
+
+                        // Find the corresponding volunteer group to get its HQ
+                        const correspondingVolunteerGroup = loadedVolunteerGroups.find(group => group.no === groupId);
+                        
+                        let displayHq = "Not specified";
+                        if (correspondingVolunteerGroup && correspondingVolunteerGroup.hq) {
+                            displayHq = correspondingVolunteerGroup.hq; // Use the combined HQ from the volunteer group
+                        } else if (activationData.areaOfOperation) {
+                            // Fallback to areaOfOperation if volunteer group HQ isn't found/specified
+                            displayHq = activationData.areaOfOperation;
+                        }
+
+                        if (organizationName) {
+                            groupHtml += `<label><input type="radio" name="abvn" value="${organizationName}" /> ${organizationName} (${displayHq})</label><br/>`;
+                        }
+                    }
+                }
+                abvnList.innerHTML = groupHtml;
+            } else {
+                abvnList.innerHTML = '<p>No activations found for endorsement.</p>';
+            }
+        })
+        .catch((error) => {
+            console.error("Error loading endorsement options:", error);
+            abvnList.innerHTML = '<p>Error loading endorsement options.</p>';
+        })
+        .finally(() => {
+            abvnList.innerHTML += `<p><b>Note:</b> Actual ABVN selection logic based on donation details would go here.</p>`;
+        });
+
+    modal.dataset.firebaseKey = firebaseKey;
+}
 
     document.getElementById("confirmEndorseBtn").addEventListener("click", () => {
         const modal = document.getElementById("endorseModal");
@@ -798,7 +878,7 @@ document.addEventListener("DOMContentLoaded", () => {
         modal.style.display = "none";
     });
 
-    document.getElementById("cancelEndorseBtn").addEventListener("click", () => {
+        document.getElementById("cancelEndorseBtn").addEventListener("click", () => {
         document.getElementById("endorseModal").style.display = "none";
     });
 
