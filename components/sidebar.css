@@ -241,7 +241,10 @@ a {
   pointer-events: auto;
 }
 
-
+.sidebar .menu ul li.active > a {
+  background-color: #f0f0f0; /* example */
+  color: var(--accent-color);
+}
 
 .sidebar.active .menu .sub-menu {
   position: absolute;
