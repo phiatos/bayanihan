@@ -125,15 +125,15 @@
           </div>
 
           <div class="form-group">
-            <label for="requiredDocuments">Upload Supporting Documents</label>
+            <label for="requiredDocumentsLink">Link to Supporting Documents (Google Drive, etc.)</label>
             <input
-              type="file"
-              id="requiredDocuments"
-              name="requiredDocuments"
-              accept=".pdf,.doc,.docx,.jpg,.png"
-              multiple
+              type="url"
+              id="requiredDocumentsLink"
+              name="requiredDocumentsLink"
+              placeholder="e.g. https://drive.google.com/drive/folders/your-folder-id"
+              required
             />
-            <small>Upload your Letter of Intent, Organization Profile, SEC/DSWD registration, etc. (Max file size: 5MB per file)</small>
+            <small>Please upload your documents to a Google Drive folder and paste the **shared link** here. Ensure the link is accessible (e.g., "Anyone with the link can view").</small>
           </div>
         </fieldset>
 
