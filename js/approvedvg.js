@@ -173,8 +173,6 @@ function initializeApprovedApplicationsPage(adminUserId) {
     const editBarangayTextInput = document.getElementById('editBarangay-text');
 
     const editStreetAddress = document.getElementById('editStreetAddress');
-    // Note: The HTML for approvedvg.html does not have mission, expertise, legalStatus, requiredDocuments in its edit modal.
-    // I will comment these out or remove them from the JS to match the HTML.
     // const editMission = document.getElementById('editMission');
     // const editExpertise = document.getElementById('editExpertise');
     // const editLegalStatus = document.getElementById('editLegalStatus');
