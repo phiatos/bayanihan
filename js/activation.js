@@ -705,14 +705,44 @@ function listenForDataUpdates() {
         allVolunteerGroups = [];
         if (fetchedGroups) {
             for (let key in fetchedGroups) {
+                const groupData = fetchedGroups[key]; // Get the specific group's data
+                const addressData = groupData.address; // Get the address object from the group
+
+                let combinedAddress = "Not specified"; // Default value for hq
+
+                if (addressData) {
+                    const addressParts = [];
+
+                    // Add parts in the desired order (e.g., Region, Province, City)
+                    // Check for existence and trim whitespace
+                    if (addressData.region && addressData.region.trim() !== '') {
+                        addressParts.push(addressData.region.trim());
+                    }
+                    if (addressData.province && addressData.province.trim() !== '') {
+                        addressParts.push(addressData.province.trim());
+                    }
+                    if (addressData.city && addressData.city.trim() !== '') {
+                        addressParts.push(addressData.city.trim());
+                    }
+                    // If you also have a 'street' or 'barangay' and want it in HQ:
+                    if (addressData.streetAddress && addressData.streetAddress.trim() !== '') {
+                        addressParts.push(addressData.streetAddress.trim());
+                    }
+
+                    // Combine the parts if any exist
+                    if (addressParts.length > 0) {
+                        combinedAddress = addressParts.join(', ');
+                    }
+                }
+
                 allVolunteerGroups.push({
                     no: parseInt(key),
-                    organization: fetchedGroups[key].organization || "Unknown",
-                    hq: fetchedGroups[key].hq || "Not specified",
-                    address: fetchedGroups[key].address || "N/A" ,
-                    contactPerson: fetchedGroups[key].contactPerson || "Unknown",
-                    email: fetchedGroups[key].email || "Not specified",
-                    mobileNumber: fetchedGroups[key].mobileNumber || "Not specified",
+                    organization: groupData.organization || "Unknown",
+                    hq: combinedAddress, // THIS IS WHERE THE COMBINED ADDRESS IS ASSIGNED
+                    address: groupData.address || "N/A", // Keep the full address object if needed elsewhere
+                    contactPerson: groupData.contactPerson || "Unknown",
+                    email: groupData.email || "Not specified",
+                    mobileNumber: groupData.mobileNumber || "Not specified",
                 });
             }
             allVolunteerGroups.sort((a, b) => a.no - b.no);
@@ -727,8 +757,7 @@ function listenForDataUpdates() {
         });
     });
 
-
-    //
+    // The second listener for 'activations'
     console.log("Setting up real-time listener for activations...");
     database.ref("activations").orderByChild("activationDate").on("value", snapshot => {
         const fetchedActivations = snapshot.val();
@@ -739,13 +768,21 @@ function listenForDataUpdates() {
             for (let key in fetchedActivations) {
                 const activation = fetchedActivations[key];
                 if (activation.status === 'active') {
+                    // Important: This assumes allVolunteerGroups has already been populated
+                    // This is generally true with Firebase's real-time listeners,
+                    // but for more complex scenarios, you might need to ensure data
+                    // dependencies are met (e.g., by chaining promises or using async/await).
                     const volunteerGroup = allVolunteerGroups.find(group => group.no === activation.groupId);
+
                     currentActiveActivations.push({
                         id: key,
                         no: activation.no || 0,
                         groupId: activation.groupId,
                         organization: activation.organization || "Unknown",
-                        hq: activation.hq || "Not specified",
+                        // The 'hq' here will come directly from the activation node,
+                        // if you want it to be the *combined* address from volunteerGroups,
+                        // you should use volunteerGroup.hq here.
+                        hq: volunteerGroup ? volunteerGroup.hq : "Not specified", // Use combined HQ from volunteerGroup
                         areaOfOperation: activation.areaOfOperation || "Not specified",
                         calamity: activation.calamityType || "Typhoon",
                         typhoonName: activation.typhoonName || "",
@@ -830,7 +867,7 @@ function renderTable(filteredData = currentActiveActivations) {
         tr.innerHTML = `
             <td>${displayNumber}</td>
             <td>${row.organization}</td>
-            
+            <td>${row.hq}</td>
             <td>${row.areaOfOperation || 'N/A'}</td>
             <td>${row.contactPerson || 'N/A'}</td>
             <td>${row.email || 'N/A'}</td>

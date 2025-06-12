@@ -13,6 +13,7 @@ if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
 const database = firebase.database();
+const auth = firebase.auth();
 
 // Variables for inactivity detection --------------------------------------------------------------------
 let inactivityTimeout;
@@ -40,13 +41,13 @@ function checkInactivity() {
         reverseButtons: true
     }).then((result) => {
         if (result.isConfirmed) {
-            resetInactivityTimer(); // User chose to continue, reset the timer
+            resetInactivityTimer(); 
             console.log("User chose to continue session.");
         } else if (result.dismiss === Swal.DismissReason.cancel) {
             // User chose to log out
             auth.signOut().then(() => {
                 console.log("User logged out due to inactivity.");
-                window.location.href = "../pages/login.html"; // Redirect to login page
+                window.location.href = "../pages/login.html"; 
             }).catch((error) => {
                 console.error("Error logging out:", error);
                 Swal.fire('Error', 'Failed to log out. Please try again.', 'error');
@@ -60,15 +61,13 @@ function checkInactivity() {
     document.addEventListener(eventType, resetInactivityTimer);
 });
 //-------------------------------------------------------------------------------------
-
-
 document.addEventListener('DOMContentLoaded', () => {
     const volunteersContainer = document.getElementById('volunteersContainer');
     const searchInput = document.getElementById('searchInput');
     const sortSelect = document.getElementById('sortSelect');
     const entriesInfo = document.getElementById('entriesInfo');
     const pagination = document.getElementById('pagination');
-    const viewPendingBtn = document.getElementById('viewApprovedBtn'); // Renamed to viewPendingBtn
+    const viewPendingBtn = document.getElementById('viewApprovedBtn'); 
 
     // Modals
     const previewModal = document.getElementById('previewModal');
@@ -97,6 +96,18 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Function to format date for datetime-local input
+    function formatToDatetimeLocal(timestamp) {
+        if (!timestamp) return '';
+        const date = new Date(timestamp);
+        const year = date.getFullYear();
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        const day = date.getDate().toString().padStart(2, '0');
+        const hours = date.getHours().toString().padStart(2, '0');
+        const minutes = date.getMinutes().toString().padStart(2, '0');
+        return `${year}-${month}-${day}T${hours}:${minutes}`;
+    }
+
     function getFullName(volunteer) {
         const parts = [
             volunteer.firstName,
@@ -123,7 +134,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const fullName = getFullName(volunteer);
         modalContent.innerHTML = `
             <h3 style="color: #FA3B99;">Approved Volunteer Details</h3>
-            <p><strong>Approval Date/Time:</strong> ${formatDate(volunteer.scheduledDateTime || volunteer.timestamp)}</p>
+            <p><strong>Scheduled Date/Time:</strong> ${formatDate(volunteer.scheduledDateTime || volunteer.timestamp)}</p>
             <p><strong>Full Name:</strong> ${fullName}</p>
             <p><strong>Email:</strong> ${volunteer.email || 'N/A'}</p>
             <p><strong>Mobile Number:</strong> ${volunteer.mobileNumber || 'N/A'}</p>
@@ -213,6 +224,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${scheduledDateTimeDisplay}</td>
                 <td>
                     <button class="viewBtn" data-key="${volunteer.key}">View</button>
+                    <button class="rescheduleBtn" data-key="${volunteer.key}">Reschedule</button>
+                    <button class="archiveBtn" data-key="${volunteer.key}">Archive</button>
                 </td>
             `;
         });
@@ -355,10 +368,12 @@ document.addEventListener('DOMContentLoaded', () => {
         entriesInfo.textContent = `Showing ${totalItems ? startIndex + 1 : 0} to ${endIndex} of ${totalItems} entries`;
     }
 
-    // --- Event Listener for View Button ---
-    volunteersContainer.addEventListener('click', (event) => {
+    // --- Event Listener for View, Reschedule, and Archive Buttons ---
+    volunteersContainer.addEventListener('click', async (event) => {
         const target = event.target;
         const viewButton = target.closest('.viewBtn');
+        const rescheduleButton = target.closest('.rescheduleBtn'); // New reschedule button
+        const archiveButton = target.closest('.archiveBtn');
 
         if (viewButton) {
             const volunteerKey = viewButton.dataset.key;
@@ -369,6 +384,124 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.warn("Volunteer data not found for key:", volunteerKey);
                 Swal.fire('Error', 'Volunteer data not found.', 'error');
             }
+        } else if (rescheduleButton) { // Handle reschedule button click
+            const volunteerKey = rescheduleButton.dataset.key;
+            const volunteer = allApprovedApplications.find(v => v.key === volunteerKey);
+
+            if (!volunteer) {
+                console.warn("Volunteer data not found for rescheduling:", volunteerKey);
+                Swal.fire('Error', 'Volunteer data not found for rescheduling.', 'error');
+                return;
+            }
+
+            const currentScheduledDateTime = volunteer.scheduledDateTime ? formatToDatetimeLocal(volunteer.scheduledDateTime) : '';
+
+            Swal.fire({
+                title: `Reschedule ${getFullName(volunteer)}`,
+                html: `
+                    <label for="swal-input-datetime">New Scheduled Date & Time:</label>
+                    <input type="datetime-local" id="swal-input-datetime" class="swal2-input" value="${currentScheduledDateTime}">
+                `,
+                focusConfirm: false,
+                showCancelButton: true,
+                confirmButtonText: 'Save Reschedule',
+                cancelButtonText: 'Cancel',
+                preConfirm: () => {
+                    const newDateTimeString = document.getElementById('swal-input-datetime').value;
+                    if (!newDateTimeString) {
+                        Swal.showValidationMessage('Please select a date and time.');
+                        return false;
+                    }
+                    const newTimestamp = new Date(newDateTimeString).getTime();
+                    if (isNaN(newTimestamp)) {
+                        Swal.showValidationMessage('Invalid date and time format.');
+                        return false;
+                    }
+                    return newTimestamp;
+                }
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    const newTimestamp = result.value;
+                    try {
+                        const volunteerRef = database.ref(`volunteerApplications/approvedVolunteer/${volunteerKey}`);
+                        await volunteerRef.update({ scheduledDateTime: newTimestamp });
+
+                        Swal.fire(
+                            'Rescheduled!',
+                            `${getFullName(volunteer)}'s schedule has been updated to ${formatDate(newTimestamp)}.`,
+                            'success'
+                        );
+                        // The .on('value') listener in fetchApprovedVolunteers will automatically update the table.
+                    } catch (error) {
+                        console.error("Error rescheduling volunteer: ", error);
+                        Swal.fire(
+                            'Error!',
+                            `Failed to reschedule volunteer: ${error.message}`,
+                            'error'
+                        );
+                    }
+                }
+            });
+
+        } else if (archiveButton) {
+            const volunteerKey = archiveButton.dataset.key;
+            const volunteer = allApprovedApplications.find(v => v.key === volunteerKey);
+
+            if (!volunteer) {
+                console.warn("Volunteer data not found for archiving:", volunteerKey);
+                Swal.fire('Error', 'Volunteer data not found for archiving.', 'error');
+                return;
+            }
+
+            Swal.fire({
+                title: 'Are you sure?',
+                text: `You are about to archive the application for ${getFullName(volunteer)}. This action cannot be undone.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, archive it!',
+                cancelButtonText: 'Cancel'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    try {
+                        // 1. Get a snapshot of the approved volunteer data
+                        const approvedVolunteerRef = database.ref(`volunteerApplications/approvedVolunteer/${volunteerKey}`);
+                        const snapshot = await approvedVolunteerRef.once('value');
+                        const volunteerToArchive = snapshot.val();
+
+                        if (!volunteerToArchive) {
+                            Swal.fire('Error', 'Volunteer data not found in approved applications.', 'error');
+                            return;
+                        }
+
+                        // Add timestamp for when it was archived
+                        volunteerToArchive.archivedAt = firebase.database.ServerValue.TIMESTAMP;
+
+                        // 2. Write the data to the 'deletedApprovedVolunteerApplications' node
+                        const deletedApprovedRef = database.ref(`deletedApprovedVolunteerApplications/${volunteerKey}`);
+                        await deletedApprovedRef.set(volunteerToArchive);
+
+                        // 3. Remove the data from the 'approvedVolunteer' node
+                        await approvedVolunteerRef.remove();
+
+                        Swal.fire(
+                            'Archived!',
+                            `${getFullName(volunteer)}'s application has been archived.`,
+                            'success'
+                        );
+                        // Data will automatically re-fetch due to .on('value') listener
+                        // in fetchApprovedVolunteers, so no manual re-render needed.
+                    } catch (error) {
+                        console.error("Error archiving volunteer application: ", error);
+                        Swal.fire(
+                            'Error!',
+                            `Failed to archive application: ${error.message}`,
+                            'error'
+                        );
+                    }
+                }
+            });
         }
     });
 
