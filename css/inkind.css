@@ -261,3 +261,12 @@ input[type="date"]:valid {
       width: 100%;
   }
 }
+
+.action-button.approve-button{
+  background-color: var(--primary-color);
+}
+
+.action-button.approve-button:hover {
+  background-color: var(--button-hover);
+  
+}

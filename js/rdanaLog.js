@@ -159,7 +159,7 @@ function checkInactivity() {
         <td>${log.needs?.priority?.join(", ") ?? "N/A"}</td>
         <td>
           <button class="viewBtn">View</button>
-          <button class="deleteBtn">Remove</button>
+          <button class="deleteBtn">Archive</button>
           <button class="savePDFBtn">Save PDF</button>
         </td>
       `;

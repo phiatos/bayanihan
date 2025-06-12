@@ -715,7 +715,7 @@ button:disabled {
 /* Shared button styles for sleek look */
 .viewBtn, .editBtn, .deleteBtn, .approveBtn, .rejectBtn, 
 .saveBtn, .endorseBtn, .savePDFBtn, .action-button-endorse-button, 
-.action-button, #addItemBtn, .actionBtn, .archiveBtn, .rescheduleBtn{
+.action-button, #addItemBtn, .actionBtn, .archiveBtn, .rescheduleBtn, .registerBtn{
   color: #fff;
   border: none;
   padding: 10px 18px;
@@ -763,16 +763,16 @@ button[type="submit"]:hover,
 }
 
 .saveBtn:hover, .endorseBtn:hover, .action-button-endorse-button:hover, 
-.actionBtn:hover, .rescheduleBtn:hover{
+.actionBtn:hover, .rescheduleBtn:hover, .registerBtn:hover{
   background-color: var(--button-hover);
   transform: translateY(-2px);
 }
 
-.savePDFBtn {
+.savePDFBtn, .editBtn {
   background-color: var(--accent-color);
 }
 
-.savePDFBtn:hover {
+.savePDFBtn:hover, .editBtn:hover {
   background-color: var(--accent-hover-color);
   transform: translateY(-2px);
 }
