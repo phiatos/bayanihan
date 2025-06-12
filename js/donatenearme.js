@@ -1,3 +1,213 @@
+
+let map;
+let markers = [];
+let autocomplete;
+
+function initMap() {
+    // Default to Manila, Philippines
+    const defaultLocation = { lat: 14.5995, lng: 120.9842 };
+
+    // Initialize the map
+    map = new google.maps.Map(document.getElementById("mapContainer"), {
+        center: defaultLocation,
+        zoom: 10,
+        mapTypeId: "roadmap",
+    });
+
+    // Initialize the search bar with Places Autocomplete
+    const searchInput = document.getElementById("search-input");
+    autocomplete = new google.maps.places.Autocomplete(searchInput);
+    autocomplete.bindTo("bounds", map);
+
+    // When a place is selected from the autocomplete dropdown
+    autocomplete.addListener("place_changed", () => {
+        const place = autocomplete.getPlace();
+        if (!place.geometry || !place.geometry.location) {
+            Swal.fire({
+                icon: "error",
+                title: "Location Not Found",
+                text: "Please select a valid location from the dropdown.",
+            });
+            return;
+        }
+
+        // Center the map on the selected location
+        map.setCenter(place.geometry.location);
+        map.setZoom(16);
+
+        // Clear existing markers
+        clearMarkers();
+
+        // Add a marker at the selected location
+        const marker = new google.maps.Marker({
+            position: place.geometry.location,
+            map: map,
+            title: place.name,
+        });
+        markers.push(marker);
+        // Add an info window
+        const infowindow = new google.maps.InfoWindow({
+            content: `<strong>${place.name}</strong><br>${place.formatted_address}`,
+        });
+        marker.addListener("click", () => {
+            infowindow.open(map, marker);
+        });
+        infowindow.open(map, marker);
+
+        // Populate the AreaOfOperation input with the selected location
+        const areaOfOperationInput = document.getElementById('inKindDonorAddress');
+        if (areaOfOperationInput) {
+            areaOfOperationInput.value = place.formatted_address;
+        }
+
+        // Close the modal after selecting a location
+        const mapModal = document.getElementById('mapModal');
+        if (mapModal) {
+            mapModal.classList.remove('show');
+        }
+    });
+
+    // Allow pinning a location by clicking on the map
+    map.addListener("click", (event) => {
+        // Clear existing markers
+        clearMarkers();
+
+        // Add a new marker at the clicked location
+        const marker = new google.maps.Marker({
+            position: event.latLng,
+            map: map,
+            title: "Pinned Location",
+        });
+        markers.push(marker);
+
+        // Use Geocoder to get the address from the coordinates
+        const geocoder = new google.maps.Geocoder();
+        geocoder.geocode({ location: event.latLng }, (results, status) => {
+            if (status === "OK" && results[0]) {
+                const address = results[0].formatted_address;
+
+                // Add an info window
+                const infowindow = new google.maps.InfoWindow({
+                    content: `Pinned Location<br>${address}`,
+                });
+                marker.addListener("click", () => {
+                    infowindow.open(map, marker);
+                });
+                infowindow.open(map, marker);
+
+                // Populate the AreaOfOperation input with the pinned location
+                const areaOfOperationInput = document.getElementById('inKindDonorAddress');
+                if (areaOfOperationInput) {
+                    areaOfOperationInput.value = address;
+                }
+
+                // Close the modal after pinning a location
+                const mapModal = document.getElementById('mapModal');
+                if (mapModal) {
+                    mapModal.classList.remove('show');
+                }
+            } else {
+                console.error("Geocoder failed due to: " + status);
+                Swal.fire({
+                    icon: "error",
+                    title: "Geocoding Error",
+                    text: "Unable to retrieve address for the pinned location.",
+                });
+
+                // Fallback: Use coordinates if geocoding fails
+                const areaOfOperationInput = document.getElementById('inKindDonorAddress');
+                if (areaOfOperationInput) {
+                    areaOfOperationInput.value = `Lat: ${event.latLng.lat()}, Lng: ${event.latLng.lng()}`;
+                }
+
+                const mapModal = document.getElementById('mapModal');
+                if (mapModal) {
+                    mapModal.classList.remove('show');
+                }
+            }
+        });
+
+        // Center the map on the pinned location
+        map.setCenter(event.latLng);
+        map.setZoom(16);
+    });
+
+    // Get user's location
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const userLocation = {
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude,
+                };
+
+                // Center the map on the user's location
+                map.setCenter(userLocation);
+                map.setZoom(16);
+
+                // Add a marker for the user's location
+                const marker = new google.maps.Marker({
+                    position: userLocation,
+                    map: map,
+                    title: "You are here",
+                    icon: {
+                        url: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png", // A more common blue dot icon
+                    },
+                });
+                markers.push(marker);
+
+                // Add an info window
+                const infowindow = new google.maps.InfoWindow({
+                    content: "You are here",
+                });
+                marker.addListener("click", () => {
+                    infowindow.open(map, marker);
+                });
+                infowindow.open(map, marker);
+
+                console.log("User location:", userLocation);
+            },
+            (error) => {
+                console.error("Geolocation error:", error);
+                let errorMessage = "Unable to retrieve your location.";
+                switch (error.code) {
+                    case error.PERMISSION_DENIED:
+                        errorMessage = "Location access denied. Please allow location access in your browser settings.";
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        errorMessage = "Location information is unavailable. Ensure your device has a working GPS or network connection.";
+                        break;
+                    case error.TIMEOUT:
+                        errorMessage = "Location request timed out. Please try again.";
+                        break;
+                }
+                Swal.fire({
+                    icon: "error",
+                    title: "Location Error",
+                    text: errorMessage,
+                });
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0,
+            }
+        );
+    } else {
+        Swal.fire({
+            icon: "error",
+            title: "Geolocation Not Supported",
+            text: "Your browser does not support geolocation. Please use a modern browser.",
+        });
+    }
+}
+
+// Function to clear all markers from the map
+function clearMarkers() {
+    markers.forEach(marker => marker.setMap(null));
+    markers = [];
+}
+
 const firebaseConfig = {
     apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
     authDomain: "bayanihan-5ce7e.firebaseapp.com",
@@ -44,6 +254,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const amountDonatedInput = document.getElementById('amountDonated');
     const cashInvoiceInput = document.getElementById('cashInvoice');
     const bankSelect = document.getElementById('bank');
+
+      // Map modal elements (assuming these exist in your HTML)
+    const pinBtn = document.getElementById('pinBtn'); // Ensure this element exists
+    const mapModal = document.getElementById('mapModal'); // Ensure this element exists
+    const closeBtn = document.querySelector('.closeBtn'); // Reverted to querySelector for flexibility as in first version
 
 
     if (inKindBtn && monetaryBtn && inKindDonationForm && monetaryDonationForm) {
@@ -232,6 +447,62 @@ document.addEventListener('DOMContentLoaded', () => {
             bankDiv.style.display = 'block';
             gcashDiv.style.display = 'none';
         });
+    }
+
+        // --- Modal Elements and Event Listeners ---
+    if (pinBtn && mapModal && closeBtn) {
+        pinBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            console.log("Pin button clicked!");
+            mapModal.classList.add('show');
+            console.log("mapModal classList:", mapModal.classList);
+            // Initialize the map when the modal is opened (if not already initialized)
+            if (!map) {
+                initMap();
+            } else {
+                // If map already exists, just resize it to fit the modal
+                setTimeout(() => {
+                    if (map) {
+                        google.maps.event.trigger(map, 'resize');
+                        // Center map to current area of operation if available
+                        const currentArea = areaOfOperationInput.value;
+                        if (currentArea) {
+                            const geocoder = new google.maps.Geocoder();
+                            geocoder.geocode({ 'address': currentArea }, (results, status) => {
+                                if (status === 'OK' && results[0]) {
+                                    map.setCenter(results[0].geometry.location);
+                                    // Clear existing markers and add a new one for the current area
+                                    markers.forEach((marker) => marker.setMap(null));
+                                    markers = [];
+                                    const marker = new google.maps.Marker({
+                                        map: map,
+                                        position: results[0].geometry.location,
+                                        title: currentArea,
+                                    });
+                                    markers.push(marker);
+                                }
+                            });
+                        } else {
+                            // If no area of operation, center on Philippines
+                            map.setCenter({ lat: 12.8797, lng: 121.7740 });
+                            map.setZoom(6);
+                        }
+                    }
+                }, 100); // Small delay to allow modal to render
+            }
+        });
+
+        closeBtn.addEventListener('click', () => {
+            mapModal.classList.remove('show');
+        });
+
+        window.addEventListener('click', (e) => {
+            if (e.target === mapModal) {
+                mapModal.classList.remove('show');
+            }
+        });
+    } else {
+        console.warn('Modal elements (pinBtn, mapModal, closeBtn) not found. Map functionality may be impaired.');
     }
 
     if (monetaryDonationForm) {

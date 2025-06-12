@@ -1,148 +1,11 @@
-#addNew {
-  position: relative;
-  bottom: -40px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  background-color: var(--primary-color);
-  border: none;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  cursor: pointer;
-  transition:
-    background-color 0.3s ease,
-    box-shadow 0.3s ease,
-    transform 0.2s ease;
-  z-index: 1000;
-}
 
-#addNew:hover {
-  background-color: var(--button-hover);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
-  transform: translateX(-50%) translateY(-4px);
-}
-
-#addNew::after {
-  content: "Add New Volunteer Group";
-  position: absolute;
-  bottom: 80px;
-  left: 50%;
-  transform: translateX(-50%);
-  background-color: #333;
-  color: white;
-  padding: 8px 12px;
-  border-radius: 6px;
-  font-size: 12px;
-  white-space: nowrap;
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  transition: opacity 0.3s ease, visibility 0.3s ease, transform 0.3s ease;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-}
-
-#addNew:hover::after {
-  opacity: 1;
-  visibility: visible;
-  transform: translateX(-50%) translateY(-4px);
-}
-
-td[contenteditable="true"] {
-  background-color: rgba(255, 207, 35, 0.21);
-}
-
-.addressHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-top: 5px;
-}
-
-.addressHeader label {
-  font-size: 15px;
-  font-weight: 600;
-  color: #605D67;
-}
-
-.addressHeader #clear {
-  background: transparent;
-  border: none;
-  color: var(--primary-color);
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.input-group {
-  position: relative;
-  margin-bottom: 16px;
-}
-
-.input-group input[list] {
-  width: 100%;
-  padding: 10px 20px 10px 12px;
-  border: 1px solid #605D67;
-  border-radius: 24px;
-  font-size: 14px;
-  box-sizing: border-box;
-}
-
-.input-group i {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 18px;
-  color: #605D67;
-  pointer-events: none;
-}
-
-.input-group select {
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  appearance: none;
-  background: none;
-  border: none;
-}
-
-.input-group select::-ms-expand {
-  display: none;
-}
-
-.modal {
-  position: fixed;
-  inset: 0;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background-color: rgba(17, 24, 39, 0.75); /* semi-dark overlay */
-  z-index: 1000;
-  padding: 1.5rem;
-  overflow-y: auto;
-}
-
-.modal-content {
-  background-color: #ffffff;
-  border-radius: 16px;
-  padding: 2rem;
-  max-width: 640px;
-  width: 100%;
-  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.1);
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  animation: fadeIn 0.25s ease-in-out;
-}
 
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(30px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-.modal h4 {
+#editModalTitle {
   font-size: 1.75rem;
   font-weight: 600;
   align-content: center;
@@ -155,8 +18,6 @@ td[contenteditable="true"] {
   color: #ffffff;
 }
 
-
-
 #addOrgForm {
   width: 100%;
 }
@@ -165,7 +26,7 @@ td[contenteditable="true"] {
   display: flex;
   flex-direction: column;
   width: 100%;
-  margin-bottom: 10px;
+  margin-top: 15px;
   gap: 0.5rem;
 }
 
@@ -282,4 +143,18 @@ td[contenteditable="true"] {
 .modal-content::-webkit-scrollbar-track {
   background-color: var(--white);
   border-radius: 4px;
+}
+
+hr{
+  border: none;
+  height: 1px;
+  background-color: var(--primary-color);
+  margin: 24px 0;
+  opacity: 0.6;
+}
+
+.custom-swal-input {
+  width: 100% !important;
+  max-width: none !important;
+
 }

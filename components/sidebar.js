@@ -1,6 +1,25 @@
 let isRestricted = false;
 
+function highlightActiveMenuItem() {
+  const currentPath = window.location.pathname;
+  const currentPage = currentPath.split("/").pop();
+
+  document.querySelectorAll(".menu ul li").forEach((menuItem) => {
+    const link = menuItem.querySelector("a");
+    if (link) {
+      const linkHref = link.getAttribute("href") || "";
+      if (linkHref.includes(currentPage)) {
+        menuItem.classList.add("active");
+      } else {
+        menuItem.classList.remove("active");
+      }
+    }
+  });
+}
+
+
 function initSidebar() {
+  highlightActiveMenuItem();
   if (window.sidebarInitialized) {
     console.log("initSidebar already executed, skipping.");
     return;

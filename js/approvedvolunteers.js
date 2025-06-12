@@ -123,7 +123,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const fullName = getFullName(volunteer);
         modalContent.innerHTML = `
             <h3 style="color: #FA3B99;">Approved Volunteer Details</h3>
-            <p><strong>Approval Date/Time:</strong> ${formatDate(volunteer.scheduledDateTime || volunteer.timestamp)}</p>
+            <p><strong>Scheduled Date/Time:</strong> ${formatDate(volunteer.scheduledDateTime || volunteer.timestamp)}</p>
             <p><strong>Full Name:</strong> ${fullName}</p>
             <p><strong>Email:</strong> ${volunteer.email || 'N/A'}</p>
             <p><strong>Mobile Number:</strong> ${volunteer.mobileNumber || 'N/A'}</p>

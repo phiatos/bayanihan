@@ -109,8 +109,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Send password reset email
             const actionCodeSettings = {
-                url: '../pages/login.html',
-                handleCodeInApp: false,
+                // url: '../pages/login.html',
+                // handleCodeInApp: false,
+                //for host
+                url: 'https://bayanihan-drrm.vercel.app/pages/login.html', 
+                handleCodeInApp: false, 
+                //for live server  
+                // url: 'http://127.0.0.1:5500/bayanihan/pages/login.html',
+                // handleCodeInApp: true, 
             };
             await auth.sendPasswordResetEmail(email, actionCodeSettings);
 
