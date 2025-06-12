@@ -1,5 +1,9 @@
 document.addEventListener('DOMContentLoaded', () => {
+<<<<<<< HEAD
     // Firebase Configuration
+=======
+    // Firebase configuration
+>>>>>>> 6c3e84d7b4337b3104deed1287c54c846fe7ca9d
     const firebaseConfig = {
         apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
         authDomain: "bayanihan-5ce7e.firebaseapp.com",
@@ -11,14 +15,22 @@ document.addEventListener('DOMContentLoaded', () => {
         measurementId: "G-ZTQ9VXXVV0",
     };
 
+    // Initialize Firebase
     let database, auth;
     try {
+<<<<<<< HEAD
         // Initialize Firebase with compat layer
         const firebaseApp = firebase.initializeApp(firebaseConfig);
         database = firebaseApp.database();
         auth = firebaseApp.auth();
+=======
+        firebase.initializeApp(firebaseConfig);
+        database = firebase.database();
+        auth = firebase.auth();
+        console.log('Firebase initialized successfully');
+>>>>>>> 6c3e84d7b4337b3104deed1287c54c846fe7ca9d
     } catch (error) {
-        console.error("Firebase initialization failed:", error);
+        console.error('Firebase initialization failed:', error);
         Swal.fire({
             icon: 'error',
             title: 'Initialization Error',
@@ -27,30 +39,60 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-    let reviewedReports = [];
-    const reportsBody = document.getElementById("reportsBody");
-    const paginationContainer = document.getElementById("pagination");
-    const entriesInfo = document.getElementById("entriesInfo");
-    const searchInput = document.getElementById("searchInput");
-    const sortSelect = document.getElementById("sortSelect");
+    // DOM element selectors
+    const tableBody = document.getElementById('reportsBody');
+    const searchInput = document.getElementById('searchInput');
+    const sortSelect = document.getElementById('sortSelect');
+    const entriesInfo = document.getElementById('entriesInfo');
+    const pagination = document.getElementById('pagination');
     const savePdfBtn = document.getElementById('savePdfBtn');
     const exportExcelBtn = document.getElementById('exportExcelBtn');
+<<<<<<< HEAD
     let currentPage = 1;
     const rowsPerPage = 5;
 
     if (!reportsBody || !paginationContainer || !entriesInfo || !searchInput || !sortSelect || !savePdfBtn || !exportExcelBtn) {
         console.error("Required DOM elements not found");
+=======
+    const reportModal = document.getElementById('reportModal');
+
+    // Detailed DOM validation
+    const domElements = {
+        tableBody: !!tableBody,
+        searchInput: !!searchInput,
+        sortSelect: !!sortSelect,
+        entriesInfo: !!entriesInfo,
+        pagination: !!pagination,
+        savePdfBtn: !!savePdfBtn,
+        exportExcelBtn: !!exportExcelBtn,
+        reportModal: !!reportModal
+    };
+    if (!tableBody || !searchInput || !sortSelect || !entriesInfo || !pagination || !savePdfBtn || !exportExcelBtn || !reportModal) {
+        console.error('DOM validation failed. Missing elements:', domElements);
+>>>>>>> 6c3e84d7b4337b3104deed1287c54c846fe7ca9d
         Swal.fire({
             icon: 'error',
             title: 'Page Error',
-            text: 'Required elements are missing on the page. Please contact support.',
+            text: 'Required elements are missing on the page. Check console for details and contact support.',
         });
         return;
+    } else {
+        console.log('All DOM elements found:', domElements);
     }
 
+<<<<<<< HEAD
     // User Role Check
     let userRole = 'User'; // Default role
     auth.onAuthStateChanged(async (user) => {
+=======
+    let data = [];
+    let filteredData = [];
+    let currentPage = 1;
+    const rowsPerPage = 5;
+
+    // Check authentication state
+    auth.onAuthStateChanged(user => {
+>>>>>>> 6c3e84d7b4337b3104deed1287c54c846fe7ca9d
         if (!user) {
             Swal.fire({
                 icon: 'error',
@@ -61,6 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             return;
         }
+<<<<<<< HEAD
 
         try {
             const idTokenResult = await user.getIdTokenResult();
@@ -133,21 +176,72 @@ document.addEventListener('DOMContentLoaded', () => {
             const reports = snapshot.val();
             if (reports) {
                 Object.keys(reports).forEach((key) => {
+=======
+        console.log('User authenticated:', { uid: user.uid, email: user.email });
+        loadReportsFromFirebase(user);
+    });
+
+    // Fetch data from Firebase with filtering for ABVN users
+    function loadReportsFromFirebase(user) {
+        const userData = JSON.parse(localStorage.getItem("userData")) || {};
+        const userRole = userData.role || localStorage.getItem("userRole") || "";
+        const userOrganization = userData.organization || "";
+        console.log('User data:', { userRole, userOrganization, userUid: user.uid });
+
+        database.ref('reports/approved').on('value', (snapshot) => {
+            console.log('Fetching data from Firebase');
+            data = [];
+            const reports = snapshot.val();
+            if (reports) {
+                Object.keys(reports).forEach((key, index) => {
+>>>>>>> 6c3e84d7b4337b3104deed1287c54c846fe7ca9d
                     const report = reports[key];
-                    if (!report.VolunteerGroupName && !report.organization) {
-                        console.warn(`Approved report ${key} is missing VolunteerGroupName/organization. Report data:`, report);
-                        report.VolunteerGroupName = "[Unknown Org]";
+                    console.log('Processing report:', { key, status: report.status, VolunteerGroupName: report.VolunteerGroupName, submittedBy: report.submittedBy, userUid: user.uid });
+                    // Check if status is approved (default to "Approved" if undefined)
+                    const isApproved = report.status === "Approved" || report.status === undefined;
+                    // For ABVN users, filter by their UID or organization
+                    if (userRole === "ABVN" && !isApproved) {
+                        console.log('Skipping report:', key, 'Reason: Status is not Approved');
+                        return;
                     }
+<<<<<<< HEAD
                     const transformedReport = transformReportData(report, key); // Pass the key to transformReportData
                     reviewedReports.push(transformedReport);
                     console.log(`Loaded report with key: ${key}, transformed firebaseKey: ${transformedReport.firebaseKey}`);
+=======
+                    if (userRole === "ABVN" && isApproved && (report.submittedBy !== user.uid && report.VolunteerGroupName !== userOrganization)) {
+                        console.log('Skipping report:', key, 'Reason: Does not match ABVN criteria');
+                        return;
+                    }
+                    data.push({
+                        id: `REPORTS-${String(index + 1).padStart(6, '0')}`,
+                        VolunteerGroupName: report.VolunteerGroupName || "[Unknown Org]",
+                        AreaOfOperation: report.areaOfOperation || "N/A",
+                        StartDate: report.startDate || "N/A",
+                        EndDate: report.endDate || "N/A",
+                        TotalValueOfInKindDonations: report.totalValueOfInKindDonations || "0",
+                        TotalMonetaryDonations: report.totalMonetaryDonations || "0",
+                        userUid: report.submittedBy || "N/A",
+                        details: report.details || [],
+                        firebaseKey: key,
+                        status: report.status || "Approved"
+                    });
+>>>>>>> 6c3e84d7b4337b3104deed1287c54c846fe7ca9d
                 });
+                console.log('Data fetched successfully:', data);
             } else {
-                console.log("No approved reports found in Firebase");
+                console.log('No data found in reports/approved');
             }
+<<<<<<< HEAD
             applySearchAndSort(userRole);
         }, (error) => {
             console.error("Error fetching reports from Firebase:", error);
+=======
+            filteredData = [...data];
+            renderTable();
+        }, (error) => {
+            console.error('Error fetching data from Firebase:', error);
+>>>>>>> 6c3e84d7b4337b3104deed1287c54c846fe7ca9d
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
@@ -156,6 +250,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+<<<<<<< HEAD
     function getDisplayedReportsData() {
         const searchQuery = searchInput.value.toLowerCase();
         const sortValue = sortSelect.value;
@@ -403,8 +498,309 @@ document.addEventListener('DOMContentLoaded', () => {
         currentPage = 1;
         applySearchAndSort(userRole);
     };
+=======
+    // --- PDF Export Functionality (All Data) ---
+    savePdfBtn.addEventListener('click', () => {
+        if (filteredData.length === 0) {
+            Swal.fire("Info", "No data to export to PDF!", "info");
+            return;
+        }
 
+        Swal.fire({
+            title: 'Generating PDF...',
+            text: 'Please wait while the PDF is being created.',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('landscape');
+
+        let yOffset = 20;
+        const logo = new Image();
+        logo.src = '../assets/images/AB_logo.png';
+
+        logo.onload = function() {
+            const pageWidth = doc.internal.pageSize.width;
+            const logoWidth = 30;
+            const logoHeight = (logo.naturalHeight / logo.naturalWidth) * logoWidth;
+            const margin = 14;
+
+            doc.addImage(logo, 'PNG', pageWidth - logoWidth - margin, margin, logoWidth, logoHeight);
+
+            doc.setFontSize(18);
+            doc.text("Approved Reports Log", 14, yOffset);
+            yOffset += 10;
+            doc.setFontSize(10);
+            doc.text(`Report Generated: ${new Date().toLocaleString()}`, 14, yOffset);
+            yOffset += 15;
+
+            const headers = [
+                'No.', 'Report ID', 'Volunteer Group Name', 'Area of Operation',
+                'Start Date', 'End Date', 'In-Kind Donations', 'Monetary Donations'
+            ];
+
+            const body = filteredData.map((item, index) => [
+                index + 1,
+                item.id || 'N/A',
+                item.VolunteerGroupName || 'N/A',
+                item.AreaOfOperation || 'N/A',
+                item.StartDate || 'N/A',
+                item.EndDate || 'N/A',
+                item.TotalValueOfInKindDonations || '0',
+                item.TotalMonetaryDonations || '0'
+            ]);
+
+            doc.autoTable({
+                head: [headers],
+                body: body,
+                startY: yOffset,
+                theme: 'grid',
+                headStyles: {
+                    fillColor: [20, 174, 187],
+                    textColor: [255, 255, 255],
+                    halign: 'center',
+                    fontSize: 8
+                },
+                styles: {
+                    fontSize: 8,
+                    cellPadding: 2,
+                    overflow: 'linebreak'
+                },
+                columnStyles: {
+                    0: { cellWidth: 10 },
+                    1: { cellWidth: 20 },
+                    2: { cellWidth: 30 },
+                    3: { cellWidth: 30 },
+                    4: { cellWidth: 25 },
+                    5: { cellWidth: 25 },
+                    6: { cellWidth: 25 },
+                    7: { cellWidth: 25 }
+                },
+                didDrawPage: function (data) {
+                    doc.setFontSize(8);
+                    const pageNumberText = `Page ${data.pageNumber} of ${doc.internal.getNumberOfPages()}`;
+                    const poweredByText = "Powered by: Appvance";
+                    const pageWidth = doc.internal.pageSize.width;
+                    const margin = data.settings.margin.left;
+                    const footerY = doc.internal.pageSize.height - 10;
+
+                    doc.text(pageNumberText, margin, footerY);
+                    doc.text(poweredByText, pageWidth - margin, footerY, { align: 'right' });
+                }
+            });
+
+            const filename = `Approved_Reports_Log_${new Date().toISOString().slice(0, 10)}.pdf`;
+            doc.save(filename);
+            Swal.close();
+            Swal.fire({
+                icon: 'success',
+                title: 'Success',
+                text: `Approved Reports Log exported to "${filename}"`,
+                timer: 1500,
+                showConfirmButton: false
+            });
+        };
+
+        logo.onerror = function() {
+            Swal.close();
+            Swal.fire("Error", "Failed to load logo image. Please check the path.", "error");
+        };
+    });
+
+    function renderTable() {
+        console.log('Rendering table with data:', filteredData);
+        tableBody.innerHTML = '';
+        const start = (currentPage - 1) * rowsPerPage;
+        const end = start + rowsPerPage;
+        const currentRows = filteredData.slice(start, end);
+
+        if (currentRows.length === 0) {
+            tableBody.innerHTML = "<tr><td colspan='9'>No approved reports found on this page.</td></tr>";
+            entriesInfo.textContent = "Showing 0 to 0 of 0 entries";
+            console.log('No data to render in table');
+            return;
+        }
+
+        currentRows.forEach((item, index) => {
+            const tr = document.createElement('tr');
+            const rowIndex = start + index;
+            tr.innerHTML = `
+                <td data-key="No">${rowIndex + 1}</td>
+                <td data-key="ReportID">${item.id}</td>
+                <td data-key="VolunteerGroupName">${item.VolunteerGroupName}</td>
+                <td data-key="AreaOfOperation">${item.AreaOfOperation}</td>
+                <td data-key="StartDate">${item.StartDate}</td>
+                <td data-key="EndDate">${item.EndDate}</td>
+                <td data-key="TotalValueOfInKindDonations">${item.TotalValueOfInKindDonations}</td>
+                <td data-key="TotalMonetaryDonations">${item.TotalMonetaryDonations}</td>
+                <td>
+                    <button class="viewBtn" data-index="${data.indexOf(item)}">View</button>
+                    <button class="savePDFBtn" data-index="${data.indexOf(item)}">Save PDF</button>
+                </td>
+            `;
+            tableBody.appendChild(tr);
+        });
+
+        entriesInfo.textContent = `Showing ${filteredData.length ? start + 1 : 0} to ${Math.min(end, filteredData.length)} of ${filteredData.length} entries`;
+        renderPagination();
+        attachEventListeners();
+    }
+
+    function attachEventListeners() {
+        document.querySelectorAll('.viewBtn').forEach(button => {
+            button.addEventListener('click', function () {
+                const idx = parseInt(this.dataset.index);
+                const item = data[idx];
+                console.log('Opening modal for report:', item);
+                const modalDetails = document.getElementById('modalReportDetails');
+                modalDetails.innerHTML = `
+                    <p><strong>Report ID:</strong> ${item.id || 'N/A'}</p>
+                    <p><strong>Volunteer Group:</strong> ${item.VolunteerGroupName || '[Unknown Org]'}</p>
+                    <p><strong>Area of Operation:</strong> ${item.AreaOfOperation || 'N/A'}</p>
+                    <p><strong>Start Date:</strong> ${item.StartDate || 'N/A'}</p>
+                    <p><strong>End Date:</strong> ${item.EndDate || 'N/A'}</p>
+                    <p><strong>Total In-Kind Donations:</strong> ${item.TotalValueOfInKindDonations || '0'}</p>
+                    <p><strong>Total Monetary Donations:</strong> ${item.TotalMonetaryDonations || '0'}</p>
+                    <p><strong>Status:</strong> ${item.status || 'Approved'}</p>
+                    ${item.details && item.details.length > 0 ? `
+                        <h3>Details</h3>
+                        <table>
+                            <thead><tr><th>Name</th><th>Description</th></tr></thead>
+                            <tbody>${item.details.map(d => `<tr><td>${d.name || '-'}</td><td>${d.description || 'N/A'}</td></tr>`).join('')}</tbody>
+                        </table>
+                    ` : '<p>No details available.</p>'}
+                `;
+                reportModal.classList.remove('hidden');
+            });
+        });
+
+        document.querySelectorAll('.savePDFBtn').forEach(button => {
+            button.addEventListener('click', function () {
+                const idx = parseInt(this.dataset.index);
+                const itemToExport = data[idx];
+                if (itemToExport) {
+                    console.log('Exporting single report to PDF:', itemToExport);
+                    saveSingleReportToPdf(itemToExport);
+                } else {
+                    Swal.fire("Error", "Could not find the report data to export.", "error");
+                }
+            });
+        });
+    }
+>>>>>>> 6c3e84d7b4337b3104deed1287c54c846fe7ca9d
+
+    document.getElementById('closeModal').addEventListener('click', () => {
+        reportModal.classList.add('hidden');
+    });
+
+    window.addEventListener('click', (event) => {
+        if (event.target === reportModal) {
+            reportModal.classList.add('hidden');
+        }
+    });
+
+    function renderPagination() {
+        pagination.innerHTML = '';
+        const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+
+        if (totalPages === 0) {
+            pagination.innerHTML = '<span>No entries to display</span>';
+            return;
+        }
+
+        const createButton = (label, page, disabled = false, isActive = false) => {
+            const btn = document.createElement('button');
+            btn.textContent = label;
+            if (disabled) btn.disabled = true;
+            if (isActive) btn.classList.add('active-page');
+            btn.addEventListener('click', () => {
+                currentPage = page;
+                renderTable();
+            });
+            return btn;
+        };
+
+        pagination.appendChild(createButton('Prev', currentPage - 1, currentPage === 1));
+
+        const maxVisible = 5;
+        let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+        let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+        if (endPage - startPage < maxVisible - 1) {
+            startPage = Math.max(1, endPage - maxVisible + 1);
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
+            pagination.appendChild(createButton(i, i, false, i === currentPage));
+        }
+
+        pagination.appendChild(createButton('Next', currentPage + 1, currentPage === totalPages));
+    }
+
+    sortSelect.addEventListener("change", function () {
+        const selectedValue = this.value;
+        if (!selectedValue) return;
+
+        const [key, order] = selectedValue.split("-");
+        console.log('Sorting by:', { key, order });
+        sortTableData(key, order);
+    });
+
+    function sortTableData(key, order = "asc") {
+        filteredData.sort((a, b) => {
+            const map = {
+                No: (item, i) => i + 1,
+                ReportID: item => item.id,
+                VolunteerGroupName: item => item.VolunteerGroupName,
+                AreaOfOperation: item => item.AreaOfOperation,
+                StartDate: item => item.StartDate,
+                EndDate: item => item.EndDate,
+                TotalValueOfInKindDonations: item => parseFloat(item.TotalValueOfInKindDonations) || 0,
+                TotalMonetaryDonations: item => parseFloat(item.TotalMonetaryDonations) || 0
+            };
+
+            const valA = typeof map[key] === "function" ? map[key](a, data.indexOf(a)) : "";
+            const valB = typeof map[key] === "function" ? map[key](b, data.indexOf(b)) : "";
+
+            const compA = isNaN(valA) ? String(valA).toLowerCase() : valA;
+            const compB = isNaN(valB) ? String(valB).toLowerCase() : valB;
+
+            if (compA < compB) return order === "asc" ? -1 : 1;
+            if (compA > compB) return order === "asc" ? 1 : -1;
+            return 0;
+        });
+
+        currentPage = 1;
+        renderTable();
+    }
+
+    searchInput.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        console.log('Searching for:', searchTerm);
+        filteredData = data.filter(item => {
+            return Object.entries(item).some(([key, value]) => {
+                if (key === 'details' && Array.isArray(value)) {
+                    return value.some(d => 
+                        (d.name && String(d.name).toLowerCase().includes(searchTerm)) ||
+                        (d.description && String(d.description).toLowerCase().includes(searchTerm))
+                    );
+                }
+                return String(value).toLowerCase().includes(searchTerm);
+            });
+        });
+        currentPage = 1;
+        renderTable();
+    });
+
+    // --- Excel Export Logic ---
     exportExcelBtn.addEventListener('click', () => {
+        if (filteredData.length === 0) {
+            Swal.fire("Info", "No data to export to Excel!", "info");
+            return;
+        }
+
         Swal.fire({
             title: 'Generating Excel...',
             text: 'Please wait while the Excel file is being created.',
@@ -414,6 +810,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         try {
+<<<<<<< HEAD
             const dataToExport = getDisplayedReportsData();
             if (dataToExport.length === 0) {
                 Swal.fire({
@@ -460,12 +857,50 @@ document.addEventListener('DOMContentLoaded', () => {
                 { wch: 18 }, { wch: 18 }, { wch: 20 }, { wch: 25 }, { wch: 25 },
                 { wch: 20 }, { wch: 25 }, { wch: 25 }, { wch: 25 }, { wch: 25 },
                 { wch: 40 }
+=======
+            const worksheetData = [];
+            const headers = [
+                'No.', 'Report ID', 'Volunteer Group Name', 'Area of Operation',
+                'Start Date', 'End Date', 'In-Kind Donations', 'Monetary Donations'
+            ];
+            worksheetData.push(headers);
+
+            filteredData.forEach((item, index) => {
+                worksheetData.push([
+                    index + 1,
+                    item.id,
+                    item.VolunteerGroupName,
+                    item.AreaOfOperation,
+                    item.StartDate,
+                    item.EndDate,
+                    item.TotalValueOfInKindDonations,
+                    item.TotalMonetaryDonations
+                ]);
+            });
+
+            const ws = XLSX.utils.aoa_to_sheet(worksheetData);
+            const wscols = [
+                {wch: 5},   // No.
+                {wch: 15},  // Report ID
+                {wch: 30},  // Volunteer Group Name
+                {wch: 30},  // Area of Operation
+                {wch: 20},  // Start Date
+                {wch: 20},  // End Date
+                {wch: 25},  // In-Kind Donations
+                {wch: 25}   // Monetary Donations
+>>>>>>> 6c3e84d7b4337b3104deed1287c54c846fe7ca9d
             ];
             ws['!cols'] = wscols;
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "Approved Reports");
+<<<<<<< HEAD
             const fileName = `Approved_Reports_Log_${new Date().toISOString().slice(0, 10)}.xlsx`;
             XLSX.writeFile(wb, fileName);
+=======
+
+            XLSX.writeFile(wb, `Approved_Reports_Log_${new Date().toISOString().slice(0, 10)}.xlsx`);
+
+>>>>>>> 6c3e84d7b4337b3104deed1287c54c846fe7ca9d
             Swal.close();
             Swal.fire({
                 title: 'Success!',
@@ -481,9 +916,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    savePdfBtn.addEventListener('click', () => {
+    // --- Save Single Report to PDF ---
+    function saveSingleReportToPdf(item) {
         Swal.fire({
             title: 'Generating PDF...',
+<<<<<<< HEAD
             text: 'Please wait while the PDF file is being created.',
             allowOutsideClick: false,
             didOpen: () => {
@@ -612,6 +1049,9 @@ document.addEventListener('DOMContentLoaded', () => {
         Swal.fire({
             title: 'Generating PDF...',
             text: 'Please wait while the PDF file is being created.',
+=======
+            text: 'Please wait while the PDF is being created.',
+>>>>>>> 6c3e84d7b4337b3104deed1287c54c846fe7ca9d
             allowOutsideClick: false,
             didOpen: () => {
                 Swal.showLoading();
@@ -630,7 +1070,7 @@ document.addEventListener('DOMContentLoaded', () => {
             let y = margin;
             doc.addImage(logo, 'PNG', pageWidth - logoWidth - margin, margin, logoWidth, logoHeight);
             doc.setFontSize(18);
-            doc.text("Report Details", margin, y + 8);
+            doc.text("Approved Report Details", margin, y + 8);
             y += 18;
             doc.setFontSize(10);
             doc.text(`Report Generated: ${new Date().toLocaleString()}`, margin, y);
@@ -641,7 +1081,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     y = margin;
                     doc.addImage(logo, 'PNG', pageWidth - logoWidth - margin, margin, logoWidth, logoHeight);
                     doc.setFontSize(14);
-                    doc.text("Report Details (Cont.)", margin, y + 8);
+                    doc.text("Approved Report Details (Cont.)", margin, y + 8);
                     y += 18;
                 }
                 doc.setFontSize(isTitle ? 12 : 10);
@@ -659,10 +1099,11 @@ document.addEventListener('DOMContentLoaded', () => {
             };
             doc.setFontSize(14);
             doc.setTextColor(20, 174, 187);
-            doc.text(`Report ID: ${report.ReportID || "-"}`, margin, y);
+            doc.text(`Report ID: ${item.id || "-"}`, margin, y);
             y += 10;
             doc.setTextColor(0);
             addDetail("Basic Information", "", true);
+<<<<<<< HEAD
             addDetail("Volunteer Group", report.VolunteerGroupName || "[Unknown Org]");
             addDetail("Location of Operation", report.AreaOfOperation || "-");
             addDetail("Date of Report Submitted", formatDate(report.DateOfReport));
@@ -683,30 +1124,63 @@ document.addEventListener('DOMContentLoaded', () => {
             addDetail("Additional Updates", "", true);
             addDetail("Notes/Additional Information", report.NotesAdditionalInformation || "-");
             y += 5;
+=======
+            addDetail("Volunteer Group Name", item.VolunteerGroupName || "[Unknown Org]");
+            addDetail("Area of Operation", item.AreaOfOperation || "-");
+            addDetail("Start Date", item.StartDate || "-");
+            addDetail("End Date", item.EndDate || "-");
+            addDetail("Total In-Kind Donations", item.TotalValueOfInKindDonations || "0");
+            addDetail("Total Monetary Donations", item.TotalMonetaryDonations || "0");
+            addDetail("Status", item.status || "Approved");
+
+            if (item.details && item.details.length > 0) {
+                addDetail("Report Details", "", true);
+                const detailsTableData = item.details.map(d => [d.name || '-', d.description || 'N/A']);
+                doc.autoTable({
+                    startY: y,
+                    head: [['Detail Name', 'Description']],
+                    body: detailsTableData,
+                    theme: 'grid',
+                    headStyles: {
+                        fillColor: [20, 174, 187],
+                        textColor: [255, 255, 255],
+                        halign: 'center',
+                        fontSize: 8
+                    },
+                    styles: {
+                        fontSize: 8,
+                        cellPadding: 2,
+                        overflow: 'linebreak'
+                    },
+                    margin: { left: margin, right: margin }
+                });
+                y = doc.autoTable.previous.finalY + 10;
+            } else {
+                addDetail("Report Details", "No details specified.");
+                y += 5;
+            }
+
+>>>>>>> 6c3e84d7b4337b3104deed1287c54c846fe7ca9d
             doc.setFontSize(8);
             const footerY = pageHeight - 10;
             const pageNumberText = `Page ${doc.internal.getNumberOfPages()}`;
             const poweredByText = "Powered by: Appvance";
             doc.text(pageNumberText, margin, footerY);
             doc.text(poweredByText, pageWidth - margin, footerY, { align: 'right' });
+<<<<<<< HEAD
             doc.save(`Report_${report.ReportID || 'Details'}.pdf`);
+=======
+
+            doc.save(`Approved_Report_${item.id || 'Details'}.pdf`);
+
+>>>>>>> 6c3e84d7b4337b3104deed1287c54c846fe7ca9d
             Swal.close();
             Swal.fire({
                 icon: 'success',
                 title: 'PDF Generated!',
-                text: `Report "${report.ReportID || 'Details'}" saved as PDF.`,
+                text: `Approved Report "${item.id || 'Details'}" saved as PDF.`,
                 timer: 2000,
-                showConfirmButton: false,
-                color: '#1b5e20',
-                iconColor: '#43a047',
-                confirmButtonColor: '#388e3c',
-                confirmButtonText: 'Great!',
-                customClass: {
-                    popup: 'swal2-popup-success-export',
-                    title: 'swal2-title-success-export',
-                    content: 'swal2-text-success-export',
-                    confirmButton: 'swal2-button-success-export'
-                }
+                showConfirmButton: false
             });
         };
         logo.onerror = function() {
