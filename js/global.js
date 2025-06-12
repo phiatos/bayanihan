@@ -1,11 +1,8 @@
 // Firebase imports
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js';
-<<<<<<< HEAD
 // import { getAuth, sendEmailVerification, signInWithEmailAndPassword, signOut, applyActionCode } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
 // import { getDatabase, ref, get, set } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js';
 // import { validateEmail, validatePassword, displayError, clearError } from '../js/login.js';
-=======
->>>>>>> 6c3e84d7b4337b3104deed1287c54c846fe7ca9d
 import { applyActionCode, getAuth, sendEmailVerification, signInWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
 import { get, getDatabase, ref, set } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js';
 import { clearError, validateEmail, validatePassword } from '../js/login.js';
@@ -25,6 +22,7 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const database = getDatabase(app);
 
+
 const showToast = (message, type = 'error') => {
     const toastContainer = document.querySelector('.toast-container');
     if (!toastContainer) {
@@ -35,7 +33,7 @@ const showToast = (message, type = 'error') => {
     const existingToast = toastContainer.querySelector('.toast');
     if (existingToast) existingToast.remove();
     const toast = document.createElement('div');
-    toast.className = `toast ${type}`; // Fixed string interpolation
+    toast.className = `toast ${type}`;
     toast.textContent = message;
     toastContainer.appendChild(toast);
     setTimeout(() => toast.classList.add('show'), 10);
@@ -121,15 +119,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     // Handle Login
-    if (loginForm && emailInputElem && passwordInputElem) {
+    if (loginForm && emailInputElem && passwordInputElem) { // Ensure elements exist
         loginForm.addEventListener("submit", async (e) => {
-            e.preventDefault();
+            e.preventDefault(); // Always prevent default here, as this is the main submit handler
 
-<<<<<<< HEAD
              // Check lockout status
-=======
-            // Check lockout status
->>>>>>> 6c3e84d7b4337b3104deed1287c54c846fe7ca9d
             const lockoutStatus = isLockedOut();
             if (lockoutStatus.isLocked) {
                 showToast(`Too many failed login attempts. Please wait ${lockoutStatus.remainingTime} seconds before trying again.`, 'error');
@@ -149,20 +143,17 @@ document.addEventListener("DOMContentLoaded", async () => {
                 return;
             }
 
-<<<<<<< HEAD
             // Run client-side validations using imported functions
-=======
-            // Run client-side validations
->>>>>>> 6c3e84d7b4337b3104deed1287c54c846fe7ca9d
             const isEmailValid = validateEmail(emailInputElem);
             const isPasswordValid = validatePassword(passwordInputElem);
 
             if (!isEmailValid || !isPasswordValid) {
                 showToast("Please correct the errors in the form.", 'error');
                 console.log('Login failed due to client-side validation errors.');
-                return;
+                return; // Stop execution if validation fails
             }
 
+            // Get validated email and password values
             const email = emailInputElem.value.trim();
             const password = passwordInputElem.value;
 
@@ -174,8 +165,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             try {
                 const userCredential = await signInWithEmailAndPassword(auth, email, password);
                 const user = userCredential.user;
-                resetFailedAttempts();
-
                 resetFailedAttempts();
 
                 const userSnapshot = await get(ref(database, `users/${user.uid}`));
@@ -214,7 +203,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 if (!isAdmin && !updatedUser.emailVerified) {
                     try {
                         const actionCodeSettings = {
-                          // absolute url required for email verification kasi naka-firebase auth
+                            // absolute url required for email verification kasi naka-firebase auth
 
                             //for host
                             url: 'https://bayanihan-drrm.vercel.app/pages/login.html', 
@@ -231,17 +220,19 @@ document.addEventListener("DOMContentLoaded", async () => {
                         console.error("Error sending verification email:", error);
                         showToast("Failed to send verification email: " + error.message);
                     }
-                    await signOut(auth); 
+                    await signOut(auth); // Sign out user until they verify email
                     loginSubmitButton.disabled = false;
                     loginSubmitButton.textContent = 'Login';
                     return;
                 }
 
+                // Retrieve first-time login and terms acceptance flags (use potentially updated userData)
                 const isFirstLogin = userData.isFirstLogin === true;
                 const termsAccepted = userData.termsAccepted === true;
                 const termsAgreedVersion = userData.terms_agreed_version || 0;
                 const password_needs_reset = userData.password_needs_reset === true;
 
+                // Prepare user data for localStorage
                 const updatedUserData = {
                     name: userData.name || "",
                     role: userData.role || "",
@@ -255,15 +246,18 @@ document.addEventListener("DOMContentLoaded", async () => {
 
                 console.log("User Data being stored in localStorage:", updatedUserData);
 
+                // Store user data in localStorage
                 localStorage.setItem("userData", JSON.stringify(updatedUserData));
                 localStorage.setItem("userEmail", updatedUser.email);
                 localStorage.setItem("userRole", userData.role);
 
                 showToast("Login successful!", 'success');
 
+                // Dispatch event to update sidebar (if applicable)
                 const event = new Event("updateSidebar");
                 window.dispatchEvent(event);
 
+                // Notify service worker to update cache
                 if ("serviceWorker" in navigator) {
                     navigator.serviceWorker.ready.then((registration) => {
                         registration.active?.postMessage({ type: "UPDATE_CACHE" });
@@ -272,7 +266,9 @@ document.addEventListener("DOMContentLoaded", async () => {
                     });
                 }
 
+                // Redirection Logic
                 setTimeout(() => {
+                    // Determine if the user is an admin or an ABVN user
                     const isAdminOrABVN = userData?.role === "AB ADMIN" || userData?.role === "admin" || userData?.role === "ABVN";
 
                     if (isAdminOrABVN && !isFirstLogin && termsAccepted && !password_needs_reset) {
@@ -285,26 +281,40 @@ document.addEventListener("DOMContentLoaded", async () => {
                         console.log("Redirecting based on role (fallback).");
                         const userRole = userData.role;
 
-                        if (userRole === "ABVN") {
+                        if (userRole === "ABVN") { // This condition is now largely redundant due to the new isAdminOrABVN check
                             window.location.replace('../pages/dashboard.html');
                         } else {
                             console.error("Unknown user role or unhandled redirection:", userRole);
                             window.location.replace('../pages/dashboard.html');
                         }
                     }
+                    // if (isAdmin && !isFirstLogin && termsAccepted && !password_needs_reset) {
+                    //     console.log("Redirecting Admin to dashboard (fully onboarded).");
+                    //     window.location.replace('../pages/dashboard.html');
+                    // } else if (!isFirstLogin || !termsAccepted || password_needs_reset) {
+                    //     console.log("Redirecting to profile.html for setup (first login, unaccepted terms, or password reset).");
+                    //     window.location.replace('../pages/profile.html');
+                    // } else {
+                    //     console.log("Redirecting based on role.");
+                    //     const userRole = userData.role;
+
+                    //     if (userRole === "ABVN") {
+                    //         window.location.replace('../pages/dashboard.html');
+                    //     } else {
+                    //         console.error("Unknown user role or unhandled redirection:", userRole);
+                    //         window.location.replace('../pages/dashboard.html'); 
+                    //     }
+                    // }
                 }, 2000); 
 
             } catch (error) {
                 loginSubmitButton.disabled = false;
                 loginSubmitButton.textContent = 'Login';
                 
+                // Handle Firebase authentication errors
                 if (error.code === "auth/invalid-credential" || error.code === "auth/user-not-found" || error.code === "auth/wrong-password") {
-<<<<<<< HEAD
                     // showToast("Invalid email or password.", 'error');
                      const failedAttempts = incrementFailedAttempts();
-=======
-                    const failedAttempts = incrementFailedAttempts();
->>>>>>> 6c3e84d7b4337b3104deed1287c54c846fe7ca9d
                     if (failedAttempts >= 3) {
                         const lockoutStatus = isLockedOut();
                         showToast(`Too many failed login attempts. Please wait ${lockoutStatus.remainingTime} seconds before trying again.`, 'error');

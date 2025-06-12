@@ -149,10 +149,13 @@ function initSidebar() {
     const abvnRestrictedPages = [
       'volunteergroupmanagement.html',
       'reportsVerification.html',
-      'activation.html',
       'rdanaVerification.html',
+      'activation.html',
+      'reliefsLog.html',
+      'rdanaLog.html',
       'inkind.html',
       'monetary.html',
+      'reportsLog.html',
     ];
 
     const isAbvnRestrictedPage = abvnRestrictedPages.some(page => currentPath.includes(page));
@@ -269,9 +272,6 @@ function initSidebar() {
         menuItems.reports,
         menuItems.reportsSubmission,
         menuItems.endorsedVolunteers,
-        menuItems.reportsLog, // Allow ABVN to see Reports Log
-        menuItems.rdanaLog,   // Allow ABVN to see RDANA Log
-        menuItems.reliefsLog, // Allow ABVN to see Reliefs Log
       ];
 
       // Hide restricted menu items for ABVN volunteers
@@ -282,7 +282,10 @@ function initSidebar() {
         menuItems.abvnApplications,
         menuItems.pendingDonations,
         menuItems.rdanaVerification,
+        menuItems.rdanaLog,
+        menuItems.reliefsLog,
         menuItems.reportsVerification,
+        menuItems.reportsLog,
         menuItems.pendingVolunteers,
         menuItems.approvedVolunteers
       ];
