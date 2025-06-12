@@ -149,13 +149,13 @@ function initSidebar() {
     const abvnRestrictedPages = [
       'volunteergroupmanagement.html',
       'reportsVerification.html',
-      'reportsLog.html',
+      'rdanaVerification.html',
       'activation.html',
       'reliefsLog.html',
       'rdanaLog.html',
-      'rdanaVerification.html',
       'inkind.html',
       'monetary.html',
+      'reportsLog.html',
     ];
 
     const isAbvnRestrictedPage = abvnRestrictedPages.some(page => currentPath.includes(page));
