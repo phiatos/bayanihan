@@ -131,16 +131,17 @@ header::before {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  flex-wrap: wrap;
+  gap: 1rem;
+  flex-wrap: nowrap;
+  flex-direction: row;
   padding-bottom: 16px;
 }
 
 .controls_right {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 0.7rem;
-  margin-top: 2px; 
-  flex-wrap: nowrap; 
+  flex-wrap: wrap;
 }
 
 .controls_right input[type="text"] {
@@ -609,46 +610,6 @@ td select:focus {
   box-shadow: 0 0 0 2px rgba(76, 154, 255, 0.2); /* focus ring */
   outline: none;
 }
-
-
-/* Responsive collapse: stack table on small screens */
-@media (max-width: 768px) {
-  table, thead, tbody, th, td, tr {
-    display: block;
-  }
-
-  thead tr {
-    position: absolute;
-    top: -9999px;
-    left: -9999px;
-  }
-
-  tr {
-    margin-bottom: 15px;
-    border-bottom: 2px solid #ddd;
-    padding: 10px 0;
-  }
-
-  td {
-    text-align: right;
-    padding-left: 50%;
-    position: relative;
-  }
-
-  td::before {
-    position: absolute;
-    top: 50%;
-    left: 16px;
-    transform: translateY(-50%);
-    width: 45%;
-    white-space: nowrap;
-    font-weight: 600;
-    text-align: left;
-    content: attr(data-label);
-    color: #555;
-  }
-}
-
 
 /* ==========================================================================
   Buttons Styling
@@ -1373,7 +1334,74 @@ label:has(+ textarea[required])::after {
   font-weight: 600;
 }
 
+.pdf-buttons {
+  display: flex;
+  justify-content: center; /* default: center on large screens */
+  gap: 16px;
+  padding: 10px 20px;
+  flex-wrap: wrap;
+}
 
+/*Responsiveness*/
 
+@media (max-width: 768px) {
+    .pagination-info {
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+    }
 
+  .controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .controls_right {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .controls_right input[type="text"],
+  #sortSelect {
+    width: 100%;
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 900px) and (min-width: 600px) {
+  /* Keep container scroll but reduce min-width for table */
+  .table-container {
+    max-height: 400px;
+  }
+
+  table {
+    min-width: 480px; /* Allow table to shrink but stay readable */
+  }
+
+  th, td {
+    font-size: 13px;
+    min-width: 120px;
+    padding: 10px 8px;
+  }
+
+  td input[type="text"],
+  td input[type="tel"],
+  td input[type="email"],
+  td input[type="number"],
+  td select {
+    font-size: 14px;
+    padding: 10px 12px;
+  }
+
+ .pdf-buttons {
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .pdf-button,
+  .excel-button {
+    flex: 1;
+    max-width: 48%;
+  }
+}
 
