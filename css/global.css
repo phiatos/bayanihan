@@ -688,11 +688,20 @@ button:disabled {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 
-.viewBtn, .editBtn {
+.viewBtn {
   background-color: var(--blue);
 }
 
-.viewBtn:hover, .editBtn:hover {
+.editBtn{
+  background-color: #5c7cc0;
+}
+
+.editBtn:hover {
+  background-color: #3c4887;
+  transform: translateY(-2px);
+}
+
+.viewBtn:hover{
   background-color: var(--blue-hover);
   transform: translateY(-2px);
 }
@@ -729,11 +738,11 @@ button[type="submit"]:hover,
   transform: translateY(-2px);
 }
 
-.savePDFBtn, .editBtn {
+.savePDFBtn{
   background-color: var(--accent-color);
 }
 
-.savePDFBtn:hover, .editBtn:hover {
+.savePDFBtn:hover{
   background-color: var(--accent-hover-color);
   transform: translateY(-2px);
 }
