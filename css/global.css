@@ -862,7 +862,7 @@ button[type="submit"]:hover,
 
 .form-page-container form{
   position: relative;
-  max-height: 550px; 
+  max-height: 700px; 
   height: 100%;
   margin-top: 10px;
   display: flex;
@@ -888,7 +888,7 @@ button[type="submit"]:hover,
   background-color: rgba(20, 174, 187, 0.1);
   border-radius: 8px;
   padding: 20px;
-  margin: 20px 0;
+  margin: 10px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
@@ -1342,6 +1342,13 @@ label:has(+ textarea[required])::after {
   flex-wrap: wrap;
 }
 
+.donation-buttons{
+  display: flex;
+  gap: 16px;
+  padding: 5px;
+  flex-wrap: wrap;
+}
+
 /*Responsiveness*/
 
 @media (max-width: 768px) {
@@ -1393,15 +1400,55 @@ label:has(+ textarea[required])::after {
     padding: 10px 12px;
   }
 
- .pdf-buttons {
+ .pdf-buttons, .donation-buttons {
     justify-content: space-between;
     width: 100%;
   }
 
   .pdf-button,
-  .excel-button {
+  .excel-button, 
+  #addDonationBtn,
+  #nextBtn,
+  #clearFormBtn {
     flex: 1;
-    max-width: 48%;
+    max-width: 550px;
   }
 }
+
+@media (max-width: 768px) {
+  .form-page-container .fields {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    justify-content: space-between;
+  }
+
+  .form-page-container .input-field {
+    width: calc(50% - 8px); /* 2 columns */
+    min-width: 370px;
+  }
+
+  .form-page-container .input-field input,
+  .form-page-container .input-field p {
+    font-size: 13px;
+    padding: 10px 12px;
+  }
+
+  .form-page-container label {
+    font-size: 11.5px;
+    margin-bottom: 4px;
+  }
+
+  .form-page-container #nextBtn {
+    width: 370px;
+  }
+
+}
+
+@media (max-width: 480px) {
+  .form-page-container .input-field {
+    width: 100%; /* stack vertically */
+  }
+}
+
 
