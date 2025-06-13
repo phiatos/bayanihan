@@ -7,6 +7,8 @@
     <link rel="stylesheet" href="../css/volunteergroupmanagement.css" />
     <link rel="stylesheet" href="../css/global.css" />
     <link rel='stylesheet' href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css'/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
 
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
@@ -176,45 +178,63 @@
                 <span class="close-button" id="closeEditModalBtn">×</span>
                 <h4 id="editModalTitle">Edit Volunteer Group</h4>
                 <form id="editOrgForm">
-                    <input type="hidden" id="editOrgFirebaseKey">
+                <input type="hidden" id="editOrgFirebaseKey">
 
-                    <label>Organization</label>
-                    <input type="text" name="organization" id="editOrganization" placeholder="Enter Organization" required>
+                <div class="form-group">
+                    <label for="editOrganization">Organization</label>
+                    <input type="text" id="editOrganization" name="organization" placeholder="Enter Organization" required>
+                </div>
 
+                <div class="form-group">
                     <label for="editRegion">Region</label>
                     <select id="editRegion" name="region" required></select>
+                </div>
 
+                <div class="form-group">
                     <label for="editProvince">Province</label>
                     <select id="editProvince" name="province" required></select>
+                </div>
 
+                <div class="form-group">
                     <label for="editCity">City/Municipality</label>
                     <select id="editCity" name="city" required></select>
+                </div>
 
+                <div class="form-group">
                     <label for="editBarangay">Barangay</label>
                     <select id="editBarangay" name="barangay" required></select>
+                </div>
 
-                    <label>Block/Lot/Unit Number and Street</label>
-                    <input type="text" name="streetAddress" id="editStreetAddress" placeholder="Enter Block/Lot/Unit Number and Street" required>
+                <div class="form-group">
+                    <label for="editStreetAddress">Block/Lot/Unit Number and Street</label>
+                    <input type="text" id="editStreetAddress" name="streetAddress" placeholder="Enter Address" required>
+                </div>
 
-                    <label>Contact Person</label>
-                    <input type="text" name="contactPerson" id="editContactPerson" placeholder="Enter Contact Person" required>
+                <div class="form-group">
+                    <label for="editContactPerson">Contact Person</label>
+                    <input type="text" id="editContactPerson" name="contactPerson" placeholder="Enter Contact Person" required>
+                </div>
 
-                    <label>Email</label>
-                    <input type="email" name="email" id="editEmail" placeholder="Enter the email of the organization of the Contact Person" required>
+                <div class="form-group">
+                    <label for="editEmail">Email</label>
+                    <input type="email" id="editEmail" name="email" placeholder="Enter Email" required>
+                </div>
 
-                    <label>Mobile Number</label>
-                    <input type="number" name="mobileNumber" id="editMobileNumber" placeholder="Enter the mobile number of the Contact Person" required>
+                <div class="form-group">
+                    <label for="editMobileNumber">Mobile Number</label>
+                    <input type="number" id="editMobileNumber" name="mobileNumber" placeholder="Enter Mobile Number" required>
+                </div>
 
-                    <label>Social Media</label>
-                    <input type="text" name="socialMedia" id="editSocialMedia" placeholder="Enter Social Media Link (Optional)">
+                <div class="form-group">
+                    <label for="editSocialMedia">Social Media</label>
+                    <input type="text" id="editSocialMedia" name="socialMedia" placeholder="Enter Social Media Link (Optional)">
+                </div>
 
-                    <div style="margin-top: 20px;">
-                        <button type="submit" style="width: 25%;">Save Changes</button>
-                    </div>
+                <button type="submit">Save Changes</button>
                 </form>
             </div>
-        </div>
-        </div>
+            </div>
+
     </div>
 
     <script>

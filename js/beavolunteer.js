@@ -389,7 +389,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Disable the button and show submitting text
             submitButton.disabled = true;
             submitButton.textContent = 'Submitting...';
-            isSubmitting = true; // Set the flag
+            isSubmitting = true; 
 
             try {
                 // Get the reCAPTCHA response
@@ -501,40 +501,60 @@ document.addEventListener('DOMContentLoaded', () => {
                 const volunteersRef = database.ref("volunteerApplications/pendingVolunteer");
                 const allApplicationsSnapshot = await volunteersRef.once('value');
                 
-                let isDuplicateName = false;
-                let duplicateEmailExists = false
+                let emailAlreadyExists = false; 
+                let mobileNumberAlreadyExists = false;
+                let nameAlreadyExists = false;
 
                 allApplicationsSnapshot.forEach(childSnapshot => {
-                const volunteer = childSnapshot.val();
+                    const volunteer = childSnapshot.val();
+
+                      // Check if email already exists
+                    if (volunteer.email.toLowerCase() === email.toLowerCase()) {
+                        emailAlreadyExists = true;
+                    }
+
+                    // Check if mobile number already exists
+                    if (volunteer.mobileNumber === mobileNumber) {
+                        mobileNumberAlreadyExists = true;
+                    }
+
+                    // Check if first name and last name combination already exists
                     if (volunteer.firstName.toLowerCase() === firstName.toLowerCase() &&
                         volunteer.lastName.toLowerCase() === lastName.toLowerCase()) {
-                        isDuplicateName = true;
-                        // Additionally check if the email also matches to give a more specific message
-                        if (volunteer.email.toLowerCase() === email.toLowerCase()) {
-                            duplicateEmailExists = true;
-                        }
-                        // We found a name match, we can stop iterating if we only care about name uniqueness
-                        // If you want to log all matches or check other criteria, continue.
-                        // For simply detecting if a name match exists, we can break.
-                        return true; // Breaks forEach loop early if a match is found
+                        nameAlreadyExists = true;
                     }
                 });
 
-                if (isDuplicateName) {
-                    let errorMessage = '';
-                    if (duplicateEmailExists) {
-                        errorMessage = 'An application with this name and email already exists. Please check your details or contact support if you believe this is an error.';
-                    } else {
-                        errorMessage = 'An application with this name (first name and last name) already exists. Please ensure you are not submitting a duplicate application.';
-                    }
-                    Swal.fire('Error', errorMessage, 'error');
+                // --- Apply Blocking Logic with Priority ---
+                // Priority 1: Email uniqueness
+                if (emailAlreadyExists) {
+                    Swal.fire('Error', 'An application with this email address already exists. Please use a different email or contact support if you believe this is an error.', 'error');
                     submitButton.disabled = false;
                     submitButton.textContent = 'Submit Application';
                     isSubmitting = false;
                     grecaptcha.reset();
-                    return;
+                    return; // Stop the form submission
+                }
+
+                // Priority 2: Mobile Number uniqueness
+                if (mobileNumberAlreadyExists) {
+                    Swal.fire('Error', 'An application with this mobile number already exists. Please use a different mobile number or contact support if you believe this is an error.', 'error');
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Submit Application';
+                    isSubmitting = false;
+                    grecaptcha.reset();
+                    return; // Stop the form submission
                 }
                 
+                // Priority 3: Name (first name + last name) uniqueness
+                if (nameAlreadyExists) {
+                    Swal.fire('Error', 'An application with this name (first name and last name) already exists. Please ensure you are not submitting a duplicate application.', 'error');
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Submit Application';
+                    isSubmitting = false;
+                    grecaptcha.reset();
+                    return; // Stop the form submission
+                }
 
                 // Create an object to store in Realtime Database
                 const volunteerData = {
@@ -577,11 +597,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error("Error adding volunteer application to Realtime Database: ", error);
                 Swal.fire('Error', 'There was an error submitting your application. Please try again.', 'error');
             } finally {
-                // Always re-enable the button and reset the flag after the process completes (success or failure)
                 submitButton.disabled = false;
                 submitButton.textContent = 'Submit Application';
                 isSubmitting = false;
-                grecaptcha.reset(); // Reset reCAPTCHA in case of any error during submission
+                grecaptcha.reset(); 
             }
         });
     }

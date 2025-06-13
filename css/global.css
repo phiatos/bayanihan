@@ -714,7 +714,8 @@ button:disabled {
 
 /* Shared button styles for sleek look */
 .viewBtn, .editBtn, .deleteBtn, .approveBtn, .rejectBtn, 
-.saveBtn, .endorseBtn, .savePDFBtn, .action-button-endorse-button, .action-button, #addItemBtn, .actionBtn{
+.saveBtn, .endorseBtn, .savePDFBtn, .action-button-endorse-button, 
+.action-button, #addItemBtn, .actionBtn, .archiveBtn, .rescheduleBtn{
   color: #fff;
   border: none;
   padding: 10px 18px;
@@ -735,11 +736,11 @@ button:disabled {
   transform: translateY(-2px);
 }
 
-.deleteBtn, .rejectBtn, .action-button {
+.deleteBtn, .rejectBtn, .action-button, .archiveBtn {
   background-color: var(--red);
 }
 
-.deleteBtn:hover, .rejectBtn:hover, .action-button:hover {
+.deleteBtn:hover, .rejectBtn:hover, .action-button:hover, .archiveBtn:hover {
   background-color: var(--red-hover);
   transform: translateY(-2px);
 }
@@ -761,7 +762,8 @@ button[type="submit"]:hover,
   background-color: var(--primary-color);
 }
 
-.saveBtn:hover, .endorseBtn:hover, .action-button-endorse-button:hover, .actionBtn:hover{
+.saveBtn:hover, .endorseBtn:hover, .action-button-endorse-button:hover, 
+.actionBtn:hover, .rescheduleBtn:hover{
   background-color: var(--button-hover);
   transform: translateY(-2px);
 }

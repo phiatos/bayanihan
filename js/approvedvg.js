@@ -173,8 +173,6 @@ function initializeApprovedApplicationsPage(adminUserId) {
     const editBarangayTextInput = document.getElementById('editBarangay-text');
 
     const editStreetAddress = document.getElementById('editStreetAddress');
-    // Note: The HTML for approvedvg.html does not have mission, expertise, legalStatus, requiredDocuments in its edit modal.
-    // I will comment these out or remove them from the JS to match the HTML.
     // const editMission = document.getElementById('editMission');
     // const editExpertise = document.getElementById('editExpertise');
     // const editLegalStatus = document.getElementById('editLegalStatus');
@@ -420,13 +418,18 @@ function initializeApprovedApplicationsPage(adminUserId) {
 
         let content = `
             <h3 style="margin-bottom: 15px; color: #FA3B99;">Organization Details</h3>
+            <div style="margin-left: 15px;">
             <p><strong>Organization Name:</strong> ${applicationData.organizationName || 'N/A'}</p>
             <p><strong>Contact Person:</strong> ${applicationData.contactPerson || 'N/A'}</p>
             <p><strong>Email:</strong> ${applicationData.email || 'N/A'}</p>
             <p><strong>Mobile Number:</strong> ${applicationData.mobileNumber || 'N/A'}</p>
             <p><strong>Social Media Link:</strong> ${applicationData.socialMediaLink ? `<a href="${applicationData.socialMediaLink}" target="_blank" rel="noopener noreferrer">${applicationData.socialMediaLink}</a>` : 'N/A'}</p>
+            </div>
+
+            <hr>
 
             <h4 style="margin-top: 20px; margin-bottom: 10px; color: #FA3B99;">Headquarters Address:</h4>
+            <div style="margin-left: 15px;">
             <ul>
                 <li><strong>Region:</strong> ${applicationData.headquarters?.region || 'N/A'}</li>
                 <li><strong>Province:</strong> ${applicationData.headquarters?.province || 'N/A'}</li>
@@ -434,17 +437,30 @@ function initializeApprovedApplicationsPage(adminUserId) {
                 <li><strong>Barangay:</strong> ${applicationData.headquarters?.barangay || 'N/A'}</li>
                 <li><strong>Street Address:</strong> ${applicationData.headquarters?.streetAddress || 'N/A'}</li>
             </ul>
+            </div>
+
+            <hr>
 
             <h4 style="margin-top: 20px; margin-bottom: 10px; color: #FA3B99;">Organizational Background:</h4>
+            <div style="margin-left: 15px;">
             <p><strong>Mission/Background:</strong> ${applicationData.organizationalBackgroundMission || 'N/A'}</p>
             <p><strong>Areas of Expertise/Focus:</strong> ${applicationData.areasOfExpertiseFocus || 'N/A'}</p>
+            </div>
+
+            <hr>
 
             <h4 style="margin-top: 20px; margin-bottom: 10px; color: #FA3B99;">Legal & Documents:</h4>
+            <div style="margin-left: 15px;">
             <p><strong>Legal Status/Registration:</strong> ${applicationData.legalStatusRegistration || 'N/A'}</p>
             <p><strong>Required Documents:</strong> ${applicationData.requiredDocumentsLink ? `<a href="${applicationData.requiredDocumentsLink}" target="_blank" rel="noopener noreferrer">View Document</a>` : 'N/A'}</p>
+            </div>
 
+            <hr>
+
+            <div style="margin-left: 15px;">
             <p style="margin-top: 20px; font-size: 0.9em; color: #555;"><strong>Application Date and Time:</strong> ${formattedApplicationTimestamp}</p>
             <p style="font-size: 0.9em; color: #555;"><strong>Approval Date and Time:</strong> ${formattedApprovedTimestamp}</p>
+            </div>
         `;
 
         modalContentDiv.innerHTML = content;
@@ -721,24 +737,77 @@ function initializeApprovedApplicationsPage(adminUserId) {
             }
 
             // --- Password Verification Step (Copied from vgm.js) ---
-            const { value: password } = await Swal.fire({
-                title: 'Confirm Changes',
-                text: 'To save these changes, please enter your password:',
-                icon: 'question',
-                input: 'password',
-                inputPlaceholder: 'Enter your password',
-                showCancelButton: true,
-                confirmButtonText: 'Confirm',
-                cancelButtonText: 'Cancel',
-                reverseButtons: true,
-                focusCancel: true,
-                allowOutsideClick: false,
-                confirmButtonColor: '#4CAF50',
-                cancelButtonColor: '#f44336',
-                padding: '1.25em',
-                customClass: {
-                    confirmButton: 'swal2-confirm-large',
-                    cancelButton: 'swal2-cancel-large'
+           const { value: password } = await Swal.fire({
+            title: 'Confirm Changes',
+            text: 'To save these changes, please enter your password:',
+            icon: 'question',
+            input: 'password',
+            inputPlaceholder: 'Enter your password',
+            showCancelButton: true,
+            confirmButtonText: 'Confirm',
+            cancelButtonText: 'Cancel',
+            reverseButtons: true,
+            focusCancel: true,
+            allowOutsideClick: false,
+            confirmButtonColor: '#4CAF50',
+            cancelButtonColor: '#f44336',
+            padding: '1.25em',
+            customClass: {
+                confirmButton: 'swal2-confirm-large',
+                cancelButton: 'swal2-cancel-large',
+                input: 'custom-swal-input'
+            },
+            didOpen: () => {
+                const input = Swal.getInput();
+
+                // Create wrapper div
+                const wrapper = document.createElement('div');
+                wrapper.style.position = 'relative';
+                wrapper.style.width = '100%';
+                wrapper.style.display = 'flex';
+                wrapper.style.alignItems = 'center';
+                
+
+                // Insert wrapper before input and move input into it
+                input.parentNode.insertBefore(wrapper, input);
+                wrapper.appendChild(input);
+
+                // Style input for padding-right to prevent overlap
+                input.style.paddingRight = '44px';
+                input.style.width = '100%';
+                input.style.boxSizing = 'border-box';
+                input.style.borderRadius = '8px';
+                input.style.border = '1px solid #ccc';
+
+                // Create floating icon
+                const toggleIcon = document.createElement('i');
+                toggleIcon.className = 'fa-solid fa-eye';
+                Object.assign(toggleIcon.style, {
+                position: 'absolute',
+                top: '60%',
+                right: '50px',
+                transform: 'translateY(-50%)',
+                cursor: 'pointer',
+                color: '#888',
+                fontSize: '1rem',
+                zIndex: '2',
+                transition: 'color 0.2s ease'
+                });
+
+                wrapper.appendChild(toggleIcon);
+
+                // Toggle logic
+                toggleIcon.addEventListener('click', () => {
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    toggleIcon.className = 'fa-solid fa-eye-slash';
+                } else {
+                    input.type = 'password';
+                    toggleIcon.className = 'fa-solid fa-eye';
+                }
+                });
+
+
                 },
                 preConfirm: async (enteredPassword) => {
                     if (!enteredPassword) {
@@ -870,7 +939,11 @@ function initializeApprovedApplicationsPage(adminUserId) {
                         showCancelButton: true,
                         confirmButtonText: 'Yes, Register It!',
                         cancelButtonText: 'Cancel',
-                        reverseButtons: true
+                        reverseButtons: true,
+                        customClass: {
+                            confirmButton: 'swal2-confirm-large',
+                            cancelButton: 'swal2-cancel-large'
+                        },
                     }).then(async (result) => {
                         if (result.isConfirmed) {
                             await registerVolunteerGroup(applicationToRegister);
@@ -1081,7 +1154,11 @@ function initializeApprovedApplicationsPage(adminUserId) {
                 text: `${applicationData.organizationName} has been added to Volunteer Groups. ${tempPassword ? 'Login credentials sent via email.' : ''}`,
                 timer: 4000,
                 timerProgressBar: true,
-                showConfirmButton: false
+                showConfirmButton: false,
+                customClass: {
+                    confirmButton: 'swal2-confirm-large',
+                    cancelButton: 'swal2-cancel-large'
+                },
             });
 
             // Re-fetch and re-render the table to reflect changes

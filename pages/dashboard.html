@@ -25,12 +25,13 @@
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <header>Dashboard</header>
                 <!-- Notification Bell -->
-            <div id="bell">
-                <i class='bx bx-bell'></i>
-                <span id="notifDot"></span>
+                <div id="bell">
+                    <i class='bx bx-bell'></i>
+                    <span id="notifDot"></span>
+                </div>
             </div>
 
-           <!-- Notification Drawer -->
+            <!-- Notification Drawer -->
             <div id="notificationDrawer" class="drawer">
                 <div class="drawer-header">
                     <h3>Notifications</h3>
@@ -42,133 +43,122 @@
                 </div>
                 <div class="drawer-content">
                     <ul class="notification-list" id="calamityList"></ul>
-                    </ul>
-
                     <ul class="notification-list" id="adminList"></ul>
-                    </ul>
                 </div>
             </div>
 
+            <!-- Dashboard Container -->
+            <div class="dashboard-container">
+                <!-- Left Main Metrics: Distribution Metrics & People & Contributions -->
+                <div class="metrics-main">
+                    <!-- Distribution Metrics -->
+                    <section class="dashboard-section" aria-label="Distribution Metrics">
+                        <h2>Distribution Metrics</h2>
+                        <div class="metrics-container main-metrics">
+                            <div class="metric-card" tabindex="0" data-description="Total number of food packs distributed to families">
+                                <h3><i class='bx bxs-box'></i>No. of Food Packs</h3>
+                                <p id="food-packs">0</p>
+                            </div>
+                            <div class="metric-card" tabindex="0" data-description="Total number of hot meals served">
+                                <h3><i class='bx bxs-bowl-hot'></i>No. of Hot Meals</h3>
+                                <p id="hot-meals">0</p>
+                            </div>
+                            <div class="metric-card" tabindex="0" data-description="Total liters of clean water provided">
+                                <h3><i class='bx bxs-droplet'></i>Liters of Water</h3>
+                                <p id="water-liters">0</p>
+                            </div>
+                            <div class="metric-card" tabindex="0" data-description="Number of volunteers mobilized for the relief efforts">
+                                <h3><i class='bx bxs-group'></i>Volunteers Mobilized</h3>
+                                <p id="volunteers">0</p>
+                            </div>
+                            <div class="metric-card" tabindex="0" data-description="Total monetary donations raised in Philippine Pesos">
+                                <h3><i class='bx bxs-bank'></i>Monetary Donations</h3>
+                                <p id="amount-raised">₱0</p>
+                            </div>
+                            <div class="metric-card" tabindex="0" data-description="Total estimated value of in-kind donations received">
+                                <h3><i class='bx bxs-package'></i>In-Kind Donations</h3>
+                                <p id="inkind-donations">₱0</p>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- Right Sidebar Metrics: Progress Visualizations -->
+                <aside class="metrics-sidebar">
+                    <section class="dashboard-section" aria-label="Progress & Reports">
+                        <h2>Ongoing Progress</h2>
+                        <div class="data-visuals-grid sidebar-metrics">
+                            <div class="data-metric-box data-relief" tabindex="0">
+                                <div class="data-metric-head">
+                                    <i class='bx bx-send'></i>
+                                    <h3>Relief Dispatch</h3>
+                                </div>
+                                <div class="data-metric-body">
+                                    <div class="data-metric-value-row">
+                                        <span class="data-metric-value">80%</span>
+                                        <span class="data-metric-status">On Track</span>
+                                    </div>
+                                    <div class="data-progress-bar">
+                                        <div class="data-progress-fill fill-success" style="width: 80%;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="data-metric-box data-reports" tabindex="0">
+                                <div class="data-metric-head">
+                                    <i class='bx bx-category'></i>
+                                    <h3>Reports by Type</h3>
+                                </div>
+                                <div class="data-metric-body data-mini-chart">
+                                    <div class="data-bar" style="height: 60%;" title="Flood"><span>Flood</span></div>
+                                    <div class="data-bar" style="height: 80%;" title="Fire"><span>Fire</span></div>
+                                    <div class="data-bar" style="height: 40%;" title="Landslide"><span>Landslide</span></div>
+                                    <div class="data-bar" style="height: 30%;" title="Earthquake"><span>Quake</span></div>
+                                </div>
+                            </div>
+                            <div class="data-metric-box data-donation" tabindex="0">
+                                <div class="data-metric-head">
+                                    <i class='bx bx-donate-heart'></i>
+                                    <h3>Donation Goal</h3>
+                                </div>
+                                <div class="data-metric-body">
+                                    <div class="data-metric-value-row">
+                                        <span class="data-metric-value">₱750K</span>
+                                        <span class="data-metric-status">75% Reached</span>
+                                    </div>
+                                    <div class="data-progress-bar">
+                                        <div class="data-progress-fill fill-warning" style="width: 75%;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </aside>
+
+                <!-- Bottom Row: Map Overview -->
+                <section class="dashboard-section bottom-row" aria-label="Map Overview">
+                    <h2>Disaster Map Overview</h2>
+
+                    <!-- Search Bar -->
+                    <div class="search-container">
+                        <div class="input-container">
+                            <input
+                                type="text"
+                                id="search-input"
+                                placeholder="Search by Location, Urgency, or Category"
+                                class="search-input"
+                            />
+                            <button class="search-icon">
+                                <i class='bx bx-search' style="font-size: 24px; color: #656079;"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="map-container" style="height: 700px;">
+                        <div id="map" style="height: 100%; width: 100%;"></div>
+                    </div>
+                </section>
+            </div>
         </div>
-
-        
-
-<!-- Dashboard Container -->
-<div class="dashboard-container">
-
-    <!-- Left Main Metrics: Distribution Metrics & People & Contributions -->
-    <div class="metrics-main">
-        <!-- Distribution Metrics -->
-        <section class="dashboard-section" aria-label="Distribution Metrics">
-            <h2>Distribution Metrics</h2>
-            <div class="metrics-container main-metrics">
-                <div class="metric-card" tabindex="0" data-description="Total number of food packs distributed to families">
-                    <h3><i class='bx bxs-box'></i>No. of Food Packs</h3>
-                    <p id="food-packs">0</p>
-                </div>
-                <div class="metric-card" tabindex="0" data-description="Total number of hot meals served">
-                    <h3><i class='bx bxs-bowl-hot'></i>No. of Hot Meals</h3>
-                    <p id="hot-meals">0</p>
-                </div>
-                <div class="metric-card" tabindex="0" data-description="Total liters of clean water provided">
-                    <h3><i class='bx bxs-droplet'></i>Liters of Water</h3>
-                    <p id="water-liters">0</p>
-                </div>
-                <div class="metric-card" tabindex="0" data-description="Number of volunteers mobilized for the relief efforts">
-                    <h3><i class='bx bxs-group'></i>Volunteers Mobilized</h3>
-                    <p id="volunteers">0</p>
-                </div>
-                <div class="metric-card" tabindex="0" data-description="Total monetary donations raised in Philippine Pesos">
-                    <h3><i class='bx bxs-bank'></i>Monetary Donations</h3>
-                    <p id="amount-raised">₱0</p>
-                </div>
-                <div class="metric-card" tabindex="0" data-description="Total estimated value of in-kind donations received">
-                    <h3><i class='bx bxs-package'></i>In-Kind Donations</h3>
-                    <p id="inkind-donations">₱0</p>
-                </div>
-            </div>
-        </section>
-    </div>
-
-    <!-- Right Sidebar Metrics: Progress Visualizations -->
-    <aside class="metrics-sidebar">
-        <section class="dashboard-section" aria-label="Progress & Reports">
-            <h2>Ongoing Progress</h2>
-            <div class="data-visuals-grid sidebar-metrics">
-                <div class="data-metric-box data-relief" tabindex="0">
-                    <div class="data-metric-head">
-                        <i class='bx bx-send'></i>
-                        <h3>Relief Dispatch</h3>
-                    </div>
-                    <div class="data-metric-body">
-                        <div class="data-metric-value-row">
-                            <span class="data-metric-value">80%</span>
-                            <span class="data-metric-status">On Track</span>
-                        </div>
-                        <div class="data-progress-bar">
-                            <div class="data-progress-fill fill-success" style="width: 80%;"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="data-metric-box data-reports" tabindex="0">
-                    <div class="data-metric-head">
-                        <i class='bx bx-category'></i>
-                        <h3>Reports by Type</h3>
-                    </div>
-                    <div class="data-metric-body data-mini-chart">
-                        <div class="data-bar" style="height: 60%;" title="Flood"><span>Flood</span></div>
-                        <div class="data-bar" style="height: 80%;" title="Fire"><span>Fire</span></div>
-                        <div class="data-bar" style="height: 40%;" title="Landslide"><span>Landslide</span></div>
-                        <div class="data-bar" style="height: 30%;" title="Earthquake"><span>Quake</span></div>
-                    </div>
-                </div>
-
-                <div class="data-metric-box data-donation" tabindex="0">
-                    <div class="data-metric-head">
-                        <i class='bx bx-donate-heart'></i>
-                        <h3>Donation Goal</h3>
-                    </div>
-                    <div class="data-metric-body">
-                        <div class="data-metric-value-row">
-                            <span class="data-metric-value">₱750K</span>
-                            <span class="data-metric-status">75% Reached</span>
-                        </div>
-                        <div class="data-progress-bar">
-                            <div class="data-progress-fill fill-warning" style="width: 75%;"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-    </aside>
-
-    <!-- Bottom Row: Map Overview -->
-    <section class="dashboard-section bottom-row" aria-label="Map Overview">
-        <h2>Disaster Map Overview</h2>
-
-        <!-- Search Bar -->
-        <div class="search-container">
-            <div class="input-container">
-                <input
-                    type="text"
-                    id="search-input"
-                    placeholder="Search by Location, Urgency, or Category"
-                    class="search-input"
-                />
-                <button class="search-icon">
-                    <i class='bx bx-search' style="font-size: 24px; color: #656079;"></i>
-                </button>
-            </div>
-        </div>
-
-        <div class="map-container" style="height: 700px;">
-            <div id="map" style="height: 100%; width: 100%;"></div>
-        </div>
-    </section>
-</div>
-
-
     </div>
 
     <script>
@@ -203,11 +193,133 @@
                 console.error('initializeDashboard function not found');
             }
         });
+
+        // Notification Bell and Drawer Handling
+        document.addEventListener('DOMContentLoaded', () => {
+            const bell = document.getElementById('bell');
+            const drawer = document.getElementById('notificationDrawer');
+            const closeDrawerBtn = document.getElementById('closeDrawer');
+            const calamityList = document.getElementById('calamityList');
+            const adminList = document.getElementById('adminList');
+            const notifDot = document.getElementById('notifDot');
+            const tabCalamity = document.getElementById('tabCalamity');
+            const tabAdmin = document.getElementById('tabAdmin');
+
+            if (bell && drawer) {
+                bell.addEventListener('click', () => {
+                    console.log('Bell clicked');
+                    drawer.classList.toggle('open');
+                    if (drawer.classList.contains('open')) {
+                        adminList.classList.add('hidden');
+                        calamityList.classList.remove('hidden');
+                    }
+                });
+            }
+
+            if (closeDrawerBtn) {
+                closeDrawerBtn.addEventListener('click', () => {
+                    drawer.classList.remove('open');
+                    console.log('Drawer closed');
+                });
+            }
+
+            if (tabCalamity) {
+                tabCalamity.addEventListener('click', () => {
+                    tabCalamity.classList.add('active');
+                    tabAdmin.classList.remove('active');
+                    calamityList.classList.remove('hidden');
+                    adminList.classList.add('hidden');
+                });
+            }
+
+            if (tabAdmin) {
+                tabAdmin.addEventListener('click', () => {
+                    tabAdmin.classList.add('active');
+                    tabCalamity.classList.remove('active');
+                    adminList.classList.remove('hidden');
+                    calamityList.classList.add('hidden');
+                });
+            }
+
+            // Load Notifications with Warning Levels
+            window.loadNotifications = function() {
+                if (!calamityList || !adminList || !notifDot) {
+                    console.error("Notification elements not found");
+                    return;
+                }
+                if (notificationsListener) notificationsListener.off();
+
+                notificationsListener = database.ref("notifications").limitToLast(50);
+                notificationsListener.on("child_added", snapshot => {
+                    const notification = snapshot.val();
+                    const key = snapshot.key;
+
+                    if (document.querySelector(`li[data-key="${key}"]`)) return;
+
+                    // Handle admin notifications
+                    if (notification.type !== "calamity") {
+                        const li = document.createElement("li");
+                        li.innerHTML = `<strong>🔔 ${notification.message}</strong><span class="timestamp">${new Date(notification.timestamp).toLocaleTimeString()}</span>`;
+                        li.dataset.key = key;
+                        if (!notification.read) li.classList.add("unread");
+                        li.addEventListener("click", () => {
+                            li.classList.remove("unread");
+                            database.ref(`notifications/${key}`).update({ read: true });
+                        });
+                        adminList.prepend(li);
+                    } else {
+                        // Handle calamity notifications with warning levels
+                        const rainfallMatch = notification.details.match(/Rainfall: (\d+\.?\d*) mm/);
+                        const rainfall = rainfallMatch ? parseFloat(rainfallMatch[1]) : 0;
+                        let warningLevel = "";
+                        if (rainfall >= 100) warningLevel = "Red Warning";
+                        else if (rainfall >= 50) warningLevel = "Orange Warning";
+                        else if (rainfall >= 20) warningLevel = "Yellow Warning";
+
+                        if (warningLevel) {
+                            let listItem = document.querySelector(`#calamityList li[data-warning="${warningLevel.toLowerCase().replace(" ", "-")}"]`);
+                            if (!listItem) {
+                                listItem = document.createElement("li");
+                                listItem.dataset.warning = warningLevel.toLowerCase().replace(" ", "-");
+                                listItem.innerHTML = `<strong>${warningLevel}: </strong><span class="province-list"></span>`;
+                                calamityList.prepend(listItem);
+                            }
+                            const provinceList = listItem.querySelector(".province-list");
+                            if (provinceList && notification.location) {
+                                const provinceExists = Array.from(provinceList.children).some(p => p.textContent === notification.location);
+                                if (!provinceExists) {
+                                    const provinceSpan = document.createElement("span");
+                                    provinceSpan.textContent = `${notification.location}, `;
+                                    provinceList.appendChild(provinceSpan);
+                                }
+                            }
+                        }
+                    }
+
+                    // Update notification dot
+                    const hasUnread = document.querySelectorAll(".unread").length > 0 ||
+                                     document.querySelectorAll("#calamityList li .province-list span").length > 0;
+                    notifDot.style.display = hasUnread ? "inline-block" : "none";
+                }, error => {
+                    console.error("Fetch error:", error);
+                    Swal.fire({ icon: "error", title: "Error", text: "Failed to load notifications." });
+                });
+            };
+
+            // Ensure notifications load if initializeDashboard sets up userRole
+            if (typeof initializeDashboard === 'function') {
+                initializeDashboard().then(() => {
+                    if (window.userRole === "AB ADMIN" && typeof loadNotifications === 'function') {
+                        loadNotifications();
+                    }
+                }).catch(error => console.error('Dashboard init error:', error));
+            }
+        });
     </script>
 
-    <!-- <script src="../js/inactivity-detector.js"></script>  -->
+    <!-- <script src="../js/inactivity-detector.js"></script> -->
     <script type="module" src="../js/dashboard.js"></script>
-    <!-- Load Google Maps API without callback -->
-    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBDtlY28p-MvLHRtxnjiibSAadSETvM3VU&libraries=places"></script>
+    <!-- Load Google Maps API with marker library -->
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBDtlY28p-MvLHRtxnjiibSAadSETvM3VU&libraries=places,marker"></script>
 </body>
 </html>

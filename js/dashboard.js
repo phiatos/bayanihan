@@ -40,7 +40,7 @@ const WEATHER_API_KEY = "a98203b9ad890d981c589718b2d6d69d";
 const GEMINI_API_KEY = "AIzaSyDWv5Yh1VjKzP4pVIhyyr6hu54nlPvx61Y";
 const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent";
 
-// Variables for inactivity detection --------------------------------------------------------------------
+// Variables for inactivity detection
 let inactivityTimeout;
 const INACTIVITY_TIME = 1800000; // 30 minutes in milliseconds
 
@@ -66,13 +66,12 @@ function checkInactivity() {
         reverseButtons: true
     }).then((result) => {
         if (result.isConfirmed) {
-            resetInactivityTimer(); // User chose to continue, reset the timer
+            resetInactivityTimer();
             console.log("User chose to continue session.");
         } else if (result.dismiss === Swal.DismissReason.cancel) {
-            // User chose to log out
             auth.signOut().then(() => {
                 console.log("User logged out due to inactivity.");
-                window.location.href = "../pages/login.html"; // Redirect to login page
+                window.location.href = "../pages/login.html";
             }).catch((error) => {
                 console.error("Error logging out:", error);
                 Swal.fire('Error', 'Failed to log out. Please try again.', 'error');
@@ -85,8 +84,6 @@ function checkInactivity() {
 ['mousemove', 'keydown', 'scroll', 'click'].forEach(eventType => {
     document.addEventListener(eventType, resetInactivityTimer);
 });
-//-------------------------------------------------------------------------------------
-
 
 // Cache for API responses (persisted in sessionStorage)
 const apiCache = {
@@ -120,6 +117,34 @@ const provinces = [
     { name: "Davao del Sur", lat: 6.7669, lng: 125.3572 },
     { name: "Ilocos Norte", lat: 18.1648, lng: 120.5927 },
     { name: "Albay", lat: 13.1391, lng: 123.7230 },
+    { name: "Bohol", lat: 9.8459, lng: 124.1438 },
+    { name: "Leyte", lat: 10.9894, lng: 124.6097 },
+    { name: "Negros Occidental", lat: 10.1439, lng: 122.9658 },
+    { name: "Pampanga", lat: 15.0812, lng: 120.6296 },
+    { name: "Zamboanga del Sur", lat: 7.7788, lng: 123.3129 },
+    { name: "Iloilo", lat: 10.7171, lng: 122.5621 },
+    { name: "Batangas", lat: 13.7567, lng: 121.0583 },
+    { name: "Laguna", lat: 14.2510, lng: 121.3357 },
+    { name: "Cavite", lat: 14.4132, lng: 120.9046 },
+    { name: "Quezon", lat: 14.2689, lng: 121.9438 },
+    { name: "Bataan", lat: 14.6684, lng: 120.4758 },
+    { name: "Bulacan", lat: 14.7958, lng: 120.8752 },
+    { name: "Pangasinan", lat: 15.9316, lng: 120.3403 },
+    { name: "Camarines Sur", lat: 13.7110, lng: 123.3172 },
+    { name: "Sorsogon", lat: 12.9870, lng: 124.0147 },
+    { name: "Misamis Oriental", lat: 8.4927, lng: 124.6266 },
+    { name: "Surigao del Norte", lat: 9.8112, lng: 125.7239 },
+    { name: "Agusan del Sur", lat: 8.5944, lng: 125.9142 },
+    { name: "South Cotabato", lat: 6.2316, lng: 124.8446 },
+    { name: "Cotabato", lat: 7.2198, lng: 124.2515 },
+    { name: "Lanao del Norte", lat: 7.9895, lng: 123.9396 },
+    { name: "Tawi-Tawi", lat: 5.0828, lng: 119.9652 },
+    { name: "Palawan", lat: 9.8016, lng: 118.6457 },
+    { name: "Aklan", lat: 11.9178, lng: 122.0811 },
+    { name: "Capiz", lat: 11.5737, lng: 122.7508 },
+    { name: "Antique", lat: 11.1752, lng: 122.0898 },
+    { name: "Oriental Mindoro", lat: 13.4120, lng: 121.0567 },
+    { name: "Occidental Mindoro", lat: 13.1542, lng: 120.6143 },
 ];
 
 // Throttle utility to reduce frequent updates
@@ -158,7 +183,10 @@ function formatLargeNumber(numStr) {
 
 function animateNumber(elementId, target, duration = 1000, decimals = 0) {
     const element = document.getElementById(elementId);
-    if (!element) return;
+    if (!element) {
+        console.error(`Element with ID ${elementId} not found`);
+        return;
+    }
 
     let start = 0;
     const stepTime = 16;
@@ -209,9 +237,20 @@ const volunteersEl = document.getElementById("volunteers");
 const amountRaisedEl = document.getElementById("amount-raised");
 const inKindDonationsEl = document.getElementById("inkind-donations");
 const searchInput = document.getElementById("search-input");
+const calamityList = document.getElementById("calamityList");
+const adminList = document.getElementById("adminList");
+const notifDot = document.getElementById("notifDot");
+const mapDiv = document.getElementById("map");
 
 // Initialize dashboard with session lock
 window.initializeDashboard = function () {
+    if (!mapDiv) {
+        console.error("Map container not found");
+        return;
+    }
+
+    cleanupDashboard(); // Force cleanup on every load
+
     const sessionInitialized = sessionStorage.getItem(SESSION_KEY);
     const sessionTimestamp = sessionStorage.getItem(SESSION_TIMESTAMP_KEY);
     const currentTime = Date.now();
@@ -222,9 +261,7 @@ window.initializeDashboard = function () {
         return;
     }
 
-    console.log("Lenlen: Initializing dashboard at", new Date().toISOString());
-    cleanupDashboard();
-
+    console.log("Initializing dashboard at", new Date().toISOString());
     sessionStorage.setItem(SESSION_KEY, 'true');
     sessionStorage.setItem(SESSION_TIMESTAMP_KEY, currentTime.toString());
 
@@ -240,14 +277,12 @@ window.initializeDashboard = function () {
             return;
         }
         userUid = user.uid;
-        console.log(`Lenlen: Logged-in user UID: ${userUid}`);
+        console.log(`Logged-in user UID: ${userUid}`);
         
-        
-
         database.ref(`users/${user.uid}`).once("value", snapshot => {
             const userData = snapshot.val();
             if (!userData || !userData.role) {
-                console.error(`Lenlen: User data not found for UID: ${user.uid}`);
+                console.error(`User data not found for UID: ${user.uid}`);
                 Swal.fire({
                     icon: "error",
                     title: "User Data Missing",
@@ -258,12 +293,10 @@ window.initializeDashboard = function () {
                 return;
             }
 
-            // --- IMPORTANT: ADD THIS PASSWORD RESET CHECK ---
             const passwordNeedsReset = userData.password_needs_reset || false;
             const profilePage = '../pages/profile.html';
 
             if (passwordNeedsReset) {
-                // If password needs reset, redirect to the profile page immediately
                 console.log("Password change required. Redirecting to profile page.");
                 Swal.fire({
                     icon: 'info',
@@ -277,19 +310,18 @@ window.initializeDashboard = function () {
                 }).then(() => {
                     window.location.replace(`../pages/${profilePage}`);
                 });
-                return; 
+                return;
             }
-            // --- END OF PASSWORD RESET CHECK ---
 
             userRole = userData.role;
             userEmail = user.email;
-            console.log(`Lenlen: Role: ${userRole}, Email: ${userEmail}`);
+            console.log(`Role: ${userRole}, Email: ${userEmail}`);
 
             headerEl.textContent = userRole === "AB ADMIN" ? "Admin Dashboard" : "Volunteer Dashboard";
 
             initializeMap();
             if (!map) {
-                console.error("Lenlen: Map initialization failed.");
+                console.error("Map initialization failed.");
                 return;
             }
 
@@ -310,10 +342,9 @@ window.initializeDashboard = function () {
             cleanOldCalamities();
             migrateLegacyCalamities();
 
-            // Initialize processed sets from database to ensure consistency
             initializeProcessedSets();
         }, error => {
-            console.error("Lenlen: Error fetching user data:", error);
+            console.error("Error fetching user data:", error);
             Swal.fire({
                 icon: "error",
                 title: "Error",
@@ -326,11 +357,9 @@ window.initializeDashboard = function () {
 // Initialize processed sets from database
 async function initializeProcessedSets() {
     try {
-        // Clear existing caches
         processedCalamities.clear();
         processedNotifications.clear();
 
-        // Load processed calamities from database
         const calamitySnapshot = await database.ref("calamities").once("value");
         const calamities = calamitySnapshot.val();
         if (calamities) {
@@ -342,7 +371,6 @@ async function initializeProcessedSets() {
             console.log("Initialized processedCalamities from database:", processedCalamities.size);
         }
 
-        // Load processed notifications from database
         const notifSnapshot = await database.ref("notifications").once("value");
         const notifications = notifSnapshot.val();
         if (notifications) {
@@ -361,10 +389,9 @@ async function initializeProcessedSets() {
 // Initialize map
 function initializeMap() {
     try {
-        console.log("Lenlen: initializeMap called at", new Date().toISOString());
-        const mapDiv = document.getElementById("map");
+        console.log("initializeMap called at", new Date().toISOString());
         if (!mapDiv) {
-            console.error("Lenlen: Map container not found");
+            console.error("Map container not found");
             Swal.fire({
                 icon: "error",
                 title: "Map Error",
@@ -376,7 +403,7 @@ function initializeMap() {
         const defaultLocation = { lat: 14.5995, lng: 120.9842 };
 
         if (!window.google || !window.google.maps) {
-            console.error("Lenlen: Google Maps API not loaded");
+            console.error("Google Maps API not loaded");
             Swal.fire({
                 icon: "error",
                 title: "Map Error",
@@ -391,13 +418,13 @@ function initializeMap() {
                 zoom: 6,
                 mapTypeId: "roadmap",
             });
-            console.log("Lenlen: Map initialized successfully with Google Maps");
+            console.log("Map initialized successfully with Google Maps");
         }
 
         geocoder = new google.maps.Geocoder();
 
         if (!searchInput) {
-            console.error("Lenlen: Search input not found");
+            console.error("Search input not found");
             Swal.fire({
                 icon: "error",
                 title: "Map Error",
@@ -415,7 +442,7 @@ function initializeMap() {
         autocomplete.addListener("place_changed", () => {
             const place = autocomplete.getPlace();
             if (!place.geometry || !place.geometry.location) {
-                console.log("Lenlen: No valid location selected from autocomplete.");
+                console.log("No valid location selected from autocomplete.");
                 Swal.fire({
                     icon: "error",
                     title: "Location Not Found",
@@ -426,20 +453,21 @@ function initializeMap() {
 
             map.setCenter(place.geometry.location);
             map.setZoom(12);
-            console.log("Lenlen: Map centered on:", place.geometry.location.toString());
+            console.log("Map centered on:", place.geometry.location.toString());
         });
 
         google.maps.event.trigger(map, "resize");
-        console.log("Lenlen: Map resize event triggered");
+        console.log("Map resize event triggered");
 
         singleInfoWindow = new google.maps.InfoWindow();
 
-        // Add map click listener for weather
         map.addListener("click", (event) => {
             showWeatherInfoWindow(event.latLng.lat(), event.latLng.lng());
         });
+
+        updateRainWarningOverlay();
     } catch (error) {
-        console.error("Lenlen: Failed to initialize Google Maps:", error);
+        console.error("Failed to initialize Google Maps:", error);
         Swal.fire({
             icon: "error",
             title: "Map Error",
@@ -448,95 +476,126 @@ function initializeMap() {
     }
 }
 
-// Add weather data for provinces
+// Add weather data for all provinces with dynamic icons and rain notifications
 function addWeatherDataForProvinces() {
     if (!map) {
-        console.error("Lenlen: Map not initialized, cannot add weather data for provinces.");
+        console.error("Map not initialized, cannot add weather data for provinces.");
         return;
     }
 
-    const addWeatherMarker = throttle((province) => {
-        console.log(`Fetch weather for ${province.name}`);
+    markers.forEach(marker => marker.setMap(null));
+    markers = [];
 
-        fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${province.lat}&lon=${province.lng}&appid=${WEATHER_API_KEY}&units=metric`)
-            .then(response => {
+    const addWeatherMarker = async (province) => {
+        console.log(`Fetching weather for ${province.name}`);
+        try {
+            const cacheKey = `weather_${province.lat}_${province.lng}`;
+            let weatherData = apiCache.get(cacheKey);
+            if (!weatherData) {
+                const response = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${province.lat}&lon=${province.lng}&appid=${WEATHER_API_KEY}&units=metric`);
                 if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-                return response.json();
-            })
-            .then(weatherData => {
-                fetch(`https://api.openweathermap.org/data/2.5/forecast?lat=${province.lat}&lon=${province.lng}&appid=${WEATHER_API_KEY}&units=metric`)
-                    .then(forecastResponse => {
-                        if (!forecastResponse.ok) throw new Error(`HTTP error! Status: ${forecastResponse.status}`);
-                        return forecastResponse.json();
-                    })
-                    .then(forecastData => {
-                        const condition = weatherData.weather[0].main.toLowerCase();
-                        const cloudCover = weatherData.clouds.all || 0;
-                        const pop = (forecastData.list[0].pop || 0) * 100;
+                weatherData = await response.json();
+                apiCache.set(cacheKey, weatherData);
+            }
 
-                        let sunnyPercent = 0, rainyPercent = 0, cloudyPercent = cloudCover;
-                        if (condition.includes("clear")) {
-                            sunnyPercent = 100 - cloudCover;
-                        } else if (condition.includes("rain") || condition.includes("thunderstorm")) {
-                            rainyPercent = pop;
-                            sunnyPercent = Math.max(0, 100 - rainyPercent - cloudyPercent);
-                        } else {
-                            sunnyPercent = Math.max(0, 100 - cloudCover);
-                        }
+            const forecastResponse = await fetch(`https://api.openweathermap.org/data/2.5/forecast?lat=${province.lat}&lon=${province.lng}&appid=${WEATHER_API_KEY}&units=metric`);
+            if (!forecastResponse.ok) throw new Error(`HTTP error! Status: ${forecastResponse.status}`);
+            const forecastData = await forecastResponse.json();
 
-                        let icon = "☁️";
-                        if (condition.includes("clear")) icon = "☀️";
-                        if (condition.includes("thunderstorm")) icon = "⚡";
+            const condition = weatherData.weather[0].main.toLowerCase();
+            const cloudCover = weatherData.clouds.all || 0;
+            const pop = (forecastData.list[0].pop || 0) * 100;
+            const rainfall = forecastData.list[0].rain ? forecastData.list[0].rain["3h"] || 0 : 0;
 
-                        const marker = new google.maps.Marker({
-                            position: { lat: province.lat, lng: province.lng },
-                            map: map,
-                            label: {
-                                text: icon,
-                                fontSize: '24px',
-                            },
-                            title: province.name,
-                        });
+            let sunnyPercent = 0, rainyPercent = 0, cloudyPercent = cloudCover;
+            if (condition.includes("clear")) {
+                sunnyPercent = 100 - cloudCover;
+            } else if (condition.includes("rain") || condition.includes("drizzle") || condition.includes("thunderstorm")) {
+                rainyPercent = pop;
+                sunnyPercent = Math.max(0, 100 - rainyPercent - cloudyPercent);
+                const eventId = `rain_${province.name}_${Date.now()}`;
+                const details = `Rainfall: ${rainfall} mm in last 3 hours, Chance of Rain: ${pop.toFixed(1)}%, Time: ${new Date().toISOString()}`;
+                if (rainfall >= 100 && userRole === "AB ADMIN") {
+                    generateLenlenAlert("Flood Risk", province.name, details, eventId, "Red Warning: Heavy Rain");
+                } else if (rainfall >= 50 && userRole === "AB ADMIN") {
+                    generateLenlenAlert("Flood Risk", province.name, details, eventId, "Orange Warning: Moderate Rain");
+                } else if (rainfall >= 20 && userRole === "AB ADMIN") {
+                    generateLenlenAlert("Flood Risk", province.name, details, eventId, "Yellow Warning: Light Rain");
+                }
+            } else {
+                sunnyPercent = Math.max(0, 100 - cloudCover);
+            }
 
-                        markers.push(marker);
+            let icon = "☁️";
+            if (condition.includes("clear")) icon = "☀️";
+            if (condition.includes("rain") || condition.includes("drizzle") || condition.includes("thunderstorm")) icon = "🌧️";
 
-                        const weatherInfo = `
-                            <div>
-                                <b>${province.name} Weather</b><br>
-                                Sunny: ${sunnyPercent.toFixed(1)}%<br>
-                                Rainy: ${rainyPercent.toFixed(1)}% (Chance of Rain: ${pop.toFixed(1)}%)<br>
-                                Cloudy: ${cloudyPercent.toFixed(1)}%<br>
-                                Condition: ${weatherData.weather[0].description}<br>
-                                Temperature: ${weatherData.main.temp}°C
-                            </div>
-                        `;
-                        const infoWindow = new google.maps.InfoWindow({
-                            content: weatherInfo,
-                        });
-
-                        marker.addListener("click", () => {
-                            if (currentInfoWindow) singleInfoWindow.close();
-                            singleInfoWindow.setContent(weatherInfo);
-                            singleInfoWindow.open(map, marker);
-                            currentInfoWindow = marker;
-                            isInfoWindowClicked = true;
-                            console.log(`Weather InfoWindow opened for ${province.name}`);
-                        });
-
-                        singleInfoWindow?.addListener("closeclick", () => {
-                            isInfoWindowClicked = false;
-                            currentInfoWindow = null;
-                            console.log(`Weather InfoWindow closed for ${province.name}`);
-                        });
-                    })
-                    .catch(error => {
-                        console.error(`Error fetching forecast data for ${province.name}:`, error);
-                    });
-            })
-            .catch(error => {
-                console.error(`Error fetching weather data for ${province.name}:`, error);
+            const markerSvg = `
+    <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+        <text x="20" y="22" font-size="20" text-anchor="middle" fill="#FFFFFF">${icon}</text>
+    </svg>
+`;
+            const marker = new google.maps.Marker({
+                position: { lat: province.lat, lng: province.lng },
+                map: map,
+                icon: {
+                    url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(markerSvg)}`,
+                    scaledSize: new google.maps.Size(40, 40),
+                },
+                title: province.name,
             });
-    }, 1000);
+
+            markers.push(marker);
+
+            const weatherInfo = `
+                <div style="font-size: 14px;">
+                    <b>${province.name} Weather</b><br>
+                    Sunny: ${sunnyPercent.toFixed(1)}%<br>
+                    Rainy: ${rainyPercent.toFixed(1)}% (Chance of Rain: ${pop.toFixed(1)}%)<br>
+                    Cloudy: ${cloudyPercent.toFixed(1)}%<br>
+                    Condition: ${weatherData.weather[0].description}<br>
+                    Temperature: ${weatherData.main.temp}°C<br>
+                    Rainfall (3h): ${rainfall} mm
+                </div>
+            `;
+            const infoWindow = new google.maps.InfoWindow({
+                content: weatherInfo,
+            });
+
+            marker.addListener("click", () => {
+                if (currentInfoWindow) singleInfoWindow.close();
+                singleInfoWindow.setContent(weatherInfo);
+                singleInfoWindow.open(map, marker);
+                currentInfoWindow = marker;
+                isInfoWindowClicked = true;
+                console.log(`Weather InfoWindow opened for ${province.name}`);
+            });
+
+            singleInfoWindow?.addListener("closeclick", () => {
+                isInfoWindowClicked = false;
+                currentInfoWindow = null;
+                console.log(`Weather InfoWindow closed for ${province.name}`);
+            });
+        } catch (error) {
+            console.error(`Error fetching weather data for ${province.name}:`, error);
+            const defaultMarkerSvg = `
+                <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="20" cy="20" r="15" fill="#ADD8E6" opacity="0.7"/>
+                    <text x="20" y="22" font-size="20" text-anchor="middle" fill="#FFFFFF">☁️</text>
+                </svg>
+            `;
+            const marker = new google.maps.Marker({
+                position: { lat: province.lat, lng: province.lng },
+                map: map,
+                icon: {
+                    url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(defaultMarkerSvg)}`,
+                    scaledSize: new google.maps.Size(40, 40),
+                },
+                title: `${province.name} (Data Unavailable)`,
+            });
+            markers.push(marker);
+        }
+    };
 
     provinces.forEach(province => addWeatherMarker(province));
 }
@@ -554,8 +613,7 @@ function trackCalamities() {
     const sessionAgeLimit = 30 * 60 * 1000;
 
     if (calamityTrackingInitialized && sessionTimestamp && (currentTime - parseInt(sessionTimestamp) < sessionAgeLimit)) {
-        console.log("Calamity tracking already executed in this session, skipping. Timestamp:", new Date(parseInt(sessionTimestamp)).toISOString());
-        // Load existing calamities from database to display markers
+        console.log("Calamity tracking already executed in this session, skipping.");
         loadExistingCalamities();
         return;
     }
@@ -568,7 +626,6 @@ function trackCalamities() {
     calamityMarkers = [];
 
     if (calamityListener) {
-        console.log("Calamity listener already exists, removing.");
         calamityListener.off();
         calamityListener = null;
     }
@@ -624,7 +681,6 @@ function generateCalamityIdentifier(type, location, time, magnitude = '', rainfa
 async function calamityExists(eventId, type, location, time, magnitude = '', rainfall = '') {
     const identifier = generateCalamityIdentifier(type, location, time, magnitude, rainfall);
 
-    // Synchronous check using persisted cache
     if (eventId && processedCalamities.has(eventId)) {
         console.log(`Calamity already processed in persisted cache - Event ID: ${eventId}`);
         return true;
@@ -634,7 +690,6 @@ async function calamityExists(eventId, type, location, time, magnitude = '', rai
         return true;
     }
 
-    // Database check
     try {
         const snapshotByEventId = await database.ref("calamities")
             .orderByChild("eventId")
@@ -1005,7 +1060,6 @@ async function trackTsunamis() {
 async function hasRecentNotification(eventId, type, location, time, magnitude = '', rainfall = '') {
     const identifier = generateCalamityIdentifier(type, location, time, magnitude, rainfall);
 
-    // Database check first to ensure consistency
     try {
         const snapshotByEventId = await database.ref("notifications")
             .orderByChild("eventId")
@@ -1031,7 +1085,6 @@ async function hasRecentNotification(eventId, type, location, time, magnitude = 
             return true;
         }
 
-        // Cache check after database to avoid false positives
         if (eventId && processedNotifications.has(eventId)) {
             console.log(`Notification already processed in cache - Event ID: ${eventId}`);
             return true;
@@ -1074,7 +1127,15 @@ async function addCalamityMarker(type, location, coordinates, details, eventId) 
         "Tsunami": "🌊",
     };
 
-    // Create a div for the custom marker
+    const currentTime = Date.now();
+    const timeMatch = details.match(/Time: (.+)/);
+    const eventTime = timeMatch ? new Date(timeMatch[1]).getTime() : currentTime;
+    const twelveHoursInMs = 12 * 60 * 60 * 1000;
+    if (type === "Earthquake" && (currentTime - eventTime > twelveHoursInMs)) {
+        console.log(`Skipping earthquake marker for ${location} - older than 12 hours`);
+        return;
+    }
+
     const markerDiv = document.createElement("div");
     markerDiv.innerHTML = `
         <div style="
@@ -1086,8 +1147,6 @@ async function addCalamityMarker(type, location, coordinates, details, eventId) 
             ${icons[type] || "⚠️"}
         </div>
     `;
-
-    // Add CSS animation for pulsing effect
     const style = document.createElement("style");
     style.textContent = `
         @keyframes pulse {
@@ -1101,25 +1160,20 @@ async function addCalamityMarker(type, location, coordinates, details, eventId) 
     const marker = new google.maps.Marker({
         position: { lat: coordinates.lat, lng: coordinates.lng },
         map: map,
-        icon: {
-            url: "data:image/svg+xml;charset=UTF-8,<svg xmlns='http://www.w3.org/2000/svg' width='1' height='1'></svg>", // Invisible SVG to use custom HTML
-            scaledSize: new google.maps.Size(1, 1),
-        },
         title: `${type} in ${location}`,
-    });
-
-    // Use AdvancedMarkerElement for custom HTML
-    const advancedMarker = new google.maps.marker.AdvancedMarkerElement({
-        position: { lat: coordinates.lat, lng: coordinates.lng },
-        map: map,
-        content: markerDiv,
+        icon: {
+            url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+                <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+                    <text x="20" y="22" font-size="20" text-anchor="middle" fill="#000000">${icons[type] || "⚠️"}</text>
+                </svg>
+            `)}`,
+            scaledSize: new google.maps.Size(40, 40),
+        },
     });
 
     calamityMarkers.push(marker);
 
-    // Get the real location name
     const realLocation = await getLocationName(coordinates.lat, coordinates.lng);
-
     const infoWindowContent = `
         <div>
             <b>${type} in ${realLocation}</b><br>
@@ -1130,7 +1184,6 @@ async function addCalamityMarker(type, location, coordinates, details, eventId) 
         content: infoWindowContent,
     });
 
-    // Add hover effect
     markerDiv.addEventListener("mouseover", () => {
         markerDiv.style.transform = "scale(1.3)";
     });
@@ -1138,9 +1191,8 @@ async function addCalamityMarker(type, location, coordinates, details, eventId) 
         markerDiv.style.transform = "scale(1)";
     });
 
-    // Add click effect and weather
-    markerDiv.addEventListener("click", () => {
-        // Bounce animation on click
+    marker.addListener("click", () => {
+        console.log(`Clicked marker for ${type} at ${location}`);
         markerDiv.style.animation = "none";
         markerDiv.style.animation = "bounce 0.5s ease";
 
@@ -1160,12 +1212,26 @@ async function addCalamityMarker(type, location, coordinates, details, eventId) 
         currentInfoWindow = marker;
         isInfoWindowClicked = true;
         showWeatherInfoWindow(coordinates.lat, coordinates.lng);
+
+        if (userRole === "AB ADMIN") {
+            const magnitudeMatch = details.match(/Magnitude: (\d+\.\d+)/);
+            const rainfallMatch = details.match(/Rainfall: (\d+\.?\d*) mm/);
+            const timeMatch = details.match(/Time: (.+)/);
+            const magnitude = magnitudeMatch ? magnitudeMatch[1] : '';
+            const rainfall = rainfallMatch ? rainfallMatch[1] : '';
+            const time = timeMatch ? timeMatch[1] : null;
+
+            const warningLevel = rainfall >= 100 ? "Red Warning: Heavy Rain" : 
+                              rainfall >= 50 ? "Orange Warning: Moderate Rain" : 
+                              rainfall >= 20 ? "Yellow Warning: Light Rain" : "";
+            generateLenlenAlert(type, location, details, eventId, warningLevel);
+        }
     });
 
     singleInfoWindow?.addListener("closeclick", () => {
         isInfoWindowClicked = false;
         currentInfoWindow = null;
-        markerDiv.style.animation = "pulse 2s infinite"; // Restart pulse animation
+        markerDiv.style.animation = "pulse 2s infinite";
     });
 
     if (userRole === "AB ADMIN") {
@@ -1177,13 +1243,12 @@ async function addCalamityMarker(type, location, coordinates, details, eventId) 
         const time = timeMatch ? timeMatch[1] : null;
 
         const hasDuplicate = await hasRecentNotification(eventId, type, location, time, magnitude, rainfall);
-        if (hasDuplicate) {
-            console.log(`Skipping notification generation - Event ID: ${eventId}`);
-            return;
+        if (!hasDuplicate) {
+            const warningLevel = rainfall >= 100 ? "Red Warning: Heavy Rain" : 
+                              rainfall >= 50 ? "Orange Warning: Moderate Rain" : 
+                              rainfall >= 20 ? "Yellow Warning: Light Rain" : "";
+            generateLenlenAlert(type, location, details, eventId, warningLevel);
         }
-
-        console.log(`Generating new notification - Event ID: ${eventId}`);
-        await generateLenlenAlert(type, location, details, eventId);
     }
 }
 
@@ -1212,7 +1277,7 @@ async function showWeatherInfoWindow(lat, lng) {
         let sunnyPercent = 0, rainyPercent = 0, cloudyPercent = cloudCover;
         if (condition.includes("clear")) {
             sunnyPercent = 100 - cloudCover;
-        } else if (condition.includes("rain") || condition.includes("thunderstorm")) {
+        } else if (condition.includes("rain") || condition.includes("drizzle") || condition.includes("thunderstorm")) {
             rainyPercent = pop;
             sunnyPercent = Math.max(0, 100 - rainyPercent - cloudyPercent);
         } else {
@@ -1221,7 +1286,7 @@ async function showWeatherInfoWindow(lat, lng) {
 
         let icon = "☁️";
         if (condition.includes("clear")) icon = "☀️";
-        if (condition.includes("thunderstorm")) icon = "⚡";
+        if (condition.includes("rain") || condition.includes("drizzle") || condition.includes("thunderstorm")) icon = "🌧️";
 
         const realLocation = await getLocationName(lat, lng);
         const weatherInfo = `
@@ -1256,20 +1321,21 @@ async function showWeatherInfoWindow(lat, lng) {
     }
 }
 
-// Lenlen alert generator
-async function generateLenlenAlert(calamityType, location, details, eventId) {
+// Lenlen alert generator with rain warning levels
+async function generateLenlenAlert(calamityType, location, details, eventId, warningLevel = "") {
     try {
         const prompt = `
-            You are Lenlen, a disaster tracking assistant. Generate a concise admin notification for a ${calamityType} in ${location}. Include relevant details and an emergency hotline if applicable.
+            You are Lenlen, a disaster tracking assistant. Generate a concise admin notification for a ${calamityType} in ${location} with the following details. Include the ${warningLevel} if provided, and suggest an appropriate emergency hotline from the list if applicable.
 
             Details:
             - Location: ${location}
             - Calamity Type: ${calamityType}
             - Details: ${details}
             - Emergency Hotlines: ${JSON.stringify(emergencyHotlines)}
+            - Warning Level: ${warningLevel}
 
             Format the response as a single sentence, e.g.:
-            "Flood risk detected in Cebu with 60 mm rainfall in the last 3 hours—contact BFP at (032) 261-9111 for assistance."
+            "Flood risk detected in Cebu with 60 mm rainfall in the last 3 hours (Orange Warning: Moderate Rain)—contact BFP at (032) 261-9111 for assistance."
         `;
 
         const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
@@ -1294,15 +1360,13 @@ async function generateLenlenAlert(calamityType, location, details, eventId) {
         await notifyAdmin(`Lenlen Alert - ${message}`, calamityType, location, details, eventId);
     } catch (error) {
         console.error("Error generating alert:", error);
-        await notifyAdmin(`🚨 ${calamityType} detected in ${location}. ${details}`, calamityType, location, details, eventId);
+        await notifyAdmin(`🚨 ${calamityType} detected in ${location}. ${details} ${warningLevel ? `(${warningLevel})` : ""}`, calamityType, location, details, eventId);
     }
 }
 
 // Notify admin
 const notifyAdmin = throttle(async (message, calamityType, location, details, eventId) => {
-    const calamityList = document.getElementById("calamityList");
-    const adminList = document.getElementById("adminList");
-    if (!calamityList || !adminList) {
+    if (!calamityList || !adminList || !notifDot) {
         console.error("Notification list elements not found.");
         return;
     }
@@ -1331,6 +1395,24 @@ const notifyAdmin = throttle(async (message, calamityType, location, details, ev
         <span class="timestamp">${new Date().toLocaleTimeString()}</span>
     `;
     li.classList.add("unread");
+    li.style.cursor = "pointer"; // Make clickable
+    li.addEventListener("click", () => {
+        console.log(`Notification clicked: ${message}`);
+        // Optionally open info window or navigate to calamity details
+        if (currentInfoWindow) singleInfoWindow.close();
+        singleInfoWindow.setContent(`
+            <div>
+                <b>${calamityType} in ${location}</b><br>
+                ${details}<br>
+                <button onclick="window.location.href='#';">View Details</button>
+            </div>
+        `);
+        singleInfoWindow.setPosition({ lat: coordinates.lat, lng: coordinates.lng });
+        singleInfoWindow.open(map);
+        currentInfoWindow = { getPosition: () => ({ lat: coordinates.lat, lng: coordinates.lng }) };
+        li.classList.remove("unread"); // Mark as read on click
+        database.ref(`notifications/${key}`).update({ read: true });
+    });
 
     if (calamityType) {
         calamityList.prepend(li);
@@ -1338,10 +1420,10 @@ const notifyAdmin = throttle(async (message, calamityType, location, details, ev
         adminList.prepend(li);
     }
 
-    const notifDot = document.getElementById("notifDot");
-    if (notifDot) notifDot.style.display = "block";
+    notifDot.style.display = "block";
 
-    await database.ref("notifications").push({
+    const key = database.ref("notifications").push().key;
+    await database.ref("notifications").child(key).set({
         message,
         calamityType: calamityType || null,
         location,
@@ -1353,27 +1435,18 @@ const notifyAdmin = throttle(async (message, calamityType, location, details, ev
         type: calamityType ? "calamity" : "admin"
     });
 
-    console.log(`Saved new notification - Event ID: ${eventId}`);
+    console.log(`Saved new notification - Event ID: ${eventId}, Key: ${key}`);
 }, 10000);
-
 
 // Setup admin notifications
 function setupAdminNotifications() {
-    if (userRole !== "AB ADMIN") return;
+    if (!calamityList || !adminList || !notifDot) return;
 
-    const calamityList = document.getElementById("calamityList");
-    const adminList = document.getElementById("adminList");
-    const notifDot = document.getElementById("notifDot");
-
-    if (!calamityList || !adminList || !notifDot) {
-        console.error("Notification list or dot not found.");
-        return;
-    }
-
+    // Load notifications for both AB ADMIN and ABVN roles for calamity alerts
     loadNotifications();
 
     const markAllReadBtn = document.getElementById("markAllRead");
-    if (markAllReadBtn) {
+    if (markAllReadBtn && userRole === "AB ADMIN") {
         markAllReadBtn.addEventListener("click", async () => {
             try {
                 if (notificationsListener) notificationsListener.off();
@@ -1405,21 +1478,30 @@ function setupAdminNotifications() {
     }
 }
 
-
 // Load and listen to notifications
 function loadNotifications() {
     const calamityList = document.getElementById("calamityList");
     const adminList = document.getElementById("adminList");
     const notifDot = document.getElementById("notifDot");
 
-    if (notificationsListener) notificationsListener.off();
+    if (!calamityList || !adminList || !notifDot) {
+        console.error("Notification list or dot not found.");
+        return;
+    }
+
+    if (notificationsListener) {
+        notificationsListener.off();
+        console.log("Previous notifications listener removed.");
+    }
 
     notificationsListener = database.ref("notifications").limitToLast(50);
     notificationsListener.on("child_added", snapshot => {
         const notification = snapshot.val();
         const key = snapshot.key;
+        console.log("New notification received:", notification);
 
-        if (notification.read && processedNotifications.has(notification.eventId || notification.identifier)) return;
+        // Temporarily disable duplicate check for testing
+        // if (notification.read && processedNotifications.has(notification.eventId || notification.identifier)) return;
         if (document.querySelector(`li[data-key="${key}"]`)) return;
 
         const li = document.createElement("li");
@@ -1428,7 +1510,26 @@ function loadNotifications() {
             <span class="timestamp">${new Date(notification.timestamp).toLocaleTimeString()}</span>
         `;
         li.dataset.key = key;
+        li.style.cursor = "pointer";
         if (!notification.read) li.classList.add("unread");
+
+        li.addEventListener("click", () => {
+            console.log(`Notification clicked: ${notification.message}`);
+            const coordinates = provinces.find(p => p.name === notification.location) || { lat: 14.5995, lng: 120.9842 };
+            if (currentInfoWindow) singleInfoWindow.close();
+            singleInfoWindow.setContent(`
+                <div>
+                    <b>${notification.calamityType || ''} in ${notification.location}</b><br>
+                    ${notification.details || ''}<br>
+                    <button onclick="window.location.href='#';">View Details</button>
+                </div>
+            `);
+            singleInfoWindow.setPosition(coordinates);
+            singleInfoWindow.open(map);
+            currentInfoWindow = { getPosition: () => coordinates };
+            li.classList.remove("unread");
+            database.ref(`notifications/${key}`).update({ read: true });
+        });
 
         if (notification.calamityType) {
             calamityList.prepend(li);
@@ -1441,7 +1542,7 @@ function loadNotifications() {
         syncProcessedNotifications();
 
         const hasUnread = calamityList.querySelectorAll("li.unread").length > 0 ||
-                          adminList.querySelectorAll("li.unread").length > 0;
+                         adminList.querySelectorAll("li.unread").length > 0;
         notifDot.style.display = hasUnread ? "block" : "none";
     }, error => {
         console.error("Fetch error:", error);
@@ -1452,10 +1553,7 @@ function loadNotifications() {
 function setupTabSwitching() {
     const tabCalamity = document.getElementById("tabCalamity");
     const tabAdmin = document.getElementById("tabAdmin");
-    const calamityList = document.getElementById("calamityList");
-    const adminList = document.getElementById("adminList");
-
-    if (!tabCalamity || !tabAdmin || !calamityList || !adminList) return;
+    if (!tabCalamity || !tabAdmin) return;
 
     tabCalamity.addEventListener("click", () => {
         tabCalamity.classList.add("active");
@@ -1471,7 +1569,6 @@ function setupTabSwitching() {
         calamityList.classList.add("hidden");
     });
 }
-
 
 // Fetch reports
 function fetchReports() {
@@ -1697,35 +1794,35 @@ function cleanupDashboard() {
     });
     console.log("Removed inactivity timer listeners.");
 
-    if (reportsListener) {
-        reportsListener.off();
-        reportsListener = null;
-        console.log("Removed reports listener");
+       if (map) {
+        markers.forEach(marker => marker.setMap(null));
+        markers = [];
+        calamityMarkers.forEach(marker => marker.setMap(null));
+        calamityMarkers = [];
+        if (currentInfoWindow) singleInfoWindow.close();
+        currentInfoWindow = null;
+        isInfoWindowClicked = false;
+        google.maps.event.clearInstanceListeners(map);
+        map = null;
+        console.log("Cleared map and markers.");
     }
 
     if (calamityListener) {
         calamityListener.off();
         calamityListener = null;
-        console.log("Removed calamity listener");
+        console.log("Removed calamity listener.");
+    }
+
+    if (reportsListener) {
+        reportsListener.off();
+        reportsListener = null;
+        console.log("Removed reports listener.");
     }
 
     if (notificationsListener) {
         notificationsListener.off();
         notificationsListener = null;
-        console.log("Removed notifications listener");
-    }
-
-    markers.forEach(marker => marker.setMap(null));
-    markers = [];
-
-    calamityMarkers.forEach(marker => marker.setMap(null));
-    calamityMarkers = [];
-
-    if (singleInfoWindow) {
-        singleInfoWindow.close();
-        singleInfoWindow = null;
-        currentInfoWindow = null;
-        isInfoWindowClicked = false;
+        console.log("Removed notifications listener.");
     }
 
     sessionStorage.removeItem(SESSION_KEY);
@@ -1733,41 +1830,57 @@ function cleanupDashboard() {
     sessionStorage.removeItem(SESSION_TIMESTAMP_KEY);
     sessionStorage.removeItem(PROCESSED_CALAMITIES_KEY);
     sessionStorage.removeItem(PROCESSED_NOTIFICATIONS_KEY);
+    processedCalamities.clear();
+    processedNotifications.clear();
+    console.log("Cleared session storage and in-memory caches.");
+
+    document.querySelectorAll("#calamityList li, #adminList li").forEach(li => li.remove());
+    const notifDot = document.getElementById("notifDot");
+    if (notifDot) notifDot.style.display = "none";
+    console.log("Cleared notification lists and dot.");
 }
 
-// Notification drawer interactions
-const bell = document.getElementById('bell');
-const drawer = document.getElementById('notificationDrawer');
-const closeBtn = document.getElementById('closeDrawer');
-const notifDot = document.getElementById('notifDot');
+// Update rain warning overlay
+function updateRainWarningOverlay() {
+    const overlay = document.getElementById("rainWarningOverlay");
+    if (!overlay || userRole !== "AB ADMIN") return;
 
-if (bell) {
-    bell.addEventListener('click', (e) => {
-        e.stopPropagation();
-        drawer.classList.add('open');
-    });
+    let hasWarning = false;
+    const checkRainConditions = async () => {
+        for (const province of provinces) {
+            try {
+                const cacheKey = `weather_${province.lat}_${province.lng}`;
+                let weatherData = apiCache.get(cacheKey);
+                if (!weatherData) {
+                    const response = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${province.lat}&lon=${province.lng}&appid=${WEATHER_API_KEY}&units=metric`);
+                    if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+                    weatherData = await response.json();
+                    apiCache.set(cacheKey, weatherData);
+                }
+
+                const forecastResponse = await fetch(`https://api.openweathermap.org/data/2.5/forecast?lat=${province.lat}&lon=${province.lng}&appid=${WEATHER_API_KEY}&units=metric`);
+                if (!forecastResponse.ok) throw new Error(`HTTP error! Status: ${forecastResponse.status}`);
+                const forecastData = await forecastResponse.json();
+
+                const rainfall = forecastData.list[0].rain ? forecastData.list[0].rain["3h"] || 0 : 0;
+                if (rainfall >= 20) {
+                    hasWarning = true;
+                    break;
+                }
+            } catch (error) {
+                console.error(`Error updating rain warning for ${province.name}:`, error);
+            }
+        }
+
+        overlay.style.display = hasWarning ? "block" : "none";
+        if (hasWarning) {
+            overlay.textContent = "⚠️ Rain Warning: Flood risk detected in one or more areas. Check details on the map.";
+        }
+    };
+
+    checkRainConditions();
+    setInterval(checkRainConditions, 15 * 60 * 1000); // Check every 15 minutes
 }
 
-if (closeBtn) {
-    closeBtn.addEventListener('click', () => {
-        drawer.classList.remove('open');
-    });
-}
-
-document.addEventListener('click', (e) => {
-    if (!drawer.contains(e.target) && e.target !== bell && drawer.classList.contains('open')) {
-        drawer.classList.remove('open');
-    }
-});
-
-document.addEventListener("DOMContentLoaded", () => {
-    setupAdminNotifications();
-    setupTabSwitching();
-});
-
-
-window.addEventListener('beforeunload', cleanupDashboard);
-window.addEventListener('navigate-away', () => {
-    console.log('navigate-away event: Cleaning up dashboard');
-    cleanupDashboard();
-});
+// Initialize the dashboard when the page loads
+window.addEventListener("load", initializeDashboard);
