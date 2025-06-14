@@ -229,7 +229,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
             // Display profile data for non-admin users
             if (profileOrgNameElement) profileOrgNameElement.textContent = groupData.organization || 'N/A';
-            if (profileHqElement) profileHqElement.textContent = groupData.hq || 'N/A';
+            if (profilePositionElement) profilePositionElement.textContent = userData.role || 'N/A'; 
+            if (profileHqElement) {
+                let hqAddress = 'N/A';
+                if (groupData.address) { 
+                    const { streetAddress, barangay, city, province, region } = groupData.address;
+                    
+                    const addressParts = [];
+                    if (streetAddress) addressParts.push(streetAddress);
+                    if (barangay) addressParts.push(barangay);
+                    if (city) addressParts.push(city);
+                    if (province) addressParts.push(province);
+                    if (region) addressParts.push(region);
+
+                    hqAddress = addressParts.join(', ') || 'N/A';
+                }
+                profileHqElement.textContent = hqAddress;
+            }
             if (profileContactPersonElement) profileContactPersonElement.textContent = groupData.contactPerson || 'N/A';
             if (profileEmailElement) profileEmailElement.textContent = groupData.email || 'N/A';
             if (profileMobileElement) profileMobileElement.textContent = groupData.mobileNumber || userData.mobile || 'N/A';
@@ -238,6 +254,7 @@ document.addEventListener("DOMContentLoaded", () => {
             // Store group data in localStorage for use in volunteergroupmanagement.html
             localStorage.setItem('loggedInVolunteerGroup', JSON.stringify({
                 no: groupId,
+                role: userData.role,
                 organization: groupData.organization,
                 hq: groupData.hq,
                 areaOfOperation: groupData.areaOfOperation,
