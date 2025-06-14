@@ -50,8 +50,8 @@ function generateTempPassword() {
     return password;
 }
 
-let data = []; // This will hold all fetched data
-let filteredData = []; // This will hold data after search/sort
+let data = []; 
+let filteredData = []; 
 const rowsPerPage = 5;
 let currentPage = 1;
 let currentAddressCell = null;

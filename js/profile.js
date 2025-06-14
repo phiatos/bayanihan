@@ -154,13 +154,20 @@ document.addEventListener("DOMContentLoaded", () => {
             let userData = userSnapshot.val();
             console.log("User data retrieved:", userData);
 
-            if (profilePositionElement) profilePositionElement.innerText = userData.role || 'N/A';
-
+            if (profileContactPersonElement) profileContactPersonElement.innerText = userData.contactPerson || 'N/A';
+            
             // === ADMIN ROLE HANDLING ===
             if (userData.role === 'AB ADMIN') {
                 console.log("User is AB ADMIN. Adjusting display.");
 
-                if (profileContactPersonElement) profileContactPersonElement.innerText = userData.contactPerson || 'N/A';
+                // Display full name for AB ADMINs
+                const fullName = (userData.firstName && userData.lastName) ? `${userData.firstName} ${userData.lastName}` : userData.contactPerson || 'N/A';
+                if (profileContactPersonElement) profileContactPersonElement.innerText = fullName;
+
+                // Display admin position if available, otherwise just the role
+                const positionText = (userData.adminPosition && userData.adminPosition !== "") ? `${userData.role} | ${userData.adminPosition}` : userData.role || 'N/A';
+                if (profilePositionElement) profilePositionElement.innerText = positionText;
+
                 if (profileEmailElement) profileEmailElement.innerText = userData.email || 'N/A';
                 if (profileMobileElement) profileMobileElement.innerText = userData.mobile || 'N/A';
 
@@ -176,7 +183,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 return; 
             }
 
-            // --- This block runs ONLY for non-admin roles (ABVN, volunteer, etc.) ---
+            // --- This block runs ONLY for non-admin role (ABVN) ---
             if (orgNameFieldContainer) orgNameFieldContainer.style.display = 'flex';
             if (hqFieldContainer) hqFieldContainer.style.display = 'flex';
             if (areaFieldContainer) areaFieldContainer.style.display = 'flex';
