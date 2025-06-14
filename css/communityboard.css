@@ -1,4 +1,5 @@
 /* Main Content */
+
 #main-content-cb {
   flex: 1;
   padding: 30px;
@@ -109,6 +110,7 @@
 }
 
 .post-buttons .post-option {
+  display: inline-flex;      /* make flex to use align-items and gap */
   align-items: center;
   gap: 8px;
   padding: 12px 16px;
@@ -119,6 +121,8 @@
   cursor: pointer;
   font-size: 14px;
   transition: background-color 0.3s, transform 0.2s ease-in-out;
+  white-space: unset;       /* prevent text wrap */
+  margin: 10px;
 }
 
 .post-option i {
@@ -913,4 +917,109 @@
 /* Spinner */
 .spinner {
   border: 4
+}
+
+/*Responsiveness*/
+
+@media (max-width: 1024px) {
+  #main-content-cb {
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+  }
+
+  .post-container {
+    max-width: 100%;
+    padding: 16px;
+  }
+
+  .post-creator {
+    margin-bottom: 15px;
+  }
+
+  .post-buttons button, #sort-posts-button {
+    font-size: 12px;
+    padding: 5px;
+    min-width: 50px;
+    max-width: 150px;
+  }
+  .post-buttons button i, #sort-posts-button i {
+    font-size: 10px;
+  }
+
+
+  .post-created {
+    width: 100%;
+  }
+
+  .post-container-header select#category-filter {
+    width: 100%;
+    font-size: 16px;
+    padding: 8px;
+    margin-bottom: 10px;
+  }
+
+  #posts {
+    width: 100%;
+  }
+
+  .vertical-divider {
+    display: none;
+  }
+
+  .activity-panel {
+    display: none;
+  }
+
+  .activity-panel h3 {
+    display: none;
+  }
+
+  #activity-log {
+    display: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .post-buttons button {
+    font-size: 12px;
+    padding: 6px 8px;
+  }
+
+  header {
+    font-size: 20px;
+    padding-bottom: 10px;
+  }
+
+  .post-creator,
+  .post-created,
+  .activity-panel {
+    padding: 5px;
+  }
+
+  .post-container {
+    max-width: 100%;
+    padding: 12px;
+    border-radius: 10px;
+  }
+
+}
+
+@media (max-width: 768px) {
+  #modal-post-category {
+    width: fit-content;
+    font-size: 13px;
+    padding: 7px;
+    margin-left: 15px;
+    margin-top: 15px;
+  }
+}
+
+/* Mobile view */
+@media (max-width: 480px) {
+  #modal-post-category {
+    max-width: 100%;
+    font-size: 12px;
+    padding: 6px;
+  }
 }

@@ -46,7 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Variables for inactivity detection --------------------------------------------------------------------
 let inactivityTimeout;
-const INACTIVITY_TIME = 5000; // 30 minutes in milliseconds
+const INACTIVITY_TIME = 180000; // 30 minutes in milliseconds
 
 // Function to reset the inactivity timer
 function resetInactivityTimer() {

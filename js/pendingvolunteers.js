@@ -706,10 +706,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Add event listeners to the new dropdown buttons
             dropdown.querySelectorAll('button').forEach(button => {
                 button.addEventListener('click', () => {
-                    // The dropdown will be closed by the general document click listener
-                    // or by specific modal open functions if they directly hide it.
-                    // For now, let the general handler manage its removal.
-                    // The 'active' class on the button should be removed by the general handler.
+                   
                 });
             });
 

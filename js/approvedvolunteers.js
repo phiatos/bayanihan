@@ -417,6 +417,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         Swal.showValidationMessage('Invalid date and time format.');
                         return false;
                     }
+
+                     // --- Check for past dates ---
+                    const currentDateTime = Date.now(); 
+                    if (newTimestamp < currentDateTime) {
+                        Swal.showValidationMessage('Scheduled date and time cannot be in the past.');
+                        return false;
+                    }
+
                     return newTimestamp;
                 }
             }).then(async (result) => {

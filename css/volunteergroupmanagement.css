@@ -283,3 +283,24 @@ td[contenteditable="true"] {
   background-color: var(--white);
   border-radius: 4px;
 }
+
+/*Responsiveness*/
+
+@media (max-width: 768px) {
+  #addNew {
+
+    top: 5px;
+ 
+    width: 45px;
+    height: 45px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+  }
+
+  #addNew::after {
+    font-size: 5px;
+    bottom: 70px;
+    padding: 6px 10px;
+    max-width: 90vw;
+    text-align: center;
+  }
+}
