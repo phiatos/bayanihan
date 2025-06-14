@@ -410,7 +410,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     <td>${d.proof ? `<a href="${d.proof}" target="_blank">View Proof</a>` : 'N/A'}</td>
                     <td>
                         <button class="editBtn">Edit</button>
-                        <button class="deleteBtn">Remove</button>
+                        <button class="deleteBtn">Archive</button>
                         <button class="savePDFBtn">Save PDF</button>
                     </td>
                 `;
