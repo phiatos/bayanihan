@@ -164,6 +164,51 @@ textarea:focus {
     transform: translateY(-3px);
 }
 
+.fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
+.input-field {
+  display: flex;
+  flex-direction: column;
+  width: calc((100% - 60px) / 5);
+  box-sizing: border-box;
+}
+
+.title {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 16px;
+  font-weight: bold;
+  margin: 6px 0;
+  color: var(--primary-color);
+}
+
+label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--primary-color);
+}
+
+input {
+  font-size: 14px;
+  font-weight: 400;
+  color: #333;
+  padding: 10px 15px;
+  background-color: var(--white);
+  border-radius: 5px;
+  margin-top: 6px;
+  border: 1px solid #aaa;
+}
+
+input:is(:focus, :valid) {
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.13);
+}
+
 
 
 /* Responsive Adjustments for Modal and Map */
@@ -207,4 +252,51 @@ textarea:focus {
         font-size: 12px;
         padding: 8px 10px;
     }
+}
+
+@media (max-width: 768px) {
+  .pin-btn-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0 1rem;
+    margin-top: 0.5rem;
+    width: 100%;
+  }
+
+  #pinBtn {
+    width: 500px;
+    font-size: 12px;
+    padding: 10px 16px;
+    gap: 6px;
+  }
+
+  #pinBtn i {
+    font-size: 16px;
+  }
+}
+
+/* Tablet (2 or 3 per row depending on preference) */
+@media (max-width: 1024px) {
+  .input-field {
+    width: calc((100% - 30px) / 3); /* 3 per row */
+  }
+}
+
+/* Mobile view: 2 per row */
+@media (max-width: 768px) {
+  .input-field {
+    width: calc((100% - 15px) / 2); /* 2 per row */
+  }
+  h2{
+    text-align: center;
+    margin-top: 20px;
+  }
+}
+
+/* Extra small screens: 1 per row */
+@media (max-width: 480px) {
+  .input-field {
+    width: 100%;
+  }
 }

@@ -305,9 +305,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     let userUid = null;
-    let volunteerGroupName = "[Unknown Org]"; // Default to Unknown Org
-    let activeActivations = []; // To store active operations for the dropdown\
-    let currentUserRole = null; // To store the user's role from custom claims
+    let volunteerGroupName = "[Unknown Org]"; 
+    let activeActivations = []; 
+    let currentUserRole = null; 
 
     function populateCalamityAreaDropdown() {
         calamityAreaDropdown.innerHTML = '<option value="">-- Select an Active Operation --</option>';
@@ -365,7 +365,7 @@ auth.onAuthStateChanged(user => {
             const userData = snapshot.val();
             if (userData) {
                 const userRole = userData.role;
-                const volunteerGroupName = userData.organization; // Get the organization name from user data
+                const volunteerGroupName = userData.organization; 
 
                 console.log('User Role:', userRole);
                 console.log('Volunteer Group Name:', volunteerGroupName);
@@ -707,11 +707,11 @@ auth.onAuthStateChanged(user => {
         // --- Save data to localStorage when navigating to the next page ---
         const formData = {
             userUid: userUid,
-            VolunteerGroupName: volunteerGroupName, // Make sure this is captured
+            VolunteerGroupName: volunteerGroupName, 
             AreaOfOperation: areaOfOperationInput.value,
             CalamityAreaId: calamityAreaDropdown.value,
             CalamityName: selectedCalamityName,
-            CalamityAreaDetails: calamityAreaDetailsText, // This is the new combined field!
+            CalamityAreaDetails: calamityAreaDetailsText, 
             TimeOfIntervention: completionTimeInput.value,
             DateOfReport: dateOfReportInput.value,
             ReportID: reportIdInput.value,

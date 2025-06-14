@@ -131,16 +131,17 @@ header::before {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  flex-wrap: wrap;
+  gap: 1rem;
+  flex-wrap: nowrap;
+  flex-direction: row;
   padding-bottom: 16px;
 }
 
 .controls_right {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 0.7rem;
-  margin-top: 2px; 
-  flex-wrap: nowrap; 
+  flex-wrap: wrap;
 }
 
 .controls_right input[type="text"] {
@@ -610,46 +611,6 @@ td select:focus {
   outline: none;
 }
 
-
-/* Responsive collapse: stack table on small screens */
-@media (max-width: 768px) {
-  table, thead, tbody, th, td, tr {
-    display: block;
-  }
-
-  thead tr {
-    position: absolute;
-    top: -9999px;
-    left: -9999px;
-  }
-
-  tr {
-    margin-bottom: 15px;
-    border-bottom: 2px solid #ddd;
-    padding: 10px 0;
-  }
-
-  td {
-    text-align: right;
-    padding-left: 50%;
-    position: relative;
-  }
-
-  td::before {
-    position: absolute;
-    top: 50%;
-    left: 16px;
-    transform: translateY(-50%);
-    width: 45%;
-    white-space: nowrap;
-    font-weight: 600;
-    text-align: left;
-    content: attr(data-label);
-    color: #555;
-  }
-}
-
-
 /* ==========================================================================
   Buttons Styling
 ========================================================================== */
@@ -715,7 +676,7 @@ button:disabled {
 /* Shared button styles for sleek look */
 .viewBtn, .editBtn, .deleteBtn, .approveBtn, .rejectBtn, 
 .saveBtn, .endorseBtn, .savePDFBtn, .action-button-endorse-button, 
-.action-button, #addItemBtn, .actionBtn, .archiveBtn, .rescheduleBtn{
+.action-button, #addItemBtn, .actionBtn, .archiveBtn, .rescheduleBtn, .registerBtn{
   color: #fff;
   border: none;
   padding: 10px 18px;
@@ -727,11 +688,20 @@ button:disabled {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 
-.viewBtn, .editBtn {
+.viewBtn {
   background-color: var(--blue);
 }
 
-.viewBtn:hover, .editBtn:hover {
+.editBtn{
+  background-color: #5c7cc0;
+}
+
+.editBtn:hover {
+  background-color: #3c4887;
+  transform: translateY(-2px);
+}
+
+.viewBtn:hover{
   background-color: var(--blue-hover);
   transform: translateY(-2px);
 }
@@ -763,16 +733,16 @@ button[type="submit"]:hover,
 }
 
 .saveBtn:hover, .endorseBtn:hover, .action-button-endorse-button:hover, 
-.actionBtn:hover, .rescheduleBtn:hover{
+.actionBtn:hover, .rescheduleBtn:hover, .registerBtn:hover{
   background-color: var(--button-hover);
   transform: translateY(-2px);
 }
 
-.savePDFBtn {
+.savePDFBtn{
   background-color: var(--accent-color);
 }
 
-.savePDFBtn:hover {
+.savePDFBtn:hover{
   background-color: var(--accent-hover-color);
   transform: translateY(-2px);
 }
@@ -901,7 +871,7 @@ button[type="submit"]:hover,
 
 .form-page-container form{
   position: relative;
-  max-height: 550px; 
+  max-height: 700px; 
   height: 100%;
   margin-top: 10px;
   display: flex;
@@ -927,7 +897,7 @@ button[type="submit"]:hover,
   background-color: rgba(20, 174, 187, 0.1);
   border-radius: 8px;
   padding: 20px;
-  margin: 20px 0;
+  margin: 10px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
@@ -1373,7 +1343,121 @@ label:has(+ textarea[required])::after {
   font-weight: 600;
 }
 
+.pdf-buttons {
+  display: flex;
+  justify-content: center; /* default: center on large screens */
+  gap: 16px;
+  padding: 10px 20px;
+  flex-wrap: wrap;
+}
 
+.donation-buttons{
+  display: flex;
+  gap: 16px;
+  padding: 5px;
+  flex-wrap: wrap;
+}
 
+/*Responsiveness*/
+
+@media (max-width: 768px) {
+    .pagination-info {
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+    }
+
+  .controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .controls_right {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .controls_right input[type="text"],
+  #sortSelect {
+    width: 100%;
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 900px) and (min-width: 600px) {
+  /* Keep container scroll but reduce min-width for table */
+  .table-container {
+    max-height: 400px;
+  }
+
+  table {
+    min-width: 480px; /* Allow table to shrink but stay readable */
+  }
+
+  th, td {
+    font-size: 13px;
+    min-width: 120px;
+    padding: 10px 8px;
+  }
+
+  td input[type="text"],
+  td input[type="tel"],
+  td input[type="email"],
+  td input[type="number"],
+  td select {
+    font-size: 14px;
+    padding: 10px 12px;
+  }
+
+ .pdf-buttons, .donation-buttons {
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .pdf-button,
+  .excel-button, 
+  #addDonationBtn,
+  #nextBtn,
+  #clearFormBtn {
+    flex: 1;
+    max-width: 550px;
+  }
+}
+
+@media (max-width: 768px) {
+  .form-page-container .fields {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    justify-content: space-between;
+  }
+
+  .form-page-container .input-field {
+    width: calc(50% - 8px); /* 2 columns */
+    min-width: 370px;
+  }
+
+  .form-page-container .input-field input,
+  .form-page-container .input-field p {
+    font-size: 13px;
+    padding: 10px 12px;
+  }
+
+  .form-page-container label {
+    font-size: 11.5px;
+    margin-bottom: 4px;
+  }
+
+  .form-page-container #nextBtn {
+    width: 370px;
+  }
+
+}
+
+@media (max-width: 480px) {
+  .form-page-container .input-field {
+    width: 100%; /* stack vertically */
+  }
+}
 
 
