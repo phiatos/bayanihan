@@ -112,6 +112,48 @@ header {
   grid-auto-rows: 1fr;
 }
 
+/* Search container (optional update) */
+.search-container {
+  padding: 1rem 2rem;
+  max-width: 1200px;
+  margin: 0 auto 1rem auto;
+}
+
+.input-container {
+  display: flex;
+  width: 100%;
+  margin: 0 auto;
+  border-radius: 30px;
+  overflow: hidden;
+  border: 1px solid #ccc;
+  background: #fff;
+}
+
+/* Search input */
+.search-input {
+  flex: 1;
+  border: none;
+  padding: 0.8rem 1rem;
+  font-size: 1rem;
+  outline: none;
+}
+
+/* Search button */
+.search-icon {
+  background: transparent;
+  border: none;
+  padding: 0 1rem;
+  cursor: pointer;
+}
+
+/* Map Container */
+.map-container {
+  height: 700px;
+  width: 100%;
+  border-radius: 15px;
+  overflow: hidden;
+}
+
 /* ======================
   Metric Cards
 ====================== */
@@ -334,47 +376,7 @@ header {
   padding-bottom: 0.2rem;
 }
 
-/* Search container (optional update) */
-.search-container {
-  padding: 1rem 2rem;
-  max-width: 1200px;
-  margin: 0 auto 1rem auto;
-}
 
-.input-container {
-  display: flex;
-  width: 100%;
-  margin: 0 auto;
-  border-radius: 30px;
-  overflow: hidden;
-  border: 1px solid #ccc;
-  background: #fff;
-}
-
-/* Search input */
-.search-input {
-  flex: 1;
-  border: none;
-  padding: 0.8rem 1rem;
-  font-size: 1rem;
-  outline: none;
-}
-
-/* Search button */
-.search-icon {
-  background: transparent;
-  border: none;
-  padding: 0 1rem;
-  cursor: pointer;
-}
-
-/* Map Container */
-.map-container {
-  height: 100%;
-  width: 100%;
-  border-radius: 15px;
-  overflow: hidden;
-}
 
 /* Animation for metric cards */
 @keyframes fadeInUp {
@@ -385,89 +387,6 @@ header {
   100% {
     opacity: 1;
     transform: translateY(0) scale(1);
-  }
-}
-
-@media (max-width: 1024px) {
-  .metrics-container {
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  }
-  .map-container {
-    margin: 1rem;
-    padding: 1rem;
-  }
-  .search-container {
-    padding: 0 0.8rem;
-  }
-}
-
-@media (max-width: 768px) {
-  .metrics-container {
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  }
-
-  .metric-card {
-    width: 100%;
-    padding: 16px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    text-align: center;
-  }
-
-  .metric-card h3 {
-    font-size: 14px;
-    color: #7f8c8d;
-  }
-
-  .metric-card p {
-    font-size: 18px;
-    font-weight: bold;
-    color: #2980b9;
-    margin: 0;
-  }
-  .map-container {
-    padding: 0.8rem;
-  }
-  .search-container {
-    padding: 0 0.6rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .metrics-container {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1rem;
-  }
-
-  .metric-card {
-    width: 100%;
-    padding: 8px;
-    display: flex;
-  }
-
-  .metric-card h3 {
-    font-size: 10px;
-    color: #7f8c8d;
-    margin-bottom: 0.25rem;
-  }
-
-  .metric-card p {
-    font-size: 14px;
-    font-weight: bold;
-    color: #2980b9;
-    margin: 0;
-  }
-
-  .map-container {
-    padding: 0.5rem;
-    height: 350px;
-  }
-  .search-container {
-    padding: 0 0.4rem;
-  }
-  .search-input {
-    font-size: 0.9rem;
   }
 }
 
@@ -632,4 +551,86 @@ header {
   display: none;
 }
 
+
+/*Responsiveness*/
+
+@media (max-width: 768px) {
+  .dashboard-container {
+    display: flex;
+    flex-direction: column;
+    padding: 1rem;
+  }
+
+  .metrics-main,
+  .metrics-sidebar{
+    width: 100%;
+    padding: 1rem;
+    height: auto;
+  }
+
+  .metrics-sidebar {
+    height: auto; /* Let it grow naturally */
+    order: 2;
+  }
+
+  .metrics-main {
+    order: 1;
+  }
+
+  .bottom-row {
+    order: 3;
+  }
+}
+
+@media (max-width: 1024px) {
+  .dashboard-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto;
+    grid-template-areas:
+      "metrics-main metrics-sidebar"
+      "bottom-row bottom-row";
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .metrics-main,
+  .metrics-sidebar{
+    height: auto;
+    width: 100%;
+  }
+
+   .bottom-row {
+    height: fit-content;
+  }
+
+}
+
+@media (max-width: 768px) {
+  .dashboard-container {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "metrics-main"
+      "metrics-sidebar"
+      "bottom-row";
+  }
+}
+
+
+@media (max-width: 600px) {
+  .input-container {
+    flex-direction: column;
+    border-radius: 10px;
+  }
+
+  .search-input {
+    padding: 0.5rem;
+    font-size: 0.9rem;
+  }
+
+  .search-icon {
+    padding: 0.5rem;
+    font-size: 1rem;
+  }
+}
 

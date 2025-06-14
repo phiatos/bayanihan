@@ -223,7 +223,7 @@ function renderTable(dataToRender = filteredData) {
             <td>${row.address?.streetAddress || 'N/A'}</td>
             <td>
                 <button class="editBtn" data-id="${row.id}">Edit</button>
-                <button class="deleteBtn" data-id="${row.id}">Remove</button>
+                <button class="deleteBtn" data-id="${row.id}">Archive</button>
             </td>
         `;
         tableBody.appendChild(tr);
@@ -1093,100 +1093,94 @@ if (editOrgForm) {
             return;
         }
 
-        // --- Password Verification Step ---
-        const { value: password } = await Swal.fire({
-            title: 'Confirm Changes',
-            text: 'To save these changes, please enter your password:',
-            icon: 'question',
-            input: 'password',
-            inputPlaceholder: 'Enter your password',
-            showCancelButton: true,
-            confirmButtonText: 'Confirm',
-            cancelButtonText: 'Cancel',
-            reverseButtons: true,
-            focusCancel: true,
-            allowOutsideClick: false,
-            confirmButtonColor: '#4CAF50',
-            cancelButtonColor: '#f44336',
-            padding: '1.25em',
-            customClass: {
-                confirmButton: 'swal2-confirm-large',
-                cancelButton: 'swal2-cancel-large',
-                input: 'custom-swal-input'
-            },
-            didOpen: () => {
-                const input = Swal.getInput();
+        const { value: enteredPassword } = await Swal.fire({
+        title: 'Confirm Changes',
+        text: 'To save these changes, please enter your password:',
+        icon: 'question',
+        input: 'password',
+        inputPlaceholder: 'Enter your password',
+        showCancelButton: true,
+        confirmButtonText: 'Confirm',
+        cancelButtonText: 'Cancel',
+        reverseButtons: true,
+        focusCancel: true,
+        allowOutsideClick: false,
+        confirmButtonColor: '#4CAF50',
+        cancelButtonColor: '#f44336',
+        padding: '1.25em',
+        customClass: {
+            confirmButton: 'swal2-confirm-large',
+            cancelButton: 'swal2-cancel-large',
+            input: 'custom-swal-input'
+        },
+        didOpen: () => {
+        const input = Swal.getInput();
+        if (!input) return;
 
-                // Create wrapper div
-                const wrapper = document.createElement('div');
-                wrapper.style.position = 'relative';
-                wrapper.style.width = '100%';
-                wrapper.style.display = 'flex';
-                wrapper.style.alignItems = 'center';
-                
+        // Style input exactly as you like
+        input.style.paddingRight = '44px';
+        input.style.boxSizing = 'border-box';
+        input.style.borderRadius = '8px';
+        input.style.border = '1px solid #ccc';
 
-                // Insert wrapper before input and move input into it
-                input.parentNode.insertBefore(wrapper, input);
-                wrapper.appendChild(input);
+        // Create floating icon
+        const toggleIcon = document.createElement('i');
+        toggleIcon.className = 'fa-solid fa-eye';
+        Object.assign(toggleIcon.style, {
+            position: 'absolute',
+            top: '346px',
+            right: '70px',
+            transform: 'translateY(-50%)',
+            cursor: 'pointer',
+            color: '#888',
+            fontSize: '1rem',
+            zIndex: '2',
+            transition: 'color 0.2s ease'
+        });
 
-                // Style input for padding-right to prevent overlap
-                input.style.paddingRight = '44px';
-                input.style.width = '100%';
-                input.style.boxSizing = 'border-box';
-                input.style.borderRadius = '8px';
-                input.style.border = '1px solid #ccc';
+        // Inject icon into SweetAlert2's input container
+        const container = input.parentElement;
+        container.style.position = 'relative'; // necessary for absolute icon
+        container.appendChild(toggleIcon);
 
-                // Create floating icon
-                const toggleIcon = document.createElement('i');
-                toggleIcon.className = 'fa-solid fa-eye';
-                Object.assign(toggleIcon.style, {
-                position: 'absolute',
-                top: '60%',
-                right: '50px',
-                transform: 'translateY(-50%)',
-                cursor: 'pointer',
-                color: '#888',
-                fontSize: '1rem',
-                zIndex: '2',
-                transition: 'color 0.2s ease'
-                });
+        // Toggle password visibility
+        toggleIcon.addEventListener('click', () => {
+            const isHidden = input.type === 'password';
+            input.type = isHidden ? 'text' : 'password';
+            toggleIcon.className = isHidden
+            ? 'fa-solid fa-eye-slash'
+            : 'fa-solid fa-eye';
+        });
+        },
+        preConfirm: async (password) => {
+            if (!password) {
+            Swal.showValidationMessage('Password is required.');
+            return false;
+            }
 
-                wrapper.appendChild(toggleIcon);
+            Swal.showLoading();
+            try {
+            await verifyUserPassword(password);
+            Swal.hideLoading();
+            return true;
+            } catch (err) {
+            Swal.hideLoading();
+            if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+                Swal.showValidationMessage('Incorrect password.');
+            } else if (err.code === 'auth/user-not-found' || err.code === 'auth/no-user') {
+                Swal.showValidationMessage('User not found. Please log in again.');
+            } else {
+                Swal.showValidationMessage(`Authentication failed: ${err.message}`);
+            }
+            return false;
+            }
+        }
+        });
 
-                // Toggle logic
-                toggleIcon.addEventListener('click', () => {
-                if (input.type === 'password') {
-                    input.type = 'text';
-                    toggleIcon.className = 'fa-solid fa-eye-slash';
-                } else {
-                    input.type = 'password';
-                    toggleIcon.className = 'fa-solid fa-eye';
-                }
-                });
-
-
-                },
-                preConfirm: async (enteredPassword) => {
-                    if (!enteredPassword) {
-                        Swal.showValidationMessage('Password is required to confirm changes.');
-                        return false;
-                    }
-                    const isPasswordValid = await verifyUserPassword(enteredPassword);
-                    if (!isPasswordValid) {
-                        return false; 
-                    }
-                    return true; 
-                }
-            });
-
-        // If the user cancelled or password verification failed, stop here.
-        if (!password) {
-            Swal.fire(
-                'Cancelled',
-                'Your changes were not saved.',
-                'info'
-            );
-            return;
+        // If cancelled or invalid, exit
+        if (!enteredPassword) {
+        Swal.fire('Cancelled', 'Your changes were not saved.', 'info');
+        return;
         }
 
         // If we reach here, password verification was successful.
@@ -1331,37 +1325,15 @@ function attachRowHandlers() {
 // Make sure 'auth' refers to your Firebase Auth instance (e.g., firebase.auth()).
 
 async function verifyUserPassword(password) {
-    // Show loading state while verifying password
-    Swal.showLoading();
+    const user = auth.currentUser;
+    if (!user) throw { code: 'auth/no-user', message: 'No user is logged in' };
 
-    try {
-        // Option 1: Re-authenticate the current user (most secure for Firebase)
-        // This is the recommended approach for sensitive operations like account deletion.
-        const user = auth.currentUser;
-        if (!user) {
-            throw new Error("No user is currently logged in.");
-        }
-
-        const credential = firebase.auth.EmailAuthProvider.credential(user.email, password);
-        await user.reauthenticateWithCredential(credential);
-
-        Swal.hideLoading();
-        return true; // Password is correct
-    } catch (error) {
-        Swal.hideLoading();
-        console.error("Password re-authentication failed:", error);
-        // Provide specific error messages based on Firebase error codes if needed
-        if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-            Swal.showValidationMessage('Incorrect password.');
-        } else if (error.code === 'auth/user-not-found') {
-             Swal.showValidationMessage('User not found. Please log in again.');
-        }
-        else {
-            Swal.showValidationMessage(`Authentication error: ${error.message}`);
-        }
-        return false; // Password is incorrect or another error occurred
-    }
+    const credential = firebase.auth.EmailAuthProvider.credential(user.email, password);
+    await user.reauthenticateWithCredential(credential); // Will throw if invalid
+    return true;
 }
+
+
 
 function updateEntriesInfo(totalItems) {
     const startIndex = (currentPage - 1) * rowsPerPage;

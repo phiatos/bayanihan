@@ -301,7 +301,7 @@ function checkInactivity() {
                 <td>
                     <button class="saveBtn" data-key="${item.firebaseKey}">Save </button>
                     <button class="viewBtn" data-index="${data.indexOf(item)}">View</button>
-                    <button class="deleteBtn" data-key="${item.firebaseKey}">Remove</button>
+                    <button class="deleteBtn" data-key="${item.firebaseKey}">Archive</button>
                     <button class="savePDFBtn" data-index="${data.indexOf(item)}">Save PDF</button>
                 </td>
             `;

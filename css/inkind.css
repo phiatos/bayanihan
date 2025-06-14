@@ -23,7 +23,7 @@
 }
 
 label {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--primary-color);
 }
@@ -247,6 +247,9 @@ input[type="date"]:valid {
   .input-field {
       width: calc((100% - 30px) / 3);
   }
+  label{
+    font-size: 10px;
+  }
 }
 
 @media (max-width: 768px) {
@@ -259,5 +262,42 @@ input[type="date"]:valid {
 @media (max-width: 600px) {
   .input-field {
       width: 100%;
+  }
+}
+
+.action-button.approve-button{
+  background-color: var(--primary-color);
+}
+
+.action-button.approve-button:hover {
+  background-color: var(--button-hover);
+  
+}
+
+
+/*Responsiveness*/
+
+/* Tablet (2 or 3 per row depending on preference) */
+@media (max-width: 1024px) {
+  .input-field {
+    width: calc((100% - 30px) / 3); /* 3 per row */
+  }
+}
+
+/* Mobile view: 2 per row */
+@media (max-width: 768px) {
+  .input-field {
+    width: calc((100% - 15px) / 2); /* 2 per row */
+  }
+  h2{
+    text-align: center;
+    margin-top: 20px;
+  }
+}
+
+/* Extra small screens: 1 per row */
+@media (max-width: 480px) {
+  .input-field {
+    width: 100%;
   }
 }
