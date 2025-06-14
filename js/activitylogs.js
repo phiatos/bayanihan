@@ -138,7 +138,7 @@ async function analyzeActivities(logs) {
             - Most recent activity timestamp: ${new Date(Math.max(...logs.map(log => log.timestamp))).toLocaleString("en-US", { timeZone: "America/Los_Angeles" })}
             - Current date and time: ${new Date().toLocaleString("en-US", { timeZone: "America/Los_Angeles", hour12: true })}
             Logs: ${logs.map(log => `- ${log.action} by ${log.userName} (${log.role}) at ${new Date(log.timestamp).toLocaleString("en-US", { timeZone: "America/Los_Angeles" })} with details: ${log.details} from ${log.source}`).join('\n')}
-            Provide the analysis in a structured format with <p><strong>Key:</strong> Value</p> tags and a detailed section with <p><strong>Detailed Analysis:</strong> [detailed text]</p>. Highlight any unusual activity patterns or potential issues.
+            Provide the analysis in a structured format with <p><strong>Key:</strong> Value</p> tags and a detailed section with <hr><div class="analysis"><p><strong>Detailed Analysis:</strong> [detailed text]</p>.</div>Highlight any unusual activity patterns or potential issues.
         `;
         const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
             method: "POST",
