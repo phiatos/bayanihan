@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Activity Logs</title>
+    <link rel="stylesheet" href="../components/sidebar.css">
+    <link rel="stylesheet" href="../css/activitylogs.css">
+    <link rel="stylesheet" href="../css/global.css">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+</head>
+<body>
+    <div class="main-container">
+        <div class="sidebar-placeholder"></div>
+        <div id="main-content">
+            <div class="container">
+                <div class="controls">
+                    <div class="controls_left">
+                        <header>Activity Logs</header>
+                    </div>
+                    <div class="controls_right">
+                        <div class="search-wrapper">
+                            <i class="fa fa-search"></i>
+                            <input type="text" placeholder="Search by action, user, or date..." id="searchInput">
+                            <button id="clearSearchBtn" class="clear-btn" style="display: none;">
+                                <i class='bx bx-x'></i>
+                            </button>
+                        </div>
+                        <div class="custom-select-wrapper">
+                            <select id="roleFilter">
+                                <option value="all">All Roles</option>
+                                <option value="AB ADMIN">Admin</option>
+                                <option value="ABVN">ABVN</option>
+                            </select>
+                            <i class='bx bx-chevron-down'></i>
+                        </div>
+                        <div class="custom-select-wrapper">
+                            <select id="actionFilter">
+                                <option value="all">All Actions</option>
+                                <option value="login">Login</option>
+                                <option value="logout">Logout</option>
+                                <option value="submission">Submission</option>
+                                <option value="approval">Approval</option>
+                                <option value="delete">Delete</option>
+                                <option value="create">Create Post</option>
+                                <option value="share">Share Post</option>
+                                <option value="comment">Comment</option>
+                                <option value="edit">Edit Post</option>
+                            </select>
+                            <i class='bx bx-chevron-down'></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table id="logTable">
+                        <thead>
+                            <tr>
+                                <th>No.</th>
+                                <th>Action</th>
+                                <th>User</th>
+                                <th>Role</th>
+                                <th>Timestamp</th>
+                                <th>Details</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div class="pagination-info">
+                    <span id="entriesInfo">Showing 0 to 0 of 0 entries</span>
+                    <div id="pagination" class="pagination"></div>
+                </div>
+                <!-- User Data Analysis Section with Toggle -->
+                <div class="user-data-analysis">
+                    <h4 id="userDataToggle">User Data Analysis</h4>
+                    <div id="userDataContent" class="user-data-content" style="display: none;">
+                        <!-- Detailed analysis will be populated here -->
+                    </div>
+                </div>
+                <!-- Database Summary Section -->
+                <div class="database-summary" id="databaseSummary">
+                    <h4>Database Summary</h4>
+                    <div id="dbSummaryContent" class="db-summary-content">
+                        <p><strong>Status:</strong> Loading database summary...</p>
+                    </div>
+                </div>
+            </div>
+            <!-- Log Details Modal -->
+            <div class="modal" id="logDetailsModal" style="display: none;">
+                <div class="modal-content">
+                    <span class="close-button" id="closeLogModalBtn">×</span>
+                    <h4>Log Details</h4>
+                    <div id="logDetailsContent"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        // Load sidebar
+        fetch('../components/sidebar.html')
+            .then(response => response.text())
+            .then(data => {
+                document.querySelector('.sidebar-placeholder').innerHTML = data;
+                const sidebarScript = document.createElement('script');
+                sidebarScript.src = '../components/sidebar.js';
+                document.body.appendChild(sidebarScript);
+            })
+            .catch(error => console.error('Error loading sidebar:', error));
+    </script>
+    <script src="../js/activitylogs.js"></script>
+</body>
+</html>
