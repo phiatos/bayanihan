@@ -229,10 +229,13 @@ document.addEventListener("DOMContentLoaded", () => {
             { input: form.additionalnotes, label: "Additional Notes", required: false },
             { input: form.status, label: "Status" },
             { input: form.staffIncharge, label: "Staff-In Charge", lettersOnly: true },
-            { input: document.getElementById("donationDate"), label: "Donation Date" },
+            { input: document.getElementById("donationDate"), label: "Donation Date", isDate: true }, // Add isDate flag
         ];
 
-        fieldsToCheck.forEach(({ input, label, lettersOnly, numberOnly, required = true }) => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); 
+
+        fieldsToCheck.forEach(({ input, label, lettersOnly, numberOnly, isDate, required = true }) => {
             clearError(input);
             if (required && isEmpty(input.value)) {
                 showError(input, `${label} is required`);
@@ -243,6 +246,16 @@ document.addEventListener("DOMContentLoaded", () => {
             } else if (!isEmpty(input.value) && numberOnly && !isValidNumber(input.value)) {
                 showError(input, `${label} should only contain numbers`);
                 isValid = false;
+            } else if (isDate && !isEmpty(input.value)) {
+                const donationDate = new Date(input.value);
+                // Ensure donationDate is a valid date before comparing
+                if (isNaN(donationDate.getTime())) {
+                    showError(input, `${label} is not a valid date`);
+                    isValid = false;
+                } else if (donationDate.setHours(0,0,0,0) > today.setHours(0,0,0,0)) { // This is the core change
+                    showError(input, `${label} cannot be a future date`);
+                    isValid = false;
+                }
             }
         });
 
@@ -897,10 +910,13 @@ function openEndorseModal(firebaseKey) {
             { input: document.getElementById("edit-additionalnotes"), label: "Additional Notes", required: false },
             { input: document.getElementById("edit-status"), label: "Status" },
             { input: document.getElementById("edit-staffIncharge"), label: "Staff-In Charge", lettersOnly: true },
-            { input: document.getElementById("edit-donationDate"), label: "Donation Date" },
+            { input: document.getElementById("edit-donationDate"), label: "Donation Date", isDate: true },
         ];
 
-        fieldsToCheck.forEach(({ input, label, lettersOnly, numberOnly, required = true }) => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        fieldsToCheck.forEach(({ input, label, lettersOnly, numberOnly, isDate, required = true }) => {
             clearError(input);
             if (required && isEmpty(input.value)) {
                 showError(input, `${label} is required`);
@@ -911,6 +927,15 @@ function openEndorseModal(firebaseKey) {
             } else if (!isEmpty(input.value) && numberOnly && !isValidNumber(input.value)) {
                 showError(input, `${label} should only contain numbers`);
                 isValid = false;
+            } else if (isDate && !isEmpty(input.value)) { // New date validation block
+            const donationDate = new Date(input.value);
+                if (isNaN(donationDate.getTime())) {
+                    showError(input, `${label} is not a valid date`);
+                    isValid = false;
+                } else if (donationDate.setHours(0,0,0,0) > today.setHours(0,0,0,0)) { // This is the core change
+                    showError(input, `${label} cannot be a future date`);
+                    isValid = false;
+                }
             }
         });
 

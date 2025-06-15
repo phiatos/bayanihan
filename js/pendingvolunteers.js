@@ -63,8 +63,6 @@ function checkInactivity() {
     document.addEventListener(eventType, resetInactivityTimer);
 });
 //-------------------------------------------------------------------------------------
-
-
 document.addEventListener('DOMContentLoaded', () => {
     const volunteersContainer = document.getElementById('volunteersContainer');
     const searchInput = document.getElementById('searchInput');
@@ -156,6 +154,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <h3 style="color: #FA3B99;">Availability</h3>
             <p><strong>General Availability:</strong> ${volunteer.availability?.general || 'N/A'}</p>
             <p><strong>Available Days:</strong> ${volunteer.availability?.specificDays ? volunteer.availability.specificDays.join(', ') : 'N/A'}</p>
+            <p><strong>Time Availability:</strong> ${volunteer.availability?.timeAvailability || 'N/A'}</p>
         `;
         previewModal.style.display = 'flex';
     }
@@ -411,6 +410,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${volunteer.age || 'N/A'}</td>
                 <td>${socialMediaDisplay}</td>
                 <td>${volunteer.additionalInfo || 'N/A'}</td>
+                <td>
+                    ${
+                        volunteer.availability && volunteer.availability.general === 'Specific days'
+                        ? `Specific Days: ${volunteer.availability.specificDays ? volunteer.availability.specificDays.join(', ') : 'N/A'}`
+                        : (volunteer.availability?.general || 'N/A')
+                    }
+                </td>
+                <td>${volunteer.availability?.timeAvailability || 'N/A'}</td>
                 <td>${volunteer.address?.region || 'N/A'}</td>
                 <td>${volunteer.address?.province || 'N/A'}</td>
                 <td>${volunteer.address?.city || 'N/A'}</td>
@@ -823,9 +830,15 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // --- Check for past date ---
+        // --- Check for past date, pwede current date basta bawal past time ---
         const selectedDate = new Date(scheduledDateTime);
         const now = new Date();
+
+        now.setSeconds(0);
+        now.setMilliseconds(0);
+
+        selectedDate.setSeconds(0);
+        selectedDate.setMilliseconds(0);
 
         if (selectedDate < now) {
             Swal.fire({
