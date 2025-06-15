@@ -7,6 +7,8 @@
     <link rel="stylesheet" href="../css/volunteergroupmanagement.css" />
     <link rel="stylesheet" href="../css/global.css" />
     <link rel='stylesheet' href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css'/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
 
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
@@ -29,17 +31,35 @@
                     </div>
                     <div class="controls_right">
                         <div class="search-wrapper">
-                            <i class="fa fa-search"></i>
+                            <!-- <i class="fa fa-search"></i> -->
                             <input type="text" placeholder="Search" id="searchInput" />
-                            <button onclick="clearDInputs()" class="clear-btn">
+                            <!-- <button onclick="clearDInputs()" class="clear-btn">
                                 <i class='bx bx-x'></i>
-                            </button>
+                            </button> -->
                         </div>
                         <div class="custom-select-wrapper">
                             <select id="sortSelect">
-                                <option value="">Sort by</option>
-                                <option value="organization">Organization</option>
-                                <option value="hq">HQ</option>
+                                <option value="" disabled selected hidden>Sort by</option>
+                                <optgroup label="Organization Details">
+                                    <option value="organizationName-asc">Organization Name (A-Z)</option>
+                                    <option value="organizationName-desc">Organization Name (Z-A)</option>
+                                    <option value="contactPerson-asc">Contact Person (A-Z)</option>
+                                    <option value="contactPerson-desc">Contact Person (Z-A)</option>
+                                    <option value="email-asc">Email (A-Z)</option>
+                                    <option value="email-desc">Email (Z-A)</option>
+                                    <option value="mobileNumber-asc">Mobile Number (Ascending)</option>
+                                    <option value="mobileNumber-desc">Mobile Number (Descending)</option>
+                                    </optgroup>
+                                <optgroup label="Location">
+                                    <option value="region-asc">Region (A-Z)</option>
+                                    <option value="region-desc">Region (Z-A)</option>
+                                    <option value="province-asc">Province (A-Z)</option>
+                                    <option value="province-desc">Province (Z-A)</option>
+                                    <option value="city-asc">City (A-Z)</option>
+                                    <option value="city-desc">City (Z-A)</option>
+                                    <option value="barangay-asc">Barangay (A-Z)</option>
+                                    <option value="barangay-desc">Barangay (Z-A)</option>
+                                </optgroup>
                                 </select>
                             <i class='bx bx-chevron-down'></i>
                         </div>
@@ -52,12 +72,16 @@
                     <thead>
                         <tr>
                             <th>No.</th>
-                            <th>Organization</th>
-                            <th>HQ</th>
+                            <th>Organization Name</th>
                             <th>Contact Person</th>
                             <th>Email</th>
                             <th>Mobile Number</th>
                             <th>Social Media</th>
+                            <th>Region</th>
+                            <th>Province</th>
+                            <th>City</th>
+                            <th>Barangay</th>
+                            <th>Street Address</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -66,77 +90,55 @@
                 </table>
 
                 </div>
-                
-                <div>
                     <button id="addNew" aria-label="Add New Volunteer Group">
                       <i class='bx bx-plus' style="color: white; font-size: 30px;"></i>
                     </button>
-                  </div>
                     
-                
-                <div class="pagination-info">
-                    <span id="entriesInfo">Showing 0 to 0 of 0 entries</span>
+                    <div class="pagination-info">
+                        <span id="entriesInfo">Showing 0 to 0 of 0 entries</span>
                     <div id="pagination" class="pagination"></div>
                 </div>
             </div> 
             
-            <div id="addressModal" class="modal" style="display:none;">
+            <!-- Register ABVN Modal -->
+            <div class="modal" id="addOrgModal" style="display: none;">
                 <div class="modal-content">
-                    <span class="close" onclick="closeModal()" style="display: flex; justify-content: right;"> 
-                        <i class='bx bx-x' style="font-size: 25px"></i>
-                    </span>
-                    <div class="addressModal">
-                        <div class="addressHeader">
-                            <label for="hqProvinceInput">HQ</label>
-                            <button onclick="clearInputs()" id="clear">Clear</button> 
-                        </div>
-                        <div class="input-group">
-                            <input list="hqProvinceOptions" id="hqProvinceInput" placeholder="Province" required> 
-                            <i class='bx bx-chevron-down'></i>
-                            <datalist id="hqProvinceOptions"></datalist>
-                        </div>
-                        <div class="input-group">
-                            <input list="hqCityOptions" id="hqCityInput" placeholder="City/Municipality (optional)" required>
-                            <i class='bx bx-chevron-down'></i>
-                            <datalist id="hqCityOptions"></datalist>
-                        </div>
-                        <div class="input-group">
-                            <input list="hqBarangayOptions" id="hqBarangayInput" placeholder="Barangay (optional)" required>
-                            <i class='bx bx-chevron-down'></i>
-                            <datalist id="hqBarangayOptions"></datalist>
-                        </div>
-                        </div>
-                    <div style="text-align: center;">
-                        <button onclick="applyChanges()">Save</button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="add-org-modal" id="addOrgModal" style="display: none;">
-                <div class="add-org-modal-content">
-                    <div class="add-org-header">
-                        <h2 style="color: #4059A5; font-size: 20px; justify-content: center; text-align: center;">Add New Volunteer Group</h2>
-                        <span class="close" onclick="closeAModal()" style="display: flex; justify-content: right;">
-                            <i class='bx bx-x' style="font-size: 25px "></i>
-                        </span>
-                    </div>
+                    <span class="close-button" id="closeModalBtn">×</span>
+                    <h2 id="modalTitle">Add Volunteer Groups</h2>
                     <form id="addOrgForm">
                         <label>Organization</label>
-                        <input type="text" name="organization" placeholder="Enter Organization" required>
-                        <label>HQ Location (Barangay)</label>
-                        <input type="text" name="hq-barangay" placeholder="Enter HQ's Barangay" required>
-                        <label>HQ Location (City/ Municipality)</label>
-                        <input type="text" name="hq-city" placeholder="Enter HQ's City/ Municipality" required>
-                        <label>HQ Location (Province)</label>
-                        <input type="text" name="hq-province" placeholder="Enter HQ's Province" required>
+                        <input type="text" name="organization" id="organization" placeholder="Enter Organization" required>
+                        
+                        <label for="region">Region</label>
+                            <select id="region" name="region" required></select>
+                        <input type="hidden" id="region-text" name="hq-region-text"/>
+
+                        <label for="province">Province</label>
+                            <select id="province" name="province" required></select>
+                        <input type="hidden" id="province-text" name="hq-province-text"/>
+
+                        <label for="city">City/Municipality</label>
+                            <select id="city" name="city" required></select>
+                        <input type="hidden" id="city-text" name="hq-city" />
+
+                        <label for="barangay">Barangay</label>
+                            <select id="barangay" name="barangay" required></select>
+                        <input type="hidden" id="barangay-text" name="hq-barangay-text"/>
+
+                        <label>Block/Lot/Unit Number and Street</label>
+                        <input type="text" name="streetAddress" id="streetAddress" placeholder="Enter Block/Lot/Unit Number and Street" required>
+
                         <label>Contact Person</label>
-                        <input type="text" name="contactPerson" placeholder="Enter Contact Person" required>
+                        <input type="text" name="contactPerson" id="contactPerson" placeholder="Enter Contact Person" required>
+                        
                         <label>Email</label>
-                        <input type="email" name="email" placeholder="Enter the email of the organization of the Contact Person" required>
+                        <input type="email" name="email" id="email" placeholder="Enter the email of the organization of the Contact Person" required>
+                        
                         <label>Mobile Number</label>
-                        <input type="number" name="mobileNumber" placeholder="Enter the mobile number of the Contact Person" required>
+                        <input type="number" name="mobileNumber" id="mobileNumber" placeholder="Enter the mobile number of the Contact Person" required>
+                        
                         <label>Social Media</label>
-                        <input type="text" name="socialMedia" placeholder="Enter Social Media Link (Optional)">
+                        <input type="text" name="socialMedia" id="socialMedia" placeholder="Enter Social Media Link (Optional)">
                         <div style="margin-top: 20px;">
                             <button type="submit" style="width: 25%;">Next</button>
                         </div>
@@ -144,9 +146,10 @@
                 </div>
             </div>
 
-            <div class="confirm-modal" id="confirmModal" style="display:none;">
-                <div class="confirm-modal-content">
-                    <h2 style="color: #4059A5; font-size: 20px;">Confirm Details</h2>
+            <!-- Confirmation Modal -->
+            <div class="modal" id="confirmModal" style="display:none;">
+                <div class="modal-content">
+                    <h2>Confirmation</h2>                    
                     <div id="confirmDetails"></div>
                     <div style="margin-top: 20px;">
                         <button type="button" id="editDetailsBtn">Return</button>
@@ -154,16 +157,80 @@
                     </div>
                 </div>
             </div>
-            
-            <div class="success-modal" id="successModal" style="display:none;">
-                <div class="success-modal-content">
-                    <h2 style="color: #4059A5; font-size: 18px;">Volunteer Group Successfully Added</h2>
-                    <p style="font-weight: 500; color: #8E8E93;">A temporary password has been sent to the newly added volunteer group.</p>
-                    <p><i class='bx bxs-check-circle'></i></p>
+
+            <!-- Success Modal -->
+            <div class="modal" id="successModal" style="display:none;">
+                <div class="modal-content">
+                    <h2 style="text-align: center;">Volunteer Group Successfully Added</h2>
+                    <p style="font-weight: 500; color: #8E8E93; text-align: center;">A temporary password has been sent to the newly added volunteer group.<i class='bx bxs-check-circle'></i> </p>
+                    
                     <button id="closeSuccessBtn">Continue</button>
                 </div>
             </div> 
-        </div>
+
+            <!-- Edit Modal -->
+            <div class="modal" id="editOrgModal" style="display: none;">
+            <div class="modal-content">
+                <span class="close-button" id="closeEditModalBtn">×</span>
+                <h4 id="editModalTitle">Edit Volunteer Group</h4>
+                <form id="editOrgForm">
+                <input type="hidden" id="editOrgFirebaseKey">
+
+                <div class="form-group">
+                    <label for="editOrganization">Organization</label>
+                    <input type="text" id="editOrganization" name="organization" placeholder="Enter Organization" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="editRegion">Region</label>
+                    <select id="editRegion" name="region" required></select>
+                </div>
+
+                <div class="form-group">
+                    <label for="editProvince">Province</label>
+                    <select id="editProvince" name="province" required></select>
+                </div>
+
+                <div class="form-group">
+                    <label for="editCity">City/Municipality</label>
+                    <select id="editCity" name="city" required></select>
+                </div>
+
+                <div class="form-group">
+                    <label for="editBarangay">Barangay</label>
+                    <select id="editBarangay" name="barangay" required></select>
+                </div>
+
+                <div class="form-group">
+                    <label for="editStreetAddress">Block/Lot/Unit Number and Street</label>
+                    <input type="text" id="editStreetAddress" name="streetAddress" placeholder="Enter Address" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="editContactPerson">Contact Person</label>
+                    <input type="text" id="editContactPerson" name="contactPerson" placeholder="Enter Contact Person" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="editEmail">Email</label>
+                    <input type="email" id="editEmail" name="email" placeholder="Enter Email" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="editMobileNumber">Mobile Number</label>
+                    <input type="number" id="editMobileNumber" name="mobileNumber" placeholder="Enter Mobile Number" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="editSocialMedia">Social Media</label>
+                    <input type="text" id="editSocialMedia" name="socialMedia" placeholder="Enter Social Media Link (Optional)">
+                </div>
+
+                <button type="submit">Save Changes</button>
+                </form>
+            </div>
+            </div>
+
     </div>
 
     <script>
@@ -182,6 +249,7 @@
             });
     </script>
     
+    <script src="../js/inactivity-detector.js"></script> 
     <script type="module" src="../js/volunteergroupmanagement.js"></script>
 </body>
 </html>

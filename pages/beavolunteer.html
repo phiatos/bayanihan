@@ -12,6 +12,8 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
+  <script src="../js/navbar.js"></script> 
+
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -109,7 +111,7 @@
           <div class="form-group">
             <label for="city">City/Municipality</label>
             <select id="city" name="city" required></select>
-            <input type="hidden" name="hq-city" />
+            <input type="hidden" id="city-text" name="hq-city-text" />
           </div>
 
           <div class="form-group">
@@ -124,9 +126,52 @@
           </div>
         </fieldset>
 
+        <fieldset>
+          <legend>Availability</legend>
+
+          <div class="form-group">
+            <label for="generalAvailability">General Availability</label>
+            <select id="generalAvailability" name="generalAvailability" required>
+              <option value="" selected disabled>Select one</option>
+              <option value="On-call">On-call</option>
+              <option value="Anytime">Anytime</option>
+              <option value="Full-time">Full-time</option>
+              <option value="Part-time">Part-time</option>
+              <option value="Weekends only">Weekends only</option>
+              <option value="Weekdays only">Weekdays only</option>
+              <option value="Specific days">Specific days</option>
+            </select>
+          </div>
+
+          <div class="form-group" id="specificDaysGroup" style="display: none;">
+            <label>Choose specific days you're available:</label>
+            <div class="checkbox-group">
+              <label><input type="checkbox" name="specificDays" value="Monday" /> Monday</label>
+              <label><input type="checkbox" name="specificDays" value="Tuesday" /> Tuesday</label>
+              <label><input type="checkbox" name="specificDays" value="Wednesday" /> Wednesday</label>
+              <label><input type="checkbox" name="specificDays" value="Thursday" /> Thursday</label>
+              <label><input type="checkbox" name="specificDays" value="Friday" /> Friday</label>
+              <label><input type="checkbox" name="specificDays" value="Saturday" /> Saturday</label>
+              <label><input type="checkbox" name="specificDays" value="Sunday" /> Sunday</label>
+            </div>
+          </div>
+
+          <div class="form-group" id="timeAvailabilityGroup" style="margin-top: 15px;">
+            <label for="timeAvailability">Specific Time Range (e.g., 9:00 AM - 5:00 PM, Afternoons)</label>
+            <input type="text" id="timeAvailability" name="timeAvailability" placeholder="e.g. 9:00 AM - 5:00 PM" />
+            <small>Provide a general time range for your selected days.</small>
+          </div>
+        </fieldset>
+        
+        <!-- Submit -->
+        <div class="form-group submit-group">
+          <div class="g-recaptcha" data-sitekey="6LeVTVkrAAAAAMPE8sdxhmnAjaETxWrtiEY4KWqC"></div>
+        </div>
+
         <div class="form-group submit-group">
           <button type="submit" class="btn-primary">Submit Application</button>
         </div>
+
       </form>
     </div>
   </main>
@@ -137,6 +182,8 @@
     </div>
   </footer>
 
+  <script src="../js/inactivity-detector.js"></script> 
+  <script src="https://www.google.com/recaptcha/api.js" async defer></script>
   <script type="module" src="../js/beavolunteer.js"></script>
 </body>
 </html>

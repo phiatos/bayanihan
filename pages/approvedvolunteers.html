@@ -7,12 +7,12 @@
     <link rel="stylesheet" href="../css/global.css" />
     <link rel='stylesheet' href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css'/>
 
-    <!-- Firebase Compat SDK -->
+    <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/main.min.css' rel='stylesheet' />
+
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
-    <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
     <title>Approved Volunteer Applications</title>
@@ -31,29 +31,21 @@
                         <input type="text" placeholder="Search" id="searchInput" />
                     </div>
                     <div class="custom-select-wrapper">
-                        <select id="sortSelect">
+                        <select id="sortSelect" aria-label="Sort options">
                             <option value="" disabled selected hidden>Sort by</option>
                             <optgroup label="Assessment Info">
                                 <option value="DateTime-asc">Date & Time (Oldest First)</option>
                                 <option value="DateTime-desc">Date & Time (Newest First)</option>
-                                <option value="RDANAID-asc">RDANA ID (Ascending)</option>
-                                <option value="RDANAID-desc">RDANA ID (Descending)</option>
-                            </optgroup>
+                                </optgroup>
                             <optgroup label="Location">
                                 <option value="Location-asc">Location (A–Z)</option>
                                 <option value="Location-desc">Location (Z–A)</option>
                             </optgroup>
-                            <optgroup label="Disaster Details">
-                                <option value="DisasterType-asc">Disaster Type (A–Z)</option>
-                                <option value="DisasterType-desc">Disaster Type (Z–A)</option>
-                            </optgroup>
-                            <optgroup label="Impact">
-                                <option value="AffectedPopulation-desc">Affected Population (High to Low)</option>
-                                <option value="AffectedPopulation-asc">Affected Population (Low to High)</option>
-                            </optgroup>
-                            <optgroup label="Response Actions">
-                                <option value="Needs-asc">Priority Needs (A–Z)</option>
-                                <option value="Needs-desc">Priority Needs (Z–A)</option>
+                            <optgroup label="Volunteer Details">
+                                <option value="Name-asc">Name (A-Z)</option>
+                                <option value="Name-desc">Name (Z-A)</option>
+                                <option value="Age-asc">Age (Low to High)</option>
+                                <option value="Age-desc">Age (High to Low)</option>
                             </optgroup>
                         </select>
                         <i class='bx bx-chevron-down'></i>
@@ -62,37 +54,48 @@
             </div>
 
             <div class="table-controls">
-                <button id="viewApprovedBtn" class="viewApprovedBtn">
-                    <i class='bx bx-show' style="font-size: 1.2rem;"></i>View Pendng Volunteer Applications
+                <button id="toggleViewBtn" class="toggleViewBtn">
+                    <i class='bx bx-calendar' style="font-size: 1.2rem;"></i> Switch to Calendar View
+                </button>
+                <button id="viewPendingBtn" class="viewPendingBtn">
+                    <i class='bx bx-show' style="font-size: 1.2rem;"></i> View Pending Volunteer Applications
                 </button>
             </div>
 
-            <div class="table-container">
-                <table id="volunteersTable">
-                    <thead>
-                        <tr>
-                            <th>No.</th>
-                            <th>Full Name</th>
-                            <th>Email</th>
-                            <th>Mobile Number</th>
-                            <th>Age</th>
-                            <th>Social Media</th>
-                            <th>Additional Info</th>
-                            <th>Region</th>
-                            <th>Province</th>
-                            <th>City</th>
-                            <th>Barangay</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="volunteersContainer"></tbody>
-                </table>
+            <div id="tableView" class="view-container">
+                <div class="table-container">
+                    <table id="volunteersTable">
+                        <thead>
+                            <tr>
+                                <th>No.</th>
+                                <th>Full Name</th>
+                                <th>Email</th>
+                                <th>Mobile Number</th>
+                                <th>Age</th>
+                                <th>Social Media</th>
+                                <th>Additional Info</th>
+                                <th>General Availability</th>
+                                <th>Time Availability</th>
+                                <th>Region</th>
+                                <th>Province</th>
+                                <th>City</th>
+                                <th>Barangay</th>
+                                <th>Scheduled Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="volunteersContainer"></tbody>
+                    </table>
+                </div>
+                <div class="pagination-info">
+                    <span id="entriesInfo">Showing 0 to 0 of 0 entries</span>
+                    <div id="pagination" class="pagination"></div> 
+                </div> 
             </div>
 
-            <div class="pagination-info">
-                <span id="entriesInfo">Showing 0 to 0 of 0 entries</span>
-                <div id="pagination" class="pagination"></div>
-            </div>   
+            <div id="calendarView" class="view-container" style="display: none;">
+                <div id="volunteerCalendar"></div>
+            </div>
         </div>
     </div>
 
@@ -105,23 +108,22 @@
 
     <script>
         fetch('../components/sidebar.html')
-        .then(response => response.text())
-        .then(data => {
-            document.querySelector('.sidebar-placeholder').innerHTML = data;
-            const sidebarScript = document.createElement('script');
-            sidebarScript.src = '../components/sidebar.js';
-            sidebarScript.onload = function() {};
-            document.querySelector('.sidebar-placeholder').appendChild(sidebarScript);
-        })
-        .catch(error => {
-            console.error('Error loading sidebar:', error);
-        });
-
-        function clearDInputs() {
-            document.getElementById('searchInput').value = '';
-            applySearchAndSort();
-        }
+            .then(response => response.text())
+            .then(data => {
+                document.querySelector('.sidebar-placeholder').innerHTML = data;
+                const sidebarScript = document.createElement('script');
+                sidebarScript.src = '../components/sidebar.js';
+                sidebarScript.onload = function() {};
+                document.querySelector('.sidebar-placeholder').appendChild(sidebarScript);
+            })
+            .catch(error => {
+                console.error('Error loading sidebar:', error);
+            });
     </script>
+
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
+
+    <script src="../js/inactivity-detector.js"></script> 
     <script type="module" src="../js/approvedvolunteers.js"></script>
 </body>
 </html>

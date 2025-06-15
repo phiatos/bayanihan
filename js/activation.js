@@ -13,6 +13,7 @@ const firebaseConfig = {
 // Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
+const auth = firebase.auth();
 
 // Data arrays
 let allVolunteerGroups = [];
@@ -67,6 +68,53 @@ const pinLocationBtn = document.getElementById("pinLocationBtn");
 let selectedGroupForActivation = null;
 let map, markers = [], autocomplete, geocoder; // Map for pinning location in modal
 let activationMap, activationMarkers = [], activationsListener, singleInfoWindow, currentInfoWindow, isInfoWindowClicked = false; // Map for displaying active activations
+
+// Variables for inactivity detection --------------------------------------------------------------------
+let inactivityTimeout;
+const INACTIVITY_TIME = 1800000; // 30 minutes in milliseconds
+
+// Function to reset the inactivity timer
+function resetInactivityTimer() {
+    clearTimeout(inactivityTimeout);
+    inactivityTimeout = setTimeout(checkInactivity, INACTIVITY_TIME);
+    console.log("Inactivity timer reset.");
+}
+
+// Function to check for inactivity and prompt the user
+function checkInactivity() {
+    Swal.fire({
+        title: 'Are you still there?',
+        text: 'You\'ve been inactive for a while. Do you want to continue your session or log out?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Stay Login',
+        cancelButtonText: 'Log Out',
+        allowOutsideClick: false,
+        reverseButtons: true
+    }).then((result) => {
+        if (result.isConfirmed) {
+            resetInactivityTimer(); // User chose to continue, reset the timer
+            console.log("User chose to continue session.");
+        } else if (result.dismiss === Swal.DismissReason.cancel) {
+            // User chose to log out
+            auth.signOut().then(() => {
+                console.log("User logged out due to inactivity.");
+                window.location.href = "../pages/login.html"; // Redirect to login page
+            }).catch((error) => {
+                console.error("Error logging out:", error);
+                Swal.fire('Error', 'Failed to log out. Please try again.', 'error');
+            });
+        }
+    });
+}
+
+// Attach event listeners to detect user activity
+['mousemove', 'keydown', 'scroll', 'click'].forEach(eventType => {
+    document.addEventListener(eventType, resetInactivityTimer);
+});
+//-------------------------------------------------------------------------------------
 
 // Initialize Google Maps for Map Modal (used for pinning location during activation creation)
 function initMap() {
@@ -250,12 +298,54 @@ function initActivationMap() {
         console.log("Activation map initialized successfully.");
 
         singleInfoWindow = new google.maps.InfoWindow();
-
         google.maps.event.trigger(activationMap, "resize");
         console.log("Activation map resize event triggered.");
 
-        // Load active activations onto the map
+        // ✅ Load GeoJSON for provinces
+        fetch('../json/ph_admin1.geojson')
+            .then(res => {
+                if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+                return res.json();
+            })
+            .then(data => {
+                console.log("GeoJSON loaded:", data);
+
+                const geoJsonLayer = activationMap.data;
+                geoJsonLayer.addGeoJson(data);
+
+                geoJsonLayer.setStyle({
+                    fillColor: '#FA3B99',
+                    fillOpacity: 0.4,
+                    strokeColor: '#FFF',
+                    strokeWeight: 1.5,
+                    clickable: false,
+                });
+
+                geoJsonLayer.addListener('mouseover', event => {
+                    geoJsonLayer.overrideStyle(event.feature, { fillOpacity: 0.7 });
+                });
+
+                geoJsonLayer.addListener('mouseout', event => {
+                    geoJsonLayer.revertStyle(event.feature);
+                });
+
+                geoJsonLayer.addListener('click', event => {
+                    const name = event.feature.getProperty("name") || event.feature.getProperty("NAME_1") || "Unnamed Province";
+                    const content = `<strong>${name}</strong>`;
+                    const infowindow = new google.maps.InfoWindow({
+                        content,
+                        position: event.latLng
+                    });
+                    infowindow.open(activationMap);
+                });
+            })
+            .catch(error => {
+                console.error("Error loading GeoJSON:", error);
+            });
+
+        // ✅ Load active activations (your markers)
         addMarkersForActiveActivations();
+
     } catch (error) {
         console.error("Failed to initialize Activation Map:", error);
         Swal.fire({
@@ -265,6 +355,7 @@ function initActivationMap() {
         });
     }
 }
+
 
 // Add markers for active activations (Updated with Logo Support)
 function addMarkersForActiveActivations() {
@@ -310,7 +401,8 @@ function addMarkersForActiveActivations() {
                 title: activation.organization,
                 icon: {
                     url: logoPath,
-                    scaledSize: new google.maps.Size(40, 40),
+                    scaledSize: new google.maps.Size(40, 20),
+                    anchor: new google.maps.Point(20, 10), // center the icon
                 },
             });
 
@@ -584,12 +676,14 @@ firebase.auth().onAuthStateChanged(user => {
         listenForDataUpdates();
         // Initialize the activation map after authentication
         initActivationMap();
+        resetInactivityTimer();
     } else {
         console.log("No user is authenticated. Attempting anonymous sign-in...");
         firebase.auth().signInAnonymously()
             .then(() => {
                 console.log("Signed in anonymously successfully.");
                 initActivationMap(); // Initialize map after anonymous sign-in
+                resetInactivityTimer();
             })
             .catch(error => {
                 console.error("Anonymous auth failed:", error.code, error.message);
@@ -601,7 +695,7 @@ firebase.auth().onAuthStateChanged(user => {
             });
     }
 });
-
+//end 
 function listenForDataUpdates() {
     console.log("Setting up real-time listener for volunteerGroups...");
     database.ref("volunteerGroups").on("value", snapshot => {
@@ -611,13 +705,44 @@ function listenForDataUpdates() {
         allVolunteerGroups = [];
         if (fetchedGroups) {
             for (let key in fetchedGroups) {
+                const groupData = fetchedGroups[key]; // Get the specific group's data
+                const addressData = groupData.address; // Get the address object from the group
+
+                let combinedAddress = "Not specified"; // Default value for hq
+
+                if (addressData) {
+                    const addressParts = [];
+
+                    // Add parts in the desired order (e.g., Region, Province, City)
+                    // Check for existence and trim whitespace
+                    if (addressData.region && addressData.region.trim() !== '') {
+                        addressParts.push(addressData.region.trim());
+                    }
+                    if (addressData.province && addressData.province.trim() !== '') {
+                        addressParts.push(addressData.province.trim());
+                    }
+                    if (addressData.city && addressData.city.trim() !== '') {
+                        addressParts.push(addressData.city.trim());
+                    }
+                    // If you also have a 'street' or 'barangay' and want it in HQ:
+                    if (addressData.streetAddress && addressData.streetAddress.trim() !== '') {
+                        addressParts.push(addressData.streetAddress.trim());
+                    }
+
+                    // Combine the parts if any exist
+                    if (addressParts.length > 0) {
+                        combinedAddress = addressParts.join(', ');
+                    }
+                }
+
                 allVolunteerGroups.push({
                     no: parseInt(key),
-                    organization: fetchedGroups[key].organization || "Unknown",
-                    hq: fetchedGroups[key].hq || "Not specified",
-                    contactPerson: fetchedGroups[key].contactPerson || "Unknown",
-                    email: fetchedGroups[key].email || "Not specified",
-                    mobileNumber: fetchedGroups[key].mobileNumber || "Not specified",
+                    organization: groupData.organization || "Unknown",
+                    hq: combinedAddress, // THIS IS WHERE THE COMBINED ADDRESS IS ASSIGNED
+                    address: groupData.address || "N/A", // Keep the full address object if needed elsewhere
+                    contactPerson: groupData.contactPerson || "Unknown",
+                    email: groupData.email || "Not specified",
+                    mobileNumber: groupData.mobileNumber || "Not specified",
                 });
             }
             allVolunteerGroups.sort((a, b) => a.no - b.no);
@@ -632,6 +757,7 @@ function listenForDataUpdates() {
         });
     });
 
+    // The second listener for 'activations'
     console.log("Setting up real-time listener for activations...");
     database.ref("activations").orderByChild("activationDate").on("value", snapshot => {
         const fetchedActivations = snapshot.val();
@@ -642,13 +768,21 @@ function listenForDataUpdates() {
             for (let key in fetchedActivations) {
                 const activation = fetchedActivations[key];
                 if (activation.status === 'active') {
+                    // Important: This assumes allVolunteerGroups has already been populated
+                    // This is generally true with Firebase's real-time listeners,
+                    // but for more complex scenarios, you might need to ensure data
+                    // dependencies are met (e.g., by chaining promises or using async/await).
                     const volunteerGroup = allVolunteerGroups.find(group => group.no === activation.groupId);
+
                     currentActiveActivations.push({
                         id: key,
                         no: activation.no || 0,
                         groupId: activation.groupId,
                         organization: activation.organization || "Unknown",
-                        hq: activation.hq || "Not specified",
+                        // The 'hq' here will come directly from the activation node,
+                        // if you want it to be the *combined* address from volunteerGroups,
+                        // you should use volunteerGroup.hq here.
+                        hq: volunteerGroup ? volunteerGroup.hq : "Not specified", // Use combined HQ from volunteerGroup
                         areaOfOperation: activation.areaOfOperation || "Not specified",
                         calamity: activation.calamityType || "Typhoon",
                         typhoonName: activation.typhoonName || "",
@@ -688,7 +822,19 @@ function populateGroupDropdown() {
     allVolunteerGroups.forEach(group => {
         const option = document.createElement("option");
         option.value = group.no;
-        option.textContent = `${group.organization} (${group.hq})`;
+
+         // Determine the location to display
+        let locationToDisplay = 'N/A'; // Default fallback
+
+        // Check if group.address and group.address.city exist and are not empty
+        if (group.address && group.address.city && group.address.city.trim() !== '') {
+            locationToDisplay = group.address.city;
+        } else if (group.hq && group.hq.trim() !== '') { // Fallback to hq if city is not available
+            locationToDisplay = group.hq;
+        }
+
+        // option.textContent = `${group.organization} (${group.address.city}) || (${group.hq}) `;
+        option.textContent = `${group.organization} (${locationToDisplay})`;
         selectGroupDropdown.appendChild(option);
     });
 }
@@ -739,6 +885,7 @@ function renderTable(filteredData = currentActiveActivations) {
     entriesInfo.textContent = `Showing ${start + 1} to ${Math.min(end, filteredData.length)} of ${filteredData.length} entries`;
     renderPagination(filteredData.length);
 }
+
 
 function handleSearch() {
     const query = searchInput.value.trim().toLowerCase();

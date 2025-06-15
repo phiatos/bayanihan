@@ -35,9 +35,11 @@
                             <div class="input-field">
                                 <label for="AreaOfOperation">Area of Operation:</label>
                                 <input type="text" id="AreaOfOperation" name="AreaOfOperation" placeholder="e.g. Purok 2, Brgy. Maligaya, Rosario" disabled />
+                                <div class="pin-btn-wrapper">
                                 <button id="pinBtn" type="button">
                                     <i class='bx bx-map-pin'></i> Pin Location
                                 </button>
+                                </div>
                             </div>
                             <div class="input-field">
                                 <label>Date of Report</label>
@@ -146,7 +148,8 @@
             console.error('Error loading sidebar:', error);
         });
     </script>
-
+    
+    <script src="../js/inactivity-detector.js"></script> 
     <script type="module" src="../js/reportssubmission.js"></script>
 </body>
 </html>

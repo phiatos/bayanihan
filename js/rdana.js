@@ -30,15 +30,12 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentUserGroupName = '';  
   let currentUserUid = '';        
 
-
   const submittedReportsContainer = document.getElementById("submittedReportsContainer");
   const paginationContainer = document.getElementById("pagination");
   const entriesInfo = document.getElementById("entriesInfo");
   const searchInput = document.getElementById("searchInput");
   const sortSelect = document.getElementById("sortSelect");
 
-
-  
   // Helper function to sanitize keys for Firebase
   function sanitizeKey(key) {
     return key
@@ -47,35 +44,147 @@ document.addEventListener('DOMContentLoaded', () => {
       .replace(/[^a-zA-Z0-9_]/g, ''); 
   }
 
-  // Check if user is authenticated
-  auth.onAuthStateChanged(user => {
-  if (!user) {
+  // Variables for inactivity detection --------------------------------------------------------------------
+let inactivityTimeout;
+const INACTIVITY_TIME = 1800000; // 30 minutes in milliseconds
+
+// Function to reset the inactivity timer
+function resetInactivityTimer() {
+    clearTimeout(inactivityTimeout);
+    inactivityTimeout = setTimeout(checkInactivity, INACTIVITY_TIME);
+    console.log("Inactivity timer reset.");
+}
+
+// Function to check for inactivity and prompt the user
+function checkInactivity() {
     Swal.fire({
-      icon: 'error',
-      title: 'Authentication Required',
-      text: 'Please sign in to access RDANA reports.',
-    }).then(() => {
-      window.location.href = "../pages/login.html";
+        title: 'Are you still there?',
+        text: 'You\'ve been inactive for a while. Do you want to continue your session or log out?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Stay Login',
+        cancelButtonText: 'Log Out',
+        allowOutsideClick: false,
+        reverseButtons: true
+    }).then((result) => {
+        if (result.isConfirmed) {
+            resetInactivityTimer(); // User chose to continue, reset the timer
+            console.log("User chose to continue session.");
+        } else if (result.dismiss === Swal.DismissReason.cancel) {
+            // User chose to log out
+            auth.signOut().then(() => {
+                console.log("User logged out due to inactivity.");
+                window.location.href = "../pages/login.html"; // Redirect to login page
+            }).catch((error) => {
+                console.error("Error logging out:", error);
+                Swal.fire('Error', 'Failed to log out. Please try again.', 'error');
+            });
+        }
     });
-    return;
-  }
+}
 
-  console.log('Logged-in user UID:', user.uid);
-  currentUserUid = user.uid;
-
-  const volunteerGroup = JSON.parse(localStorage.getItem('loggedInVolunteerGroup'));
-  currentUserGroupName = volunteerGroup?.organization || 'Unknown Group';
-
-  console.log('Current logged-in user group:', currentUserGroupName);
-
-  if (submittedReportsContainer && paginationContainer && entriesInfo && searchInput && sortSelect) {
-    loadSubmittedReports(user.uid);
-  }
+// Attach event listeners to detect user activity
+['mousemove', 'keydown', 'scroll', 'click'].forEach(eventType => {
+    document.addEventListener(eventType, resetInactivityTimer);
 });
 
 
+  // Check if user is authenticated
+  // auth.onAuthStateChanged(user => {
+  //   if (!user) {
+  //     Swal.fire({
+  //       icon: 'error',
+  //       title: 'Authentication Required',
+  //       text: 'Please sign in to access RDANA reports.',
+  //     }).then(() => {
+  //       window.location.href = "../pages/login.html";
+  //     });
+  //     return;
+  //   }
 
+  //   console.log('Logged-in user UID:', user.uid);
+  //   currentUserUid = user.uid;
 
+  //   const volunteerGroup = JSON.parse(localStorage.getItem('loggedInVolunteerGroup'));
+  //   currentUserGroupName = volunteerGroup?.organization || 'Unknown Group';
+
+  //   console.log('Current logged-in user group:', currentUserGroupName);
+
+  //   if (submittedReportsContainer && paginationContainer && entriesInfo && searchInput && sortSelect) {
+  //     loadSubmittedReports(user.uid);
+  //   }
+  // });
+  auth.onAuthStateChanged(async user => { // Added 'async' here
+    if (!user) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Authentication Required',
+        text: 'Please sign in to access RDANA reports.',
+      }).then(() => {
+        window.location.href = "../pages/login.html"; // Use href here as they are not yet authenticated for the target page
+      });
+      
+      return;
+    }
+
+    resetInactivityTimer();
+
+    console.log('Logged-in user UID:', user.uid);
+    currentUserUid = user.uid;
+
+    const profilePage = 'profile.html'; // Define your profile page path
+
+    try {
+        // Fetch user data from the database to check password_needs_reset status
+        const userSnapshot = await database.ref(`users/${user.uid}`).once("value");
+        const userDataFromDb = userSnapshot.val();
+        const passwordNeedsReset = userDataFromDb ? (userDataFromDb.password_needs_reset || false) : false;
+
+        if (passwordNeedsReset) {
+            console.log(`Password change required for user ${user.uid}. Redirecting to profile page.`);
+            Swal.fire({
+                icon: 'info',
+                title: 'Password Change Required',
+                text: 'For security reasons, please change your password. You will be redirected to your profile.',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+                timer: 2000,
+                timerProgressBar: true
+            }).then(() => {
+                window.location.replace(`../pages/${profilePage}`); // Use replace to prevent back button
+            });
+            return; // IMPORTANT: Stop further execution if password reset is needed
+        }
+
+        // If password does NOT need reset, proceed with normal logic
+        const volunteerGroup = JSON.parse(localStorage.getItem('loggedInVolunteerGroup'));
+        currentUserGroupName = volunteerGroup?.organization || 'Unknown Group';
+
+        console.log('Current logged-in user group:', currentUserGroupName);
+
+        if (submittedReportsContainer && paginationContainer && entriesInfo && searchInput && sortSelect) {
+            loadSubmittedReports(user.uid);
+        }
+    } catch (error) {
+        console.error("Error checking password reset status or fetching user data:", error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Authentication Error',
+            text: 'Failed to verify account status. Please try logging in again.',
+        }).then(() => {
+            window.location.replace('../pages/login.html'); // Redirect to login on error
+        });
+        return;
+    }
+  });
+
+//   // Keep the rest of your RDANA functions here (e.g., loadSubmittedReports, renderTable, applyFiltersAndSort, etc.)
+//   // For brevity, these are omitted in this response but should remain in your file.
+//   // ... (Your existing RDANA functions like loadSubmittedReports, renderTable, etc.) ...
+// });
 
   // Input Validations
  function validatePageInputs(pageSelector) {

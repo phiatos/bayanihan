@@ -105,6 +105,16 @@ body {
   z-index: 1;
 }
 
+.nav-links a.active {
+  color: var(--accent-color);
+  font-weight: 600;
+}
+
+.nav-links a.active::after {
+  width: 100%;
+}
+
+
 .nav-links a::after {
   content: '';
   position: absolute;
@@ -213,12 +223,14 @@ body {
   }
 }
 
+
+
 .metrics-container {
   display: flex;
   flex-direction: column;
   gap: 2.5rem;
   padding: 2rem;
-  max-width: 1200px;
+  max-width: 1600px;
   margin: 0 auto;
 }
 
@@ -226,12 +238,10 @@ body {
   font-size: 0.95rem;
   color: #555;
   text-align: left;
-  margin: 0 0 1rem 1rem;
+  margin: 0 10px -10px;
   font-style: italic;
   font-weight: 500;
 }
-
-
 
 .row {
   display: flex;
@@ -242,6 +252,8 @@ body {
 .center-row {
   justify-content: center; /* centers the 3 cards */
 }
+
+
 
 .metric-card {
   background: linear-gradient(135deg, #0fbaba 0%, #23d7d7 52%, #18e0e0 100%);
@@ -380,6 +392,7 @@ body {
   color: #ffffff;
   display: inline-block;
   margin-bottom: 1.5rem;
+  margin-top: -2.5rem;
 }
 
 .relief-description {
@@ -389,7 +402,6 @@ body {
   color: #333;
   padding: 0 1rem;
 }
-
 
 
 

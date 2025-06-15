@@ -13,8 +13,74 @@ if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
 const database = firebase.database();
+const auth = firebase.auth();
+
+// Variables for inactivity detection --------------------------------------------------------------------
+let inactivityTimeout;
+const INACTIVITY_TIME = 180000; // 30 minutes in milliseconds
+
+// Function to reset the inactivity timer
+function resetInactivityTimer() {
+    clearTimeout(inactivityTimeout);
+    inactivityTimeout = setTimeout(checkInactivity, INACTIVITY_TIME);
+    console.log("Inactivity timer reset.");
+}
+
+// Function to check for inactivity and prompt the user
+function checkInactivity() {
+    Swal.fire({
+        title: 'Are you still there?',
+        text: 'You\'ve been inactive for a while. Do you want to continue your session or log out?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Stay Login',
+        cancelButtonText: 'Log Out',
+        allowOutsideClick: false,
+        reverseButtons: true
+    }).then((result) => {
+        if (result.isConfirmed) {
+            resetInactivityTimer(); 
+            console.log("User chose to continue session.");
+        } else if (result.dismiss === Swal.DismissReason.cancel) {
+            // User chose to log out
+            auth.signOut().then(() => {
+                console.log("User logged out due to inactivity.");
+                window.location.href = "../pages/login.html";
+            }).catch((error) => {
+                console.error("Error logging out:", error);
+                Swal.fire('Error', 'Failed to log out. Please try again.', 'error');
+            });
+        }
+    });
+}
+
+['mousemove', 'keydown', 'scroll', 'click'].forEach(eventType => {
+    document.addEventListener(eventType, resetInactivityTimer);
+});
+//-------------------------------------------------------------------------------------
 
 document.addEventListener('DOMContentLoaded', () => {
+    // --- Authentication Check ---
+    auth.onAuthStateChanged(user => {
+        if (!user) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Authentication Required',
+                text: 'Please sign in to access pending applications.',
+            }).then(() => {
+                window.location.href = "../pages/login.html";
+            });
+            return;
+        }
+        console.log("User authenticated:", user.uid);
+        initializePageFunctions(user.uid);
+        resetInactivityTimer(); 
+    });
+});
+
+function initializePageFunctions(userId) { 
     const volunteerOrgsContainer = document.getElementById('volunteerOrgsContainer');
     const searchInput = document.getElementById('searchInput');
     const sortSelect = document.getElementById('sortSelect');
@@ -22,30 +88,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const pagination = document.getElementById('pagination');
     const viewApprovedBtn = document.getElementById('viewApprovedBtn');
 
-    if (!volunteerOrgsContainer || !searchInput || !sortSelect || !entriesInfo || !pagination || !viewApprovedBtn) {
-        console.error('One or more DOM elements are missing:', {
-            volunteerOrgsContainer: !!volunteerOrgsContainer,
-            searchInput: !!searchInput,
-            sortSelect: !!sortSelect,
-            entriesInfo: !!entriesInfo,
-            pagination: !!pagination,
-            viewApprovedBtn: !!viewApprovedBtn
-        });
-        return; 
-    }
+    // --- Modal Elements ---
+    const previewModal = document.getElementById('previewModal');
+    const closeModalBtn = document.getElementById('closeModal');
+    const modalContentDiv = document.getElementById('modalContent');
 
-    let allApplications = []; 
-    let filteredApplications = []; 
+    let allApplications = [];
+    let filteredApplications = [];
     let currentPage = 1;
     const rowsPerPage = 5;
 
     // --- Data Fetching Function ---
     function fetchPendingApplications() {
-        // Show loading state
         volunteerOrgsContainer.innerHTML = '<tr><td colspan="11" style="text-align: center;">Loading applications...</td></tr>';
 
         database.ref('abvnApplications/pendingABVN').on('value', (snapshot) => {
-            allApplications = []; // Clear previous data
+            allApplications = [];
             if (snapshot.exists()) {
                 snapshot.forEach((childSnapshot) => {
                     const appData = childSnapshot.val();
@@ -56,7 +114,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 console.log("No pending ABVN applications found.");
             }
-            applySearchAndSort(); // Apply initial search and sort after fetching
+            applySearchAndSort();
         }, (error) => {
             console.error("Error fetching pending applications: ", error);
             Swal.fire({
@@ -71,7 +129,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Rendering Function ---
     function renderApplications(applicationsToRender) {
-        volunteerOrgsContainer.innerHTML = ''; // Clear existing table rows
+        volunteerOrgsContainer.innerHTML = '';
 
         const startIndex = (currentPage - 1) * rowsPerPage;
         const endIndex = startIndex + rowsPerPage;
@@ -80,18 +138,17 @@ document.addEventListener('DOMContentLoaded', () => {
         if (paginatedApplications.length === 0) {
             volunteerOrgsContainer.innerHTML = '<tr><td colspan="11" style="text-align: center;">No pending applications found on this page.</td></tr>';
             entriesInfo.textContent = 'Showing 0 to 0 of 0 entries';
-            renderPagination(); // Still render pagination to show total pages
+            renderPagination();
             return;
         }
 
-        let i = startIndex + 1; // Counter for "No." column
+        let i = startIndex + 1;
 
         paginatedApplications.forEach(app => {
             const row = volunteerOrgsContainer.insertRow();
-            row.setAttribute('data-key', app.key); // Store Firebase key on the row
+            row.setAttribute('data-key', app.key);
 
-            // Format timestamp if available
-            const formattedTimestamp = app.timestamp ? new Date(app.timestamp).toLocaleString('en-US', {
+            const formattedTimestamp = app.applicationDateandTime ? new Date(app.applicationDateandTime).toLocaleString('en-US', {
                 year: 'numeric', month: 'short', day: 'numeric',
                 hour: '2-digit', minute: '2-digit', second: '2-digit'
             }) : 'N/A';
@@ -107,7 +164,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${app.headquarters?.province || 'N/A'}</td>
                 <td>${app.headquarters?.city || 'N/A'}</td>
                 <td>${app.headquarters?.barangay || 'N/A'}</td>
+                <td>${app.headquarters?.streetAddress || 'N/A'}</td>
+                <td>${formattedTimestamp || 'N/A'}</td>
                 <td>
+                    <button class="viewBtn" data-key="${app.key}">View</button>
                     <button class="approveBtn" data-key="${app.key}">Approve</button>
                     <button class="rejectBtn" data-key="${app.key}">Reject</button>
                 </td>
@@ -120,7 +180,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Search and Sort Logic ---
     function applySearchAndSort() {
-        let currentApplications = [...allApplications]; // Start with all fetched data
+        let currentApplications = [...allApplications];
 
         // Apply search filter
         const searchTerm = searchInput.value.toLowerCase().trim();
@@ -154,40 +214,61 @@ document.addEventListener('DOMContentLoaded', () => {
                 let valA, valB;
 
                 switch (sortBy) {
-                    case 'DateTime':
-                        valA = new Date(a.timestamp || 0).getTime();
-                        valB = new Date(b.timestamp || 0).getTime();
-                        break;
-                    case 'OrganizationName': // This option is not in your HTML, but good to have
+                    case 'organizationName':
                         valA = (a.organizationName || '').toLowerCase();
                         valB = (b.organizationName || '').toLowerCase();
                         break;
-                    case 'Location':
-                        // Combine location parts for a better sort
-                        valA = `${a.headquarters?.region || ''} ${a.headquarters?.province || ''} ${a.headquarters?.city || ''} ${a.headquarters?.barangay || ''}`.toLowerCase();
-                        valB = `${b.headquarters?.region || ''} ${b.headquarters?.province || ''} ${b.headquarters?.city || ''} ${b.headquarters?.barangay || ''}`.toLowerCase();
+                    case 'contactPerson':
+                        valA = (a.contactPerson || '').toLowerCase();
+                        valB = (b.contactPerson || '').toLowerCase();
                         break;
-                    // Add more cases here if you want to sort by other specific fields
+                    case 'email':
+                        valA = (a.email || '').toLowerCase();
+                        valB = (b.email || '').toLowerCase();
+                        break;
+                    case 'mobileNumber':
+                        valA = (a.mobileNumber || '').toLowerCase();
+                        valB = (b.mobileNumber || '').toLowerCase();
+                        break;
+                    case 'region':
+                        valA = (a.headquarters?.region || '').toLowerCase();
+                        valB = (b.headquarters?.region || '').toLowerCase();
+                        break;
+                    case 'province':
+                        valA = (a.headquarters?.province || '').toLowerCase();
+                        valB = (b.headquarters?.province || '').toLowerCase();
+                        break;
+                    case 'city':
+                        valA = (a.headquarters?.city || '').toLowerCase();
+                        valB = (b.headquarters?.city || '').toLowerCase();
+                        break;
+                    case 'barangay':
+                        valA = (a.headquarters?.barangay || '').toLowerCase();
+                        valB = (b.headquarters?.barangay || '').toLowerCase();
+                        break;
                     default:
-                        // Default to organization name if no specific sort is defined or recognized
                         valA = (a.organizationName || '').toLowerCase();
                         valB = (b.organizationName || '').toLowerCase();
                         break;
                 }
 
-                if (valA < valB) return order === 'asc' ? -1 : 1;
-                if (valA > valB) return order === 'asc' ? 1 : -1;
-                return 0;
+                if (typeof valA === 'string' && typeof valB === 'string') {
+                    return order === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+                } else {
+                    if (valA < valB) return order === 'asc' ? -1 : 1;
+                    if (valA > valB) return order === 'asc' ? 1 : -1;
+                    return 0;
+                }
             });
         }
 
-        filteredApplications = currentApplications; // Update filtered applications
-        currentPage = 1; // Reset to first page after search/sort
+        filteredApplications = currentApplications;
+        currentPage = 1;
         renderApplications(filteredApplications);
     }
 
     // --- Pagination Functions ---
-    function renderPagination() { // Modified to use filteredData implicitly
+    function renderPagination() {
         pagination.innerHTML = '';
         const totalPages = Math.ceil(filteredApplications.length / rowsPerPage);
 
@@ -230,14 +311,67 @@ document.addEventListener('DOMContentLoaded', () => {
         entriesInfo.textContent = `Showing ${totalItems ? startIndex + 1 : 0} to ${endIndex} of ${totalItems} entries`;
     }
 
+    // --- Modal Display Functions ---
+    function showPreviewModal(applicationData) {
+        // Format the application date and time for better readability
+        const formattedTimestamp = applicationData.applicationDateandTime ? new Date(applicationData.applicationDateandTime).toLocaleString('en-US', {
+            year: 'numeric', month: 'short', day: 'numeric',
+            hour: '2-digit', minute: '2-digit', second: '2-digit'
+        }) : 'N/A';
+
+        let content = `
+            <h3 style="margin-bottom: 15px; color: #FA3B99;">Organization Details</h3>
+            <p><strong>Organization Name:</strong> ${applicationData.organizationName || 'N/A'}</p>
+            <p><strong>Contact Person:</strong> ${applicationData.contactPerson || 'N/A'}</p>
+            <p><strong>Email:</strong> ${applicationData.email || 'N/A'}</p>
+            <p><strong>Mobile Number:</strong> ${applicationData.mobileNumber || 'N/A'}</p>
+            <p><strong>Social Media Link:</strong> ${applicationData.socialMediaLink ? `<a href="${applicationData.socialMediaLink}" target="_blank" rel="noopener noreferrer">${applicationData.socialMediaLink}</a>` : 'N/A'}</p>
+
+            <h4 style="margin-top: 20px; margin-bottom: 10px; color: #FA3B99;">Headquarters Address:</h4>
+            <ul>
+                <li><strong>Region:</strong> ${applicationData.headquarters?.region || 'N/A'}</li>
+                <li><strong>Province:</strong> ${applicationData.headquarters?.province || 'N/A'}</li>
+                <li><strong>City:</strong> ${applicationData.headquarters?.city || 'N/A'}</li>
+                <li><strong>Barangay:</strong> ${applicationData.headquarters?.barangay || 'N/A'}</li>
+                <li><strong>Street Address:</strong> ${applicationData.headquarters?.streetAddress || 'N/A'}</li>
+            </ul>
+
+            <h4 style="margin-top: 20px; margin-bottom: 10px; color: #FA3B99;">Organizational Background:</h4>
+            <p><strong>Mission/Background:</strong> ${applicationData.organizationalBackgroundMission || 'N/A'}</p>
+            <p><strong>Areas of Expertise/Focus:</strong> ${applicationData.areasOfExpertiseFocus || 'N/A'}</p>
+
+            <h4 style="margin-top: 20px; margin-bottom: 10px; color: #FA3B99;">Legal & Documents:</h4>
+            <p><strong>Legal Status/Registration:</strong> ${applicationData.legalStatusRegistration || 'N/A'}</p>
+            <p><strong>Required Documents:</strong> ${applicationData.requiredDocumentsLink ? `<a href="${applicationData.requiredDocumentsLink}" target="_blank" rel="noopener noreferrer">View Document</a>` : 'N/A'}</p>
+
+            <p style="margin-top: 20px; font-size: 0.9em; color: #555;"><strong>Application Date and Time:</strong> ${formattedTimestamp}</p>
+            `;
+
+        modalContentDiv.innerHTML = content;
+        previewModal.style.display = 'flex'; 
+    }
+
+    function hidePreviewModal() {
+        previewModal.style.display = 'none'; 
+        modalContentDiv.innerHTML = ''; 
+    }
+
     // --- Action Handlers (Approve/Reject) ---
     volunteerOrgsContainer.addEventListener('click', async (event) => {
         const target = event.target;
         const appKey = target.dataset.key;
 
-        if (!appKey) return; // Not an action button
+        if (!appKey) return;
 
-        if (target.classList.contains('approveBtn')) {
+        if (target.classList.contains('viewBtn')) {
+            // Find the application data by key
+            const applicationToView = allApplications.find(app => app.key === appKey);
+            if (applicationToView) {
+                showPreviewModal(applicationToView);
+            } else {
+                Swal.fire('Error', 'Application details not found.', 'error');
+            }
+        } else if (target.classList.contains('approveBtn')) {
             Swal.fire({
                 title: 'Are you sure?',
                 text: "Do you want to approve this application?",
@@ -245,7 +379,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 showCancelButton: true,
                 confirmButtonColor: '#3085d6',
                 cancelButtonColor: '#d33',
-                confirmButtonText: 'Yes, approve it!'
+                confirmButtonText: 'Yes, approve it!',
+                customClass: {
+                    confirmButton: 'my-confirm-button-class',
+                    cancelButton: 'my-cancel-button-class'
+                }
             }).then(async (result) => {
                 if (result.isConfirmed) {
                     try {
@@ -254,6 +392,32 @@ document.addEventListener('DOMContentLoaded', () => {
                         const applicationData = snapshot.val();
 
                         if (applicationData) {
+                            const approvedAppsRef = database.ref('abvnApplications/approvedABVN');
+                            const approvedSnapshot = await approvedAppsRef.once('value');
+                            let isDuplicate = false;
+
+                            if (approvedSnapshot.exists()) {
+                                approvedSnapshot.forEach((approvedChild) => {
+                                    const approvedData = approvedChild.val();
+                                    // duplicate if organizationName AND email match
+                                    if (approvedData.organizationName === applicationData.organizationName &&
+                                        approvedData.email === applicationData.email) {
+                                        isDuplicate = true;
+                                        return true; 
+                                    }
+                                });
+                            }
+
+                            if (isDuplicate) {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Duplicate Found',
+                                    html: 'This application already exists in the Approved Applications.<br><br>Please check the approved list before proceeding.',
+                                    confirmButtonText: 'OK'
+                                });
+                                return; 
+                            }
+                            applicationData.approvedApplicationDate = new Date().toISOString();
                             // Move to approvedABVN
                             await database.ref(`abvnApplications/approvedABVN/${appKey}`).set(applicationData);
                             // Remove from pendingABVN
@@ -277,7 +441,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 showCancelButton: true,
                 confirmButtonColor: '#d33',
                 cancelButtonColor: '#3085d6',
-                confirmButtonText: 'Yes, reject it!'
+                confirmButtonText: 'Yes, reject it!',
+                customClass: {
+                    confirmButton: 'my-confirm-button-class',
+                    cancelButton: 'my-cancel-button-class'
+                }
             }).then(async (result) => {
                 if (result.isConfirmed) {
                     try {
@@ -302,8 +470,18 @@ document.addEventListener('DOMContentLoaded', () => {
         sortSelect.addEventListener('change', applySearchAndSort);
     }
 
+    // --- Modal Close Listeners ---
+    closeModalBtn.addEventListener('click', hidePreviewModal);
+
+    // Close the modal if clicked outside the modal content
+    window.addEventListener('click', (event) => {
+        if (event.target === previewModal) {
+            hidePreviewModal();
+        }
+    });
+
     // --- Initial Load ---
-    fetchPendingApplications();
+    fetchPendingApplications(); 
 
     // Handle "View Approved ABVN Applications" button
     if (viewApprovedBtn) {
@@ -311,4 +489,4 @@ document.addEventListener('DOMContentLoaded', () => {
             window.location.href = '../pages/approvedvg.html';
         });
     }
-});
+}

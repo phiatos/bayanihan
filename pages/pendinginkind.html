@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="../components/sidebar.css" />
+    <link rel="stylesheet" href="../css/inkind.css" />
+    <link rel="stylesheet" href="../css/global.css" />
+    <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" />
+
+    <!-- Firebase Compat SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="../js/pendinginkind.js"></script>
+
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Sheets -->
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+    <!-- PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+
+    <title>Pending InKind</title>
+</head>
+<body>
+    <div class="main-container">
+        <div class="sidebar-placeholder"></div>
+
+        <div id="main-content">
+            
+            <section>
+                <div class="controls">
+                    <div class="controls_left">
+                        <header>Pending In Kind Donation</header>
+                    </div>
+                    <div class="controls_right">
+                        <div class="search-wrapper">
+                            <i class="fa fa-search"></i>
+                            <input type="text" placeholder="Search" id="searchInput" />
+                        </div>
+                        <div class="custom-select-wrapper">
+                            <select id="sortSelect">
+                                <option value="">Sort by</option> 
+                                <optgroup label="Donation Drive">
+                                    <option value="donationDrive-asc">Donation Drive (A–Z)</option>
+                                    <option value="donationDrive-desc">Donation Drive (Z–A)</option>
+                                </optgroup>
+                                <optgroup label="Contact Name">
+                                    <option value="contactPerson-asc">Contact Name (A–Z)</option>
+                                    <option value="contactPerson-desc">Contact Name (Z–A)</option>
+                                </optgroup>
+                                <optgroup label="Account Name">
+                                    <option value="accountName-asc">Account Name (A–Z)</option>
+                                    <option value="accountName-desc">Account Name (Z–A)</option>
+                                </optgroup>
+                                <optgroup label="Drop Off">
+                                    <option value="dropOff-asc">Drop Off (A–Z)</option>
+                                    <option value="dropOff-desc">Drop Off (Z–A)</option>
+                                </optgroup>
+                            </select>
+                            <i class='bx bx-chevron-down'></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                
+                    <table id="donationTable">
+                        <thead>
+                            <tr>
+                                <th>No.</th>
+                                <th>Encoder</th>
+                                <th>Name</th>
+                                <th>Type</th>
+                                <th>Address</th>
+                                <th>Contact Person</th>
+                                <th>Number</th>
+                                <th>Email</th>
+                                <th>Type of Assistance</th>
+                                <th>Valuation</th>
+                                <th>Additional Notes</th>
+                                <th>Staff-In Charge</th>
+                                <th>Donation Date</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="donationTableBody">
+                        </tbody> 
+                    </table>
+               
+                </div>
+                
+                <div class="pagination-info">
+                    <span id="entriesInfo">Showing 0 to 0 of 0 entries</span>
+                    <div id="pagination" class="pagination"></div>
+                </div>
+
+                <br>
+            </section>
+
+            <div class="modal" id="editModal" style="display:none;">
+                <div class="modal-content">
+                    <span class="close-button" id="closeEditModalBtn">×</span>
+                    <h4>Edit Donation</h4>
+                    <label>Encoder: <input type="text" id="edit-encoder"></label>
+                    <label>Name: <input type="text" id="edit-name"></label>
+                    <label>Type: <input type="text" id="edit-type"></label>
+                    <label>Address: <input type="text" id="edit-address"></label>
+                    <label>Contact Person: <input type="text" id="edit-contactPerson"></label>
+                    <label>Number: <input type="tel" id="edit-number"></label>
+                    <label>Email: <input type="email" id="edit-email"></label>
+                    <label>Type of Assistance: <input type="text" id="edit-assistance"></label>
+                    <label>Valuation: <input type="number" id="edit-valuation"></label>
+                    <label>Additional Notes: <input type="text" id="edit-additionalnotes"></label>
+                    <label>Status:
+                        <select id="edit-status">
+                            <option value="closed-successful">Closed-successful</option>
+                            <option value="pending">Pending</option>
+                            <option value="closed">Closed</option>
+                        </select>
+                    </label>
+                    <label>Staff-In Charge: <input type="text" id="edit-staffIncharge"></label>
+                    <label>Donation Date: <input type="date" id="edit-donationDate"></label>
+                    <button type="button" id="saveEditBtn">Save Changes</button>
+                    <button type="button" id="cancelEditBtn">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        fetch('../components/sidebar.html')
+            .then(res => res.text())
+            .then(data => {
+                document.querySelector('.sidebar-placeholder').innerHTML = data;
+                const script = document.createElement('script');
+                script.src = '../components/sidebar.js';
+                document.querySelector('.sidebar-placeholder').appendChild(script);
+            })
+            .catch(err => console.error('Error loading sidebar:', err));
+    </script>
+
+    <script src="../js/inactivity-detector.js"></script> 
+</body>
+</html>

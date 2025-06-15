@@ -1,7 +1,7 @@
 const firebaseConfig = {
     apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
     authDomain: "bayanihan-5ce7e.firebaseapp.com",
-    databaseURL: "https://bayanihan-5ce7e-default-rtdb.asia-southeast1.firebasedatabase.app", 
+    databaseURL: "https://bayanihan-5ce7e-default-rtdb.asia-southeast1.firebasedatabase.app",
     projectId: "bayanihan-5ce7e",
     storageBucket: "bayanihan-5ce7e.appspot.com",
     messagingSenderId: "593123849917",
@@ -12,11 +12,10 @@ const firebaseConfig = {
 // Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
-const auth = firebase.auth(); // Assuming you might use auth later, though not directly in this snippet
+const auth = firebase.auth();
 
 document.addEventListener('DOMContentLoaded', () => {
-    const volunteerForm = document.getElementById('volunteer-org-form'); // Changed ID to match HTML for beavolunteer.html
-
+    const volunteerForm = document.getElementById('volunteer-org-form');
     // DOM elements for location dropdowns
     const regionSelect = document.getElementById('region');
     const provinceSelect = document.getElementById('province');
@@ -26,8 +25,57 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const regionTextInput = document.getElementById('region-text');
     const provinceTextInput = document.getElementById('province-text');
-    const cityTextInput = document.querySelector('input[name="hq-city"]'); // Changed to select by name as per HTML
+    const cityTextInput = document.getElementById('city-text'); // Corrected querySelector
     const barangayTextInput = document.getElementById('barangay-text');
+
+    const generalAvailabilitySelect = document.getElementById('generalAvailability');
+    const specificDaysGroup = document.getElementById('specificDaysGroup');
+    const timeAvailabilityInput = document.getElementById('timeAvailability');
+
+    // A flag to prevent multiple submissions
+    let isSubmitting = false;
+
+    // Function to toggle visibility of specific days and time groups
+    const toggleSpecificAvailability = () => {
+        if (generalAvailabilitySelect && specificDaysGroup && timeAvailabilityInput) {
+            const selectedAvailability = generalAvailabilitySelect.value;
+            // Define which options should show the time input
+            const showTimeOptions = [
+                'Part-time',
+                'Weekends only',
+                'Weekdays only',
+                'Specific days'
+            ];
+
+            // Determine if specific days group should be shown (only for "Specific days")
+            if (selectedAvailability === 'Specific days') {
+                specificDaysGroup.style.display = 'block';
+            } else {
+                specificDaysGroup.style.display = 'none';
+                // Uncheck all specific days checkboxes when not 'Specific days'
+                const specificDaysCheckboxes = specificDaysGroup.querySelectorAll('input[type="checkbox"]');
+                specificDaysCheckboxes.forEach(checkbox => {
+                    checkbox.checked = false;
+                });
+            }
+
+            // Determine if time availability input should be shown
+            if (showTimeOptions.includes(selectedAvailability)) {
+                timeAvailabilityInput.parentElement.style.display = 'block';
+            } else {
+                timeAvailabilityInput.parentElement.style.display = 'none';
+                // Clear the time availability input if it's hidden
+                timeAvailabilityInput.value = '';
+            }
+        }
+    };
+
+    // Initial call to set visibility on page load
+    toggleSpecificAvailability();
+
+    if (generalAvailabilitySelect) {
+        generalAvailabilitySelect.addEventListener('change', toggleSpecificAvailability);
+    }
 
     var my_handlers = {
         fill_regions: function() {
@@ -107,7 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 provinceSelect.selectedIndex = 0;
                 citySelect.innerHTML = '<option value="" selected="true" disabled>Choose Province First</option>';
                 citySelect.selectedIndex = 0;
-                barangaySelect.innerHTML = '<option value="" selected="true" disabled>Choose City First</option>'; // Corrected from 'Choose Barangay'
+                barangaySelect.innerHTML = '<option value="" selected="true" disabled>Choose City First</option>';
                 barangaySelect.selectedIndex = 0;
                 if (provinceTextInput) provinceTextInput.value = '';
                 if (cityTextInput) cityTextInput.value = '';
@@ -131,7 +179,7 @@ document.addEventListener('DOMContentLoaded', () => {
             citySelect.innerHTML = '<option value="" selected="true" disabled>Choose Province First</option>';
             citySelect.selectedIndex = 0;
 
-            barangaySelect.innerHTML = '<option value="" selected="true" disabled>Choose Province First</option>'; 
+            barangaySelect.innerHTML = '<option value="" selected="true" disabled>Choose Province First</option>';
             barangaySelect.selectedIndex = 0;
 
             const url = '../json/province.json';
@@ -153,7 +201,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     // Filter provinces by selected region code
                     var result = data.filter(function(value) {
-                        return value.region_code === region_code; // Use strict equality
+                        return value.region_code === region_code;
                     });
 
                     // Sort provinces alphabetically
@@ -235,7 +283,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     // Filter cities by selected province code
                     var result = data.filter(function(value) {
-                        return value.province_code === province_code; // Use strict equality
+                        return value.province_code === province_code;
                     });
 
                     // Sort cities alphabetically
@@ -310,7 +358,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     // Filter barangays by selected city code
                     var result = data.filter(function(value) {
-                        return value.city_code === city_code; // Use strict equality
+                        return value.city_code === city_code;
                     });
 
                     // Sort barangays alphabetically
@@ -358,73 +406,245 @@ document.addEventListener('DOMContentLoaded', () => {
         volunteerForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            // Get form data for volunteer information
-            const firstName = document.getElementById('firstName').value.trim();
-            const middleInitial = document.getElementById('middleInitial').value.trim();
-            const lastName = document.getElementById('lastName').value.trim();
-            const nameExtension = document.getElementById('nameExtension').value.trim();
-            const email = document.getElementById('email').value.trim();
-            const mobileNumber = document.getElementById('mobileNumber').value.trim();
-            const socialMedia = document.getElementById('socialMedia').value.trim();
-            const age = document.getElementById('age').value.trim(); // Get age as a string initially
-            const additionalInfo = document.getElementById('additionalInfo').value.trim();
+            const submitButton = document.querySelector('.btn-primary');
 
-            // Get selected text content from location dropdowns
-            const selectedRegionText = regionSelect.options[regionSelect.selectedIndex]?.textContent || '';
-            const selectedProvinceText = provinceSelect.options[provinceSelect.selectedIndex]?.textContent || '';
-            const selectedCityText = citySelect.options[citySelect.selectedIndex]?.textContent || '';
-            const selectedBarangayText = barangaySelect.options[barangaySelect.selectedIndex]?.textContent || '';
-            const streetAddress = streetAddressInput.value.trim();
-
-            // Basic validation: Check if required fields are filled
-            // Added new name fields, age, and location details to required checks
-            if (!firstName || !lastName || !email || !mobileNumber || !age ||
-                !selectedRegionText || !selectedProvinceText || !selectedCityText || !selectedBarangayText || !streetAddress) {
-                Swal.fire('Error', 'Please fill in all required fields (Name, Contact Information, Age, and Full Address).', 'error');
+            // Prevent multiple rapid submissions
+            if (isSubmitting) {
+                console.log('Already submitting, please wait...');
                 return;
             }
 
-            // Validate age
-            const parsedAge = parseInt(age, 10);
-            if (isNaN(parsedAge) || parsedAge < 18) {
-                Swal.fire('Error', 'Volunteers must be 18 years or older. Please enter a valid age.', 'error');
-                return;
-            }
-
-
-            // Create an object to store in Realtime Database
-            const volunteerData = {
-                firstName: firstName,
-                middleInitial: middleInitial, // Optional field
-                lastName: lastName,
-                nameExtension: nameExtension, // Optional field
-                email: email,
-                mobileNumber: mobileNumber,
-                socialMediaLink: socialMedia, // Optional field
-                age: parsedAge, // Store age as a number
-                additionalInfo: additionalInfo, // Optional field
-                address: {
-                    region: selectedRegionText,
-                    province: selectedProvinceText,
-                    city: selectedCityText,
-                    barangay: selectedBarangayText,
-                    streetAddress: streetAddress
-                },
-                timestamp: new Date().toISOString() 
-            };
+            // Disable the button and show submitting text
+            submitButton.disabled = true;
+            submitButton.textContent = 'Submitting...';
+            isSubmitting = true;
 
             try {
-                // Push data to a new unique key under the 'beAVolunteerApplications/pending' path
-                // This creates a pending state for new volunteer applications
+                const recaptchaResponse = grecaptcha.getResponse();
+
+                if (!recaptchaResponse) {
+                    Swal.fire('Error', 'Please complete the reCAPTCHA to prove you are not a robot.', 'error');
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Submit Application';
+                    isSubmitting = false;
+                    grecaptcha.reset();
+                    return;
+                }
+
+                const firstName = document.getElementById('firstName').value.trim();
+                const middleInitial = document.getElementById('middleInitial').value.trim();
+                const lastName = document.getElementById('lastName').value.trim();
+                const nameExtension = document.getElementById('nameExtension').value.trim();
+                const email = document.getElementById('email').value.trim();
+                const mobileNumber = document.getElementById('mobileNumber').value.trim();
+                const socialMedia = document.getElementById('socialMedia').value.trim();
+                const age = document.getElementById('age').value.trim();
+                const additionalInfo = document.getElementById('additionalInfo').value.trim();
+
+                const selectedRegionText = regionSelect.options[regionSelect.selectedIndex]?.textContent || '';
+                const selectedProvinceText = provinceSelect.options[provinceSelect.selectedIndex]?.textContent || '';
+                const selectedCityText = citySelect.options[citySelect.selectedIndex]?.textContent || '';
+                const selectedBarangayText = barangaySelect.options[barangaySelect.selectedIndex]?.textContent || '';
+                const streetAddress = streetAddressInput.value.trim();
+
+                const generalAvailability = generalAvailabilitySelect.value;
+                let specificDays = [];
+                let timeAvailability = '';
+
+                // Logic for Specific Days checkbox group
+                if (generalAvailability === 'Specific days') {
+                    const specificDaysCheckboxes = specificDaysGroup.querySelectorAll('input[type="checkbox"]:checked');
+                    specificDaysCheckboxes.forEach(checkbox => {
+                        specificDays.push(checkbox.value);
+                    });
+                }
+                
+                // Logic for time availability input (now depends on the showTimeOptions array)
+                const showTimeOptions = [
+                    'Part-time',
+                    'Weekends only',
+                    'Weekdays only',
+                    'Specific days'
+                ];
+                if (showTimeOptions.includes(generalAvailability)) {
+                    timeAvailability = timeAvailabilityInput.value.trim();
+                }
+
+
+                // --- Form Field Validation ---
+                if (!firstName || !lastName || !email || !mobileNumber || !age ||
+                    !selectedRegionText || !selectedProvinceText || !selectedCityText || !selectedBarangayText || !streetAddress || !generalAvailability) {
+                    Swal.fire('Error', 'Please fill in all required fields (Name, Contact Information, Age, Full Address, and General Availability).', 'error');
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Submit Application';
+                    isSubmitting = false;
+                    grecaptcha.reset();
+                    return;
+                }
+
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(email)) {
+                    Swal.fire('Error', 'Please enter a valid email address (e.g., example@domain.com).', 'error');
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Submit Application';
+                    isSubmitting = false;
+                    grecaptcha.reset();
+                    return;
+                }
+
+                const mobileNumberRegex = /^09\d{9}$/;
+                if (!mobileNumberRegex.test(mobileNumber)) {
+                    Swal.fire('Error', 'Please enter a valid 11-digit mobile number starting with "09" (e.g., 09171234567).', 'error');
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Submit Application';
+                    isSubmitting = false;
+                    grecaptcha.reset();
+                    return;
+                }
+
+                if (socialMedia) {
+                    try {
+                        new URL(socialMedia);
+                    } catch (e) {
+                        Swal.fire('Error', 'Please enter a valid URL for your social media link (e.g., https://facebook.com/yourpage).', 'error');
+                        submitButton.disabled = false;
+                        submitButton.textContent = 'Submit Application';
+                        isSubmitting = false;
+                        grecaptcha.reset();
+                        return;
+                    }
+                }
+
+                const parsedAge = parseInt(age, 10);
+                if (isNaN(parsedAge) || parsedAge < 18) {
+                    Swal.fire('Error', 'Volunteers must be 18 years or older. Please enter a valid age.', 'error');
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Submit Application';
+                    isSubmitting = false;
+                    grecaptcha.reset();
+                    return;
+                }
+
+                if (generalAvailability === 'Specific days' && specificDays.length === 0) {
+                    Swal.fire('Error', 'Please select at least one specific day if you chose "Specific days" for availability.', 'error');
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Submit Application';
+                    isSubmitting = false;
+                    grecaptcha.reset();
+                    return;
+                }
+
+                // Validation for timeAvailability when it's supposed to be visible
+                if (showTimeOptions.includes(generalAvailability) && !timeAvailability) {
+                    Swal.fire('Error', 'Please specify a time range for your selected availability.', 'error');
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Submit Application';
+                    isSubmitting = false;
+                    grecaptcha.reset();
+                    return;
+                }
+
+
+                // --- Check for Duplicates ---
+                const volunteersRef = database.ref("volunteerApplications/pendingVolunteer");
+                const allApplicationsSnapshot = await volunteersRef.once('value');
+
+                let emailAlreadyExists = false;
+                let mobileNumberAlreadyExists = false;
+                let nameAlreadyExists = false;
+
+                allApplicationsSnapshot.forEach(childSnapshot => {
+                    const volunteer = childSnapshot.val();
+
+                    if (volunteer.email && volunteer.email.toLowerCase() === email.toLowerCase()) {
+                        emailAlreadyExists = true;
+                    }
+
+                    if (volunteer.mobileNumber && volunteer.mobileNumber === mobileNumber) {
+                        mobileNumberAlreadyExists = true;
+                    }
+
+                    if (volunteer.firstName && volunteer.lastName &&
+                        volunteer.firstName.toLowerCase() === firstName.toLowerCase() &&
+                        volunteer.lastName.toLowerCase() === lastName.toLowerCase()) {
+                        nameAlreadyExists = true;
+                    }
+                });
+
+                // --- Apply Blocking Logic with Priority ---
+                if (emailAlreadyExists) {
+                    Swal.fire('Error', 'An application with this email address already exists. Please use a different email or contact support if you believe this is an error.', 'error');
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Submit Application';
+                    isSubmitting = false;
+                    grecaptcha.reset();
+                    return;
+                }
+
+                if (mobileNumberAlreadyExists) {
+                    Swal.fire('Error', 'An application with this mobile number already exists. Please use a different mobile number or contact support if you believe this is an error.', 'error');
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Submit Application';
+                    isSubmitting = false;
+                    grecaptcha.reset();
+                    return;
+                }
+
+                if (nameAlreadyExists) {
+                    Swal.fire('Error', 'An application with this name (first name and last name) already exists. Please ensure you are not submitting a duplicate application.', 'error');
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Submit Application';
+                    isSubmitting = false;
+                    grecaptcha.reset();
+                    return;
+                }
+
+                // Create an object to store in Realtime Database
+                const volunteerData = {
+                    firstName: firstName,
+                    middleInitial: middleInitial,
+                    lastName: lastName,
+                    nameExtension: nameExtension,
+                    email: email,
+                    mobileNumber: mobileNumber,
+                    socialMediaLink: socialMedia,
+                    age: parsedAge,
+                    additionalInfo: additionalInfo,
+                    address: {
+                        region: selectedRegionText,
+                        province: selectedProvinceText,
+                        city: selectedCityText,
+                        barangay: selectedBarangayText,
+                        streetAddress: streetAddress
+                    },
+                    availability: {
+                        general: generalAvailability,
+                        specificDays: specificDays.length > 0 ? specificDays : null,
+                        timeAvailability: timeAvailability
+                    },
+                    applicationDateandTime: new Date().toISOString(),
+                    recaptchaResponse: recaptchaResponse
+                };
+
+                // Push data to Firebase
                 await database.ref("volunteerApplications/pendingVolunteer").push(volunteerData);
 
                 console.log("Volunteer application saved to Realtime Database successfully!");
                 Swal.fire('Success', 'Your volunteer application has been submitted successfully! Thank you for your interest in helping.', 'success');
-                volunteerForm.reset(); // Clear the form after successful submission
-                my_handlers.fill_regions(); // Re-initialize location dropdowns
+
+                // Reset form and reCAPTCHA after successful submission
+                volunteerForm.reset();
+                my_handlers.fill_regions();
+                grecaptcha.reset();
+                toggleSpecificAvailability(); // Call again to ensure groups are reset
             } catch (error) {
                 console.error("Error adding volunteer application to Realtime Database: ", error);
                 Swal.fire('Error', 'There was an error submitting your application. Please try again.', 'error');
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = 'Submit Application';
+                isSubmitting = false;
+                grecaptcha.reset();
             }
         });
     }

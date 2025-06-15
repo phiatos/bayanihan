@@ -7,11 +7,15 @@
     <link rel="stylesheet" href="../css/profile.css" />
     <link rel="stylesheet" href="../css/global.css" />
     <link rel='stylesheet' href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css'/>
-    <script type="module">
+    <!-- <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
         import { getAuth, EmailAuthProvider, reauthenticateWithCredential, updatePassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
         import { getDatabase, ref, get, update } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
-    </script>
+    </script> -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
     <title>Profile Page</title>
@@ -44,7 +48,7 @@
                                 <p id="profile-hq">Loading...</p>
                             </div>
                             <div class="input-field">
-                                <label>Contact Person</label>
+                                <label>Full Name</label>
                                 <p id="profile-contact-person">Loading...</p>
                             </div>
                             <div class="input-field">
@@ -193,6 +197,7 @@
             });
     </script>
     
+    <!-- <script src="../js/inactivity-detector.js"></script>  -->
     <script src="../js/profile.js"  type="module"></script>
 </body>
 </html>

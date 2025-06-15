@@ -31,12 +31,6 @@
                     <header>Relief Request Log</header>
                 </div>
                 <div class="controls_right">
-                    <button id="savePdfBtn" class="pdf-button">
-                        <i class='bx bxs-file-pdf'></i>
-                        Save to PDF</button>
-                    <button id="exportExcelBtn" class="excel-button">
-                         <i class='bx bxs-file-export'></i>
-                         Export to Excel</button> 
                     <div class="search-wrapper">
                         <i class="fa fa-search"></i>
                         <input type="text" placeholder="Search" id="searchInput" />
@@ -101,6 +95,12 @@
                 <span id="entriesInfo">Showing 0 to 0 of 0 entries</span>
                 <div id="pagination" class="pagination"></div>
             </div>
+
+             <div class="pdf-buttons">
+                <button id="exportBtn" class="pdf-button" type="button"><i class='bx bxs-file-pdf'></i>Export to Excel</button>
+                <button id="savePdfBtn" class="excel-button" type="button"><i class='bx bxs-file-export'></i>Save to PDF</button>
+            </div>
+            
         </div>
     </div>
 
@@ -150,6 +150,7 @@
         });
     </script>
 
+    <script src="../js/inactivity-detector.js"></script> 
     <script type="module" src="../js/reliefslog.js"></script>
 </body>
 </html>

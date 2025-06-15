@@ -95,8 +95,11 @@
                             </div>
                         </div>
 
-                        <button type="button" class="bayanihanBtn" id="nextBtn">Add Donation</button>
-                        <button type="button" id="clearFormBtn" class="bayanihanBtn">Clear Form</button> 
+
+                    <div class="donation-buttons">
+                    <button type="submit" id="nextBtn" class="bayanihanBtn">Add Donation</button>
+                    <button type="button" id="clearFormBtn" class="bayanihanBtn">Clear Form</button>
+                    </div>
                     </form>
                 </div>
             </div>
@@ -163,8 +166,10 @@
                 </div>
 
                 <br>
+                <div class="pdf-buttons">
                 <button id="exportBtn" class="pdf-button" type="button"><i class='bx bxs-file-pdf'></i>Export to Excel</button>
                 <button id="savePdfBtn" class="excel-button" type="button"><i class='bx bxs-file-export'></i>Save to PDF</button>
+                </div>
             </section>
 
             <div class="modal" id="editModal" style="display:none;">
@@ -209,6 +214,7 @@
             .catch(err => console.error('Error loading sidebar:', err));
     </script>
 
+    <script src="../js/inactivity-detector.js"></script> 
     <script type="module" src="../js/callfordonation.js"></script>
 </body>
 </html>

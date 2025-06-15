@@ -20,13 +20,70 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     const database = firebase.database();
 
+// Variables for inactivity detection --------------------------------------------------------------------
+let inactivityTimeout;
+const INACTIVITY_TIME = 1800000; // 30 minutes in milliseconds
+
+// Function to reset the inactivity timer
+function resetInactivityTimer() {
+    clearTimeout(inactivityTimeout);
+    inactivityTimeout = setTimeout(checkInactivity, INACTIVITY_TIME);
+    console.log("Inactivity timer reset.");
+}
+
+// --- Helper function to generate a random Relief ID ---
+function generateRandomReliefID() {
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = 'RELIEFS-'; // Prefix for Relief Request
+    const length = 6; // Length of the random part (e.g., RR + 6 chars = RRABC123)
+    for (let i = 0; i < length; i++) {
+        result += characters.charAt(Math.floor(Math.random() * characters.length));
+    }
+    return result;
+}
+
+// Function to check for inactivity and prompt the user
+function checkInactivity() {
+    Swal.fire({
+        title: 'Are you still there?',
+        text: 'You\'ve been inactive for a while. Do you want to continue your session or log out?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Stay Login',
+        cancelButtonText: 'Log Out',
+        allowOutsideClick: false,
+        reverseButtons: true
+    }).then((result) => {
+        if (result.isConfirmed) {
+            resetInactivityTimer(); // User chose to continue, reset the timer
+            console.log("User chose to continue session.");
+        } else if (result.dismiss === Swal.DismissReason.cancel) {
+            // User chose to log out
+            auth.signOut().then(() => {
+                console.log("User logged out due to inactivity.");
+                window.location.href = "../pages/login.html"; // Redirect to login page
+            }).catch((error) => {
+                console.error("Error logging out:", error);
+                Swal.fire('Error', 'Failed to log out. Please try again.', 'error');
+            });
+        }
+    });
+}
+
+// Attach event listeners to detect user activity
+['mousemove', 'keydown', 'scroll', 'click'].forEach(eventType => {
+    document.addEventListener(eventType, resetInactivityTimer);
+});
+//-------------------------------------------------------------------------------------
     const tableBody = document.querySelector('#orgTable tbody');
     const searchInput = document.getElementById('searchInput');
     const sortSelect = document.getElementById('sortSelect');
     const entriesInfo = document.getElementById('entriesInfo');
     const pagination = document.getElementById('pagination');
     const savePdfBtn = document.getElementById('savePdfBtn');
-    const exportExcelBtn = document.getElementById('exportExcelBtn'); 
+    const exportExcelBtn = document.getElementById('exportBtn'); 
 
     if (!tableBody || !searchInput || !sortSelect || !entriesInfo || !pagination || !savePdfBtn || !exportExcelBtn) {
         console.error('One or more DOM elements are missing:', {
@@ -168,14 +225,25 @@ document.addEventListener('DOMContentLoaded', () => {
         data = [];
         const requests = snapshot.val();
         if (requests) {
+            const existingReliefIDs = new Set();
+
             Object.keys(requests).forEach((key, index) => {
                 const request = requests[key];
                 const groupName = request.volunteerOrganization || "[Unknown Org]";
                 if (!request.volunteerOrganization) {
                     console.warn(`Relief request ${key} is missing volunteerOrganization field. Using default: [Unknown Org]`);
                 }
+
+                let reliefId = request.id; 
+                if (!reliefId || existingReliefIDs.has(reliefId)) {
+                    do {
+                        reliefId = generateRandomReliefID();
+                    } while (existingReliefIDs.has(reliefId)); 
+                }
+                existingReliefIDs.add(reliefId);
+
                 data.push({
-                    id: `RR${String(index + 1).padStart(3, '0')}`,
+                    id: reliefId,
                     volunteerOrganization: groupName,
                     city: request.city,
                     address: request.address,
@@ -249,7 +317,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>
                     <button class="saveBtn" data-key="${item.firebaseKey}">Save </button>
                     <button class="viewBtn" data-index="${data.indexOf(item)}">View</button>
-                    <button class="deleteBtn" data-key="${item.firebaseKey}">Remove</button>
+                    <button class="deleteBtn" data-key="${item.firebaseKey}">Archive</button>
                     <button class="savePDFBtn" data-index="${data.indexOf(item)}">Save PDF</button>
                 </td>
             `;
