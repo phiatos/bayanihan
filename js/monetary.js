@@ -221,13 +221,15 @@ document.addEventListener("DOMContentLoaded", () => {
             { input: form.number, label: "Number", telNumber: true },
             { input: form.amount, label: "Amount Donated", numericAmount: true, positiveNumber: true },
             { input: form.invoice, label: "Cash Invoice #", required: false },
-            { input: form.dateReceived, label: "Date Received" },
+            { input: form.dateReceived, label: "Date Received", isDate: true},
             { input: form.email, label: "Email", isEmail: true },
             { input: form.bank, label: "Bank" },
             { input: form.proof, label: "Proof of Transaction", required: false },
         ];
 
-        fieldsToCheck.forEach(({ input, label, lettersOnly, telNumber, numericAmount, positiveNumber, isEmail, required = true }) => {
+        const today = new Date();
+
+        fieldsToCheck.forEach(({ input, label, lettersOnly, telNumber, numericAmount, positiveNumber, isEmail, isDate = false, required = true }) => {
             clearError(input);
             if (required && isEmpty(input.value)) {
                 showError(input, `${label} is required.`);
@@ -254,6 +256,19 @@ document.addEventListener("DOMContentLoaded", () => {
                     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
                     if (!emailRegex.test(input.value.trim())) {
                         showError(input, `Please enter a valid ${label.toLowerCase()} address.`);
+                        isValid = false;
+                    }
+                }
+
+                if (isDate) { // Check if this field is marked as a date
+                    const receivedDate = new Date(input.value);
+                    if (isNaN(receivedDate.getTime())) { // Check for invalid date strings
+                        showError(input, `${label} is not a valid date.`);
+                        isValid = false;
+                    }
+                    // Allows current date, prevents future dates
+                    else if (receivedDate.setHours(0,0,0,0) > today.setHours(0,0,0,0)) {
+                        showError(input, `${label} cannot be a future date.`);
                         isValid = false;
                     }
                 }
@@ -410,7 +425,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     <td>${d.proof ? `<a href="${d.proof}" target="_blank">View Proof</a>` : 'N/A'}</td>
                     <td>
                         <button class="editBtn">Edit</button>
-                        <button class="deleteBtn">Remove</button>
+                        <button class="deleteBtn">Archive</button>
                         <button class="savePDFBtn">Save PDF</button>
                     </td>
                 `;
@@ -784,13 +799,15 @@ document.addEventListener("DOMContentLoaded", () => {
             { input: document.getElementById("edit-number"), label: "Number", telNumber: true },
             { input: document.getElementById("edit-amount"), label: "Amount Donated", numericAmount: true, positiveNumber: true },
             { input: document.getElementById("edit-invoice"), label: "Cash Invoice #", required: false },
-            { input: document.getElementById("edit-dateReceived"), label: "Date Received" },
+            { input: document.getElementById("edit-dateReceived"), label: "Date Received", isDate: true},
             { input: document.getElementById("edit-email"), label: "Email", isEmail: true },
             { input: document.getElementById("edit-bank"), label: "Bank" },
             { input: document.getElementById("edit-proof"), label: "Proof of Transaction", required: false },
         ];
 
-        fieldsToCheck.forEach(({ input, label, lettersOnly, telNumber, numericAmount, positiveNumber, isEmail, required = true }) => {
+        const today = new Date();
+
+        fieldsToCheck.forEach(({ input, label, lettersOnly, telNumber, numericAmount, positiveNumber, isEmail, isDate = false, required = true }) => {
             clearError(input);
             if (required && isEmpty(input.value)) {
                 showError(input, `${label} is required.`);
@@ -817,6 +834,18 @@ document.addEventListener("DOMContentLoaded", () => {
                     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
                     if (!emailRegex.test(input.value.trim())) {
                         showError(input, `Please enter a valid ${label.toLowerCase()} address.`);
+                        isValid = false;
+                    }
+                }
+                if (isDate) { 
+                const receivedDate = new Date(input.value);
+                    if (isNaN(receivedDate.getTime())) { 
+                        showError(input, `${label} is not a valid date.`);
+                        isValid = false;
+                    }
+                    // Allows current date, prevents future dates
+                    else if (receivedDate.setHours(0,0,0,0) > today.setHours(0,0,0,0)) {
+                        showError(input, `${label} cannot be a future date.`);
                         isValid = false;
                     }
                 }

@@ -9,7 +9,6 @@
     <link rel='stylesheet' href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css'/>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
-
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
@@ -18,7 +17,7 @@
 
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
     
-    <title>Volunteer Group Management</title>
+    <title>Admin Management</title>
 </head>
 <body>
     <div class="main-container">
@@ -27,15 +26,11 @@
             <div class="container">
                 <div class="controls">
                     <div class="controls_left">
-                        <header>Volunteer Group Management</header>
+                        <header>Admin Management</header>
                     </div>
                     <div class="controls_right">
                         <div class="search-wrapper">
-                            <!-- <i class="fa fa-search"></i> -->
                             <input type="text" placeholder="Search" id="searchInput" />
-                            <!-- <button onclick="clearDInputs()" class="clear-btn">
-                                <i class='bx bx-x'></i>
-                            </button> -->
                         </div>
                         <div class="custom-select-wrapper">
                             <select id="sortSelect">
@@ -68,77 +63,68 @@
 
                 <div class="table-container">
 
-                <table id="orgTable">
+                <!-- <table id="orgTable"></table> -->
+                <table id="adminTable">
                     <thead>
                         <tr>
-                            <th>No.</th>
-                            <th>Organization Name</th>
-                            <th>Contact Person</th>
+                            <th>Name</th>
                             <th>Email</th>
                             <th>Mobile Number</th>
                             <th>Social Media</th>
-                            <th>Region</th>
-                            <th>Province</th>
-                            <th>City</th>
-                            <th>Barangay</th>
-                            <th>Street Address</th>
+                            <th>Position</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        </tbody>
+                    <tbody></tbody>
                 </table>
 
                 </div>
-                    <button id="addNew" aria-label="Add New Volunteer Group">
+                    <button id="addNew" aria-label="Add New Admin">
                       <i class='bx bx-plus' style="color: white; font-size: 30px;"></i>
                     </button>
-                    
+               
                     <div class="pagination-info">
                         <span id="entriesInfo">Showing 0 to 0 of 0 entries</span>
                     <div id="pagination" class="pagination"></div>
                 </div>
             </div> 
             
-            <!-- Register ABVN Modal -->
-            <div class="modal" id="addOrgModal" style="display: none;">
+            <!-- Register Admin Modal -->
+            <div class="modal" id="addAdminModal" style="display: none;">
                 <div class="modal-content">
                     <span class="close-button" id="closeModalBtn">×</span>
-                    <h2 id="modalTitle">Add Volunteer Groups</h2>
-                    <form id="addOrgForm">
-                        <label>Organization</label>
-                        <input type="text" name="organization" id="organization" placeholder="Enter Organization" required>
+                    <h2 id="modalTitle">Add Admin</h2>
+                    <form id="addAdminForm">
+
+                        <label for="firstName">First Name</label>
+                        <input type="text" id="firstName" name="firstName" placeholder="e.g. Juan" required />
+
+                        <label for="middleInitial">Middle Initial (Optional)</label>
+                        <input type="text" id="middleInitial" name="middleInitial" maxlength="1" placeholder="e.g. A" />
+
+                        <label for="lastName">Last Name</label>
+                        <input type="text" id="lastName" name="lastName" placeholder="e.g. Dela Cruz" required />
+
+                        <label for="nameExtension">Name Extension (e.g. Jr., Sr., III - Optional)</label>
+                        <input type="text" id="nameExtension" name="nameExtension" placeholder="e.g. Jr." />
+
+                        <label for="email">Email Address</label>
+                        <input type="email" id="email" name="email" placeholder="e.g. juan.delacruz@example.com" required />
                         
-                        <label for="region">Region</label>
-                            <select id="region" name="region" required></select>
-                        <input type="hidden" id="region-text" name="hq-region-text"/>
-
-                        <label for="province">Province</label>
-                            <select id="province" name="province" required></select>
-                        <input type="hidden" id="province-text" name="hq-province-text"/>
-
-                        <label for="city">City/Municipality</label>
-                            <select id="city" name="city" required></select>
-                        <input type="hidden" id="city-text" name="hq-city" />
-
-                        <label for="barangay">Barangay</label>
-                            <select id="barangay" name="barangay" required></select>
-                        <input type="hidden" id="barangay-text" name="hq-barangay-text"/>
-
-                        <label>Block/Lot/Unit Number and Street</label>
-                        <input type="text" name="streetAddress" id="streetAddress" placeholder="Enter Block/Lot/Unit Number and Street" required>
-
-                        <label>Contact Person</label>
-                        <input type="text" name="contactPerson" id="contactPerson" placeholder="Enter Contact Person" required>
+                        <label for="mobile">Mobile Number</label>
+                        <input type="tel" id="mobile" name="mobile" placeholder="e.g. 09171234567" pattern="[0-9]{11}" required />
                         
-                        <label>Email</label>
-                        <input type="email" name="email" id="email" placeholder="Enter the email of the organization of the Contact Person" required>
-                        
-                        <label>Mobile Number</label>
-                        <input type="number" name="mobileNumber" id="mobileNumber" placeholder="Enter the mobile number of the Contact Person" required>
-                        
-                        <label>Social Media</label>
-                        <input type="text" name="socialMedia" id="socialMedia" placeholder="Enter Social Media Link (Optional)">
+                        <label for="socialMedia">Social Media Link (e.g., Facebook Profile URL)</label>
+                        <input type="url" id="socialMedia" name="socialMedia" placeholder="e.g. https://facebook.com/yourprofile" />
+
+                        <label for="adminPosition">Position</label>
+                        <select id="adminPosition" name="adminPosition"  required>
+                            <option value="" selected disabled>Select one</option>
+                            <option value="position-one">Position One</option>
+                            <option value="position-two">Position Two</option>
+                            <option value="position-three" disabled>Super Admin</option>
+                        </select>
+
                         <div style="margin-top: 20px;">
                             <button type="submit" style="width: 25%;">Next</button>
                         </div>
@@ -169,66 +155,45 @@
             </div> 
 
             <!-- Edit Modal -->
-            <div class="modal" id="editOrgModal" style="display: none;">
-            <div class="modal-content">
-                <span class="close-button" id="closeEditModalBtn">×</span>
-                <h4 id="editModalTitle">Edit Volunteer Group</h4>
-                <form id="editOrgForm">
-                <input type="hidden" id="editOrgFirebaseKey">
+             <div class="modal" id="editAdminModal" style="display: none;">
+                <div class="modal-content">
+                    <span class="close-button" id="closeEditModalBtn">×</span>
+                    <h2 id="editModalTitle">Edit Admin Details</h2>
+                    <form id="editAdminForm">
+                        <label for="editFirstName">First Name</label>
+                        <input type="text" id="editFirstName" name="firstName" placeholder="e.g. Juan" required />
 
-                <div class="form-group">
-                    <label for="editOrganization">Organization</label>
-                    <input type="text" id="editOrganization" name="organization" placeholder="Enter Organization" required>
+                        <label for="editMiddleInitial">Middle Initial (Optional)</label>
+                        <input type="text" id="editMiddleInitial" name="middleInitial" maxlength="1" placeholder="e.g. A" />
+
+                        <label for="editLastName">Last Name</label>
+                        <input type="text" id="editLastName" name="lastName" placeholder="e.g. Dela Cruz" required />
+
+                        <label for="editNameExtension">Name Extension (e.g. Jr., Sr., III - Optional)</label>
+                        <input type="text" id="editNameExtension" name="nameExtension" placeholder="e.g. Jr." />
+
+                        <label for="editEmail">Email Address</label>
+                        <input type="email" id="editEmail" name="email" placeholder="e.g. juan.delacruz@example.com" required />
+                        
+                        <label for="editMobile">Mobile Number</label>
+                        <input type="tel" id="editMobile" name="mobile" placeholder="e.g. 09171234567" pattern="[0-9]{11}" required />
+                        
+                        <label for="editSocialMedia">Social Media Link (e.g., Facebook Profile URL)</label>
+                        <input type="url" id="editSocialMedia" name="socialMedia" placeholder="e.g. https://facebook.com/yourprofile" />
+
+                        <label for="editAdminPosition">Position</label>
+                        <select id="editAdminPosition" name="adminPosition" required>
+                            <option value="" selected disabled>Select one</option>
+                            <option value="position-one">Position One</option>
+                            <option value="position-two">Position Two</option>
+                            <option value="position-three" disabled>Super Admin</option>
+                        </select>
+
+                        <div style="margin-top: 20px;">
+                            <button type="submit" style="width: 25%;">Save Changes</button>
+                        </div>
+                    </form>
                 </div>
-
-                <div class="form-group">
-                    <label for="editRegion">Region</label>
-                    <select id="editRegion" name="region" required></select>
-                </div>
-
-                <div class="form-group">
-                    <label for="editProvince">Province</label>
-                    <select id="editProvince" name="province" required></select>
-                </div>
-
-                <div class="form-group">
-                    <label for="editCity">City/Municipality</label>
-                    <select id="editCity" name="city" required></select>
-                </div>
-
-                <div class="form-group">
-                    <label for="editBarangay">Barangay</label>
-                    <select id="editBarangay" name="barangay" required></select>
-                </div>
-
-                <div class="form-group">
-                    <label for="editStreetAddress">Block/Lot/Unit Number and Street</label>
-                    <input type="text" id="editStreetAddress" name="streetAddress" placeholder="Enter Address" required>
-                </div>
-
-                <div class="form-group">
-                    <label for="editContactPerson">Contact Person</label>
-                    <input type="text" id="editContactPerson" name="contactPerson" placeholder="Enter Contact Person" required>
-                </div>
-
-                <div class="form-group">
-                    <label for="editEmail">Email</label>
-                    <input type="email" id="editEmail" name="email" placeholder="Enter Email" required>
-                </div>
-
-                <div class="form-group">
-                    <label for="editMobileNumber">Mobile Number</label>
-                    <input type="number" id="editMobileNumber" name="mobileNumber" placeholder="Enter Mobile Number" required>
-                </div>
-
-                <div class="form-group">
-                    <label for="editSocialMedia">Social Media</label>
-                    <input type="text" id="editSocialMedia" name="socialMedia" placeholder="Enter Social Media Link (Optional)">
-                </div>
-
-                <button type="submit">Save Changes</button>
-                </form>
-            </div>
             </div>
 
     </div>
@@ -249,7 +214,6 @@
             });
     </script>
     
-    <script src="../js/inactivity-detector.js"></script> 
-    <script type="module" src="../js/volunteergroupmanagement.js"></script>
+    <script type="module" src="../js/adminmanagement.js"></script>
 </body>
 </html>

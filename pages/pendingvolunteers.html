@@ -70,6 +70,8 @@
                             <th>Age</th>
                             <th>Social Media</th>
                             <th>Additional Info</th>
+                            <th>General Availability</th>
+                            <th>Time Availability</th>
                             <th>Region</th>
                             <th>Province</th>
                             <th>City</th>
@@ -123,6 +125,90 @@
         </div>
     </div>
 
+    <!-- <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" id="closeEditModalBtn">&times;</span>
+            <h2>Edit Volunteer Information</h2>
+            <form id="editForm">
+                <legend>Volunteer Information</legend>
+                <div class="form-group">
+                    <label for="firstName">First Name</label>
+                    <input type="text" id="firstName" name="firstName" placeholder="e.g. Juan" required />
+                </div>
+
+                <div class="form-group">
+                    <label for="middleInitial">Middle Initial (Optional)</label>
+                    <input type="text" id="middleInitial" name="middleInitial" maxlength="1" placeholder="e.g. A" />
+                </div>
+
+                <div class="form-group">
+                    <label for="lastName">Last Name</label>
+                    <input type="text" id="lastName" name="lastName" placeholder="e.g. Dela Cruz" required />
+                </div>
+
+                <div class="form-group">
+                    <label for="nameExtension">Name Extension (e.g. Jr., Sr., III - Optional)</label>
+                    <input type="text" id="nameExtension" name="nameExtension" placeholder="e.g. Jr." />
+                </div>
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" name="email" placeholder="e.g. juan.delacruz@example.com" required />
+                </div>
+
+                <div class="form-group">
+                    <label for="mobileNumber">Mobile Number</label>
+                    <input type="tel" id="mobileNumber" name="mobileNumber" placeholder="e.g. 09171234567" pattern="[0-9]{11}" required />
+                </div>
+
+                <div class="form-group">
+                    <label for="age">Age</label>
+                    <input type="number" id="age" name="age" placeholder="e.g. Volunteers must be at least 18 years old" min="18" max="120" />
+                </div>
+
+                <div class="form-group">
+                    <label for="socialMedia">Social Media Link (e.g., Facebook Profile URL)</label>
+                    <input type="url" id="socialMedia" name="socialMedia" placeholder="e.g. https://facebook.com/yourprofile" />
+                    <small>Optional, but helps us connect with you.</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="additionalInfo">Skills, Experience, or Other Relevant Information (Optional)</label>
+                    <textarea id="additionalInfo" name="additionalInfo" rows="4" placeholder="e.g. I have experience in medical aid, I am a licensed driver, etc."></textarea>
+                </div>
+
+                <legend>Volunteer Location</legend>
+                <div class="form-group">
+                    <label for="editRegion">Region</label>
+                    <select id="editRegionSelect" name="region" required></select>
+                    <input type="hidden" id="editRegion-text" name="region-text"/> 
+                </div>
+
+                <div class="form-group">
+                    <label for="editProvince">Province</label>
+                    <select id="editProvinceSelect" name="province" required></select>
+                    <input type="hidden" id="editProvince-text" name="province-text"/>
+                </div>
+
+                <div class="form-group">
+                    <label for="editCity">City/Municipality</label>
+                    <select id="editCitySelect" name="city" required></select>
+                    <input type="hidden" id="editCity-text" name="city-text"/>
+                </div>
+
+                <div class="form-group">
+                    <label for="editBarangay">Barangay</label>
+                    <select id="editBarangaySelect" name="barangay" required></select>
+                    <input type="hidden" id="editBarangay-text" name="barangay-text"/> 
+                </div>
+
+                <div class="form-group">
+                    <label for="streetAddress">Block/Lot/Unit Number and Street</label>
+                    <input type="text" id="streetAddress" name="streetAddress" placeholder="e.g. Blk 1 Lot 2, Main St." required />
+                </div>
+                <button type="submit">Save Changes</button>
+            </form>
+        </div>
+    </div> -->
 
     <script>
         fetch('../components/sidebar.html')

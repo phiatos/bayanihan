@@ -656,7 +656,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td><a href="${r.facebookLink || '#'}" target="_blank" rel="noopener noreferrer">${r.facebookLink && r.facebookLink !== 'N/A' ? 'Visit The Page' : 'N/A'}</a></td>
                     <td>
                         <button class="viewBtn">View Image</button>
-                        <button class="deleteBtn">Remove</button>
+                        <button class="deleteBtn">Archive</button>
                         <button class="savePDFBtn">Save PDF</button>
                     </td>
                 `;

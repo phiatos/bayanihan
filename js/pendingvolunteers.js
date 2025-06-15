@@ -1,4 +1,4 @@
-emailjs.init("YOUR_EMAILJS_PUBLIC_KEY"); // Replace with your actual EmailJS Public Key
+emailjs.init("YOUR_EMAILJS_PUBLIC_KEY"); 
 
 const firebaseConfig = {
     apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
@@ -63,8 +63,6 @@ function checkInactivity() {
     document.addEventListener(eventType, resetInactivityTimer);
 });
 //-------------------------------------------------------------------------------------
-
-
 document.addEventListener('DOMContentLoaded', () => {
     const volunteersContainer = document.getElementById('volunteersContainer');
     const searchInput = document.getElementById('searchInput');
@@ -156,8 +154,9 @@ document.addEventListener('DOMContentLoaded', () => {
             <h3 style="color: #FA3B99;">Availability</h3>
             <p><strong>General Availability:</strong> ${volunteer.availability?.general || 'N/A'}</p>
             <p><strong>Available Days:</strong> ${volunteer.availability?.specificDays ? volunteer.availability.specificDays.join(', ') : 'N/A'}</p>
+            <p><strong>Time Availability:</strong> ${volunteer.availability?.timeAvailability || 'N/A'}</p>
         `;
-        previewModal.style.display = 'block';
+        previewModal.style.display = 'flex';
     }
 
     // Removed hideActionStatusModal function
@@ -176,19 +175,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function showScheduleModal() {
-        scheduleModal.style.display = 'block';
+        scheduleModal.style.display = 'flex';
         // No hideActionStatusModal needed here
     }
 
     function hideScheduleModal() {
         scheduleModal.style.display = 'none';
-        scheduleForm.reset(); // Clear form
-        resetCurrentVolunteer(); // Reset after action
+        scheduleForm.reset(); 
+        resetCurrentVolunteer(); 
     }
 
     function showEndorseABVNModal() {
-        endorseABVNModal.style.display = 'block';
-        fetchABVNs(); // Populate ABVN list when modal is shown
+        endorseABVNModal.style.display = 'flex';
+        fetchABVNs(); 
     }
 
     function hideEndorseABVNModal() {
@@ -411,6 +410,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${volunteer.age || 'N/A'}</td>
                 <td>${socialMediaDisplay}</td>
                 <td>${volunteer.additionalInfo || 'N/A'}</td>
+                <td>
+                    ${
+                        volunteer.availability && volunteer.availability.general === 'Specific days'
+                        ? `Specific Days: ${volunteer.availability.specificDays ? volunteer.availability.specificDays.join(', ') : 'N/A'}`
+                        : (volunteer.availability?.general || 'N/A')
+                    }
+                </td>
+                <td>${volunteer.availability?.timeAvailability || 'N/A'}</td>
                 <td>${volunteer.address?.region || 'N/A'}</td>
                 <td>${volunteer.address?.province || 'N/A'}</td>
                 <td>${volunteer.address?.city || 'N/A'}</td>
@@ -706,10 +713,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Add event listeners to the new dropdown buttons
             dropdown.querySelectorAll('button').forEach(button => {
                 button.addEventListener('click', () => {
-                    // The dropdown will be closed by the general document click listener
-                    // or by specific modal open functions if they directly hide it.
-                    // For now, let the general handler manage its removal.
-                    // The 'active' class on the button should be removed by the general handler.
+                   
                 });
             });
 
@@ -718,14 +722,20 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             dropdown.querySelector('#dropdownDirectedToABVN').addEventListener('click', () => {
-                showEndorseABVNModal();
+                if (!currentVolunteerKey || !currentVolunteerData) {
+                    Swal.fire('Error', 'No volunteer selected for endorsement.', 'error');
+                    resetCurrentVolunteer();
+                    return;
+                }
+                handleEndorsementProcess();
+                //showEndorseABVNModal();
             });
 
             dropdown.querySelector('#dropdownSetStalled').addEventListener('click', async () => {
                 const { value: notes } = await Swal.fire({
                     title: 'Set Volunteer to Stalled',
                     input: 'textarea',
-                    inputLabel: 'Reason for stalling (e.g., Cannot be reached, Awaiting documents, etc.)',
+                    inputLabel: '  Reason for stalling (e.g., Cannot be reached, Awaiting documents, etc.)',
                     inputPlaceholder: 'Enter notes here...',
                     inputAttributes: {
                         'aria-label': 'Enter notes here'
@@ -733,6 +743,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     showCancelButton: true,
                     confirmButtonText: 'Confirm',
                     cancelButtonText: 'Cancel',
+                    customClass: {
+                        popup: 'my-custom-swal-popup',
+                        confirmButton: 'my-confirm-button-class',
+                        cancelButton: 'my-cancel-button-class'
+                    },
                     inputValidator: (value) => {
                         if (!value) {
                             return 'Notes are required!';
@@ -770,7 +785,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     showCancelButton: true,
                     confirmButtonColor: '#d33',
                     cancelButtonColor: '#3085d6',
-                    confirmButtonText: 'Yes, remove it!'
+                    confirmButtonText: 'Yes, remove it!',
+                    customClass: {
+                        confirmButton: 'my-confirm-button-class',
+                        cancelButton: 'my-cancel-button-class'
+                    },
                 }).then(async (result) => {
                     if (result.isConfirmed) {
                         try {
@@ -820,6 +839,139 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        // --- Check for past date, pwede current date basta bawal past time ---
+        const selectedDate = new Date(scheduledDateTime);
+        const now = new Date();
+
+        now.setSeconds(0);
+        now.setMilliseconds(0);
+
+        selectedDate.setSeconds(0);
+        selectedDate.setMilliseconds(0);
+
+        if (selectedDate < now) {
+            Swal.fire({
+                title: 'Invalid Date',
+                text: 'You cannot schedule a volunteer for a date and time that has already passed. Please select a future date and time.',
+                icon: 'error',
+                confirmButtonText: 'Understood'
+            });
+            return; // Stop execution if the date is in the past
+        }
+
+        // --- START OF NEW DUPLICATE CHECK LOGIC ---
+        const volunteerEmail = currentVolunteerData.email;
+        const volunteerMobile = currentVolunteerData.mobileNumber;
+        const volunteerFullName = getFullName(currentVolunteerData).toLowerCase(); 
+
+        if (!volunteerEmail && !volunteerMobile) {
+            Swal.fire('Error', 'Volunteer data is missing email and mobile number. Cannot perform duplicate check.', 'error');
+            hideScheduleModal();
+            return;
+        }
+
+         try {
+            const approvedVolunteersRef = database.ref('volunteerApplications/approvedVolunteer');
+            let duplicateMessages = [];
+
+            // 1. Check for duplicate email
+            if (volunteerEmail) {
+                const emailSnapshot = await approvedVolunteersRef.orderByChild('email').equalTo(volunteerEmail).once('value');
+                if (emailSnapshot.exists()) {
+                    // Check if the duplicate is NOT the volunteer being moved (unlikely but good for robustness)
+                    let foundDuplicate = false;
+                    emailSnapshot.forEach(childSnapshot => {
+                        if (childSnapshot.key !== currentVolunteerKey) { // Ensure it's not the same record if moving within same path (not applicable here, but good practice)
+                            foundDuplicate = true;
+                            return true; // Break forEach
+                        }
+                    });
+                    if (foundDuplicate) {
+                        duplicateMessages.push('• Email Address');
+                    }
+                }
+            }
+            // 2. Check for duplicate mobile number
+            if (volunteerMobile) {
+                const mobileSnapshot = await approvedVolunteersRef.orderByChild('mobileNumber').equalTo(volunteerMobile).once('value');
+                if (mobileSnapshot.exists()) {
+                     let foundDuplicate = false;
+                    mobileSnapshot.forEach(childSnapshot => {
+                        if (childSnapshot.key !== currentVolunteerKey) {
+                            foundDuplicate = true;
+                            return true;
+                        }
+                    });
+                    if (foundDuplicate) {
+                        duplicateMessages.push('• Mobile Number');
+                    }
+                }
+            }
+            // 3. Check for duplicate full name (consider this a softer check)
+            // Note: Full name duplicates are more prone to false positives (e.g., common names).
+            // The admin might need to manually verify these.
+            if (volunteerFullName) {
+                const nameSnapshot = await approvedVolunteersRef.once('value'); // Fetch all to manually filter by full name
+                let nameExists = false;
+                if (nameSnapshot.exists()) {
+                    nameSnapshot.forEach(childSnapshot => {
+                        const approvedVolunteer = childSnapshot.val();
+                        if (childSnapshot.key !== currentVolunteerKey) {
+                            const approvedFullName = getFullName(approvedVolunteer).toLowerCase();
+                            if (approvedFullName === volunteerFullName) {
+                                nameExists = true;
+                                return true; // Break forEach
+                            }
+                        }
+                    });
+                }
+                if (nameExists) {
+                    duplicateMessages.push('• Full Name');
+                }
+            }
+
+
+            if (duplicateMessages.length > 0) {
+                Swal.fire({
+                    title: 'Possible Duplicate Volunteer Detected!',
+                    html: `This volunteer might already exist in the approved list based on the following:<br><br>${duplicateMessages.join('<br>')}<br><br>Please verify if this is a new application or a duplicate entry.`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Proceed Anyway (Manual Override)',
+                    cancelButtonText: 'Cancel & Review',
+                    reverseButtons: true // Puts "Cancel" on the left
+                }).then((duplicateResult) => {
+                    if (duplicateResult.isConfirmed) {
+                        // User chose to proceed despite the warning
+                        // Continue with the scheduling logic (recursive call or put in a separate function)
+                        Swal.fire('Proceeding', 'Proceeding with scheduling despite potential duplicate warning.', 'info');
+                        // Call the actual scheduling logic here. It's best to put it in a separate function.
+                        handleScheduleConfirmation(scheduledDateTime, currentVolunteerKey, currentVolunteerData);
+                    } else {
+                        // User chose to cancel and review
+                        Swal.fire('Cancelled', 'Scheduling cancelled for review.', 'info');
+                        hideScheduleModal(); // Close the modal and reset state
+                    }
+                });
+                return; // Stop the function execution here if duplicates are found
+            }
+
+            } catch (duplicateCheckError) {
+                console.error("Error during duplicate check for approved volunteer:", duplicateCheckError);
+                Swal.fire('Error', 'Failed to perform duplicate check. Please try again.', 'error');
+                hideScheduleModal();
+                return;
+            }
+            // --- END OF ENHANCED DUPLICATE CHECK LOGIC ---
+
+            // If no duplicates were found, or if user chose to proceed anyway (via recursive call)
+            // The original confirmation dialog
+            handleScheduleConfirmation(scheduledDateTime, currentVolunteerKey, currentVolunteerData);
+        });
+
+
+    // --- NEW FUNCTION TO ENCAPSULATE SCHEDULE CONFIRMATION LOGIC ---
+    async function handleScheduleConfirmation(scheduledDateTime, volunteerKey, volunteerData) {
         Swal.fire({
             title: 'Confirm Schedule?',
             text: `Schedule volunteer for ${formatDate(new Date(scheduledDateTime).toISOString())}? An email will be sent.`,
@@ -832,17 +984,16 @@ document.addEventListener('DOMContentLoaded', () => {
             if (result.isConfirmed) {
                 try {
                     // Move to approvedVolunteers
-                    await database.ref(`volunteerApplications/approvedVolunteer/${currentVolunteerKey}`).set({
-                        ...currentVolunteerData,
+                    await database.ref(`volunteerApplications/approvedVolunteer/${volunteerKey}`).set({
+                        ...volunteerData,
                         status: 'confirmedByAB',
                         scheduledDateTime: new Date(scheduledDateTime).toISOString()
                     });
                     // Remove from pendingVolunteer
-                    await database.ref(`volunteerApplications/pendingVolunteer/${currentVolunteerKey}`).remove();
+                    await database.ref(`volunteerApplications/pendingVolunteer/${volunteerKey}`).remove();
 
                     // Send email
-                    // Make sure sendApprovalEmail function only expects two arguments based on your email template
-                    await sendApprovalEmail(currentVolunteerData, formatDate(new Date(scheduledDateTime).toISOString()));
+                    await sendApprovalEmail(volunteerData, formatDate(new Date(scheduledDateTime).toISOString()));
 
                     Swal.fire('Scheduled & Approved!', 'Volunteer has been scheduled, approved, and confirmation email sent.', 'success');
                     hideScheduleModal(); // This calls resetCurrentVolunteer() and resets form
@@ -855,7 +1006,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 hideScheduleModal(); // If cancelled, hide and reset
             }
         });
-    });
+    }
 
     // --- Endorse ABVN Modal Form Submission ---
     endorseABVNForm.addEventListener('submit', async (event) => {
@@ -913,23 +1064,151 @@ document.addEventListener('DOMContentLoaded', () => {
                     await sendEndorsementEmail(currentVolunteerData, abvnGroupData);
 
                     Swal.fire('Endorsed!', 'Volunteer has been endorsed to the selected ABVN group, and an endorsement email sent.', 'success');
-                    hideEndorseABVNModal(); // This calls resetCurrentVolunteer() and resets form
+                    hideEndorseABVNModal(); 
                 } catch (error) {
                     console.error("Error endorsing volunteer to ABVN: ", error);
                     Swal.fire('Error', 'Failed to endorse volunteer. Please try again.', 'error');
-                    hideEndorseABVNModal(); // Ensure modal closes and state resets even on error
+                    hideEndorseABVNModal(); 
                 }
             } else {
-                hideEndorseABVNModal(); // If cancelled, hide and reset
+                hideEndorseABVNModal();
             }
         });
     });
+
+    async function handleEndorsementProcess() {
+        const volunteerEmail = currentVolunteerData.email;
+        const volunteerMobile = currentVolunteerData.mobileNumber;
+        const volunteerFullName = getFullName(currentVolunteerData).toLowerCase(); // Assuming getFullName is defined and works
+
+        if (!volunteerEmail && !volunteerMobile && !volunteerFullName) {
+            Swal.fire('Error', 'Volunteer data is missing crucial information (email, mobile, full name). Cannot perform duplicate check for endorsement.', 'error');
+            resetCurrentVolunteer();
+            return;
+        }
+
+        try {
+            const abvnGroupsRef = database.ref('volunteerGroups');
+            let duplicateMessages = [];
+            let isAlreadyEndorsedToAnABVN = false;
+
+            const allAbvnSnapshot = await abvnGroupsRef.once('value');
+            
+            // Step 1: Collect all currently endorsed volunteers from ALL ABVN groups
+            let allEndorsedVolunteersData = [];
+            if (allAbvnSnapshot.exists()) {
+                allAbvnSnapshot.forEach(abvnGroupChild => {
+                    const groupData = abvnGroupChild.val();
+                    const groupName = groupData.organization || abvnGroupChild.key; // Use organization name for display
+                    const endorsedVolunteers = abvnGroupChild.child('endorsedVolunteers').val();
+
+                    if (endorsedVolunteers) {
+                        for (const volKey in endorsedVolunteers) {
+                            if (volKey !== currentVolunteerKey) { 
+                                allEndorsedVolunteersData.push({
+                                    key: volKey,
+                                    endorsedGroupName: groupName,
+                                    ...endorsedVolunteers[volKey]
+                                });
+                            } else {
+                                isAlreadyEndorsedToAnABVN = true;
+                                duplicateMessages.push(`• This exact volunteer application (key: ${currentVolunteerKey}) is already endorsed to: <strong>${groupName}</strong>`);
+                            }
+                        }
+                    }
+                });
+            }
+            
+            if (isAlreadyEndorsedToAnABVN) {
+                Swal.fire({
+                    title: 'Volunteer Already Endorsed!',
+                    html: `This volunteer application appears to be already endorsed.<br><br>${duplicateMessages.join('<br>')}<br><br>Are you sure you want to proceed? This will re-endorse them.`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Proceed Anyway (Manual Override)',
+                    cancelButtonText: 'Cancel & Review',
+                    reverseButtons: true
+                }).then((duplicateResult) => {
+                    if (duplicateResult.isConfirmed) {
+                        Swal.fire('Proceeding', 'Proceeding with endorsement despite previous record.', 'info');
+                        showEndorseABVNModal(); 
+                    } else {
+                        Swal.fire('Cancelled', 'Endorsement cancelled for review.', 'info');
+                        hideEndorseABVNModal();
+                    }
+                });
+                return; 
+            }
+
+            // Step 2: Now, check for duplicates based on contact information (email, mobile, full name)
+            if (volunteerEmail) {
+                const emailDuplicate = allEndorsedVolunteersData.find(ev => 
+                    (ev.email || '').toLowerCase() === volunteerEmail.toLowerCase()
+                );
+                if (emailDuplicate) {
+                    isAlreadyEndorsedToAnABVN = true;
+                    duplicateMessages.push(`• Email Address (found in ABVN Group: ${emailDuplicate.endorsedGroupName})`);
+                }
+            }
+
+            // Only check mobile if email wasn't a duplicate, or if we still want to list all duplicate reasons
+            if (volunteerMobile && !isAlreadyEndorsedToAnABVN) { 
+                const mobileDuplicate = allEndorsedVolunteersData.find(ev => 
+                    (ev.mobileNumber || '') === volunteerMobile
+                );
+                if (mobileDuplicate) {
+                    isAlreadyEndorsedToAnABVN = true;
+                    duplicateMessages.push(`• Mobile Number (found in ABVN Group: ${mobileDuplicate.endorsedGroupName})`);
+                }
+            }
+            
+            // Full name check (softer check, prone to false positives for common names)
+            if (volunteerFullName && !isAlreadyEndorsedToAnABVN) { 
+                const nameDuplicate = allEndorsedVolunteersData.find(ev => 
+                    getFullName(ev).toLowerCase() === volunteerFullName
+                );
+                if (nameDuplicate) {
+                    isAlreadyEndorsedToAnABVN = true;
+                    duplicateMessages.push(`• Full Name (found in ABVN Group: ${nameDuplicate.endorsedGroupName})`);
+                }
+            }
+
+            // Step 3: If any duplicates based on contact info were found, show the warning
+            if (isAlreadyEndorsedToAnABVN) {
+                Swal.fire({
+                    title: 'Possible Duplicate Volunteer Detected in Endorsed ABVN Groups!',
+                    html: `This volunteer might already exist in an endorsed ABVN group based on the following:<br><br>${duplicateMessages.join('<br>')}<br><br>Please verify if this is a new endorsement or a duplicate entry.`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Proceed Anyway (Manual Override)',
+                    cancelButtonText: 'Cancel & Review',
+                    reverseButtons: true 
+                }).then((duplicateResult) => {
+                    if (duplicateResult.isConfirmed) {
+                        Swal.fire('Proceeding', 'Proceeding with endorsement despite potential duplicate warning.', 'info');
+                        showEndorseABVNModal(); 
+                    } else {
+                        Swal.fire('Cancelled', 'Endorsement cancelled for review.', 'info');
+                        hideEndorseABVNModal(); 
+                    }
+                });
+                return; 
+            }
+
+            showEndorseABVNModal();
+
+        } catch (endorseCheckError) {
+            console.error("Error during duplicate check for endorsed volunteer:", endorseCheckError);
+            Swal.fire('Error', 'Failed to perform endorsement duplicate check. Please try again.', 'error');
+            hideEndorseABVNModal();
+        }
+    }
+
 
     document.addEventListener('click', (event) => {
         if (currentDropdown && !currentDropdown.contains(event.target) && !event.target.closest('.actionBtn')) {
             currentDropdown.remove();
             currentDropdown = null;
-            // Remove the 'active' class from the button that opened it
             const previouslyActiveButton = document.querySelector('.actionBtn.active');
             if (previouslyActiveButton) {
                 previouslyActiveButton.classList.remove('active');
@@ -937,6 +1216,5 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Initial fetch of pending volunteers when the page loads
     fetchPendingVolunteers();
 });

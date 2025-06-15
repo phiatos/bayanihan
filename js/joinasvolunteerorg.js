@@ -1,4 +1,3 @@
-// Initialize Firebase
 const firebaseConfig = {
     apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
     authDomain: "bayanihan-5ce7e.firebaseapp.com",
@@ -15,8 +14,6 @@ const database = firebase.database();
 const auth = firebase.auth(); // Assuming you'll use Firebase Auth elsewhere
 
 // --- Logging Utility (Client-Side) ---
-// This is a simple client-side logger. For production, consider integrating
-// a dedicated analytics/error tracking service (e.g., Google Analytics, Sentry, LogRocket).
 function logActivity(eventType, details = {}) {
     const logEntry = {
         timestamp: new Date().toISOString(),
@@ -97,6 +94,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const cityTextInput = document.getElementById('city-text');
     const barangayTextInput = document.getElementById('barangay-text');
 
+    const submitButton = document.querySelector('.btn-primary');
+    // Declare isSubmitting flag here, globally accessible within the DOMContentLoaded scope
+    let isSubmitting = false;
+
     var my_handlers = {
         fill_regions: function() {
             logActivity('FILL_REGIONS_INIT');
@@ -172,7 +173,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 provinceSelect.innerHTML = '<option value="" selected="true" disabled>Choose Province</option>';
                 provinceSelect.selectedIndex = 0;
-                citySelect.innerHTML = '<option value="" selected="true" disabled>Choose State First</option>'; // Typo: Should be Province First
+                citySelect.innerHTML = '<option value="" selected="true" disabled>Choose Province First</option>'; // Corrected text
                 citySelect.selectedIndex = 0;
                 barangaySelect.innerHTML = '<option value="" selected="true" disabled>Choose Barangay</option>';
                 barangaySelect.selectedIndex = 0;
@@ -408,142 +409,236 @@ document.addEventListener('DOMContentLoaded', () => {
     // Call the initial fill for regions directly on page load
     my_handlers.fill_regions();
 
+    // --- ABVN Form Submission Logic ---
     if (volunteerOrgForm) {
         volunteerOrgForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            logActivity('FORM_SUBMIT_ATTEMPT');
+            logActivity('FORM_SUBMIT_ATTEMPT', { form: 'ABVN' });
 
-            // Get the reCAPTCHA response
-            const recaptchaResponse = grecaptcha.getResponse();
-
-            if (!recaptchaResponse) {
-                logActivity('RECAPTCHA_NOT_COMPLETED', { action: 'error' });
-                Swal.fire('Error', 'Please complete the reCAPTCHA to prove you are not a robot.', 'error');
+            // Prevent multiple rapid submissions
+            if (isSubmitting) {
+                console.log('Already submitting ABVN application, please wait...');
                 return;
             }
 
-            // Get form data
-            const organization = document.getElementById('organization').value.trim();
-            const contactPerson = document.getElementById('contact-person').value.trim();
-            const email = document.getElementById('email').value.trim();
-            const mobileNumber = document.getElementById('mobileNumber').value.trim();
-            const socialMedia = document.getElementById('socialMedia').value.trim();
-            const streetAddress = streetAddressInput.value.trim();
-
-            // Get selected text content from location dropdowns, not the value code
-            const selectedRegionText = regionSelect.options[regionSelect.selectedIndex]?.textContent || '';
-            const selectedProvinceText = provinceSelect.options[provinceSelect.selectedIndex]?.textContent || '';
-            const selectedCityText = citySelect.options[citySelect.selectedIndex]?.textContent || '';
-            const selectedBarangayText = barangaySelect.options[barangaySelect.selectedIndex]?.textContent || '';
-
-            // Basic validation
-            const organizationalBackgroundMission = document.getElementById('organizationalBackgroundMission')?.value.trim() || '';
-            const areasOfExpertiseFocus = document.getElementById('areasOfExpertiseFocus')?.value.trim() || '';
-            const legalStatusRegistration = document.getElementById('legalStatusRegistration')?.value.trim() || '';
-            const requiredDocuments = document.getElementById('requiredDocuments')?.value.trim() || '';
-
-            // if (!organization || !contactPerson || !email || !mobileNumber || !selectedRegionText || !selectedProvinceText || !selectedCityText || !selectedBarangayText || !streetAddress) {
-            //     logActivity('FORM_VALIDATION_FAILED', { fieldsMissing: true });
-            //     Swal.fire('Error', 'Please fill in all required fields, including the full headquarters address (Region, Province, City, Barangay, and Street Address).', 'error');
-            //     return;
-            // }
-            if (!organization || !contactPerson || !email || !mobileNumber || !selectedRegionText || !selectedProvinceText || !selectedCityText || !selectedBarangayText || !streetAddress || !organizationalBackgroundMission || !areasOfExpertiseFocus || !legalStatusRegistration) {
-                logActivity('FORM_VALIDATION_FAILED', { reason: 'Missing required fields' });
-                Swal.fire('Error', 'Please fill in all required fields.', 'error');
-                return;
-            }
-
-            // Email Format Validation
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(email)) {
-                logActivity('FORM_VALIDATION_FAILED', { field: 'email', reason: 'Invalid format' });
-                SEwal.fire('Error', 'Please enter a valid email address (e.g., example@domain.com).', 'error');
-                return;
-            }
-
-            // Mobile Number Format Validation (11 digits)
-            const mobileNumberRegex = /^[0-9]{11}$/;
-            if (!mobileNumberRegex.test(mobileNumber)) {
-                logActivity('FORM_VALIDATION_FAILED', { field: 'mobileNumber', reason: 'Invalid format' });
-                Swal.fire('Error', 'Please enter a valid 11-digit mobile number (e.g., 09171234567).', 'error');
-                return;
-            }
-
-            // Social Media Link (URL) Validation
-            if (socialMedia) {
-                try {
-                    new URL(socialMedia);
-                } catch (e) {
-                    logActivity('FORM_VALIDATION_FAILED', { field: 'socialMedia', reason: 'Invalid URL format', error: e.message });
-                    Swal.fire('Error', 'Please enter a valid URL for your social media link (e.g., https://facebook.com/yourpage).', 'error');
-                    return;
-                }
-            }
-
-            // Text Area Minimum Length Validation
-            const MIN_TEXT_LENGTH = 20; 
-            if (organizationalBackgroundMission.length < MIN_TEXT_LENGTH) {
-                logActivity('FORM_VALIDATION_FAILED', { field: 'organizationalBackgroundMission', reason: 'Too short' });
-                Swal.fire('Error', `Organizational Background & Mission must be at least ${MIN_TEXT_LENGTH} characters long.`, 'error');
-                return;
-            }
-            if (areasOfExpertiseFocus.length < MIN_TEXT_LENGTH) {
-                logActivity('FORM_VALIDATION_FAILED', { field: 'areasOfExpertiseFocus', reason: 'Too short' });
-                Swal.fire('Error', `Areas of Expertise/Focus must be at least ${MIN_TEXT_LENGTH} characters long.`, 'error');
-                return;
-            }
-
-            // Create an object to store in Realtime Database
-            const applicationData = {
-                organizationName: organization,
-                contactPerson: contactPerson,
-                email: email,
-                mobileNumber: mobileNumber,
-                socialMediaLink: socialMedia,
-                headquarters: {
-                    region: selectedRegionText,
-                    province: selectedProvinceText,
-                    city: selectedCityText,
-                    barangay: selectedBarangayText,
-                    streetAddress: streetAddress
-                },
-                applicationDateandTime: new Date().toISOString(),
-                recaptchaResponse: recaptchaResponse, 
-                organizationalBackgroundMission: organizationalBackgroundMission,
-                areasOfExpertiseFocus: areasOfExpertiseFocus,
-                legalStatusRegistration: legalStatusRegistration,
-                requiredDocuments: requiredDocuments
-            };
+            // Disable the button and show submitting text
+            submitButton.disabled = true;
+            submitButton.textContent = 'Submitting...';
+            isSubmitting = true; // Set the flag
 
             try {
-                // Push data to a new unique key under the 'abvnApplications' path
-                // await database.ref("abvnApplications").push(applicationData);
+                // Get the reCAPTCHA response
+                const recaptchaResponse = grecaptcha.getResponse();
+
+                if (!recaptchaResponse) {
+                    logActivity('RECAPTCHA_NOT_COMPLETED', { action: 'error', form: 'ABVN' });
+                    Swal.fire('Error', 'Please complete the reCAPTCHA to prove you are not a robot.', 'error');
+                    // Re-enable the button and reset flag if reCAPTCHA is not completed
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Submit Application';
+                    isSubmitting = false; // Reset the flag
+                    grecaptcha.reset();
+                    return; // Stop the form submission
+                }
+
+                // Get form data
+                const organization = document.getElementById('organization').value.trim();
+                const contactPerson = document.getElementById('contact-person').value.trim();
+                const email = document.getElementById('email').value.trim();
+                const mobileNumber = document.getElementById('mobileNumber').value.trim();
+                const socialMedia = document.getElementById('socialMedia').value.trim();
+                const streetAddress = streetAddressInput.value.trim();
+
+                // Get selected text content from location dropdowns, not the value code
+                const selectedRegionText = regionSelect.options[regionSelect.selectedIndex]?.textContent || '';
+                const selectedProvinceText = provinceSelect.options[provinceSelect.selectedIndex]?.textContent || '';
+                const selectedCityText = citySelect.options[citySelect.selectedIndex]?.textContent || '';
+                const selectedBarangayText = barangaySelect.options[barangaySelect.selectedIndex]?.textContent || '';
+
+                // Basic validation
+                const organizationalBackgroundMission = document.getElementById('organizationalBackgroundMission')?.value.trim() || '';
+                const areasOfExpertiseFocus = document.getElementById('areasOfExpertiseFocus')?.value.trim() || '';
+                const legalStatusRegistration = document.getElementById('legalStatusRegistration')?.value.trim() || '';
+                const requiredDocumentsLink = document.getElementById('requiredDocumentsLink')?.value.trim() || '';
+
+                if (!organization || !contactPerson || !email || !mobileNumber || !selectedRegionText || !selectedProvinceText || !selectedCityText || !selectedBarangayText || !streetAddress || !organizationalBackgroundMission || !areasOfExpertiseFocus || !legalStatusRegistration || !requiredDocumentsLink) {
+                    logActivity('FORM_VALIDATION_FAILED', { reason: 'Missing required fields', form: 'ABVN' });
+                    Swal.fire('Error', 'Please fill in all required fields.', 'error');
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Submit Application';
+                    isSubmitting = false;
+                    grecaptcha.reset(); 
+                    return;
+                }
+
+                // Email Format Validation
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(email)) {
+                    logActivity('FORM_VALIDATION_FAILED', { field: 'email', reason: 'Invalid format', form: 'ABVN' });
+                    Swal.fire('Error', 'Please enter a valid email address (e.g., example@domain.com).', 'error');
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Submit Application';
+                    isSubmitting = false;
+                    grecaptcha.reset();
+                    return;
+                }
+
+                // Mobile Number Format Validation (11 digits)
+                const mobileNumberRegex = /^09\d{9}$/; // Starts with 09 and 11 digits total
+                if (!mobileNumberRegex.test(mobileNumber)) {
+                    logActivity('FORM_VALIDATION_FAILED', { field: 'mobileNumber', reason: 'Invalid format', form: 'ABVN' });
+                    Swal.fire('Error', 'Please enter a valid 11-digit mobile number starting with "09" (e.g., 09171234567).', 'error');
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Submit Application';
+                    isSubmitting = false;
+                    grecaptcha.reset();
+                    return;
+                }
+
+                // Social Media Link (URL) Validation
+                if (socialMedia) {
+                    try {
+                        new URL(socialMedia);
+                    } catch (e) {
+                        logActivity('FORM_VALIDATION_FAILED', { field: 'socialMedia', reason: 'Invalid URL format', error: e.message, form: 'ABVN' });
+                        Swal.fire('Error', 'Please enter a valid URL for your social media link (e.g., https://facebook.com/yourpage).', 'error');
+                        submitButton.disabled = false;
+                        submitButton.textContent = 'Submit Application';
+                        isSubmitting = false;
+                        grecaptcha.reset();
+                        return;
+                    }
+                }
+
+                // Required Document (URL) Validation
+                if (requiredDocumentsLink) {
+                    try {
+                        new URL(requiredDocumentsLink);
+                    } catch (e) {
+                        logActivity('FORM_VALIDATION_FAILED', { field: 'requiredDocumentsLink', reason: 'Invalid URL format', error: e.message, form: 'ABVN' });
+                        Swal.fire('Error', 'Please enter a valid URL for your supporting documents link (e.g., https://drive.google.com/drive/folders/your-folder-id).', 'error');
+                        submitButton.disabled = false;
+                        submitButton.textContent = 'Submit Application';
+                        isSubmitting = false;
+                        grecaptcha.reset();
+                        return;
+                    }
+                }
+
+                // Text Area Minimum Length Validation
+                const MIN_TEXT_LENGTH = 20;
+                if (organizationalBackgroundMission.length < MIN_TEXT_LENGTH) {
+                    logActivity('FORM_VALIDATION_FAILED', { field: 'organizationalBackgroundMission', reason: 'Too short', form: 'ABVN' });
+                    Swal.fire('Error', `Organizational Background & Mission must be at least ${MIN_TEXT_LENGTH} characters long.`, 'error');
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Submit Application';
+                    isSubmitting = false;
+                    grecaptcha.reset();
+                    return;
+                }
+
+                if (areasOfExpertiseFocus.length < MIN_TEXT_LENGTH) {
+                    logActivity('FORM_VALIDATION_FAILED', { field: 'areasOfExpertiseFocus', reason: 'Too short', form: 'ABVN' });
+                    Swal.fire('Error', `Areas of Expertise/Focus must be at least ${MIN_TEXT_LENGTH} characters long.`, 'error');
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Submit Application';
+                    isSubmitting = false;
+                    grecaptcha.reset();
+                    return;
+                }
+
+                // --- Check for Duplicates for ABVN Form ---
+                const abvnApplicationsRef = database.ref("abvnApplications/pendingABVN");
+                const allAbvnApplicationsSnapshot = await abvnApplicationsRef.once('value');
+
+                let isDuplicate = false;
+                let duplicateReason = '';
+
+                allAbvnApplicationsSnapshot.forEach(childSnapshot => {
+                    const application = childSnapshot.val();
+                    // Check for duplicate email
+                    if (application.email.toLowerCase() === email.toLowerCase()) {
+                        isDuplicate = true;
+                        duplicateReason = 'email';
+                        return true; 
+                    }
+                    // Check for duplicate organization name
+                    if (application.organizationName.toLowerCase() === organization.toLowerCase()) {
+                        isDuplicate = true;
+                        duplicateReason = 'organization name';
+                        return true;
+                    }
+                });
+
+                if (isDuplicate) {
+                    let errorMessage = `It looks like an application with this ${duplicateReason} has already been submitted. Please check your details or contact support if you believe this is an error.`;
+                    logActivity('FORM_SUBMIT_BLOCKED', { reason: `Duplicate ${duplicateReason}`, organization: organization, email: email, form: 'ABVN' });
+                    Swal.fire('Warning', errorMessage, 'warning');
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Submit Application';
+                    isSubmitting = false; // Reset the flag
+                    grecaptcha.reset();
+                    return;
+                }
+
+                // Create an object to store in Realtime Database
+                const applicationData = {
+                    organizationName: organization,
+                    contactPerson: contactPerson,
+                    email: email,
+                    mobileNumber: mobileNumber,
+                    socialMediaLink: socialMedia,
+                    headquarters: {
+                        region: selectedRegionText,
+                        province: selectedProvinceText,
+                        city: selectedCityText,
+                        barangay: selectedBarangayText,
+                        streetAddress: streetAddress
+                    },
+                    applicationDateandTime: new Date().toISOString(),
+                    recaptchaResponse: recaptchaResponse,
+                    organizationalBackgroundMission: organizationalBackgroundMission,
+                    areasOfExpertiseFocus: areasOfExpertiseFocus,
+                    legalStatusRegistration: legalStatusRegistration,
+                    requiredDocumentsLink: requiredDocumentsLink 
+                };
+
                 const newApplicationRef = await database.ref("abvnApplications/pendingABVN").push(applicationData);
 
                 logActivity('APPLICATION_SUBMISSION_SUCCESS', {
                     applicationId: newApplicationRef.key,
                     organizationName: applicationData.organizationName,
-                    email: applicationData.email
+                    email: applicationData.email,
+                    form: 'ABVN'
                 });
-                console.log("Application saved to Realtime Database successfully!");
+                console.log("ABVN application saved to Realtime Database successfully!");
                 Swal.fire('Success', 'Application submitted successfully! Thank you for joining us.', 'success');
+
+                // Reset form and reCAPTCHA after successful submission
                 volunteerOrgForm.reset();
-                my_handlers.fill_regions(); 
-                grecaptcha.reset(); 
+                my_handlers.fill_regions();
+                grecaptcha.reset();
+
             } catch (error) {
                 logError('FIREBASE_SUBMISSION_ERROR', error, {
                     organizationName: organization,
-                    email: email
+                    email: email,
+                    form: 'ABVN'
                 });
-                console.error("Error adding application to Realtime Database: ", error);
+                console.error("Error adding ABVN application to Realtime Database: ", error);
                 Swal.fire('Error', 'There was an error submitting your application. Please try again.', 'error');
+            } finally {
+                // Always re-enable the button and reset the flag after the process completes (success or failure)
+                submitButton.disabled = false;
+                submitButton.textContent = 'Submit Application';
+                isSubmitting = false; 
                 grecaptcha.reset(); 
             }
         });
     }
 });
 
-// --- Firebase Authentication State Change Listener (Example for logging logins/logouts) ---
+// --- Firebase Authentication State Change Listener (Example for logging logins/logouts) --- (Keep this section as is)
 // You would need to ensure users actually log in/out using Firebase Auth for this to be useful.
 // This log is still client-side, but it gives you a starting point.
 auth.onAuthStateChanged(user => {

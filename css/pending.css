@@ -57,6 +57,7 @@
     text-decoration: none;
 }
 
+
 /* Styling for the new action dropdown menu */
 .action-dropdown-menu {
     position: absolute; /* Already set in your JS, but good to have in CSS */

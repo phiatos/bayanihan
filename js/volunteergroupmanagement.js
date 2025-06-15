@@ -50,8 +50,8 @@ function generateTempPassword() {
     return password;
 }
 
-let data = []; // This will hold all fetched data
-let filteredData = []; // This will hold data after search/sort
+let data = []; 
+let filteredData = []; 
 const rowsPerPage = 5;
 let currentPage = 1;
 let currentAddressCell = null;
@@ -865,7 +865,7 @@ function openEditModal(orgId) {
     }
 
     currentEditOrgKey = orgId;
-    editOrgFirebaseKeyInput.value = orgId; // Store the Firebase key
+    editOrgFirebaseKeyInput.value = orgId; 
 
     // Populate form fields
     document.getElementById('editOrganization').value = orgToEdit.organization;
@@ -1093,13 +1093,150 @@ if (editOrgForm) {
             return;
         }
 
-        Swal.fire({
+        // --- Password Verification Step ---
+//         const { value: password } = await Swal.fire({
+//             title: 'Confirm Changes',
+//             text: 'To save these changes, please enter your password:',
+//             icon: 'question',
+//             input: 'password',
+//             inputPlaceholder: 'Enter your password',
+//             showCancelButton: true,
+//             confirmButtonText: 'Confirm',
+//             cancelButtonText: 'Cancel',
+//             reverseButtons: true,
+//             focusCancel: true,
+//             allowOutsideClick: false,
+//             confirmButtonColor: '#4CAF50',
+//             cancelButtonColor: '#f44336',
+//             padding: '1.25em',
+//             customClass: {
+//                 confirmButton: 'swal2-confirm-large',
+//                 cancelButton: 'swal2-cancel-large',
+//                 input: 'custom-swal-input'
+//             },
+//             didOpen: () => {
+//                 const input = Swal.getInput();
+
+//                 // Create wrapper div
+//                 const wrapper = document.createElement('div');
+//                 wrapper.style.position = 'relative';
+//                 wrapper.style.width = '100%';
+//                 wrapper.style.display = 'flex';
+//                 wrapper.style.alignItems = 'center';
+                
+
+//                 // Insert wrapper before input and move input into it
+//                 input.parentNode.insertBefore(wrapper, input);
+//                 wrapper.appendChild(input);
+
+//                 // Style input for padding-right to prevent overlap
+//                 input.style.paddingRight = '44px';
+//                 input.style.width = '100%';
+//                 input.style.boxSizing = 'border-box';
+//                 input.style.borderRadius = '8px';
+//                 input.style.border = '1px solid #ccc';
+
+//                 // Create floating icon
+//                 const toggleIcon = document.createElement('i');
+//                 toggleIcon.className = 'fa-solid fa-eye';
+//                 Object.assign(toggleIcon.style, {
+//                 position: 'absolute',
+//                 top: '60%',
+//                 right: '50px',
+//                 transform: 'translateY(-50%)',
+//                 cursor: 'pointer',
+//                 color: '#888',
+//                 fontSize: '1rem',
+//                 zIndex: '2',
+//                 transition: 'color 0.2s ease'
+//                 });
+
+//                 wrapper.appendChild(toggleIcon);
+
+//                 // Toggle logic
+//                 toggleIcon.addEventListener('click', () => {
+//                 if (input.type === 'password') {
+//                     input.type = 'text';
+//                     toggleIcon.className = 'fa-solid fa-eye-slash';
+//                 } else {
+//                     input.type = 'password';
+//                     toggleIcon.className = 'fa-solid fa-eye';
+//                 }
+//                 });
+
+
+//                 },
+//                 preConfirm: async (enteredPassword) => {
+//                     if (!enteredPassword) {
+//                         Swal.showValidationMessage('Password is required to confirm changes.');
+//                         return false;
+//                     }
+//                     const isPasswordValid = await verifyUserPassword(enteredPassword);
+//                     if (!isPasswordValid) {
+//                         return false; 
+//                     }
+//                     return true; 
+//                 }
+//             });
+
+//         // If the user cancelled or password verification failed, stop here.
+//         if (!password) {
+//             Swal.fire(
+//                 'Cancelled',
+//                 'Your changes were not saved.',
+//                 'info'
+//             );
+//             return;
+//         }
+
+//         // If we reach here, password verification was successful.
+//         try {
+//             const updatedData = {
+//                 organization: updatedOrganization,
+//                 contactPerson: updatedContactPerson,
+//                 email: updatedEmail,
+//                 mobileNumber: formattedUpdatedMobile,
+//                 socialMedia: updatedSocialMedia || "N/A",
+//                 address: {
+//                     region: updatedRegionText,
+//                     province: updatedProvinceText,
+//                     city: updatedCityText,
+//                     barangay: updatedBarangayText,
+//                     streetAddress: updatedStreetAddress || "N/A"
+//                 }
+//             };
+
+//             await database.ref(`volunteerGroups/${orgId}`).update(updatedData);
+//             console.log("Volunteer group updated successfully!");
+//             Swal.fire(
+//                 'Updated!',
+//                 'The volunteer group has been updated.',
+//                 'success'
+//             );
+//             editOrgModal.style.display = 'none';
+//             editOrgForm.reset();
+//             fetchAndRenderTable(); // Re-fetch and re-render the table to show updated data
+//         } catch (error) {
+//             console.error("Error updating volunteer group:", error);
+//             Swal.fire(
+//                 'Error!',
+//                 'Failed to update volunteer group. Please try again.',
+//                 'error'
+//             );
+//         }
+//     });
+// }
+
+// --- Password Verification Step ---
+        const { value: password } = await Swal.fire({
             title: 'Confirm Changes',
-            text: 'Are you sure you want to save these changes?',
+            text: 'To save these changes, please enter your password:',
             icon: 'question',
+            input: 'password',
+            inputPlaceholder: 'Enter your password',
             showCancelButton: true,
-            confirmButtonText: 'Yes, save it!',
-            cancelButtonText: 'No, cancel',
+            confirmButtonText: 'Confirm',
+            cancelButtonText: 'Cancel',
             reverseButtons: true,
             focusCancel: true,
             allowOutsideClick: false,
@@ -1109,51 +1246,67 @@ if (editOrgForm) {
             customClass: {
                 confirmButton: 'swal2-confirm-large',
                 cancelButton: 'swal2-cancel-large'
-            }
-        }).then(async (result) => {
-            if (result.isConfirmed) {
-                try {
-                    const updatedData = {
-                        organization: updatedOrganization,
-                        contactPerson: updatedContactPerson,
-                        email: updatedEmail,
-                        mobileNumber: formattedUpdatedMobile,
-                        socialMedia: updatedSocialMedia || "N/A",
-                        address: {
-                            region: updatedRegionText,
-                            province: updatedProvinceText,
-                            city: updatedCityText,
-                            barangay: updatedBarangayText,
-                            streetAddress: updatedStreetAddress || "N/A"
-                        }
-                    };
-
-                    await database.ref(`volunteerGroups/${orgId}`).update(updatedData);
-                    console.log("Volunteer group updated successfully!");
-                    Swal.fire(
-                        'Updated!',
-                        'The volunteer group has been updated.',
-                        'success'
-                    );
-                    editOrgModal.style.display = 'none';
-                    editOrgForm.reset();
-                    fetchAndRenderTable(); // Re-fetch and re-render the table to show updated data
-                } catch (error) {
-                    console.error("Error updating volunteer group:", error);
-                    Swal.fire(
-                        'Error!',
-                        'Failed to update volunteer group. Please try again.',
-                        'error'
-                    );
+            },
+            preConfirm: async (enteredPassword) => {
+                if (!enteredPassword) {
+                    Swal.showValidationMessage('Password is required to confirm changes.');
+                    return false;
                 }
-            } else if (result.dismiss === Swal.DismissReason.cancel) {
-                Swal.fire(
-                    'Cancelled',
-                    'Your changes were not saved.',
-                    'info'
-                );
+                // Call the existing password verification function
+                const isPasswordValid = await verifyUserPassword(enteredPassword);
+                if (!isPasswordValid) {
+                    // verifyUserPassword already shows validation message if incorrect
+                    return false;
+                }
+                return true; // Password is valid
             }
         });
+
+        // If the user cancelled or password verification failed, stop here.
+        if (!password) {
+            Swal.fire(
+                'Cancelled',
+                'Your changes were not saved.',
+                'info'
+            );
+            return;
+        }
+
+        // If we reach here, password verification was successful.
+        try {
+            const updatedData = {
+                organization: updatedOrganization,
+                contactPerson: updatedContactPerson,
+                email: updatedEmail,
+                mobileNumber: formattedUpdatedMobile,
+                socialMedia: updatedSocialMedia || "N/A",
+                address: {
+                    region: updatedRegionText,
+                    province: updatedProvinceText,
+                    city: updatedCityText,
+                    barangay: updatedBarangayText,
+                    streetAddress: updatedStreetAddress || "N/A"
+                }
+            };
+
+            await database.ref(`volunteerGroups/${orgId}`).update(updatedData);
+            console.log("Volunteer group updated successfully!");
+            Swal.fire(
+                'Updated!',
+                'The volunteer group has been updated.',
+                'success'
+            );
+            editOrgModal.style.display = 'none';
+            editOrgForm.reset();
+            fetchAndRenderTable(); // Re-fetch and re-render the table to show updated data
+        } catch (error) {
+            console.error("Error updating volunteer group:", error);
+            Swal.fire(
+                'Error!',
+                'Failed to update volunteer group. Please try again.',
+                'error'
+            );
+        }
     });
 }
 
@@ -1169,57 +1322,80 @@ function attachRowHandlers() {
     document.querySelectorAll('.deleteBtn').forEach(button => {
         button.addEventListener('click', () => {
             const rowId = button.getAttribute('data-id');
-            // Get the organization name for a more specific confirmation message
-            const orgName = button.closest('tr').children[1].textContent; 
+            const orgName = button.closest('tr').children[1].textContent;
 
             Swal.fire({
                 icon: 'warning',
                 title: `Are you sure you want to remove "${orgName}"?`,
-                text: 'This will remove the volunteer group from the active list but keep a record in the database for future access.',
+                text: 'This will remove the volunteer group from the active list but keep a record in the database for future access. To proceed, please enter your password:',
+                input: 'password', // Add this for password input
+                inputPlaceholder: 'Enter your password',
                 showCancelButton: true,
                 confirmButtonText: 'Yes, remove it!',
-                cancelButtonText: 'Cancel'
+                cancelButtonText: 'Cancel',
+                reverseButtons: true, // Puts confirm on the right
+                preConfirm: (password) => {
+                    if (!password) {
+                        Swal.showValidationMessage('Password is required to confirm deletion.');
+                        return false; // Prevent closing the modal
+                    }
+                    // Here, you would typically verify the password.
+                    // For Firebase Authentication, you'd re-authenticate the user.
+                    // For demonstration, let's assume a simple check or a placeholder for actual re-authentication.
+                    return verifyUserPassword(password); // Call a function to verify the password
+                },
+                allowOutsideClick: () => !Swal.isLoading()
             }).then((result) => {
                 if (result.isConfirmed) {
-                    // Fetch the volunteer group data
-                    database.ref(`volunteerGroups/${rowId}`).once('value')
-                        .then(snapshot => {
-                            const groupData = snapshot.val();
-                            if (!groupData) throw new Error("Volunteer group not found.");
+                    // 'result.value' here will contain the boolean result from preConfirm (true if password was valid)
+                    if (result.value) { // Proceed only if password verification was successful
+                        // Fetch the volunteer group data
+                        database.ref(`volunteerGroups/${rowId}`).once('value')
+                            .then(snapshot => {
+                                const groupData = snapshot.val();
+                                if (!groupData) throw new Error("Volunteer group not found.");
 
-                            // Move to deletedVolunteerGroups node with a timestamp
-                            return database.ref(`deletedVolunteerGroups/${rowId}`).set({
-                                ...groupData,
-                                deletedAt: new Date().toISOString(), // Add deletion timestamp
-                                // Optionally, you can also store the user who deleted it
-                                // deletedBy: auth.currentUser ? auth.currentUser.email : 'Unknown' 
+                                // Move to deletedVolunteerGroups node with a timestamp
+                                return database.ref(`deletedVolunteerGroups/${rowId}`).set({
+                                    ...groupData,
+                                    deletedAt: new Date().toISOString(), // Add deletion timestamp
+                                    // Optionally, you can also store the user who deleted it
+                                    // deletedBy: auth.currentUser ? auth.currentUser.email : 'Unknown'
+                                });
+                            })
+                            .then(() => {
+                                // Remove from the active volunteerGroups node
+                                return database.ref(`volunteerGroups/${rowId}`).remove();
+                            })
+                            .then(() => {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Removed!',
+                                    text: `Volunteer group "${orgName}" has been moved to the deleted list.`,
+                                    timer: 2000,
+                                    showConfirmButton: false
+                                });
+                            })
+                            .catch(error => {
+                                console.error("Volunteer group removal error:", error);
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Removal Error',
+                                    text: `Failed to remove volunteer group: ${error.message}. Please try again.`,
+                                    footer: 'If the issue persists, contact support.'
+                                });
                             });
-                        })
-                        .then(() => {
-                            // Remove from the active volunteerGroups node
-                            return database.ref(`volunteerGroups/${rowId}`).remove();
-                        })
-                        .then(() => {
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Removed!',
-                                text: `Volunteer group "${orgName}" has been moved to the deleted list.`,
-                                timer: 2000,
-                                showConfirmButton: false
-                            });
-                            // The table will re-render automatically due to the .on("value") listener
-                            // in your fetchAndRenderTable function, so no need to call it manually here.
-                        })
-                        .catch(error => {
-                            console.error("Volunteer group removal error:", error);
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Removal Error',
-                                text: `Failed to remove volunteer group: ${error.message}. Please try again.`,
-                                footer: 'If the issue persists, contact support.'
-                            });
+                    } else {
+                        // Password verification failed or was cancelled within preConfirm
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Authentication Failed',
+                            text: 'The password you entered is incorrect. Deletion cancelled.',
+                            timer: 3000,
+                            showConfirmButton: false
                         });
-                } else if (result.dismiss === Swal.DismissReason.cancel) {
+                    }
+                } else if (result.dismiss === Swal.DismissReason.cancel || result.dismiss === Swal.DismissReason.backdrop) {
                     Swal.fire(
                         'Cancelled',
                         'The volunteer group was not removed.',
@@ -1229,6 +1405,44 @@ function attachRowHandlers() {
             });
         });
     });
+}
+
+// --- IMPORTANT: Password Verification Function ---
+// This is a crucial part you need to implement based on your authentication system.
+// Below are examples for Firebase Authentication.
+// Make sure 'auth' refers to your Firebase Auth instance (e.g., firebase.auth()).
+
+async function verifyUserPassword(password) {
+    // Show loading state while verifying password
+    Swal.showLoading();
+
+    try {
+        // Option 1: Re-authenticate the current user (most secure for Firebase)
+        // This is the recommended approach for sensitive operations like account deletion.
+        const user = auth.currentUser;
+        if (!user) {
+            throw new Error("No user is currently logged in.");
+        }
+
+        const credential = firebase.auth.EmailAuthProvider.credential(user.email, password);
+        await user.reauthenticateWithCredential(credential);
+
+        Swal.hideLoading();
+        return true; // Password is correct
+    } catch (error) {
+        Swal.hideLoading();
+        console.error("Password re-authentication failed:", error);
+        // Provide specific error messages based on Firebase error codes if needed
+        if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+            Swal.showValidationMessage('Incorrect password.');
+        } else if (error.code === 'auth/user-not-found') {
+             Swal.showValidationMessage('User not found. Please log in again.');
+        }
+        else {
+            Swal.showValidationMessage(`Authentication error: ${error.message}`);
+        }
+        return false; // Password is incorrect or another error occurred
+    }
 }
 
 function updateEntriesInfo(totalItems) {

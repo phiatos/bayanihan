@@ -1,8 +1,11 @@
 // Firebase imports
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js';
-import { getAuth, sendEmailVerification, signInWithEmailAndPassword, signOut, applyActionCode } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
-import { getDatabase, ref, get, set } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js';
-import { validateEmail, validatePassword, displayError, clearError } from '../js/login.js';
+// import { getAuth, sendEmailVerification, signInWithEmailAndPassword, signOut, applyActionCode } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
+// import { getDatabase, ref, get, set } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js';
+// import { validateEmail, validatePassword, displayError, clearError } from '../js/login.js';
+import { applyActionCode, getAuth, sendEmailVerification, signInWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
+import { get, getDatabase, ref, set } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js';
+import { clearError, validateEmail, validatePassword } from '../js/login.js';
 
 const firebaseConfig = {
     apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
@@ -26,6 +29,9 @@ const showToast = (message, type = 'error') => {
         console.error("Toast container not found!");
         return;
     }
+    // Remove any existing toast to ensure only one is shown
+    const existingToast = toastContainer.querySelector('.toast');
+    if (existingToast) existingToast.remove();
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
     toast.textContent = message;
@@ -37,6 +43,34 @@ const showToast = (message, type = 'error') => {
     }, 4000);
 };
 
+// Helper functions for login attempt limiting
+const isLockedOut = () => {
+    const failedAttempts = parseInt(localStorage.getItem('failedLoginAttempts') || '0');
+    const lockoutStart = parseInt(localStorage.getItem('lockoutStart') || '0');
+    const lockoutDuration = 60000; // 1 minute in milliseconds
+    const currentTime = Date.now();
+
+    if (failedAttempts >= 3 && lockoutStart && (currentTime - lockoutStart < lockoutDuration)) {
+        const remainingTime = Math.ceil((lockoutDuration - (currentTime - lockoutStart)) / 1000);
+        return { isLocked: true, remainingTime };
+    }
+    return { isLocked: false, remainingTime: 0 };
+};
+
+const incrementFailedAttempts = () => {
+    let failedAttempts = parseInt(localStorage.getItem('failedLoginAttempts') || '0');
+    failedAttempts += 1;
+    localStorage.setItem('failedLoginAttempts', failedAttempts.toString());
+    if (failedAttempts >= 3) {
+        localStorage.setItem('lockoutStart', Date.now().toString());
+    }
+    return failedAttempts;
+};
+
+const resetFailedAttempts = () => {
+    localStorage.removeItem('failedLoginAttempts');
+    localStorage.removeItem('lockoutStart');
+};
 
 document.addEventListener("DOMContentLoaded", async () => {
     const container = document.querySelector(".container");
@@ -87,7 +121,27 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Handle Login
     if (loginForm && emailInputElem && passwordInputElem) { // Ensure elements exist
         loginForm.addEventListener("submit", async (e) => {
-            e.preventDefault(); // Always prevent default here, as this is the main submit handler
+            e.preventDefault(); 
+
+            // Check lockout status
+            const lockoutStatus = isLockedOut();
+            if (lockoutStatus.isLocked) {
+                showToast(`Too many failed login attempts. Please wait ${lockoutStatus.remainingTime} seconds before trying again.`, 'error');
+                loginSubmitButton.disabled = true;
+                loginSubmitButton.textContent = `Locked (${lockoutStatus.remainingTime}s)`;
+                const countdownInterval = setInterval(() => {
+                    const status = isLockedOut();
+                    if (!status.isLocked) {
+                        loginSubmitButton.disabled = false;
+                        loginSubmitButton.textContent = 'Login';
+                        clearInterval(countdownInterval);
+                        showToast('You can now try logging in again.', 'success');
+                    } else {
+                        loginSubmitButton.textContent = `Locked (${status.remainingTime}s)`;
+                    }
+                }, 1000);
+                return;
+            }
 
             // Run client-side validations using imported functions
             const isEmailValid = validateEmail(emailInputElem);
@@ -111,6 +165,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             try {
                 const userCredential = await signInWithEmailAndPassword(auth, email, password);
                 const user = userCredential.user;
+                resetFailedAttempts();
 
                 const userSnapshot = await get(ref(database, `users/${user.uid}`));
                 let userData = userSnapshot.val();
@@ -137,13 +192,45 @@ document.addEventListener("DOMContentLoaded", async () => {
                 await user.reload(); 
                 const updatedUser = auth.currentUser; 
 
-                if (updatedUser && updatedUser.emailVerified && !userData.emailVerified) {
+                // if (updatedUser && updatedUser.emailVerified && !userData.emailVerified) {
+                //     console.log("Email is now verified in Auth, updating Realtime Database...");
+                //     await set(ref(database, `users/${updatedUser.uid}/emailVerified`), true);
+                //     userData.emailVerified = true; 
+                //     showToast("Your email has been successfully verified upon login!", 'success'); 
+                // }
+               
+                if (!updatedUser.emailVerified) {
+                    try {
+                        const actionCodeSettings = {
+                            url: 'https://bayanihan-drrm.vercel.app/pages/login.html',
+                            handleCodeInApp: true,
+                        };
+                        console.log("Sending verification email to:", updatedUser.email);
+                        await sendEmailVerification(updatedUser, actionCodeSettings);
+                        console.log("Verification email sent successfully to:", updatedUser.email);
+                        showToast("Your email address is not verified. A new verification email has been sent to your email address. Please verify your email to proceed with login (check spam/junk folder).");
+                    } catch (error) {
+                        console.error("Error sending verification email:", error);
+                        showToast("Failed to send verification email: " + error.message);
+                    }
+                    // Crucially, sign out the user if their email is not verified,
+                    // so they cannot proceed until they click the verification link.
+                    await signOut(auth);
+                    loginSubmitButton.disabled = false;
+                    loginSubmitButton.textContent = 'Login';
+                    return; // Stop the login process here
+                }
+
+
+                // If the user's email is now verified in Auth but not yet in DB, update DB.
+                // This block should run *after* the email verification check above.
+                if (updatedUser.emailVerified && !userData.emailVerified) {
                     console.log("Email is now verified in Auth, updating Realtime Database...");
                     await set(ref(database, `users/${updatedUser.uid}/emailVerified`), true);
-                    userData.emailVerified = true; 
-                    showToast("Your email has been successfully verified upon login!", 'success'); 
+                    userData.emailVerified = true;
+                    showToast("Your email has been successfully verified upon login!", 'success');
                 }
-               
+
                 const isAdmin = userData?.role === "AB ADMIN" || userData?.role === "admin";
                 if (!isAdmin && !updatedUser.emailVerified) {
                     try {
@@ -151,11 +238,11 @@ document.addEventListener("DOMContentLoaded", async () => {
                             // absolute url required for email verification kasi naka-firebase auth
 
                             //for host
-                            // url: 'https://bayanihan-drrm.vercel.app/pages/login.html', 
-                            // handleCodeInApp: true, 
-                            //for live server       
-                            url: 'http://127.0.0.1:5500/bayanihan/pages/login.html',
+                            url: 'https://bayanihan-drrm.vercel.app/pages/login.html', 
                             handleCodeInApp: true, 
+                            //for live server       
+                            // url: 'http://127.0.0.1:5500/bayanihan/pages/login.html',
+                            // handleCodeInApp: true, 
                         };
                         console.log("Sending verification email to:", updatedUser.email);
                         await sendEmailVerification(updatedUser, actionCodeSettings);
@@ -187,6 +274,14 @@ document.addEventListener("DOMContentLoaded", async () => {
                     termsAccepted: termsAccepted,
                     terms_agreed_version: termsAgreedVersion,
                     password_needs_reset: password_needs_reset,
+
+                    adminPosition: userData.adminPosition || "", 
+                    firstName: userData.firstName || "", 
+                    lastName: userData.lastName || "",
+                    middleInitial: userData.middleInitial || "",
+                    nameExtension: userData.nameExtension || "",
+                    
+                    isSuperAdmin: userData.isSuperAdmin === true,
                 };
 
                 console.log("User Data being stored in localStorage:", updatedUserData);
@@ -233,23 +328,6 @@ document.addEventListener("DOMContentLoaded", async () => {
                             window.location.replace('../pages/dashboard.html');
                         }
                     }
-                    // if (isAdmin && !isFirstLogin && termsAccepted && !password_needs_reset) {
-                    //     console.log("Redirecting Admin to dashboard (fully onboarded).");
-                    //     window.location.replace('../pages/dashboard.html');
-                    // } else if (!isFirstLogin || !termsAccepted || password_needs_reset) {
-                    //     console.log("Redirecting to profile.html for setup (first login, unaccepted terms, or password reset).");
-                    //     window.location.replace('../pages/profile.html');
-                    // } else {
-                    //     console.log("Redirecting based on role.");
-                    //     const userRole = userData.role;
-
-                    //     if (userRole === "ABVN") {
-                    //         window.location.replace('../pages/dashboard.html');
-                    //     } else {
-                    //         console.error("Unknown user role or unhandled redirection:", userRole);
-                    //         window.location.replace('../pages/dashboard.html'); 
-                    //     }
-                    // }
                 }, 2000); 
 
             } catch (error) {
@@ -258,7 +336,27 @@ document.addEventListener("DOMContentLoaded", async () => {
                 
                 // Handle Firebase authentication errors
                 if (error.code === "auth/invalid-credential" || error.code === "auth/user-not-found" || error.code === "auth/wrong-password") {
-                    showToast("Invalid email or password.", 'error');
+                    // showToast("Invalid email or password.", 'error');
+                     const failedAttempts = incrementFailedAttempts();
+                    if (failedAttempts >= 3) {
+                        const lockoutStatus = isLockedOut();
+                        showToast(`Too many failed login attempts. Please wait ${lockoutStatus.remainingTime} seconds before trying again.`, 'error');
+                        loginSubmitButton.disabled = true;
+                        loginSubmitButton.textContent = `Locked (${lockoutStatus.remainingTime}s)`;
+                        const countdownInterval = setInterval(() => {
+                            const status = isLockedOut();
+                            if (!status.isLocked) {
+                                loginSubmitButton.disabled = false;
+                                loginSubmitButton.textContent = 'Login';
+                                clearInterval(countdownInterval);
+                                showToast('You can now try logging in again.', 'success');
+                            } else {
+                                loginSubmitButton.textContent = `Locked (${status.remainingTime}s)`;
+                            }
+                        }, 1000);
+                    } else {
+                        showToast(`Invalid email or password. ${3 - failedAttempts} attempts remaining.`, 'error');
+                    }
                 } else if (error.code === "auth/too-many-requests") {
                     showToast("Access to this account has been temporarily disabled due to many failed login attempts. Please try again later.", 'error');
                 } else {

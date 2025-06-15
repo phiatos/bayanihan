@@ -1,5 +1,3 @@
-// Firebase configuration (ensure this is correctly set up from firebase-config.js or directly here)
-// Example for direct inclusion (remove if using import from firebase-config.js)
 const firebaseConfig = {
     apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ", // Your actual API Key
     authDomain: "bayanihan-5ce7e.firebaseapp.com",
@@ -34,6 +32,9 @@ let filteredVolunteers = [];
 let paginatedVolunteers = [];   
 let currentPage = 1;
 const rowsPerPage = 10; 
+
+let currentUserRole = 'ABVN';
+let currentUserId = null;
 
 function getFullName(volunteer) {
     return `${volunteer.firstName} ${volunteer.lastName}`;
@@ -96,25 +97,6 @@ function checkInactivity() {
     document.addEventListener(eventType, resetInactivityTimer);
 });
 //-------------------------------------------------------------------------------------
-
-
-// function getAge(birthdateString) {
-//     if (!birthdateString) return 'N/A';
-//     try {
-//         const birthDate = new Date(birthdateString);
-//         const today = new Date();
-//         let age = today.getFullYear() - birthDate.getFullYear();
-//         const m = today.getMonth() - birthDate.getMonth();
-//         if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-//             age--;
-//         }
-//         return age;
-//     } catch (error) {
-//         console.error('Error calculating age:', birthdateString, error);
-//         return 'N/A';
-//     }
-// }
-
 function getSocialMediaLink(socialMediaLink) {
     if (!socialMediaLink || socialMediaLink === 'N/A') return 'N/A';
     try {
@@ -125,9 +107,7 @@ function getSocialMediaLink(socialMediaLink) {
     }
 }
 
-
-// --- MODIFIED: Fetch Data Function to find ABVN by userId ---
-async function fetchEndorsedVolunteers(userUid) {
+async function fetchEndorsedVolunteers(userUid, userRole) { 
     if (!userUid) {
         console.warn("No user UID provided. Cannot fetch endorsed volunteers.");
         allEndorsedVolunteers = [];
@@ -136,60 +116,150 @@ async function fetchEndorsedVolunteers(userUid) {
     }
 
     try {
-        // Query volunteerGroups to find the ABVN key associated with this userUid
-        const volunteerGroupsRef = database.ref('volunteerGroups');
-        const querySnapshot = await volunteerGroupsRef.orderByChild('userId').equalTo(userUid).once('value');
-
-        let foundAbvnKey = null;
-        querySnapshot.forEach(childSnapshot => {
-            // There should ideally be only one ABVN group per userId
-            foundAbvnKey = childSnapshot.key;
-            return true; // Stop iterating after finding the first match
-        });
-
-        if (!foundAbvnKey) {
-            Swal.fire({
-                title: 'Access Denied',
-                text: 'Your account is not associated with an ABVN group to view endorsements, or the association is missing.',
-                icon: 'error',
-                showCancelButton: false,
-                confirmButtonText: 'OK'
-            });
-            allEndorsedVolunteers = []; // Clear table
-            renderVolunteersTable();
-            return;
-        }
-
-        // Now that we have the specific ABVN key, fetch its endorsed volunteers
-        const endorsedVolunteersRef = database.ref(`volunteerGroups/${foundAbvnKey}/endorsedVolunteers`);
-        const snapshot = await endorsedVolunteersRef.once('value');
-        const endorsedData = snapshot.val();
-
         const tempEndorsedVolunteers = [];
-        if (endorsedData) {
-            for (const volunteerKey in endorsedData) {
-                const volunteerData = endorsedData[volunteerKey];
-                tempEndorsedVolunteers.push({
-                    key: volunteerKey,
-                    ...volunteerData
-                });
+
+        if (userRole === 'AB ADMIN') { 
+            // Admin: Fetch all endorsed volunteers from all volunteerGroups
+            const volunteerGroupsRef = database.ref('volunteerGroups');
+            const groupsSnapshot = await volunteerGroupsRef.once('value');
+            const groupsData = groupsSnapshot.val();
+
+            if (groupsData) {
+                for (const abvnKey in groupsData) {
+                    const group = groupsData[abvnKey];
+                    const endorsedData = group.endorsedVolunteers;
+
+                    if (endorsedData) {
+                        for (const volunteerKey in endorsedData) {
+                            const volunteerData = endorsedData[volunteerKey];
+                            tempEndorsedVolunteers.push({
+                                key: volunteerKey,
+                                sourceAbvnKey: abvnKey,
+                                ...volunteerData
+                            });
+                        }
+                    }
+                }
             }
+            allEndorsedVolunteers = tempEndorsedVolunteers;
+            applyFiltersAndSort();
+        } else { 
+            // Regular User: Find the ABVN key associated with this userUid
+            const volunteerGroupsRef = database.ref('volunteerGroups');
+            const querySnapshot = await volunteerGroupsRef.orderByChild('userId').equalTo(userUid).once('value');
+
+            let foundAbvnKey = null;
+            querySnapshot.forEach(childSnapshot => {
+                foundAbvnKey = childSnapshot.key;
+                return true;
+            });
+
+            if (!foundAbvnKey) {
+                Swal.fire({
+                    title: 'Access Denied',
+                    text: 'Your account is not associated with an ABVN group to view endorsements, or the association is missing. Please contact support.',
+                    icon: 'error',
+                    showCancelButton: false,
+                    confirmButtonText: 'OK'
+                });
+                allEndorsedVolunteers = []; 
+                renderVolunteersTable();
+                return;
+            }
+
+            // Fetch endorsed volunteers for this specific ABVN group
+            const endorsedVolunteersRef = database.ref(`volunteerGroups/${foundAbvnKey}/endorsedVolunteers`);
+            const snapshot = await endorsedVolunteersRef.once('value');
+            const endorsedData = snapshot.val();
+
+            if (endorsedData) {
+                for (const volunteerKey in endorsedData) {
+                    const volunteerData = endorsedData[volunteerKey];
+                    tempEndorsedVolunteers.push({
+                        key: volunteerKey,
+                        sourceAbvnKey: foundAbvnKey,
+                        ...volunteerData
+                    });
+                }
+            }
+            allEndorsedVolunteers = tempEndorsedVolunteers;
+            applyFiltersAndSort();
         }
-        allEndorsedVolunteers = tempEndorsedVolunteers;
-        applyFiltersAndSort();
     } catch (error) {
         console.error("Error fetching endorsed volunteers:", error);
         Swal.fire('Error', 'Failed to fetch endorsed volunteers.', 'error');
     }
 }
 
-// --- Table Rendering and Management (No changes needed here) ---
+async function archiveVolunteer(volunteer) {
+    Swal.fire({
+        title: 'Are you sure?',
+        text: "You are about to archive this volunteer application. It will be moved to the deleted applications.",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33', 
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, archive it!',
+        customClass: {
+            confirmButton: 'my-confirm-button-class',
+            cancelButton: 'my-cancel-button-class'
+        }
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            let sourcePath = '';
+            let abvnKeyToOperateOn = volunteer.sourceAbvnKey; // Use the stored sourceAbvnKey
 
+            if (!abvnKeyToOperateOn) {
+                Swal.fire('Error', 'Cannot archive: Missing ABVN source key for this volunteer.', 'error');
+                return;
+            }
+
+            // Construct the source path
+            sourcePath = `volunteerGroups/${abvnKeyToOperateOn}/endorsedVolunteers/${volunteer.key}`;
+            const destinationPath = `deletedEndorsedVolunteerApplications/${volunteer.key}`; // Using volunteer.key as the key for deleted applications
+
+            try {
+                const volunteerRef = database.ref(sourcePath);
+                const deletedRef = database.ref(destinationPath);
+
+                const snapshot = await volunteerRef.once('value');
+                const dataToArchive = snapshot.val();
+
+                if (!dataToArchive) {
+                    Swal.fire('Not Found', 'Volunteer application not found for archiving.', 'error');
+                    return;
+                }
+
+                // Add a timestamp for when it was archived
+                dataToArchive.archivedAt = new Date().toISOString();
+                // Add who archived it (optional, but good for auditing)
+                dataToArchive.archivedBy = currentUserId; 
+                dataToArchive.archivedByRole = currentUserRole;
+
+                // Perform the move: Write to the new node, then remove from the old node
+                await deletedRef.set(dataToArchive); 
+                await volunteerRef.remove();        
+
+                Swal.fire('Archived!', 'Volunteer application has been archived.', 'success');
+
+                // Update local data arrays and re-render the table
+                allEndorsedVolunteers = allEndorsedVolunteers.filter(v => v.key !== volunteer.key);
+                applyFiltersAndSort();
+
+            } catch (error) {
+                console.error("Error archiving volunteer:", error);
+                Swal.fire('Error', 'Failed to archive volunteer application. Please try again.', 'error');
+            }
+        }
+    });
+}
+
+// --- Table Rendering and Management ---
 function renderVolunteersTable() {
     volunteersContainer.innerHTML = ''; // Clear existing table rows
 
     if (paginatedVolunteers.length === 0) {
-        volunteersContainer.innerHTML = '<tr><td colspan="15" style="text-align: center;">No endorsed volunteers found.</td></tr>';
+        volunteersContainer.innerHTML = '<tr><td colspan="16" style="text-align: center;">No endorsed volunteers found.</td></tr>';
         entriesInfoSpan.textContent = 'Showing 0 to 0 of 0 entries';
         paginationElement.innerHTML = '';
         return;
@@ -219,10 +289,17 @@ function renderVolunteersTable() {
 
         const actionsCell = row.insertCell();
         const viewButton = document.createElement('button');
-        viewButton.textContent = 'View Info';
+        viewButton.textContent = 'View';
         viewButton.classList.add('action-button', 'view-info-button');
         viewButton.onclick = () => showVolunteerDetails(volunteer);
         actionsCell.appendChild(viewButton);
+
+        // --- Archive Button ---
+        const archiveButton = document.createElement('button');
+        archiveButton.textContent = 'Archive';
+        archiveButton.classList.add('action-button', 'archive-button');
+        archiveButton.onclick = () => archiveVolunteer(volunteer); 
+        actionsCell.appendChild(archiveButton);
     });
 
     renderPagination();
@@ -311,8 +388,7 @@ function renderPagination() {
     paginationElement.appendChild(nextBtn);
 }
 
-// --- Modal Functionality (No changes needed here) ---
-
+// --- Modal Functionality  ---
 function showVolunteerDetails(volunteer) {
     let socialMediaHtml = getSocialMediaLink(volunteer.socialMediaLink);
 
@@ -350,34 +426,16 @@ sortSelect.addEventListener('change', applyFiltersAndSort);
 
 // --- Initial Data Load (Auth Check) ---
 document.addEventListener('DOMContentLoaded', () => {
-    // auth.onAuthStateChanged(async (user) => {
-    //     if (user) {
-    //         // User is signed in. Fetch endorsed volunteers using their UID.
-    //         fetchEndorsedVolunteers(user.uid);
-    //     } else {
-    //         // User is signed out.
-    //         Swal.fire({
-    //             title: 'Not Logged In',
-    //             text: 'Please log in to view endorsed volunteers.',
-    //             icon: 'warning',
-    //             showCancelButton: false,
-    //             confirmButtonText: 'Go to Login'
-    //         }).then(() => {
-    //             window.location.href = '../login.html';
-    //         });
-    //         allEndorsedVolunteers = [];
-    //         renderVolunteersTable();
-    //     }
-    // });
     auth.onAuthStateChanged(async (user) => {
         if (user) {
-            const profilePage = 'profile.html'; // Define your profile page path
+            const profilePage = 'profile.html'; 
 
             try {
-                // Fetch user data from the database to check password_needs_reset status
                 const userSnapshot = await database.ref(`users/${user.uid}`).once("value");
                 const userDataFromDb = userSnapshot.val();
                 const passwordNeedsReset = userDataFromDb ? (userDataFromDb.password_needs_reset || false) : false;
+                currentUserId = user.uid;
+                currentUserRole = userDataFromDb ? (userDataFromDb.role || 'ABVN') : 'ABVN'; 
 
                 if (passwordNeedsReset) {
                     console.log(`Password change required for user ${user.uid}. Redirecting to profile page.`);
@@ -393,12 +451,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     }).then(() => {
                         window.location.replace(`../pages/${profilePage}`); // Use replace to prevent back button
                     });
-                    return; // IMPORTANT: Stop further execution if password reset is needed
+                    return; 
                 }
-
-                // If password does NOT need reset, proceed with normal logic
-                // User is signed in. Fetch endorsed volunteers using their UID.
-                fetchEndorsedVolunteers(user.uid);
+                fetchEndorsedVolunteers(user.uid, currentUserRole);
 
             } catch (error) {
                 console.error("Error checking password reset status or fetching user data:", error);
@@ -412,7 +467,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
         } else {
-            // User is signed out.
             Swal.fire({
                 title: 'Not Logged In',
                 text: 'Please log in to view endorsed volunteers.',
