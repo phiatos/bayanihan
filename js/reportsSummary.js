@@ -149,7 +149,7 @@ categories[category].forEach(item => {
             .replace('No Of Organizations Activated', 'No. of Organizations Activated')
             .replace('Total Value Of In Kind Donations', 'Total Value of In-Kind Donations')
             .replace('Total Monetary Donations', 'Total Monetary Donations')
-            .replace('NotesAdditionalInformation', 'Notes/additional information'); 
+            .replace('NotesAdditionalInformation', 'Notes/Additional Information'); 
         let value = summaryData[item];
 
         if (item === "DateOfReport" || item === "StartDate" || item === "EndDate") {
@@ -161,9 +161,13 @@ categories[category].forEach(item => {
             value = formatLargeNumber(value);
         }
 
+        console.log("Final summaryData:", summaryData);
+
+
         const fieldDiv = document.createElement("div");
         fieldDiv.className = "summary-box";
-        fieldDiv.innerHTML = `<strong>${displayKey}:</strong> <span>${value === '' ? 'N/A' : value}</span>`;
+        const formattedValue = (value === undefined || value === null || value.toString().trim() === '') ? 'N/A' : value;
+        fieldDiv.innerHTML = `<strong>${displayKey}:</strong> <span>${formattedValue}</span>`
         section.appendChild(fieldDiv);
     }
 });
