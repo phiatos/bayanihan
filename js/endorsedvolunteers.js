@@ -199,7 +199,11 @@ async function archiveVolunteer(volunteer) {
         showCancelButton: true,
         confirmButtonColor: '#d33', 
         cancelButtonColor: '#3085d6',
-        confirmButtonText: 'Yes, archive it!'
+        confirmButtonText: 'Yes, archive it!',
+        customClass: {
+            confirmButton: 'my-confirm-button-class',
+            cancelButton: 'my-cancel-button-class'
+        }
     }).then(async (result) => {
         if (result.isConfirmed) {
             let sourcePath = '';
@@ -285,7 +289,7 @@ function renderVolunteersTable() {
 
         const actionsCell = row.insertCell();
         const viewButton = document.createElement('button');
-        viewButton.textContent = 'View Info';
+        viewButton.textContent = 'View';
         viewButton.classList.add('action-button', 'view-info-button');
         viewButton.onclick = () => showVolunteerDetails(volunteer);
         actionsCell.appendChild(viewButton);

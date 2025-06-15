@@ -20,8 +20,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     const database = firebase.database();
 
-
-
 // Variables for inactivity detection --------------------------------------------------------------------
 let inactivityTimeout;
 const INACTIVITY_TIME = 1800000; // 30 minutes in milliseconds
@@ -31,6 +29,17 @@ function resetInactivityTimer() {
     clearTimeout(inactivityTimeout);
     inactivityTimeout = setTimeout(checkInactivity, INACTIVITY_TIME);
     console.log("Inactivity timer reset.");
+}
+
+// --- Helper function to generate a random Relief ID ---
+function generateRandomReliefID() {
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = 'RELIEFS-'; // Prefix for Relief Request
+    const length = 6; // Length of the random part (e.g., RR + 6 chars = RRABC123)
+    for (let i = 0; i < length; i++) {
+        result += characters.charAt(Math.floor(Math.random() * characters.length));
+    }
+    return result;
 }
 
 // Function to check for inactivity and prompt the user
@@ -68,17 +77,13 @@ function checkInactivity() {
     document.addEventListener(eventType, resetInactivityTimer);
 });
 //-------------------------------------------------------------------------------------
-
-
-
-
     const tableBody = document.querySelector('#orgTable tbody');
     const searchInput = document.getElementById('searchInput');
     const sortSelect = document.getElementById('sortSelect');
     const entriesInfo = document.getElementById('entriesInfo');
     const pagination = document.getElementById('pagination');
     const savePdfBtn = document.getElementById('savePdfBtn');
-    const exportExcelBtn = document.getElementById('exportExcelBtn'); 
+    const exportExcelBtn = document.getElementById('exportBtn'); 
 
     if (!tableBody || !searchInput || !sortSelect || !entriesInfo || !pagination || !savePdfBtn || !exportExcelBtn) {
         console.error('One or more DOM elements are missing:', {
@@ -220,14 +225,25 @@ function checkInactivity() {
         data = [];
         const requests = snapshot.val();
         if (requests) {
+            const existingReliefIDs = new Set();
+
             Object.keys(requests).forEach((key, index) => {
                 const request = requests[key];
                 const groupName = request.volunteerOrganization || "[Unknown Org]";
                 if (!request.volunteerOrganization) {
                     console.warn(`Relief request ${key} is missing volunteerOrganization field. Using default: [Unknown Org]`);
                 }
+
+                let reliefId = request.id; 
+                if (!reliefId || existingReliefIDs.has(reliefId)) {
+                    do {
+                        reliefId = generateRandomReliefID();
+                    } while (existingReliefIDs.has(reliefId)); 
+                }
+                existingReliefIDs.add(reliefId);
+
                 data.push({
-                    id: `RR${String(index + 1).padStart(3, '0')}`,
+                    id: reliefId,
                     volunteerOrganization: groupName,
                     city: request.city,
                     address: request.address,

@@ -121,9 +121,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Handle Login
     if (loginForm && emailInputElem && passwordInputElem) { // Ensure elements exist
         loginForm.addEventListener("submit", async (e) => {
-            e.preventDefault(); // Always prevent default here, as this is the main submit handler
+            e.preventDefault(); 
 
-             // Check lockout status
+            // Check lockout status
             const lockoutStatus = isLockedOut();
             if (lockoutStatus.isLocked) {
                 showToast(`Too many failed login attempts. Please wait ${lockoutStatus.remainingTime} seconds before trying again.`, 'error');
@@ -192,13 +192,45 @@ document.addEventListener("DOMContentLoaded", async () => {
                 await user.reload(); 
                 const updatedUser = auth.currentUser; 
 
-                if (updatedUser && updatedUser.emailVerified && !userData.emailVerified) {
+                // if (updatedUser && updatedUser.emailVerified && !userData.emailVerified) {
+                //     console.log("Email is now verified in Auth, updating Realtime Database...");
+                //     await set(ref(database, `users/${updatedUser.uid}/emailVerified`), true);
+                //     userData.emailVerified = true; 
+                //     showToast("Your email has been successfully verified upon login!", 'success'); 
+                // }
+               
+                if (!updatedUser.emailVerified) {
+                    try {
+                        const actionCodeSettings = {
+                            url: 'https://bayanihan-drrm.vercel.app/pages/login.html',
+                            handleCodeInApp: true,
+                        };
+                        console.log("Sending verification email to:", updatedUser.email);
+                        await sendEmailVerification(updatedUser, actionCodeSettings);
+                        console.log("Verification email sent successfully to:", updatedUser.email);
+                        showToast("Your email address is not verified. A new verification email has been sent to your email address. Please verify your email to proceed with login (check spam/junk folder).");
+                    } catch (error) {
+                        console.error("Error sending verification email:", error);
+                        showToast("Failed to send verification email: " + error.message);
+                    }
+                    // Crucially, sign out the user if their email is not verified,
+                    // so they cannot proceed until they click the verification link.
+                    await signOut(auth);
+                    loginSubmitButton.disabled = false;
+                    loginSubmitButton.textContent = 'Login';
+                    return; // Stop the login process here
+                }
+
+
+                // If the user's email is now verified in Auth but not yet in DB, update DB.
+                // This block should run *after* the email verification check above.
+                if (updatedUser.emailVerified && !userData.emailVerified) {
                     console.log("Email is now verified in Auth, updating Realtime Database...");
                     await set(ref(database, `users/${updatedUser.uid}/emailVerified`), true);
-                    userData.emailVerified = true; 
-                    showToast("Your email has been successfully verified upon login!", 'success'); 
+                    userData.emailVerified = true;
+                    showToast("Your email has been successfully verified upon login!", 'success');
                 }
-               
+
                 const isAdmin = userData?.role === "AB ADMIN" || userData?.role === "admin";
                 if (!isAdmin && !updatedUser.emailVerified) {
                     try {
@@ -242,6 +274,14 @@ document.addEventListener("DOMContentLoaded", async () => {
                     termsAccepted: termsAccepted,
                     terms_agreed_version: termsAgreedVersion,
                     password_needs_reset: password_needs_reset,
+
+                    adminPosition: userData.adminPosition || "", 
+                    firstName: userData.firstName || "", 
+                    lastName: userData.lastName || "",
+                    middleInitial: userData.middleInitial || "",
+                    nameExtension: userData.nameExtension || "",
+                    
+                    isSuperAdmin: userData.isSuperAdmin === true,
                 };
 
                 console.log("User Data being stored in localStorage:", updatedUserData);
@@ -288,23 +328,6 @@ document.addEventListener("DOMContentLoaded", async () => {
                             window.location.replace('../pages/dashboard.html');
                         }
                     }
-                    // if (isAdmin && !isFirstLogin && termsAccepted && !password_needs_reset) {
-                    //     console.log("Redirecting Admin to dashboard (fully onboarded).");
-                    //     window.location.replace('../pages/dashboard.html');
-                    // } else if (!isFirstLogin || !termsAccepted || password_needs_reset) {
-                    //     console.log("Redirecting to profile.html for setup (first login, unaccepted terms, or password reset).");
-                    //     window.location.replace('../pages/profile.html');
-                    // } else {
-                    //     console.log("Redirecting based on role.");
-                    //     const userRole = userData.role;
-
-                    //     if (userRole === "ABVN") {
-                    //         window.location.replace('../pages/dashboard.html');
-                    //     } else {
-                    //         console.error("Unknown user role or unhandled redirection:", userRole);
-                    //         window.location.replace('../pages/dashboard.html'); 
-                    //     }
-                    // }
                 }, 2000); 
 
             } catch (error) {

@@ -274,7 +274,11 @@ function checkInactivity() {
             showCancelButton: true,
             confirmButtonColor: '#3085d6',
             cancelButtonColor: '#d33',
-            confirmButtonText: `Yes, ${newStatus.toLowerCase()} it!`
+            confirmButtonText: `Yes, ${newStatus.toLowerCase()} it!`,
+            customClass: {
+                confirmButton: 'my-confirm-button-class',
+                cancelButton: 'my-cancel-button-class'
+            }
         }).then(async (result) => {
             if (result.isConfirmed) {
                 try {
