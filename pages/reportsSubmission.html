@@ -13,7 +13,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script async defer loading="async" src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBDtlY28p-MvLHRtxnjiibSAadSETvM3VU&libraries=places&callback=initMap" ></script>
+    <script async defer loading="async" src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBDtlY28p-MvLHRtxnjiibSAadSETvM3VU&libraries=places&callback=initMap"></script>
 
     <title>Submit a Report</title>
 </head>
@@ -34,16 +34,16 @@
                             </div>
                             <div class="input-field">
                                 <label for="AreaOfOperation">Area of Operation:</label>
-                                <input type="text" id="AreaOfOperation" name="AreaOfOperation" placeholder="e.g. Purok 2, Brgy. Maligaya, Rosario" disabled />
+                                <input type="text" id="AreaOfOperation" name="AreaOfOperation" placeholder="e.g. Purok 2, Brgy. Maligaya, Rosario" />
                                 <div class="pin-btn-wrapper">
-                                <button id="pinBtn" type="button">
-                                    <i class='bx bx-map-pin'></i> Pin Location
-                                </button>
+                                    <button id="pinBtn" type="button">
+                                        <i class='bx bx-map-pin'></i> Pin Location
+                                    </button>
                                 </div>
                             </div>
                             <div class="input-field">
                                 <label>Date of Report</label>
-                                <input type="text" id="dateOfReport" placeholder="Date of Report" readonly/>
+                                <input type="text" id="dateOfReport" placeholder="Date of Report" readonly />
                             </div>
                         </div>
                     </div>
@@ -57,50 +57,49 @@
                                     <option value="">-- Select an Active Operation --</option>
                                 </select>
                             </div>
-
                             <div class="input-field">
                                 <label>Completion Time of Intervention</label>
-                                <input type="time" id="completionTime" placeholder="Completion Time of Intervention" required>
+                                <input type="time" id="completionTime" placeholder="Completion Time of Intervention" required />
                             </div>
                             <div class="input-field">
                                 <label>Starting Date of Operation</label>
-                                <input type="date" id="StartDate" placeholder="MM/DD/YY" required>
+                                <input type="date" id="StartDate" placeholder="MM/DD/YY" required />
                             </div>
                             <div class="input-field">
                                 <label>Ending Date of Operation</label>
-                                <input type="date" id="EndDate" placeholder="MM/DD/YY" required>
+                                <input type="date" id="EndDate" placeholder="MM/DD/YY" required />
                             </div>
                             <div class="input-field">
                                 <label>No. of Individuals or Families</label>
-                                <input type="number" id="numIndividualsFamilies" placeholder="No. of Individuals or Families" min="1" required>
+                                <input type="number" id="numIndividualsFamilies" placeholder="No. of Individuals or Families" min="1" required />
                             </div>
                             <div class="input-field">
                                 <label>No. of Relief Packs</label>
-                                <input type="number" id="numFoodPacks" placeholder="No. of Food Packs" min="1" required>
+                                <input type="number" id="numFoodPacks" placeholder="No. of Food Packs" min="1" required />
                             </div>
                             <div class="input-field">
                                 <label>No. of Hot Meals/Ready-to-eat food</label>
-                                <input type="number" id="numHotMeals" placeholder="No. of Hot Meals" min="1" required>
+                                <input type="number" id="numHotMeals" placeholder="No. of Hot Meals" min="1" required />
                             </div>
                             <div class="input-field">
                                 <label>Liters of Water</label>
-                                <input type="number" id="litersWater" placeholder="Liters of Water" min="1" required>
+                                <input type="number" id="litersWater" placeholder="Liters of Water" min="1" required />
                             </div>
                             <div class="input-field">
                                 <label>No. of Volunteers Mobilized</label>
-                                <input type="number" id="numVolunteers" placeholder="No. of Volunteers Mobilized" min="1" required>
+                                <input type="number" id="numVolunteers" placeholder="No. of Volunteers Mobilized" min="1" required />
                             </div>
                             <div class="input-field">
                                 <label>No. of Organizations Activated</label>
-                                <input type="number" id="numOrganizations" placeholder="No. of Organizations Activated" min="1" required>
+                                <input type="number" id="numOrganizations" placeholder="No. of Organizations Activated" min="1" required />
                             </div>
                             <div class="input-field">
                                 <label>Total Value of In-Kind Donations</label>
-                                <input type="number" id="valueInKind" placeholder="Total Value of In-Kind Donations" min="1" required>
+                                <input type="number" id="valueInKind" placeholder="Total Value of In-Kind Donations" min="1" required />
                             </div>
                             <div class="input-field">
                                 <label>Total Monetary Donations</label>
-                                <input type="number" id="monetaryDonations" placeholder="Total Monetary Donations" min="1" required>
+                                <input type="number" id="monetaryDonations" placeholder="Total Monetary Donations" min="1" required />
                             </div>
                         </div>
                         <button type="button" class="next-btn" id="nextBtn">Next</button>
@@ -127,26 +126,26 @@
     <!-- Map Modal with Search Bar -->
     <div id="mapModal" class="map-modal">
         <div class="modal-content">
-            <span class="closeBtn">&times;</span>
+            <span class="closeBtn">×</span>
             <h2>Select Area of Operation</h2>
-            <input type="text" class="search-bar" id="search-input" placeholder="Search for a location...">
+            <input type="text" class="search-bar" id="search-input" placeholder="Search for a location..." />
             <div id="mapContainer"></div>
         </div>
     </div>
 
     <script>
         fetch('../components/sidebar.html')
-        .then(response => response.text())
-        .then(data => {
-            document.querySelector('.sidebar-placeholder').innerHTML = data;
-            const sidebarScript = document.createElement('script');
-            sidebarScript.src = '../components/sidebar.js';
-            sidebarScript.onload = function() {};
-            document.querySelector('.sidebar-placeholder').appendChild(sidebarScript);
-        })
-        .catch(error => {
-            console.error('Error loading sidebar:', error);
-        });
+            .then(response => response.text())
+            .then(data => {
+                document.querySelector('.sidebar-placeholder').innerHTML = data;
+                const sidebarScript = document.createElement('script');
+                sidebarScript.src = '../components/sidebar.js';
+                sidebarScript.onload = function() {};
+                document.querySelector('.sidebar-placeholder').appendChild(sidebarScript);
+            })
+            .catch(error => {
+                console.error('Error loading sidebar:', error);
+            });
     </script>
     
     <script src="../js/inactivity-detector.js"></script> 

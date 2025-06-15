@@ -45,8 +45,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const quantityInput = document.getElementById('quantity');
     const notesInput = document.getElementById('notes');
 
-    
-
     // Verify DOM elements exist
     if (!formPage1 || !formPage2 || !nextBtn || !backBtn || !addItemBtn || !itemsTable || !itemsTableBody || !previewContact || !previewItemsTable || !contactPersonInput || !contactNumberInput || !emailInput || !addressInput || !cityInput || !donationCategoryInput || !itemNameInput || !quantityInput || !notesInput) {
         console.error('One or more DOM elements are missing:', {
@@ -76,153 +74,55 @@ document.addEventListener('DOMContentLoaded', () => {
     let userUid = null;
     let volunteerOrganization = "[Unknown Org]";
 
-    // Check if user is logged in and fetch their UID and group name
-    // auth.onAuthStateChanged(user => {
-    //     if (user) {
-    //         userUid = user.uid;
-    //         console.log('Logged-in user UID:', userUid);
+    // Variables for inactivity detection
+    let inactivityTimeout;
+    const INACTIVITY_TIME = 1800000; // 30 minutes in milliseconds
 
-    //         // Fetch user data from the database
-    //         database.ref(`users/${userUid}`).once('value', snapshot => {
-    //             const userData = snapshot.val();
-    //             if (userData && userData.organization) {
-    //                 volunteerOrganization = userData.organization; 
-    //                 console.log('Volunteer group fetched from database:', volunteerOrganization);
+    // Function to reset the inactivity timer
+    function resetInactivityTimer() {
+        clearTimeout(inactivityTimeout);
+        inactivityTimeout = setTimeout(checkInactivity, INACTIVITY_TIME);
+        console.log("Inactivity timer reset.");
+    }
 
-    //                 // Pre-fill form fields with user data
-    //                 contactPersonInput.value = userData.contactPerson || '';
-    //                 contactNumberInput.value = userData.mobile || '';
-    //                 emailInput.value = userData.email || '';
-    //             } else {
-    //                 console.warn('User data or group not found in database for UID:', userUid);
-    //             }
-    //         }).catch(error => {
-    //             console.error('Error fetching user data:', error);
-    //         });
-    //     } else {
-    //         console.warn('No user is logged in');
-    //         Swal.fire({
-    //             icon: 'error',
-    //             title: 'Not Logged In',
-    //             text: 'Please log in to submit a relief request.',
-    //         }).then(() => {
-    //             window.location.href = '../pages/login.html'; // Redirect to login page
-    //         });
-    //     }
-    // });
-
-    // Variables for inactivity detection --------------------------------------------------------------------
-let inactivityTimeout;
-const INACTIVITY_TIME = 1800000; // 30 minutes in milliseconds
-
-// Function to reset the inactivity timer
-function resetInactivityTimer() {
-    clearTimeout(inactivityTimeout);
-    inactivityTimeout = setTimeout(checkInactivity, INACTIVITY_TIME);
-    console.log("Inactivity timer reset.");
-}
-
-// Function to check for inactivity and prompt the user
-function checkInactivity() {
-    Swal.fire({
-        title: 'Are you still there?',
-        text: 'You\'ve been inactive for a while. Do you want to continue your session or log out?',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33',
-        confirmButtonText: 'Stay Login',
-        cancelButtonText: 'Log Out',
-        allowOutsideClick: false,
-        reverseButtons: true
-    }).then((result) => {
-        if (result.isConfirmed) {
-            resetInactivityTimer(); // User chose to continue, reset the timer
-            console.log("User chose to continue session.");
-        } else if (result.dismiss === Swal.DismissReason.cancel) {
-            // User chose to log out
-            auth.signOut().then(() => {
-                console.log("User logged out due to inactivity.");
-                window.location.href = "../pages/login.html"; // Redirect to login page
-            }).catch((error) => {
-                console.error("Error logging out:", error);
-                Swal.fire('Error', 'Failed to log out. Please try again.', 'error');
-            });
-        }
-    });
-}
-
-// Attach event listeners to detect user activity
-['mousemove', 'keydown', 'scroll', 'click'].forEach(eventType => {
-    document.addEventListener(eventType, resetInactivityTimer);
-});
-//-------------------------------------------------------------------------------------
-
-
-    auth.onAuthStateChanged(user => {
-        if (user) {
-            userUid = user.uid;
-            console.log('Logged-in user UID:', userUid);
-
-            // Fetch user data from the database
-            database.ref(`users/${userUid}`).once('value', snapshot => {
-                const userData = snapshot.val();
-                if (!userData) {
-                    console.warn('User data not found in database for UID:', userUid);
-                    // Handle case where user node might not exist, e.g., newly registered
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'User Data Missing',
-                        text: 'Your user profile is incomplete. Please contact an administrator.',
-                    }).then(() => {
-                        window.location.href = '../pages/login.html'; // Redirect to login page or profile setup
-                    });
-                    return;
-                }
-
-                // --- IMPORTANT: ADD THIS PASSWORD RESET CHECK ---
-                const passwordNeedsReset = userData.password_needs_reset || false;
-                const profilePage = 'profile.html'; // Assuming profile.html is in the same 'pages' directory
-
-                if (passwordNeedsReset) {
-                    console.log("Password change required. Redirecting to profile page.");
-                    Swal.fire({
-                        icon: 'info',
-                        title: 'Password Change Required',
-                        text: 'For security reasons, please change your password. You will be redirected to your profile.',
-                        allowOutsideClick: false,
-                        allowEscapeKey: false,
-                        showConfirmButton: false,
-                        timer: 2000,
-                        timerProgressBar: true
-                    }).then(() => {
-                        window.location.replace(`../pages/${profilePage}`);
-                    });
-                    return; // Stop further execution if password reset is required
-                }
-                // --- END OF PASSWORD RESET CHECK ---
-
-                if (userData.organization) {
-                    volunteerOrganization = userData.organization; 
-                    console.log('Volunteer group fetched from database:', volunteerOrganization);
-                } else {
-                    console.warn('Volunteer organization not found for UID:', userUid);
-                }
-                
-                // Pre-fill form fields with user data
-                contactPersonInput.value = userData.contactPerson || '';
-                contactNumberInput.value = userData.mobile || '';
-                emailInput.value = userData.email || '';
-
-            }).catch(error => {
-                console.error('Error fetching user data:', error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Failed to load user data. Please try again later.',
+    // Function to check for inactivity and prompt the user
+    function checkInactivity() {
+        Swal.fire({
+            title: 'Are you still there?',
+            text: 'You\'ve been inactive for a while. Do you want to continue your session or log out?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Stay Login',
+            cancelButtonText: 'Log Out',
+            allowOutsideClick: false,
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                resetInactivityTimer(); // User chose to continue, reset the timer
+                console.log("User chose to continue session.");
+            } else if (result.dismiss === Swal.DismissReason.cancel) {
+                // User chose to log out
+                auth.signOut().then(() => {
+                    console.log("User logged out due to inactivity.");
+                    window.location.href = "../pages/login.html"; // Redirect to login page
+                }).catch((error) => {
+                    console.error("Error logging out:", error);
+                    Swal.fire('Error', 'Failed to log out. Please try again.', 'error');
                 });
-            });
-        } else {
+            }
+        });
+    }
+
+    // Attach event listeners to detect user activity
+    ['mousemove', 'keydown', 'scroll', 'click'].forEach(eventType => {
+        document.addEventListener(eventType, resetInactivityTimer);
+    });
+
+    // Updated auth.onAuthStateChanged with role and activation checks
+    auth.onAuthStateChanged(async user => {
+        if (!user) {
             console.warn('No user is logged in');
             Swal.fire({
                 icon: 'error',
@@ -230,6 +130,131 @@ function checkInactivity() {
                 text: 'Please log in to submit a relief request.',
             }).then(() => {
                 window.location.href = '../pages/login.html'; // Redirect to login page
+            });
+            return;
+        }
+
+        resetInactivityTimer();
+        userUid = user.uid;
+        console.log('Logged-in user UID:', userUid);
+
+        try {
+            // Fetch user data from the database
+            const userSnapshot = await database.ref(`users/${userUid}`).once('value');
+            const userData = userSnapshot.val();
+            if (!userData) {
+                console.warn('User data not found in database for UID:', userUid);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'User Data Missing',
+                    text: 'Your user profile is incomplete. Please contact an administrator.',
+                }).then(() => {
+                    window.location.href = '../pages/login.html';
+                });
+                return;
+            }
+
+            // Password reset check
+            const passwordNeedsReset = userData.password_needs_reset || false;
+            const profilePage = 'profile.html';
+            if (passwordNeedsReset) {
+                console.log("Password change required. Redirecting to profile page.");
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Password Change Required',
+                    text: 'For security reasons, please change your password. You will be redirected to your profile.',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    showConfirmButton: false,
+                    timer: 2000,
+                    timerProgressBar: true
+                }).then(() => {
+                    window.location.replace(`../pages/${profilePage}`);
+                });
+                return;
+            }
+
+            // Get user role and organization
+            const currentUserRole = userData.role;
+            volunteerOrganization = userData.organization || 'Not Assigned';
+            console.log('User Role:', currentUserRole);
+            console.log('Volunteer Organization:', volunteerOrganization);
+
+            // Check if user is AB ADMIN
+            if (currentUserRole === 'AB ADMIN') {
+                console.log('AB ADMIN role detected. Allowing access to submit request.');
+                // Pre-fill form fields
+                contactPersonInput.value = userData.contactPerson || '';
+                contactNumberInput.value = userData.mobile || '';
+                emailInput.value = userData.email || '';
+            }
+            // Check if user is ABVN
+            else if (currentUserRole === 'ABVN') {
+                console.log('ABVN role detected. Checking organization activations.');
+                if (volunteerOrganization !== 'Not Assigned') {
+                    // Check for active activations
+                    const organizationActivationsSnapshot = await database.ref("activations")
+                        .orderByChild("organization")
+                        .equalTo(volunteerOrganization)
+                        .once('value');
+                    
+                    let organizationHasActiveActivations = false;
+                    organizationActivationsSnapshot.forEach(childSnapshot => {
+                        if (childSnapshot.val().status === "active") {
+                            organizationHasActiveActivations = true;
+                            return true; // Exit loop early
+                        }
+                    });
+
+                    if (organizationHasActiveActivations) {
+                        console.log(`Organization "${volunteerOrganization}" has active operations.`);
+                        // Pre-fill form fields
+                        contactPersonInput.value = userData.contactPerson || '';
+                        contactNumberInput.value = userData.mobile || '';
+                        emailInput.value = userData.email || '';
+                    } else {
+                        console.warn(`Organization "${volunteerOrganization}" has no active operations.`);
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Organization Inactive',
+                            text: 'Your organization has no active operations. Redirecting to dashboard.',
+                            didClose: () => {
+                                window.location.href = '../pages/dashboard.html';
+                            }
+                        });
+                    }
+                } else {
+                    console.warn('ABVN user has no organization assigned.');
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Organization Not Assigned',
+                        text: 'Your account is not associated with an organization. Redirecting to dashboard.',
+                        didClose: () => {
+                            window.location.href = '../pages/dashboard.html';
+                        }
+                    });
+                }
+            }
+            // Handle unsupported roles
+            else {
+                console.warn(`User ${userUid} has unsupported role: ${currentUserRole}.`);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Unauthorized Access',
+                    text: 'Your role does not permit access. Redirecting to dashboard.',
+                    didClose: () => {
+                        window.location.href = '../pages/dashboard.html';
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('Error checking user data or activations:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Authentication Error',
+                text: 'Failed to verify account status. Please try logging in again.',
+            }).then(() => {
+                window.location.href = '../pages/login.html';
             });
         }
     });
@@ -293,7 +318,7 @@ function checkInactivity() {
         });
     });
 
-    //Converts Big Quantities to Readable Ones
+    // Converts Big Quantities to Readable Ones
     function formatLargeNumber(numStr) {
         let num = BigInt(numStr || "0");
         const trillion = 1_000_000_000_000n;
@@ -325,18 +350,18 @@ function checkInactivity() {
 
         if (!name) {
             console.log('Validation failed: Item name is empty');
-           Swal.fire({
-            icon: 'warning',
-            title: 'Missing Item Name',
-            text: 'Please enter the item name.',
-            timer: 2200,
-            showConfirmButton: false,
-            timerProgressBar: true,
-            customClass: {
-                popup: 'swal2-popup-warning-clean',
-                title: 'swal2-title-warning-clean',
-                content: 'swal2-text-warning-clean'
-            }
+            Swal.fire({
+                icon: 'warning',
+                title: 'Missing Item Name',
+                text: 'Please enter the item name.',
+                timer: 2200,
+                showConfirmButton: false,
+                timerProgressBar: true,
+                customClass: {
+                    popup: 'swal2-popup-warning-clean',
+                    title: 'swal2-title-warning-clean',
+                    content: 'swal2-text-warning-clean'
+                }
             });
             return;
         }
@@ -344,20 +369,19 @@ function checkInactivity() {
         if (!quantity || parseInt(quantity) <= 0) {
             console.log('Validation failed: Invalid quantity', { quantity });
             Swal.fire({
-            icon: 'warning',
-            title: 'Invalid Quantity',
-            text: 'Please enter a quantity greater than 0.',
-            background: '#fefefe',                   // soft neutral background
-            color: '#6c584c',                       // deep neutral text
-            iconColor: '#d18f00',                   // warm amber icon
-            confirmButtonColor: '#d18f00',          // matching amber confirm button
-            customClass: {
-                popup: 'swal2-popup-warning-clean',
-                title: 'swal2-title-warning-clean',
-                htmlContainer: 'swal2-text-warning-clean'
-            }
-        });
-
+                icon: 'warning',
+                title: 'Invalid Quantity',
+                text: 'Please enter a quantity greater than 0.',
+                background: '#fefefe',
+                color: '#6c584c',
+                iconColor: '#d18f00',
+                confirmButtonColor: '#d18f00',
+                customClass: {
+                    popup: 'swal2-popup-warning-clean',
+                    title: 'swal2-title-warning-clean',
+                    htmlContainer: 'swal2-text-warning-clean'
+                }
+            });
             return;
         }
 
@@ -382,9 +406,9 @@ function checkInactivity() {
         notesInput.value = '';
     });
 
-    // Delete button event listener
+    // Delete button event listener (Fixed class from 'delete-btn' to 'deleteBtn')
     itemsTableBody.addEventListener('click', (e) => {
-        if (e.target.classList.contains('delete-btn')) {
+        if (e.target.classList.contains('deleteBtn')) {
             console.log('Delete button clicked');
             const index = parseInt(e.target.getAttribute('data-index'));
             addedItems.splice(index, 1);
@@ -392,6 +416,7 @@ function checkInactivity() {
         }
     });
 
+    // Updated renderItemsTable to use 'deleteBtn' consistently
     function renderItemsTable() {
         console.log('Rendering items table');
         itemsTableBody.innerHTML = '';
@@ -401,7 +426,7 @@ function checkInactivity() {
                 <td>${item.name}</td>
                 <td>${item.quantity}</td>
                 <td>${item.notes}</td>
-                <td><button type="button" class="delete-btn" data-index="${index}">Delete</button></td>
+                <td><button type="button" class="deleteBtn" data-index="${index}">Delete</button></td>
             `;
             itemsTableBody.appendChild(tr);
         });
@@ -434,20 +459,19 @@ function checkInactivity() {
         if (!contactPerson) {
             console.log('Validation failed: Contact person is empty');
             Swal.fire({
-            icon: 'warning',
-            title: 'Missing Contact Person',
-            text: 'Please enter the contact person’s name.',
-            background: '#fefefe',                   
-            color: '#6c584c',                      
-            iconColor: '#d18f00',                  
-            confirmButtonColor: '#d18f00',         
-            customClass: {
-                popup: 'swal2-popup-warning-clean',
-                title: 'swal2-title-warning-clean',
-                htmlContainer: 'swal2-text-warning-clean'
-            }
-        });
-
+                icon: 'warning',
+                title: 'Missing Contact Person',
+                text: 'Please enter the contact person’s name.',
+                background: '#fefefe',
+                color: '#6c584c',
+                iconColor: '#d18f00',
+                confirmButtonColor: '#d18f00',
+                customClass: {
+                    popup: 'swal2-popup-warning-clean',
+                    title: 'swal2-title-warning-clean',
+                    htmlContainer: 'swal2-text-warning-clean'
+                }
+            });
             return;
         }
 
@@ -457,10 +481,10 @@ function checkInactivity() {
                 icon: 'warning',
                 title: 'Invalid Contact Number',
                 text: 'Please enter a valid contact number (at least 10 digits).',
-                 background: '#fefefe',                   
-                color: '#6c584c',                      
-                iconColor: '#d18f00',                  
-                confirmButtonColor: '#d18f00',         
+                background: '#fefefe',
+                color: '#6c584c',
+                iconColor: '#d18f00',
+                confirmButtonColor: '#d18f00',
                 customClass: {
                     popup: 'swal2-popup-warning-clean',
                     title: 'swal2-title-warning-clean',
@@ -476,10 +500,10 @@ function checkInactivity() {
                 icon: 'warning',
                 title: 'Invalid Email',
                 text: 'Please enter a valid email address.',
-                 background: '#fefefe',                   
-                color: '#6c584c',                      
-                iconColor: '#d18f00',                  
-                confirmButtonColor: '#d18f00',         
+                background: '#fefefe',
+                color: '#6c584c',
+                iconColor: '#d18f00',
+                confirmButtonColor: '#d18f00',
                 customClass: {
                     popup: 'swal2-popup-warning-clean',
                     title: 'swal2-title-warning-clean',
@@ -495,10 +519,10 @@ function checkInactivity() {
                 icon: 'warning',
                 title: 'Missing Address',
                 text: 'Please enter the drop-off address.',
-                background: '#fefefe',                   
-                color: '#6c584c',                      
-                iconColor: '#d18f00',                  
-                confirmButtonColor: '#d18f00',         
+                background: '#fefefe',
+                color: '#6c584c',
+                iconColor: '#d18f00',
+                confirmButtonColor: '#d18f00',
                 customClass: {
                     popup: 'swal2-popup-warning-clean',
                     title: 'swal2-title-warning-clean',
@@ -514,10 +538,10 @@ function checkInactivity() {
                 icon: 'warning',
                 title: 'Missing City',
                 text: 'Please enter the city.',
-                background: '#fefefe',                   
-                color: '#6c584c',                      
-                iconColor: '#d18f00',                  
-                confirmButtonColor: '#d18f00',         
+                background: '#fefefe',
+                color: '#6c584c',
+                iconColor: '#d18f00',
+                confirmButtonColor: '#d18f00',
                 customClass: {
                     popup: 'swal2-popup-warning-clean',
                     title: 'swal2-title-warning-clean',
@@ -533,10 +557,10 @@ function checkInactivity() {
                 icon: 'warning',
                 title: 'Missing Category',
                 text: 'Please select a donation category.',
-                background: '#fefefe',                   
-                color: '#6c584c',                      
-                iconColor: '#d18f00',                  
-                confirmButtonColor: '#d18f00',         
+                background: '#fefefe',
+                color: '#6c584c',
+                iconColor: '#d18f00',
+                confirmButtonColor: '#d18f00',
                 customClass: {
                     popup: 'swal2-popup-warning-clean',
                     title: 'swal2-title-warning-clean',
@@ -552,10 +576,10 @@ function checkInactivity() {
                 icon: 'warning',
                 title: 'No Items Added',
                 text: 'Please add at least one item before proceeding.',
-                background: '#fefefe',                   
-                color: '#6c584c',                      
-                iconColor: '#d18f00',                  
-                confirmButtonColor: '#d18f00',         
+                background: '#fefefe',
+                color: '#6c584c',
+                iconColor: '#d18f00',
+                confirmButtonColor: '#d18f00',
                 customClass: {
                     popup: 'swal2-popup-warning-clean',
                     title: 'swal2-title-warning-clean',
@@ -625,8 +649,8 @@ function checkInactivity() {
             address,
             city,
             category: donationCategory,
-            volunteerOrganization, // e.g., "RAZEL KIM ORG"
-            userUid, // Include the UID
+            volunteerOrganization,
+            userUid,
             items: addedItems,
             timestamp: firebase.database.ServerValue.TIMESTAMP
         };
