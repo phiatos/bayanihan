@@ -7,12 +7,12 @@
     <link rel="stylesheet" href="../css/global.css" />
     <link rel='stylesheet' href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css'/>
 
-    <!-- Firebase Compat SDK -->
+    <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/main.min.css' rel='stylesheet' />
+
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
-    <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
     <title>Approved Volunteer Applications</title>
@@ -54,38 +54,48 @@
             </div>
 
             <div class="table-controls">
-                <button id="viewApprovedBtn" class="viewApprovedBtn">
-                    <i class='bx bx-show' style="font-size: 1.2rem;"></i>View Pendng Volunteer Applications
+                <button id="toggleViewBtn" class="toggleViewBtn">
+                    <i class='bx bx-calendar' style="font-size: 1.2rem;"></i> Switch to Calendar View
+                </button>
+                <button id="viewPendingBtn" class="viewPendingBtn">
+                    <i class='bx bx-show' style="font-size: 1.2rem;"></i> View Pending Volunteer Applications
                 </button>
             </div>
 
-            <div class="table-container">
-                <table id="volunteersTable">
-                    <thead>
-                        <tr>
-                            <th>No.</th>
-                            <th>Full Name</th>
-                            <th>Email</th>
-                            <th>Mobile Number</th>
-                            <th>Age</th>
-                            <th>Social Media</th>
-                            <th>Additional Info</th>
-                            <th>Region</th>
-                            <th>Province</th>
-                            <th>City</th>
-                            <th>Barangay</th>
-                            <th>Scheduled Date</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="volunteersContainer"></tbody>
-                </table>
+            <div id="tableView" class="view-container">
+                <div class="table-container">
+                    <table id="volunteersTable">
+                        <thead>
+                            <tr>
+                                <th>No.</th>
+                                <th>Full Name</th>
+                                <th>Email</th>
+                                <th>Mobile Number</th>
+                                <th>Age</th>
+                                <th>Social Media</th>
+                                <th>Additional Info</th>
+                                <th>General Availability</th>
+                                <th>Time Availability</th>
+                                <th>Region</th>
+                                <th>Province</th>
+                                <th>City</th>
+                                <th>Barangay</th>
+                                <th>Scheduled Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="volunteersContainer"></tbody>
+                    </table>
+                </div>
+                <div class="pagination-info">
+                    <span id="entriesInfo">Showing 0 to 0 of 0 entries</span>
+                    <div id="pagination" class="pagination"></div> 
+                </div> 
             </div>
 
-            <div class="pagination-info">
-                <span id="entriesInfo">Showing 0 to 0 of 0 entries</span>
-                <div id="pagination" class="pagination"></div>
-            </div>   
+            <div id="calendarView" class="view-container" style="display: none;">
+                <div id="volunteerCalendar"></div>
+            </div>
         </div>
     </div>
 
@@ -110,6 +120,8 @@
                 console.error('Error loading sidebar:', error);
             });
     </script>
+
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
 
     <script src="../js/inactivity-detector.js"></script> 
     <script type="module" src="../js/approvedvolunteers.js"></script>

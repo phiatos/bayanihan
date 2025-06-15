@@ -41,13 +41,13 @@ function checkInactivity() {
         reverseButtons: true
     }).then((result) => {
         if (result.isConfirmed) {
-            resetInactivityTimer(); 
+            resetInactivityTimer();
             console.log("User chose to continue session.");
         } else if (result.dismiss === Swal.DismissReason.cancel) {
             // User chose to log out
             auth.signOut().then(() => {
                 console.log("User logged out due to inactivity.");
-                window.location.href = "../pages/login.html"; 
+                window.location.href = "../pages/login.html";
             }).catch((error) => {
                 console.error("Error logging out:", error);
                 Swal.fire('Error', 'Failed to log out. Please try again.', 'error');
@@ -67,20 +67,31 @@ document.addEventListener('DOMContentLoaded', () => {
     const sortSelect = document.getElementById('sortSelect');
     const entriesInfo = document.getElementById('entriesInfo');
     const pagination = document.getElementById('pagination');
-    const viewPendingBtn = document.getElementById('viewApprovedBtn'); 
+
+    // New: View Toggle Elements
+    const toggleViewBtn = document.getElementById('toggleViewBtn'); // The button to switch views
+    const tableView = document.getElementById('tableView');       // Container for the table and pagination
+    const calendarView = document.getElementById('calendarView'); // Container for the calendar
 
     // Modals
     const previewModal = document.getElementById('previewModal');
     const closeModal = document.getElementById('closeModal');
     const modalContent = document.getElementById('modalContent');
 
+    // Renamed for clarity: was viewApprovedBtn, now viewPendingBtn
+    const viewPendingBtn = document.getElementById('viewPendingBtn'); 
+
     let allApprovedApplications = [];
     let filteredApprovedApplications = [];
     let currentPage = 1;
-    const rowsPerPage = 5;
+    const rowsPerPage = 5; // Keep this consistent
+    let currentView = 'table'; // Initial view is table
+
+    // FullCalendar instance variable
+    let calendar;
 
     // Change button text and functionality for this page
-    viewPendingBtn.innerHTML = "<i class='bx bx-show' style='font-size: 1.2rem;'></i>View Pending Volunteer Applications";
+    viewPendingBtn.innerHTML = "<i class='bx bx-show'></i> View Pending Volunteer Applications";
     viewPendingBtn.addEventListener('click', () => {
         window.location.href = '../pages/pendingvolunteers.html';
     });
@@ -150,13 +161,14 @@ document.addEventListener('DOMContentLoaded', () => {
             <h3 style="color: #FA3B99;">Availability</h3>
             <p><strong>General Availability:</strong> ${volunteer.availability?.general || 'N/A'}</p>
             <p><strong>Available Days:</strong> ${volunteer.availability?.specificDays ? volunteer.availability.specificDays.join(', ') : 'N/A'}</p>
+            <p><strong>Time Availability:</strong> ${volunteer.availability?.timeAvailability || 'N/A'}</p>
         `;
         previewModal.style.display = 'flex';
     }
 
     // --- Data Fetching Function ---
     function fetchApprovedVolunteers() {
-        volunteersContainer.innerHTML = '<tr><td colspan="12" style="text-align: center;">Loading approved volunteer applications...</td></tr>';
+        volunteersContainer.innerHTML = '<tr><td colspan="15" style="text-align: center;">Loading approved volunteer applications...</td></tr>';
 
         database.ref('volunteerApplications/approvedVolunteer').on('value', (snapshot) => {
             allApprovedApplications = [];
@@ -170,7 +182,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 console.log("No approved volunteer applications found.");
             }
-            applySearchAndSort();
+            applySearchAndSort(); // This will trigger renderCurrentView() implicitly
         }, (error) => {
             console.error("Error fetching approved volunteers: ", error);
             Swal.fire({
@@ -179,11 +191,30 @@ document.addEventListener('DOMContentLoaded', () => {
                 text: 'Failed to load approved volunteer applications. Please try again later.',
                 confirmButtonText: 'OK'
             });
-            volunteersContainer.innerHTML = '<tr><td colspan="12" style="text-align: center; color: red;">Failed to load data.</td></tr>';
+            volunteersContainer.innerHTML = '<tr><td colspan="15" style="text-align: center; color: red;">Failed to load data.</td></tr>';
         });
     }
 
-    // --- Rendering Function ---
+    // --- View Rendering Logic (New) ---
+    function renderCurrentView() {
+        if (currentView === 'table') {
+            tableView.style.display = 'block';
+            calendarView.style.display = 'none';
+            toggleViewBtn.innerHTML = "<i class='bx bx-calendar'></i>Calendar View";
+            renderApplications(filteredApprovedApplications); // Render table
+            searchInput.style.display = 'block'; 
+            sortSelect.style.display = 'block';
+        } else { // currentView === 'calendar'
+            tableView.style.display = 'none';
+            calendarView.style.display = 'block';
+            toggleViewBtn.innerHTML = "<i class='bx bx-list-ul'></i> Switch to Table View";
+            renderVolunteerCalendar(); // Render calendar
+            searchInput.style.display = 'none'; // Hide search and sort for calendar view
+            sortSelect.style.display = 'none';
+        }
+    }
+
+    // --- Table Rendering Function (Modified to be called by renderCurrentView) ---
     function renderApplications(applicationsToRender) {
         volunteersContainer.innerHTML = '';
         const startIndex = (currentPage - 1) * rowsPerPage;
@@ -191,7 +222,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const paginatedApplications = applicationsToRender.slice(startIndex, endIndex);
 
         if (paginatedApplications.length === 0) {
-            volunteersContainer.innerHTML = '<tr><td colspan="12" style="text-align: center;">No approved volunteer applications found on this page.</td></tr>';
+            volunteersContainer.innerHTML = '<tr><td colspan="15" style="text-align: center;">No approved volunteer applications found on this page.</td></tr>';
             entriesInfo.textContent = 'Showing 0 to 0 of 0 entries';
             renderPagination();
             return;
@@ -205,10 +236,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const fullName = getFullName(volunteer);
             const socialMediaDisplay = volunteer.socialMediaLink ? `<a href="${volunteer.socialMediaLink}" target="_blank" rel="noopener noreferrer">Link</a>` : 'N/A';
-
-            // Display the scheduled date/time if available, otherwise "N/A"
             const scheduledDateTimeDisplay = volunteer.scheduledDateTime ? formatDate(volunteer.scheduledDateTime) : 'N/A';
-            
+
             row.innerHTML = `
                 <td>${i++}</td>
                 <td>${fullName}</td>
@@ -217,6 +246,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${volunteer.age || 'N/A'}</td>
                 <td>${socialMediaDisplay}</td>
                 <td>${volunteer.additionalInfo || 'N/A'}</td>
+                <td>
+                    ${
+                        volunteer.availability && volunteer.availability.general === 'Specific days'
+                        ? `Specific Days: ${volunteer.availability.specificDays ? volunteer.availability.specificDays.join(', ') : 'N/A'}`
+                        : (volunteer.availability?.general || 'N/A')
+                    }
+                </td>
+                <td>${volunteer.availability?.timeAvailability || 'N/A'}</td>
                 <td>${volunteer.address?.region || 'N/A'}</td>
                 <td>${volunteer.address?.province || 'N/A'}</td>
                 <td>${volunteer.address?.city || 'N/A'}</td>
@@ -232,9 +269,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
         updateEntriesInfo(applicationsToRender.length);
         renderPagination(applicationsToRender.length);
+
+        // Add event listeners to the new buttons in the rendered rows
+        volunteersContainer.querySelectorAll('.viewBtn').forEach(button => {
+            button.onclick = () => showPreviewModal(allApprovedApplications.find(v => v.key === button.dataset.key));
+        });
+        volunteersContainer.querySelectorAll('.rescheduleBtn').forEach(button => {
+            button.onclick = (event) => handleRescheduleClick(event.target.closest('button'));
+        });
+        volunteersContainer.querySelectorAll('.archiveBtn').forEach(button => {
+            button.onclick = (event) => handleArchiveClick(event.target.closest('button'));
+        });
     }
 
-    // --- Search and Sort Logic ---
+
+    // --- Search and Sort Logic (Modified to call renderCurrentView) ---
     function applySearchAndSort() {
         let currentApplications = [...allApprovedApplications];
 
@@ -249,7 +298,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 const city = (volunteer.address?.city || '').toLowerCase();
                 const barangay = (volunteer.address?.barangay || '').toLowerCase();
                 const additionalInfo = (volunteer.additionalInfo || '').toLowerCase();
+                const generalAvailability = (volunteer.availability?.general || '').toLowerCase();
+                const specificDays = (volunteer.availability?.specificDays ? volunteer.availability.specificDays.join(', ') : '').toLowerCase();
+                const timeAvailability = (volunteer.availability?.timeAvailability || '').toLowerCase();
                 const scheduledDateTime = (volunteer.scheduledDateTime ? formatDate(volunteer.scheduledDateTime) : '').toLowerCase();
+
 
                 return fullName.includes(searchTerm) ||
                     email.includes(searchTerm) ||
@@ -259,17 +312,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     city.includes(searchTerm) ||
                     barangay.includes(searchTerm) ||
                     additionalInfo.includes(searchTerm) ||
+                    generalAvailability.includes(searchTerm) ||
+                    specificDays.includes(searchTerm) ||
+                    timeAvailability.includes(searchTerm) ||
                     scheduledDateTime.includes(searchTerm);
             });
         }
 
         const sortValue = sortSelect.value;
         if (sortValue) {
-            const [sortBy, order] = sortValue.split('-');
             currentApplications.sort((a, b) => {
                 let valA, valB;
 
-                switch (sortBy) {
+                switch (sortBy) { // `sortBy` is already defined in the outer scope
                     case 'DateTime':
                         valA = new Date(a.scheduledDateTime || a.timestamp || 0).getTime();
                         valB = new Date(b.scheduledDateTime || b.timestamp || 0).getTime();
@@ -287,6 +342,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         valB = parseInt(b.age) || 0;
                         break;
                     default:
+                        // Default sort by name if no specific sort option matches
                         valA = getFullName(a).toLowerCase();
                         valB = getFullName(b).toLowerCase();
                         break;
@@ -302,10 +358,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         filteredApprovedApplications = currentApplications;
         currentPage = 1;
-        renderApplications(filteredApprovedApplications);
+        renderCurrentView(); // Call the main render function
     }
 
-    // --- Pagination Functions ---
+    // --- Pagination Functions (No changes needed, as renderApplications handles pagination) ---
     function renderPagination() {
         pagination.innerHTML = '';
         const totalPages = Math.ceil(filteredApprovedApplications.length / rowsPerPage);
@@ -368,150 +424,281 @@ document.addEventListener('DOMContentLoaded', () => {
         entriesInfo.textContent = `Showing ${totalItems ? startIndex + 1 : 0} to ${endIndex} of ${totalItems} entries`;
     }
 
-    // --- Event Listener for View, Reschedule, and Archive Buttons ---
+    // --- FullCalendar Initialization and Rendering (New) ---
+    function renderVolunteerCalendar() {
+        const calendarEl = document.getElementById('volunteerCalendar');
+        
+        // Destroy existing calendar instance to prevent duplicates if function is called multiple times
+        if (calendar) {
+            calendar.destroy();
+        }
+
+        // Prepare events for FullCalendar
+        const events = filteredApprovedApplications
+            .filter(v => v.scheduledDateTime) // Only include volunteers with a scheduled date
+            .map(volunteer => {
+                // Assuming scheduledDateTime is a timestamp
+                const scheduledDate = new Date(volunteer.scheduledDateTime);
+                
+                // Parse time availability for start and end times
+                let startTime = '09:00:00'; // Default start time
+                let endTime = '17:00:00';   // Default end time
+
+                if (volunteer.availability?.timeAvailability) {
+                    const timeParts = volunteer.availability.timeAvailability.split(' - ');
+                    if (timeParts.length === 2) {
+                        startTime = formatTimeTo24Hr(timeParts[0]);
+                        endTime = formatTimeTo24Hr(timeParts[1]);
+                    }
+                }
+
+                // Construct ISO string for FullCalendar
+                const startISO = `${scheduledDate.getFullYear()}-${(scheduledDate.getMonth() + 1).toString().padStart(2, '0')}-${scheduledDate.getDate().toString().padStart(2, '0')}T${startTime}`;
+                const endISO = `${scheduledDate.getFullYear()}-${(scheduledDate.getMonth() + 1).toString().padStart(2, '0')}-${scheduledDate.getDate().toString().padStart(2, '0')}T${endTime}`;
+
+                return {
+                    title: getFullName(volunteer),
+                    start: startISO,
+                    end: endISO, // FullCalendar uses 'end' as exclusive, so this might need adjustment depending on your exact needs.
+                    id: volunteer.key,
+                    extendedProps: volunteer // Store full volunteer data for modal display
+                };
+            });
+
+        calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth', // Default view when calendar loads
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,timeGridDay' // Allows switching between month, week, day views
+            },
+            events: events,
+            eventClick: function(info) {
+                // Open modal when an event is clicked
+                showPreviewModal(info.event.extendedProps);
+            },
+            eventDidMount: function(info) {
+                // Optional: You can add custom styling or elements to events here
+                // For example, adding an icon or a tooltip
+            },
+            noEventsContent: {
+                html: '<p style="text-align: center; color: #777;">No approved volunteer schedules for this period.</p>'
+            },
+            // Enable resizing and dragging if you want to allow changing schedules directly on calendar
+            // eventResizableFromStart: true,
+            // eventDurationEditable: true,
+            // editable: true,
+            // eventDrop: function(info) {
+            //     // Handle event drop (drag-and-drop reschedule)
+            //     // You would update Firebase here: info.event.id is volunteer.key
+            //     // info.event.start and info.event.end are the new dates
+            //     Swal.fire({
+            //         title: 'Update Schedule?',
+            //         text: `Move ${info.event.title} to ${formatDate(info.event.start.getTime())}?`,
+            //         icon: 'question',
+            //         showCancelButton: true,
+            //         confirmButtonText: 'Yes, update!',
+            //         cancelButtonText: 'No'
+            //     }).then(async (result) => {
+            //         if (result.isConfirmed) {
+            //             try {
+            //                 const newTimestamp = info.event.start.getTime();
+            //                 const volunteerRef = database.ref(`volunteerApplications/approvedVolunteer/${info.event.id}`);
+            //                 await volunteerRef.update({ scheduledDateTime: newTimestamp });
+            //                 Swal.fire('Updated!', 'Schedule updated successfully.', 'success');
+            //             } catch (error) {
+            //                 console.error("Error updating schedule from calendar: ", error);
+            //                 Swal.fire('Error!', 'Failed to update schedule.', 'error');
+            //                 info.revert(); // Revert the event's position on the calendar
+            //             }
+            //         } else {
+            //             info.revert(); // Revert the event's position on the calendar
+            //         }
+            //     });
+            // },
+            // eventResize: function(info) {
+            //     // Handle event resize (change duration)
+            //     // Similar to eventDrop, update Firebase with new start/end times
+            // }
+        });
+        calendar.render();
+    }
+
+    // Helper to convert AM/PM time (e.g., "9:00 AM", "1:30 PM") to 24-hour format (e.g., "09:00:00", "13:30:00")
+    function formatTimeTo24Hr(timeStr) {
+        if (!timeStr) return "00:00:00"; // Default if no time string
+
+        let [time, period] = timeStr.split(' ');
+        let [hours, minutes] = time.split(':');
+        hours = parseInt(hours);
+
+        if (period && period.toLowerCase() === 'pm' && hours < 12) {
+            hours += 12;
+        } else if (period && period.toLowerCase() === 'am' && hours === 12) {
+            hours = 0; // 12 AM is 00:00 in 24hr format
+        }
+        return `${String(hours).padStart(2, '0')}:${minutes.padStart(2, '0')}:00`;
+    }
+
+    // --- Event Listeners ---
+    searchInput.addEventListener('keyup', applySearchAndSort);
+    sortSelect.addEventListener('change', applySearchAndSort);
+
+    // New: Toggle View Button Event Listener
+    toggleViewBtn.addEventListener('click', () => {
+        currentView = currentView === 'table' ? 'calendar' : 'table';
+        applySearchAndSort(); // Re-apply search/sort and then render the correct view
+    });
+
+    // Delegated event listener for action buttons (View, Reschedule, Archive)
+    // This is better than attaching to each button individually inside renderApplications
     volunteersContainer.addEventListener('click', async (event) => {
         const target = event.target;
+        
         const viewButton = target.closest('.viewBtn');
-        const rescheduleButton = target.closest('.rescheduleBtn'); // New reschedule button
+        const rescheduleButton = target.closest('.rescheduleBtn');
         const archiveButton = target.closest('.archiveBtn');
 
         if (viewButton) {
-            const volunteerKey = viewButton.dataset.key;
-            const volunteer = allApprovedApplications.find(v => v.key === volunteerKey);
-            if (volunteer) {
-                showPreviewModal(volunteer);
-            } else {
-                console.warn("Volunteer data not found for key:", volunteerKey);
-                Swal.fire('Error', 'Volunteer data not found.', 'error');
-            }
-        } else if (rescheduleButton) { // Handle reschedule button click
-            const volunteerKey = rescheduleButton.dataset.key;
-            const volunteer = allApprovedApplications.find(v => v.key === volunteerKey);
-
-            if (!volunteer) {
-                console.warn("Volunteer data not found for rescheduling:", volunteerKey);
-                Swal.fire('Error', 'Volunteer data not found for rescheduling.', 'error');
-                return;
-            }
-
-            const currentScheduledDateTime = volunteer.scheduledDateTime ? formatToDatetimeLocal(volunteer.scheduledDateTime) : '';
-
-            Swal.fire({
-                title: `Reschedule ${getFullName(volunteer)}`,
-                html: `
-                    <label for="swal-input-datetime">New Scheduled Date & Time:</label>
-                    <input type="datetime-local" id="swal-input-datetime" class="swal2-input" value="${currentScheduledDateTime}">
-                `,
-                focusConfirm: false,
-                showCancelButton: true,
-                confirmButtonText: 'Save Reschedule',
-                cancelButtonText: 'Cancel',
-                preConfirm: () => {
-                    const newDateTimeString = document.getElementById('swal-input-datetime').value;
-                    if (!newDateTimeString) {
-                        Swal.showValidationMessage('Please select a date and time.');
-                        return false;
-                    }
-                    const newTimestamp = new Date(newDateTimeString).getTime();
-                    if (isNaN(newTimestamp)) {
-                        Swal.showValidationMessage('Invalid date and time format.');
-                        return false;
-                    }
-
-                     // --- Check for past dates ---
-                    const currentDateTime = Date.now(); 
-                    if (newTimestamp < currentDateTime) {
-                        Swal.showValidationMessage('Scheduled date and time cannot be in the past.');
-                        return false;
-                    }
-
-                    return newTimestamp;
-                }
-            }).then(async (result) => {
-                if (result.isConfirmed) {
-                    const newTimestamp = result.value;
-                    try {
-                        const volunteerRef = database.ref(`volunteerApplications/approvedVolunteer/${volunteerKey}`);
-                        await volunteerRef.update({ scheduledDateTime: newTimestamp });
-
-                        Swal.fire(
-                            'Rescheduled!',
-                            `${getFullName(volunteer)}'s schedule has been updated to ${formatDate(newTimestamp)}.`,
-                            'success'
-                        );
-                        // The .on('value') listener in fetchApprovedVolunteers will automatically update the table.
-                    } catch (error) {
-                        console.error("Error rescheduling volunteer: ", error);
-                        Swal.fire(
-                            'Error!',
-                            `Failed to reschedule volunteer: ${error.message}`,
-                            'error'
-                        );
-                    }
-                }
-            });
-
+            handleViewClick(viewButton);
+        } else if (rescheduleButton) {
+            handleRescheduleClick(rescheduleButton);
         } else if (archiveButton) {
-            const volunteerKey = archiveButton.dataset.key;
-            const volunteer = allApprovedApplications.find(v => v.key === volunteerKey);
-
-            if (!volunteer) {
-                console.warn("Volunteer data not found for archiving:", volunteerKey);
-                Swal.fire('Error', 'Volunteer data not found for archiving.', 'error');
-                return;
-            }
-
-            Swal.fire({
-                title: 'Are you sure?',
-                text: `You are about to archive the application for ${getFullName(volunteer)}. This action cannot be undone.`,
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#d33',
-                cancelButtonColor: '#3085d6',
-                confirmButtonText: 'Yes, archive it!',
-                cancelButtonText: 'Cancel'
-            }).then(async (result) => {
-                if (result.isConfirmed) {
-                    try {
-                        // 1. Get a snapshot of the approved volunteer data
-                        const approvedVolunteerRef = database.ref(`volunteerApplications/approvedVolunteer/${volunteerKey}`);
-                        const snapshot = await approvedVolunteerRef.once('value');
-                        const volunteerToArchive = snapshot.val();
-
-                        if (!volunteerToArchive) {
-                            Swal.fire('Error', 'Volunteer data not found in approved applications.', 'error');
-                            return;
-                        }
-
-                        // Add timestamp for when it was archived
-                        volunteerToArchive.archivedAt = firebase.database.ServerValue.TIMESTAMP;
-
-                        // 2. Write the data to the 'deletedApprovedVolunteerApplications' node
-                        const deletedApprovedRef = database.ref(`deletedApprovedVolunteerApplications/${volunteerKey}`);
-                        await deletedApprovedRef.set(volunteerToArchive);
-
-                        // 3. Remove the data from the 'approvedVolunteer' node
-                        await approvedVolunteerRef.remove();
-
-                        Swal.fire(
-                            'Archived!',
-                            `${getFullName(volunteer)}'s application has been archived.`,
-                            'success'
-                        );
-                        // Data will automatically re-fetch due to .on('value') listener
-                        // in fetchApprovedVolunteers, so no manual re-render needed.
-                    } catch (error) {
-                        console.error("Error archiving volunteer application: ", error);
-                        Swal.fire(
-                            'Error!',
-                            `Failed to archive application: ${error.message}`,
-                            'error'
-                        );
-                    }
-                }
-            });
+            handleArchiveClick(archiveButton);
         }
     });
+
+    // Helper functions for delegated events
+    function handleViewClick(button) {
+        const volunteerKey = button.dataset.key;
+        const volunteer = allApprovedApplications.find(v => v.key === volunteerKey);
+        if (volunteer) {
+            showPreviewModal(volunteer);
+        } else {
+            console.warn("Volunteer data not found for key:", volunteerKey);
+            Swal.fire('Error', 'Volunteer data not found.', 'error');
+        }
+    }
+
+    async function handleRescheduleClick(button) {
+        const volunteerKey = button.dataset.key;
+        const volunteer = allApprovedApplications.find(v => v.key === volunteerKey);
+
+        if (!volunteer) {
+            console.warn("Volunteer data not found for rescheduling:", volunteerKey);
+            Swal.fire('Error', 'Volunteer data not found for rescheduling.', 'error');
+            return;
+        }
+
+        const currentScheduledDateTime = volunteer.scheduledDateTime ? formatToDatetimeLocal(volunteer.scheduledDateTime) : '';
+
+        Swal.fire({
+            title: `Reschedule ${getFullName(volunteer)}`,
+            html: `
+                <label for="swal-input-datetime" style="display:block; margin-bottom: 5px; font-weight: bold;">New Scheduled Date & Time:</label>
+                <input type="datetime-local" id="swal-input-datetime" class="swal2-input" value="${currentScheduledDateTime}">
+            `,
+            focusConfirm: false,
+            showCancelButton: true,
+            confirmButtonText: 'Save Reschedule',
+            cancelButtonText: 'Cancel',
+            preConfirm: () => {
+                const newDateTimeString = document.getElementById('swal-input-datetime').value;
+                if (!newDateTimeString) {
+                    Swal.showValidationMessage('Please select a date and time.');
+                    return false;
+                }
+                const newTimestamp = new Date(newDateTimeString).getTime();
+                if (isNaN(newTimestamp)) {
+                    Swal.showValidationMessage('Invalid date and time format.');
+                    return false;
+                }
+
+                const currentDateTime = Date.now();
+                if (newTimestamp < currentDateTime) {
+                    Swal.showValidationMessage('Scheduled date and time cannot be in the past.');
+                    return false;
+                }
+
+                return newTimestamp;
+            }
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                const newTimestamp = result.value;
+                try {
+                    const volunteerRef = database.ref(`volunteerApplications/approvedVolunteer/${volunteerKey}`);
+                    await volunteerRef.update({ scheduledDateTime: newTimestamp });
+
+                    Swal.fire(
+                        'Rescheduled!',
+                        `${getFullName(volunteer)}'s schedule has been updated to ${formatDate(newTimestamp)}.`,
+                        'success'
+                    );
+                } catch (error) {
+                    console.error("Error rescheduling volunteer: ", error);
+                    Swal.fire(
+                        'Error!',
+                        `Failed to reschedule volunteer: ${error.message}`,
+                        'error'
+                    );
+                }
+            }
+        });
+    }
+
+    async function handleArchiveClick(button) {
+        const volunteerKey = button.dataset.key;
+        const volunteer = allApprovedApplications.find(v => v.key === volunteerKey);
+
+        if (!volunteer) {
+            console.warn("Volunteer data not found for archiving:", volunteerKey);
+            Swal.fire('Error', 'Volunteer data not found for archiving.', 'error');
+            return;
+        }
+
+        Swal.fire({
+            title: 'Are you sure?',
+            text: `You are about to archive the application for ${getFullName(volunteer)}. This action cannot be undone.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, archive it!',
+            cancelButtonText: 'Cancel'
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                try {
+                    const approvedVolunteerRef = database.ref(`volunteerApplications/approvedVolunteer/${volunteerKey}`);
+                    const snapshot = await approvedVolunteerRef.once('value');
+                    const volunteerToArchive = snapshot.val();
+
+                    if (!volunteerToArchive) {
+                        Swal.fire('Error', 'Volunteer data not found in approved applications.', 'error');
+                        return;
+                    }
+
+                    volunteerToArchive.archivedAt = firebase.database.ServerValue.TIMESTAMP;
+
+                    const deletedApprovedRef = database.ref(`deletedApprovedVolunteerApplications/${volunteerKey}`);
+                    await deletedApprovedRef.set(volunteerToArchive);
+                    await approvedVolunteerRef.remove();
+
+                    Swal.fire(
+                        'Archived!',
+                        `${getFullName(volunteer)}'s application has been archived.`,
+                        'success'
+                    );
+                } catch (error) {
+                    console.error("Error archiving volunteer application: ", error);
+                    Swal.fire(
+                        'Error!',
+                        `Failed to archive application: ${error.message}`,
+                        'error'
+                    );
+                }
+            }
+        });
+    }
 
     // Initial fetch of approved volunteers when the page loads
     fetchApprovedVolunteers();

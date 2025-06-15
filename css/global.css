@@ -268,7 +268,7 @@ tr {
 }
 
 
-.pdf-button, .excel-button {
+.pdf-button, .excel-button, .toggleViewBtn, .viewPendingBtn {
   width: fit-content;
   background-color: #14AEBB;
   color: #fff;
@@ -286,20 +286,16 @@ tr {
   transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.pdf-button:hover, .excel-button:hover {
+.pdf-button:hover, .excel-button:hover, .toggleViewBtn:hover, .viewPendingBtn:hover {
   background-color: #0C747C;
   transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
-.pdf-button i, .excel-button i {
+.pdf-button i, .excel-button i, .toggleViewBtn i, .viewPendingBtn i {
   font-size: 1.1rem;
   margin-right: 8px;
 }
-
-
-
-
 /* ==========================================================================
  Modal
 ========================================================================== */
@@ -1358,6 +1354,21 @@ label:has(+ textarea[required])::after {
   flex-wrap: wrap;
 }
 
+/* pendinginkind and monetary */
+.my-confirm-button-class {
+  width: 150px !important; /* Example width */
+}
+
+.my-cancel-button-class {
+  width: 120px !important; /* Example width */
+}
+
+.my-custom-swal-popup {
+  margin-bottom: 10px !important; 
+  margin-top: 5px !important;
+  text-align: center;
+}
+
 /*Responsiveness*/
 
 @media (max-width: 768px) {
@@ -1414,8 +1425,7 @@ label:has(+ textarea[required])::after {
     width: 100%;
   }
 
-  .pdf-button,
-  .excel-button, 
+  .pdf-button, .excel-button, .toggleViewBtn, .viewPendingBtn
   #addDonationBtn,
   #nextBtn,
   #clearFormBtn {

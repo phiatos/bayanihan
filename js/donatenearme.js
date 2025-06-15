@@ -279,9 +279,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Number Input Validation (11 digits, starts with 09) ---
     const validatePhoneNumber = (inputElement) => {
-        // Only allow digits and handle auto-09 prefix on initial type
         inputElement.addEventListener('input', () => {
-            let value = inputElement.value.replace(/\D/g, ''); // Remove non-digits
+            let value = inputElement.value.replace(/\D/g, ''); 
             
             // Auto-prefix with 09 if the first digit is 9 (common for mobile numbers)
             if (value.length === 1 && value.charAt(0) === '9') {
@@ -365,7 +364,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const inKindDonorType = document.getElementById('inKindDonorType').value;
             const inKindDonorAddress = document.getElementById('inKindDonorAddress').value;
             const inKindContactPerson = document.getElementById('inKindContactPerson').value;
-            const inKindContactNumber = document.getElementById('inKindContactNumber').value; // Validated
+            const inKindContactNumber = document.getElementById('inKindContactNumber').value; 
             const inKindDonorEmail = document.getElementById('inKindDonorEmail').value;
             const itemType = document.getElementById('itemType').value;
             const value = document.getElementById('value').value;
@@ -381,6 +380,34 @@ document.addEventListener('DOMContentLoaded', () => {
                     text: 'Please fill in all required fields for In Kind Donation (Donor Name, Type of Assistance, Valuation, and Donation Date).'
                 });
                 return;
+            }
+
+            // --- Value Input Validation ---
+            const parsedValue = parseFloat(value); 
+
+            if (isNaN(parsedValue) || parsedValue <= 0) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Invalid Valuation',
+                    text: 'Please enter a valid positive number for Valuation.'
+                });
+                return;
+            }
+
+            // checks future date validation
+            const today = new Date();
+            today.setHours(0, 0, 0, 0); 
+
+            const selectedInKindDate = new Date(donationDate);
+            selectedInKindDate.setHours(0, 0, 0, 0);
+
+            if (selectedInKindDate > today) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Invalid Date',
+                    text: 'Donation Date cannot be a future date.'
+                });
+                return; 
             }
 
             // Validate inKindContactNumber again for submission
@@ -407,7 +434,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 number: inKindContactNumber,
                 email: inKindDonorEmail,
                 assistance: itemType,
-                valuation: parseFloat(value) || 0,
+                valuation: parsedValue,
                 additionalnotes: description,
                 status: status || 'pending',
                 staffIncharge: staffIncharge,
@@ -522,7 +549,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const bank = document.getElementById('bank').value; // Dropdown value
             const proofofTransferFile = document.getElementById('proofofTransfer').value;
 
-
             console.log("Collected values:", {
                 monetaryEncoder, monetaryDonorName, monetaryLocation, monetaryNumber,
                 amountDonated, cashInvoice, monetaryDonationDate, monetaryEmail, bank,
@@ -537,6 +563,34 @@ document.addEventListener('DOMContentLoaded', () => {
                     text: 'Please fill in all required fields for Monetary Donation (Name/Company, Amount Donated, and Date Received).'
                 });
                 return;
+            }
+
+            // --- Amount Donated Input Validation ---
+            const parsedAmount = parseFloat(amountDonated);
+
+            if (isNaN(parsedAmount) || parsedAmount <= 0) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Invalid Amount Donated',
+                    text: 'Please enter a valid positive number for Amount Donated.'
+                });
+                return;
+            }
+
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            const selectedMonetaryDate = new Date(monetaryDonationDate);
+            selectedMonetaryDate.setHours(0, 0, 0, 0); 
+
+            if (selectedMonetaryDate > today) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Invalid Date',
+                    title: 'Invalid Date',
+                    text: 'Date Received cannot be a future date.'
+                });
+                return; 
             }
 
             // Validate monetaryNumber again for submission
@@ -559,7 +613,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 name: monetaryDonorName,
                 address: monetaryLocation,
                 number: monetaryNumber,
-                amountDonated: parseFloat(amountDonated) || 0,
+                amountDonated: parsedAmount,
                 invoice: cashInvoice,
                 dateReceived: monetaryDonationDate,
                 email: monetaryEmail,
