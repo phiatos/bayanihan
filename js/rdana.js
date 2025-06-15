@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const database = firebase.database();
   const auth = firebase.auth();
 
-  // Form data variables (declared in higher scope to persist across event listeners)
+  // Form data variables
   let profileData = {};
   let affectedCommunities = [];
   let needsChecklist = [];
@@ -27,8 +27,9 @@ document.addEventListener('DOMContentLoaded', () => {
   let responseGroup = "";
   let reliefDeployed = "";
   let familiesServed = "";
-  let currentUserGroupName = '';  
-  let currentUserUid = '';        
+  let currentUserGroupName = '';
+  let currentUserUid = '';
+  let canSubmit = false; // NEW: Flag to control submission eligibility
 
   const submittedReportsContainer = document.getElementById("submittedReportsContainer");
   const paginationContainer = document.getElementById("pagination");
@@ -39,211 +40,243 @@ document.addEventListener('DOMContentLoaded', () => {
   // Helper function to sanitize keys for Firebase
   function sanitizeKey(key) {
     return key
-      .replace(/[.#$/[\]]/g, '_') 
-      .replace(/\s+/g, '_') 
-      .replace(/[^a-zA-Z0-9_]/g, ''); 
+      .replace(/[.#$/[\]]/g, '_')
+      .replace(/\s+/g, '_')
+      .replace(/[^a-zA-Z0-9_]/g, '');
   }
 
   // Variables for inactivity detection --------------------------------------------------------------------
 let inactivityTimeout;
 const INACTIVITY_TIME = 1800000; // 30 minutes in milliseconds
 
-// Function to reset the inactivity timer
-function resetInactivityTimer() {
+  // Function to reset the inactivity timer
+  function resetInactivityTimer() {
     clearTimeout(inactivityTimeout);
     inactivityTimeout = setTimeout(checkInactivity, INACTIVITY_TIME);
     console.log("Inactivity timer reset.");
-}
+  }
 
-// Function to check for inactivity and prompt the user
-function checkInactivity() {
+  // Function to check for inactivity and prompt the user
+  function checkInactivity() {
     Swal.fire({
-        title: 'Are you still there?',
-        text: 'You\'ve been inactive for a while. Do you want to continue your session or log out?',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33',
-        confirmButtonText: 'Stay Login',
-        cancelButtonText: 'Log Out',
-        allowOutsideClick: false,
-        reverseButtons: true
+      title: 'Are you still there?',
+      text: 'You\'ve been inactive for a while. Do you want to continue your session or log out?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Stay Login',
+      cancelButtonText: 'Log Out',
+      allowOutsideClick: false,
+      reverseButtons: true
     }).then((result) => {
-        if (result.isConfirmed) {
-            resetInactivityTimer(); // User chose to continue, reset the timer
-            console.log("User chose to continue session.");
-        } else if (result.dismiss === Swal.DismissReason.cancel) {
-            // User chose to log out
-            auth.signOut().then(() => {
-                console.log("User logged out due to inactivity.");
-                window.location.href = "../pages/login.html"; // Redirect to login page
-            }).catch((error) => {
-                console.error("Error logging out:", error);
-                Swal.fire('Error', 'Failed to log out. Please try again.', 'error');
-            });
-        }
+      if (result.isConfirmed) {
+        resetInactivityTimer();
+        console.log("User chose to continue session.");
+      } else if (result.dismiss === Swal.DismissReason.cancel) {
+        auth.signOut().then(() => {
+          console.log("User logged out due to inactivity.");
+          window.location.href = "../pages/login.html";
+        }).catch((error) => {
+          console.error("Error logging out:", error);
+          Swal.fire('Error', 'Failed to log out. Please try again.', 'error');
+        });
+      }
     });
-}
+  }
 
-// Attach event listeners to detect user activity
-['mousemove', 'keydown', 'scroll', 'click'].forEach(eventType => {
+  // Attach event listeners to detect user activity
+  ['mousemove', 'keydown', 'scroll', 'click'].forEach(eventType => {
     document.addEventListener(eventType, resetInactivityTimer);
-});
+  });
 
-
-  // Check if user is authenticated
-  // auth.onAuthStateChanged(user => {
-  //   if (!user) {
-  //     Swal.fire({
-  //       icon: 'error',
-  //       title: 'Authentication Required',
-  //       text: 'Please sign in to access RDANA reports.',
-  //     }).then(() => {
-  //       window.location.href = "../pages/login.html";
-  //     });
-  //     return;
-  //   }
-
-  //   console.log('Logged-in user UID:', user.uid);
-  //   currentUserUid = user.uid;
-
-  //   const volunteerGroup = JSON.parse(localStorage.getItem('loggedInVolunteerGroup'));
-  //   currentUserGroupName = volunteerGroup?.organization || 'Unknown Group';
-
-  //   console.log('Current logged-in user group:', currentUserGroupName);
-
-  //   if (submittedReportsContainer && paginationContainer && entriesInfo && searchInput && sortSelect) {
-  //     loadSubmittedReports(user.uid);
-  //   }
-  // });
-  auth.onAuthStateChanged(async user => { // Added 'async' here
+  // Check if user is authenticated and determine submission eligibility
+  auth.onAuthStateChanged(async user => {
     if (!user) {
       Swal.fire({
         icon: 'error',
         title: 'Authentication Required',
         text: 'Please sign in to access RDANA reports.',
       }).then(() => {
-        window.location.href = "../pages/login.html"; // Use href here as they are not yet authenticated for the target page
+        window.location.href = "../pages/login.html";
       });
-      
       return;
     }
 
     resetInactivityTimer();
-
     console.log('Logged-in user UID:', user.uid);
     currentUserUid = user.uid;
 
-    const profilePage = 'profile.html'; // Define your profile page path
+    const profilePage = 'profile.html';
 
     try {
-        // Fetch user data from the database to check password_needs_reset status
-        const userSnapshot = await database.ref(`users/${user.uid}`).once("value");
-        const userDataFromDb = userSnapshot.val();
-        const passwordNeedsReset = userDataFromDb ? (userDataFromDb.password_needs_reset || false) : false;
+      // Fetch user data from the database
+      const userSnapshot = await database.ref(`users/${user.uid}`).once("value");
+      const userDataFromDb = userSnapshot.val();
 
-        if (passwordNeedsReset) {
-            console.log(`Password change required for user ${user.uid}. Redirecting to profile page.`);
-            Swal.fire({
-                icon: 'info',
-                title: 'Password Change Required',
-                text: 'For security reasons, please change your password. You will be redirected to your profile.',
-                allowOutsideClick: false,
-                allowEscapeKey: false,
-                showConfirmButton: false,
-                timer: 2000,
-                timerProgressBar: true
-            }).then(() => {
-                window.location.replace(`../pages/${profilePage}`); // Use replace to prevent back button
-            });
-            return; // IMPORTANT: Stop further execution if password reset is needed
-        }
-
-        // If password does NOT need reset, proceed with normal logic
-        const volunteerGroup = JSON.parse(localStorage.getItem('loggedInVolunteerGroup'));
-        currentUserGroupName = volunteerGroup?.organization || 'Unknown Group';
-
-        console.log('Current logged-in user group:', currentUserGroupName);
-
-        if (submittedReportsContainer && paginationContainer && entriesInfo && searchInput && sortSelect) {
-            loadSubmittedReports(user.uid);
-        }
-    } catch (error) {
-        console.error("Error checking password reset status or fetching user data:", error);
+      if (!userDataFromDb) {
+        console.error('User data not found for UID:', user.uid);
         Swal.fire({
-            icon: 'error',
-            title: 'Authentication Error',
-            text: 'Failed to verify account status. Please try logging in again.',
+          icon: 'error',
+          title: 'User Data Missing',
+          text: 'Your user profile is incomplete. Please contact support.',
         }).then(() => {
-            window.location.replace('../pages/login.html'); // Redirect to login on error
+          window.location.href = "../pages/login.html";
         });
         return;
+      }
+
+      // Password reset check
+      const passwordNeedsReset = userDataFromDb.password_needs_reset || false;
+      if (passwordNeedsReset) {
+        console.log(`Password change required for user ${user.uid}. Redirecting to profile page.`);
+        Swal.fire({
+          icon: 'info',
+          title: 'Password Change Required',
+          text: 'For security reasons, please change your password. You will be redirected to your profile.',
+          allowOutsideClick: false,
+          allowEscapeKey: false,
+          showConfirmButton: false,
+          timer: 2000,
+          timerProgressBar: true
+        }).then(() => {
+          window.location.replace(`../pages/${profilePage}`);
+        });
+        return;
+      }
+
+      // Get user role and organization
+      const currentUserRole = userDataFromDb.role;
+      currentUserGroupName = userDataFromDb.organization || 'Unknown Group';
+      console.log('User Role:', currentUserRole, 'Organization:', currentUserGroupName);
+
+      // NEW: Role-based submission eligibility check
+      const submitBtn = document.getElementById("submitReportBtn");
+      if (currentUserRole === 'AB ADMIN') {
+        console.log('AB ADMIN role detected. Submission allowed.');
+        canSubmit = true;
+        if (submitBtn) submitBtn.disabled = false; // Ensure button is enabled
+      } else if (currentUserRole === 'ABVN') {
+        console.log('ABVN role detected. Checking organization activations.');
+        if (currentUserGroupName === 'Unknown Group') {
+          console.warn('ABVN user has no organization assigned.');
+          Swal.fire({
+            icon: 'warning',
+            title: 'Organization Not Assigned',
+            text: 'Your account is not associated with an organization. Redirecting to dashboard.',
+          }).then(() => {
+            window.location.href = '../pages/dashboard.html';
+          });
+          return;
+        }
+
+        // Check for active activations
+        const organizationActivationsSnapshot = await database.ref("activations")
+          .orderByChild("organization")
+          .equalTo(currentUserGroupName)
+          .once('value');
+
+        let organizationHasActiveActivations = false;
+        organizationActivationsSnapshot.forEach(childSnapshot => {
+          if (childSnapshot.val().status === "active") {
+            organizationHasActiveActivations = true;
+            return true; // Exit loop early
+          }
+        });
+
+        if (organizationHasActiveActivations) {
+          console.log(`Organization "${currentUserGroupName}" has active operations. Submission allowed.`);
+          canSubmit = true;
+          if (submitBtn) submitBtn.disabled = false;
+        } else {
+          console.warn(`Organization "${currentUserGroupName}" has no active operations. Submission disabled.`);
+          canSubmit = false;
+          if (submitBtn) {
+            submitBtn.disabled = true; // Disable submit button
+            Swal.fire({
+              icon: 'warning',
+              title: 'Inactive Organization',
+              text: 'Your organization has no active operations. You cannot submit reports at this time.',
+              timer: 3000,
+              didClose: () => {
+                window.location.href = '../pages/dashboard.html';
+              }
+            });
+          }
+        }
+      } else {
+        console.warn(`Unsupported role: ${currentUserRole}. Submission disabled.`);
+        canSubmit = false;
+        if (submitBtn) submitBtn.disabled = true;
+        Swal.fire({
+          icon: 'error',
+          title: 'Unauthorized Access',
+          text: 'Your role does not permit report submission. Redirecting to dashboard.',
+        }).then(() => {
+          window.location.href = '../pages/dashboard.html';
+        });
+        return;
+      }
+
+      // Load reports if elements exist
+      if (submittedReportsContainer && paginationContainer && entriesInfo && searchInput && sortSelect) {
+        loadSubmittedReports(user.uid);
+      }
+    } catch (error) {
+      console.error("Error checking user data or activations:", error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Authentication Error',
+        text: 'Failed to verify account status. Please try logging in again.',
+      }).then(() => {
+        window.location.href = '../pages/login.html';
+      });
     }
   });
-
-//   // Keep the rest of your RDANA functions here (e.g., loadSubmittedReports, renderTable, applyFiltersAndSort, etc.)
-//   // For brevity, these are omitted in this response but should remain in your file.
-//   // ... (Your existing RDANA functions like loadSubmittedReports, renderTable, etc.) ...
-// });
 
   // Input Validations
- function validatePageInputs(pageSelector) {
-  const inputs = document.querySelectorAll(`${pageSelector} input[required], ${pageSelector} select[required], ${pageSelector} textarea[required]`);
-  let isValid = true;
+  function validatePageInputs(pageSelector) {
+    const inputs = document.querySelectorAll(`${pageSelector} input[required], ${pageSelector} select[required], ${pageSelector} textarea[required]`);
+    let isValid = true;
 
-  inputs.forEach(input => {
-    const errorMessage = input.nextElementSibling;
-    if (!input.value.trim()) {
-      isValid = false;
-      input.classList.add("input-error");
-      if (errorMessage && errorMessage.classList.contains("error-message")) {
-        errorMessage.textContent = "This field is required.";
-        errorMessage.style.display = "block";
+    inputs.forEach(input => {
+      const errorMessage = input.nextElementSibling;
+      if (!input.value.trim()) {
+        isValid = false;
+        input.classList.add("input-error");
+        if (errorMessage && errorMessage.classList.contains("error-message")) {
+          errorMessage.textContent = "This field is required.";
+          errorMessage.style.display = "block";
+        }
+      } else {
+        input.classList.remove("input-error");
+        if (errorMessage && errorMessage.classList.contains("error-message")) {
+          errorMessage.style.display = "none";
+        }
       }
-    } else {
-      input.classList.remove("input-error");
-      if (errorMessage && errorMessage.classList.contains("error-message")) {
-        errorMessage.style.display = "none";
-      }
-    }
-  });
+    });
 
-  return isValid;
-}
-
+    return isValid;
+  }
 
   // Input validation for text fields
   document.querySelectorAll('input[type="text"]').forEach(input => {
     input.addEventListener('input', function () {
-      // Capitalize first letter
       this.value = this.value.charAt(0).toUpperCase() + this.value.slice(1);
-
-      // Allow only alphabets for names
       if (this.placeholder.includes('Name') || this.placeholder.includes('Organization')) {
-        this.value = this.value.replace(/[^a-zA-Z\s,-]/g, ''); // Only letters and spaces
+        this.value = this.value.replace(/[^a-zA-Z\s,-]/g, '');
       }
-
-      // For Barangay (Letters & Numbers)
-      if (this.id === 'affectedBarangayInput'){
-        this.value = this.value.replace(/[^a-zA-Z0-9\s,-]/g, ''); // Alphanumeric, spaces, commas
+      if (this.id === 'affectedBarangayInput') {
+        this.value = this.value.replace(/[^a-zA-Z0-9\s,-]/g, '');
+      } else if (this.placeholder.includes('Name') || this.placeholder.includes('Organization') || (this.id === 'OthersInput')) {
+        this.value = this.value.replace(/[^a-zA-Z\s,-]/g, '');
+      } else if (this.placeholder.includes('City/Municipality') || this.placeholder.includes('Province') || this.placeholder.includes('Relief Assistance') || this.placeholder.includes('Items') || this.placeholder.includes('Barangay')) {
+        this.value = this.value.replace(/[^a-zA-Z\s,-]/g, '');
+      } else {
+        this.value = this.value.replace(/[^a-zA-Z\s]/g, '');
       }
-      else if (this.placeholder.includes('Name') || this.placeholder.includes('Organization') || (this.id === 'OthersInput') ) {
-      // For Name and Organization and Others → letters, spaces, commas, hyphens only
-      this.value = this.value.replace(/[^a-zA-Z\s,-]/g, '');
-      }
-      else if (this.placeholder.includes('City/Municipality') || this.placeholder.includes('Province')|| this.placeholder.includes('Relief Assistance')|| this.placeholder.includes('Items') || this.placeholder.includes('Barangay') ) {
-        this.value = this.value.replace(/[^a-zA-Z\s,-]/g, ''); // Only letters and spaces
-      }
-      else{
-        // For all other text inputs → optionally set a more general rule
-        this.value = this.value.replace(/[^a-zA-Z\s]/g, ''); // Only letters and spaces
-      }
-
-      // For numbers (prevent negative numbers)
       if (this.type === 'number') {
-        if (this.value < 0) {
-          this.value = '';
-        }
+        if (this.value < 0) this.value = '';
       }
     });
   });
@@ -253,31 +286,21 @@ function checkInactivity() {
   }
 
   function formatTime(date) {
-    return date.toTimeString().slice(0,5);
+    return date.toTimeString().slice(0, 5);
   }
 
   function setupInfoGatheredValidation(occurrenceDateInput, occurrenceTimeInput, infoDateInput, infoTimeInput) {
     function updateInfoLimits() {
       if (!occurrenceDateInput.value || !occurrenceTimeInput.value) return;
-
-      // Parse occurrence datetime
       const [oYear, oMonth, oDay] = occurrenceDateInput.value.split('-').map(Number);
       const [oHour, oMinute] = occurrenceTimeInput.value.split(':').map(Number);
       const occurrenceDateTime = new Date(oYear, oMonth - 1, oDay, oHour, oMinute);
-
-      // Calculate 24h and 48h after occurrence
       const minDateTime = new Date(occurrenceDateTime.getTime() + 24 * 60 * 60 * 1000);
       const maxDateTime = new Date(occurrenceDateTime.getTime() + 48 * 60 * 60 * 1000);
-
-      // Set min and max dates for infoGatheredDate input
       infoDateInput.min = formatDate(minDateTime);
       infoDateInput.max = formatDate(maxDateTime);
-
       if (!infoDateInput.value) infoDateInput.value = formatDate(minDateTime);
-
-      // Adjust time limits based on selected info date
       const selectedInfoDate = new Date(infoDateInput.value + 'T00:00');
-
       if (selectedInfoDate.toDateString() === minDateTime.toDateString()) {
         infoTimeInput.min = formatTime(minDateTime);
         infoTimeInput.max = "23:59";
@@ -288,8 +311,6 @@ function checkInactivity() {
         infoTimeInput.min = "00:00";
         infoTimeInput.max = "23:59";
       }
-
-      // Reset time if out of range
       if (infoTimeInput.value) {
         if (infoTimeInput.value < infoTimeInput.min || infoTimeInput.value > infoTimeInput.max) {
           infoTimeInput.value = "";
@@ -299,25 +320,20 @@ function checkInactivity() {
 
     function validateInfoDateTime() {
       if (!occurrenceDateInput.value || !occurrenceTimeInput.value || !infoDateInput.value || !infoTimeInput.value) return;
-
       const [oYear, oMonth, oDay] = occurrenceDateInput.value.split('-').map(Number);
       const [oHour, oMinute] = occurrenceTimeInput.value.split(':').map(Number);
       const occurrenceDateTime = new Date(oYear, oMonth - 1, oDay, oHour, oMinute);
-
       const [iYear, iMonth, iDay] = infoDateInput.value.split('-').map(Number);
       const [iHour, iMinute] = infoTimeInput.value.split(':').map(Number);
       const infoDateTime = new Date(iYear, iMonth - 1, iDay, iHour, iMinute);
-
       const minDateTime = new Date(occurrenceDateTime.getTime() + 24 * 60 * 60 * 1000);
       const maxDateTime = new Date(occurrenceDateTime.getTime() + 48 * 60 * 60 * 1000);
-
       if (infoDateTime < minDateTime) {
         alert('Information gathered must be at least 24 hours after the occurrence.');
         infoTimeInput.value = '';
         infoTimeInput.focus();
         return;
       }
-
       if (infoDateTime > maxDateTime) {
         alert('Information gathered must be no later than 48 hours after the occurrence.');
         infoTimeInput.value = '';
@@ -345,11 +361,8 @@ function checkInactivity() {
       validateInfoDateTime();
     });
 
-    // Initialize limits on page load if needed
     updateInfoLimits();
   }
-
-  // Usage:
 
   setupInfoGatheredValidation(
     document.getElementById('occurrenceDate'),
@@ -358,118 +371,101 @@ function checkInactivity() {
     document.getElementById('infoGatheredTime')
   );
 
+  function formatLargeNumber(numStr) {
+    let num = BigInt(numStr || "0");
+    const trillion = 1_000_000_000_000n;
+    const billion = 1_000_000_000n;
+    const million = 1_000_000n;
+    const thousand = 1_000n;
+    if (num >= trillion) return (Number(num) / Number(trillion)).toFixed(2).replace(/\.?0+$/, '') + 'T';
+    if (num >= billion) return (Number(num) / Number(billion)).toFixed(2).replace(/\.?0+$/, '') + 'B';
+    if (num >= million) return (Number(num) / Number(million)).toFixed(2).replace(/\.?0+$/, '') + 'M';
+    if (num >= thousand) return (Number(num) / Number(thousand)).toFixed(2).replace(/\.?0+$/, '') + 'k';
+    return num.toString();
+  }
+
   // Add the submit functionality for the RDANA report
   const nextBtn4 = document.getElementById('nextBtn4');
   if (nextBtn4) {
     nextBtn4.addEventListener('click', () => {
       if (!validatePageInputs('#form-page-4')) {
         Swal.fire({
-            icon: 'warning',
-            title: 'Incomplete Data',
-            text: 'Please fill in all required fields on this page.',
-            background: '#fffaf0',             
-            color: '#92400e',                  
-            iconColor: '#f59e0b',              
-            confirmButtonColor: '#d97706',     
-            customClass: {
-                popup: 'swal2-popup-warning-clean',
-                title: 'swal2-title-warning-clean',
-                content: 'swal2-text-warning-clean'
-            }
+          icon: 'warning',
+          title: 'Incomplete Data',
+          text: 'Please fill in all required fields on this page.',
+          background: '#fffaf0',
+          color: '#92400e',
+          iconColor: '#f59e0b',
+          confirmButtonColor: '#d97706',
+          customClass: {
+            popup: 'swal2-popup-warning-clean',
+            title: 'swal2-title-warning-clean',
+            content: 'swal2-text-warning-clean'
+          }
         });
-
         return;
       }
 
       const previewDiv = document.getElementById("preview-data");
-      previewDiv.innerHTML = ""; // Clear previous content
+      previewDiv.innerHTML = "";
 
       // Page 1 data
       const page1Inputs = document.querySelectorAll("#form-page-1 input, #form-page-1 select");
       let page1Table = `<h3>Profile of the Disaster</h3><div class='table-scroll'><table class='preview-table' id='page1preview'>`;
-      profileData = {}; // Reset profileData
+      profileData = {};
       page1Inputs.forEach(input => {
         const label = input.previousElementSibling ? input.previousElementSibling.innerText : "Field";
-        const sanitizedLabel = sanitizeKey(label); // Sanitize the key for Firebase
+        const sanitizedLabel = sanitizeKey(label);
         page1Table += `<tr><td id='page1-tdlabel'>${label}</td><td id='page1-tdinput'>${input.value}</td></tr>`;
-        profileData[sanitizedLabel] = input.value; // Use sanitized key
+        profileData[sanitizedLabel] = input.value;
       });
       page1Table += `</table></div>`;
 
-     function formatLargeNumber(numStr) {
-      let num = BigInt(numStr || "0");
-      const trillion = 1_000_000_000_000n;
-      const billion = 1_000_000_000n;
-      const million = 1_000_000n;
-      const thousand = 1_000n;
-
-      if (num >= trillion) {
-        return (Number(num) / Number(trillion)).toFixed(2).replace(/\.?0+$/, '') + 'T';
-      } else if (num >= billion) {
-        return (Number(num) / Number(billion)).toFixed(2).replace(/\.?0+$/, '') + 'B';
-      } else if (num >= million) {
-        return (Number(num) / Number(million)).toFixed(2).replace(/\.?0+$/, '') + 'M';
-      } else if (num >= thousand) {
-        return (Number(num) / Number(thousand)).toFixed(2).replace(/\.?0+$/, '') + 'k';
-      }
-      return num.toString();
-    }
-
-    // Page 2 data
-    summary = document.querySelector("#form-page-2 textarea")?.value || "";
-    let page2Table = `<h3>Summary of Disaster/Incident</h3><p>${summary}</p>`;
-    const tableRows = document.querySelectorAll("#disasterprofile-table tbody tr");
-    page2Table += `<div class='table-scroll'><table class='preview-table' id='page2preview'><tr><th>Community</th><th>Total Pop.</th><th>Affected Pop.</th><th>Deaths</th><th>Injured</th><th>Missing</th><th>Children</th><th>Women</th><th>Seniors</th><th>PWD</th></tr>`;
-    affectedCommunities = []; // Reset affectedCommunities
-
-    tableRows.forEach(row => {
-      const cells = row.querySelectorAll("input") || [];
-      page2Table += "<tr>";
-      const communityData = {
-        community: cells[0]?.value || "",
-        totalPop: formatLargeNumber(cells[1]?.value) || "0",
-        affected: formatLargeNumber(cells[2]?.value) || "0",
-        deaths: formatLargeNumber(cells[3]?.value) || "0",
-        injured: formatLargeNumber(cells[4]?.value) || "0",
-        missing: formatLargeNumber(cells[5]?.value) || "0",
-        children: formatLargeNumber(cells[6]?.value) || "0",
-        women: formatLargeNumber(cells[7]?.value) || "0",
-        seniors: formatLargeNumber(cells[8]?.value) || "0",
-        pwd: formatLargeNumber(cells[9]?.value) || "0"
-      };
-      affectedCommunities.push(communityData);
-
-      cells.forEach((cell, i) => {
-        if (i === 0) {
-          page2Table += `<td>${cell.value}</td>`;
-        } else {
-          page2Table += `<td>${formatLargeNumber(cell.value)}</td>`;
-        }
+      // Page 2 data
+      summary = document.querySelector("#form-page-2 textarea")?.value || "";
+      let page2Table = `<h3>Summary of Disaster/Incident</h3><p>${summary}</p>`;
+      const tableRows = document.querySelectorAll("#disasterprofile-table tbody tr");
+      page2Table += `<div class='table-scroll'><table class='preview-table' id='page2preview'><tr><th>Community</th><th>Total Pop.</th><th>Affected Pop.</th><th>Deaths</th><th>Injured</th><th>Missing</th><th>Children</th><th>Women</th><th>Seniors</th><th>PWD</th></tr>`;
+      affectedCommunities = [];
+      tableRows.forEach(row => {
+        const cells = row.querySelectorAll("input") || [];
+        page2Table += "<tr>";
+        const communityData = {
+          community: cells[0]?.value || "",
+          totalPop: formatLargeNumber(cells[1]?.value) || "0",
+          affected: formatLargeNumber(cells[2]?.value) || "0",
+          deaths: formatLargeNumber(cells[3]?.value) || "0",
+          injured: formatLargeNumber(cells[4]?.value) || "0",
+          missing: formatLargeNumber(cells[5]?.value) || "0",
+          children: formatLargeNumber(cells[6]?.value) || "0",
+          women: formatLargeNumber(cells[7]?.value) || "0",
+          seniors: formatLargeNumber(cells[8]?.value) || "0",
+          pwd: formatLargeNumber(cells[9]?.value) || "0"
+        };
+        affectedCommunities.push(communityData);
+        cells.forEach((cell, i) => {
+          if (i === 0) page2Table += `<td>${cell.value}</td>`;
+          else page2Table += `<td>${formatLargeNumber(cell.value)}</td>`;
+        });
+        page2Table += "</tr>";
       });
-
-      page2Table += "</tr>";
-    });
-
-    page2Table += "</table></div>";
-
+      page2Table += "</table></div>";
 
       // Page 3 data
       const statusRows = document.querySelectorAll("#status-table tbody tr");
       let page3Table = `<h3>Status of Structures</h3><div class='table-scroll'><table class='preview-table' id='page3preview'><tr><th>Structure</th><th>Status</th></tr>`;
-      structureStatus = []; // Reset structureStatus
+      structureStatus = [];
       statusRows.forEach(row => {
         const structure = row.querySelector("td")?.innerText || "";
         let status = "N/A";
         const select = row.querySelector("select");
         const input = row.querySelector("input");
-
         if (select) {
           const selectedOption = select.selectedOptions[0];
           status = selectedOption && selectedOption.value ? selectedOption.text : "N/A";
         } else if (input) {
           status = input.value.trim() || "N/A";
         }
-
         page3Table += `<tr><td>${structure}</td><td>${status}</td></tr>`;
         structureStatus.push({ structure, status });
       });
@@ -478,7 +474,7 @@ function checkInactivity() {
       // Page 4 checklist
       const checklistItems = document.querySelectorAll("#checklist-table input[type='checkbox']");
       let page4Table = `<h3>Initial Needs Assessment</h3><div class='table-scroll'><table class='preview-table' id='page4preview'><tr><th>Item</th><th>Needed</th></tr>`;
-      needsChecklist = []; // Reset needsChecklist
+      needsChecklist = [];
       checklistItems.forEach(item => {
         const label = item.closest("tr").querySelector("td")?.innerText || "";
         page4Table += `<tr><td>${label}</td><td>${item.checked ? "Yes" : "No"}</td></tr>`;
@@ -492,7 +488,6 @@ function checkInactivity() {
       responseGroup = document.querySelector("#form-page-4 input[placeholder='Enter Name of Organization/s']")?.value || "N/A";
       reliefDeployed = document.querySelector("#form-page-4 input[placeholder='Enter Relief Assistance']")?.value || "N/A";
       familiesServed = document.querySelector("#form-page-4 input[placeholder='Enter number of families']")?.value || "N/A";
-
       page4Table += `
         <p><strong>Other Immediate Needs:</strong> ${otherNeeds}</p>
         <p><strong>Estimated Quantity:</strong> ${estQty}</p>
@@ -502,29 +497,38 @@ function checkInactivity() {
         <p><strong>Number of Families Served:</strong> ${familiesServed}</p>
       `;
 
-      // Combine all sections
       previewDiv.innerHTML = page1Table + page2Table + page3Table + page4Table;
-
-      // Navigate to page 5
       document.getElementById("form-page-4").style.display = "none";
       document.getElementById("form-page-5").style.display = "block";
 
-      // Wire up the static submit button
+      // Submit button logic
       const submitBtn = document.getElementById("submitReportBtn");
       if (submitBtn) {
-        // Remove any existing event listeners to prevent duplicates
         const newSubmitBtn = submitBtn.cloneNode(true);
         submitBtn.parentNode.replaceChild(newSubmitBtn, submitBtn);
-
         newSubmitBtn.addEventListener("click", (e) => {
-          e.preventDefault(); // Prevent form submission
-          newSubmitBtn.disabled = true; // Disable button
-          newSubmitBtn.textContent = "Submitting..."; // Update text
+          e.preventDefault();
+          newSubmitBtn.disabled = true;
+          newSubmitBtn.textContent = "Submitting...";
 
-          console.log("Submit button clicked at:", new Date().toISOString());
+          // NEW: Check if submission is allowed
+          if (!canSubmit) {
+            Swal.fire({
+              icon: 'error',
+              title: 'Submission Not Allowed',
+              text: 'Your organization is inactive or you lack permission to submit reports.',
+              background: '#fdecea',
+              color: '#b91c1c',
+              iconColor: '#dc2626',
+              confirmButtonColor: '#b91c1b',
+              timer: 3000,
+            });
+            newSubmitBtn.disabled = false;
+            newSubmitBtn.textContent = "Submit Report";
+            return;
+          }
 
           auth.onAuthStateChanged(user => {
-            console.log("Auth state checked:", user ? user.uid : "No user");
             if (!user) {
               Swal.fire({
                 icon: 'error',
@@ -538,29 +542,24 @@ function checkInactivity() {
               return;
             }
 
-            console.log("User authenticated for submission:", user.uid);
-            console.log("Form data before validation:", { profileData, affectedCommunities, needsChecklist });
-
-            // Validate form data before submission
-            if (!profileData || Object.keys(profileData).length === 0 || 
-                !affectedCommunities || affectedCommunities.length === 0 || 
+            if (!profileData || Object.keys(profileData).length === 0 ||
+                !affectedCommunities || affectedCommunities.length === 0 ||
                 !needsChecklist || needsChecklist.length === 0) {
               console.error("Form data is incomplete:", { profileData, affectedCommunities, needsChecklist });
               Swal.fire({
-                  icon: 'error',
-                  title: 'Submission Failed',
-                  text: 'Form data is incomplete. Please ensure all fields are filled correctly.',
-                  background: '#fef2f2',             
-                  color: '#7f1d1d',                  
-                  iconColor: '#b91c1c',               
-                  confirmButtonColor: '#991b1b',       
-                  customClass: {
-                      popup: 'swal2-popup-error-clean',
-                      title: 'swal2-title-error-clean',
-                      content: 'swal2-text-error-clean'
-                  }
+                icon: 'error',
+                title: 'Submission Failed',
+                text: 'Form data is incomplete. Please ensure all fields are filled correctly.',
+                background: '#fef2f2',
+                color: '#7f1d1d',
+                iconColor: '#b91c1c',
+                confirmButtonColor: '#991b1b',
+                customClass: {
+                  popup: 'swal2-popup-error-clean',
+                  title: 'swal2-title-error-clean',
+                  content: 'swal2-text-error-clean'
+                }
               });
-
               newSubmitBtn.disabled = false;
               newSubmitBtn.textContent = "Submit Report";
               return;
@@ -594,11 +593,7 @@ function checkInactivity() {
               timestamp: firebase.database.ServerValue.TIMESTAMP
             };
 
-            console.log("Attempting to save RDANA report:", reportData);
-
             const ref = database.ref("rdana/submitted");
-            console.log("Database reference created:", ref.toString());
-
             ref.push(reportData)
               .then(() => {
                 console.log("RDANA report saved successfully to rdana/submitted");
@@ -606,11 +601,11 @@ function checkInactivity() {
                   icon: 'success',
                   title: 'Report Submitted',
                   text: 'Your RDANA report has been submitted for verification!',
-                  background: '#e6ffed',           // soft mint-green background for positivity
-                  color: '#065f46',                // deep green text for good readability
-                  iconColor: '#10b981',            // fresh teal-green icon to reinforce success
-                  confirmButtonColor: '#059669',  // matching green confirm button for consistency
-                  timer: 2000,                    // auto-close after 2 seconds
+                  background: '#e6ffed',
+                  color: '#065f46',
+                  iconColor: '#10b981',
+                  confirmButtonColor: '#059669',
+                  timer: 2000,
                   showConfirmButton: false,
                   customClass: {
                     popup: 'swal2-popup-success-clean',
@@ -618,7 +613,6 @@ function checkInactivity() {
                     content: 'swal2-text-success-clean'
                   }
                 }).then(() => {
-                  // Reset form data after successful submission
                   profileData = {};
                   affectedCommunities = [];
                   needsChecklist = [];
@@ -629,17 +623,10 @@ function checkInactivity() {
                   responseGroup = "";
                   reliefDeployed = "";
                   familiesServed = "";
-
-                  // Reset all form fields
                   document.querySelectorAll('input, textarea, select').forEach(input => {
-                    if (input.type === 'checkbox') {
-                      input.checked = false;
-                    } else {
-                      input.value = '';
-                    }
+                    if (input.type === 'checkbox') input.checked = false;
+                    else input.value = '';
                   });
-
-                  // Reset dynamic table to one row
                   const tableBody = document.getElementById("tableBody");
                   if (tableBody) {
                     tableBody.innerHTML = `
@@ -658,33 +645,28 @@ function checkInactivity() {
                       </tr>
                     `;
                   }
-
-                  // Navigate back to the first page
                   document.getElementById("form-page-5").style.display = "none";
                   document.getElementById("form-page-1").style.display = "block";
                 });
               })
               .catch(error => {
                 console.error("Error saving RDANA report to Firebase:", error);
-                console.error("Error code:", error.code);
-                console.error("Error message:", error.message);
                 Swal.fire({
-                icon: 'error',
-                title: 'Submission Failed',
-                text: 'Failed to submit RDANA report: ' + error.message,
-                background: '#fdecea',          
-                color: '#b91c1c',                
-                iconColor: '#dc2626',            
-                confirmButtonColor: '#b91c1c',  
-                timer: 3000,                    
-                showConfirmButton: true,
-                customClass: {
-                  popup: 'swal2-popup-error-clean',
-                  title: 'swal2-title-error-clean',
-                  content: 'swal2-text-error-clean'
-                }
-              });
-
+                  icon: 'error',
+                  title: 'Submission Failed',
+                  text: 'Failed to submit RDANA report: ' + error.message,
+                  background: '#fdecea',
+                  color: '#b91c1c',
+                  iconColor: '#dc2626',
+                  confirmButtonColor: '#b91c1b',
+                  timer: 3000,
+                  showConfirmButton: true,
+                  customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    content: 'swal2-text-error-clean'
+                  }
+                });
               })
               .finally(() => {
                 newSubmitBtn.disabled = false;
@@ -718,18 +700,18 @@ function checkInactivity() {
         document.getElementById("form-page-2").style.display = "block";
       } else {
         Swal.fire({
-            icon: 'warning',
-            title: 'Incomplete Data',
-            text: 'Please fill in all required fields on this page.',
-            background: '#fffaf0',             
-            color: '#92400e',                  
-            iconColor: '#f59e0b',              
-            confirmButtonColor: '#d97706',     
-            customClass: {
-                popup: 'swal2-popup-warning-clean',
-                title: 'swal2-title-warning-clean',
-                content: 'swal2-text-warning-clean'
-            }
+          icon: 'warning',
+          title: 'Incomplete Data',
+          text: 'Please fill in all required fields on this page.',
+          background: '#fffaf0',
+          color: '#92400e',
+          iconColor: '#f59e0b',
+          confirmButtonColor: '#d97706',
+          customClass: {
+            popup: 'swal2-popup-warning-clean',
+            title: 'swal2-title-warning-clean',
+            content: 'swal2-text-warning-clean'
+          }
         });
       }
     });
@@ -742,18 +724,18 @@ function checkInactivity() {
         document.getElementById("form-page-3").style.display = "block";
       } else {
         Swal.fire({
-            icon: 'warning',
-            title: 'Incomplete Data',
-            text: 'Please fill in all required fields on this page.',
-            background: '#fffaf0',             
-            color: '#92400e',                  
-            iconColor: '#f59e0b',              
-            confirmButtonColor: '#d97706',     
-            customClass: {
-                popup: 'swal2-popup-warning-clean',
-                title: 'swal2-title-warning-clean',
-                content: 'swal2-text-warning-clean'
-            }
+          icon: 'warning',
+          title: 'Incomplete Data',
+          text: 'Please fill in all required fields on this page.',
+          background: '#fffaf0',
+          color: '#92400e',
+          iconColor: '#f59e0b',
+          confirmButtonColor: '#d97706',
+          customClass: {
+            popup: 'swal2-popup-warning-clean',
+            title: 'swal2-title-warning-clean',
+            content: 'swal2-text-warning-clean'
+          }
         });
       }
     });
@@ -766,18 +748,18 @@ function checkInactivity() {
         document.getElementById("form-page-4").style.display = "block";
       } else {
         Swal.fire({
-            icon: 'warning',
-            title: 'Incomplete Data',
-            text: 'Please fill in all required fields on this page.',
-            background: '#fffaf0',             
-            color: '#92400e',                  
-            iconColor: '#f59e0b',              
-            confirmButtonColor: '#d97706',     
-            customClass: {
-                popup: 'swal2-popup-warning-clean',
-                title: 'swal2-title-warning-clean',
-                content: 'swal2-text-warning-clean'
-            }
+          icon: 'warning',
+          title: 'Incomplete Data',
+          text: 'Please fill in all required fields on this page.',
+          background: '#fffaf0',
+          color: '#92400e',
+          iconColor: '#f59e0b',
+          confirmButtonColor: '#d97706',
+          customClass: {
+            popup: 'swal2-popup-warning-clean',
+            title: 'swal2-title-warning-clean',
+            content: 'swal2-text-warning-clean'
+          }
         });
       }
     });
@@ -812,10 +794,9 @@ function checkInactivity() {
   }
 
   // Add row functionality
-  document.getElementById("addRowBtn").addEventListener('click', function() {
+  document.getElementById("addRowBtn").addEventListener('click', function () {
     const tableBody = document.getElementById("tableBody");
     const newRow = document.createElement("tr");
-
     newRow.innerHTML = `
       <td><input type="text" placeholder="Enter Municipalities/Communities" /></td>
       <td><input type="number" placeholder="Enter Total Population" /></td>
@@ -830,11 +811,9 @@ function checkInactivity() {
       <td><button type="button" class="deleteRowBtn">Delete</button></td>
     `;
     tableBody.appendChild(newRow);
-
-    // Add delete functionality for new rows
     const deleteBtns = document.querySelectorAll(".deleteRowBtn");
     deleteBtns.forEach(button => {
-      button.addEventListener('click', function() {
+      button.addEventListener('click', function () {
         this.closest('tr').remove();
       });
     });
@@ -843,11 +822,9 @@ function checkInactivity() {
   // Clear row functionality
   const clearBtns = document.querySelectorAll(".removeRowBtn");
   clearBtns.forEach(button => {
-    button.addEventListener('click', function() {
+    button.addEventListener('click', function () {
       const row = this.closest('tr');
       row.querySelectorAll('input').forEach(input => input.value = '');
     });
+  });
 });
-
-});
-
