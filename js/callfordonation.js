@@ -45,7 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let allDonations = [];
     let filteredAndSortedDonations = [];
     let formHasChanges = false;
-    let canSubmit = false; // NEW: Flag to control submission eligibility
+    let canSubmit = false; // Flag to control submission eligibility
 
     // Add event listeners to the form inputs to track changes
     if (form) {
@@ -99,7 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
-                // NEW: Role-based submission eligibility check
+                // Role-based submission eligibility check
                 const currentUserRole = userDataFromDb.role;
                 const organization = userDataFromDb.organization || 'Unknown Group';
                 console.log('User Role:', currentUserRole, 'Organization:', organization);
@@ -107,7 +107,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (currentUserRole === 'AB ADMIN') {
                     console.log('AB ADMIN role detected. Submission allowed.');
                     canSubmit = true;
-                    if (submitButton) submitButton.disabled = false;
+                    if (submitButton) {
+                        submitButton.disabled = false;
+                        console.log('Submit button enabled for AB ADMIN.');
+                    } else {
+                        console.error('Submit button element not found (ID: nextBtn).');
+                    }
                     toggleFormElements(true); // Enable form
                 } else if (currentUserRole === 'ABVN') {
                     console.log('ABVN role detected. Checking organization activations.');
@@ -140,7 +145,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (organizationHasActiveActivations) {
                         console.log(`Organization "${organization}" has active operations. Submission allowed.`);
                         canSubmit = true;
-                        if (submitButton) submitButton.disabled = false;
+                        if (submitButton) {
+                            submitButton.disabled = false;
+                            console.log('Submit button enabled for ABVN with active activations.');
+                        } else {
+                            console.error('Submit button element not found (ID: nextBtn).');
+                        }
                         toggleFormElements(true); // Enable form
                     } else {
                         console.warn(`Organization "${organization}" has no active operations. Redirecting to dashboard.`);
@@ -157,7 +167,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     console.warn(`Unsupported role: ${currentUserRole}. Redirecting to dashboard.`);
                     canSubmit = false;
-                    if (submitButton) submitButton.disabled = true;
+                    if (submitButton) {
+                        submitButton.disabled = true;
+                        console.log('Submit button disabled for unsupported role.');
+                    } else {
+                        console.error('Submit button element not found (ID: nextBtn).');
+                    }
                     toggleFormElements(false);
                     Swal.fire({
                         icon: 'error',
@@ -187,7 +202,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Apply UI toggles based on role
                 toggleExportCsvButton();
-                toggleFormElements(currentUserRole !== 'ABVN');
                 updateRemoveButtonVisibility();
 
             } catch (error) {
@@ -214,24 +228,18 @@ document.addEventListener('DOMContentLoaded', () => {
             applyChange();
             toggleFormElements(false);
             if (exportCsvButton) exportCsvButton.style.display = 'none';
+            if (submitButton) {
+                submitButton.disabled = true;
+                console.log('Submit button disabled: User not logged in.');
+            } else {
+                console.error('Submit button element not found (ID: nextBtn).');
+            }
         }
     });
 
-    // Load donations from Firebase (unchanged, kept for context)
-    const dbRef = firebase.database().ref('callfordonation');
-    dbRef.on('value', (snapshot) => {
-        const data = snapshot.val();
-        allDonations = [];
-        if (data) {
-            Object.entries(data).forEach(([key, value]) => {
-                allDonations.push({ ...value, firebaseKey: key });
-            });
-        }
-        applyChange();
-    }, (error) => {
-        console.error("Error fetching donations from Firebase:", error);
-        Swal.fire('Error', 'Failed to load donations from the database.', 'error');
-    });
+    // Remove redundant Firebase listener (already present in auth.onAuthStateChanged)
+    // const dbRef = firebase.database().ref('callfordonation');
+    // dbRef.on('value', ...); // Removed to avoid duplicate listeners
 
     var my_handlers = {
         fill_regions: function() {
@@ -302,7 +310,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 provinceSelect.innerHTML = '<option value="" selected="true" disabled>Choose Province</option>';
                 provinceSelect.selectedIndex = 0;
-                citySelect.innerHTML = '<option value="" selected="true" disabled>Choose State First</option>';
+                citySelect.innerHTML = '<option value="" selected="true" disabled>Choose Province First</option>';
                 citySelect.selectedIndex = 0;
                 barangaySelect.innerHTML = '<option value="" selected="true" disabled>Choose Barangay</option>';
                 barangaySelect.selectedIndex = 0;
@@ -547,6 +555,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (submitButton) {
             submitButton.disabled = !enable;
+            console.log(`Submit button ${enable ? 'enabled' : 'disabled'} via toggleFormElements.`);
+        } else {
+            console.error('Submit button element not found (ID: nextBtn) in toggleFormElements.');
         }
 
         if (donationDrive) donationDrive.disabled = !enable;
@@ -828,7 +839,7 @@ document.addEventListener('DOMContentLoaded', () => {
         submitButton.addEventListener('click', (e) => {
             e.preventDefault();
 
-            // NEW: Check if submission is allowed
+            // Check if submission is allowed
             if (!canSubmit) {
                 Swal.fire({
                     icon: 'error',
@@ -930,6 +941,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 saveDonation('');
             }
         });
+    } else {
+        console.error('Submit button not found in DOM (ID: nextBtn). Please verify the HTML.');
     }
 
     // --- Excel Export Functionality ---
