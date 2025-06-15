@@ -872,7 +872,7 @@ function openEndorseModal(firebaseKey) {
             abvnList.innerHTML = '<p>Error loading endorsement options.</p>';
         })
         .finally(() => {
-            abvnList.innerHTML += `<p><b>Note:</b> Actual ABVN selection logic based on donation details would go here.</p>`;
+            // abvnList.innerHTML += `<p><b>Note:</b> Actual ABVN selection logic based on donation details would go here.</p>`;
         });
 
     modal.dataset.firebaseKey = firebaseKey;

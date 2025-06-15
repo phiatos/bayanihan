@@ -1354,6 +1354,21 @@ label:has(+ textarea[required])::after {
   flex-wrap: wrap;
 }
 
+/* pendinginkind and monetary */
+.my-confirm-button-class {
+  width: 150px !important; /* Example width */
+}
+
+.my-cancel-button-class {
+  width: 120px !important; /* Example width */
+}
+
+.my-custom-swal-popup {
+  margin-bottom: 10px !important; 
+  margin-top: 5px !important;
+  text-align: center;
+}
+
 /*Responsiveness*/
 
 @media (max-width: 768px) {

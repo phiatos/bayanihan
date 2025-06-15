@@ -735,7 +735,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const { value: notes } = await Swal.fire({
                     title: 'Set Volunteer to Stalled',
                     input: 'textarea',
-                    inputLabel: 'Reason for stalling (e.g., Cannot be reached, Awaiting documents, etc.)',
+                    inputLabel: '  Reason for stalling (e.g., Cannot be reached, Awaiting documents, etc.)',
                     inputPlaceholder: 'Enter notes here...',
                     inputAttributes: {
                         'aria-label': 'Enter notes here'
@@ -743,6 +743,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     showCancelButton: true,
                     confirmButtonText: 'Confirm',
                     cancelButtonText: 'Cancel',
+                    customClass: {
+                        popup: 'my-custom-swal-popup',
+                        confirmButton: 'my-confirm-button-class',
+                        cancelButton: 'my-cancel-button-class'
+                    },
                     inputValidator: (value) => {
                         if (!value) {
                             return 'Notes are required!';
@@ -780,7 +785,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     showCancelButton: true,
                     confirmButtonColor: '#d33',
                     cancelButtonColor: '#3085d6',
-                    confirmButtonText: 'Yes, remove it!'
+                    confirmButtonText: 'Yes, remove it!',
+                    customClass: {
+                        confirmButton: 'my-confirm-button-class',
+                        cancelButton: 'my-cancel-button-class'
+                    },
                 }).then(async (result) => {
                     if (result.isConfirmed) {
                         try {

@@ -379,7 +379,11 @@ function initializePageFunctions(userId) {
                 showCancelButton: true,
                 confirmButtonColor: '#3085d6',
                 cancelButtonColor: '#d33',
-                confirmButtonText: 'Yes, approve it!'
+                confirmButtonText: 'Yes, approve it!',
+                customClass: {
+                    confirmButton: 'my-confirm-button-class',
+                    cancelButton: 'my-cancel-button-class'
+                }
             }).then(async (result) => {
                 if (result.isConfirmed) {
                     try {
@@ -437,7 +441,11 @@ function initializePageFunctions(userId) {
                 showCancelButton: true,
                 confirmButtonColor: '#d33',
                 cancelButtonColor: '#3085d6',
-                confirmButtonText: 'Yes, reject it!'
+                confirmButtonText: 'Yes, reject it!',
+                customClass: {
+                    confirmButton: 'my-confirm-button-class',
+                    cancelButton: 'my-cancel-button-class'
+                }
             }).then(async (result) => {
                 if (result.isConfirmed) {
                     try {
