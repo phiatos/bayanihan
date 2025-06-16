@@ -1,4 +1,4 @@
-// askbayanihan.js
+// [Previous Firebase and Gemini API configurations remain unchanged]
 const firebaseConfig = {
   apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
   authDomain: "bayanihan-5ce7e.firebaseapp.com",
@@ -18,8 +18,9 @@ const auth = firebase.auth();
 const GEMINI_API_KEY = "AIzaSyDWv5Yh1VjKzP4pVIhyyr6hu54nlPvx61Y";
 const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent";
 
-// Global variable to store user's region
+// Global variables
 let userRegion = null;
+let conversationHistory = []; // Local cache of conversation history
 
 // Valid website pages for URL validation
 const validUrls = [
@@ -31,29 +32,69 @@ const validUrls = [
   "https://bayanihan.vercel.app/pages/login.html",
 ];
 
+// Get or create a unique session ID
+function getSessionId() {
+  return auth.currentUser ? auth.currentUser.uid : `guest_${Date.now()}`;
+}
+
+// Load conversation history from Firebase
+function loadConversationHistory(sessionId) {
+  const chatRef = database.ref(`chat_sessions/${sessionId}`);
+  chatRef.once('value', (snapshot) => {
+    const data = snapshot.val();
+    if (data) {
+      conversationHistory = Object.values(data).map(msg => ({
+        role: msg.role,
+        content: msg.content
+      }));
+    }
+  });
+}
+
+// Save message to Firebase
+function saveMessage(sessionId, message, isUser = false) {
+  const chatRef = database.ref(`chat_sessions/${sessionId}`).push();
+  chatRef.set({
+    role: isUser ? 'user' : 'bot',
+    content: message,
+    timestamp: firebase.database.ServerValue.TIMESTAMP
+  });
+}
+
 // DOM Ready
 document.addEventListener('DOMContentLoaded', () => {
   const chatContainer = document.getElementById('chat-container');
   const chatInput = document.getElementById('chat-input');
   const sendButton = document.getElementById('send-button');
 
+  const sessionId = getSessionId();
+  loadConversationHistory(sessionId);
+
   function getGreeting() {
     const hour = new Date().getHours();
     if (hour < 12) {
-      return "Magandang umaga po! I'm Lenlen, your AI assistant. Ask me anything about the Bayanihan system or let me know your location for tailored help!";
+      return "Magandang umaga po! I'm Lenlen, your AI assistant. Ask me about the Bayanihan system or share your location for tailored help!";
     } else if (hour < 17) {
-      return "Magandang tanghali po! I'm Lenlen, your AI assistant. Ask me anything about the Bayanihan system or let me know your location for tailored help!";
+      return "Magandang tanghali po! I'm Lenlen, your AI assistant. Ask me about the Bayanihan system or share your location for tailored help!";
     } else {
-      return "Magandang gabi po! I'm Lenlen, your AI assistant. Ask me anything about the Bayanihan system or let me know your location for tailored help!";
+      return "Magandang gabi po! I'm Lenlen, your AI assistant. Ask me about the Bayanihan system or share your location for tailored help!";
     }
   }
 
-  function addMessage(message, isUser = false) {
+  function addMessage(message, isUser = false, saveToDb = true) {
     const messageDiv = document.createElement('div');
     messageDiv.classList.add('chat-message', isUser ? 'user' : 'bot');
     messageDiv.innerHTML = message;
+    messageDiv.addEventListener('click', () => {
+      messageDiv.classList.toggle('expanded');
+    });
     chatContainer.appendChild(messageDiv);
     chatContainer.scrollTop = chatContainer.scrollHeight;
+    conversationHistory.push({ role: isUser ? 'user' : 'bot', content: message });
+    if (saveToDb && conversationHistory.length > 1) { // Only save after first user interaction
+      saveMessage(sessionId, message, isUser);
+    }
+    if (conversationHistory.length > 10) conversationHistory.shift();
   }
 
   function showLoading() {
@@ -76,24 +117,27 @@ document.addEventListener('DOMContentLoaded', () => {
       'bayanihan', 'donate', 'donation', 'volunteer', 'disaster', 'emergency',
       'hotline', 'fire', 'police', 'ambulance', 'mental health', 'relief', 'track',
       'contact', 'about', 'news', 'resources', 'org', 'portal', 'angat buhay',
-      'home', 'login'
+      'home', 'login', 'leni robredo', 'naga city', 'non-profit', 'relief operations'
     ];
-    return systemKeywords.some(keyword => lowerQuery.includes(keyword));
+    const regex = new RegExp(`\\b(${systemKeywords.join('|')})\\b`, 'i');
+    return regex.test(lowerQuery);
   }
 
   function isGreeting(query) {
     const lowerQuery = query.toLowerCase().trim();
-    return ['hi', 'hello', 'hey'].includes(lowerQuery);
+    const greetings = ['hi', 'hello', 'hey', 'good morning', 'good afternoon', 'good evening'];
+    return greetings.some(g => lowerQuery === g || lowerQuery.startsWith(g));
   }
 
   function isLocationQuery(query) {
     const lowerQuery = query.toLowerCase().trim();
-    return lowerQuery.includes("where") && (lowerQuery.includes("i am") || lowerQuery.includes("my location"));
+    const locationKeywords = ['where am i', 'my location', 'i am in', 'i\'m in', 'city', 'barangay', 'region'];
+    return locationKeywords.some(keyword => lowerQuery.includes(keyword));
   }
 
   function sanitizeString(str) {
     if (!str) return '';
-    return str.replace(/['"`()]/g, '');
+    return str.replace(/[\\'"`()]/g, '').replace(/\s+/g, ' ').trim();
   }
 
   function validateResponseLinks(response) {
@@ -113,48 +157,61 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const sanitizedPrompt = sanitizeString(prompt);
       const sanitizedLocation = sanitizeString(userRegion);
-      const locationContext = sanitizedLocation ? `The user's location is ${sanitizedLocation}.` : "The user's location is not specified.";
+      const locationContext = sanitizedLocation
+        ? `User's location: ${sanitizedLocation}.`
+        : "User's location is not specified.";
+      const historyContext =
+        conversationHistory.length > 0
+          ? `Conversation history:\n${conversationHistory
+              .map((msg) => `${msg.role}: ${msg.content}`)
+              .join('\n')}\n`
+          : '';
       let fullPrompt;
 
       if (isSystemQuery) {
         fullPrompt = `
-You are Lenlen, an AI assistant for the Bayanihan | Angat Buhay Disaster Relief Portal (accessible at <a href="https://bayanihan.vercel.app">bayanihan.vercel.app</a>), founded by Leni Robredo, the Chairperson of Angat Buhay. She established the non-profit on July 1, 2022, focusing on disaster relief, education, health, and community empowerment. She served as the 14th Vice President of the Philippines (2016-2022) and is now mayor-elect of Naga City (2025). Your job is to answer questions related to the Bayanihan system, covering all content on the website, including:
+You are Lenlen, an AI assistant for the Bayanihan | Angat Buhay Disaster Relief Portal (<a href="https://bayanihan.vercel.app">bayanihan.vercel.app</a>), founded by Leni Robredo on July 1, 2022. Leni Robredo is the Chairperson of Angat Buhay, served as the 14th Vice President of the Philippines (2016-2022), and is mayor-elect of Naga City (2025). The portal focuses on disaster relief, education, health, and community empowerment.
+
+${historyContext}
+${locationContext}
+
+Answer questions about the Bayanihan system, including:
 - Home page (<a href="https://bayanihan.vercel.app">bayanihan.vercel.app</a>)
-- Donating (via <a href="https://bayanihan.vercel.app/pages/donatenearme.html">Donate Near Me</a>)
-- Volunteering (individuals at <a href="https://bayanihan.vercel.app/pages/beavolunteer.html">Be a Volunteer</a>, organizations at <a href="https://bayanihan.vercel.app/pages/joinasvolunteerorg.html">Join as Volunteer Org</a>)
-- Ask Bayanihan chatbot (<a href="https://bayanihan.vercel.app/pages/askbayanihan.html">Ask Bayanihan</a>)
-- Login page (<a href="https://bayanihan.vercel.app/pages/login.html">Log in to Bayanihan</a>)
-- Other website content (e.g., news, resources, or relief operation updates)
+- Donations (<a href="https://bayanihan.vercel.app/pages/donatenearme.html">Donate Near Me</a>)
+- Volunteering (<a href="https://bayanihan.vercel.app/pages/beavolunteer.html">Be a Volunteer</a>, <a href="https://bayanihan.vercel.app/pages/joinasvolunteerorg.html">Join as Volunteer Org</a>)
+- Chatbot (<a href="https://bayanihan.vercel.app/pages/askbayanihan.html">Ask Bayanihan</a>)
+- Login (<a href="https://bayanihan.vercel.app/pages/login.html">Log in to Bayanihan</a>)
+- News, resources, or relief updates
 
-The system connects Filipinos with resources during disasters, facilitating donations and organizing volunteers, but it does not directly connect to live emergency hotlines.
+For emergency queries (e.g., fire, police, ambulance, hotline):
+- If location is specified, respond with: 'For [emergency type] in [location], dial 911. Contact your local government unit (LGU) for specific numbers.'
+- If no location, respond with: 'Please specify your city (e.g., Manila). For now, dial 911 for emergencies and contact your LGU.'
+- Do not suggest external search engines or provide specific numbers beyond 911.
 
-For emergency-related queries (e.g., fire hotlines):
-- Recommend calling 911, the national emergency hotline in the Philippines, as the first step.
-- Use the user's location if provided (${locationContext}) to suggest checking local government unit (LGU) websites for specific hotline numbers.
-- Do not include links to external sites like bfp.gov.ph or ncmh.gov.ph; mention them as plain text if relevant.
+For website requests (e.g., 'send me the website'):
+- Always provide the Bayanihan website: <a href="https://bayanihan.vercel.app">bayanihan.vercel.app</a> as the primary resource.
+- If the query is outside the Bayanihan system, politely note it and suggest visiting <a href="https://bayanihan.vercel.app">bayanihan.vercel.app</a> for system-related info.
 
-For all responses:
-- Keep answers concise, under 100 words.
-- Format links as HTML <a> tags only for valid URLs: ${validUrls.join(', ')}.
-- If asked about Leni Robredo, state she is the Chairperson of Angat Buhay, founded it on July 1, 2022, served as Vice President (2016-2022), and is mayor-elect of Naga City (2025).
-- If the query is ambiguous, ask for clarification or direct to relevant website pages.
-- Avoid lengthy explanations.
+Guidelines:
+- Keep responses concise (under 100 words), natural, and conversational.
+- Format links as HTML <a> tags only for: ${validUrls.join(', ')}.
+- If ambiguous, ask for clarification or suggest relevant pages.
+- Use context from ${historyContext ? 'conversation history' : 'no prior conversation'} to maintain coherence.
 
 User query: ${sanitizedPrompt}
 `;
       } else if (isGreeting(prompt)) {
         fullPrompt = `
-You are Lenlen, an AI assistant for the Bayanihan | Angat Buhay Disaster Relief Portal. The user sent a simple greeting ("${sanitizedPrompt}"). Respond with a concise, friendly greeting (e.g., 'Magandang tanghali po! I'm Lenlen, your AI assistant. How can I help you?') based on the current time (12:00 PM PST on Sunday, June 08, 2025). Keep it under 100 words, avoid emergency hotline info, and do not format any links.
+You are Lenlen, an AI assistant for the Bayanihan | Angat Buhay Disaster Relief Portal. The user sent a greeting ("${sanitizedPrompt}"). Respond with a friendly, time-appropriate greeting (current time: 1:05 PM PST, June 15, 2025). Example: "Magandang tanghali po! I'm Lenlen, how can I assist you today?" Keep it under 50 words, avoid emergency info, and do not format links.
 `;
       } else if (isLocationQuery(prompt)) {
         fullPrompt = `
-You are Lenlen, an AI assistant for the Bayanihan | Angat Buhay Disaster Relief Portal. The user asked about their location ("${sanitizedPrompt}"). Since I cannot determine their exact location, respond with a concise prompt asking them to specify their city (e.g., 'Please tell me your city, like Taguig!'). Keep the response under 100 words, avoid emergency hotline info unless explicitly asked, and do not format any links. Current date and time: 12:00 PM PST on Sunday, June 08, 2025.
+You are Lenlen, an AI assistant for the Bayanihan | Angat Buhay Disaster Relief Portal. The user asked about their location ("${sanitizedPrompt}"). Since exact location is unknown, ask them to specify their city or barangay (e.g., "Please share your city, like Taguig or Naga!"). Keep it under 50 words, avoid emergency info, and do not format links.
 `;
       } else {
         fullPrompt = `
-You are Lenlen, an AI assistant for the Bayanihan | Angat Buhay Disaster Relief Portal. The user has asked a question that is not related to the Bayanihan system, not a greeting, and not a location query. Provide a concise, accurate, and helpful answer based on your knowledge. Politely note that the query is outside the Bayanihan system's scope but still provide a brief response. Keep answers under 100 words and format any links as HTML <a> tags only for valid URLs: ${validUrls.join(', ')}. Current date and time: 12:00 PM PST on Sunday, June 08, 2025.
-
-User query: ${sanitizedPrompt}
+You are Lenlen, an AI assistant for the Bayanihan | Angat Buhay Disaster Relief Portal. The query ("${sanitizedPrompt}") is unrelated to the Bayanihan system, greetings, or location. Politely note it’s outside the scope, provide a general response if possible, and suggest visiting <a href="https://bayanihan.vercel.app">bayanihan.vercel.app</a>. Keep it under 100 words, use HTML <a> tags only for: ${validUrls.join(', ')}. Current time: 1:05 PM PST, June 15, 2025.
+${historyContext}
 `;
       }
 
@@ -162,18 +219,22 @@ User query: ${sanitizedPrompt}
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          contents: [{
-            parts: [{ text: fullPrompt }]
-          }]
+          contents: [{ parts: [{ text: fullPrompt }] }]
         })
       });
 
-      if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+      if (!response.ok) {
+        if (response.status === 429) throw new Error('Rate limit exceeded');
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
       const data = await response.json();
       const rawResponse = data?.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, I couldn't understand that.";
       return validateResponseLinks(rawResponse);
     } catch (error) {
       console.error("Error fetching Gemini response:", error);
+      if (error.message === 'Rate limit exceeded') {
+        return "I'm getting a lot of questions! Please try again in a moment.";
+      }
       return "Sorry, I encountered an error. Please try again later.";
     }
   }
@@ -191,45 +252,50 @@ User query: ${sanitizedPrompt}
         console.log(`Geolocation: Lat=${lat}, Lon=${lon}`);
 
         try {
-          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&zoom=10`);
+          const res = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lon}&key=AIzaSyBDtlY28p-MvLHRtxnjiibSAadSETvM3VU`);
           if (!res.ok) {
             if (res.status === 429 && attempt < maxAttempts) {
-              console.warn(`Nominatim rate limit, retrying attempt ${attempt + 1}`);
+              console.warn(`Google Maps API rate limit, retrying attempt ${attempt + 1}`);
               setTimeout(() => detectLocation(attempt + 1, maxAttempts), 2000);
               return;
             }
-            throw new Error(`Nominatim error: ${res.status}`);
+            throw new Error(`Google Maps API error: ${res.status}`);
           }
           const data = await res.json();
-          console.log("Nominatim response:", data);
+          console.log("Google Maps Geocode response:", data);
 
-          const address = data.address || {};
-          const city = address.city || address.municipality || address.town || '';
-          const barangay = address.village || address.barangay || '';
-          const region = address.region || address.state || '';
-          const displayName = data.display_name || '';
+          if (data.results && data.results.length > 0) {
+            const addressComponents = data.results[0].address_components;
+            const city = addressComponents.find(c => c.types.includes('locality'))?.long_name || 
+                         addressComponents.find(c => c.types.includes('administrative_area_level_2'))?.long_name;
+            const barangay = addressComponents.find(c => c.types.includes('sublocality_level_1'))?.long_name;
+            const region = addressComponents.find(c => c.types.includes('administrative_area_level_1'))?.long_name;
 
-          if (city || barangay || region) {
-            userRegion = [barangay, city, region, "Philippines"].filter(Boolean).join(", ");
-          } else if (displayName) {
-            userRegion = displayName.split(", ").slice(0, 3).join(", ") + ", Philippines";
+            if (city || barangay || region) {
+              userRegion = [barangay, city, region, "Philippines"].filter(Boolean).join(", ");
+            } else {
+              userRegion = "Philippines";
+              console.warn("No valid location data, defaulting to Philippines");
+            }
           } else {
             userRegion = "Philippines";
-            console.warn("No valid location data, defaulting to Philippines");
+            console.warn("No results from Google Maps Geocode, defaulting to Philippines");
           }
         } catch (error) {
-          console.error("Reverse-geocode error:", error);
+          console.error("Geocoding error:", error);
           if (attempt < maxAttempts) {
             console.warn(`Retrying attempt ${attempt + 1}`);
             setTimeout(() => detectLocation(attempt + 1, maxAttempts), 2000);
             return;
           }
           userRegion = "Philippines";
+          addMessage("Couldn't detect your location. Defaulting to Philippines. Please specify your city if needed!", false);
         }
       },
       (error) => {
         console.error("Geolocation error:", error);
         userRegion = "Philippines";
+        addMessage("Geolocation access denied. Defaulting to Philippines. Please specify your city if needed!", false);
       },
       { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
     );
@@ -240,16 +306,20 @@ User query: ${sanitizedPrompt}
     if (!message) return;
 
     const lowerMessage = message.toLowerCase();
-    if (lowerMessage.includes("location") || lowerMessage.includes("region") || lowerMessage.includes("city") || lowerMessage.includes("barangay") || lowerMessage.includes("i'm in")) {
+    if (isLocationQuery(message)) {
       const locationWords = message
-        .replace(/my location is|i'm in|in|at/i, '')
+        .replace(/my location is|i'm in|in|at|where am i/i, '')
         .split(/\s+/)
         .filter(word => word.length > 2 && !['the', 'and', 'near'].includes(word.toLowerCase()));
       if (locationWords.length > 0) {
         userRegion = locationWords
           .map(word => word.charAt(0).toUpperCase() + word.slice(1))
           .join(", ") + ", Philippines";
-        addMessage(`I've set your location to ${userRegion}. How can I assist you?`, true);
+        addMessage(`Location set to ${userRegion}. How can I assist you?`, false);
+        chatInput.value = '';
+        return;
+      } else {
+        addMessage("Please specify your city or barangay, like 'Taguig' or 'Naga'!", false);
         chatInput.value = '';
         return;
       }
@@ -269,6 +339,7 @@ User query: ${sanitizedPrompt}
     if (e.key === 'Enter') sendButton.click();
   });
 
-  addMessage(getGreeting());
+  // Display greeting without saving to database initially
+  addMessage(getGreeting(), false, false);
   detectLocation();
 });
