@@ -21,6 +21,7 @@ const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/
 // Global variables
 let userRegion = null;
 let conversationHistory = []; // Local cache of conversation history
+let isTyping = false;
 
 // Valid website pages for URL validation
 const validUrls = [
@@ -343,3 +344,80 @@ ${historyContext}
   addMessage(getGreeting(), false, false);
   detectLocation();
 });
+
+  const toggle = document.getElementById('toggle-questions');
+  const container = document.getElementById('preMadeQuestions');
+  const chevron = toggle.querySelector('.chevron');
+  const chips = document.querySelectorAll('.chip');
+
+  toggle.addEventListener('click', () => {
+  const isExpanded = preMadeQuestions.classList.toggle('expanded');
+
+  // Rotate chevron arrow
+  if (isExpanded) {
+    chevron.style.transform = 'rotate(180deg)';
+  } else {
+    chevron.style.transform = 'rotate(0deg)';
+  }
+});
+
+  chips.forEach(chip => {
+    chip.addEventListener('click', () => {
+      const input = document.getElementById('chat-input');
+      input.value = chip.textContent;
+      document.getElementById('send-button').click();
+
+      chip.classList.add('fade-out');
+      setTimeout(() => chip.remove(), 300);
+    });
+  });
+
+  
+
+document.getElementById('send-button').addEventListener('click', () => {
+  if (isTyping) return; // prevent sending while bot is "typing"
+
+  const input = document.getElementById('chat-input');
+  const message = input.value.trim();
+  if (!message) return;
+
+  appendMessage(message, 'user');
+  input.value = '';
+
+  // Simulate typing delay
+  isTyping = true;
+  showTypingIndicator(true);
+
+  setTimeout(() => {
+    showTypingIndicator(false);
+    appendMessage("Here's Lenlen's response.", 'bot');
+    isTyping = false;
+    autoScrollChat();
+  }, 1200); // adjust timing as needed
+});
+
+function showTypingIndicator(show) {
+  const indicator = document.getElementById('typing-indicator');
+  const input = document.getElementById('chat-input');
+  const button = document.getElementById('send-button');
+
+  if (show) {
+    indicator.classList.remove('hidden');
+    input.disabled = true;
+    button.disabled = true;
+    button.style.opacity = '0.6';
+    button.style.cursor = 'not-allowed';
+  } else {
+    indicator.classList.add('hidden');
+    input.disabled = false;
+    button.disabled = false;
+    button.style.opacity = '1';
+    button.style.cursor = 'pointer';
+  }
+}
+
+function autoScrollChat() {
+  const chatContainer = document.getElementById('chat-container');
+  chatContainer.scrollTop = chatContainer.scrollHeight;
+}
+
