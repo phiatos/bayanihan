@@ -3,6 +3,9 @@
 let map;
 let markers = [];
 let autocomplete;
+let formState = {}; // declared globally or in outer scope
+
+ 
 
 function initMap() {
     // Default to Manila, Philippines
@@ -306,8 +309,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let userUid = null;
     let volunteerGroupName = "[Unknown Org]"; 
+    let currentUserGroupName = ''; 
+    let displayGroupName;
     let activeActivations = []; 
     let currentUserRole = null; 
+
+    console.log("notesInfoTextarea value:", notesInfoTextarea?.value);
+
 
     function populateCalamityAreaDropdown() {
         calamityAreaDropdown.innerHTML = '<option value="">-- Select an Active Operation --</option>';
@@ -366,9 +374,18 @@ auth.onAuthStateChanged(user => {
             if (userData) {
                 const userRole = userData.role;
                 const volunteerGroupName = userData.organization; 
+                const firstName = userData.firstName;
+
+                if (userRole === "AB ADMIN") {
+                    displayGroupName = `AB Admin ${firstName || ""}`.trim();
+                } else if (volunteerGroupName) {
+                    displayGroupName = volunteerGroupName;
+                } else {
+                    displayGroupName = "Unknown Group"; // Optional fallback
+                }
 
                 console.log('User Role:', userRole);
-                console.log('Volunteer Group Name:', volunteerGroupName);
+                console.log('Volunteer Group Name:', displayGroupName);
 
                 // --- Role-based Access Control ---
                 if (userRole === 'AB ADMIN') {
@@ -674,6 +691,7 @@ auth.onAuthStateChanged(user => {
         let selectedCalamityOrganization = "";
         let selectedCalamityTyphoonName = "";
         let calamityAreaDetailsText = "";
+        let partialFormData = {};
 
         const selectedActivationId = calamityAreaDropdown.value;
         if (selectedActivationId) {
@@ -700,36 +718,26 @@ auth.onAuthStateChanged(user => {
             console.warn("No Calamity Area selected.");
             calamityAreaDetailsText = "Not Specified";
         }
+
+        partialFormData = {
+        userUid: userUid,
+        VolunteerGroupName: displayGroupName, 
+        AreaOfOperation: areaOfOperationInput.value,
+        CalamityAreaId: calamityAreaDropdown.value,
+        CalamityName: selectedCalamityName,
+        CalamityAreaDetails: calamityAreaDetailsText, 
+        DateOfReport: dateOfReportInput.value,
+        ReportID: reportIdInput.value,
+        StartDate: startDateInput.value,
+        EndDate: endDateInput.value,
+        };
+
+        // Save partial data if you want persistence across reloads
+        localStorage.setItem("partialReportData", JSON.stringify(partialFormData));
+
         // --- End of NEW logic ---
         formPage1.style.display = "none";
         formPage2.style.display = "block";
-
-        // --- Save data to localStorage when navigating to the next page ---
-        const formData = {
-            userUid: userUid,
-            VolunteerGroupName: volunteerGroupName, 
-            AreaOfOperation: areaOfOperationInput.value,
-            CalamityAreaId: calamityAreaDropdown.value,
-            CalamityName: selectedCalamityName,
-            CalamityAreaDetails: calamityAreaDetailsText, 
-            TimeOfIntervention: completionTimeInput.value,
-            DateOfReport: dateOfReportInput.value,
-            ReportID: reportIdInput.value,
-            StartDate: startDateInput.value,
-            EndDate: endDateInput.value,
-            NoOfIndividualsOrFamilies: numIndividualsFamiliesInput.value,
-            NoOfFoodPacks: numFoodPacksInput.value,
-            NoOfHotMeals: numHotMealsInput.value,
-            LitersOfWater: litersWaterInput.value,
-            NoOfVolunteersMobilized: numVolunteersInput.value,
-            NoOfOrganizationsActivated: numOrganizationsInput.value,
-            TotalValueOfInKindDonations: valueInKindInput.value,
-            TotalMonetaryDonations: monetaryDonationsInput.value,
-            NotesAdditionalInformation: notesInfoTextarea.value,
-            Status: "Pending"
-        };
-        localStorage.setItem("reportData", JSON.stringify(formData));
-        console.log("Form data saved to localStorage:", formData); // Debugging line
     });
 
     backBtn.addEventListener('click', () => {
@@ -739,6 +747,30 @@ auth.onAuthStateChanged(user => {
 
     formPage2.addEventListener("submit", function (e) {
         e.preventDefault();
+        // Retrieve partial data from localStorage or variable
+        const savedPartialData = JSON.parse(localStorage.getItem("partialReportData")) || partialFormData;
+
+        // Combine page 2 inputs with page 1 data
+        const completeFormData = {
+            ...savedPartialData,
+            TimeOfIntervention: completionTimeInput.value,
+            NoOfIndividualsOrFamilies: numIndividualsFamiliesInput.value,
+            NoOfFoodPacks: numFoodPacksInput.value,
+            NoOfHotMeals: numHotMealsInput.value,
+            LitersOfWater: litersWaterInput.value,
+            NoOfVolunteersMobilized: numVolunteersInput.value,
+            NoOfOrganizationsActivated: numOrganizationsInput.value,
+            TotalValueOfInKindDonations: valueInKindInput.value,
+            TotalMonetaryDonations: monetaryDonationsInput.value,
+            NotesAdditionalInformation: notesInfoTextarea.value.trim(),
+            Status: "Pending"
+        };
+
+        // Save full form data
+        localStorage.setItem("reportData", JSON.stringify(completeFormData));
+        console.log("Full form data saved to localStorage:", completeFormData);
+
+        // Redirect to summary page
         window.location.href = "../pages/reportsSummary.html";
     });
 
