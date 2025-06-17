@@ -634,6 +634,10 @@ document.addEventListener('DOMContentLoaded', () => {
             showCancelButton: true,
             confirmButtonText: 'Save Reschedule',
             cancelButtonText: 'Cancel',
+            customClass: {
+                confirmButton: 'swal2-confirm-large',
+                cancelButton: 'swal2-cancel-large'
+            },
             preConfirm: () => {
                 const newDateTimeString = document.getElementById('swal-input-datetime').value;
                 if (!newDateTimeString) {

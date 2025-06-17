@@ -737,77 +737,24 @@ function initializeApprovedApplicationsPage(adminUserId) {
             }
 
             // --- Password Verification Step (Copied from vgm.js) ---
-           const { value: password } = await Swal.fire({
-            title: 'Confirm Changes',
-            text: 'To save these changes, please enter your password:',
-            icon: 'question',
-            input: 'password',
-            inputPlaceholder: 'Enter your password',
-            showCancelButton: true,
-            confirmButtonText: 'Confirm',
-            cancelButtonText: 'Cancel',
-            reverseButtons: true,
-            focusCancel: true,
-            allowOutsideClick: false,
-            confirmButtonColor: '#4CAF50',
-            cancelButtonColor: '#f44336',
-            padding: '1.25em',
-            customClass: {
-                confirmButton: 'swal2-confirm-large',
-                cancelButton: 'swal2-cancel-large',
-                input: 'custom-swal-input'
-            },
-            didOpen: () => {
-                const input = Swal.getInput();
-
-                // Create wrapper div
-                const wrapper = document.createElement('div');
-                wrapper.style.position = 'relative';
-                wrapper.style.width = '100%';
-                wrapper.style.display = 'flex';
-                wrapper.style.alignItems = 'center';
-                
-
-                // Insert wrapper before input and move input into it
-                input.parentNode.insertBefore(wrapper, input);
-                wrapper.appendChild(input);
-
-                // Style input for padding-right to prevent overlap
-                input.style.paddingRight = '44px';
-                input.style.width = '100%';
-                input.style.boxSizing = 'border-box';
-                input.style.borderRadius = '8px';
-                input.style.border = '1px solid #ccc';
-
-                // Create floating icon
-                const toggleIcon = document.createElement('i');
-                toggleIcon.className = 'fa-solid fa-eye';
-                Object.assign(toggleIcon.style, {
-                position: 'absolute',
-                top: '60%',
-                right: '50px',
-                transform: 'translateY(-50%)',
-                cursor: 'pointer',
-                color: '#888',
-                fontSize: '1rem',
-                zIndex: '2',
-                transition: 'color 0.2s ease'
-                });
-
-                wrapper.appendChild(toggleIcon);
-
-                // Toggle logic
-                toggleIcon.addEventListener('click', () => {
-                if (input.type === 'password') {
-                    input.type = 'text';
-                    toggleIcon.className = 'fa-solid fa-eye-slash';
-                } else {
-                    input.type = 'password';
-                    toggleIcon.className = 'fa-solid fa-eye';
-                }
-                });
-
-
+            const { value: password } = await Swal.fire({
+                title: 'Confirm Changes',
+                text: 'To save these changes, please enter your password:',
+                icon: 'question',
+                input: 'password',
+                inputPlaceholder: 'Enter your password',
+                showCancelButton: true,
+                confirmButtonText: 'Confirm',
+                cancelButtonText: 'Cancel',
+                reverseButtons: true,
+                focusCancel: true,
+                allowOutsideClick: false,
+                confirmButtonColor: '#4CAF50',
+                cancelButtonColor: '#f44336',
+                padding: '1.25em',
+                customClass: {
+                    confirmButton: 'swal2-confirm-large',
+                    cancelButton: 'swal2-cancel-large'
                 },
                 preConfirm: async (enteredPassword) => {
                     if (!enteredPassword) {
@@ -847,10 +794,7 @@ function initializeApprovedApplicationsPage(adminUserId) {
                         barangay: updatedBarangayText,
                         streetAddress: updatedStreetAddress || "N/A"
                     },
-                    // Assuming organizationalBackgroundMission, areasOfExpertiseFocus,
-                    // legalStatusRegistration, and requiredDocuments are NOT updated via this modal
-                    // You might need to retrieve existing values or handle them differently if they can be edited.
-                    // For now, these fields are NOT directly in the HTML edit form, so they won't be in updatedData.
+                    
                     lastUpdatedBy: adminUserId, // Record who updated it
                     lastUpdatedAt: new Date().toISOString() // Record when it was updated
                 };
