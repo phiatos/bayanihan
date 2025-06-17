@@ -72,11 +72,9 @@ document.addEventListener('DOMContentLoaded', () => {
     function formatTime(timeStr) {
         if (!timeStr) return "-";
         let date;
-        // Handle ISO date string from mobile app (e.g., "2025-05-29T05:09:56.435Z")
         if (timeStr.includes('T')) {
             date = new Date(timeStr);
         } else {
-            // Handle legacy time format (HH:MM:SS)
             date = new Date(`1970-01-01T${timeStr}`);
         }
         if (isNaN(date)) return timeStr;
@@ -166,16 +164,15 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function renderReportsTable(reports) {
+    function renderReportsTable(reports, filteredReports) {
         submittedReportsContainer.innerHTML = '';
-        const totalEntries = reports.length;
+        const totalEntries = filteredReports.length; // Use filteredReports for total entries
         const totalPages = Math.ceil(totalEntries / rowsPerPage);
-
 
         if (reports.length === 0) {
             submittedReportsContainer.innerHTML = "<tr><td colspan='9'>No approved reports found on this page.</td></tr>";
             entriesInfo.textContent = "Showing 0 to 0 of 0 entries";
-            renderPagination(0);
+            renderPaginationControlsForReports(totalPages, filteredReports);
             return;
         }
 
@@ -368,51 +365,51 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         const firstEntry = (currentPage - 1) * rowsPerPage + 1;
-        const lastEntry = Math.min(currentPage * rowsPerPage, reports.length);
-        entriesInfo.textContent = `Showing ${firstEntry} to ${lastEntry} of ${reports.length} entries`;
-        renderPaginationControlsForReports(totalPages);
-
+        const lastEntry = Math.min(currentPage * rowsPerPage, totalEntries);
+        entriesInfo.textContent = `Showing ${firstEntry} to ${lastEntry} of ${totalEntries} entries`;
+        renderPaginationControlsForReports(totalPages, filteredReports);
     }
 
-   function renderPaginationControlsForReports(totalPages) {
-    const pagination = document.getElementById("pagination");
-    pagination.innerHTML = '';
+    function renderPaginationControlsForReports(totalPages, filteredReports) {
+        paginationContainer.innerHTML = '';
 
-    if (totalPages === 0) {
-        pagination.innerHTML = '<span>No entries to display</span>';
-        return;
+        if (totalPages === 0) {
+            paginationContainer.innerHTML = '<span>No entries to display</span>';
+            return;
+        }
+
+        const createButton = (label, page, disabled = false, isActive = false) => {
+            const btn = document.createElement('button');
+            btn.textContent = label;
+            if (disabled) btn.disabled = true;
+            if (isActive) btn.classList.add('active-page');
+            btn.addEventListener('click', () => {
+                if (!disabled) {
+                    currentPage = page;
+                    const startIndex = (currentPage - 1) * rowsPerPage;
+                    const endIndex = startIndex + rowsPerPage;
+                    const currentPageReports = filteredReports.slice(startIndex, endIndex);
+                    renderReportsTable(currentPageReports, filteredReports);
+                }
+            });
+            return btn;
+        };
+
+        paginationContainer.appendChild(createButton('Prev', currentPage - 1, currentPage === 1));
+
+        const maxVisible = 5;
+        let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+        let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+        if (endPage - startPage < maxVisible - 1) {
+            startPage = Math.max(1, endPage - maxVisible + 1);
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
+            paginationContainer.appendChild(createButton(i, i, false, i === currentPage));
+        }
+
+        paginationContainer.appendChild(createButton('Next', currentPage + 1, currentPage === totalPages));
     }
-
-    const createButton = (label, page, disabled = false, isActive = false) => {
-        const btn = document.createElement('button');
-        btn.textContent = label;
-        if (disabled) btn.disabled = true;
-        if (isActive) btn.classList.add('active-page');
-        btn.addEventListener('click', () => {
-            currentPage = page;
-            renderReportsTable(paginatedReports); // this assumes your filtered data is stored in paginatedReports
-        });
-        return btn;
-    };
-
-    pagination.appendChild(createButton('Prev', currentPage - 1, currentPage === 1));
-
-    const maxVisible = 5;
-    let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
-    let endPage = Math.min(totalPages, startPage + maxVisible - 1);
-    if (endPage - startPage < maxVisible - 1) {
-        startPage = Math.max(1, endPage - maxVisible + 1);
-    }
-
-    for (let i = startPage; i <= endPage; i++) {
-        pagination.appendChild(createButton(i, i, false, i === currentPage));
-    }
-
-    pagination.appendChild(createButton('Next', currentPage + 1, currentPage === totalPages));
-}
-
-
-   
 
     function applySearchAndSort() {
         const searchQuery = searchInput.value.toLowerCase();
@@ -459,8 +456,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const endIndex = startIndex + rowsPerPage;
         const currentPageReports = filteredReports.slice(startIndex, endIndex);
 
-        renderReportsTable(currentPageReports);
-        renderPagination(filteredReports.length);
+        renderReportsTable(currentPageReports, filteredReports);
     }
 
     searchInput.addEventListener('input', () => {
