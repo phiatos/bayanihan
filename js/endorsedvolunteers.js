@@ -290,7 +290,7 @@ function renderVolunteersTable() {
         const actionsCell = row.insertCell();
         const viewButton = document.createElement('button');
         viewButton.textContent = 'View';
-        viewButton.classList.add('action-button', 'view-info-button');
+        viewButton.classList.add('viewBtn', 'view-info-button');
         viewButton.onclick = () => showVolunteerDetails(volunteer);
         actionsCell.appendChild(viewButton);
 

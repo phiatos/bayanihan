@@ -1032,7 +1032,11 @@ document.addEventListener('DOMContentLoaded', () => {
             showCancelButton: true,
             confirmButtonColor: '#3085d6',
             cancelButtonColor: '#d33',
-            confirmButtonText: 'Yes, Endorse!'
+            confirmButtonText: 'Yes, Endorse!',
+            customClass: {
+                confirmButton: 'swal2-confirm-large',
+                cancelButton: 'swal2-cancel-large'
+            },
         }).then(async (result) => {
             if (result.isConfirmed) {
                 try {

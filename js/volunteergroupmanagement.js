@@ -1227,86 +1227,86 @@ if (editOrgForm) {
 //     });
 // }
 
-// --- Password Verification Step ---
-        const { value: password } = await Swal.fire({
-            title: 'Confirm Changes',
-            text: 'To save these changes, please enter your password:',
-            icon: 'question',
-            input: 'password',
-            inputPlaceholder: 'Enter your password',
-            showCancelButton: true,
-            confirmButtonText: 'Confirm',
-            cancelButtonText: 'Cancel',
-            reverseButtons: true,
-            focusCancel: true,
-            allowOutsideClick: false,
-            confirmButtonColor: '#4CAF50',
-            cancelButtonColor: '#f44336',
-            padding: '1.25em',
-            customClass: {
-                confirmButton: 'swal2-confirm-large',
-                cancelButton: 'swal2-cancel-large'
-            },
-            preConfirm: async (enteredPassword) => {
-                if (!enteredPassword) {
-                    Swal.showValidationMessage('Password is required to confirm changes.');
-                    return false;
-                }
-                // Call the existing password verification function
-                const isPasswordValid = await verifyUserPassword(enteredPassword);
-                if (!isPasswordValid) {
-                    // verifyUserPassword already shows validation message if incorrect
-                    return false;
-                }
-                return true; // Password is valid
+    // --- Password Verification Step ---
+    const { value: password } = await Swal.fire({
+        title: 'Confirm Changes',
+        text: 'To save these changes, please enter your password:',
+        icon: 'question',
+        input: 'password',
+        inputPlaceholder: 'Enter your password',
+        showCancelButton: true,
+        confirmButtonText: 'Confirm',
+        cancelButtonText: 'Cancel',
+        reverseButtons: true,
+        focusCancel: true,
+        allowOutsideClick: false,
+        confirmButtonColor: '#4CAF50',
+        cancelButtonColor: '#f44336',
+        padding: '1.25em',
+        customClass: {
+            confirmButton: 'swal2-confirm-large',
+            cancelButton: 'swal2-cancel-large'
+        },
+        preConfirm: async (enteredPassword) => {
+            if (!enteredPassword) {
+                Swal.showValidationMessage('Password is required to confirm changes.');
+                return false;
             }
-        });
-
-        // If the user cancelled or password verification failed, stop here.
-        if (!password) {
-            Swal.fire(
-                'Cancelled',
-                'Your changes were not saved.',
-                'info'
-            );
-            return;
+            // Call the existing password verification function
+            const isPasswordValid = await verifyUserPassword(enteredPassword);
+            if (!isPasswordValid) {
+                // verifyUserPassword already shows validation message if incorrect
+                return false;
+            }
+            return true; // Password is valid
         }
+    });
 
-        // If we reach here, password verification was successful.
-        try {
-            const updatedData = {
-                organization: updatedOrganization,
-                contactPerson: updatedContactPerson,
-                email: updatedEmail,
-                mobileNumber: formattedUpdatedMobile,
-                socialMedia: updatedSocialMedia || "N/A",
-                address: {
-                    region: updatedRegionText,
-                    province: updatedProvinceText,
-                    city: updatedCityText,
-                    barangay: updatedBarangayText,
-                    streetAddress: updatedStreetAddress || "N/A"
-                }
-            };
+    // If the user cancelled or password verification failed, stop here.
+    if (!password) {
+        Swal.fire(
+            'Cancelled',
+            'Your changes were not saved.',
+            'info'
+        );
+        return;
+    }
 
-            await database.ref(`volunteerGroups/${orgId}`).update(updatedData);
-            console.log("Volunteer group updated successfully!");
-            Swal.fire(
-                'Updated!',
-                'The volunteer group has been updated.',
-                'success'
-            );
-            editOrgModal.style.display = 'none';
-            editOrgForm.reset();
-            fetchAndRenderTable(); // Re-fetch and re-render the table to show updated data
-        } catch (error) {
-            console.error("Error updating volunteer group:", error);
-            Swal.fire(
-                'Error!',
-                'Failed to update volunteer group. Please try again.',
-                'error'
-            );
-        }
+    // If we reach here, password verification was successful.
+    try {
+        const updatedData = {
+            organization: updatedOrganization,
+            contactPerson: updatedContactPerson,
+            email: updatedEmail,
+            mobileNumber: formattedUpdatedMobile,
+            socialMedia: updatedSocialMedia || "N/A",
+            address: {
+                region: updatedRegionText,
+                province: updatedProvinceText,
+                city: updatedCityText,
+                barangay: updatedBarangayText,
+                streetAddress: updatedStreetAddress || "N/A"
+            }
+        };
+
+        await database.ref(`volunteerGroups/${orgId}`).update(updatedData);
+        console.log("Volunteer group updated successfully!");
+        Swal.fire(
+            'Updated!',
+            'The volunteer group has been updated.',
+            'success'
+        );
+        editOrgModal.style.display = 'none';
+        editOrgForm.reset();
+        fetchAndRenderTable(); // Re-fetch and re-render the table to show updated data
+    } catch (error) {
+        console.error("Error updating volunteer group:", error);
+        Swal.fire(
+            'Error!',
+            'Failed to update volunteer group. Please try again.',
+            'error'
+        );
+    }
     });
 }
 
