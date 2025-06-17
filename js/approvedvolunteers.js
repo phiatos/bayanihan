@@ -15,6 +15,14 @@ if (!firebase.apps.length) {
 const database = firebase.database();
 const auth = firebase.auth();
 
+// Initialize EmailJS with updated public key
+try {
+    emailjs.init('BwfsCx-NJCb3qGxCk');
+    console.log("EmailJS initialized successfully");
+} catch (error) {
+    console.error("EmailJS initialization failed:", error);
+}
+
 // Variables for inactivity detection --------------------------------------------------------------------
 let inactivityTimeout;
 const INACTIVITY_TIME = 1800000; // 30 minutes in milliseconds
@@ -69,9 +77,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const pagination = document.getElementById('pagination');
 
     // New: View Toggle Elements
-    const toggleViewBtn = document.getElementById('toggleViewBtn'); // The button to switch views
-    const tableView = document.getElementById('tableView');       // Container for the table and pagination
-    const calendarView = document.getElementById('calendarView'); // Container for the calendar
+    const toggleViewBtn = document.getElementById('toggleViewBtn'); 
+    const tableView = document.getElementById('tableView');      
+    const calendarView = document.getElementById('calendarView'); 
 
     // Modals
     const previewModal = document.getElementById('previewModal');
@@ -282,7 +290,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-
     // --- Search and Sort Logic (Modified to call renderCurrentView) ---
     function applySearchAndSort() {
         let currentApplications = [...allApprovedApplications];
@@ -361,7 +368,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderCurrentView(); // Call the main render function
     }
 
-    // --- Pagination Functions (No changes needed, as renderApplications handles pagination) ---
+    // --- Pagination Functions ---
     function renderPagination() {
         pagination.innerHTML = '';
         const totalPages = Math.ceil(filteredApprovedApplications.length / rowsPerPage);
@@ -424,7 +431,7 @@ document.addEventListener('DOMContentLoaded', () => {
         entriesInfo.textContent = `Showing ${totalItems ? startIndex + 1 : 0} to ${endIndex} of ${totalItems} entries`;
     }
 
-    // --- FullCalendar Initialization and Rendering (New) ---
+    // --- FullCalendar Initialization and Rendering ---
     function renderVolunteerCalendar() {
         const calendarEl = document.getElementById('volunteerCalendar');
         
@@ -441,8 +448,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const scheduledDate = new Date(volunteer.scheduledDateTime);
                 
                 // Parse time availability for start and end times
-                let startTime = '09:00:00'; // Default start time
-                let endTime = '17:00:00';   // Default end time
+                let startTime = '09:00:00'; 
+                let endTime = '17:00:00';  
 
                 if (volunteer.availability?.timeAvailability) {
                     const timeParts = volunteer.availability.timeAvailability.split(' - ');
@@ -459,18 +466,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 return {
                     title: getFullName(volunteer),
                     start: startISO,
-                    end: endISO, // FullCalendar uses 'end' as exclusive, so this might need adjustment depending on your exact needs.
+                    end: endISO, 
                     id: volunteer.key,
-                    extendedProps: volunteer // Store full volunteer data for modal display
+                    extendedProps: volunteer
                 };
             });
 
         calendar = new FullCalendar.Calendar(calendarEl, {
-            initialView: 'dayGridMonth', // Default view when calendar loads
+            initialView: 'dayGridMonth', 
             headerToolbar: {
                 left: 'prev,next today',
                 center: 'title',
-                right: 'dayGridMonth,timeGridWeek,timeGridDay' // Allows switching between month, week, day views
+                right: 'dayGridMonth,timeGridWeek,timeGridDay' 
             },
             events: events,
             eventClick: function(info) {
@@ -550,8 +557,7 @@ document.addEventListener('DOMContentLoaded', () => {
         applySearchAndSort(); // Re-apply search/sort and then render the correct view
     });
 
-    // Delegated event listener for action buttons (View, Reschedule, Archive)
-    // This is better than attaching to each button individually inside renderApplications
+    // Event listener for action buttons (View, Reschedule, Archive)
     volunteersContainer.addEventListener('click', async (event) => {
         const target = event.target;
         
@@ -577,6 +583,32 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             console.warn("Volunteer data not found for key:", volunteerKey);
             Swal.fire('Error', 'Volunteer data not found.', 'error');
+        }
+    }
+
+    async function sendApprovalEmail(volunteer, scheduledDate) {
+        if (!volunteer || !volunteer.email) {
+            console.error("Cannot send email: Volunteer or email missing.");
+            Swal.fire('Error', 'Missing volunteer email. Cannot send confirmation.', 'error');
+            return;
+        }
+
+        const fullName = getFullName(volunteer);
+
+        const templateParams = {
+            to_name: fullName,
+            to_email: volunteer.email,
+            scheduled_date: scheduledDate,
+            // admin_contact_info: 'Admin Name - contact@example.com'
+        };
+
+        try {
+            const response = await emailjs.send('service_gupgjog', 'template_udpyecq', templateParams);
+            console.log('Email successfully sent!', response.status, response.text);
+            Swal.fire('Email Sent!', 'Confirmation email has been sent to the volunteer.', 'success');
+        } catch (error) {
+            console.error('Failed to send email:', error);
+            Swal.fire('Email Error', 'Failed to send confirmation email. Please check EmailJS configuration or try again.', 'error');
         }
     }
 
@@ -629,16 +661,25 @@ document.addEventListener('DOMContentLoaded', () => {
                     const volunteerRef = database.ref(`volunteerApplications/approvedVolunteer/${volunteerKey}`);
                     await volunteerRef.update({ scheduledDateTime: newTimestamp });
 
+                    // Send email
+                    await sendApprovalEmail(volunteer, formatDate(newTimestamp));
+
                     Swal.fire(
                         'Rescheduled!',
-                        `${getFullName(volunteer)}'s schedule has been updated to ${formatDate(newTimestamp)}.`,
+                        `${getFullName(volunteer)}'s schedule has been updated to ${formatDate(newTimestamp)}. New Schedule Email has been sent to the Volunteer.`,
                         'success'
                     );
                 } catch (error) {
-                    console.error("Error rescheduling volunteer: ", error);
+                    console.error("Error rescheduling volunteer or sending email: ", error);
+                    let errorMessage = `Failed to reschedule volunteer: ${error.message}`;
+                    if (error && error.status === 422) {
+                        errorMessage = 'Failed to send reschedule email. Please check EmailJS template parameters and IDs. (Error 422)';
+                    } else if (error && error.text) { 
+                        errorMessage = `Failed to send reschedule email: ${error.text}. Please check EmailJS setup.`;
+                    }
                     Swal.fire(
                         'Error!',
-                        `Failed to reschedule volunteer: ${error.message}`,
+                        errorMessage,
                         'error'
                     );
                 }
