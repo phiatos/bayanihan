@@ -327,7 +327,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const userData = snapshot.val();
                 if (userData) {
                     currentUserRole = userData.role;
-                    volunteerGroupName = userData.organization || "Not Assigned";
+                    volunteerGroupName = userData.organization || "Unknown Group";
                     console.log('User Role:', currentUserRole);
                     console.log('Volunteer Group Name:', volunteerGroupName);
 
@@ -353,7 +353,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     } else if (currentUserRole === 'ABVN') {
                         console.log('ABVN role detected. Checking organization activations.');
 
-                        if (volunteerGroupName !== "Not Assigned") {
+                        if (volunteerGroupName !== "Unknown Group") {
                             database.ref("activations")
                                 .orderByChild("organization")
                                 .equalTo(volunteerGroupName)

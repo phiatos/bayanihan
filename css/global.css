@@ -158,7 +158,7 @@ header::before {
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
-.controls_right input[type="text"]:focus, #sortSelect:hover, #sortSelect:focus {
+.controls_right input[type="text"]:focus, #sortSelect:hover, #sortSelect:focus , #roleFilter:hover, #roleFilter:focus, #actionFilter:hover, #actionFilter:focus {
   outline: none;
   border-color: #10919B;
   box-shadow: 0 0 8px rgba(16, 145, 155, 0.3);
@@ -170,7 +170,7 @@ header::before {
   font-style: italic;
 }
 
-#sortSelect {
+#sortSelect, #roleFilter, #actionFilter {
   height: 40px;
   padding: 10px 14px;
   font-size: 12px;
@@ -185,7 +185,7 @@ header::before {
 }
 
 
-#sortSelect option[disabled] {
+#sortSelect option[disabled] , #roleFilter option[disabled], #actionFilter option[disabled] {
   color: #10919B;
   opacity: 0.6;
 
@@ -254,7 +254,7 @@ tr {
   transition: background-color 0.3s ease;
 }
 
-.controls select {
+/* .controls select {
   padding: 8px 12px;
   font-size: 12px;
   max-width: 130px;
@@ -265,7 +265,7 @@ tr {
   border: 1px solid #E0E3EB;
   border-radius: 12px;
   box-sizing: border-box;
-}
+} */
 
 
 .pdf-button, .excel-button, .toggleViewBtn, .viewPendingBtn {
@@ -1389,7 +1389,7 @@ label:has(+ textarea[required])::after {
   }
 
   .controls_right input[type="text"],
-  #sortSelect {
+  #sortSelect, #roleFilter, #actionFilter {
     width: 100%;
     max-width: 100%;
   }

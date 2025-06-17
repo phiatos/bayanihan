@@ -85,6 +85,30 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function formatWithCommas(value) {
+    return value != null ? Number(value).toLocaleString() : "-";
+    }
+
+    function formatCompact(value) {
+    return value != null
+        ? new Intl.NumberFormat('en', {
+            notation: 'compact',
+            compactDisplay: 'short',
+        }).format(value)
+        : "-";
+    }
+
+    function formatCurrency(value) {
+    return value != null
+        ? new Intl.NumberFormat('en-PH', {
+            style: 'currency',
+            currency: 'PHP',
+            minimumFractionDigits: 0,
+        }).format(value)
+        : "-";
+    }
+
+
     function transformReportData(report) {
         return {
             firebaseKey: report.firebaseKey,
@@ -201,14 +225,14 @@ document.addEventListener('DOMContentLoaded', () => {
                             <p class="cell"><strong>Completion Time of Intervention:</strong> ${formatTime(report.TimeOfIntervention)}</p>
                             <p><strong>Start Date of Operation:</strong> ${formatDate(report.StartDate) || "-"}</p>
                             <p><strong>End Date of Operation:</strong> ${formatDate(report.EndDate) || "-"}</p>
-                            <p><strong>No. of Individuals or Families:</strong> ${report.NoOfIndividualsOrFamilies || "-"}</p>
-                            <p><strong>No. of Food Packs:</strong> ${report.NoOfFoodPacks || "-"}</p>
-                            <p><strong>No. of Hot Meals/Ready-to-eat food:</strong> ${report.NoOfHotMeals || "-"}</p>
-                            <p><strong>Liters of Water:</strong> ${report.LitersOfWater || "-"}</p>
-                            <p><strong>No. of Volunteers Mobilized:</strong> ${report.NoOfVolunteersMobilized || "-"}</p>
-                            <p><strong>No. of Organizations Activated:</strong> ${report.NoOfOrganizationsActivated || "-"}</p>
-                            <p><strong>Total Value of In-Kind Donations:</strong> ${report.TotalValueOfInKindDonations || "-"}</p>
-                            <p><strong>Total Monetary Donations:</strong> ${report.TotalMonetaryDonations || "-"}</p>
+                            <p><strong>No. of Individuals or Families:</strong> ${formatWithCommas(report.NoOfIndividualsOrFamilies)}</p>
+                            <p><strong>No. of Food Packs:</strong> ${formatCompact(report.NoOfFoodPacks)}</p>
+                            <p><strong>No. of Hot Meals/Ready-to-eat food:</strong> ${formatCompact(report.NoOfHotMeals)}</p>
+                            <p><strong>Liters of Water:</strong> ${formatWithCommas(report.LitersOfWater)}</p>
+                            <p><strong>No. of Volunteers Mobilized:</strong> ${formatWithCommas(report.NoOfVolunteersMobilized)}</p>
+                            <p><strong>No. of Organizations Activated:</strong> ${formatCompact(report.NoOfOrganizationsActivated)}</p>
+                            <p><strong>Total Value of In-Kind Donations:</strong> ${formatCurrency(report.TotalValueOfInKindDonations)}</p>
+                            <p><strong>Total Monetary Donations:</strong> ${formatCurrency(report.TotalMonetaryDonations)}</p>
                         </div>
                     </div>
                     <div class="form-3">
