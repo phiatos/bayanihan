@@ -1,5 +1,3 @@
-emailjs.init("YOUR_EMAILJS_PUBLIC_KEY"); 
-
 const firebaseConfig = {
     apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
     authDomain: "bayanihan-5ce7e.firebaseapp.com",
@@ -16,6 +14,13 @@ if (!firebase.apps.length) {
 }
 const database = firebase.database();
 
+// Initialize EmailJS with updated public key
+try {
+    emailjs.init('BwfsCx-NJCb3qGxCk');
+    console.log("EmailJS initialized successfully");
+} catch (error) {
+    console.error("EmailJS initialization failed:", error);
+}
 
 // Variables for inactivity detection --------------------------------------------------------------------
 let inactivityTimeout;
@@ -568,8 +573,7 @@ document.addEventListener('DOMContentLoaded', () => {
         entriesInfo.textContent = `Showing ${totalItems ? startIndex + 1 : 0} to ${endIndex} of ${totalItems} entries`;
     }
 
-    // --- Email Sending Function ---
-    // Removed 'abContact' parameter as its source was unclear in this context
+    // --- Email for Confirmed to AB---
     async function sendApprovalEmail(volunteer, scheduledDate) {
         if (!volunteer || !volunteer.email) {
             console.error("Cannot send email: Volunteer or email missing.");
@@ -583,12 +587,11 @@ document.addEventListener('DOMContentLoaded', () => {
             to_name: fullName,
             to_email: volunteer.email,
             scheduled_date: scheduledDate,
-            // If you need other contact info from your admin/organization, add it here
-            // e.g., admin_contact_info: 'Admin Name - contact@example.com'
+            // admin_contact_info: 'Admin Name - contact@example.com'
         };
 
         try {
-            const response = await emailjs.send('YOUR_EMAILJS_SERVICE_ID', 'YOUR_EMAILJS_TEMPLATE_ID', templateParams);
+            const response = await emailjs.send('service_gupgjog', 'template_udpyecq', templateParams);
             console.log('Email successfully sent!', response.status, response.text);
             Swal.fire('Email Sent!', 'Confirmation email has been sent to the volunteer.', 'success');
         } catch (error) {
@@ -597,6 +600,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // --- Email for Endorsed to ABVN ---
     async function sendEndorsementEmail(volunteer, abvnGroup) {
         if (!volunteer || !volunteer.email || !abvnGroup || !abvnGroup.email) {
             console.error("Cannot send endorsement email: Missing volunteer or ABVN group email.");
@@ -623,8 +627,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         try {
-            // Replace with your actual EmailJS Service ID and Endorsement Template ID
-            const response = await emailjs.send('YOUR_EMAILJS_SERVICE_ID', 'YOUR_ENDORSEMENT_TEMPLATE_ID', templateParams);
+            const response = await emailjs.send('service_gupgjog', 'template_5ndnhco', templateParams);
             console.log('Endorsement email successfully sent!', response.status, response.text);
             Swal.fire('Endorsement Sent!', 'Endorsement email has been sent to the ABVN group.', 'success');
         } catch (error) {
@@ -632,7 +635,6 @@ document.addEventListener('DOMContentLoaded', () => {
             Swal.fire('Email Error', 'Failed to send endorsement email. Please check EmailJS configuration or try again.', 'error');
         }
     }
-
 
     // --- Action Handlers (Approve/Reject/Status) ---
     volunteersContainer.addEventListener('click', async (event) => {
@@ -939,21 +941,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     showCancelButton: true,
                     confirmButtonText: 'Proceed Anyway (Manual Override)',
                     cancelButtonText: 'Cancel & Review',
-                    reverseButtons: true // Puts "Cancel" on the left
+                    reverseButtons: true 
                 }).then((duplicateResult) => {
                     if (duplicateResult.isConfirmed) {
-                        // User chose to proceed despite the warning
-                        // Continue with the scheduling logic (recursive call or put in a separate function)
                         Swal.fire('Proceeding', 'Proceeding with scheduling despite potential duplicate warning.', 'info');
-                        // Call the actual scheduling logic here. It's best to put it in a separate function.
                         handleScheduleConfirmation(scheduledDateTime, currentVolunteerKey, currentVolunteerData);
                     } else {
-                        // User chose to cancel and review
                         Swal.fire('Cancelled', 'Scheduling cancelled for review.', 'info');
-                        hideScheduleModal(); // Close the modal and reset state
+                        hideScheduleModal();
                     }
                 });
-                return; // Stop the function execution here if duplicates are found
+                return;
             }
 
             } catch (duplicateCheckError) {
@@ -962,7 +960,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 hideScheduleModal();
                 return;
             }
-            // --- END OF ENHANCED DUPLICATE CHECK LOGIC ---
 
             // If no duplicates were found, or if user chose to proceed anyway (via recursive call)
             // The original confirmation dialog
@@ -970,7 +967,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
 
-    // --- NEW FUNCTION TO ENCAPSULATE SCHEDULE CONFIRMATION LOGIC ---
+    // --- Confirm by AB LOGIC ---
     async function handleScheduleConfirmation(scheduledDateTime, volunteerKey, volunteerData) {
         Swal.fire({
             title: 'Confirm Schedule?',

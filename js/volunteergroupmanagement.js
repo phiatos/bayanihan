@@ -223,7 +223,7 @@ function renderTable(dataToRender = filteredData) {
             <td>${row.address?.streetAddress || 'N/A'}</td>
             <td>
                 <button class="editBtn" data-id="${row.id}">Edit</button>
-                <button class="deleteBtn" data-id="${row.id}">Remove</button>
+                <button class="deleteBtn" data-id="${row.id}">Archive</button>
             </td>
         `;
         tableBody.appendChild(tr);

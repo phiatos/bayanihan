@@ -215,8 +215,8 @@ function renderAdminTable(data) {
         
         const actionsCell = row.insertCell(5);
         actionsCell.innerHTML = `
-            <button class="editBtn" data-uid="${admin.uid}"><i class="fas fa-edit"></i> Edit</button>
-            <button class="deleteBtn" data-uid="${admin.uid}"><i class="fas fa-trash"></i> Archived</button>
+            <button class="editBtn" data-uid="${admin.uid}">Edit</button>
+            <button class="deleteBtn" data-uid="${admin.uid}">Archived</button>
         `;
     });
 
