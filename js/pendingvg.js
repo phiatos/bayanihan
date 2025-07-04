@@ -66,7 +66,6 @@ function checkInactivity() {
     document.addEventListener(eventType, resetInactivityTimer);
 });
 //-------------------------------------------------------------------------------------
-
 // Global flag for Super Admin status
 let currentUserIsSuperAdmin = false;
 
@@ -120,13 +119,12 @@ function initializePageFunctions(userId) {
     const closeModalBtn = document.getElementById('closeModal');
     const modalContentDiv = document.getElementById('modalContent');
 
-    // New: Archived Modal Elements
+    //Archived Modal Elements
     const archivedModal = document.getElementById('archivedModal');
     const closeArchivedModalBtn = document.getElementById('closeArchivedModalBtn');
     const archivedVGTableBody = document.getElementById('archivedTableBody'); // Make sure this ID is correct in HTML
     const archivedEntriesInfo = document.getElementById('archivedEntriesInfo');
     const archivedPaginationContainer = document.getElementById('archivedPagination');
-
 
     let allApplications = []; // For active pending applications
     let filteredApplications = [];
@@ -507,10 +505,6 @@ function initializePageFunctions(userId) {
     });
 
     // --- Archived Pending ABVN Applications Functions ---
-
-    /**
-     * Fetches all archived pending volunteer group applications from Firebase and renders them.
-     */
     async function fetchAndRenderArchivedVGs() {
         if (!currentUserIsSuperAdmin) {
             Swal.fire('Access Denied', 'You do not have permission to view archived volunteer group applications.', 'error');
@@ -548,10 +542,6 @@ function initializePageFunctions(userId) {
         }
     }
 
-    /**
-     * Renders the archived pending volunteer group table with paginated data.
-     * @param {Array} data - The array of archived volunteer group data to render.
-     */
     function renderArchivedVGTable(data) {
         if (!archivedVGTableBody) {
             console.error("Archived volunteer group table body not found!");
@@ -599,10 +589,6 @@ function initializePageFunctions(userId) {
         });
     }
 
-    /**
-     * Pagination function for the archived table (local implementation).
-     * @param {number} totalItems - Total number of items in the archived data.
-     */
     function renderArchivedPagination(totalItems) {
         archivedPaginationContainer.innerHTML = '';
         const totalPages = Math.ceil(totalItems / archivedVGRowsPerPage);
@@ -640,21 +626,13 @@ function initializePageFunctions(userId) {
         archivedPaginationContainer.appendChild(createButton('Next', currentArchivedVGPage + 1, currentArchivedVGPage === totalPages));
     }
 
-    /**
-     * Updates the entries info for the archived table.
-     * @param {number} totalItems - Total number of items in the archived data.
-     */
+
     function updateArchivedEntriesInfo(totalItems) {
         const startIndex = (currentArchivedVGPage - 1) * archivedVGRowsPerPage;
         const endIndex = Math.min(startIndex + archivedVGRowsPerPage, totalItems);
         archivedEntriesInfo.textContent = `Showing ${totalItems ? startIndex + 1 : 0} to ${endIndex} of ${totalItems} entries`;
     }
 
-
-    /**
-     * Retrieves an archived volunteer group application, moving it back to pending.
-     * @param {string} uid - The UID of the volunteer group to retrieve.
-     */
     async function retrieveVG(uid) {
         if (!currentUserIsSuperAdmin) {
             Swal.fire('Access Denied', 'You do not have permission to retrieve volunteer group applications.', 'error');
@@ -711,7 +689,6 @@ function initializePageFunctions(userId) {
             }
         });
     }
-
 
     // --- Event Listeners for Search, Sort, and Modals ---
     if (searchInput) {

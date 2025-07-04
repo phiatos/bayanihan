@@ -148,7 +148,7 @@ auth.onAuthStateChanged(user => {
             if (addNewAdminButton) {
                 addNewAdminButton.style.display = 'none';
             }
-            fetchAndRenderAdmins(); // Still try to render existing data
+            fetchAndRenderAdmins(); 
         });
 
     } else {
@@ -311,9 +311,7 @@ function applySearchAndSortAdmins() {
     renderAdminTable(filteredAdminData);
 }
 
-
 // --- Modal & Form Event Listeners (Add Admin) ---
-// Open Add Admin Modal
 if (addNewAdminButton) {
     addNewAdminButton.addEventListener('click', () => {
         if (!currentUserIsSuperAdmin) {
