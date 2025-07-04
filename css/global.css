@@ -791,7 +791,7 @@ button[type="submit"]:hover,
   color: #6c757d;
 }
 
-#pagination button {
+.pagination button {
   width: auto; 
   display: inline-flex; 
   flex-wrap: wrap;
@@ -812,13 +812,13 @@ button[type="submit"]:hover,
   box-shadow: none;
 }
 
-#pagination button.active-page {
+.pagination button.active-page{
   background-color: rgb(20, 173, 187);
   color: white;
   box-shadow: 0 0 8px rgba(20, 173, 187, 0.6);
 }
 
-#pagination button:hover:not(:disabled) {
+.pagination button:hover:not(:disabled){
   background-color: rgba(20, 173, 187, 0.589);
   border: 1px solid #13919f;
   color: white;
@@ -826,7 +826,7 @@ button[type="submit"]:hover,
   transform: translateY(-2px);
 }
 
-#pagination button:disabled {
+.pagination button:disabled{
   cursor: not-allowed;
   color: #aaa;
   background-color: #f5f5f5;
@@ -835,8 +835,7 @@ button[type="submit"]:hover,
   pointer-events: none;
 }
 
-
-#pagination {
+.pagination {
   display: flex;
   justify-content: center;
   align-items: center;

@@ -483,13 +483,17 @@ document.addEventListener("DOMContentLoaded", () => {
                                 padding: '1.75em',
                                 background: '#f9f9f9',
                                 color: '#2c3e50',
-                                confirmButtonColor: '#007BFF', // Bootstrap primary blue
+                                confirmButtonColor: '#007BFF', 
                                 buttonsStyling: true,
+                                // customClass: {
+                                //     popup: 'rounded-xl shadow-lg',
+                                //     title: 'text-lg font-semibold',
+                                //     confirmButton: 'px-4 py-2'
+                                // },
                                 customClass: {
-                                    popup: 'rounded-xl shadow-lg',
-                                    title: 'text-lg font-semibold',
-                                    confirmButton: 'px-4 py-2'
-                                }
+                                    confirmButton: 'swal2-confirm-large',
+                                    cancelButton: 'swal2-cancel-large'
+                                },
                             });
                             if (basicInfoSection) basicInfoSection.style.display = 'none';
                             if (changePasswordFormContainer) changePasswordFormContainer.style.display = 'block';

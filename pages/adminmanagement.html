@@ -58,6 +58,9 @@
                                 </select>
                             <i class='bx bx-chevron-down'></i>
                         </div>
+                        <button id="viewArchived" aria-label="View Archived Admins">
+                            <i class='bx bx-archive' style="color: white; font-size: 20px;"></i>
+                        </button>
                     </div>
                 </div>
 
@@ -155,7 +158,7 @@
             </div> 
 
             <!-- Edit Modal -->
-             <div class="modal" id="editAdminModal" style="display: none;">
+            <div class="modal" id="editAdminModal" style="display: none;">
                 <div class="modal-content">
                     <span class="close-button" id="closeEditModalBtn">×</span>
                     <h2 id="editModalTitle">Edit Admin Details</h2>
@@ -196,6 +199,31 @@
                 </div>
             </div>
 
+            <div class="modal" id="archivedModal" style="display: none;">
+                <div class="modal-content">
+                    <span class="close-button" id="closeArchivedModalBtn">×</span>
+                    <h2>Archived Admin Accounts</h2>
+                    <div class="table-container" style="max-height: 400px; overflow-y: auto;">
+                        <table id="archivedTable">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Position</th>
+                                    <th>Archived Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                </tbody>
+                        </table>
+                    </div>
+                    <div class="pagination-info" style="margin-top: 15px;">
+                        <span id="archivedEntriesInfo">Showing 0 to 0 of 0 entries</span>
+                        <div id="archivedPagination" class="pagination"></div>
+                    </div>
+                </div>
+            </div>
     </div>
 
     <script>
