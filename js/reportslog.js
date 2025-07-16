@@ -224,15 +224,15 @@ document.addEventListener('DOMContentLoaded', () => {
         return filteredReports;
     }
 
-    function renderReportsTable(reports, userRole) {
+    function renderReportsTable(reports, userRole, filteredReports) {
         reportsBody.innerHTML = '';
-        const totalEntries = reports.length;
+        const totalEntries = filteredReports.length; // Use filteredReports for accurate total
         const totalPages = Math.ceil(totalEntries / rowsPerPage);
 
         if (reports.length === 0) {
             reportsBody.innerHTML = "<tr><td colspan='9'>No approved reports found on this page.</td></tr>";
             entriesInfo.textContent = "Showing 0 to 0 of 0 entries";
-            renderPaginationControlsForReports(0);
+            renderPaginationControlsForReports(totalPages, filteredReports);
             return;
         }
 
@@ -364,11 +364,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
             reportsBody.appendChild(tr);
         });
-        entriesInfo.textContent = `Showing ${(currentPage - 1) * rowsPerPage + 1} to ${Math.min(currentPage * rowsPerPage, reports.length)} of ${reviewedReports.length} entries`;
-        renderPaginationControlsForReports(totalPages);
+        const firstEntry = (currentPage - 1) * rowsPerPage + 1;
+        const lastEntry = Math.min(currentPage * rowsPerPage, totalEntries);
+        entriesInfo.textContent = `Showing ${firstEntry} to ${lastEntry} of ${totalEntries} entries`;
+        renderPaginationControlsForReports(totalPages, filteredReports);
     }
 
-    function renderPaginationControlsForReports(totalPages) {
+    function renderPaginationControlsForReports(totalPages, filteredReports) {
         paginationContainer.innerHTML = '';
 
         if (totalPages === 0) {
@@ -382,8 +384,13 @@ document.addEventListener('DOMContentLoaded', () => {
             if (disabled) btn.disabled = true;
             if (isActive) btn.classList.add('active-page');
             btn.addEventListener('click', () => {
-                currentPage = page;
-                applySearchAndSort(userRole);
+                if (!disabled) {
+                    currentPage = page;
+                    const startIndex = (currentPage - 1) * rowsPerPage;
+                    const endIndex = startIndex + rowsPerPage;
+                    const currentPageReports = filteredReports.slice(startIndex, endIndex);
+                    renderReportsTable(currentPageReports, userRole, filteredReports);
+                }
             });
             return btn;
         };
@@ -409,7 +416,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const startIndex = (currentPage - 1) * rowsPerPage;
         const endIndex = startIndex + rowsPerPage;
         const currentPageReports = filteredData.slice(startIndex, endIndex);
-        renderReportsTable(currentPageReports, userRole);
+        renderReportsTable(currentPageReports, userRole, filteredData);
     }
 
     searchInput.addEventListener('input', () => {

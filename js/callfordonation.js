@@ -24,7 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const sortSelect = document.getElementById('sortSelect');
     const exportBtn = document.getElementById("exportBtn");
     const savePdfBtn = document.getElementById("savePdfBtn");
-    const exportCsvButton = document.getElementById("exportCsvButton"); // Assuming this exists for the toggle function
+    const exportCsvButton = document.getElementById("exportCsvButton");
     const entriesInfo = document.getElementById('entriesInfo');
     const paginationContainer = document.getElementById("pagination");
     const clearFormBtn = document.getElementById("clearFormBtn");
@@ -35,7 +35,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const citySelect = document.getElementById('city');
     const barangaySelect = document.getElementById('barangay');
 
-    // Input fields to display selected text
     const regionTextInput = document.getElementById('region-text');
     const provinceTextInput = document.getElementById('province-text');
     const cityTextInput = document.getElementById('city-text');
@@ -46,6 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let allDonations = [];
     let filteredAndSortedDonations = [];
     let formHasChanges = false;
+    let canSubmit = false; // Flag to control submission eligibility
 
     // Add event listeners to the form inputs to track changes
     if (form) {
@@ -60,17 +60,28 @@ document.addEventListener('DOMContentLoaded', () => {
     // Base path for JSON files
     const baseJsonPath = '../json/';
 
-    // --- Authentication and Password Reset Check ---
+    // --- Authentication and Role-Based Submission ---
     auth.onAuthStateChanged(async (user) => {
         if (user) {
-            const profilePage = 'profile.html'; // Define your profile page path
-
+            const profilePage = 'profile.html';
             try {
-                // Fetch user data from the database to check password_needs_reset status
+                // Fetch user data from the database
                 const userSnapshot = await database.ref(`users/${user.uid}`).once("value");
                 const userDataFromDb = userSnapshot.val();
-                const passwordNeedsReset = userDataFromDb ? (userDataFromDb.password_needs_reset || false) : false;
+                if (!userDataFromDb) {
+                    console.error('User data not found for UID:', user.uid);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'User Data Missing',
+                        text: 'Your user profile is incomplete. Please contact support.',
+                    }).then(() => {
+                        window.location.replace('../pages/login.html');
+                    });
+                    return;
+                }
 
+                // Password reset check
+                const passwordNeedsReset = userDataFromDb.password_needs_reset || false;
                 if (passwordNeedsReset) {
                     console.log(`Password change required for user ${user.uid}. Redirecting to profile page.`);
                     Swal.fire({
@@ -83,12 +94,96 @@ document.addEventListener('DOMContentLoaded', () => {
                         timer: 2000,
                         timerProgressBar: true
                     }).then(() => {
-                        window.location.replace(`../pages/${profilePage}`); // Use replace to prevent back button
+                        window.location.replace(`../pages/${profilePage}`);
                     });
-                    return; // IMPORTANT: Stop further execution if password reset is needed
+                    return;
                 }
 
-                // If password does NOT need reset, proceed with normal page loading
+                // Role-based submission eligibility check
+                const currentUserRole = userDataFromDb.role;
+                const organization = userDataFromDb.organization || 'Unknown Group';
+                console.log('User Role:', currentUserRole, 'Organization:', organization);
+
+                if (currentUserRole === 'AB ADMIN') {
+                    console.log('AB ADMIN role detected. Submission allowed.');
+                    canSubmit = true;
+                    if (submitButton) {
+                        submitButton.disabled = false;
+                        console.log('Submit button enabled for AB ADMIN.');
+                    } else {
+                        console.error('Submit button element not found (ID: nextBtn).');
+                    }
+                    toggleFormElements(true); // Enable form
+                } else if (currentUserRole === 'ABVN') {
+                    console.log('ABVN role detected. Checking organization activations.');
+                    if (organization === 'Unknown Group') {
+                        console.warn('ABVN user has no organization assigned.');
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Organization Not Assigned',
+                            text: 'Your account is not associated with an organization. Redirecting to dashboard.',
+                        }).then(() => {
+                            window.location.replace('../pages/dashboard.html');
+                        });
+                        return;
+                    }
+
+                    // Check for active activations
+                    const organizationActivationsSnapshot = await database.ref("activations")
+                        .orderByChild("organization")
+                        .equalTo(organization)
+                        .once('value');
+
+                    let organizationHasActiveActivations = false;
+                    organizationActivationsSnapshot.forEach(childSnapshot => {
+                        if (childSnapshot.val().status === "active") {
+                            organizationHasActiveActivations = true;
+                            return true;
+                        }
+                    });
+
+                    if (organizationHasActiveActivations) {
+                        console.log(`Organization "${organization}" has active operations. Submission allowed.`);
+                        canSubmit = true;
+                        if (submitButton) {
+                            submitButton.disabled = false;
+                            console.log('Submit button enabled for ABVN with active activations.');
+                        } else {
+                            console.error('Submit button element not found (ID: nextBtn).');
+                        }
+                        toggleFormElements(true); // Enable form
+                    } else {
+                        console.warn(`Organization "${organization}" has no active operations. Redirecting to dashboard.`);
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Inactive Organization',
+                            text: 'Your organization has no active operations. Redirecting to dashboard.',
+                            timer: 3000,
+                        }).then(() => {
+                            window.location.replace('../pages/dashboard.html');
+                        });
+                        return;
+                    }
+                } else {
+                    console.warn(`Unsupported role: ${currentUserRole}. Redirecting to dashboard.`);
+                    canSubmit = false;
+                    if (submitButton) {
+                        submitButton.disabled = true;
+                        console.log('Submit button disabled for unsupported role.');
+                    } else {
+                        console.error('Submit button element not found (ID: nextBtn).');
+                    }
+                    toggleFormElements(false);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Unauthorized Access',
+                        text: 'Your role does not permit access. Redirecting to dashboard.',
+                    }).then(() => {
+                        window.location.replace('../pages/dashboard.html');
+                    });
+                    return;
+                }
+
                 // Load donations from Firebase
                 const dbRef = firebase.database().ref('callfordonation');
                 dbRef.on('value', (snapshot) => {
@@ -105,24 +200,21 @@ document.addEventListener('DOMContentLoaded', () => {
                     Swal.fire('Error', 'Failed to load donations from the database.', 'error');
                 });
 
-                // Apply initial UI toggles based on role
+                // Apply UI toggles based on role
                 toggleExportCsvButton();
-                toggleFormElements(userRole !== 'ABVN'); // ABVN cannot edit/submit forms
                 updateRemoveButtonVisibility();
 
             } catch (error) {
-                console.error("Error checking password reset status or fetching user data:", error);
+                console.error("Error checking user data or activations:", error);
                 Swal.fire({
                     icon: 'error',
                     title: 'Authentication Error',
                     text: 'Failed to verify account status. Please try logging in again.',
                 }).then(() => {
-                    window.location.replace('../pages/login.html'); // Redirect to login on error
+                    window.location.replace('../pages/login.html');
                 });
-                return;
             }
         } else {
-            // User is signed out.
             Swal.fire({
                 title: 'Not Logged In',
                 text: 'Please log in to view donation calls.',
@@ -130,31 +222,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 showCancelButton: false,
                 confirmButtonText: 'Go to Login'
             }).then(() => {
-                window.location.replace('../pages/login.html'); // Use replace to prevent back button
+                window.location.replace('../pages/login.html');
             });
-            // Clear table and disable form elements if not logged in
             allDonations = [];
-            applyChange(); // This will render an empty table
-            toggleFormElements(false); // Disable form
+            applyChange();
+            toggleFormElements(false);
             if (exportCsvButton) exportCsvButton.style.display = 'none';
+            if (submitButton) {
+                submitButton.disabled = true;
+                console.log('Submit button disabled: User not logged in.');
+            } else {
+                console.error('Submit button element not found (ID: nextBtn).');
+            }
         }
     });
 
-    // Load donations from Firebase
-    const dbRef = firebase.database().ref('callfordonation');
-    dbRef.on('value', (snapshot) => {
-        const data = snapshot.val();
-        allDonations = [];
-        if (data) {
-            Object.entries(data).forEach(([key, value]) => {
-                allDonations.push({ ...value, firebaseKey: key });
-            });
-        }
-        applyChange();
-    }, (error) => {
-        console.error("Error fetching donations from Firebase:", error);
-        Swal.fire('Error', 'Failed to load donations from the database.', 'error');
-    });
+    // Remove redundant Firebase listener (already present in auth.onAuthStateChanged)
+    // const dbRef = firebase.database().ref('callfordonation');
+    // dbRef.on('value', ...); // Removed to avoid duplicate listeners
 
     var my_handlers = {
         fill_regions: function() {
@@ -225,7 +310,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 provinceSelect.innerHTML = '<option value="" selected="true" disabled>Choose Province</option>';
                 provinceSelect.selectedIndex = 0;
-                citySelect.innerHTML = '<option value="" selected="true" disabled>Choose State First</option>';
+                citySelect.innerHTML = '<option value="" selected="true" disabled>Choose Province First</option>';
                 citySelect.selectedIndex = 0;
                 barangaySelect.innerHTML = '<option value="" selected="true" disabled>Choose Barangay</option>';
                 barangaySelect.selectedIndex = 0;
@@ -470,6 +555,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (submitButton) {
             submitButton.disabled = !enable;
+            console.log(`Submit button ${enable ? 'enabled' : 'disabled'} via toggleFormElements.`);
+        } else {
+            console.error('Submit button element not found (ID: nextBtn) in toggleFormElements.');
         }
 
         if (donationDrive) donationDrive.disabled = !enable;
@@ -574,23 +662,23 @@ document.addEventListener('DOMContentLoaded', () => {
     clearFormBtn.addEventListener("click", () => {
         if (formHasChanges) {
             Swal.fire({
-            title: 'Discard Changes?',
-            text: 'You have unsaved changes. Are you sure you want to clear the form?',
-            icon: 'warning',                                
-            iconColor: '#f57c00',               
-            showCancelButton: true,
-            confirmButtonColor: '#c62828',      
-            cancelButtonColor: '#546e7a',        
-            confirmButtonText: 'Yes, clear it!',
-            cancelButtonText: 'No, keep editing',
-            reverseButtons: true,               
-            customClass: {
-                popup: 'swal2-popup-warning-clean',
-                title: 'swal2-title-warning-clean',
-                content: 'swal2-text-warning-clean',
-                confirmButton: 'swal2-button-confirm-clean',
-                cancelButton: 'swal2-button-cancel-clean'
-            }
+                title: 'Discard Changes?',
+                text: 'You have unsaved changes. Are you sure you want to clear the form?',
+                icon: 'warning',
+                iconColor: '#f57c00',
+                showCancelButton: true,
+                confirmButtonColor: '#c62828',
+                cancelButtonColor: '#546e7a',
+                confirmButtonText: 'Yes, clear it!',
+                cancelButtonText: 'No, keep editing',
+                reverseButtons: true,
+                customClass: {
+                    popup: 'swal2-popup-warning-clean',
+                    title: 'swal2-title-warning-clean',
+                    content: 'swal2-text-warning-clean',
+                    confirmButton: 'swal2-button-confirm-clean',
+                    cancelButton: 'swal2-button-cancel-clean'
+                }
             }).then((result) => {
                 if (result.isConfirmed) {
                     if (form) {
@@ -695,7 +783,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         updatePaginationInfo();
         renderPagination();
-        updateRemoveButtonVisibility(); // Ensure remove button visibility is updated after rendering table
+        updateRemoveButtonVisibility();
     }
 
     function updatePaginationInfo() {
@@ -751,6 +839,21 @@ document.addEventListener('DOMContentLoaded', () => {
         submitButton.addEventListener('click', (e) => {
             e.preventDefault();
 
+            // Check if submission is allowed
+            if (!canSubmit) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Submission Not Allowed',
+                    text: 'You lack permission to submit donations.',
+                    background: '#fdecea',
+                    color: '#b91c1c',
+                    iconColor: '#dc2626',
+                    confirmButtonColor: '#b91c1b',
+                    timer: 3000,
+                });
+                return;
+            }
+
             const donationDrive = document.getElementById('donationDrive')?.value.trim();
             const contactPerson = document.getElementById('contactPerson')?.value.trim();
             const contactNumber = document.getElementById('contactNumber')?.value.trim();
@@ -788,7 +891,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         city: city,
                         barangay: barangay,
                         street: address,
-                        fullAddress: `${address}, ${barangay}, ${city}, ${province}, ${region}` // Corrected full address
+                        fullAddress: `${address}, ${barangay}, ${city}, ${province}, ${region}`
                     },
                     facebookLink: facebookLink || "N/A",
                     image: base64Image || '',
@@ -838,6 +941,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 saveDonation('');
             }
         });
+    } else {
+        console.error('Submit button not found in DOM (ID: nextBtn). Please verify the HTML.');
     }
 
     // --- Excel Export Functionality ---
@@ -917,7 +1022,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 Swal.showLoading();
             }
         });
-
 
         logo.onload = function() {
             const pageWidth = doc.internal.pageSize.width;
@@ -1021,7 +1125,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const logoHeight = (logo.naturalHeight / logo.naturalWidth) * logoWidth;
             const margin = 14;
 
-
             doc.addImage(logo, 'PNG', pageWidth - logoWidth - margin, margin, logoWidth, logoHeight);
 
             doc.setFontSize(18);
@@ -1075,7 +1178,6 @@ document.addEventListener('DOMContentLoaded', () => {
             doc.text(poweredByText, pageWidth - margin, footerY, { align: 'right' });
 
             doc.save(`cfd_donation_${new Date().toISOString().slice(0, 10)}.pdf`);
-
 
             Swal.close();
             Swal.fire({

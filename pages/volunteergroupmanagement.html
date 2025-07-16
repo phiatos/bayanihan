@@ -31,11 +31,7 @@
                     </div>
                     <div class="controls_right">
                         <div class="search-wrapper">
-                            <!-- <i class="fa fa-search"></i> -->
                             <input type="text" placeholder="Search" id="searchInput" />
-                            <!-- <button onclick="clearDInputs()" class="clear-btn">
-                                <i class='bx bx-x'></i>
-                            </button> -->
                         </div>
                         <div class="custom-select-wrapper">
                             <select id="sortSelect">
@@ -63,6 +59,9 @@
                                 </select>
                             <i class='bx bx-chevron-down'></i>
                         </div>
+                        <button id="viewArchived" aria-label="View Archived Admins">
+                            <i class='bx bx-archive' style="color: white; font-size: 20px;"></i>
+                        </button>
                     </div>
                 </div>
 
@@ -170,67 +169,94 @@
 
             <!-- Edit Modal -->
             <div class="modal" id="editOrgModal" style="display: none;">
-            <div class="modal-content">
-                <span class="close-button" id="closeEditModalBtn">×</span>
-                <h4 id="editModalTitle">Edit Volunteer Group</h4>
-                <form id="editOrgForm">
-                <input type="hidden" id="editOrgFirebaseKey">
+                <div class="modal-content">
+                    <span class="close-button" id="closeEditModalBtn">×</span>
+                    <h4 id="editModalTitle">Edit Volunteer Group</h4>
+                    <form id="editOrgForm">
+                    <input type="hidden" id="editOrgFirebaseKey">
 
-                <div class="form-group">
-                    <label for="editOrganization">Organization</label>
-                    <input type="text" id="editOrganization" name="organization" placeholder="Enter Organization" required>
+                    <div class="form-group">
+                        <label for="editOrganization">Organization</label>
+                        <input type="text" id="editOrganization" name="organization" placeholder="Enter Organization" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editRegion">Region</label>
+                        <select id="editRegion" name="region" required></select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editProvince">Province</label>
+                        <select id="editProvince" name="province" required></select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editCity">City/Municipality</label>
+                        <select id="editCity" name="city" required></select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editBarangay">Barangay</label>
+                        <select id="editBarangay" name="barangay" required></select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editStreetAddress">Block/Lot/Unit Number and Street</label>
+                        <input type="text" id="editStreetAddress" name="streetAddress" placeholder="Enter Address" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editContactPerson">Contact Person</label>
+                        <input type="text" id="editContactPerson" name="contactPerson" placeholder="Enter Contact Person" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editEmail">Email</label>
+                        <input type="email" id="editEmail" name="email" placeholder="Enter Email" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editMobileNumber">Mobile Number</label>
+                        <input type="number" id="editMobileNumber" name="mobileNumber" placeholder="Enter Mobile Number" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editSocialMedia">Social Media</label>
+                        <input type="text" id="editSocialMedia" name="socialMedia" placeholder="Enter Social Media Link (Optional)">
+                    </div>
+
+                    <button type="submit">Save Changes</button>
+                    </form>
                 </div>
-
-                <div class="form-group">
-                    <label for="editRegion">Region</label>
-                    <select id="editRegion" name="region" required></select>
-                </div>
-
-                <div class="form-group">
-                    <label for="editProvince">Province</label>
-                    <select id="editProvince" name="province" required></select>
-                </div>
-
-                <div class="form-group">
-                    <label for="editCity">City/Municipality</label>
-                    <select id="editCity" name="city" required></select>
-                </div>
-
-                <div class="form-group">
-                    <label for="editBarangay">Barangay</label>
-                    <select id="editBarangay" name="barangay" required></select>
-                </div>
-
-                <div class="form-group">
-                    <label for="editStreetAddress">Block/Lot/Unit Number and Street</label>
-                    <input type="text" id="editStreetAddress" name="streetAddress" placeholder="Enter Address" required>
-                </div>
-
-                <div class="form-group">
-                    <label for="editContactPerson">Contact Person</label>
-                    <input type="text" id="editContactPerson" name="contactPerson" placeholder="Enter Contact Person" required>
-                </div>
-
-                <div class="form-group">
-                    <label for="editEmail">Email</label>
-                    <input type="email" id="editEmail" name="email" placeholder="Enter Email" required>
-                </div>
-
-                <div class="form-group">
-                    <label for="editMobileNumber">Mobile Number</label>
-                    <input type="number" id="editMobileNumber" name="mobileNumber" placeholder="Enter Mobile Number" required>
-                </div>
-
-                <div class="form-group">
-                    <label for="editSocialMedia">Social Media</label>
-                    <input type="text" id="editSocialMedia" name="socialMedia" placeholder="Enter Social Media Link (Optional)">
-                </div>
-
-                <button type="submit">Save Changes</button>
-                </form>
             </div>
-            </div>
 
+            <!-- Archived Modal -->
+            <div class="modal" id="archivedModal" style="display: none;">
+                <div class="modal-content">
+                    <span class="close-button" id="closeArchivedModalBtn">×</span>
+                    <h2>Archived Admin Accounts</h2>
+                    <div class="table-container" style="max-height: 400px; overflow-y: auto;">
+                        <table id="archivedTable">
+                            <thead>
+                                <tr>
+                                    <th>Organization Name</th>
+                                    <th>Email</th>
+                                    <th>Address</th>
+                                    <th>Archived Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                </tbody>
+                        </table>
+                    </div>
+                    <div class="pagination-info" style="margin-top: 15px;">
+                        <span id="archivedEntriesInfo">Showing 0 to 0 of 0 entries</span>
+                        <div id="archivedPagination" class="pagination"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>

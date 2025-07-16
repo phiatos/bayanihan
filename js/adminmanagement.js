@@ -1,3 +1,5 @@
+import { renderPagination, updateEntriesInfo, getPaginatedData } from '../js/pagination.js';
+
 const firebaseConfig = {
     apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
     authDomain: "bayanihan-5ce7e.firebaseapp.com",
@@ -44,7 +46,11 @@ let currentUserIsSuperAdmin = false;
 let allAdminData = [];
 let filteredAdminData = [];
 let currentPage = 1;
-const rowsPerPage  = 5; 
+const rowsPerPage = 5; 
+// Global variables for archived admins
+let allArchivedAdminData = [];
+let currentArchivedPage = 1;
+const archivedRowsPerPage = 5;
 
 // DOM elements
 const adminTableBody = document.querySelector('#adminTable tbody');
@@ -85,6 +91,14 @@ const editEmailInput = document.getElementById('editEmail');
 const editMobileInput = document.getElementById('editMobile');
 const editSocialMediaInput = document.getElementById('editSocialMedia');
 const editAdminPositionSelect = document.getElementById('editAdminPosition');
+
+// Archived Admins Modal
+const viewArchivedButton = document.getElementById('viewArchived');
+const archivedModal = document.getElementById('archivedModal');
+const closeArchivedModalBtn = document.getElementById('closeArchivedModalBtn');
+const archivedTableBody = document.querySelector('#archivedTable tbody');
+const archivedEntriesInfo = document.querySelector("#archivedEntriesInfo");
+const archivedPaginationContainer = document.querySelector("#archivedPagination");
 
 // Function to generate a secure temporary password (re-used)
 function generateTempPassword() {
@@ -134,7 +148,7 @@ auth.onAuthStateChanged(user => {
             if (addNewAdminButton) {
                 addNewAdminButton.style.display = 'none';
             }
-            fetchAndRenderAdmins(); // Still try to render existing data
+            fetchAndRenderAdmins(); 
         });
 
     } else {
@@ -193,9 +207,7 @@ function renderAdminTable(data) {
 
     adminTableBody.innerHTML = ''; 
 
-    const startIndex = (currentPage - 1) * rowsPerPage;
-    const endIndex = startIndex + rowsPerPage;
-    const paginatedData = data.slice(startIndex, endIndex);
+    const paginatedData = getPaginatedData(data, currentPage, rowsPerPage);
 
     if (paginatedData.length === 0) {
         adminTableBody.innerHTML = '<tr><td colspan="7" style="text-align: center;">No admin accounts found.</td></tr>';
@@ -215,13 +227,17 @@ function renderAdminTable(data) {
         
         const actionsCell = row.insertCell(5);
         actionsCell.innerHTML = `
-            <button class="editBtn" data-uid="${admin.uid}"><i class="fas fa-edit"></i> Edit</button>
-            <button class="deleteBtn" data-uid="${admin.uid}"><i class="fas fa-trash"></i> Archived</button>
+            <button class="editBtn" data-uid="${admin.uid}">Edit</button>
+            <button class="deleteBtn" data-uid="${admin.uid}">Archived</button>
         `;
     });
 
-    renderPagination(data.length);
-    updateEntriesInfo(data.length);
+    // Use the global pagination functions
+    renderPagination(data, currentPage, rowsPerPage, paginationContainer, (newPage) => {
+        currentPage = newPage;
+        renderAdminTable(data); // Re-render the current view
+    });
+    updateEntriesInfo(data, currentPage, rowsPerPage, entriesInfo);
 
     // Add event listeners for edit/delete buttons
     document.querySelectorAll('.editBtn').forEach(button => {
@@ -295,9 +311,7 @@ function applySearchAndSortAdmins() {
     renderAdminTable(filteredAdminData);
 }
 
-
 // --- Modal & Form Event Listeners (Add Admin) ---
-// Open Add Admin Modal
 if (addNewAdminButton) {
     addNewAdminButton.addEventListener('click', () => {
         if (!currentUserIsSuperAdmin) {
@@ -681,48 +695,181 @@ function deleteAdmin(uid) {
     });
 }
 
-// --- Initialize (on DOMContentLoaded) ---
-document.addEventListener("DOMContentLoaded", () => {
-});
+// --- Archived Admins ---
+async function fetchAndRenderArchivedAdmins() {
+    Swal.fire({
+        title: 'Loading Archived Admins',
+        text: 'Fetching archived data from Firebase...',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
 
+    try {
+        const snapshot = await database.ref('deletedAdmins').once('value');
+        const archivedUsers = snapshot.val();
+        allArchivedAdminData = [];
 
-function updateEntriesInfo(totalItems) {
-    const startIndex = (currentPage - 1) * rowsPerPage;
-    const endIndex = Math.min(startIndex + rowsPerPage, totalItems);
-    entriesInfo.textContent = `Showing ${totalItems ? startIndex + 1 : 0} to ${endIndex} of ${totalItems} entries`;
+        for (const uid in archivedUsers) {
+            const user = archivedUsers[uid];
+            allArchivedAdminData.push({
+                uid: uid, // Store UID for actions
+                ...user
+            });
+        }
+        Swal.close();
+        renderArchivedTable(allArchivedAdminData);
+        archivedModal.style.display = 'flex'; // Show the modal after data is loaded
+    } catch (error) {
+        Swal.fire('Error', 'Failed to load archived admin data: ' + error.message, 'error');
+        console.error("Error fetching archived admin data:", error);
+    }
 }
 
-function renderPagination(totalRows) {
-    if (!paginationContainer) return;
-    paginationContainer.innerHTML = "";
-    const totalPages = Math.ceil(totalRows / rowsPerPage);
-    if (totalPages === 0) {
+function renderArchivedTable(data) {
+    if (!archivedTableBody) {
+        console.error("Archived admin table body not found!");
         return;
     }
-    const createButton = (label, page, disabled = false, active = false) => {
-        const btn = document.createElement("button");
-        btn.textContent = label;
-        if (disabled) btn.disabled = true;
-        if (active) btn.classList.add("active-page");
-        btn.addEventListener("click", () => {
-            currentPage = page;
-            renderTable(filteredData); // Re-render with filtered data
-        });
-        return btn;
-    };
-    paginationContainer.appendChild(createButton("Prev", currentPage - 1, currentPage === 1));
 
-    const maxVisiblePages = 5; // Number of page buttons to show (e.g., 1 2 3 4 5)
-    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
-    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+    archivedTableBody.innerHTML = '';
 
-    // Adjust startPage if not enough pages after current to fill maxVisiblePages
-    if (endPage - startPage < maxVisiblePages - 1) {
-        startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    const paginatedData = getPaginatedData(data, currentArchivedPage, archivedRowsPerPage);
+
+    if (paginatedData.length === 0) {
+        archivedTableBody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No archived admin accounts found.</td></tr>';
     }
 
-    for (let i = startPage; i <= endPage; i++) {
-        paginationContainer.appendChild(createButton(i, i, false, i === currentPage));
-    }
-    paginationContainer.appendChild(createButton("Next", currentPage + 1, currentPage === totalPages));
+    paginatedData.forEach(admin => {
+        const row = archivedTableBody.insertRow();
+        row.dataset.uid = admin.uid;
+
+        const fullName = `${admin.firstName || ''} ${admin.middleInitial ? admin.middleInitial + '.' : ''} ${admin.lastName || ''} ${admin.nameExtension || ''}`.trim();
+        const archivedDate = admin.deletedAt ? new Date(admin.deletedAt).toLocaleDateString() : 'N/A';
+
+        row.insertCell(0).textContent = fullName || 'N/A';
+        row.insertCell(1).textContent = admin.email || 'N/A';
+        row.insertCell(2).textContent = `${admin.adminPosition || 'N/A'} (${admin.role || 'N/A'})`;
+        row.insertCell(3).textContent = archivedDate;
+
+        const actionsCell = row.insertCell(4);
+        actionsCell.innerHTML = `
+            <button class="retrieveBtn" data-uid="${admin.uid}">Retrieve</button>
+        `;
+    });
+
+    // Use the global pagination functions for archived table
+    renderPagination(data, currentArchivedPage, archivedRowsPerPage, archivedPaginationContainer, (newPage) => {
+        currentArchivedPage = newPage;
+        renderArchivedTable(data); 
+    });
+    updateEntriesInfo(data, currentArchivedPage, archivedRowsPerPage, archivedEntriesInfo);
+
+    // Add event listeners for retrieve buttons
+    document.querySelectorAll('.retrieveBtn').forEach(button => {
+        button.addEventListener('click', (event) => retrieveAdmin(event.target.dataset.uid));
+    });
 }
+
+async function retrieveAdmin(uid) {
+    if (!currentUserIsSuperAdmin) {
+        Swal.fire('Access Denied', 'You do not have permission to retrieve admin accounts.', 'error');
+        return;
+    }
+
+    Swal.fire({
+        title: 'Are you sure?',
+        text: 'This will retrieve the admin account from archived records and make it active again.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, retrieve it!',
+        cancelButtonText: 'No, keep it archived'
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            Swal.fire({
+                title: 'Retrieving Admin...',
+                text: 'Moving admin data back to active records...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            try {
+                const snapshot = await database.ref(`deletedAdmins/${uid}`).once('value');
+                const adminDataToRetrieve = snapshot.val();
+
+                if (!adminDataToRetrieve) {
+                    Swal.fire('Error', 'Archived admin data not found for retrieval.', 'error');
+                    return;
+                }
+
+                // Remove the deletedAt timestamp as it's being reactivated
+                delete adminDataToRetrieve.deletedAt;
+
+                // Move data back to the 'users' node
+                await database.ref(`users/${uid}`).set(adminDataToRetrieve);
+
+                // Delete from 'deletedAdmins' node
+                await database.ref(`deletedAdmins/${uid}`).remove();
+
+                Swal.close();
+                Swal.fire('Retrieved!', 'The admin account has been retrieved and is now active.', 'success');
+
+                // Refresh both the active and archived admin tables
+                fetchAndRenderAdmins();
+                fetchAndRenderArchivedAdmins(); // Re-fetch archived to update the modal
+            } catch (error) {
+                console.error("Error retrieving admin:", error);
+                Swal.close();
+                Swal.fire('Error', 'Failed to retrieve admin: ' + error.message, 'error');
+            }
+        }
+    });
+}
+
+// Open Archived Admins Modal
+if (viewArchivedButton) {
+    viewArchivedButton.addEventListener('click', () => {
+        if (!currentUserIsSuperAdmin) {
+            Swal.fire('Access Denied', 'You do not have permission to view archived admin accounts.', 'error');
+            return;
+        }
+        currentArchivedPage = 1; // Reset to first page when opening
+        fetchAndRenderArchivedAdmins();
+    });
+}
+
+// Close Archived Admins Modal
+if (closeArchivedModalBtn) {
+    closeArchivedModalBtn.addEventListener('click', () => {
+        archivedModal.style.display = 'none';
+    });
+}
+
+// Close modal when clicking outside
+window.addEventListener('click', (event) => {
+    if (event.target === addAdminModal) {
+        addAdminModal.style.display = 'none';
+        clearAddAdminInputs();
+    }
+    if (event.target === confirmModal) {
+        confirmModal.style.display = 'none';
+    }
+    if (event.target === successModal) {
+        successModal.style.display = 'none';
+        clearAddAdminInputs();
+    }
+    if (event.target === archivedModal) { 
+        archivedModal.style.display = 'none';
+    }
+    if (event.target === editAdminModal) {
+        editAdminModal.style.display = 'none';
+    }
+});
+
+// --- Initialize (on DOMContentLoaded) ---
+document.addEventListener("DOMContentLoaded", () => {
+    // No explicit call needed here as auth.onAuthStateChanged handles initial fetch
+});

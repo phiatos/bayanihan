@@ -9,9 +9,14 @@ const firebaseConfig = {
     measurementId: "G-ZTQ9VXXVV0",
 };
 
+// Initialize Firebase only if it hasn't been initialized already
 if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
+    console.log("Firebase initialized successfully.");
+} else {
+    console.log("Firebase already initialized.");
 }
+
 const database = firebase.database();
 const auth = firebase.auth();
 
@@ -41,7 +46,7 @@ function checkInactivity() {
         reverseButtons: true
     }).then((result) => {
         if (result.isConfirmed) {
-            resetInactivityTimer(); 
+            resetInactivityTimer();
             console.log("User chose to continue session.");
         } else if (result.dismiss === Swal.DismissReason.cancel) {
             // User chose to log out
@@ -56,10 +61,13 @@ function checkInactivity() {
     });
 }
 
+// Attach inactivity reset to common user interaction events
 ['mousemove', 'keydown', 'scroll', 'click'].forEach(eventType => {
     document.addEventListener(eventType, resetInactivityTimer);
 });
 //-------------------------------------------------------------------------------------
+// Global flag for Super Admin status
+let currentUserIsSuperAdmin = false;
 
 document.addEventListener('DOMContentLoaded', () => {
     // --- Authentication Check ---
@@ -75,32 +83,61 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         console.log("User authenticated:", user.uid);
-        initializePageFunctions(user.uid);
-        resetInactivityTimer(); 
+
+        // Fetch user role to determine Super Admin status
+        database.ref(`users/${user.uid}`).once('value', snapshot => {
+            const userData = snapshot.val();
+            if (userData && userData.isSuperAdmin === true) {
+                currentUserIsSuperAdmin = true;
+                console.log("Current user is a Super Admin.");
+            } else {
+                currentUserIsSuperAdmin = false;
+                console.log("Current user is NOT a Super Admin. Limiting access.");
+            }
+            initializePageFunctions(user.uid);
+            resetInactivityTimer(); // Start inactivity timer after user is authenticated and role checked
+        }).catch(error => {
+            console.error("Error fetching user role:", error);
+            currentUserIsSuperAdmin = false; // Default to false on error
+            initializePageFunctions(user.uid);
+            resetInactivityTimer();
+        });
     });
 });
 
-function initializePageFunctions(userId) { 
+function initializePageFunctions(userId) {
     const volunteerOrgsContainer = document.getElementById('volunteerOrgsContainer');
     const searchInput = document.getElementById('searchInput');
     const sortSelect = document.getElementById('sortSelect');
     const entriesInfo = document.getElementById('entriesInfo');
     const pagination = document.getElementById('pagination');
     const viewApprovedBtn = document.getElementById('viewApprovedBtn');
+    const viewArchivedButton = document.getElementById('viewArchived'); // New: Archived button
 
     // --- Modal Elements ---
     const previewModal = document.getElementById('previewModal');
     const closeModalBtn = document.getElementById('closeModal');
     const modalContentDiv = document.getElementById('modalContent');
 
-    let allApplications = [];
+    //Archived Modal Elements
+    const archivedModal = document.getElementById('archivedModal');
+    const closeArchivedModalBtn = document.getElementById('closeArchivedModalBtn');
+    const archivedVGTableBody = document.getElementById('archivedTableBody'); // Make sure this ID is correct in HTML
+    const archivedEntriesInfo = document.getElementById('archivedEntriesInfo');
+    const archivedPaginationContainer = document.getElementById('archivedPagination');
+
+    let allApplications = []; // For active pending applications
     let filteredApplications = [];
     let currentPage = 1;
     const rowsPerPage = 5;
 
-    // --- Data Fetching Function ---
+    let allArchivedVGData = []; // For archived applications
+    let currentArchivedVGPage = 1;
+    const archivedVGRowsPerPage = 5;
+
+    // --- Data Fetching Function (Active Pending) ---
     function fetchPendingApplications() {
-        volunteerOrgsContainer.innerHTML = '<tr><td colspan="11" style="text-align: center;">Loading applications...</td></tr>';
+        volunteerOrgsContainer.innerHTML = '<tr><td colspan="13" style="text-align: center;">Loading applications...</td></tr>'; // Increased colspan
 
         database.ref('abvnApplications/pendingABVN').on('value', (snapshot) => {
             allApplications = [];
@@ -123,11 +160,11 @@ function initializePageFunctions(userId) {
                 text: 'Failed to load pending applications. Please try again later.',
                 confirmButtonText: 'OK'
             });
-            volunteerOrgsContainer.innerHTML = '<tr><td colspan="11" style="text-align: center; color: red;">Failed to load data.</td></tr>';
+            volunteerOrgsContainer.innerHTML = '<tr><td colspan="13" style="text-align: center; color: red;">Failed to load data.</td></tr>'; // Increased colspan
         });
     }
 
-    // --- Rendering Function ---
+    // --- Rendering Function (Active Pending) ---
     function renderApplications(applicationsToRender) {
         volunteerOrgsContainer.innerHTML = '';
 
@@ -136,9 +173,9 @@ function initializePageFunctions(userId) {
         const paginatedApplications = applicationsToRender.slice(startIndex, endIndex);
 
         if (paginatedApplications.length === 0) {
-            volunteerOrgsContainer.innerHTML = '<tr><td colspan="11" style="text-align: center;">No pending applications found on this page.</td></tr>';
-            entriesInfo.textContent = 'Showing 0 to 0 of 0 entries';
-            renderPagination();
+            volunteerOrgsContainer.innerHTML = '<tr><td colspan="13" style="text-align: center;">No pending applications found on this page.</td></tr>'; // Increased colspan
+            updateEntriesInfo(0); // Update info for 0 entries
+            renderPagination(0); // Render pagination for 0 entries
             return;
         }
 
@@ -178,7 +215,7 @@ function initializePageFunctions(userId) {
         renderPagination(applicationsToRender.length);
     }
 
-    // --- Search and Sort Logic ---
+    // --- Search and Sort Logic (Active Pending) ---
     function applySearchAndSort() {
         let currentApplications = [...allApplications];
 
@@ -215,20 +252,14 @@ function initializePageFunctions(userId) {
 
                 switch (sortBy) {
                     case 'organizationName':
-                        valA = (a.organizationName || '').toLowerCase();
-                        valB = (b.organizationName || '').toLowerCase();
-                        break;
                     case 'contactPerson':
-                        valA = (a.contactPerson || '').toLowerCase();
-                        valB = (b.contactPerson || '').toLowerCase();
-                        break;
                     case 'email':
-                        valA = (a.email || '').toLowerCase();
-                        valB = (b.email || '').toLowerCase();
+                        valA = (a[sortBy] || '').toLowerCase();
+                        valB = (b[sortBy] || '').toLowerCase();
                         break;
                     case 'mobileNumber':
-                        valA = (a.mobileNumber || '').toLowerCase();
-                        valB = (b.mobileNumber || '').toLowerCase();
+                        valA = parseInt(a.mobileNumber || '0'); // Parse as int for numeric sort
+                        valB = parseInt(b.mobileNumber || '0');
                         break;
                     case 'region':
                         valA = (a.headquarters?.region || '').toLowerCase();
@@ -252,12 +283,10 @@ function initializePageFunctions(userId) {
                         break;
                 }
 
-                if (typeof valA === 'string' && typeof valB === 'string') {
-                    return order === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+                if (typeof valA === 'number' && typeof valB === 'number') {
+                    return order === 'asc' ? valA - valB : valB - valA;
                 } else {
-                    if (valA < valB) return order === 'asc' ? -1 : 1;
-                    if (valA > valB) return order === 'asc' ? 1 : -1;
-                    return 0;
+                    return order === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
                 }
             });
         }
@@ -267,10 +296,10 @@ function initializePageFunctions(userId) {
         renderApplications(filteredApplications);
     }
 
-    // --- Pagination Functions ---
-    function renderPagination() {
+    // --- Pagination Functions (Active Pending - Local Implementation) ---
+    function renderPagination(totalItems) {
         pagination.innerHTML = '';
-        const totalPages = Math.ceil(filteredApplications.length / rowsPerPage);
+        const totalPages = Math.ceil(totalItems / rowsPerPage);
 
         if (totalPages === 0) {
             pagination.innerHTML = '<span>No entries to display</span>';
@@ -311,9 +340,8 @@ function initializePageFunctions(userId) {
         entriesInfo.textContent = `Showing ${totalItems ? startIndex + 1 : 0} to ${endIndex} of ${totalItems} entries`;
     }
 
-    // --- Modal Display Functions ---
+    // --- Modal Display Functions (Preview) ---
     function showPreviewModal(applicationData) {
-        // Format the application date and time for better readability
         const formattedTimestamp = applicationData.applicationDateandTime ? new Date(applicationData.applicationDateandTime).toLocaleString('en-US', {
             year: 'numeric', month: 'short', day: 'numeric',
             hour: '2-digit', minute: '2-digit', second: '2-digit'
@@ -348,15 +376,15 @@ function initializePageFunctions(userId) {
             `;
 
         modalContentDiv.innerHTML = content;
-        previewModal.style.display = 'flex'; 
+        previewModal.style.display = 'flex';
     }
 
     function hidePreviewModal() {
-        previewModal.style.display = 'none'; 
-        modalContentDiv.innerHTML = ''; 
+        previewModal.style.display = 'none';
+        modalContentDiv.innerHTML = '';
     }
 
-    // --- Action Handlers (Approve/Reject) ---
+    // --- Action Handlers (Approve/Reject/View) ---
     volunteerOrgsContainer.addEventListener('click', async (event) => {
         const target = event.target;
         const appKey = target.dataset.key;
@@ -364,7 +392,6 @@ function initializePageFunctions(userId) {
         if (!appKey) return;
 
         if (target.classList.contains('viewBtn')) {
-            // Find the application data by key
             const applicationToView = allApplications.find(app => app.key === appKey);
             if (applicationToView) {
                 showPreviewModal(applicationToView);
@@ -403,7 +430,7 @@ function initializePageFunctions(userId) {
                                     if (approvedData.organizationName === applicationData.organizationName &&
                                         approvedData.email === applicationData.email) {
                                         isDuplicate = true;
-                                        return true; 
+                                        return true;
                                     }
                                 });
                             }
@@ -415,7 +442,7 @@ function initializePageFunctions(userId) {
                                     html: 'This application already exists in the Approved Applications.<br><br>Please check the approved list before proceeding.',
                                     confirmButtonText: 'OK'
                                 });
-                                return; 
+                                return;
                             }
                             applicationData.approvedApplicationDate = new Date().toISOString();
                             // Move to approvedABVN
@@ -436,12 +463,12 @@ function initializePageFunctions(userId) {
         } else if (target.classList.contains('rejectBtn')) {
             Swal.fire({
                 title: 'Are you sure?',
-                text: "Do you want to reject this application?",
+                text: "Do you want to reject this application? This will move it to archived records.",
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#d33',
                 cancelButtonColor: '#3085d6',
-                confirmButtonText: 'Yes, reject it!',
+                confirmButtonText: 'Yes, reject and archive it!',
                 customClass: {
                     confirmButton: 'my-confirm-button-class',
                     cancelButton: 'my-cancel-button-class'
@@ -450,9 +477,24 @@ function initializePageFunctions(userId) {
                 if (result.isConfirmed) {
                     try {
                         const appRef = database.ref(`abvnApplications/pendingABVN/${appKey}`);
-                        await appRef.remove(); // Remove from pendingABVN
-                        Swal.fire('Rejected!', 'The application has been rejected and removed.', 'success');
-                        // Data will re-render automatically due to .on('value') listener
+                        const snapshot = await appRef.once('value');
+                        const applicationData = snapshot.val();
+
+                        if (applicationData) {
+                            // Add rejectedAt timestamp and status
+                            applicationData.rejectedAt = new Date().toISOString();
+                            applicationData.status = 'Rejected';
+
+                            // Move to rejectedABVN (archived)
+                            await database.ref(`abvnApplications/rejectedABVN/${appKey}`).set(applicationData);
+                            // Remove from pendingABVN
+                            await appRef.remove();
+
+                            Swal.fire('Rejected!', 'The application has been rejected and archived.', 'success');
+                            // Data will re-render automatically due to .on('value') listener
+                        } else {
+                            Swal.fire('Error', 'Application not found.', 'error');
+                        }
                     } catch (error) {
                         console.error("Error rejecting application: ", error);
                         Swal.fire('Error', 'Failed to reject application. Please try again.', 'error');
@@ -462,31 +504,257 @@ function initializePageFunctions(userId) {
         }
     });
 
-    // --- Event Listeners for Search and Sort ---
+    // --- Archived Pending ABVN Applications Functions ---
+    async function fetchAndRenderArchivedVGs() {
+        if (!currentUserIsSuperAdmin) {
+            Swal.fire('Access Denied', 'You do not have permission to view archived volunteer group applications.', 'error');
+            return;
+        }
+
+        Swal.fire({
+            title: 'Loading Archived Applications',
+            text: 'Fetching archived volunteer group applications...',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        try {
+            // Assuming archived applications are stored under 'abvnApplications/rejectedABVN'
+            const snapshot = await database.ref('abvnApplications/rejectedABVN').once('value');
+            const archivedApplications = snapshot.val();
+            allArchivedVGData = [];
+
+            for (const uid in archivedApplications) {
+                const app = archivedApplications[uid];
+                allArchivedVGData.push({
+                    uid: uid, // Store UID for actions
+                    ...app
+                });
+            }
+            Swal.close();
+            renderArchivedVGTable(allArchivedVGData);
+            archivedModal.style.display = 'flex'; // Show the modal after data is loaded
+        } catch (error) {
+            Swal.fire('Error', 'Failed to load archived applications: ' + error.message, 'error');
+            console.error("Error fetching archived applications:", error);
+        }
+    }
+
+    function renderArchivedVGTable(data) {
+        if (!archivedVGTableBody) {
+            console.error("Archived volunteer group table body not found!");
+            return;
+        }
+
+        archivedVGTableBody.innerHTML = '';
+
+        const startIndex = (currentArchivedVGPage - 1) * archivedVGRowsPerPage;
+        const endIndex = startIndex + archivedVGRowsPerPage;
+        const paginatedData = data.slice(startIndex, endIndex);
+
+
+        if (paginatedData.length === 0) {
+            archivedVGTableBody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No archived volunteer group applications found.</td></tr>';
+            updateArchivedEntriesInfo(0);
+            renderArchivedPagination(0);
+            return;
+        }
+
+        paginatedData.forEach(org => {
+            const row = archivedVGTableBody.insertRow();
+            row.dataset.uid = org.uid;
+
+            const archivedDate = org.rejectedAt ? new Date(org.rejectedAt).toLocaleDateString() : 'N/A'; // Use rejectedAt for archived date
+
+            row.insertCell(0).textContent = org.organizationName || 'N/A';
+            row.insertCell(1).textContent = org.email || 'N/A';
+            row.insertCell(2).textContent = org.status || 'N/A'; 
+            row.insertCell(3).textContent = archivedDate;
+
+            const actionsCell = row.insertCell(4);
+            actionsCell.innerHTML = `
+                <button class="retrieveBtn" data-uid="${org.uid}">Retrieve</button>
+            `;
+        });
+
+        // Use the local pagination functions for archived table
+        renderArchivedPagination(data.length);
+        updateArchivedEntriesInfo(data.length);
+
+        // Add event listeners for retrieve buttons
+        document.querySelectorAll('.retrieveBtn').forEach(button => {
+            button.addEventListener('click', (event) => retrieveVG(event.target.dataset.uid));
+        });
+    }
+
+    function renderArchivedPagination(totalItems) {
+        archivedPaginationContainer.innerHTML = '';
+        const totalPages = Math.ceil(totalItems / archivedVGRowsPerPage);
+
+        if (totalPages === 0) {
+            archivedPaginationContainer.innerHTML = '<span>No entries to display</span>';
+            return;
+        }
+
+        const createButton = (label, page, disabled = false, isActive = false) => {
+            const btn = document.createElement('button');
+            btn.textContent = label;
+            if (disabled) btn.disabled = true;
+            if (isActive) btn.classList.add('active-page');
+            btn.addEventListener('click', () => {
+                currentArchivedVGPage = page;
+                renderArchivedVGTable(allArchivedVGData); // Re-render the current view
+            });
+            return btn;
+        };
+
+        archivedPaginationContainer.appendChild(createButton('Prev', currentArchivedVGPage - 1, currentArchivedVGPage === 1));
+
+        const maxVisible = 5;
+        let startPage = Math.max(1, currentArchivedVGPage - Math.floor(maxVisible / 2));
+        let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+        if (endPage - startPage < maxVisible - 1) {
+            startPage = Math.max(1, endPage - maxVisible + 1);
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
+            archivedPaginationContainer.appendChild(createButton(i, i, false, i === currentArchivedVGPage));
+        }
+
+        archivedPaginationContainer.appendChild(createButton('Next', currentArchivedVGPage + 1, currentArchivedVGPage === totalPages));
+    }
+
+
+    function updateArchivedEntriesInfo(totalItems) {
+        const startIndex = (currentArchivedVGPage - 1) * archivedVGRowsPerPage;
+        const endIndex = Math.min(startIndex + archivedVGRowsPerPage, totalItems);
+        archivedEntriesInfo.textContent = `Showing ${totalItems ? startIndex + 1 : 0} to ${endIndex} of ${totalItems} entries`;
+    }
+
+    async function retrieveVG(uid) {
+        if (!currentUserIsSuperAdmin) {
+            Swal.fire('Access Denied', 'You do not have permission to retrieve volunteer group applications.', 'error');
+            return;
+        }
+
+        Swal.fire({
+            title: 'Are you sure?',
+            text: 'This will retrieve the volunteer group application from archived records and move it back to pending applications.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, retrieve it!',
+            cancelButtonText: 'No, keep it archived'
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'Retrieving Application...',
+                    text: 'Moving application data back to active records...',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                try {
+                    const snapshot = await database.ref(`abvnApplications/rejectedABVN/${uid}`).once('value');
+                    const vgDataToRetrieve = snapshot.val();
+
+                    if (!vgDataToRetrieve) {
+                        Swal.fire('Error', 'Archived application data not found for retrieval.', 'error');
+                        return;
+                    }
+
+                    // Remove the rejectedAt timestamp and reset status
+                    delete vgDataToRetrieve.rejectedAt;
+                    vgDataToRetrieve.status = 'Pending'; // Set status back to Pending
+
+                    // Move data back to the 'abvnApplications/pendingABVN' node
+                    await database.ref(`abvnApplications/pendingABVN/${uid}`).set(vgDataToRetrieve);
+
+                    // Delete from 'abvnApplications/rejectedABVN' node
+                    await database.ref(`abvnApplications/rejectedABVN/${uid}`).remove();
+
+                    Swal.close();
+                    Swal.fire('Retrieved!', 'The volunteer group application has been retrieved and is now pending.', 'success');
+
+                    // Refresh both the active pending and archived tables
+                    fetchPendingApplications(); // Re-fetch active pending
+                    fetchAndRenderArchivedVGs(); // Re-fetch archived to update the modal
+                } catch (error) {
+                    console.error("Error retrieving VG:", error);
+                    Swal.fire('Error', 'Failed to retrieve application: ' + error.message, 'error');
+                }
+            }
+        });
+    }
+
+    // --- Event Listeners for Search, Sort, and Modals ---
     if (searchInput) {
-        searchInput.addEventListener('keyup', applySearchAndSort);
+        let searchTimeout;
+        searchInput.addEventListener('keyup', () => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                applySearchAndSort();
+            }, 300);
+        });
     }
     if (sortSelect) {
         sortSelect.addEventListener('change', applySearchAndSort);
     }
 
-    // --- Modal Close Listeners ---
+    // Close preview modal listener
     closeModalBtn.addEventListener('click', hidePreviewModal);
 
-    // Close the modal if clicked outside the modal content
+    // Open Archived VGs Modal
+    if (viewArchivedButton) {
+        viewArchivedButton.addEventListener('click', () => {
+            currentArchivedVGPage = 1; // Reset to first page when opening
+            fetchAndRenderArchivedVGs();
+        });
+    }
+
+    // Close Archived VGs Modal
+    if (closeArchivedModalBtn) {
+        closeArchivedModalBtn.addEventListener('click', () => {
+            archivedModal.style.display = 'none';
+        });
+    }
+
+    // Close modals when clicking outside
     window.addEventListener('click', (event) => {
         if (event.target === previewModal) {
             hidePreviewModal();
         }
+        if (event.target === archivedModal) {
+            archivedModal.style.display = 'none';
+        }
     });
-
-    // --- Initial Load ---
-    fetchPendingApplications(); 
 
     // Handle "View Approved ABVN Applications" button
     if (viewApprovedBtn) {
         viewApprovedBtn.addEventListener('click', () => {
             window.location.href = '../pages/approvedvg.html';
         });
+    }
+
+    // Initial fetch of pending applications
+    fetchPendingApplications();
+}
+
+// Function to clear search inputs (moved here from HTML script block)
+function clearDInputs() {
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.value = '';
+        // Assuming applySearchAndSort is available in the scope where clearDInputs is called
+        // If not, this function might need to be passed as a parameter or be part of a larger object.
+        // For this structure, it's called after initializePageFunctions, so it should be fine.
+        if (typeof applySearchAndSort === 'function') {
+            applySearchAndSort();
+        } else {
+            console.warn("applySearchAndSort function not found in scope for clearDInputs.");
+        }
     }
 }

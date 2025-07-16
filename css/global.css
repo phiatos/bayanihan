@@ -158,7 +158,9 @@ header::before {
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
-.controls_right input[type="text"]:focus, #sortSelect:hover, #sortSelect:focus , #roleFilter:hover, #roleFilter:focus, #actionFilter:hover, #actionFilter:focus {
+.controls_right input[type="text"]:focus, #sortSelect:hover, 
+#sortSelect:focus , #roleFilter:hover, #roleFilter:focus, 
+#actionFilter:hover, #actionFilter:focus {
   outline: none;
   border-color: #10919B;
   box-shadow: 0 0 8px rgba(16, 145, 155, 0.3);
@@ -299,22 +301,20 @@ tr {
 /* ==========================================================================
  Modal
 ========================================================================== */
-
 .modal {
   display: none; /* Hidden by default */
-  position: fixed; /* Stay in place */
-  z-index: 1000; /* Sit on top */
+  position: fixed;
+  z-index: 1000;
   left: 0;
   top: 0;
-  width: 100%; /* Full width */
-  height: 100%; /* Full height */
-  overflow: auto; /* Enable scroll if needed */
-  background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
-  display: flex; /* Use flexbox for centering */
-  align-items: center; /* Center vertically */
-  justify-content: center; /* Center horizontally */
-  backdrop-filter: blur(5px); /* ✨ blurs background */
-  -webkit-backdrop-filter: blur(5px); /* for Safari support */
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgba(0,0,0,0.4);
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
 }
 
 .modal.hidden {
@@ -672,7 +672,8 @@ button:disabled {
 /* Shared button styles for sleek look */
 .viewBtn, .editBtn, .deleteBtn, .approveBtn, .rejectBtn, 
 .saveBtn, .endorseBtn, .savePDFBtn, .action-button-endorse-button, 
-.action-button, #addItemBtn, .actionBtn, .archiveBtn, .rescheduleBtn, .registerBtn{
+.action-button, #addItemBtn, .actionBtn, .archiveBtn, .rescheduleBtn, 
+.registerBtn, .retrieveBtn{
   color: #fff;
   border: none;
   padding: 10px 18px;
@@ -791,7 +792,7 @@ button[type="submit"]:hover,
   color: #6c757d;
 }
 
-#pagination button {
+.pagination button {
   width: auto; 
   display: inline-flex; 
   flex-wrap: wrap;
@@ -812,13 +813,13 @@ button[type="submit"]:hover,
   box-shadow: none;
 }
 
-#pagination button.active-page {
+.pagination button.active-page{
   background-color: rgb(20, 173, 187);
   color: white;
   box-shadow: 0 0 8px rgba(20, 173, 187, 0.6);
 }
 
-#pagination button:hover:not(:disabled) {
+.pagination button:hover:not(:disabled){
   background-color: rgba(20, 173, 187, 0.589);
   border: 1px solid #13919f;
   color: white;
@@ -826,7 +827,7 @@ button[type="submit"]:hover,
   transform: translateY(-2px);
 }
 
-#pagination button:disabled {
+.pagination button:disabled{
   cursor: not-allowed;
   color: #aaa;
   background-color: #f5f5f5;
@@ -835,8 +836,7 @@ button[type="submit"]:hover,
   pointer-events: none;
 }
 
-
-#pagination {
+.pagination {
   display: flex;
   justify-content: center;
   align-items: center;
