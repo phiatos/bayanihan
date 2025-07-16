@@ -59,6 +59,8 @@
 
 
 #sort-posts-button {
+display: flex;
+  flex-direction: row;
   align-items: center;
   gap: 8px;
   padding: 12px 16px;
@@ -110,7 +112,7 @@
 }
 
 .post-buttons .post-option {
-  display: inline-flex;      /* make flex to use align-items and gap */
+  display: inline-flex;     
   align-items: center;
   gap: 8px;
   padding: 12px 16px;
@@ -121,7 +123,7 @@
   cursor: pointer;
   font-size: 14px;
   transition: background-color 0.3s, transform 0.2s ease-in-out;
-  white-space: unset;       /* prevent text wrap */
+  white-space: unset;     
   margin: 10px;
 }
 
@@ -374,7 +376,7 @@
   color: var(--primary-color);
   border: var(--primary-color) 2px solid;
   transition: box-shadow 0.3s ease, transform 0.2s ease;
-  box-shadow: 0 0 0 rgba(0, 0, 0, 0); /* start without glow */
+  box-shadow: 0 0 0 rgba(0, 0, 0, 0); 
 }
 
 #share-cancel-button:hover {
