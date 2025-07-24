@@ -610,6 +610,8 @@ td select:focus {
 /* ==========================================================================
   Buttons Styling
 ========================================================================== */
+
+/* Base Button Styling */
 button {
   width: 90px;
   padding: 6px 0;
@@ -636,44 +638,57 @@ button:disabled {
   cursor: not-allowed;
 }
 
-.activation-btn, .bayanihanBtn{
+/* Activation and Bayanihan Buttons */
+.activation-btn,
+.bayanihanBtn {
   width: fit-content;
   height: auto;
-  padding: 10px; /* a bit more vertical padding for comfort */
+  padding: 10px;
   background-color: var(--primary-color);
   color: var(--white);
   box-sizing: border-box;
   border: none;
-  border-radius: 10px; /* slightly rounder for modern feel */
+  border-radius: 10px;
   cursor: pointer;
-  font-size: 13px; /* slightly larger for readability */
+  font-size: 13px;
   letter-spacing: 0.5px;
   display: inline-block;
   text-align: center;
   margin: 10px 0 0 0;
-  transition: 
-    background-color 0.3s ease, 
-    box-shadow 0.3s ease, 
-    transform 0.2s ease;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
 }
 
-.activation-btn:hover, .bayanihanBtn:hover {
-  background-color: #0c7a99; /* a deeper tone for hover */
+.activation-btn:hover,
+.bayanihanBtn:hover {
+  background-color: #0c7a99;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
   transform: translateY(-2px);
 }
 
-.activation-btn:focus, .bayanihanBtn:focus {
+.activation-btn:focus,
+.bayanihanBtn:focus {
   outline: none;
   box-shadow: 0 0 0 3px rgba(20, 174, 187, 0.5);
 }
 
-/* Shared button styles for sleek look */
-.viewBtn, .editBtn, .deleteBtn, .approveBtn, .rejectBtn, 
-.saveBtn, .endorseBtn, .savePDFBtn, .action-button-endorse-button, 
-.action-button, #addItemBtn, .actionBtn, .archiveBtn, .rescheduleBtn, 
-.registerBtn, .retrieveBtn{
+/* General Action Buttons */
+.viewBtn,
+.editBtn,
+.deleteBtn,
+.approveBtn,
+.rejectBtn,
+.saveBtn,
+.endorseBtn,
+.savePDFBtn,
+.action-button-endorse-button,
+.action-button,
+#addItemBtn,
+.actionBtn,
+.archiveBtn,
+.rescheduleBtn,
+.registerBtn,
+.retrieveBtn {
   color: #fff;
   border: none;
   padding: 10px 18px;
@@ -685,11 +700,53 @@ button:disabled {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 
-.viewBtn {
-  background-color: var(--blue);
+/* Table Cell Styling for Action Buttons */
+td:has(.viewBtn, .approveBtn, .rejectBtn, .editBtn, .registerBtn) {
+  display: flex;
+  gap: 5px;
+  justify-content: center;
+  align-items: center;
+  padding: 8px;
 }
 
-.editBtn{
+/* Refined Action Buttons (Circular) */
+.viewBtn,
+.approveBtn,
+.rejectBtn,
+.editBtn,
+.registerBtn {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  font-size: 20px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.viewBtn:hover,
+.approveBtn:hover,
+.rejectBtn:hover,
+.editBtn:hover,
+.registerBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Button Colors */
+.viewBtn {
+  background-color: var(--blue);
+  color: #fff;
+}
+
+.viewBtn:hover {
+  background-color: var(--blue-hover);
+}
+
+.editBtn {
   background-color: #5c7cc0;
 }
 
@@ -698,26 +755,29 @@ button:disabled {
   transform: translateY(-2px);
 }
 
-.viewBtn:hover{
-  background-color: var(--blue-hover);
-  transform: translateY(-2px);
-}
-
-.deleteBtn, .rejectBtn, .action-button, .archiveBtn {
+.deleteBtn,
+.rejectBtn,
+.action-button,
+.archiveBtn {
   background-color: var(--red);
 }
 
-.deleteBtn:hover, .rejectBtn:hover, .action-button:hover, .archiveBtn:hover {
+.deleteBtn:hover,
+.rejectBtn:hover,
+.action-button:hover,
+.archiveBtn:hover {
   background-color: var(--red-hover);
   transform: translateY(-2px);
 }
 
-.approveBtn, #addItemBtn{
+.approveBtn,
+#addItemBtn {
   background-color: var(--green);
+  color: #fff;
 }
 
-.approveBtn:hover, 
-#addItemBtn:hover, 
+.approveBtn:hover,
+#addItemBtn:hover,
 button[type="submit"]:hover,
 #submitBtn:hover,
 #submitReportBtn:hover {
@@ -725,52 +785,200 @@ button[type="submit"]:hover,
   transform: translateY(-2px);
 }
 
-.saveBtn, .endorseBtn, .action-button-endorse-button {
+.saveBtn,
+.endorseBtn,
+.action-button-endorse-button {
   background-color: var(--primary-color);
 }
 
-.saveBtn:hover, .endorseBtn:hover, .action-button-endorse-button:hover, 
-.actionBtn:hover, .rescheduleBtn:hover, .registerBtn:hover{
+.saveBtn:hover,
+.endorseBtn:hover,
+.action-button-endorse-button:hover,
+.actionBtn:hover,
+.rescheduleBtn:hover,
+.registerBtn:hover {
   background-color: var(--button-hover);
   transform: translateY(-2px);
 }
 
-.savePDFBtn{
+.savePDFBtn {
   background-color: var(--accent-color);
 }
 
-.savePDFBtn:hover{
+.savePDFBtn:hover {
   background-color: var(--accent-hover-color);
   transform: translateY(-2px);
 }
 
-.table-controls .viewApprovedBtn {
+/* Table Controls */
+.table-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+  gap: 15px;
+}
+
+.table-controls i,
+.viewApprovedBtn i {
+  font-size: 1.1rem;
+  margin-right: 8px;
+}
+
+/* View Approved Button */
+.viewApprovedBtn {
   width: fit-content;
-  background-color: #14AEBB;
+  background-color: #14aebb;
   color: #fff;
   padding: 10px 18px;
   font-size: 0.7rem;
   border: none;
   border-radius: 10px;
   cursor: pointer;
-  margin: -10px 0 10px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   height: 40px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  margin: 0;
 }
 
-.table-controls .viewApprovedBtn:hover {
-  background-color: #0C747C;
+.viewApprovedBtn:hover {
+  background-color: #0c747c;
   transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
-.table-controls i, .viewApprovedBtn i {
-  font-size: 1.1rem;
-  margin-right: 8px;
+/* Import Section */
+.import-section {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  flex-wrap: wrap;
+}
+
+.import-section input[type="file"] {
+  flex-grow: 1;
+  padding: 8px 12px;
+  border: 1.5px solid var(--primary-color);
+  border-radius: 25px;
+  background-color: rgba(20, 174, 187, 0.1);
+  color: var(--primary-color);
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  max-width: 250px;
+}
+
+.import-section input[type="file"]::file-selector-button {
+  background-color: var(--primary-color);
+  color: var(--white);
+  border: none;
+  padding: 8px 12px;
+  border-radius: 20px;
+  cursor: pointer;
+  margin-right: 10px;
+  transition: background-color 0.3s ease;
+}
+
+.import-section input[type="file"]::file-selector-button:hover {
+  background-color: var(--button-hover);
+}
+
+.import-section #importExcelBtn {
+  width: fit-content;
+  padding: 10px 18px;
+  font-size: 0.7rem;
+  border-radius: 10px;
+  margin: 0;
+}
+
+/* Import Status Modal */
+#importStatusModal .modal-content {
+  max-width: 500px;
+  padding: 25px;
+  text-align: center;
+}
+
+#importStatusModal .close-button {
+  top: 15px;
+  right: 15px;
+  font-size: 24px;
+}
+
+#importStatusModal h2.custom-swal-title {
+  color: var(--primary-color);
+  font-size: 1.5rem;
+  margin-bottom: 15px;
+}
+
+#importProgressBar {
+  height: 25px;
+  background-color: var(--green);
+  width: 0%;
+  text-align: center;
+  line-height: 25px;
+  color: white;
+  border-radius: 5px;
+  margin: 20px auto;
+  transition: width 0.4s ease-in-out;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+  font-weight: 600;
+  overflow: hidden;
+}
+
+#importStatusText.custom-swal-text {
+  font-size: 1rem;
+  color: var(--black);
+  margin-top: 10px;
+  margin-bottom: 20px;
+}
+
+#importErrorList.custom-swal-text {
+  text-align: left;
+  margin-top: 15px;
+  color: var(--red);
+  font-size: 0.95rem;
+  max-height: 150px;
+  overflow-y: auto;
+  border-top: 1px solid #eee;
+  padding-top: 10px;
+}
+
+#importErrorList li {
+  margin-bottom: 5px;
+  list-style-type: disc;
+  margin-left: 20px;
+}
+
+td:has(.viewBtn, .approveBtn, .rejectBtn, .editBtn, .registerBtn) {
+  display: flex;
+  gap: 5px;
+  justify-content: center;
+  align-items: center;
+  padding: 8px;
+}
+
+.viewBtn, .approveBtn, .rejectBtn, .editBtn, .registerBtn {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  font-size: 20px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.viewBtn:hover, .approveBtn:hover, .rejectBtn:hover, 
+.editBtn:hover, .registerBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
 /* ==========================================================================
@@ -1125,7 +1333,9 @@ label:has(+ textarea[required])::after {
   color: red;
 }
 
-/*Swal.fire Styles*/
+/* ==========================================================================
+  Swal.fire Styles
+========================================================================== */
 
 .toast-container {
   position: fixed;
@@ -1174,13 +1384,13 @@ label:has(+ textarea[required])::after {
   background-color: #17a2b8;
 }
 
-
+/* SweetAlert Popups */
 .swal2-popup-success-clean {
   border-radius: 14px;
   padding: 2.5rem 3rem;
-  background: #ffffff; /* soft mint green background */
-  box-shadow: 0 12px 30px rgba(16, 185, 129, 0.25); /* gentle green shadow */
-  color: #065f46; /* deep green text */
+  background: #ffffff;
+  box-shadow: 0 12px 30px rgba(16, 185, 129, 0.25);
+  color: #065f46;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   max-width: 420px;
 }
@@ -1188,27 +1398,26 @@ label:has(+ textarea[required])::after {
 .swal2-title-success-clean {
   font-size: 1.7rem;
   font-weight: 700;
-  color: #065f46; /* deep green */
+  color: #065f46;
   margin-bottom: 0.25rem;
 }
 
 .swal2-text-success-clean {
   font-size: 1.05rem;
-  color: #064e3b; /* slightly darker text for contrast */
+  color: #064e3b;
 }
 
-
 .my-success-title {
-    font-size: 1.8rem;
-    font-weight: 600;
-    color: #065f46;
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: #065f46;
 }
 
 .my-success-button {
-    border-radius: 8px !important;
-    padding: 10px 20px !important;
-    font-size: 1rem !important;
-    font-weight: 500 !important;
+  border-radius: 8px !important;
+  padding: 10px 20px !important;
+  font-size: 1rem !important;
+  font-weight: 500 !important;
 }
 
 .swal2-popup-warning-clean {
@@ -1218,7 +1427,7 @@ label:has(+ textarea[required])::after {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
   border: 1px solid #ffeeba;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  max-width: 100%;
+  max-width: 100%; /* Already responsive for width, good! */
 }
 
 .swal2-title-warning-clean {
@@ -1234,6 +1443,7 @@ label:has(+ textarea[required])::after {
   color: #6c584c;
 }
 
+/* SweetAlert Buttons */
 /* Confirm button (red) */
 .swal2-button-confirm-clean {
   width: fit-content;
@@ -1266,12 +1476,22 @@ label:has(+ textarea[required])::after {
   background-color: #455a64 !important;
 }
 
+/* Custom Swal.fire Popups */
 .custom-swal-popup {
   border-radius: 16px;
   padding: 2.5rem 3.5rem;
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.15);
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   max-width: 440px;
+  text-align: center;
+}
+
+.custom-swal-popup-small {
+  border-radius: 12px; /* Slightly smaller border-radius */
+  padding: 1.5rem 2rem; /* Reduced padding for a smaller overall size */
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1); /* Slightly softer shadow */
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  max-width: 380px; /* Reduced max-width */
   text-align: center;
 }
 
@@ -1289,6 +1509,7 @@ label:has(+ textarea[required])::after {
   margin-bottom: 2rem;
 }
 
+/* Custom Button Styles (if used with custom-swal-popup) */
 .custom-confirm-btn {
   background-color: #d9534f;
   border: none;
@@ -1339,6 +1560,134 @@ label:has(+ textarea[required])::after {
   font-weight: 600;
 }
 
+/* Specific invalid date popup styles */
+.swal-invalid-date-popup {
+  border-radius: 15px !important;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25) !important;
+  background-color: var(--white) !important;
+  padding: 30px !important;
+  border: 1px solid var(--accent-color) !important;
+}
+
+.swal-invalid-date-title {
+  color: #dc3545 !important;
+  font-size: 2em !important;
+  font-weight: 700 !important;
+  margin-bottom: 20px !important;
+  text-align: center !important;
+}
+
+.swal-invalid-date-text {
+  color: var(--black) !important;
+  font-size: 1.15em !important;
+  line-height: 1.6 !important;
+  margin-bottom: 30px !important;
+  text-align: center !important;
+}
+
+.swal-invalid-date-icon.swal2-icon.swal2-error {
+  border-color: #dc3545 !important;
+  color: #dc3545 !important;
+}
+
+.swal-invalid-date-confirm-button {
+  background-color: var(--primary-color) !important;
+  color: var(--white) !important;
+  border: none !important;
+  padding: 12px 20px !important;
+  border-radius: 8px !important;
+  font-size: 1.1em !important;
+  font-weight: 600 !important;
+  width: 200px !important;
+  cursor: pointer !important;
+  transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease !important;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15) !important;
+}
+
+.swal-invalid-date-confirm-button:hover {
+  background-color: var(--button-hover) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.25) !important;
+}
+
+/* --- Media Queries for Responsiveness --- */
+@media (max-width: 768px) { /* Adjust breakpoint as needed, common for tablets/small laptops */
+  /* General SweetAlert Popup Adjustments */
+  .swal2-popup { /* Target all SweetAlert popups by default for basic responsiveness */
+      width: 90% !important; /* Take up most of the screen width */
+      max-width: 90% !important; /* Ensure it doesn't get too big on small screens */
+      margin: 1em !important; /* Add some margin around the popup */
+      box-sizing: border-box !important; /* Include padding/border in the element's total width and height */
+  }
+
+  /* Specific adjustments for your custom popups */
+  .custom-swal-popup,
+  .swal2-popup-success-clean { /* Apply similar adjustments to custom popups */
+      padding: 1.5rem !important; /* Reduce padding for smaller screens */
+  }
+
+  .custom-swal-popup-small {
+      padding: 1rem 1.5rem !important; /* Even smaller padding for the 'small' variant */
+  }
+
+  .custom-swal-title,
+  .swal2-title-success-clean,
+  .swal2-title-warning-clean {
+      font-size: 1.4rem !important; /* Smaller title font size */
+      margin-bottom: 0.8rem !important;
+  }
+
+  .custom-swal-text,
+  .swal2-text-success-clean,
+  .swal2-text-warning-clean {
+      font-size: 0.95rem !important; /* Smaller text font size */
+      margin-bottom: 1.5rem !important;
+  }
+
+  /* Buttons within SweetAlerts */
+  .swal2-button-confirm-clean,
+  .swal2-button-cancel-clean,
+  .custom-confirm-btn,
+  .custom-cancel-btn {
+      padding: 0.5rem 1rem !important; /* Smaller padding for buttons */
+      font-size: 0.9rem !important; /* Smaller font size for buttons */
+      width: auto !important; /* Allow buttons to size based on content */
+      margin: 0.5rem 0.5rem !important; /* Adjust margins for spacing */
+  }
+
+  .swal2-actions { /* SweetAlert's default button container */
+      flex-direction: column !important; /* Stack buttons vertically on small screens */
+      gap: 10px; /* Add space between stacked buttons */
+  }
+
+  .swal2-confirm-large, .swal2-cancel-large {
+      width: 100% !important; /* Make large buttons full width on small screens */
+      padding: 10px 15px !important;
+      font-size: 15px !important;
+  }
+}
+
+/* Your existing media query for swal-invalid-date-popup (keep this one too) */
+@media (max-width: 600px) {
+  .swal-invalid-date-popup {
+      padding: 20px !important;
+      width: 95% !important;
+  }
+  .swal-invalid-date-title {
+      font-size: 1.6em !important;
+  }
+  .swal-invalid-date-text {
+      font-size: 1em !important;
+  }
+  .swal-invalid-date-confirm-button {
+      padding: 10px 20px !important;
+      font-size: 1em !important;
+  }
+}
+
+/* ==========================================================================
+  PDF and Donation Buttons
+========================================================================== */
 .pdf-buttons {
   display: flex;
   justify-content: center; /* default: center on large screens */

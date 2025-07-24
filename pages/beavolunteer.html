@@ -15,8 +15,6 @@
   <script src="../js/navbar.js"></script> 
 
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 </head>
 <body>
 
@@ -129,39 +127,31 @@
         <fieldset>
           <legend>Availability</legend>
 
-          <div class="form-group">
-            <label for="generalAvailability">General Availability</label>
-            <select id="generalAvailability" name="generalAvailability" required>
-              <option value="" selected disabled>Select one</option>
-              <option value="On-call">On-call</option>
-              <option value="Anytime">Anytime</option>
-              <option value="Full-time">Full-time</option>
-              <option value="Part-time">Part-time</option>
-              <option value="Weekends only">Weekends only</option>
-              <option value="Weekdays only">Weekdays only</option>
-              <option value="Specific days">Specific days</option>
-            </select>
-          </div>
-
-          <div class="form-group" id="specificDaysGroup" style="display: none;">
-            <label>Choose specific days you're available:</label>
-            <div class="checkbox-group">
-              <label><input type="checkbox" name="specificDays" value="Monday" /> Monday</label>
-              <label><input type="checkbox" name="specificDays" value="Tuesday" /> Tuesday</label>
-              <label><input type="checkbox" name="specificDays" value="Wednesday" /> Wednesday</label>
-              <label><input type="checkbox" name="specificDays" value="Thursday" /> Thursday</label>
-              <label><input type="checkbox" name="specificDays" value="Friday" /> Friday</label>
-              <label><input type="checkbox" name="specificDays" value="Saturday" /> Saturday</label>
-              <label><input type="checkbox" name="specificDays" value="Sunday" /> Sunday</label>
+          <div id="availability-inputs">
+            <div class="availability-item form-group">
+                <label>Date:</label>
+                <input type="date" class="availability-date" required>
+                <label>Time:</label>
+                <input type="time" class="availability-time" required>
+                <button type="button" class="remove-availability-item">Remove</button>
             </div>
           </div>
+          <button type="button" id="addAvailability">Add Another Date/Time</button>
 
-          <div class="form-group" id="timeAvailabilityGroup" style="margin-top: 15px;">
-            <label for="timeAvailability">Specific Time Range (e.g., 9:00 AM - 5:00 PM, Afternoons)</label>
-            <input type="text" id="timeAvailability" name="timeAvailability" placeholder="e.g. 9:00 AM - 5:00 PM" />
-            <small>Provide a general time range for your selected days.</small>
-          </div>
+          <input type="hidden" id="volunteerAvailability" name="volunteerAvailability">
+
         </fieldset>
+
+        <div class="form-group terms-conditions-container">
+          <input type="checkbox" id="agreeToTerms" name="agreeToTerms" required>
+          <label for="agreeToTerms">
+            I have read and agree to the
+            <a href="#" id="openTerms" role="button">Terms and Conditions</a>
+            and the
+            <a href="#" id="openPrivacy" role="button">Privacy Policy</a>.
+          </label>
+        </div>
+        <div id="agreementMessage" style="color: red; display: none;">Please agree to the Terms and Conditions and Privacy Policy to proceed.</div>
         
         <!-- Submit -->
         <div class="form-group submit-group">
@@ -175,6 +165,85 @@
       </form>
     </div>
   </main>
+
+  <div id="termsContent" style="display: none;">
+    <div class="terms-container">
+      <h2>Terms and Conditions</h2>
+      <p><strong>Last Updated: July 11, 2025</strong></p>
+      
+      <h3>1. Introduction</h3>
+      <p>Welcome to Bayanihan, a platform connecting volunteer organizations with communities in need. By submitting an application to become an Accredited Bayanihan Volunteer Network (ABVN) member, you agree to comply with and be bound by the following Terms and Conditions.</p>
+      
+      <h3>2. Eligibility</h3>
+      <p>To apply, your organization must:
+        <ul>
+          <li>Be a legally registered entity or a recognized community group.</li>
+          <li>Provide accurate and complete information during the application process.</li>
+          <li>Agree to abide by Bayanihan’s code of conduct and operational guidelines.</li>
+        </ul>
+      </p>
+        
+        <h3>3. Application Process</h3>
+        <p>Your application will be reviewed by the Bayanihan team. Submission does not guarantee approval. You agree to provide any additional documentation requested during the review process.</p>
+        
+        <h3>4. Data Usage</h3>
+        <p>By submitting this application, you consent to the collection, storage, and processing of your organization’s data as outlined in our <a href="#" id="openPrivacyFromTerms">Privacy Policy</a>.</p>
+        
+        <h3>5. Responsibilities</h3>
+        <p>Approved organizations must:
+          <ul>
+            <li>Maintain accurate contact and operational information.</li>
+            <li>Comply with all applicable laws and regulations.</li>
+            <li>Notify Bayanihan of any changes to legal status or operations.</li>
+          </ul>
+        </p>
+        
+        <h3>6. Termination</h3>
+        <p>Bayanihan reserves the right to terminate your ABVN membership if you violate these terms or engage in activities that harm the platform or its community.</p>
+        
+        <h3>7. Changes to Terms</h3>
+        <p>We may update these Terms and Conditions from time to time. You will be notified of significant changes via email or through the platform.</p>
+        
+        <h3>8. Contact Us</h3>
+        <p>If you have any questions about these Terms and Conditions, please contact us at <a href="mailto:support@bayanihan.org">support@bayanihan.org</a>.</p>
+    </div>
+  </div>
+
+  <div id="privacyContent" style="display: none;">
+    <div class="terms-container">
+      <h2>Privacy Policy</h2>
+      <p><strong>Last Updated: July 11, 2025</strong></p>
+
+      <p>This Privacy Policy describes Our policies and procedures on the collection, use and disclosure of Your information when You use the Service and tells You about Your privacy rights and how the law protects You.</p>
+
+      <h3>1. Data Collection</h3>
+      <p>We collect personal data such as your organization name, contact person, email, mobile number, social media links, and location details when you register as a volunteer organization. We also collect information about your organizational background, areas of expertise, and legal status.</p>
+      
+      <h3>2. Use of Your Personal Data</h3>
+      <p>The Company may use Personal Data for the following purposes:</p>
+      <ul>
+        <li>To provide and maintain our Service, including to monitor the usage of our Service.</li>
+        <li>To manage Your Account: to manage Your registration as a user of the Service. The Personal Data You provide can give You access to different functionalities of the Service that are available to You as a registered user.</li>
+        <li>To contact You: To contact You by email, telephone calls, SMS, or other equivalent forms of electronic communication, such as a mobile application's push notifications regarding updates or informative communications related to the functionalities, products or contracted services, including the security updates, when necessary or reasonable for their implementation.</li>
+        <li>To manage Your requests: To attend and manage Your requests to Us.</li>
+      </ul>
+
+      <h3>3. Sharing Your Personal Data</h3>
+      <p>We may share Your personal information with service providers to monitor and analyze the use of our Service, or to contact You.</p>
+      
+      <h3>4. Retention of Your Personal Data</h3>
+      <p>The Company will retain Your Personal Data only for as long as is necessary for the purposes set out in this Privacy Policy. We will retain and use Your Personal Data to the extent necessary to comply with our legal obligations (for example, if we are required to retain your data to comply with applicable laws), resolve disputes, and enforce our legal agreements and policies.</p>
+
+      <h3>5. Security of Your Personal Data</h3>
+      <p>The security of Your Personal Data is important to Us, but remember that no method of transmission over the Internet, or method of electronic storage is 100% secure. While We strive to use commercially acceptable means to protect Your Personal Data, We cannot guarantee its absolute security.</p>
+
+      <h3>6. Your Rights (Data Privacy Act of 2012, Philippines)</h3>
+      <p>Under the Data Privacy Act of 2012, you have rights as a data subject, including the right to be informed, object, access, rectification, erasure or blocking, damages, and to lodge a complaint.</p>
+
+      <h3>7. Changes to this Privacy Policy</h3>
+      <p>We may update Our Privacy Policy from time to time. We will notify You of any changes by posting the new Privacy Policy on this page.</p>
+    </div>
+  </div>
 
   <footer class="footer">
     <div class="container">

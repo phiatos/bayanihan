@@ -252,9 +252,9 @@ function initializeApprovedApplicationsPage(adminUserId) {
                 <td>${app.headquarters?.streetAddress || 'N/A'}</td>
                 <td>${formattedTimestamp}</td>
                 <td>
-                    <button class="viewBtn">View</button>
-                    <button class="editBtn">Edit</button>
-                    <button class="registerBtn">Register</button>
+                    <button class="viewBtn"><i class='bx bx-show-alt'></i></button>
+                    <button class="editBtn"><i class='bx bx-edit'></i></button>
+                    <button class="registerBtn"><i class='bx bx-user-plus'></i></button>
                 </td>
             `;
         });
@@ -417,54 +417,48 @@ function initializeApprovedApplicationsPage(adminUserId) {
         }) : 'N/A';
 
         let content = `
-            <h3 style="margin-bottom: 15px; color: #FA3B99;">Organization Details</h3>
-            <div style="margin-left: 15px;">
-            <p><strong>Organization Name:</strong> ${applicationData.organizationName || 'N/A'}</p>
-            <p><strong>Contact Person:</strong> ${applicationData.contactPerson || 'N/A'}</p>
-            <p><strong>Email:</strong> ${applicationData.email || 'N/A'}</p>
-            <p><strong>Mobile Number:</strong> ${applicationData.mobileNumber || 'N/A'}</p>
-            <p><strong>Social Media Link:</strong> ${applicationData.socialMediaLink ? `<a href="${applicationData.socialMediaLink}" target="_blank" rel="noopener noreferrer">${applicationData.socialMediaLink}</a>` : 'N/A'}</p>
-            </div>
+            <div class="modal-content-inner" style="padding: 20px;">
 
-            <hr>
+                <h4 style="margin-top: 0px; margin-bottom: 10px; color: #FA3B99;">Organization Details:</h4>
 
-            <h4 style="margin-top: 20px; margin-bottom: 10px; color: #FA3B99;">Headquarters Address:</h4>
-            <div style="margin-left: 15px;">
-            <ul>
-                <li><strong>Region:</strong> ${applicationData.headquarters?.region || 'N/A'}</li>
-                <li><strong>Province:</strong> ${applicationData.headquarters?.province || 'N/A'}</li>
-                <li><strong>City:</strong> ${applicationData.headquarters?.city || 'N/A'}</li>
-                <li><strong>Barangay:</strong> ${applicationData.headquarters?.barangay || 'N/A'}</li>
-                <li><strong>Street Address:</strong> ${applicationData.headquarters?.streetAddress || 'N/A'}</li>
-            </ul>
-            </div>
+                <p><strong>Organization Name:</strong> ${applicationData.organizationName || 'N/A'}</p>
+                <p><strong>Contact Person:</strong> ${applicationData.contactPerson || 'N/A'}</p>
+                <p><strong>Email:</strong> ${applicationData.email || 'N/A'}</p>
+                <p><strong>Mobile Number:</strong> ${applicationData.mobileNumber || 'N/A'}</p>
+                <p><strong>Social Media Link:</strong> ${applicationData.socialMediaLink ? `<a href="${applicationData.socialMediaLink}" target="_blank" rel="noopener noreferrer">${applicationData.socialMediaLink}</a>` : 'N/A'}</p>
 
-            <hr>
+                <hr>
 
-            <h4 style="margin-top: 20px; margin-bottom: 10px; color: #FA3B99;">Organizational Background:</h4>
-            <div style="margin-left: 15px;">
-            <p><strong>Mission/Background:</strong> ${applicationData.organizationalBackgroundMission || 'N/A'}</p>
-            <p><strong>Areas of Expertise/Focus:</strong> ${applicationData.areasOfExpertiseFocus || 'N/A'}</p>
-            </div>
+                <h4 style="margin-top: 20px; margin-bottom: 10px; color: #FA3B99;">Headquarters Address:</h4>
+                <div style="margin-left: 15px;">
+                    <p><strong>Region:</strong> ${applicationData.headquarters?.region || 'N/A'}</p>
+                    <p><strong>Province:</strong> ${applicationData.headquarters?.province || 'N/A'}</p>
+                    <p><strong>City:</strong> ${applicationData.headquarters?.city || 'N/A'}</p>
+                    <p><strong>Barangay:</strong> ${applicationData.headquarters?.barangay || 'N/A'}</p>
+                    <p><strong>Street Address:</strong> ${applicationData.headquarters?.streetAddress || 'N/A'}</p>
+                </div>
 
-            <hr>
+                <hr>
 
-            <h4 style="margin-top: 20px; margin-bottom: 10px; color: #FA3B99;">Legal & Documents:</h4>
-            <div style="margin-left: 15px;">
-            <p><strong>Legal Status/Registration:</strong> ${applicationData.legalStatusRegistration || 'N/A'}</p>
-            <p><strong>Required Documents:</strong> ${applicationData.requiredDocumentsLink ? `<a href="${applicationData.requiredDocumentsLink}" target="_blank" rel="noopener noreferrer">View Document</a>` : 'N/A'}</p>
-            </div>
+                <h4 style="margin-top: 20px; margin-bottom: 10px; color: #FA3B99;">Organizational Background:</h4>
+                <p><strong>Mission/Background:</strong> ${applicationData.organizationalBackgroundMission || 'N/A'}</p>
+                <p><strong>Areas of Expertise/Focus:</strong> ${applicationData.areasOfExpertiseFocus || 'N/A'}</p>
+                
+                <hr>
 
-            <hr>
+                <h4 style="margin-top: 20px; margin-bottom: 10px; color: #FA3B99;">Legal & Documents:</h4>
+                <p><strong>Legal Status/Registration:</strong> ${applicationData.legalStatusRegistration || 'N/A'}</p>
+                <p><strong>Required Documents:</strong> ${applicationData.requiredDocumentsLink ? `<a href="${applicationData.requiredDocumentsLink}" target="_blank" rel="noopener noreferrer">View Document</a>` : 'N/A'}</p>
 
-            <div style="margin-left: 15px;">
-            <p style="margin-top: 20px; font-size: 0.9em; color: #555;"><strong>Application Date and Time:</strong> ${formattedApplicationTimestamp}</p>
-            <p style="font-size: 0.9em; color: #555;"><strong>Approval Date and Time:</strong> ${formattedApprovedTimestamp}</p>
+                <hr>
+
+                <p style="margin-top: 20px; font-size: 0.9em; color: #555;"><strong>Application Date and Time:</strong> ${formattedApplicationTimestamp}</p>
+                <p style="font-size: 0.9em; color: #555;"><strong>Approval Date and Time:</strong> ${formattedApprovedTimestamp}</p>
             </div>
         `;
 
         modalContentDiv.innerHTML = content;
-        previewModal.style.display = 'flex'; 
+        previewModal.style.display = 'flex';
     }
 
     function hidePreviewModal() {
@@ -681,8 +675,6 @@ function initializeApprovedApplicationsPage(adminUserId) {
         if (editBarangayTextInput) editBarangayTextInput.value = editBarangaySelect.options[editBarangaySelect.selectedIndex]?.textContent || '';
     });
 
-
-    // --- NEW: Edit Form Submission Handler ---
     if (editOrgForm) {
         editOrgForm.addEventListener('submit', async e => {
             e.preventDefault();
@@ -727,6 +719,78 @@ function initializeApprovedApplicationsPage(adminUserId) {
                     icon: 'error',
                     title: 'Invalid Mobile Number',
                     text: 'Mobile number must be 11 digits starting with "09" (e.g., 09123456789).'
+                });
+                return;
+            }
+
+           // Check for duplicates in approvedABVN, registeredABVN, users, and volunteerGroups
+            const approvedSnapshot = await database.ref('abvnApplications/approvedABVN').once('value');
+            const registeredSnapshot = await database.ref('abvnApplications/registeredABVN').once('value');
+            const usersSnapshot = await database.ref('users').once('value');
+            const volunteerGroupsSnapshot = await database.ref('volunteerGroups').once('value');
+            let isDuplicate = false;
+            let duplicateReason = '';
+
+            if (approvedSnapshot.exists()) {
+                approvedSnapshot.forEach(child => {
+                    const data = child.val();
+                    if (child.key !== appKey && // Exclude the current application
+                        (data.email.trim().toLowerCase() === updatedEmail.trim().toLowerCase() ||
+                        data.mobileNumber === formattedUpdatedMobile ||
+                        data.organizationName.trim().toLowerCase() === updatedOrganization.trim().toLowerCase())) {
+                        isDuplicate = true;
+                        duplicateReason = data.email.trim().toLowerCase() === updatedEmail.trim().toLowerCase() ? 'email' :
+                                        data.mobileNumber === formattedUpdatedMobile ? 'mobile number' : 'organization name';
+                        return true;
+                    }
+                });
+            }
+
+            if (!isDuplicate && registeredSnapshot.exists()) {
+                registeredSnapshot.forEach(child => {
+                    const data = child.val();
+                    if (data.email.trim().toLowerCase() === updatedEmail.trim().toLowerCase() ||
+                        data.mobileNumber === formattedUpdatedMobile ||
+                        data.organizationName.trim().toLowerCase() === updatedOrganization.trim().toLowerCase()) {
+                        isDuplicate = true;
+                        duplicateReason = data.email.trim().toLowerCase() === updatedEmail.trim().toLowerCase() ? 'email' :
+                                        data.mobileNumber === formattedUpdatedMobile ? 'mobile number' : 'organization name';
+                        return true;
+                    }
+                });
+            }
+
+            if (!isDuplicate && usersSnapshot.exists()) {
+                usersSnapshot.forEach(child => {
+                    const data = child.val();
+                    if (data.email.trim().toLowerCase() === updatedEmail.trim().toLowerCase() ||
+                        data.mobile === formattedUpdatedMobile ||
+                        data.organization.trim().toLowerCase() === updatedOrganization.trim().toLowerCase()) {
+                        isDuplicate = true;
+                        duplicateReason = data.email.trim().toLowerCase() === updatedEmail.trim().toLowerCase() ? 'email' :
+                                        data.mobile === formattedUpdatedMobile ? 'mobile number' : 'organization name';
+                        return true;
+                    }
+                });
+            }
+
+            if (!isDuplicate && volunteerGroupsSnapshot.exists()) {
+                volunteerGroupsSnapshot.forEach(child => {
+                    const data = child.val();
+                    if (data.organization.trim().toLowerCase() === updatedOrganization.trim().toLowerCase()) {
+                        isDuplicate = true;
+                        duplicateReason = 'organization name';
+                        return true;
+                    }
+                });
+            }
+
+            if (isDuplicate) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Duplicate Found',
+                    text: `An application or user with this ${duplicateReason} already exists. Please use a unique ${duplicateReason}.`,
+                    confirmButtonText: 'OK'
                 });
                 return;
             }
@@ -820,7 +884,7 @@ function initializeApprovedApplicationsPage(adminUserId) {
         });
     }
 
-    // --- IMPORTANT: Password Verification Function (Copied from vgm.js) ---
+    // --- Password Verification Function ---
     async function verifyUserPassword(password) {
         Swal.showLoading();
 
@@ -881,12 +945,17 @@ function initializeApprovedApplicationsPage(adminUserId) {
                         text: `Are you sure you want to register "${applicationToRegister.organizationName}" into Volunteer Group Management? This will create a user account and move the application to "Registered".`,
                         icon: 'question',
                         showCancelButton: true,
-                        confirmButtonText: 'Yes, Register It!',
+                        confirmButtonColor: '#3085d6',
+                        cancelButtonColor: '#d33',
+                        confirmButtonText: 'Register',
                         cancelButtonText: 'Cancel',
                         reverseButtons: true,
                         customClass: {
-                            confirmButton: 'swal2-confirm-large',
-                            cancelButton: 'swal2-cancel-large'
+                            popup: 'custom-swal-popup-small',
+                            title: 'custom-swal-title',
+                            htmlContainer: 'custom-swal-text',
+                            confirmButton: 'swal2-button-confirm-clean',
+                            cancelButton: 'swal2-button-cancel-clean'
                         },
                     }).then(async (result) => {
                         if (result.isConfirmed) {
@@ -937,6 +1006,50 @@ function initializeApprovedApplicationsPage(adminUserId) {
             }
             console.log("Current admin performing registration:", adminUser.uid);
 
+            // Check for duplicate organization name
+            const approvedSnapshot = await database.ref('abvnApplications/approvedABVN').once('value');
+            const registeredSnapshot = await database.ref('abvnApplications/registeredABVN').once('value');
+            const volunteerGroupsSnapshot = await database.ref('volunteerGroups').once('value');
+            let isDuplicateOrgName = false;
+            let duplicateReason = '';
+
+            if (approvedSnapshot.exists()) {
+                approvedSnapshot.forEach(child => {
+                    const data = child.val();
+                    if (child.key !== applicationData.key && // Exclude the current application
+                        data.organizationName.trim().toLowerCase() === applicationData.organizationName.trim().toLowerCase()) {
+                        isDuplicateOrgName = true;
+                        duplicateReason = 'organization name';
+                        return true;
+                    }
+                });
+            }
+
+            if (!isDuplicateOrgName && registeredSnapshot.exists()) {
+                registeredSnapshot.forEach(child => {
+                    const data = child.val();
+                    if (data.organizationName.trim().toLowerCase() === applicationData.organizationName.trim().toLowerCase()) {
+                        isDuplicateOrgName = true;
+                        duplicateReason = 'organization name';
+                        return true;
+                    }
+                });
+            }
+
+            if (!isDuplicateOrgName && volunteerGroupsSnapshot.exists()) {
+                volunteerGroupsSnapshot.forEach(child => {
+                    const data = child.val();
+                    if (data.organization.trim().toLowerCase() === applicationData.organizationName.trim().toLowerCase()) {
+                        isDuplicateOrgName = true;
+                        duplicateReason = 'organization name';
+                        return true;
+                    }
+                });
+            }
+
+            if (isDuplicateOrgName) {
+                throw new Error("An organization with this name already exists. Please use a unique organization name.");
+            }
 
             let newUserAuthId = null;
             let tempPassword = null;

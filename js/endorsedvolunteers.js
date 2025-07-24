@@ -1,5 +1,5 @@
 const firebaseConfig = {
-    apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ", // Your actual API Key
+    apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ", 
     authDomain: "bayanihan-5ce7e.firebaseapp.com",
     databaseURL: "https://bayanihan-5ce7e-default-rtdb.asia-southeast1.firebasedatabase.app",
     projectId: "bayanihan-5ce7e",
@@ -9,7 +9,6 @@ const firebaseConfig = {
     measurementId: "G-ZTQ9VXXVV0",
 };
 
-// Initialize Firebase if it hasn't been initialized yet
 if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
@@ -27,11 +26,25 @@ const previewModal = document.getElementById('previewModal');
 const closeModalBtn = document.getElementById('closeModal');
 const modalContentDiv = document.getElementById('modalContent');
 
+// Archived Modal Elements
+const viewArchivedButton = document.getElementById('viewArchived');
+const archivedModal = document.getElementById('archivedModal');
+const closeArchivedModalBtn = document.getElementById('closeArchivedModalBtn');
+const archivedTableBody = document.getElementById('archivedTableBody');
+// Renamed to match your provided code
+const archivedPaginationContainer = document.getElementById('archivedPagination'); 
+const archivedEntriesInfo = document.getElementById('archivedEntriesInfo'); // Renamed
+
 let allEndorsedVolunteers = []; 
-let filteredVolunteers = [];    
-let paginatedVolunteers = [];   
+let filteredVolunteers = []; 		
+let paginatedVolunteers = []; 	
 let currentPage = 1;
 const rowsPerPage = 10; 
+
+let allArchivedVolunteerData = []; // Renamed for consistency with your provided code
+let filteredArchivedVolunteers = []; // Keeping this for consistency in filtering, though not fully implemented for archived search/sort yet
+let currentArchivedVolunteerPage = 1; // Renamed
+const archivedVolunteerRowsPerPage = 10; // Renamed, assuming same rowsPerPage for archived
 
 let currentUserRole = 'ABVN';
 let currentUserId = null;
@@ -207,16 +220,15 @@ async function archiveVolunteer(volunteer) {
     }).then(async (result) => {
         if (result.isConfirmed) {
             let sourcePath = '';
-            let abvnKeyToOperateOn = volunteer.sourceAbvnKey; // Use the stored sourceAbvnKey
+            let abvnKeyToOperateOn = volunteer.sourceAbvnKey; // This should already be correct from how you construct `allEndorsedVolunteers`
 
             if (!abvnKeyToOperateOn) {
-                Swal.fire('Error', 'Cannot archive: Missing ABVN source key for this volunteer.', 'error');
+                Swal.fire('Error', 'Cannot archive: Missing ABVN source key for this volunteer. Please refresh the page and try again.', 'error');
                 return;
             }
 
-            // Construct the source path
             sourcePath = `volunteerGroups/${abvnKeyToOperateOn}/endorsedVolunteers/${volunteer.key}`;
-            const destinationPath = `deletedEndorsedVolunteerApplications/${volunteer.key}`; // Using volunteer.key as the key for deleted applications
+            const destinationPath = `deletedEndorsedVolunteerApplications/${volunteer.key}`;
 
             try {
                 const volunteerRef = database.ref(sourcePath);
@@ -230,19 +242,16 @@ async function archiveVolunteer(volunteer) {
                     return;
                 }
 
-                // Add a timestamp for when it was archived
+                dataToArchive.sourceAbvnKey = abvnKeyToOperateOn; 
                 dataToArchive.archivedAt = new Date().toISOString();
-                // Add who archived it (optional, but good for auditing)
                 dataToArchive.archivedBy = currentUserId; 
                 dataToArchive.archivedByRole = currentUserRole;
 
-                // Perform the move: Write to the new node, then remove from the old node
                 await deletedRef.set(dataToArchive); 
-                await volunteerRef.remove();        
+                await volunteerRef.remove(); 
 
                 Swal.fire('Archived!', 'Volunteer application has been archived.', 'success');
 
-                // Update local data arrays and re-render the table
                 allEndorsedVolunteers = allEndorsedVolunteers.filter(v => v.key !== volunteer.key);
                 applyFiltersAndSort();
 
@@ -254,7 +263,74 @@ async function archiveVolunteer(volunteer) {
     });
 }
 
-// --- Table Rendering and Management ---
+// --- Retrieve functionality for Super Admins ---
+async function retrieveVolunteer(volunteer) {
+    if (currentUserRole !== 'AB ADMIN') {
+        Swal.fire('Access Denied', 'Only Super Admins can retrieve archived volunteers.', 'error');
+        return;
+    }
+
+    Swal.fire({
+        title: 'Are you sure?',
+        text: "You are about to retrieve this archived volunteer application. It will be moved back to active applications.",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6', 
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Yes, retrieve it!',
+        customClass: {
+            confirmButton: 'my-confirm-button-class',
+            cancelButton: 'my-cancel-button-class'
+        }
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            const sourcePath = `deletedEndorsedVolunteerApplications/${volunteer.key}`;
+            // The destination path requires knowing the original ABVN group.
+            // We stored 'sourceAbvnKey' when archiving.
+            const destinationPath = `volunteerGroups/${volunteer.sourceAbvnKey}/endorsedVolunteers/${volunteer.key}`;
+
+            if (!volunteer.sourceAbvnKey) {
+                Swal.fire('Error', 'Cannot retrieve: Original ABVN group information is missing.', 'error');
+                return;
+            }
+
+            try {
+                const archivedRef = database.ref(sourcePath);
+                const activeRef = database.ref(destinationPath);
+
+                const snapshot = await archivedRef.once('value');
+                const dataToRetrieve = snapshot.val();
+
+                if (!dataToRetrieve) {
+                    Swal.fire('Not Found', 'Archived volunteer application not found for retrieval.', 'error');
+                    return;
+                }
+
+                // Remove archivedAt and archivedBy fields if desired
+                delete dataToRetrieve.archivedAt;
+                delete dataToRetrieve.archivedBy;
+                delete dataToRetrieve.archivedByRole;
+
+
+                // Perform the move: Write to the new node, then remove from the old node
+                await activeRef.set(dataToRetrieve); 
+                await archivedRef.remove(); 		
+
+                Swal.fire('Retrieved!', 'Volunteer application has been retrieved.', 'success');
+
+                // Re-fetch and re-render both tables to reflect changes
+                fetchEndorsedVolunteers(currentUserId, currentUserRole);
+                fetchArchivedVolunteers(); // Re-fetch archived data to update the modal
+                archivedModal.style.display = 'none'; // Close modal after successful retrieval
+            } catch (error) {
+                console.error("Error retrieving volunteer:", error);
+                Swal.fire('Error', 'Failed to retrieve volunteer application. Please try again.', 'error');
+            }
+        }
+    });
+}
+
+// --- Main Table Rendering and Management ---
 function renderVolunteersTable() {
     volunteersContainer.innerHTML = ''; // Clear existing table rows
 
@@ -388,7 +464,193 @@ function renderPagination() {
     paginationElement.appendChild(nextBtn);
 }
 
-// --- Modal Functionality  ---
+// --- Archived Modal Functions (Adopted from your provided logic) ---
+viewArchivedButton.addEventListener('click', () => {
+    if (currentUserRole === 'AB ADMIN') {
+        fetchArchivedVolunteers(); // This will now lead to renderArchivedVolunteerApplications()
+        archivedModal.style.display = 'flex';
+    } else {
+        Swal.fire('Access Denied', 'Only Super Admins can view archived applications.', 'error');
+    }
+});
+
+closeArchivedModalBtn.addEventListener('click', () => {
+    hideArchivedModal(); // Use the new hide function
+});
+
+window.addEventListener('click', (event) => {
+    if (event.target === archivedModal) {
+        hideArchivedModal(); // Use the new hide function
+    }
+});
+
+async function fetchArchivedVolunteers() {
+    if (currentUserRole !== 'AB ADMIN') {
+        console.warn("Non-admin user attempted to fetch archived volunteers.");
+        allArchivedVolunteerData = []; // Use the new variable name
+        renderArchivedVolunteerApplications(); // Call the new render function
+        return;
+    }
+    
+    try {
+        const archivedRef = database.ref('deletedEndorsedVolunteerApplications');
+        const snapshot = await archivedRef.once('value');
+        const archivedData = snapshot.val();
+        
+        const tempArchived = [];
+        if (archivedData) {
+            for (const key in archivedData) {
+                tempArchived.push({ key, ...archivedData[key] });
+            }
+        }
+        allArchivedVolunteerData = tempArchived; // Assign to the new variable name
+        renderArchivedVolunteerApplications(); // Directly render after fetching
+    } catch (error) {
+        console.error("Error fetching archived volunteers:", error);
+        Swal.fire('Error', 'Failed to fetch archived volunteers.', 'error');
+    }
+}
+
+// Renamed from filterAndPaginateArchivedVolunteers to match your pattern
+function renderArchivedVolunteerApplications() {
+    const colCount = archivedTableBody.parentElement.querySelectorAll('thead tr th').length;
+    archivedTableBody.innerHTML = '';
+
+    const startIndex = (currentArchivedVolunteerPage - 1) * archivedVolunteerRowsPerPage;
+    const endIndex = startIndex + archivedVolunteerRowsPerPage;
+    // Use allArchivedVolunteerData for slicing
+    const paginatedApplications = allArchivedVolunteerData.slice(startIndex, endIndex); 
+
+    if (paginatedApplications.length === 0) {
+        archivedTableBody.innerHTML = `<tr><td colspan="${colCount}" style="text-align: center;">No archived volunteer applications found.</td></tr>`;
+        archivedEntriesInfo.textContent = 'Showing 0 to 0 of 0 entries';
+        renderArchivedPagination(); // Render pagination even if empty to show "No entries"
+        return;
+    }
+
+    let i = startIndex + 1;
+
+    paginatedApplications.forEach(volunteer => {
+        const row = archivedTableBody.insertRow();
+        row.setAttribute('data-key', volunteer.key);
+        const fullName = getFullName(volunteer);
+        const socialMediaDisplay = volunteer.socialMediaLink ? `<a href="${volunteer.socialMediaLink}" target="_blank" rel="noopener noreferrer">Link</a>` : 'N/A';
+        // Note: scheduledDateTime and general/specific availability fields might not exist in endorsed volunteer data
+        // I've kept them from your example, but you might need to adjust based on actual data structure.
+        const scheduledDateTimeDisplay = volunteer.scheduledDateTime ? formatDate(volunteer.scheduledDateTime) : 'N/A';
+        row.innerHTML = `
+            <td>${i++}</td>
+            <td>${fullName}</td>
+            <td>${volunteer.email || 'N/A'}</td>
+            <td>${volunteer.mobileNumber || 'N/A'}</td>
+            <td>${volunteer.age || 'N/A'}</td>
+            <td>${socialMediaDisplay}</td>
+            <td>${volunteer.additionalInfo || 'N/A'}</td>
+            <td>${volunteer.address?.region || 'N/A'}</td>
+            <td>${volunteer.address?.province || 'N/A'}</td>
+            <td>${volunteer.address?.city || 'N/A'}</td>
+            <td>${volunteer.address?.barangay || 'N/A'}</td>
+            <td>${volunteer.endorsedToABVNName ? `${volunteer.endorsedToABVNName} (${volunteer.endorsedToABVNLocation})` : 'N/A'}</td>
+            <td>${formatDate(volunteer.endorsementDate)}</td>
+            <td>${formatDate(volunteer.archivedAt)}</td>
+            <td>
+                <button class="retrieveBtn" data-key="${volunteer.key}">Retrieve</button>
+            </td>
+        `;
+    });
+
+    // Add event listeners for retrieve buttons after rendering
+    archivedTableBody.querySelectorAll('.retrieveBtn').forEach(button => {
+        button.addEventListener('click', (event) => {
+            const key = event.target.dataset.key;
+            const volunteerToRetrieve = allArchivedVolunteerData.find(v => v.key === key);
+            if (volunteerToRetrieve) {
+                retrieveVolunteer(volunteerToRetrieve);
+            }
+        });
+    });
+
+    updateArchivedEntriesInfo();
+    renderArchivedPagination();
+}
+
+function updateArchivedEntriesInfo() {
+    const startIndex = (currentArchivedVolunteerPage - 1) * archivedVolunteerRowsPerPage;
+    const endIndex = Math.min(startIndex + archivedVolunteerRowsPerPage, allArchivedVolunteerData.length);
+    archivedEntriesInfo.textContent = `Showing ${allArchivedVolunteerData.length ? startIndex + 1 : 0} to ${endIndex} of ${allArchivedVolunteerData.length} entries`;
+}
+
+function renderArchivedPagination() {
+    archivedPaginationContainer.innerHTML = '';
+    const totalPages = Math.ceil(allArchivedVolunteerData.length / archivedVolunteerRowsPerPage);
+
+    if (totalPages === 0) {
+        // You might want to remove this line if you just want it to be empty space when no entries
+        // archivedPaginationContainer.innerHTML = '<span>No entries to display</span>'; 
+        return; 
+    }
+
+    const createButton = (label, page, disabled = false, isActive = false) => {
+        const btn = document.createElement('button');
+        btn.textContent = label;
+        if (disabled) btn.disabled = true;
+        if (isActive) btn.classList.add('active-page');
+        btn.addEventListener('click', () => {
+            currentArchivedVolunteerPage = page;
+            renderArchivedVolunteerApplications(); // Calls the rendering function
+        });
+        return btn;
+    };
+
+    archivedPaginationContainer.appendChild(createButton('Prev', currentArchivedVolunteerPage - 1, currentArchivedVolunteerPage === 1));
+
+    const maxVisible = 5;
+    let startPage = Math.max(1, currentArchivedVolunteerPage - Math.floor(maxVisible / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+    if (endPage - startPage < maxVisible - 1) {
+        startPage = Math.max(1, endPage - maxVisible + 1);
+    }
+
+    if (startPage > 1) {
+        archivedPaginationContainer.appendChild(createButton('1', 1));
+        if (startPage > 2) {
+            const dots = document.createElement('span');
+            dots.textContent = '...';
+            archivedPaginationContainer.appendChild(dots);
+        }
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+        archivedPaginationContainer.appendChild(createButton(i, i, false, i === currentArchivedVolunteerPage));
+    }
+
+    if (endPage < totalPages) {
+        if (endPage < totalPages - 1) {
+            const dots = document.createElement('span');
+            dots.textContent = '...';
+            archivedPaginationContainer.appendChild(dots);
+        }
+        archivedPaginationContainer.appendChild(createButton(totalPages, totalPages));
+    }
+
+    archivedPaginationContainer.appendChild(createButton('Next', currentArchivedVolunteerPage + 1, currentArchivedVolunteerPage === totalPages));
+}
+
+function showArchivedModal() {
+    archivedModal.style.display = 'flex';
+    fetchArchivedVolunteers(); // This will fetch and then call renderArchivedVolunteerApplications
+}
+
+function hideArchivedModal() {
+    archivedModal.style.display = 'none';
+    archivedTableBody.innerHTML = '';
+    archivedEntriesInfo.textContent = '';
+    archivedPaginationContainer.innerHTML = '';
+    currentArchivedVolunteerPage = 1; // Reset page on close
+    allArchivedVolunteerData = []; // Clear data on close
+}
+
+// --- Modal Functionality  ---
 function showVolunteerDetails(volunteer) {
     let socialMediaHtml = getSocialMediaLink(volunteer.socialMediaLink);
 
@@ -436,6 +698,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 const passwordNeedsReset = userDataFromDb ? (userDataFromDb.password_needs_reset || false) : false;
                 currentUserId = user.uid;
                 currentUserRole = userDataFromDb ? (userDataFromDb.role || 'ABVN') : 'ABVN'; 
+
+                // Conditionally show/hide the "View Archived" button
+                if (currentUserRole === 'AB ADMIN') {
+                    viewArchivedButton.style.display = 'block'; // Show the button for Super Admins
+                } else {
+                    viewArchivedButton.style.display = 'none'; // Hide for other roles
+                }
 
                 if (passwordNeedsReset) {
                     console.log(`Password change required for user ${user.uid}. Redirecting to profile page.`);

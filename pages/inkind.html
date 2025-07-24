@@ -93,10 +93,10 @@
                             </div>
                         </div>
 
-                    <div class="donation-buttons">
-                    <button type="submit"  id="addDonationBtn" class="bayanihanBtn">Add Donation</button>
-                    <button type="button" id="clearFormBtn" class="bayanihanBtn">Clear Form</button>
-                    </div>
+                        <div class="donation-buttons">
+                            <button type="submit"  id="addDonationBtn" class="bayanihanBtn">Add Donation</button>
+                            <button type="button" id="clearFormBtn" class="bayanihanBtn">Clear Form</button>
+                        </div>
                     </form>
                 </div>
             </div>
@@ -165,6 +165,9 @@
                             </select>
                             <i class='bx bx-chevron-down'></i>
                         </div>
+                        <button id="viewArchived" aria-label="View Archived Admins">
+                            <i class='bx bx-archive' style="color: white; font-size: 20px;"></i>
+                        </button>
                     </div>
                 </div>
 
@@ -249,6 +252,45 @@
                     <button type="button" id="cancelEditBtn">Cancel</button>
                 </div>
             </div>
+
+            <!-- Archived Modal -->
+            <div class="modal" id="archivedModal" style="display: none;">
+                <div class="modal-content">
+                    <span class="close-button" id="closeArchivedModalBtn">×</span>
+                    <h2>Archived In-Kind Donations</h2>
+                    <div class="table-container" style="max-height: 400px; overflow-y: auto;">
+                        <table id="archivedTable">
+                            <thead>
+                                <tr>
+                                    <th>No.</th>
+                                    <th>Encoder</th>
+                                    <th>Name</th>
+                                    <th>Type</th>
+                                    <th>Address</th>
+                                    <th>Contact Person</th>
+                                    <th>Number</th>
+                                    <th>Email</th>
+                                    <th>Type of Assistance</th>
+                                    <th>Valuation</th>
+                                    <th>Additional Notes</th>
+                                    <th>Staff-In Charge</th>
+                                    <th>Status</th>
+                                    <th>Donation Date</th>
+                                    <th>Archived Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                </tbody>
+                        </table>
+                    </div>
+                    <div class="pagination-info" style="margin-top: 15px;">
+                        <span id="archivedEntriesInfo">Showing 0 to 0 of 0 entries</span>
+                        <div id="archivedPagination" class="pagination"></div>
+                    </div>
+                </div>
+            </div>
+            
         </div>
     </div>
 

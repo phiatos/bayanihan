@@ -24,14 +24,14 @@ body {
 
 body::before {
   content: "";
-  position: fixed; 
+  position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
   background-image: url("../assets/images/launchpage-bg.png");
   background-repeat: no-repeat;
   background-size: cover;
   background-position: center;
-  opacity: 0.3; 
-  z-index: -1; 
+  opacity: 0.3;
+  z-index: -1;
 }
 
 .abvn-registration .container {
@@ -44,7 +44,6 @@ body::before {
   box-shadow: 0 0 30px rgba(0, 0, 0, 0.1);
 }
 
-/* Form titles */
 .form-title {
   font-size: 2rem;
   margin-bottom: 0.5rem;
@@ -57,7 +56,6 @@ body::before {
   margin-bottom: 2rem;
 }
 
-/* Form layout */
 #volunteer-org-form {
   display: flex;
   gap: 2rem;
@@ -71,7 +69,6 @@ body::before {
   padding: 1.5rem;
   margin-bottom: 2rem;
   border-radius: 8px;
-  /* background-color: var(--light-bg); */
 }
 
 form legend {
@@ -81,7 +78,6 @@ form legend {
   color: var(--primary-color);
 }
 
-/* Form group elements */
 .form-group {
   margin-bottom: 1.2rem;
 }
@@ -105,14 +101,12 @@ form legend {
   color: var(--black);
 }
 
-/* Submit button container */
 .form-group.submit-group {
   flex-basis: 100%;
   display: flex;
   justify-content: flex-start;
 }
 
-/* Submit button styling */
 .btn-primary {
   background-color: var(--primary-color);
   color: #fff;
@@ -131,7 +125,6 @@ form legend {
   transform: translateY(-2px);
 }
 
-/* Scrollbar Styling (if form ever scrolls) */
 .abvn-registration .container::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -151,20 +144,18 @@ form legend {
   scrollbar-color: var(--primary-color) transparent;
 }
 
-/* Availability Section Specific Styling */
-
 .checkbox-group {
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem; 
+  gap: 1rem;
 }
 
 .checkbox-group label {
   display: flex;
   align-items: center;
   cursor: pointer;
-  font-weight: normal; 
-  color: var(--black); 
+  font-weight: normal;
+  color: var(--black);
   background-color: var(--white);
   padding: 0.7rem 1rem;
   border: 1px solid var(--gray);
@@ -191,7 +182,7 @@ form legend {
   position: relative;
   cursor: pointer;
   transition: background-color 0.3s ease, border-color 0.3s ease;
-  flex-shrink: 0; 
+  flex-shrink: 0;
 }
 
 .checkbox-group input[type="checkbox"]:checked {
@@ -200,7 +191,7 @@ form legend {
 }
 
 .checkbox-group input[type="checkbox"]:checked::after {
-  content: '✔'; 
+  content: '✔';
   color: var(--white);
   font-size: 14px;
   position: absolute;
@@ -211,5 +202,306 @@ form legend {
 
 .checkbox-group input[type="checkbox"]:focus {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(20, 174, 187, 0.3); 
+  box-shadow: 0 0 0 3px rgba(20, 174, 187, 0.3);
+}
+
+.terms-conditions-container {
+  margin-top: 20px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: flex-start;
+  padding: 10px 0;
+  flex-basis: 100%;
+}
+
+.terms-conditions-container input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--primary-color);
+  border-radius: 4px;
+  margin-right: 10px;
+  flex-shrink: 0;
+  margin-top: 3px;
+  position: relative;
+  cursor: pointer;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.terms-conditions-container input[type="checkbox"]:checked {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.terms-conditions-container input[type="checkbox"]:checked::after {
+  content: '✔';
+  color: var(--white);
+  font-size: 14px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.terms-conditions-container input[type="checkbox"]:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(20, 174, 187, 0.3);
+}
+
+.terms-conditions-container label {
+  font-size: 0.9em;
+  line-height: 1.4;
+  cursor: pointer;
+  font-weight: normal;
+  color: var(--black);
+}
+
+.terms-conditions-container a {
+  color: var(--primary-color);
+  text-decoration: underline;
+  font-weight: 500;
+}
+
+.form-group.submit-group button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+#agreementMessage {
+  margin-top: -10px;
+  margin-bottom: 20px;
+  font-size: 0.85em;
+  text-align: left;
+  color: var(--red);
+  flex-basis: 100%;
+}
+
+.swal2-container-custom {
+  z-index: 10000;
+  font-family: 'Poppins', sans-serif;
+}
+
+.swal2-popup-custom {
+  border-radius: 20px;
+  padding: 2rem;
+  max-height: 80vh;
+  overflow-y: auto;
+  background: var(--white);
+  color: var(--black);
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.1);
+}
+
+.swal2-popup-custom::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.swal2-popup-custom::-webkit-scrollbar-thumb {
+  background-color: var(--primary-color);
+  border-radius: 3px;
+}
+
+.swal2-popup-custom::-webkit-scrollbar-thumb:hover {
+  background-color: var(--accent-hover-color);
+}
+
+.swal2-popup-custom {
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary-color) transparent;
+}
+
+@media (prefers-color-scheme: dark) {
+  .swal2-popup-custom {
+    background: #1a1a1a;
+    color: #f0f0f0;
+    box-shadow: 0 0 30px rgba(255, 255, 255, 0.1);
+  }
+}
+
+.swal2-title-custom {
+  font-size: 2rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--accent-color);
+}
+
+.swal2-html-container-custom {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  text-align: left;
+}
+
+.terms-container {
+  padding: 1rem;
+}
+
+.terms-container h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: var(--primary-color);
+}
+
+.terms-container h3 {
+  font-size: 1.2rem;
+  font-weight: 500;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+  color: var(--primary-color);
+}
+
+.terms-container p {
+  margin-bottom: 1rem;
+  color: var(--black);
+}
+
+.terms-container ul {
+  list-style-type: disc;
+  margin-left: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.terms-container a {
+  color: var(--primary-color);
+  text-decoration: underline;
+  font-weight: 500;
+}
+
+.terms-container a:hover {
+  color: var(--button-hover);
+}
+
+@media (prefers-color-scheme: dark) {
+  .terms-container h2,
+  .terms-container h3 {
+    color: #4dabf7;
+  }
+
+  .terms-container p {
+    color: #f0f0f0;
+  }
+
+  .terms-container a {
+    color: #4dabf7;
+  }
+
+  .terms-container a:hover {
+    color: #74c0fc;
+  }
+}
+
+.swal2-confirm {
+  background-color: var(--primary-color);
+  color: var(--white);
+  border: none;
+  padding: 0.8rem 1.5rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  min-width: 150px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+  font-family: 'Poppins', sans-serif;
+}
+
+.swal2-confirm:hover {
+  background-color: var(--button-hover);
+  transform: translateY(-2px);
+}
+
+.swal2-close {
+  color: var(--black);
+  font-size: 24px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .swal2-close {
+    color: #f0f0f0;
+  }
+}
+
+.availability-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+}
+
+.availability-item label {
+  margin-bottom: 0;
+  white-space: nowrap;
+  min-width: 40px;
+}
+
+.availability-item input[type="date"],
+.availability-item input[type="time"] {
+  flex-grow: 1;
+  min-width: 120px;
+  margin-bottom: 0;
+}
+
+#addAvailability {
+  background-color: var(--primary-color);
+  color: var(--white);
+  border: none;
+  padding: 0.7rem 1.2rem;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 10px;
+  display: block;
+  width: fit-content;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+#addAvailability:hover {
+  background-color: var(--button-hover);
+  transform: translateY(-2px);
+}
+
+.remove-availability-item {
+  background-color: var(--red);
+  color: var(--white);
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-left: 5px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.remove-availability-item:hover {
+  background-color: var(--red-hover);
+  transform: translateY(-1px);
+}
+
+@media (max-width: 600px) {
+  .availability-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
+
+  .availability-item label {
+    width: 100%;
+    margin-bottom: 5px;
+  }
+
+  .availability-item input[type="date"],
+  .availability-item input[type="time"] {
+    width: 100%;
+    margin-bottom: 5px;
+  }
+
+  .remove-availability-item {
+    width: 100%;
+    margin-left: 0;
+    margin-top: 10px;
+  }
 }

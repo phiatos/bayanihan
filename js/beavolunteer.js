@@ -9,75 +9,174 @@ const firebaseConfig = {
     measurementId: "G-ZTQ9VXXVV0",
 };
 
-// Initialize Firebase
+// Initialize Firebase using the compatibility layer
 firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
-const auth = firebase.auth();
+const auth = firebase.auth(); // Although 'auth' is initialized, it's not used in the provided logic.
 
 document.addEventListener('DOMContentLoaded', () => {
     const volunteerForm = document.getElementById('volunteer-org-form');
-    // DOM elements for location dropdowns
+
     const regionSelect = document.getElementById('region');
     const provinceSelect = document.getElementById('province');
     const citySelect = document.getElementById('city');
     const barangaySelect = document.getElementById('barangay');
     const streetAddressInput = document.getElementById('streetAddress');
 
+    // Hidden inputs to store the text values of selected location options
     const regionTextInput = document.getElementById('region-text');
     const provinceTextInput = document.getElementById('province-text');
-    const cityTextInput = document.getElementById('city-text'); // Corrected querySelector
+    const cityTextInput = document.getElementById('city-text');
     const barangayTextInput = document.getElementById('barangay-text');
 
-    const generalAvailabilitySelect = document.getElementById('generalAvailability');
-    const specificDaysGroup = document.getElementById('specificDaysGroup');
-    const timeAvailabilityInput = document.getElementById('timeAvailability');
+    const availabilityInputsDiv = document.getElementById('availability-inputs');
+    const addAvailabilityButton = document.getElementById('addAvailability');
+    // Hidden input to store the JSON string of collected date/time array
+    const volunteerAvailabilityHiddenInput = document.getElementById('volunteerAvailability'); 
 
-    // A flag to prevent multiple submissions
-    let isSubmitting = false;
+    const submitButton = document.querySelector('.btn-primary');
+    let isSubmitting = false; // Flag to prevent multiple submissions
 
-    // Function to toggle visibility of specific days and time groups
-    const toggleSpecificAvailability = () => {
-        if (generalAvailabilitySelect && specificDaysGroup && timeAvailabilityInput) {
-            const selectedAvailability = generalAvailabilitySelect.value;
-            // Define which options should show the time input
-            const showTimeOptions = [
-                'Part-time',
-                'Weekends only',
-                'Weekdays only',
-                'Specific days'
-            ];
+    const agreeCheckbox = document.getElementById('agreeToTerms');
+    const agreementMessage = document.getElementById('agreementMessage');
+    const openTermsLink = document.getElementById('openTerms'); 
+    const openPrivacyLink = document.getElementById('openPrivacy'); 
+    const termsContentDiv = document.getElementById('termsContent'); 
+    const privacyContentDiv = document.getElementById('privacyContent'); 
 
-            // Determine if specific days group should be shown (only for "Specific days")
-            if (selectedAvailability === 'Specific days') {
-                specificDaysGroup.style.display = 'block';
-            } else {
-                specificDaysGroup.style.display = 'none';
-                // Uncheck all specific days checkboxes when not 'Specific days'
-                const specificDaysCheckboxes = specificDaysGroup.querySelectorAll('input[type="checkbox"]');
-                specificDaysCheckboxes.forEach(checkbox => {
-                    checkbox.checked = false;
-                });
-            }
+    const convertTo12HourFormat = (time24h) => {
+        const [hours, minutes] = time24h.split(':').map(Number);
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        const hour12 = hours % 12 || 12; // Convert 0 to 12 for 12 AM
+        const formattedMinutes = minutes < 10 ? '0' + minutes : minutes;
+        return `${hour12}:${formattedMinutes} ${ampm}`;
+    };
 
-            // Determine if time availability input should be shown
-            if (showTimeOptions.includes(selectedAvailability)) {
-                timeAvailabilityInput.parentElement.style.display = 'block';
-            } else {
-                timeAvailabilityInput.parentElement.style.display = 'none';
-                // Clear the time availability input if it's hidden
-                timeAvailabilityInput.value = '';
+    /**
+     * Updates the state of the submit button based on the agreement checkbox.
+     * Also toggles the visibility of the agreement message.
+     */
+    const updateSubmitButtonState = () => {
+        if (submitButton && agreeCheckbox) {
+            submitButton.disabled = !agreeCheckbox.checked;
+            if (agreementMessage) {
+                agreementMessage.style.display = agreeCheckbox.checked ? 'none' : 'block';
             }
         }
     };
 
-    // Initial call to set visibility on page load
-    toggleSpecificAvailability();
-
-    if (generalAvailabilitySelect) {
-        generalAvailabilitySelect.addEventListener('change', toggleSpecificAvailability);
+    // Add event listener for the terms and conditions checkbox
+    if (agreeCheckbox) {
+        agreeCheckbox.addEventListener('change', updateSubmitButtonState);
     }
 
+    // Initial call to set the button state when the page loads
+    updateSubmitButtonState();
+
+    // Event listeners for opening T&C and Privacy Policy pop-ups using SweetAlert2
+    if (openTermsLink && termsContentDiv) {
+        openTermsLink.addEventListener('click', (e) => {
+            e.preventDefault(); // Prevent navigating to a new page
+            Swal.fire({
+                title: 'Terms and Conditions',
+                html: termsContentDiv.innerHTML, // Get content from the hidden div
+                icon: 'info',
+                width: '80%', // Make the modal wider
+                showCloseButton: true,
+                focusConfirm: false,
+                confirmButtonText: 'Close',
+                customClass: {
+                    container: 'swal2-container-custom', // Custom class for additional styling if needed
+                    popup: 'swal2-popup-custom',
+                    title: 'swal2-title-custom',
+                    htmlContainer: 'swal2-html-container-custom',
+                }
+            });
+        });
+    }
+
+    if (openPrivacyLink && privacyContentDiv) {
+        openPrivacyLink.addEventListener('click', (e) => {
+            e.preventDefault(); // Prevent navigating to a new page
+            Swal.fire({
+                title: 'Privacy Policy',
+                html: privacyContentDiv.innerHTML, // Get content from the hidden div
+                icon: 'info',
+                width: '80%', // Make the modal wider
+                showCloseButton: true,
+                focusConfirm: false,
+                confirmButtonText: 'Close',
+                customClass: {
+                    container: 'swal2-container-custom',
+                    popup: 'swal2-popup-custom',
+                    title: 'swal2-title-custom',
+                    htmlContainer: 'swal2-html-container-custom',
+                }
+            });
+        });
+    }
+
+    /**
+     * Adds a new date/time availability input group to the form.
+     */
+    const addAvailabilityItem = () => {
+        const availabilityItemDiv = document.createElement('div');
+        availabilityItemDiv.classList.add('availability-item', 'form-group'); // Maintain form-group for styling
+        availabilityItemDiv.innerHTML = `
+            <label>Date:</label>
+            <input type="date" class="availability-date" required>
+            <label>Time:</label>
+            <input type="time" class="availability-time" required>
+            <button type="button" class="remove-availability-item">Remove</button>
+        `;
+        availabilityInputsDiv.appendChild(availabilityItemDiv);
+        updateRemoveButtons(); // Ensure new remove button is functional
+    };
+
+    /**
+     * Attaches or re-attaches event listeners to all "Remove" buttons for availability items.
+     */
+    const updateRemoveButtons = () => {
+        const removeButtons = document.querySelectorAll('.remove-availability-item');
+        removeButtons.forEach(button => {
+            // Remove existing listener to prevent duplicates before adding
+            button.removeEventListener('click', handleRemoveAvailability);
+            button.addEventListener('click', handleRemoveAvailability);
+        });
+    };
+
+    /**
+     * Handles the removal of an availability item from the form.
+     * Prevents removal if it's the last item.
+     * @param {Event} e - The click event.
+     */
+    const handleRemoveAvailability = (e) => {
+        const itemToRemove = e.target.closest('.availability-item');
+        if (itemToRemove) {
+            // Ensure there's always at least one availability item
+            // The first item is present by default in HTML, so we only allow removal if there's more than one.
+            if (availabilityInputsDiv.children.length > 1) {
+                itemToRemove.remove();
+            } else {
+                Swal.fire('Info', 'You must provide at least one specific date and time for your availability.', 'info');
+            }
+        }
+    };
+
+    // Add event listener for "Add Another Date/Time" button
+    if (addAvailabilityButton) {
+        addAvailabilityButton.addEventListener('click', addAvailabilityItem);
+    }
+
+    // Initial call to set up remove button for the first availability item on page load
+    updateRemoveButtons();
+
+    // Handlers for populating location dropdowns (Regions, Provinces, Cities, Barangays)
     var my_handlers = {
+        /**
+         * Fills the region dropdown by fetching data from region.json.
+         * Resets dependent dropdowns and hidden text inputs.
+         */
         fill_regions: function() {
             // Clear current selections in hidden text inputs when re-filling regions
             if (regionTextInput) regionTextInput.value = '';
@@ -139,6 +238,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                 });
         },
+        /**
+         * Fills the province dropdown based on the selected region.
+         * Resets dependent dropdowns and hidden text inputs.
+         */
         fill_provinces: function() {
             var region_code = regionSelect.value;
 
@@ -228,6 +331,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                 });
         },
+        /**
+         * Fills the city dropdown based on the selected province.
+         * Resets dependent dropdowns and hidden text inputs.
+         */
         fill_cities: function() {
             var province_code = provinceSelect.value;
 
@@ -310,6 +417,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                 });
         },
+        /**
+         * Fills the barangay dropdown based on the selected city.
+         * Resets dependent dropdown and hidden text input.
+         */
         fill_barangays: function() {
             var city_code = citySelect.value;
 
@@ -385,6 +496,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                 });
         },
+        /**
+         * Updates the hidden text input for the selected barangay.
+         */
         onchange_barangay: function() {
             // Update hidden text input for barangay
             var barangay_text = barangaySelect.options[barangaySelect.selectedIndex].textContent;
@@ -401,17 +515,29 @@ document.addEventListener('DOMContentLoaded', () => {
     // Call the initial fill for regions directly on page load
     my_handlers.fill_regions();
 
-    // Handle form submission
+    // Form submission handling
     if (volunteerForm) {
         volunteerForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-
-            const submitButton = document.querySelector('.btn-primary');
 
             // Prevent multiple rapid submissions
             if (isSubmitting) {
                 console.log('Already submitting, please wait...');
                 return;
+            }
+
+            // Check if terms and conditions are agreed upon
+            if (!agreeCheckbox || !agreeCheckbox.checked) {
+                if (agreementMessage) {
+                    agreementMessage.style.display = 'block'; 
+                }
+                Swal.fire('Error', 'Please agree to the Terms and Conditions and Privacy Policy to proceed.', 'error');
+                agreeCheckbox.focus(); 
+                return; 
+            } else {
+                if (agreementMessage) {
+                    agreementMessage.style.display = 'none'; 
+                }
             }
 
             // Disable the button and show submitting text
@@ -431,6 +557,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
+                // Collect form data
                 const firstName = document.getElementById('firstName').value.trim();
                 const middleInitial = document.getElementById('middleInitial').value.trim();
                 const lastName = document.getElementById('lastName').value.trim();
@@ -447,34 +574,92 @@ document.addEventListener('DOMContentLoaded', () => {
                 const selectedBarangayText = barangaySelect.options[barangaySelect.selectedIndex]?.textContent || '';
                 const streetAddress = streetAddressInput.value.trim();
 
-                const generalAvailability = generalAvailabilitySelect.value;
-                let specificDays = [];
-                let timeAvailability = '';
+                // --- Collect dynamic specific date/time availabilities with validations ---
+                const availabilityItems = document.querySelectorAll('.availability-item');
+                const specificDateTimeAvailability = [];
+                let hasEmptySpecificDateTimeField = false;
 
-                // Logic for Specific Days checkbox group
-                if (generalAvailability === 'Specific days') {
-                    const specificDaysCheckboxes = specificDaysGroup.querySelectorAll('input[type="checkbox"]:checked');
-                    specificDaysCheckboxes.forEach(checkbox => {
-                        specificDays.push(checkbox.value);
-                    });
-                }
+                // For date/time validations
+                const now = new Date();
+                // Set `now` to the start of the current day for date comparisons
+                now.setHours(0, 0, 0, 0); 
                 
-                // Logic for time availability input (now depends on the showTimeOptions array)
-                const showTimeOptions = [
-                    'Part-time',
-                    'Weekends only',
-                    'Weekdays only',
-                    'Specific days'
-                ];
-                if (showTimeOptions.includes(generalAvailability)) {
-                    timeAvailability = timeAvailabilityInput.value.trim();
+                const tomorrow = new Date();
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                tomorrow.setHours(0, 0, 0, 0); // Start of tomorrow
+                
+                const sixMonthsFromNow = new Date();
+                sixMonthsFromNow.setMonth(sixMonthsFromNow.getMonth() + 6);
+                sixMonthsFromNow.setHours(23, 59, 59, 999); // End of 6 months
+
+                const submittedDateTimes = new Set(); // To check for duplicates
+
+                for (const item of availabilityItems) { // Use for...of for easier return on validation failure
+                    const dateInput = item.querySelector('.availability-date');
+                    const timeInput = item.querySelector('.availability-time');
+
+                    if (dateInput && timeInput) {
+                        const date = dateInput.value.trim();
+                        const time24h = timeInput.value.trim();
+
+                        if (!date || !time24h) {
+                            hasEmptySpecificDateTimeField = true;
+                            continue; 
+                        }
+
+                        // Parse as local time. Adding ':00' for seconds as time input is HH:MM.
+                        const selectedDateTime = new Date(`${date}T${time24h}:00`); 
+                        const formattedTime12h = convertTo12HourFormat(time24h);
+
+                        // Validation 1: Prevents past date and time
+                        const currentMoment = new Date(); // Get current moment for real-time comparison
+                        if (selectedDateTime <= currentMoment) {
+                            Swal.fire('Error', `Availability slot on ${date} at ${formattedTime12h} is in the past or exactly the current time. Please select a future date and time.`, 'error');
+                            submitButton.disabled = false;
+                            submitButton.textContent = 'Submit Application';
+                            isSubmitting = false;
+                            grecaptcha.reset();
+                            return; 
+                        }
+
+                        // Validation 2: Minimum time buffer (1 day from current date)
+                        if (selectedDateTime < tomorrow) { // Compare against tomorrow's start
+                            Swal.fire('Error', `Availability slot on ${date} at ${formattedTime12h} must be at least 1 day from the current date.`, 'error');
+                            submitButton.disabled = false;
+                            submitButton.textContent = 'Submit Application';
+                            isSubmitting = false;
+                            grecaptcha.reset();
+                            return; 
+                        }
+
+                        // Validation 3: Maximum schedule window (6 months from current date)
+                        if (selectedDateTime > sixMonthsFromNow) {
+                            Swal.fire('Error', `Availability slot on ${date} at ${formattedTime12h} is beyond the 6-month scheduling window. Please select a date within the next 6 months.`, 'error');
+                            submitButton.disabled = false;
+                            submitButton.textContent = 'Submit Application';
+                            isSubmitting = false;
+                            grecaptcha.reset();
+                            return; 
+                        }
+
+                        // Validation 4: Prevents same date and time as previous/other entries (duplicate check across all entries)
+                        const dateTimeString = `${date} ${time24h}`; // Create a unique string for the set
+                        if (submittedDateTimes.has(dateTimeString)) {
+                            Swal.fire('Error', `Duplicate availability slot found: ${date} at ${formattedTime12h}. Please ensure each entry is unique.`, 'error');
+                            submitButton.disabled = false;
+                            submitButton.textContent = 'Submit Application';
+                            isSubmitting = false;
+                            grecaptcha.reset();
+                            return; 
+                        }
+                        submittedDateTimes.add(dateTimeString);
+
+                        specificDateTimeAvailability.push({ date: date, time: formattedTime12h });
+                    }
                 }
 
-
-                // --- Form Field Validation ---
-                if (!firstName || !lastName || !email || !mobileNumber || !age ||
-                    !selectedRegionText || !selectedProvinceText || !selectedCityText || !selectedBarangayText || !streetAddress || !generalAvailability) {
-                    Swal.fire('Error', 'Please fill in all required fields (Name, Contact Information, Age, Full Address, and General Availability).', 'error');
+                if (hasEmptySpecificDateTimeField) {
+                    Swal.fire('Error', 'Please fill in all date and time fields for your specific availability, or remove incomplete entries.', 'error');
                     submitButton.disabled = false;
                     submitButton.textContent = 'Submit Application';
                     isSubmitting = false;
@@ -482,6 +667,31 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
+                // Ensure at least one specific date/time is provided if the section exists
+                if (specificDateTimeAvailability.length === 0 && availabilityInputsDiv.children.length > 0) {
+                    Swal.fire('Error', 'Please add at least one specific date and time for your availability.', 'error');
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Submit Application';
+                    isSubmitting = false;
+                    grecaptcha.reset();
+                    return;
+                }
+                
+                // Store the collected specific date/time availability data as a JSON string in the hidden input
+                volunteerAvailabilityHiddenInput.value = JSON.stringify(specificDateTimeAvailability);
+
+                // Form Field Validation (general required fields)
+                if (!firstName || !lastName || !email || !mobileNumber || !age ||
+                    !selectedRegionText || !selectedProvinceText || !selectedCityText || !selectedBarangayText || !streetAddress) { // Removed generalAvailability from this check
+                    Swal.fire('Error', 'Please fill in all required fields (Name, Contact Information, Age, Full Address, and Availability).', 'error');
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Submit Application';
+                    isSubmitting = false;
+                    grecaptcha.reset();
+                    return;
+                }
+
+                // Email Format Validation
                 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
                 if (!emailRegex.test(email)) {
                     Swal.fire('Error', 'Please enter a valid email address (e.g., example@domain.com).', 'error');
@@ -492,6 +702,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
+                // Mobile Number Format Validation (11 digits)
                 const mobileNumberRegex = /^09\d{9}$/;
                 if (!mobileNumberRegex.test(mobileNumber)) {
                     Swal.fire('Error', 'Please enter a valid 11-digit mobile number starting with "09" (e.g., 09171234567).', 'error');
@@ -502,6 +713,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
+                // Social Media Link (URL) Validation
                 if (socialMedia) {
                     try {
                         new URL(socialMedia);
@@ -525,25 +737,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
-                if (generalAvailability === 'Specific days' && specificDays.length === 0) {
-                    Swal.fire('Error', 'Please select at least one specific day if you chose "Specific days" for availability.', 'error');
-                    submitButton.disabled = false;
-                    submitButton.textContent = 'Submit Application';
-                    isSubmitting = false;
-                    grecaptcha.reset();
-                    return;
-                }
-
-                // Validation for timeAvailability when it's supposed to be visible
-                if (showTimeOptions.includes(generalAvailability) && !timeAvailability) {
-                    Swal.fire('Error', 'Please specify a time range for your selected availability.', 'error');
-                    submitButton.disabled = false;
-                    submitButton.textContent = 'Submit Application';
-                    isSubmitting = false;
-                    grecaptcha.reset();
-                    return;
-                }
-
+                // Removed generalAvailability and specificDays validation as per HTML structure
 
                 // --- Check for Duplicates ---
                 const volunteersRef = database.ref("volunteerApplications/pendingVolunteer");
@@ -618,9 +812,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         streetAddress: streetAddress
                     },
                     availability: {
-                        general: generalAvailability,
-                        specificDays: specificDays.length > 0 ? specificDays : null,
-                        timeAvailability: timeAvailability
+                        // Removed generalAvailability and specificDaysSelected as they are not in HTML
+                        // Removed generalTimeAvailability as it's not in HTML
+                        specificDateTimeSlots: JSON.parse(volunteerAvailabilityHiddenInput.value) // Dynamic date/time slots
                     },
                     applicationDateandTime: new Date().toISOString(),
                     recaptchaResponse: recaptchaResponse
@@ -636,7 +830,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 volunteerForm.reset();
                 my_handlers.fill_regions();
                 grecaptcha.reset();
-                toggleSpecificAvailability(); // Call again to ensure groups are reset
+                // Removed toggleSpecificAvailability() as it's not needed with simplified availability
+                agreeCheckbox.checked = false;
+                updateSubmitButtonState();
+                // After form reset, ensure dynamic availability section is also reset
+                // Remove all but the first availability item
+                while (availabilityInputsDiv.children.length > 1) {
+                    availabilityInputsDiv.removeChild(availabilityInputsDiv.lastChild);
+                }
+                // Clear the first item's inputs
+                const firstAvailabilityDate = availabilityInputsDiv.querySelector('.availability-date');
+                const firstAvailabilityTime = availabilityInputsDiv.querySelector('.availability-time');
+                if (firstAvailabilityDate) firstAvailabilityDate.value = '';
+                if (firstAvailabilityTime) firstAvailabilityTime.value = '';
+
             } catch (error) {
                 console.error("Error adding volunteer application to Realtime Database: ", error);
                 Swal.fire('Error', 'There was an error submitting your application. Please try again.', 'error');
@@ -645,6 +852,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 submitButton.textContent = 'Submit Application';
                 isSubmitting = false;
                 grecaptcha.reset();
+                updateSubmitButtonState();
             }
         });
     }

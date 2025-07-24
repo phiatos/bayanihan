@@ -1,3 +1,5 @@
+import { renderPagination, updateEntriesInfo, getPaginatedData } from '../js/pagination.js';
+
 document.addEventListener("DOMContentLoaded", () => {
     const firebaseConfig = {
         apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
@@ -15,6 +17,18 @@ document.addEventListener("DOMContentLoaded", () => {
     const database = firebase.database();
     const auth = firebase.auth();
 
+    const rowsPerPage = 10;
+    let currentPage = 1;
+    let allDonations = [];
+    let filteredAndSortedDonations = [];
+    let editingKey = null;
+    let formHasChanges = false;
+    let currentUserIsSuperAdmin = false;
+    let allArchivedInKindDonation = [];
+    let currentArchivedPage = 1;
+    const archivedRowsPerPage = 5;
+
+    // DOM elements
     const form = document.getElementById("form-container-1");
     const tableBody = document.querySelector("#inKindTable tbody");
     const searchInput = document.getElementById("searchInput");
@@ -23,28 +37,24 @@ document.addEventListener("DOMContentLoaded", () => {
     const savePdfBtn = document.getElementById("savePdfBtn");
     const entriesInfo = document.getElementById("entriesInfo");
     const paginationContainer = document.getElementById("pagination");
-    const clearFormBtn = document.getElementById("clearFormBtn"); 
+    const clearFormBtn = document.getElementById("clearFormBtn");
+    const viewArchivedButton = document.getElementById('viewArchived');
+    const archivedModal = document.getElementById('archivedModal');
+    const closeArchivedModalBtn = document.getElementById('closeArchivedModalBtn');
+    const archivedTableBody = document.querySelector('#archivedTable tbody');
+    const archivedEntriesInfo = document.querySelector("#archivedEntriesInfo");
+    const archivedPaginationContainer = document.querySelector("#archivedPagination");
 
-    const rowsPerPage = 10;
-    let currentPage = 1;
-    let allDonations = [];
-    let filteredAndSortedDonations = [];
-    let editingKey = null;
-
-    let formHasChanges = false;
-
-    // Variables for inactivity detection --------------------------------------------------------------------
+    // Inactivity detection code remains unchanged
     let inactivityTimeout;
-    const INACTIVITY_TIME = 1800000; // 30 minutes in milliseconds
+    const INACTIVITY_TIME = 1800000;
 
-    // Function to reset the inactivity timer
     function resetInactivityTimer() {
         clearTimeout(inactivityTimeout);
         inactivityTimeout = setTimeout(checkInactivity, INACTIVITY_TIME);
         console.log("Inactivity timer reset.");
     }
 
-    // Function to check for inactivity and prompt the user
     function checkInactivity() {
         Swal.fire({
             title: 'Are you still there?',
@@ -59,13 +69,12 @@ document.addEventListener("DOMContentLoaded", () => {
             reverseButtons: true
         }).then((result) => {
             if (result.isConfirmed) {
-                resetInactivityTimer(); // User chose to continue, reset the timer
+                resetInactivityTimer();
                 console.log("User chose to continue session.");
             } else if (result.dismiss === Swal.DismissReason.cancel) {
-                // User chose to log out
                 auth.signOut().then(() => {
                     console.log("User logged out due to inactivity.");
-                    window.location.href = "../pages/login.html"; // Redirect to login page
+                    window.location.href = "../pages/login.html";
                 }).catch((error) => {
                     console.error("Error logging out:", error);
                     Swal.fire('Error', 'Failed to log out. Please try again.', 'error');
@@ -74,13 +83,10 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Attach event listeners to detect user activity
     ['mousemove', 'keydown', 'scroll', 'click'].forEach(eventType => {
         document.addEventListener(eventType, resetInactivityTimer);
     });
-    //-------------------------------------------------------------------------------------
 
-    // Function to update search input placeholder
     const updateSearchPlaceholder = () => {
         const selectedSort = sortSelect.value;
         let placeholderText = "Search";
@@ -144,8 +150,6 @@ document.addEventListener("DOMContentLoaded", () => {
         searchInput.placeholder = placeholderText;
     };
 
-
-    // Check if user is authenticated
     auth.onAuthStateChanged(user => {
         if (!user) {
             Swal.fire({
@@ -158,9 +162,20 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
         console.log("User authenticated:", user.uid);
-        loadDonations(user.uid);
-        updateSearchPlaceholder(); 
-        resetInactivityTimer();
+        database.ref(`users/${user.uid}`).once('value', snapshot => {
+            const userData = snapshot.val();
+            currentUserIsSuperAdmin = userData && userData.isSuperAdmin === true;
+            console.log("Super Admin status:", currentUserIsSuperAdmin);
+            loadDonations(user.uid);
+            updateSearchPlaceholder();
+            resetInactivityTimer();
+        }).catch(error => {
+            console.error("Error fetching user role:", error);
+            currentUserIsSuperAdmin = false;
+            loadDonations(user.uid);
+            updateSearchPlaceholder();
+            resetInactivityTimer();
+        });
     });
 
     function loadDonations(userUid) {
@@ -265,7 +280,6 @@ document.addEventListener("DOMContentLoaded", () => {
     form.addEventListener("input", () => {
         formHasChanges = true;
     });
-
 
     form.addEventListener("submit", (e) => {
         e.preventDefault();
@@ -374,6 +388,226 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
+    function deleteRow(firebaseKey) {
+        Swal.fire({
+            title: 'Are you sure?',
+            text: ' This donation entry will be removed from the list but kept in the deleted donations archive.',
+            icon: 'warning',
+            iconColor: '#ffa000',
+            showCancelButton: true,
+            confirmButtonColor: '#dlaub2f2f',
+            cancelButtonColor: '#546e7a',
+            confirmButtonText: 'Yes, delete it!',
+            cancelButtonText: 'Cancel',
+            reverseButtons: true,
+            customClass: {
+                popup: 'swal2-popup-delete-clean',
+                title: 'swal2-title-delete-clean',
+                content: 'swal2-text-delete-clean',
+                confirmButton: 'swal2-button-confirm-clean',
+                cancelButton: 'swal2-button-cancel-clean'
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const donationToDelete = allDonations.find(d => d.firebaseKey === firebaseKey);
+                if (!donationToDelete) {
+                    Swal.fire("Error", "Donation not found!", "error");
+                    return;
+                }
+
+                const deletedDonation = {
+                    ...donationToDelete,
+                    deletedAt: new Date().toISOString()
+                };
+
+                database.ref(`deleteddonations/deletedinkind/${firebaseKey}`).set(deletedDonation)
+                    .then(() => {
+                        return database.ref(`donations/inkind/${firebaseKey}`).remove();
+                    })
+                    .then(() => {
+                        Swal.fire('Deleted!', 'The donation entry has been moved to deleted donations.', 'success');
+                        renderTable();
+                    })
+                    .catch(error => {
+                        console.error("Error moving donation to deleted donations:", error);
+                        Swal.fire("Error", "Failed to delete donation: " + error.message, "error");
+                    });
+            }
+        });
+    }
+
+    async function fetchAndRenderArchivedDonations() {
+        if (!currentUserIsSuperAdmin) {
+            Swal.fire('Access Denied', 'You do not have permission to view archived donations.', 'error');
+            return;
+        }
+
+        Swal.fire({
+            title: 'Loading Archived Donations',
+            text: 'Fetching archived data from Firebase...',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        try {
+            const snapshot = await database.ref('deleteddonations/deletedinkind').once('value');
+            const archivedDonations = snapshot.val();
+            allArchivedInKindDonation = [];
+
+            for (const key in archivedDonations) {
+                const donation = archivedDonations[key];
+                allArchivedInKindDonation.push({
+                    firebaseKey: key,
+                    ...donation
+                });
+            }
+            Swal.close();
+            renderArchivedTable(allArchivedInKindDonation);
+            archivedModal.style.display = 'flex';
+        } catch (error) {
+            Swal.fire('Error', 'Failed to load archived donation data: ' + error.message, 'error');
+            console.error("Error fetching archived donation data:", error);
+        }
+    }
+
+    function renderArchivedTable(data) {
+        if (!archivedTableBody) {
+            console.error("Archived donation table body not found!");
+            return;
+        }
+
+        archivedTableBody.innerHTML = '';
+
+        const paginatedData = getPaginatedData(data, currentArchivedPage, archivedRowsPerPage);
+
+        if (paginatedData.length === 0) {
+            archivedTableBody.innerHTML = '<tr><td colspan="16" style="text-align: center;">No archived donation records found.</td></tr>';
+        }
+
+        paginatedData.forEach((donation, index) => {
+            const row = archivedTableBody.insertRow();
+            row.dataset.firebaseKey = donation.firebaseKey;
+
+            const archivedDate = donation.deletedAt ? new Date(donation.deletedAt).toLocaleDateString() : 'N/A';
+
+            row.insertCell(0).textContent = ((currentArchivedPage - 1) * archivedRowsPerPage + index + 1);
+            row.insertCell(1).textContent = donation.encoder || 'N/A';
+            row.insertCell(2).textContent = donation.name || 'N/A';
+            row.insertCell(3).textContent = donation.type || 'N/A';
+            row.insertCell(4).textContent = donation.address || 'N/A';
+            row.insertCell(5).textContent = donation.contactPerson || 'N/A';
+            row.insertCell(6).textContent = donation.number || 'N/A';
+            row.insertCell(7).textContent = donation.email || 'N/A';
+            row.insertCell(8).textContent = donation.assistance || 'N/A';
+            row.insertCell(9).textContent = `₱${parseFloat(donation.valuation || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            row.insertCell(10).textContent = donation.additionalnotes || 'N/A';
+            row.insertCell(11).textContent = donation.staffIncharge || 'N/A';
+            row.insertCell(12).textContent = donation.status || 'N/A';
+            row.insertCell(13).textContent = donation.donationDate || 'N/A';
+            row.insertCell(14).textContent = archivedDate;
+
+            const actionsCell = row.insertCell(15);
+            actionsCell.innerHTML = `
+                <button class="retrieveBtn" data-firebase-key="${donation.firebaseKey}">Retrieve</button>
+            `;
+        });
+
+        document.querySelectorAll('.retrieveBtn').forEach(button => {
+            button.addEventListener('click', (event) => retrieveDonation(event.target.dataset.firebaseKey));
+        });
+
+        renderPagination(data, currentArchivedPage, archivedRowsPerPage, archivedPaginationContainer, (newPage) => {
+            currentArchivedPage = newPage;
+            renderArchivedTable(data);
+        });
+        updateEntriesInfo(data, currentArchivedPage, archivedRowsPerPage, archivedEntriesInfo);
+    }
+
+    async function retrieveDonation(firebaseKey) {
+        if (!currentUserIsSuperAdmin) {
+            Swal.fire('Access Denied', 'You do not have permission to retrieve donation records.', 'error');
+            return;
+        }
+
+        Swal.fire({
+            title: 'Are you sure?',
+            text: 'This will retrieve the donation record from archived records and make it active again.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, retrieve it!',
+            cancelButtonText: 'No, keep it archived',
+            customClass: {
+                popup: 'swal2-popup-warning-clean',
+                title: 'swal2-title-warning-clean',
+                content: 'swal2-text-warning-clean',
+                confirmButton: 'swal2-button-confirm-clean',
+                cancelButton: 'swal2-button-cancel-clean'
+            }
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'Retrieving Donation...',
+                    text: 'Moving donation data back to active records...',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                try {
+                    const snapshot = await database.ref(`deleteddonations/deletedinkind/${firebaseKey}`).once('value');
+                    const donationDataToRetrieve = snapshot.val();
+
+                    if (!donationDataToRetrieve) {
+                        Swal.fire('Error', 'Archived donation data not found for retrieval.', 'error');
+                        return;
+                    }
+
+                    delete donationDataToRetrieve.deletedAt;
+
+                    await database.ref(`donations/inkind/${firebaseKey}`).set(donationDataToRetrieve);
+                    await database.ref(`deleteddonations/deletedinkind/${firebaseKey}`).remove();
+
+                    Swal.close();
+                    Swal.fire('Retrieved!', 'The donation record has been retrieved and is now active.', 'success');
+                    renderTable();
+                    fetchAndRenderArchivedDonations();
+                } catch (error) {
+                    console.error("Error retrieving donation:", error);
+                    Swal.close();
+                    Swal.fire('Error', 'Failed to retrieve donation: ' + error.message, 'error');
+                }
+            }
+        });
+    }
+
+    if (viewArchivedButton) {
+        viewArchivedButton.addEventListener('click', () => {
+            currentArchivedPage = 1;
+            fetchAndRenderArchivedDonations();
+        });
+    }
+
+    if (closeArchivedModalBtn) {
+        closeArchivedModalBtn.addEventListener('click', () => {
+            archivedModal.style.display = 'none';
+        });
+    }
+
+    document.addEventListener('click', (event) => {
+        if (event.target === archivedModal) {
+            archivedModal.style.display = 'none';
+        }
+        if (event.target === document.getElementById("endorseModal")) {
+            document.getElementById("endorseModal").style.display = "none";
+        }
+        if (event.target === document.getElementById("editModal")) {
+            closeEditModal();
+        }
+    });
+    
     function renderTable() {
         const startIndex = (currentPage - 1) * rowsPerPage;
         const endIndex = startIndex + rowsPerPage;
@@ -609,7 +843,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 "Number", "Email", "Type of Assistance", "Valuation",
                 "Additional Notes", "Staff-In Charge", "Status", "Donation Date"
             ]];
-// end
+
             const body = allDonations.map((d, i) => [
                 i + 1,
                 d.encoder || 'N/A',
@@ -746,8 +980,8 @@ document.addEventListener("DOMContentLoaded", () => {
         icon: 'warning',
         iconColor: '#ffa000',
         showCancelButton: true,
-        confirmButtonColor: '#d32f2f',  // stronger red
-        cancelButtonColor: '#546e7a',   // blue-gray
+        confirmButtonColor: '#d32f2f',  
+        cancelButtonColor: '#546e7a',  
         confirmButtonText: 'Yes, delete it!',
         cancelButtonText: 'Cancel',
         reverseButtons: true,
@@ -786,97 +1020,95 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-function openEndorseModal(firebaseKey) {
-    const modal = document.getElementById("endorseModal");
-    modal.style.display = "block";
-    const abvnList = document.getElementById("abvnList");
+    function openEndorseModal(firebaseKey) {
+        const modal = document.getElementById("endorseModal");
+        modal.style.display = "block";
+        const abvnList = document.getElementById("abvnList");
 
-    abvnList.innerHTML = '<p>Loading organizations...</p>'; // Show a loading message
-    abvnList.innerHTML = ''; // Clear previous content
+        abvnList.innerHTML = '<p>Loading organizations...</p>'; 
+        abvnList.innerHTML = ''; 
 
-    let loadedVolunteerGroups = []; // Declare a local variable to hold the volunteer groups for this function's scope
+        let loadedVolunteerGroups = []; 
 
-    // Step 1: Fetch volunteerGroups first to get the combined HQ addresses
-    firebase.database().ref("volunteerGroups/address").once("value")
-        .then((volunteerGroupsSnapshot) => {
-            const fetchedGroups = volunteerGroupsSnapshot.val();
-            if (fetchedGroups) {
-                for (let key in fetchedGroups) {
-                    const groupData = fetchedGroups[key];
-                    const addressData = groupData.address;
+        firebase.database().ref("volunteerGroups/address").once("value")
+            .then((volunteerGroupsSnapshot) => {
+                const fetchedGroups = volunteerGroupsSnapshot.val();
+                if (fetchedGroups) {
+                    for (let key in fetchedGroups) {
+                        const groupData = fetchedGroups[key];
+                        const addressData = groupData.address;
 
-                    let combinedAddress = "Not specified";
-                    if (addressData) {
-                        const addressParts = [];
-                        if (addressData.region && addressData.region.trim() !== '') {
-                            addressParts.push(addressData.region.trim());
+                        let combinedAddress = "Not specified";
+                        if (addressData) {
+                            const addressParts = [];
+                            if (addressData.region && addressData.region.trim() !== '') {
+                                addressParts.push(addressData.region.trim());
+                            }
+                            if (addressData.province && addressData.province.trim() !== '') {
+                                addressParts.push(addressData.province.trim());
+                            }
+                            if (addressData.city && addressData.city.trim() !== '') {
+                                addressParts.push(addressData.city.trim());
+                            }
+                            if (addressParts.length > 0) {
+                                combinedAddress = addressParts.join(', ');
+                            }
                         }
-                        if (addressData.province && addressData.province.trim() !== '') {
-                            addressParts.push(addressData.province.trim());
-                        }
-                        if (addressData.city && addressData.city.trim() !== '') {
-                            addressParts.push(addressData.city.trim());
-                        }
-                        if (addressParts.length > 0) {
-                            combinedAddress = addressParts.join(', ');
+                        loadedVolunteerGroups.push({
+                            no: parseInt(key),
+                            organization: groupData.organization || "Unknown",
+                            hq: combinedAddress,
+                        });
+                    }
+                } else {
+                    console.warn("No volunteer groups found.");
+                }
+
+                return firebase.database().ref('activations/').once('value');
+            })
+            .then((activationsSnapshot) => {
+                const activations = activationsSnapshot.val();
+                let groupHtml = '';
+
+                if (activations) {
+                    for (const activationId in activations) {
+                        const activationData = activations[activationId];
+                        // Only process active activations for display in the modal
+                        if (activationData.status === 'active') { // Assuming you only want active ones here too
+                            const organizationName = activationData.organization;
+                            const groupId = activationData.groupId;
+
+                            // Find the corresponding volunteer group to get its HQ
+                            const correspondingVolunteerGroup = loadedVolunteerGroups.find(group => group.no === groupId);
+                            
+                            let displayHq = "Not specified";
+                            if (correspondingVolunteerGroup && correspondingVolunteerGroup.hq) {
+                                displayHq = correspondingVolunteerGroup.hq; // Use the combined HQ from the volunteer group
+                            } else if (activationData.areaOfOperation) {
+                                // Fallback to areaOfOperation if volunteer group HQ isn't found/specified
+                                displayHq = activationData.areaOfOperation;
+                            }
+
+                            if (organizationName) {
+                                groupHtml += `<label><input type="radio" name="abvn" value="${organizationName}" /> ${organizationName} (${displayHq})</label><br/>`;
+                            }
                         }
                     }
-                    loadedVolunteerGroups.push({
-                        no: parseInt(key),
-                        organization: groupData.organization || "Unknown",
-                        hq: combinedAddress, // This is the combined address you need
-                    });
+                    abvnList.innerHTML = groupHtml;
+                } else {
+                    abvnList.innerHTML = '<p>No activations found for endorsement.</p>';
                 }
-            } else {
-                console.warn("No volunteer groups found.");
-            }
+            })
+            .catch((error) => {
+                console.error("Error loading endorsement options:", error);
+                abvnList.innerHTML = '<p>Error loading endorsement options.</p>';
+            })
+            .finally(() => {
+                // abvnList.innerHTML += `<p><b>Note:</b> Actual ABVN selection logic based on donation details would go here.</p>`;
+            });
 
-            // Step 2: Once volunteerGroups are loaded, fetch activations
-            return firebase.database().ref('activations/').once('value');
-        })
-        .then((activationsSnapshot) => {
-            const activations = activationsSnapshot.val();
-            let groupHtml = '';
-
-            if (activations) {
-                for (const activationId in activations) {
-                    const activationData = activations[activationId];
-                    // Only process active activations for display in the modal
-                    if (activationData.status === 'active') { // Assuming you only want active ones here too
-                        const organizationName = activationData.organization;
-                        const groupId = activationData.groupId;
-
-                        // Find the corresponding volunteer group to get its HQ
-                        const correspondingVolunteerGroup = loadedVolunteerGroups.find(group => group.no === groupId);
-                        
-                        let displayHq = "Not specified";
-                        if (correspondingVolunteerGroup && correspondingVolunteerGroup.hq) {
-                            displayHq = correspondingVolunteerGroup.hq; // Use the combined HQ from the volunteer group
-                        } else if (activationData.areaOfOperation) {
-                            // Fallback to areaOfOperation if volunteer group HQ isn't found/specified
-                            displayHq = activationData.areaOfOperation;
-                        }
-
-                        if (organizationName) {
-                            groupHtml += `<label><input type="radio" name="abvn" value="${organizationName}" /> ${organizationName} (${displayHq})</label><br/>`;
-                        }
-                    }
-                }
-                abvnList.innerHTML = groupHtml;
-            } else {
-                abvnList.innerHTML = '<p>No activations found for endorsement.</p>';
-            }
-        })
-        .catch((error) => {
-            console.error("Error loading endorsement options:", error);
-            abvnList.innerHTML = '<p>Error loading endorsement options.</p>';
-        })
-        .finally(() => {
-            // abvnList.innerHTML += `<p><b>Note:</b> Actual ABVN selection logic based on donation details would go here.</p>`;
-        });
-
-    modal.dataset.firebaseKey = firebaseKey;
-}
+        modal.dataset.firebaseKey = firebaseKey;
+    }
 
     document.getElementById("confirmEndorseBtn").addEventListener("click", () => {
         const modal = document.getElementById("endorseModal");

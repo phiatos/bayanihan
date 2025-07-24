@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../components/sidebar.css" />
     <link rel="stylesheet" href="../css/global.css" />
+    <link rel="stylesheet" href="../css/vgandvolunteers.css" />
     <link rel='stylesheet' href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css'/>
 
     <!-- Firebase Compat SDK -->
@@ -14,6 +15,11 @@
 
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Sheets -->
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+    <!-- PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     
     <title>Pending ABVN Applications</title>
 </head>
@@ -52,10 +58,17 @@
                                 <option value="city-desc">City (Z-A)</option>
                                 <option value="barangay-asc">Barangay (A-Z)</option>
                                 <option value="barangay-desc">Barangay (Z-A)</option>
+                                <option value="streetAddress-asc">Street Address (A-Z)</option>
+                                <option value="streetAddress-desc">Street Address (Z-A)</option>
+                            </optgroup>
+                            <optgroup label="Application Date">
+                                <option value="applicationDateandTime-asc">Application Date (Oldest First)</option>
+                                <option value="applicationDateandTime-desc">Application Date (Newest First)</option>
                             </optgroup>
                         </select>
                         <i class='bx bx-chevron-down'></i>
                     </div>
+
                     <button id="viewArchived" aria-label="View Archived Admins">
                         <i class='bx bx-archive' style="color: white; font-size: 20px;"></i>
                     </button>
@@ -66,6 +79,21 @@
                 <button id="viewApprovedBtn" class="viewApprovedBtn">
                     <i class='bx bx-show' style="font-size: 1.2rem;"></i>View Approved ABVN Applications
                 </button>
+
+                <div class="import-section">
+                    <input type="file" id="excelFileInput" accept=".xlsx, .xls">
+                    <button id="importExcelBtn" class="action-button">Import from Excel</button>
+                </div>
+                
+                <div id="importStatusModal" class="modal" style="display: none;">
+                    <div class="modal-content custom-swal-popup-small">
+                        <span class="close-button" id="closeImportStatusModalBtn">&times;</span>
+                        <h2 class="custom-swal-title">Excel Import Status</h2>
+                        <div id="importProgressBar" style="width: 0%; background-color: #4CAF50; height: 20px; text-align: center; line-height: 20px; color: white;">0%</div>
+                        <p id="importStatusText" class="custom-swal-text">Processing data...</p>
+                        <ul id="importErrorList" class="custom-swal-text" style="color: red; list-style-type: none; padding: 0;"></ul>
+                    </div>
+                </div>
             </div>
 
             <div class="table-container">
@@ -95,6 +123,12 @@
                 <span id="entriesInfo">Showing 0 to 0 of 0 entries</span>
                 <div id="pagination" class="pagination"></div>
             </div>   
+
+            <br>
+                <div class="pdf-buttons">
+                    <button id="exportBtn" class="pdf-button" type="button"><i class='bx bxs-file-pdf'></i>Export to Excel</button>
+                    <button id="savePdfBtn" class="excel-button" type="button"><i class='bx bxs-file-export'></i>Save to PDF</button>
+                </div>
         </div>
     </div>
 
@@ -150,7 +184,7 @@
             applySearchAndSort();
         }
     </script>
-    <script src="../js/inactivity-detector.js"></script> 
+
     <script type="module" src="../js/pendingvg.js"></script>
 </body>
 </html>

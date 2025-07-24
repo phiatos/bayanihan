@@ -11,7 +11,11 @@ const firebaseConfig = {
 
 if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
+    console.log("Firebase initialized successfully.");
+} else {
+    console.log("Firebase already initialized.");
 }
+
 const database = firebase.database();
 const auth = firebase.auth();
 
@@ -23,7 +27,7 @@ try {
     console.error("EmailJS initialization failed:", error);
 }
 
-// Variables for inactivity detection --------------------------------------------------------------------
+// Variables for inactivity detection
 let inactivityTimeout;
 const INACTIVITY_TIME = 1800000; // 30 minutes in milliseconds
 
@@ -52,7 +56,6 @@ function checkInactivity() {
             resetInactivityTimer();
             console.log("User chose to continue session.");
         } else if (result.dismiss === Swal.DismissReason.cancel) {
-            // User chose to log out
             auth.signOut().then(() => {
                 console.log("User logged out due to inactivity.");
                 window.location.href = "../pages/login.html";
@@ -68,43 +71,57 @@ function checkInactivity() {
 ['mousemove', 'keydown', 'scroll', 'click'].forEach(eventType => {
     document.addEventListener(eventType, resetInactivityTimer);
 });
-//-------------------------------------------------------------------------------------
+
 document.addEventListener('DOMContentLoaded', () => {
+    // Authentication Check
+    auth.onAuthStateChanged(user => {
+        if (!user) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Authentication Required',
+                text: 'Please sign in to access approved volunteer applications.',
+            }).then(() => {
+                window.location.href = "../pages/login.html";
+            });
+            return;
+        }
+        console.log("User authenticated:", user.uid);
+        initializePageFunctions(user.uid);
+        resetInactivityTimer();
+    });
+});
+
+function initializePageFunctions(userId) {
     const volunteersContainer = document.getElementById('volunteersContainer');
     const searchInput = document.getElementById('searchInput');
     const sortSelect = document.getElementById('sortSelect');
     const entriesInfo = document.getElementById('entriesInfo');
     const pagination = document.getElementById('pagination');
-
-    // New: View Toggle Elements
-    const toggleViewBtn = document.getElementById('toggleViewBtn'); 
-    const tableView = document.getElementById('tableView');      
-    const calendarView = document.getElementById('calendarView'); 
-
-    // Modals
+    const toggleViewBtn = document.getElementById('toggleViewBtn');
+    const tableView = document.getElementById('tableView');
+    const calendarView = document.getElementById('calendarView');
     const previewModal = document.getElementById('previewModal');
     const closeModal = document.getElementById('closeModal');
     const modalContent = document.getElementById('modalContent');
-
-    // Renamed for clarity: was viewApprovedBtn, now viewPendingBtn
-    const viewPendingBtn = document.getElementById('viewPendingBtn'); 
+    const viewPendingBtn = document.getElementById('viewPendingBtn');
+    const viewArchivedButton = document.getElementById('viewArchived');
+    const archivedModal = document.getElementById('archivedModal');
+    const closeArchivedModalBtn = document.getElementById('closeArchivedModalBtn');
+    const archivedTableBody = document.getElementById('archivedTableBody');
+    const archivedEntriesInfo = document.getElementById('archivedEntriesInfo');
+    const archivedPaginationContainer = document.getElementById('archivedPagination');
 
     let allApprovedApplications = [];
     let filteredApprovedApplications = [];
     let currentPage = 1;
-    const rowsPerPage = 5; // Keep this consistent
-    let currentView = 'table'; // Initial view is table
-
-    // FullCalendar instance variable
+    const rowsPerPage = 5;
+    let currentView = 'table';
     let calendar;
+    let allArchivedVolunteerData = [];
+    let currentArchivedVolunteerPage = 1;
+    const archivedVolunteerRowsPerPage = 5;
 
-    // Change button text and functionality for this page
-    viewPendingBtn.innerHTML = "<i class='bx bx-show'></i> View Pending Volunteer Applications";
-    viewPendingBtn.addEventListener('click', () => {
-        window.location.href = '../pages/pendingvolunteers.html';
-    });
-
-    // --- Utility Functions ---
+    // Utility Functions
     function formatDate(timestamp) {
         if (!timestamp) return 'N/A';
         const date = new Date(timestamp);
@@ -115,7 +132,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Function to format date for datetime-local input
     function formatToDatetimeLocal(timestamp) {
         if (!timestamp) return '';
         const date = new Date(timestamp);
@@ -146,8 +162,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Apply the setupModalClose function to the preview modal
+    // Apply modal close listeners
     setupModalClose(previewModal, closeModal);
+    setupModalClose(archivedModal, closeArchivedModalBtn);
 
     function showPreviewModal(volunteer) {
         const fullName = getFullName(volunteer);
@@ -174,9 +191,10 @@ document.addEventListener('DOMContentLoaded', () => {
         previewModal.style.display = 'flex';
     }
 
-    // --- Data Fetching Function ---
+    // Data Fetching Function (Approved Volunteers)
     function fetchApprovedVolunteers() {
-        volunteersContainer.innerHTML = '<tr><td colspan="15" style="text-align: center;">Loading approved volunteer applications...</td></tr>';
+        const colCount = document.getElementById('volunteersTable').querySelectorAll('thead tr th').length;
+        volunteersContainer.innerHTML = `<tr><td colspan="${colCount}" style="text-align: center;">Loading approved volunteer applications...</td></tr>`;
 
         database.ref('volunteerApplications/approvedVolunteer').on('value', (snapshot) => {
             allApprovedApplications = [];
@@ -190,7 +208,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 console.log("No approved volunteer applications found.");
             }
-            applySearchAndSort(); // This will trigger renderCurrentView() implicitly
+            applySearchAndSort();
         }, (error) => {
             console.error("Error fetching approved volunteers: ", error);
             Swal.fire({
@@ -199,38 +217,196 @@ document.addEventListener('DOMContentLoaded', () => {
                 text: 'Failed to load approved volunteer applications. Please try again later.',
                 confirmButtonText: 'OK'
             });
-            volunteersContainer.innerHTML = '<tr><td colspan="15" style="text-align: center; color: red;">Failed to load data.</td></tr>';
+            volunteersContainer.innerHTML = `<tr><td colspan="${colCount}" style="text-align: center; color: red;">Failed to load data.</td></tr>`;
         });
     }
 
-    // --- View Rendering Logic (New) ---
+    // Archived Volunteer Applications Functions
+    function fetchAndRenderArchivedVolunteerApplications() {
+        const colCount = archivedTableBody.parentElement.querySelectorAll('thead tr th').length;
+        archivedTableBody.innerHTML = `<tr><td colspan="${colCount}" style="text-align: center;">Loading archived volunteer applications...</td></tr>`;
+
+        database.ref('deletedApprovedVolunteerApplications').once('value', (snapshot) => {
+            allArchivedVolunteerData = [];
+            if (snapshot.exists()) {
+                snapshot.forEach((childSnapshot) => {
+                    const volunteerData = childSnapshot.val();
+                    const volunteerKey = childSnapshot.key;
+                    allArchivedVolunteerData.push({ key: volunteerKey, ...volunteerData });
+                });
+                console.log("Fetched archived approved volunteers:", allArchivedVolunteerData);
+            } else {
+                console.log("No archived approved volunteer applications found.");
+            }
+            renderArchivedVolunteerApplications();
+        }, (error) => {
+            console.error("Error fetching archived approved volunteers: ", error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Failed to load archived volunteer applications. Please try again later.',
+                confirmButtonText: 'OK'
+            });
+            archivedTableBody.innerHTML = `<tr><td colspan="${colCount}" style="text-align: center; color: red;">Failed to load data.</td></tr>`;
+        });
+    }
+
+    function renderArchivedVolunteerApplications() {
+        const colCount = archivedTableBody.parentElement.querySelectorAll('thead tr th').length;
+        archivedTableBody.innerHTML = '';
+
+        const startIndex = (currentArchivedVolunteerPage - 1) * archivedVolunteerRowsPerPage;
+        const endIndex = startIndex + archivedVolunteerRowsPerPage;
+        const paginatedApplications = allArchivedVolunteerData.slice(startIndex, endIndex);
+
+        if (paginatedApplications.length === 0) {
+            archivedTableBody.innerHTML = `<tr><td colspan="${colCount}" style="text-align: center;">No archived volunteer applications found.</td></tr>`;
+            archivedEntriesInfo.textContent = 'Showing 0 to 0 of 0 entries';
+            renderArchivedPagination();
+            return;
+        }
+
+        let i = startIndex + 1;
+
+        paginatedApplications.forEach(volunteer => {
+            const row = archivedTableBody.insertRow();
+            row.setAttribute('data-key', volunteer.key);
+            const fullName = getFullName(volunteer);
+            const socialMediaDisplay = volunteer.socialMediaLink ? `<a href="${volunteer.socialMediaLink}" target="_blank" rel="noopener noreferrer">Link</a>` : 'N/A';
+            const scheduledDateTimeDisplay = volunteer.scheduledDateTime ? formatDate(volunteer.scheduledDateTime) : 'N/A';
+            row.innerHTML = `
+                <td>${i++}</td>
+                <td>${fullName}</td>
+                <td>${volunteer.email || 'N/A'}</td>
+                <td>${volunteer.mobileNumber || 'N/A'}</td>
+                <td>${volunteer.age || 'N/A'}</td>
+                <td>${socialMediaDisplay}</td>
+                <td>${volunteer.additionalInfo || 'N/A'}</td>
+                <td>${
+                    volunteer.availability && volunteer.availability.general === 'Specific days'
+                    ? `Specific Days: ${volunteer.availability.specificDays ? volunteer.availability.specificDays.join(', ') : 'N/A'}`
+                    : (volunteer.availability?.general || 'N/A')
+                }</td>
+                <td>${volunteer.availability?.timeAvailability || 'N/A'}</td>
+                <td>${volunteer.address?.region || 'N/A'}</td>
+                <td>${volunteer.address?.province || 'N/A'}</td>
+                <td>${volunteer.address?.city || 'N/A'}</td>
+                <td>${volunteer.address?.barangay || 'N/A'}</td>
+                <td>${scheduledDateTimeDisplay}</td>
+                <td>${formatDate(volunteer.archivedAt)}</td>
+                <td>
+                    <button class="actionBtn" data-key="${volunteer.key}">Retrieve</button>
+                </td>
+            `;
+        });
+
+        updateArchivedEntriesInfo();
+        renderArchivedPagination();
+    }
+
+    function updateArchivedEntriesInfo() {
+        const startIndex = (currentArchivedVolunteerPage - 1) * archivedVolunteerRowsPerPage;
+        const endIndex = Math.min(startIndex + archivedVolunteerRowsPerPage, allArchivedVolunteerData.length);
+        archivedEntriesInfo.textContent = `Showing ${allArchivedVolunteerData.length ? startIndex + 1 : 0} to ${endIndex} of ${allArchivedVolunteerData.length} entries`;
+    }
+
+    function renderArchivedPagination() {
+        archivedPaginationContainer.innerHTML = '';
+        const totalPages = Math.ceil(allArchivedVolunteerData.length / archivedVolunteerRowsPerPage);
+
+        if (totalPages === 0) {
+            archivedPaginationContainer.innerHTML = '<span>No entries to display</span>';
+            return;
+        }
+
+        const createButton = (label, page, disabled = false, isActive = false) => {
+            const btn = document.createElement('button');
+            btn.textContent = label;
+            if (disabled) btn.disabled = true;
+            if (isActive) btn.classList.add('active-page');
+            btn.addEventListener('click', () => {
+                currentArchivedVolunteerPage = page;
+                renderArchivedVolunteerApplications();
+            });
+            return btn;
+        };
+
+        archivedPaginationContainer.appendChild(createButton('Prev', currentArchivedVolunteerPage - 1, currentArchivedVolunteerPage === 1));
+
+        const maxVisible = 5;
+        let startPage = Math.max(1, currentArchivedVolunteerPage - Math.floor(maxVisible / 2));
+        let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+        if (endPage - startPage < maxVisible - 1) {
+            startPage = Math.max(1, endPage - maxVisible + 1);
+        }
+
+        if (startPage > 1) {
+            archivedPaginationContainer.appendChild(createButton('1', 1));
+            if (startPage > 2) {
+                const dots = document.createElement('span');
+                dots.textContent = '...';
+                archivedPaginationContainer.appendChild(dots);
+            }
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
+            archivedPaginationContainer.appendChild(createButton(i, i, false, i === currentArchivedVolunteerPage));
+        }
+
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) {
+                const dots = document.createElement('span');
+                dots.textContent = '...';
+                archivedPaginationContainer.appendChild(dots);
+            }
+            archivedPaginationContainer.appendChild(createButton(totalPages, totalPages));
+        }
+
+        archivedPaginationContainer.appendChild(createButton('Next', currentArchivedVolunteerPage + 1, currentArchivedVolunteerPage === totalPages));
+    }
+
+    function showArchivedModal() {
+        archivedModal.style.display = 'flex';
+        fetchAndRenderArchivedVolunteerApplications();
+    }
+
+    function hideArchivedModal() {
+        archivedModal.style.display = 'none';
+        archivedTableBody.innerHTML = '';
+        archivedEntriesInfo.textContent = '';
+        archivedPaginationContainer.innerHTML = '';
+    }
+
+    // View Rendering Logic
     function renderCurrentView() {
         if (currentView === 'table') {
             tableView.style.display = 'block';
             calendarView.style.display = 'none';
-            toggleViewBtn.innerHTML = "<i class='bx bx-calendar'></i>Calendar View";
-            renderApplications(filteredApprovedApplications); // Render table
-            searchInput.style.display = 'block'; 
+            toggleViewBtn.innerHTML = "<i class='bx bx-calendar'></i> Calendar View";
+            renderApplications(filteredApprovedApplications);
+            searchInput.style.display = 'block';
             sortSelect.style.display = 'block';
-        } else { // currentView === 'calendar'
+        } else {
             tableView.style.display = 'none';
             calendarView.style.display = 'block';
             toggleViewBtn.innerHTML = "<i class='bx bx-list-ul'></i> Switch to Table View";
-            renderVolunteerCalendar(); // Render calendar
-            searchInput.style.display = 'none'; // Hide search and sort for calendar view
+            renderVolunteerCalendar();
+            searchInput.style.display = 'none';
             sortSelect.style.display = 'none';
         }
     }
 
-    // --- Table Rendering Function (Modified to be called by renderCurrentView) ---
+    // Table Rendering Function
     function renderApplications(applicationsToRender) {
+        const colCount = document.getElementById('volunteersTable').querySelectorAll('thead tr th').length;
         volunteersContainer.innerHTML = '';
+
         const startIndex = (currentPage - 1) * rowsPerPage;
         const endIndex = startIndex + rowsPerPage;
         const paginatedApplications = applicationsToRender.slice(startIndex, endIndex);
 
         if (paginatedApplications.length === 0) {
-            volunteersContainer.innerHTML = '<tr><td colspan="15" style="text-align: center;">No approved volunteer applications found on this page.</td></tr>';
+            volunteersContainer.innerHTML = `<tr><td colspan="${colCount}" style="text-align: center;">No approved volunteer applications found on this page.</td></tr>`;
             entriesInfo.textContent = 'Showing 0 to 0 of 0 entries';
             renderPagination();
             return;
@@ -254,13 +430,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${volunteer.age || 'N/A'}</td>
                 <td>${socialMediaDisplay}</td>
                 <td>${volunteer.additionalInfo || 'N/A'}</td>
-                <td>
-                    ${
-                        volunteer.availability && volunteer.availability.general === 'Specific days'
-                        ? `Specific Days: ${volunteer.availability.specificDays ? volunteer.availability.specificDays.join(', ') : 'N/A'}`
-                        : (volunteer.availability?.general || 'N/A')
-                    }
-                </td>
+                <td>${
+                    volunteer.availability && volunteer.availability.general === 'Specific days'
+                    ? `Specific Days: ${volunteer.availability.specificDays ? volunteer.availability.specificDays.join(', ') : 'N/A'}`
+                    : (volunteer.availability?.general || 'N/A')
+                }</td>
                 <td>${volunteer.availability?.timeAvailability || 'N/A'}</td>
                 <td>${volunteer.address?.region || 'N/A'}</td>
                 <td>${volunteer.address?.province || 'N/A'}</td>
@@ -277,20 +451,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         updateEntriesInfo(applicationsToRender.length);
         renderPagination(applicationsToRender.length);
-
-        // Add event listeners to the new buttons in the rendered rows
-        volunteersContainer.querySelectorAll('.viewBtn').forEach(button => {
-            button.onclick = () => showPreviewModal(allApprovedApplications.find(v => v.key === button.dataset.key));
-        });
-        volunteersContainer.querySelectorAll('.rescheduleBtn').forEach(button => {
-            button.onclick = (event) => handleRescheduleClick(event.target.closest('button'));
-        });
-        volunteersContainer.querySelectorAll('.archiveBtn').forEach(button => {
-            button.onclick = (event) => handleArchiveClick(event.target.closest('button'));
-        });
     }
 
-    // --- Search and Sort Logic (Modified to call renderCurrentView) ---
+    // Search and Sort Logic
     function applySearchAndSort() {
         let currentApplications = [...allApprovedApplications];
 
@@ -310,7 +473,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 const timeAvailability = (volunteer.availability?.timeAvailability || '').toLowerCase();
                 const scheduledDateTime = (volunteer.scheduledDateTime ? formatDate(volunteer.scheduledDateTime) : '').toLowerCase();
 
-
                 return fullName.includes(searchTerm) ||
                     email.includes(searchTerm) ||
                     mobileNumber.includes(searchTerm) ||
@@ -328,10 +490,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const sortValue = sortSelect.value;
         if (sortValue) {
+            const [sortBy, order] = sortValue.split('-');
             currentApplications.sort((a, b) => {
                 let valA, valB;
 
-                switch (sortBy) { // `sortBy` is already defined in the outer scope
+                switch (sortBy) {
                     case 'DateTime':
                         valA = new Date(a.scheduledDateTime || a.timestamp || 0).getTime();
                         valB = new Date(b.scheduledDateTime || b.timestamp || 0).getTime();
@@ -349,7 +512,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         valB = parseInt(b.age) || 0;
                         break;
                     default:
-                        // Default sort by name if no specific sort option matches
                         valA = getFullName(a).toLowerCase();
                         valB = getFullName(b).toLowerCase();
                         break;
@@ -365,10 +527,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         filteredApprovedApplications = currentApplications;
         currentPage = 1;
-        renderCurrentView(); // Call the main render function
+        renderCurrentView();
     }
 
-    // --- Pagination Functions ---
+    // Pagination Functions
     function renderPagination() {
         pagination.innerHTML = '';
         const totalPages = Math.ceil(filteredApprovedApplications.length / rowsPerPage);
@@ -395,9 +557,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const maxVisible = 5;
         let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
         let endPage = Math.min(totalPages, startPage + maxVisible - 1);
-
-        if (endPage - startPage + 1 < maxVisible) {
-            startPage = Math.max(1, totalPages - maxVisible + 1);
+        if (endPage - startPage < maxVisible - 1) {
+            startPage = Math.max(1, endPage - maxVisible + 1);
         }
 
         if (startPage > 1) {
@@ -431,25 +592,25 @@ document.addEventListener('DOMContentLoaded', () => {
         entriesInfo.textContent = `Showing ${totalItems ? startIndex + 1 : 0} to ${endIndex} of ${totalItems} entries`;
     }
 
-    // --- FullCalendar Initialization and Rendering ---
+    // FullCalendar Initialization and Rendering
     function renderVolunteerCalendar() {
+        if (!window.FullCalendar) {
+            console.error("FullCalendar library is not loaded.");
+            Swal.fire('Error', 'Calendar functionality is unavailable. Please ensure FullCalendar library is included.', 'error');
+            return;
+        }
+
         const calendarEl = document.getElementById('volunteerCalendar');
-        
-        // Destroy existing calendar instance to prevent duplicates if function is called multiple times
         if (calendar) {
             calendar.destroy();
         }
 
-        // Prepare events for FullCalendar
         const events = filteredApprovedApplications
-            .filter(v => v.scheduledDateTime) // Only include volunteers with a scheduled date
+            .filter(v => v.scheduledDateTime)
             .map(volunteer => {
-                // Assuming scheduledDateTime is a timestamp
                 const scheduledDate = new Date(volunteer.scheduledDateTime);
-                
-                // Parse time availability for start and end times
-                let startTime = '09:00:00'; 
-                let endTime = '17:00:00';  
+                let startTime = '09:00:00';
+                let endTime = '17:00:00';
 
                 if (volunteer.availability?.timeAvailability) {
                     const timeParts = volunteer.availability.timeAvailability.split(' - ');
@@ -459,133 +620,50 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
 
-                // Construct ISO string for FullCalendar
                 const startISO = `${scheduledDate.getFullYear()}-${(scheduledDate.getMonth() + 1).toString().padStart(2, '0')}-${scheduledDate.getDate().toString().padStart(2, '0')}T${startTime}`;
                 const endISO = `${scheduledDate.getFullYear()}-${(scheduledDate.getMonth() + 1).toString().padStart(2, '0')}-${scheduledDate.getDate().toString().padStart(2, '0')}T${endTime}`;
 
                 return {
                     title: getFullName(volunteer),
                     start: startISO,
-                    end: endISO, 
+                    end: endISO,
                     id: volunteer.key,
                     extendedProps: volunteer
                 };
             });
 
         calendar = new FullCalendar.Calendar(calendarEl, {
-            initialView: 'dayGridMonth', 
+            initialView: 'dayGridMonth',
             headerToolbar: {
                 left: 'prev,next today',
                 center: 'title',
-                right: 'dayGridMonth,timeGridWeek,timeGridDay' 
+                right: 'dayGridMonth,timeGridWeek,timeGridDay'
             },
             events: events,
             eventClick: function(info) {
-                // Open modal when an event is clicked
                 showPreviewModal(info.event.extendedProps);
-            },
-            eventDidMount: function(info) {
-                // Optional: You can add custom styling or elements to events here
-                // For example, adding an icon or a tooltip
             },
             noEventsContent: {
                 html: '<p style="text-align: center; color: #777;">No approved volunteer schedules for this period.</p>'
-            },
-            // Enable resizing and dragging if you want to allow changing schedules directly on calendar
-            // eventResizableFromStart: true,
-            // eventDurationEditable: true,
-            // editable: true,
-            // eventDrop: function(info) {
-            //     // Handle event drop (drag-and-drop reschedule)
-            //     // You would update Firebase here: info.event.id is volunteer.key
-            //     // info.event.start and info.event.end are the new dates
-            //     Swal.fire({
-            //         title: 'Update Schedule?',
-            //         text: `Move ${info.event.title} to ${formatDate(info.event.start.getTime())}?`,
-            //         icon: 'question',
-            //         showCancelButton: true,
-            //         confirmButtonText: 'Yes, update!',
-            //         cancelButtonText: 'No'
-            //     }).then(async (result) => {
-            //         if (result.isConfirmed) {
-            //             try {
-            //                 const newTimestamp = info.event.start.getTime();
-            //                 const volunteerRef = database.ref(`volunteerApplications/approvedVolunteer/${info.event.id}`);
-            //                 await volunteerRef.update({ scheduledDateTime: newTimestamp });
-            //                 Swal.fire('Updated!', 'Schedule updated successfully.', 'success');
-            //             } catch (error) {
-            //                 console.error("Error updating schedule from calendar: ", error);
-            //                 Swal.fire('Error!', 'Failed to update schedule.', 'error');
-            //                 info.revert(); // Revert the event's position on the calendar
-            //             }
-            //         } else {
-            //             info.revert(); // Revert the event's position on the calendar
-            //         }
-            //     });
-            // },
-            // eventResize: function(info) {
-            //     // Handle event resize (change duration)
-            //     // Similar to eventDrop, update Firebase with new start/end times
-            // }
+            }
         });
         calendar.render();
     }
 
-    // Helper to convert AM/PM time (e.g., "9:00 AM", "1:30 PM") to 24-hour format (e.g., "09:00:00", "13:30:00")
     function formatTimeTo24Hr(timeStr) {
-        if (!timeStr) return "00:00:00"; // Default if no time string
-
+        if (!timeStr) return "00:00:00";
         let [time, period] = timeStr.split(' ');
         let [hours, minutes] = time.split(':');
         hours = parseInt(hours);
-
         if (period && period.toLowerCase() === 'pm' && hours < 12) {
             hours += 12;
         } else if (period && period.toLowerCase() === 'am' && hours === 12) {
-            hours = 0; // 12 AM is 00:00 in 24hr format
+            hours = 0;
         }
         return `${String(hours).padStart(2, '0')}:${minutes.padStart(2, '0')}:00`;
     }
 
-    // --- Event Listeners ---
-    searchInput.addEventListener('keyup', applySearchAndSort);
-    sortSelect.addEventListener('change', applySearchAndSort);
-
-    // New: Toggle View Button Event Listener
-    toggleViewBtn.addEventListener('click', () => {
-        currentView = currentView === 'table' ? 'calendar' : 'table';
-        applySearchAndSort(); // Re-apply search/sort and then render the correct view
-    });
-
-    // Event listener for action buttons (View, Reschedule, Archive)
-    volunteersContainer.addEventListener('click', async (event) => {
-        const target = event.target;
-        
-        const viewButton = target.closest('.viewBtn');
-        const rescheduleButton = target.closest('.rescheduleBtn');
-        const archiveButton = target.closest('.archiveBtn');
-
-        if (viewButton) {
-            handleViewClick(viewButton);
-        } else if (rescheduleButton) {
-            handleRescheduleClick(rescheduleButton);
-        } else if (archiveButton) {
-            handleArchiveClick(archiveButton);
-        }
-    });
-
-    // Helper functions for delegated events
-    function handleViewClick(button) {
-        const volunteerKey = button.dataset.key;
-        const volunteer = allApprovedApplications.find(v => v.key === volunteerKey);
-        if (volunteer) {
-            showPreviewModal(volunteer);
-        } else {
-            console.warn("Volunteer data not found for key:", volunteerKey);
-            Swal.fire('Error', 'Volunteer data not found.', 'error');
-        }
-    }
-
+    // Email Sending Function
     async function sendApprovalEmail(volunteer, scheduledDate) {
         if (!volunteer || !volunteer.email) {
             console.error("Cannot send email: Volunteer or email missing.");
@@ -599,7 +677,6 @@ document.addEventListener('DOMContentLoaded', () => {
             to_name: fullName,
             to_email: volunteer.email,
             scheduled_date: scheduledDate,
-            // admin_contact_info: 'Admin Name - contact@example.com'
         };
 
         try {
@@ -608,7 +685,79 @@ document.addEventListener('DOMContentLoaded', () => {
             Swal.fire('Email Sent!', 'Confirmation email has been sent to the volunteer.', 'success');
         } catch (error) {
             console.error('Failed to send email:', error);
-            Swal.fire('Email Error', 'Failed to send confirmation email. Please check EmailJS configuration or try again.', 'error');
+            let errorMessage = 'Failed to send confirmation email. Please try again.';
+            if (error.status === 422) {
+                errorMessage = 'Failed to send email. Please check EmailJS template parameters and IDs. (Error 422)';
+            } else if (error.text) {
+                errorMessage = `Failed to send email: ${error.text}. Please check EmailJS setup.`;
+            }
+            Swal.fire('Email Error', errorMessage, 'error');
+        }
+    }
+
+    // Archived Action Handlers
+    archivedTableBody.addEventListener('click', async (event) => {
+        const target = event.target;
+        const rowWithKey = target.closest('tr[data-key]');
+
+        if (!rowWithKey) return;
+
+        const volunteerKey = rowWithKey.dataset.key;
+        const volunteer = allArchivedVolunteerData.find(v => v.key === volunteerKey);
+
+        if (!volunteer) {
+            console.warn("Archived volunteer data not found for key:", volunteerKey);
+            Swal.fire('Error', 'Archived volunteer data not found.', 'error');
+            return;
+        }
+
+        if (target.classList.contains('viewBtn') || target.closest('.viewBtn')) {
+            showPreviewModal(volunteer);
+        } else if (target.classList.contains('actionBtn') || target.closest('.actionBtn')) {
+            Swal.fire({
+                title: 'Retrieve Volunteer Application?',
+                text: `Do you want to retrieve the application for ${getFullName(volunteer)}? This will move it back to approved applications.`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, Retrieve!',
+                cancelButtonText: 'Cancel'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    try {
+                        const archivedRef = database.ref(`deletedApprovedVolunteerApplications/${volunteerKey}`);
+                        const snapshot = await archivedRef.once('value');
+                        const volunteerData = snapshot.val();
+
+                        if (volunteerData) {
+                            delete volunteerData.archivedAt;
+                            volunteerData.status = 'confirmedByAB';
+                            await database.ref(`volunteerApplications/approvedVolunteer/${volunteerKey}`).set(volunteerData);
+                            await archivedRef.remove();
+                            Swal.fire('Retrieved!', 'The volunteer application has been moved back to approved.', 'success');
+                            fetchAndRenderArchivedVolunteerApplications();
+                            fetchApprovedVolunteers();
+                        } else {
+                            Swal.fire('Error', 'Volunteer application not found.', 'error');
+                        }
+                    } catch (error) {
+                        console.error("Error retrieving volunteer application: ", error);
+                        Swal.fire('Error', 'Failed to retrieve volunteer application. Please try again.', 'error');
+                    }
+                }
+            });
+        }
+    });
+
+    function handleViewClick(button) {
+        const volunteerKey = button.dataset.key;
+        const volunteer = allApprovedApplications.find(v => v.key === volunteerKey);
+        if (volunteer) {
+            showPreviewModal(volunteer);
+        } else {
+            console.warn("Volunteer data not found for key:", volunteerKey);
+            Swal.fire('Error', 'Volunteer data not found.', 'error');
         }
     }
 
@@ -644,6 +793,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     Swal.showValidationMessage('Please select a date and time.');
                     return false;
                 }
+
+                // Validate input format
+                const datetimeRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
+                if (!datetimeRegex.test(newDateTimeString)) {
+                    Swal.showValidationMessage('Invalid date and time format. Please use the datetime picker.');
+                    return false;
+                }
+
                 const newTimestamp = new Date(newDateTimeString).getTime();
                 if (isNaN(newTimestamp)) {
                     Swal.showValidationMessage('Invalid date and time format.');
@@ -651,8 +808,64 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 const currentDateTime = Date.now();
-                if (newTimestamp < currentDateTime) {
-                    Swal.showValidationMessage('Scheduled date and time cannot be in the past.');
+                // Prevent past date/time and current time
+                if (newTimestamp <= currentDateTime) {
+                    Swal.showValidationMessage('Scheduled date and time cannot be in the past or the current time.');
+                    return false;
+                }
+
+                // Prevent scheduling the same time as the original
+                if (volunteer.scheduledDateTime && newTimestamp === volunteer.scheduledDateTime) {
+                    Swal.showValidationMessage('The new schedule is the same as the current schedule.');
+                    return false;
+                }
+
+                // Minimum future time buffer
+                const MINIMUM_FUTURE_TIME = 60 * 60 * 1000; // 1 hour
+                if (newTimestamp < currentDateTime + MINIMUM_FUTURE_TIME) {
+                    Swal.showValidationMessage('Scheduled date and time must be at least 1 hour in the future.');
+                    return false;
+                }
+
+                // Maximum scheduling window
+                const MAXIMUM_FUTURE_TIME = 6 * 30 * 24 * 60 * 60 * 1000; // 6 months
+                if (newTimestamp > currentDateTime + MAXIMUM_FUTURE_TIME) {
+                    Swal.showValidationMessage('Scheduled date and time cannot be more than 6 months in the future.');
+                    return false;
+                }
+
+                // Prevent same as original schedule
+                if (volunteer.scheduledDateTime && newTimestamp === volunteer.scheduledDateTime) {
+                    Swal.showValidationMessage('The new schedule is the same as the current schedule.');
+                    return false;
+                }
+
+                // Check volunteer availability
+                const newDate = new Date(newDateTimeString);
+                const dayOfWeek = newDate.toLocaleString('en-US', { weekday: 'long' });
+                if (volunteer.availability?.specificDays && !volunteer.availability.specificDays.includes(dayOfWeek)) {
+                    Swal.showValidationMessage(`The selected day (${dayOfWeek}) is not in the volunteer's availability.`);
+                    return false;
+                }
+                if (volunteer.availability?.timeAvailability) {
+                    const timeParts = volunteer.availability.timeAvailability.split(' - ');
+                    if (timeParts.length === 2) {
+                        const startTime = formatTimeTo24Hr(timeParts[0]);
+                        const endTime = formatTimeTo24Hr(timeParts[1]);
+                        const selectedTime = `${newDate.getHours().toString().padStart(2, '0')}:${newDate.getMinutes().toString().padStart(2, '0')}:00`;
+                        if (selectedTime < startTime || selectedTime > endTime) {
+                            Swal.showValidationMessage(`The selected time is outside the volunteer's availability (${timeParts[0]} - ${timeParts[1]}).`);
+                            return false;
+                        }
+                    }
+                }
+
+                // Check for duplicate schedule conflicts
+                const conflictingVolunteer = allApprovedApplications.find(v => 
+                    v.key !== volunteerKey && v.scheduledDateTime === newTimestamp
+                );
+                if (conflictingVolunteer) {
+                    Swal.showValidationMessage(`Another volunteer (${getFullName(conflictingVolunteer)}) is already scheduled at this time.`);
                     return false;
                 }
 
@@ -664,28 +877,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 try {
                     const volunteerRef = database.ref(`volunteerApplications/approvedVolunteer/${volunteerKey}`);
                     await volunteerRef.update({ scheduledDateTime: newTimestamp });
-
-                    // Send email
                     await sendApprovalEmail(volunteer, formatDate(newTimestamp));
-
                     Swal.fire(
                         'Rescheduled!',
-                        `${getFullName(volunteer)}'s schedule has been updated to ${formatDate(newTimestamp)}. New Schedule Email has been sent to the Volunteer.`,
+                        `${getFullName(volunteer)}'s schedule has been updated to ${formatDate(newTimestamp)}.`,
                         'success'
                     );
                 } catch (error) {
                     console.error("Error rescheduling volunteer or sending email: ", error);
                     let errorMessage = `Failed to reschedule volunteer: ${error.message}`;
-                    if (error && error.status === 422) {
+                    if (error.status === 422) {
                         errorMessage = 'Failed to send reschedule email. Please check EmailJS template parameters and IDs. (Error 422)';
-                    } else if (error && error.text) { 
+                    } else if (error.text) {
                         errorMessage = `Failed to send reschedule email: ${error.text}. Please check EmailJS setup.`;
                     }
-                    Swal.fire(
-                        'Error!',
-                        errorMessage,
-                        'error'
-                    );
+                    Swal.fire('Error', errorMessage, 'error');
                 }
             }
         });
@@ -703,7 +909,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         Swal.fire({
             title: 'Are you sure?',
-            text: `You are about to archive the application for ${getFullName(volunteer)}. This action cannot be undone.`,
+            text: `You are about to archive the application for ${getFullName(volunteer)}. This will move it to archived records.`,
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#d33',
@@ -723,20 +929,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
 
                     volunteerToArchive.archivedAt = firebase.database.ServerValue.TIMESTAMP;
-
-                    const deletedApprovedRef = database.ref(`deletedApprovedVolunteerApplications/${volunteerKey}`);
-                    await deletedApprovedRef.set(volunteerToArchive);
+                    await database.ref(`deletedApprovedVolunteerApplications/${volunteerKey}`).set(volunteerToArchive);
                     await approvedVolunteerRef.remove();
-
                     Swal.fire(
                         'Archived!',
                         `${getFullName(volunteer)}'s application has been archived.`,
                         'success'
                     );
+                    fetchApprovedVolunteers();
                 } catch (error) {
                     console.error("Error archiving volunteer application: ", error);
                     Swal.fire(
-                        'Error!',
+                        'Error',
                         `Failed to archive application: ${error.message}`,
                         'error'
                     );
@@ -745,6 +949,43 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Initial fetch of approved volunteers when the page loads
+    // Event Listeners
+    viewPendingBtn.innerHTML = "<i class='bx bx-show'></i> View Pending Volunteer Applications";
+    viewPendingBtn.addEventListener('click', () => {
+        window.location.href = '../pages/pendingvolunteers.html';
+    });
+
+    if (viewArchivedButton) {
+        viewArchivedButton.addEventListener('click', () => {
+            showArchivedModal();
+        });
+    } else {
+        console.warn("View Archived button not found in the DOM.");
+    }
+
+    searchInput.addEventListener('keyup', applySearchAndSort);
+    sortSelect.addEventListener('change', applySearchAndSort);
+
+    toggleViewBtn.addEventListener('click', () => {
+        currentView = currentView === 'table' ? 'calendar' : 'table';
+        applySearchAndSort();
+    });
+
+    // Add event listeners for approved table buttons
+    volunteersContainer.addEventListener('click', async (event) => {
+        const target = event.target;
+        const viewButton = target.closest('.viewBtn');
+        const rescheduleButton = target.closest('.rescheduleBtn');
+        const archiveButton = target.closest('.archiveBtn');
+
+        if (viewButton) {
+            handleViewClick(viewButton);
+        } else if (rescheduleButton) {
+            handleRescheduleClick(rescheduleButton);
+        } else if (archiveButton) {
+            handleArchiveClick(archiveButton);
+        }
+    });
+
     fetchApprovedVolunteers();
-});
+}

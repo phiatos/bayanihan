@@ -68,6 +68,13 @@ function checkInactivity() {
 //-------------------------------------------------------------------------------------
 // Global flag for Super Admin status
 let currentUserIsSuperAdmin = false;
+let excelFileInput;
+let importExcelBtn;
+let importStatusModal;
+let closeImportStatusModalBtn;
+let importProgressBar;
+let importStatusText;
+let importErrorList;
 
 document.addEventListener('DOMContentLoaded', () => {
     // --- Authentication Check ---
@@ -112,19 +119,30 @@ function initializePageFunctions(userId) {
     const entriesInfo = document.getElementById('entriesInfo');
     const pagination = document.getElementById('pagination');
     const viewApprovedBtn = document.getElementById('viewApprovedBtn');
-    const viewArchivedButton = document.getElementById('viewArchived'); // New: Archived button
+    const viewArchivedButton = document.getElementById('viewArchived'); 
+    const exportBtn = document.getElementById('exportBtn');
+    const savePdfBtn = document.getElementById('savePdfBtn');
 
-    // --- Modal Elements ---
+    // Modal Elements 
     const previewModal = document.getElementById('previewModal');
     const closeModalBtn = document.getElementById('closeModal');
     const modalContentDiv = document.getElementById('modalContent');
 
-    //Archived Modal Elements
+    // Archived Modal Elements
     const archivedModal = document.getElementById('archivedModal');
     const closeArchivedModalBtn = document.getElementById('closeArchivedModalBtn');
     const archivedVGTableBody = document.getElementById('archivedTableBody'); // Make sure this ID is correct in HTML
     const archivedEntriesInfo = document.getElementById('archivedEntriesInfo');
     const archivedPaginationContainer = document.getElementById('archivedPagination');
+
+    // New element initializations for import
+    excelFileInput = document.getElementById('excelFileInput');
+    importExcelBtn = document.getElementById('importExcelBtn');
+    importStatusModal = document.getElementById('importStatusModal');
+    closeImportStatusModalBtn = document.getElementById('closeImportStatusModalBtn');
+    importProgressBar = document.getElementById('importProgressBar');
+    importStatusText = document.getElementById('importStatusText');
+    importErrorList = document.getElementById('importErrorList');
 
     let allApplications = []; // For active pending applications
     let filteredApplications = [];
@@ -134,6 +152,271 @@ function initializePageFunctions(userId) {
     let allArchivedVGData = []; // For archived applications
     let currentArchivedVGPage = 1;
     const archivedVGRowsPerPage = 5;
+
+    // Event Listener for the Import Button
+    if (importExcelBtn) {
+        importExcelBtn.addEventListener('click', () => {
+            if (!currentUserIsSuperAdmin) {
+                Swal.fire('Access Denied', 'You do not have permission to import volunteer group applications.', 'error');
+                return;
+            }
+            excelFileInput.click(); // Trigger the file input click
+        });
+    }
+
+    // Event Listener for file selection
+    if (excelFileInput) {
+        excelFileInput.addEventListener('change', handleExcelFileSelect);
+    }
+
+    // Close import status modal listener
+    if (closeImportStatusModalBtn) {
+        closeImportStatusModalBtn.addEventListener('click', () => {
+            importStatusModal.style.display = 'none';
+        });
+    }
+
+    // Close modals when clicking outside (add for importStatusModal)
+    window.addEventListener('click', (event) => {
+        // ... existing modal closing logic ...
+        if (event.target === importStatusModal) {
+            importStatusModal.style.display = 'none';
+        }
+    });
+
+    // --- NEW FUNCTIONS FOR EXCEL IMPORT ---
+
+async function handleExcelFileSelect(event) {
+    const file = event.target.files[0];
+    if (!file) {
+        return;
+    }
+
+    if (!currentUserIsSuperAdmin) {
+        Swal.fire('Access Denied', 'You do not have permission to import volunteer group applications.', 'error');
+        return;
+    }
+
+    // Reset UI for new import
+    importProgressBar.style.width = '0%';
+    importProgressBar.textContent = '0%';
+    importProgressBar.style.backgroundColor = '#4CAF50'; // Green for success/progress
+    importStatusText.textContent = 'Reading Excel file...';
+    importErrorList.innerHTML = '';
+    importStatusModal.style.display = 'flex'; // Show the modal
+
+    const reader = new FileReader();
+
+    reader.onload = async (e) => {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }); // Read as array of arrays, first row as header
+
+            if (jsonData.length === 0) {
+                throw new Error("The Excel file is empty or could not be read.");
+            }
+
+            // Assume the first row contains headers
+            const headers = jsonData[0];
+            const rows = jsonData.slice(1); // Data rows
+
+            // Define expected headers and their corresponding Firebase keys
+            // IMPORTANT: Adjust these to match your Excel column headers exactly
+            // and the Firebase keys you want them mapped to.
+            const columnMap = {
+                'Organization Name': 'organizationName',
+                'Contact Person': 'contactPerson',
+                'Email': 'email',
+                'Mobile Number': 'mobileNumber',
+                'Landline Number': 'landlineNumber',
+                'Facebook Link': 'facebookLink',
+                'Instagram Link': 'instagramLink',
+                'Twitter Link': 'twitterLink',
+                'TikTok Link': 'tiktokLink',
+                'Website Link': 'websiteLink',
+                'Registration Date': 'registrationDate', // This might need special handling if not a valid date string
+                'Group Description': 'groupDescription',
+                'Headquarters Region': 'headquarters.region',
+                'Headquarters Province': 'headquarters.province',
+                'Headquarters City': 'headquarters.city',
+                'Headquarters Barangay': 'headquarters.barangay',
+                'Headquarters Street Address': 'headquarters.streetAddress',
+                'Primary Advocacies': 'primaryAdvocacies', // Expecting comma-separated string, will convert to array
+                'Application Date and Time': 'applicationDateandTime'
+                // Add any other fields you expect in your Excel
+            };
+
+            const expectedHeaders = Object.keys(columnMap);
+            const mappedData = [];
+            const importErrors = [];
+            let processedCount = 0;
+            const totalRecords = rows.length;
+
+            if (totalRecords === 0) {
+                Swal.fire('No Data', 'The Excel file contains headers but no data rows.', 'info');
+                importStatusModal.style.display = 'none';
+                return;
+            }
+
+            importStatusText.textContent = `Validating and preparing ${totalRecords} records...`;
+
+            for (let i = 0; i < totalRecords; i++) {
+                const row = rows[i];
+                const record = {};
+                let isValidRecord = true;
+                const rowErrors = [];
+
+                // Map Excel columns to Firebase keys
+                headers.forEach((header, index) => {
+                    const firebaseKey = columnMap[header.trim()];
+                    if (firebaseKey) {
+                        if (firebaseKey.includes('.')) {
+                            // Handle nested properties like headquarters.region
+                            const [parentKey, childKey] = firebaseKey.split('.');
+                            record[parentKey] = record[parentKey] || {};
+                            record[parentKey][childKey] = row[index];
+                        } else {
+                            record[firebaseKey] = row[index];
+                        }
+                    }
+                });
+
+                // --- Basic Validation ---
+                if (!record.organizationName || record.organizationName.trim() === '') {
+                    isValidRecord = false;
+                    rowErrors.push('Missing Organization Name');
+                }
+                if (!record.email || record.email.trim() === '' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(record.email)) {
+                    isValidRecord = false;
+                    rowErrors.push('Invalid or Missing Email');
+                }
+                if (!record.contactPerson || record.contactPerson.trim() === '') {
+                    isValidRecord = false;
+                    rowErrors.push('Missing Contact Person');
+                }
+                if (!record.mobileNumber || record.mobileNumber.trim() === '') {
+                    isValidRecord = false;
+                    rowErrors.push('Missing Mobile Number');
+                }
+
+                // Convert advocacies string to array
+                if (record.primaryAdvocacies && typeof record.primaryAdvocacies === 'string') {
+                    record.primaryAdvocacies = record.primaryAdvocacies.split(',').map(s => s.trim()).filter(s => s !== '');
+                } else {
+                    record.primaryAdvocacies = []; // Ensure it's an array even if empty
+                }
+
+                // Add current timestamp for applicationDateandTime if not provided in Excel
+                if (!record.applicationDateandTime) {
+                    record.applicationDateandTime = new Date().toISOString();
+                } else {
+                    // Try to parse the date from Excel. Excel dates can be tricky.
+                    // This assumes Excel provides a readable date string. If it's a number,
+                    // you'll need a different parsing library or logic (e.g., XLSX.SSF.parse_date_code)
+                    try {
+                        const date = new Date(record.applicationDateandTime);
+                        if (isNaN(date.getTime())) {
+                             throw new Error("Invalid Date");
+                        }
+                        record.applicationDateandTime = date.toISOString();
+                    } catch (e) {
+                        isValidRecord = false;
+                        rowErrors.push('Invalid Application Date and Time format');
+                    }
+                }
+
+
+                // Set default status and other required fields if they are not in Excel
+                record.status = 'Pending';
+                record.appliedAt = new Date().toISOString(); // Timestamp when this import process happens
+                // Add any other default fields needed for a pending application
+
+                if (isValidRecord) {
+                    mappedData.push(record);
+                } else {
+                    importErrors.push(`Row ${i + 2} (${record.organizationName || 'N/A'}): ${rowErrors.join(', ')}`);
+                }
+            }
+
+            if (mappedData.length === 0) {
+                Swal.fire('No Valid Records', 'No valid records found in the Excel file after validation. Check errors for details.', 'error');
+                importErrorList.innerHTML = importErrors.map(err => `<li>${err}</li>`).join('');
+                importProgressBar.style.backgroundColor = '#f44336'; // Red for errors
+                return;
+            }
+
+            importStatusText.textContent = `Importing ${mappedData.length} valid records to Firebase...`;
+
+            // --- Bulk Upload to Firebase ---
+            let successCount = 0;
+            let currentErrors = [];
+
+            for (const appData of mappedData) {
+                try {
+                    // Generate a new unique ID for the application in Firebase
+                    const newAppRef = database.ref('abvnApplications/pendingABVN').push();
+                    await newAppRef.set(appData);
+                    successCount++;
+                } catch (error) {
+                    console.error("Error importing application:", appData.organizationName, error);
+                    currentErrors.push(`Failed to import "${appData.organizationName || 'N/A'}": ${error.message}`);
+                }
+                processedCount++;
+                const progress = Math.round((processedCount / mappedData.length) * 100);
+                importProgressBar.style.width = `${progress}%`;
+                importProgressBar.textContent = `${progress}%`;
+                importStatusText.textContent = `Importing ${successCount}/${mappedData.length} records...`;
+            }
+
+            importErrorList.innerHTML = currentErrors.map(err => `<li>${err}</li>`).join('');
+            if (successCount > 0) {
+                Swal.fire({
+                    title: 'Import Complete!',
+                    html: `Successfully imported ${successCount} applications. ${currentErrors.length > 0 ? `<br><br><strong>${currentErrors.length} errors occurred. Check the status modal for details.</strong>` : ''}`,
+                    icon: 'success',
+                    customClass: {
+                        popup: 'custom-swal-popup-small',
+                        title: 'custom-swal-title',
+                        htmlContainer: 'custom-swal-text',
+                        confirmButton: 'custom-confirm-btn'
+                    }
+                }).then(() => {
+                    fetchPendingApplications(); // Refresh table after import
+                    importStatusModal.style.display = 'none'; // Hide modal after user acknowledges
+                });
+            } else {
+                Swal.fire({
+                    title: 'Import Failed',
+                    html: 'No applications were successfully imported. Please check for errors in the console or status modal.',
+                    icon: 'error',
+                    customClass: {
+                        popup: 'custom-swal-popup-small',
+                        title: 'custom-swal-title',
+                        htmlContainer: 'custom-swal-text',
+                        confirmButton: 'custom-confirm-btn'
+                    }
+                });
+            }
+
+
+        } catch (error) {
+            console.error("Error processing Excel file:", error);
+            Swal.fire('Error', 'Failed to process Excel file: ' + error.message, 'error');
+            importProgressBar.style.backgroundColor = '#f44336'; // Red for errors
+            importStatusText.textContent = `Error: ${error.message}`;
+            importStatusModal.style.display = 'flex'; // Ensure modal is visible to show error
+        } finally {
+            event.target.value = ''; // Clear the file input to allow selecting the same file again
+        }
+    };
+
+    reader.readAsArrayBuffer(file); // Read file as array buffer for XLSX
+}
+
 
     // --- Data Fetching Function (Active Pending) ---
     function fetchPendingApplications() {
@@ -164,7 +447,7 @@ function initializePageFunctions(userId) {
         });
     }
 
-    // --- Rendering Function (Active Pending) ---
+    // --- Rendering Function ---
     function renderApplications(applicationsToRender) {
         volunteerOrgsContainer.innerHTML = '';
 
@@ -174,8 +457,8 @@ function initializePageFunctions(userId) {
 
         if (paginatedApplications.length === 0) {
             volunteerOrgsContainer.innerHTML = '<tr><td colspan="13" style="text-align: center;">No pending applications found on this page.</td></tr>'; // Increased colspan
-            updateEntriesInfo(0); // Update info for 0 entries
-            renderPagination(0); // Render pagination for 0 entries
+            updateEntriesInfo(0); 
+            renderPagination(0);
             return;
         }
 
@@ -204,9 +487,9 @@ function initializePageFunctions(userId) {
                 <td>${app.headquarters?.streetAddress || 'N/A'}</td>
                 <td>${formattedTimestamp || 'N/A'}</td>
                 <td>
-                    <button class="viewBtn" data-key="${app.key}">View</button>
-                    <button class="approveBtn" data-key="${app.key}">Approve</button>
-                    <button class="rejectBtn" data-key="${app.key}">Reject</button>
+                    <button class="viewBtn" data-key="${app.key}"><i class='bx bx-show-alt'></i></button>
+                    <button class="approveBtn" data-key="${app.key}"><i class="bx bx-check-circle"></i></button>
+                    <button class="rejectBtn" data-key="${app.key}"><i class="bx bx-x-circle"></i></button>
                 </td>
             `;
         });
@@ -215,7 +498,7 @@ function initializePageFunctions(userId) {
         renderPagination(applicationsToRender.length);
     }
 
-    // --- Search and Sort Logic (Active Pending) ---
+    // --- Search and Sort Logic ---
     function applySearchAndSort() {
         let currentApplications = [...allApplications];
 
@@ -231,6 +514,9 @@ function initializePageFunctions(userId) {
                 const province = (app.headquarters?.province || '').toLowerCase();
                 const city = (app.headquarters?.city || '').toLowerCase();
                 const barangay = (app.headquarters?.barangay || '').toLowerCase();
+                const streetAddress = (app.headquarters?.streetAddress || '').toLowerCase();
+                const applicationDateTime = app.applicationDateandTime ? new Date(app.applicationDateandTime).toLocaleString().toLowerCase() : '';
+
 
                 return orgName.includes(searchTerm) ||
                        contactPerson.includes(searchTerm) ||
@@ -239,7 +525,9 @@ function initializePageFunctions(userId) {
                        region.includes(searchTerm) ||
                        province.includes(searchTerm) ||
                        city.includes(searchTerm) ||
-                       barangay.includes(searchTerm);
+                       barangay.includes(searchTerm) ||
+                       streetAddress.includes(searchTerm) ||
+                       applicationDateTime.includes(searchTerm);
             });
         }
 
@@ -258,7 +546,7 @@ function initializePageFunctions(userId) {
                         valB = (b[sortBy] || '').toLowerCase();
                         break;
                     case 'mobileNumber':
-                        valA = parseInt(a.mobileNumber || '0'); // Parse as int for numeric sort
+                        valA = parseInt(a.mobileNumber || '0');
                         valB = parseInt(b.mobileNumber || '0');
                         break;
                     case 'region':
@@ -276,6 +564,14 @@ function initializePageFunctions(userId) {
                     case 'barangay':
                         valA = (a.headquarters?.barangay || '').toLowerCase();
                         valB = (b.headquarters?.barangay || '').toLowerCase();
+                        break;
+                    case 'streetAddress': 
+                        valA = (a.headquarters?.streetAddress || '').toLowerCase();
+                        valB = (b.headquarters?.streetAddress || '').toLowerCase();
+                        break;
+                    case 'applicationDateandTime':
+                        valA = new Date(a.applicationDateandTime || 0).getTime();
+                        valB = new Date(b.applicationDateandTime || 0).getTime();
                         break;
                     default:
                         valA = (a.organizationName || '').toLowerCase();
@@ -296,7 +592,171 @@ function initializePageFunctions(userId) {
         renderApplications(filteredApplications);
     }
 
-    // --- Pagination Functions (Active Pending - Local Implementation) ---
+    // --- Excel Export Functionality ---
+    if (exportBtn) {
+        exportBtn.addEventListener("click", () => {
+            if (filteredApplications.length === 0) { 
+                Swal.fire("Info", "No data to export!", "info");
+                return;
+            }
+
+            const dataForExport = filteredApplications.map((app, i) => ({
+                "No.": i + 1,
+                "Organization Name": app.organizationName || 'N/A',
+                "Contact Person": app.contactPerson || 'N/A',
+                "Email": app.email || 'N/A',
+                "Mobile Number": String(app.mobileNumber || 'N/A'), 
+                "Social Media": app.socialMediaLink || 'N/A',
+                "Region": app.headquarters?.region || 'N/A',
+                "Province": app.headquarters?.province || 'N/A',
+                "City": app.headquarters?.city || 'N/A',
+                "Barangay": app.headquarters?.barangay || 'N/A',
+                "Street Address": app.headquarters?.streetAddress || 'N/A',
+                "Application Date/Time": app.applicationDateandTime ? new Date(app.applicationDateandTime).toLocaleString() : 'N/A'
+            }));
+
+            const ws = XLSX.utils.json_to_sheet(dataForExport);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Pending ABVN Applications");
+
+            // Get current date and format it for the filename
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0'); 
+            const day = String(today.getDate()).padStart(2, '0');
+            const formattedDate = `${year}-${month}-${day}`;
+            
+            // Construct the filename with the date and time
+            const hours = String(today.getHours()).padStart(2, '0');
+            const minutes = String(today.getMinutes()).padStart(2, '0');
+            const seconds = String(today.getSeconds()).padStart(2, '0');
+            const formattedTime = `${hours}${minutes}${seconds}`;
+            
+            const filename = `pending-abvn-applications_${formattedDate}_${formattedTime}.xlsx`;
+            
+            XLSX.writeFile(wb, filename);
+            Swal.fire("Success", `Pending ABVN Applications exported to ${filename}!`, "success");
+        });
+    }
+
+    // --- PDF Export Functionality (All Data) ---
+    if (savePdfBtn) {
+        savePdfBtn.addEventListener("click", () => {
+            if (filteredApplications.length === 0) { // Use filteredApplications for PDF export
+                Swal.fire("Info", "No data to export to PDF!", "info");
+                return;
+            }
+
+            Swal.fire({
+                title: 'Generating PDF',
+                text: 'Please wait while your PDF is being generated...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('landscape'); // 'landscape' for wider tables
+
+            let yOffset = 20;
+            const logo = new Image();
+            // Ensure this path is correct relative to where pendingvg.html is located
+            logo.src = '../assets/images/AB_logo.png'; 
+
+            logo.onload = function() {
+                const pageWidth = doc.internal.pageSize.width;
+                const logoWidth = 30; // Adjust as needed
+                const logoHeight = (logo.naturalHeight / logo.naturalWidth) * logoWidth;
+                const margin = 14;
+
+                doc.addImage(logo, 'PNG', pageWidth - logoWidth - margin, margin, logoWidth, logoHeight);
+
+                doc.setFontSize(18);
+                doc.text("Pending ABVN Applications Report", 14, yOffset);
+                yOffset += 10;
+                doc.setFontSize(10);
+                // Adjust timezone to Philippines (PHT)
+                const now = new Date();
+                const options = {
+                    year: 'numeric', month: 'long', day: 'numeric',
+                    hour: '2-digit', minute: '2-digit', second: '2-digit',
+                    hour12: true, timeZone: 'Asia/Manila' 
+                };
+                doc.text(`Report Generated: ${now.toLocaleString('en-US', options)} (PHT)`, 14, yOffset);
+                yOffset += 15;
+
+                const head = [[
+                    "No.", "Organization Name", "Contact Person", "Email", "Mobile Number", "Social Media",
+                    "Region", "Province", "City", "Barangay", "Street Address", "Application Date/Time"
+                ]];
+
+                const body = filteredApplications.map((app, i) => [
+                    i + 1,
+                    app.organizationName || 'N/A',
+                    app.contactPerson || 'N/A',
+                    app.email || 'N/A',
+                    String(app.mobileNumber) || 'N/A',
+                    app.socialMediaLink || 'N/A',
+                    app.headquarters?.region || 'N/A',
+                    app.headquarters?.province || 'N/A',
+                    app.headquarters?.city || 'N/A',
+                    app.headquarters?.barangay || 'N/A',
+                    app.headquarters?.streetAddress || 'N/A',
+                    app.applicationDateandTime ? new Date(app.applicationDateandTime).toLocaleString() : 'N/A'
+                ]);
+
+                doc.autoTable({
+                    head: head,
+                    body: body,
+                    startY: yOffset,
+                    theme: 'grid',
+                    headStyles: {
+                        fillColor: [20, 174, 187], // Your desired header background color
+                        textColor: [255, 255, 255], // White text
+                        halign: 'center'
+                    },
+                    styles: {
+                        fontSize: 8,
+                        cellPadding: 2
+                    },
+                    didDrawPage: function (data) {
+                        doc.setFontSize(8);
+                        const pageNumberText = `Page ${data.pageNumber} of ${doc.internal.getNumberOfPages()}`;
+                        const poweredByText = "Powered by: Appvance"; // Your desired text
+                        const pageWidth = doc.internal.pageSize.width;
+                        const margin = data.settings.margin.left;
+                        const footerY = doc.internal.pageSize.height - 10;
+
+                        doc.text(pageNumberText, margin, footerY);
+                        doc.text(poweredByText, pageWidth - margin, footerY, { align: 'right' });
+                    }
+                });
+
+                // Get current date and time for filename
+                const nowForFilename = new Date();
+                const year = nowForFilename.getFullYear();
+                const month = String(nowForFilename.getMonth() + 1).padStart(2, '0');
+                const day = String(nowForFilename.getDate()).padStart(2, '0');
+                const hours = String(nowForFilename.getHours()).padStart(2, '0');
+                const minutes = String(nowForFilename.getMinutes()).padStart(2, '0');
+                const seconds = String(nowForFilename.getSeconds()).padStart(2, '0');
+                const formattedDateTime = `${year}-${month}-${day}_${hours}${minutes}${seconds}`;
+                
+                const filename = `pending-abvn-applications_${formattedDateTime}.pdf`;
+                doc.save(filename);
+                Swal.close();
+                Swal.fire("Success", `Pending ABVN Applications exported to "${filename}"`, "success");
+            };
+
+            logo.onerror = function() {
+                Swal.close();
+                Swal.fire("Error", "Failed to load logo image. Please check the path: '../assets/images/AB_logo.png'", "error");
+            };
+        });
+    }
+
+    // --- Pagination Functions 
     function renderPagination(totalItems) {
         pagination.innerHTML = '';
         const totalPages = Math.ceil(totalItems / rowsPerPage);
@@ -340,7 +800,6 @@ function initializePageFunctions(userId) {
         entriesInfo.textContent = `Showing ${totalItems ? startIndex + 1 : 0} to ${endIndex} of ${totalItems} entries`;
     }
 
-    // --- Modal Display Functions (Preview) ---
     function showPreviewModal(applicationData) {
         const formattedTimestamp = applicationData.applicationDateandTime ? new Date(applicationData.applicationDateandTime).toLocaleString('en-US', {
             year: 'numeric', month: 'short', day: 'numeric',
@@ -348,31 +807,40 @@ function initializePageFunctions(userId) {
         }) : 'N/A';
 
         let content = `
-            <h3 style="margin-bottom: 15px; color: #FA3B99;">Organization Details</h3>
-            <p><strong>Organization Name:</strong> ${applicationData.organizationName || 'N/A'}</p>
-            <p><strong>Contact Person:</strong> ${applicationData.contactPerson || 'N/A'}</p>
-            <p><strong>Email:</strong> ${applicationData.email || 'N/A'}</p>
-            <p><strong>Mobile Number:</strong> ${applicationData.mobileNumber || 'N/A'}</p>
-            <p><strong>Social Media Link:</strong> ${applicationData.socialMediaLink ? `<a href="${applicationData.socialMediaLink}" target="_blank" rel="noopener noreferrer">${applicationData.socialMediaLink}</a>` : 'N/A'}</p>
+            <div class="modal-content-inner" style="padding: 20px;">
 
-            <h4 style="margin-top: 20px; margin-bottom: 10px; color: #FA3B99;">Headquarters Address:</h4>
-            <ul>
-                <li><strong>Region:</strong> ${applicationData.headquarters?.region || 'N/A'}</li>
-                <li><strong>Province:</strong> ${applicationData.headquarters?.province || 'N/A'}</li>
-                <li><strong>City:</strong> ${applicationData.headquarters?.city || 'N/A'}</li>
-                <li><strong>Barangay:</strong> ${applicationData.headquarters?.barangay || 'N/A'}</li>
-                <li><strong>Street Address:</strong> ${applicationData.headquarters?.streetAddress || 'N/A'}</li>
-            </ul>
+                <h4 style="margin-top: 0px; margin-bottom: 10px; color: #FA3B99;">Organization Details :</h4>
 
-            <h4 style="margin-top: 20px; margin-bottom: 10px; color: #FA3B99;">Organizational Background:</h4>
-            <p><strong>Mission/Background:</strong> ${applicationData.organizationalBackgroundMission || 'N/A'}</p>
-            <p><strong>Areas of Expertise/Focus:</strong> ${applicationData.areasOfExpertiseFocus || 'N/A'}</p>
+                <p><strong>Application Date/Time:</strong> ${formattedTimestamp}</p>
+                <p><strong>Organization Name:</strong> ${applicationData.organizationName || 'N/A'}</p>
+                <p><strong>Contact Person:</strong> ${applicationData.contactPerson || 'N/A'}</p>
+                <p><strong>Email:</strong> ${applicationData.email || 'N/A'}</p>
+                <p><strong>Mobile Number:</strong> ${applicationData.mobileNumber || 'N/A'}</p>
+                <p><strong>Social Media Link:</strong> ${applicationData.socialMediaLink ? `<a href="${applicationData.socialMediaLink}" target="_blank" rel="noopener noreferrer">${applicationData.socialMediaLink}</a>` : 'N/A'}</p>
 
-            <h4 style="margin-top: 20px; margin-bottom: 10px; color: #FA3B99;">Legal & Documents:</h4>
-            <p><strong>Legal Status/Registration:</strong> ${applicationData.legalStatusRegistration || 'N/A'}</p>
-            <p><strong>Required Documents:</strong> ${applicationData.requiredDocumentsLink ? `<a href="${applicationData.requiredDocumentsLink}" target="_blank" rel="noopener noreferrer">View Document</a>` : 'N/A'}</p>
+                <hr>
 
-            <p style="margin-top: 20px; font-size: 0.9em; color: #555;"><strong>Application Date and Time:</strong> ${formattedTimestamp}</p>
+                <h4 style="margin-top: 20px; margin-bottom: 10px; color: #FA3B99;">Headquarters Address:</h4>
+                <div style="margin-left: 15px;">
+                    <p><strong>Region:</strong> ${applicationData.headquarters?.region || 'N/A'}</p>
+                    <p><strong>Province:</strong> ${applicationData.headquarters?.province || 'N/A'}</p>
+                    <p><strong>City:</strong> ${applicationData.headquarters?.city || 'N/A'}</p>
+                    <p><strong>Barangay:</strong> ${applicationData.headquarters?.barangay || 'N/A'}</p>
+                    <p><strong>Street Address:</strong> ${applicationData.headquarters?.streetAddress || 'N/A'}</p>
+                </div>
+
+                <hr>
+
+                <h4 style="margin-top: 20px; margin-bottom: 10px; color: #FA3B99;">Organizational Background:</h4>
+                <p><strong>Mission/Background:</strong> ${applicationData.organizationalBackgroundMission || 'N/A'}</p>
+                <p><strong>Areas of Expertise/Focus:</strong> ${applicationData.areasOfExpertiseFocus || 'N/A'}</p>
+                
+                <hr>
+
+                <h4 style="margin-top: 20px; margin-bottom: 10px; color: #FA3B99;">Legal & Documents:</h4>
+                <p><strong>Legal Status/Registration:</strong> ${applicationData.legalStatusRegistration || 'N/A'}</p>
+                <p><strong>Required Documents:</strong> ${applicationData.requiredDocumentsLink ? `<a href="${applicationData.requiredDocumentsLink}" target="_blank" rel="noopener noreferrer">View Document</a>` : 'N/A'}</p>
+            </div>
             `;
 
         modalContentDiv.innerHTML = content;
@@ -406,11 +874,15 @@ function initializePageFunctions(userId) {
                 showCancelButton: true,
                 confirmButtonColor: '#3085d6',
                 cancelButtonColor: '#d33',
-                confirmButtonText: 'Yes, approve it!',
-                customClass: {
-                    confirmButton: 'my-confirm-button-class',
-                    cancelButton: 'my-cancel-button-class'
-                }
+                confirmButtonText: 'Approve', 
+                    cancelButtonText: 'Cancel', 
+                    customClass: {
+                        popup: 'custom-swal-popup-small',
+                        title: 'custom-swal-title',
+                        htmlContainer: 'custom-swal-text',
+                        confirmButton: 'swal2-button-confirm-clean', 
+                        cancelButton: 'swal2-button-cancel-clean' 
+                    }
             }).then(async (result) => {
                 if (result.isConfirmed) {
                     try {
@@ -426,9 +898,10 @@ function initializePageFunctions(userId) {
                             if (approvedSnapshot.exists()) {
                                 approvedSnapshot.forEach((approvedChild) => {
                                     const approvedData = approvedChild.val();
-                                    // duplicate if organizationName AND email match
-                                    if (approvedData.organizationName === applicationData.organizationName &&
-                                        approvedData.email === applicationData.email) {
+                                    const normalizedOrgName = applicationData.organizationName.trim().toLowerCase();
+                                    const normalizedEmail = applicationData.email.trim().toLowerCase();
+                                    if (approvedData.organizationName.trim().toLowerCase() === normalizedOrgName &&
+                                        approvedData.email.trim().toLowerCase() === normalizedEmail) {
                                         isDuplicate = true;
                                         return true;
                                     }
@@ -450,7 +923,6 @@ function initializePageFunctions(userId) {
                             // Remove from pendingABVN
                             await appRef.remove();
                             Swal.fire('Approved!', 'The application has been approved and moved.', 'success');
-                            // Data will re-render automatically due to .on('value') listener
                         } else {
                             Swal.fire('Error', 'Application not found.', 'error');
                         }
@@ -468,10 +940,14 @@ function initializePageFunctions(userId) {
                 showCancelButton: true,
                 confirmButtonColor: '#d33',
                 cancelButtonColor: '#3085d6',
-                confirmButtonText: 'Yes, reject and archive it!',
+                confirmButtonText: 'Reject',
+                cancelButtonText: 'Cancel',
                 customClass: {
-                    confirmButton: 'my-confirm-button-class',
-                    cancelButton: 'my-cancel-button-class'
+                    popup: 'custom-swal-popup-small',
+                    title: 'custom-swal-title',
+                    htmlContainer: 'custom-swal-text', 
+                    confirmButton: 'swal2-button-confirm-clean',
+                    cancelButton: 'swal2-button-cancel-clean'
                 }
             }).then(async (result) => {
                 if (result.isConfirmed) {
@@ -490,8 +966,17 @@ function initializePageFunctions(userId) {
                             // Remove from pendingABVN
                             await appRef.remove();
 
-                            Swal.fire('Rejected!', 'The application has been rejected and archived.', 'success');
-                            // Data will re-render automatically due to .on('value') listener
+                            Swal.fire({
+                                title: 'Rejected!',
+                                text: 'The application has been rejected and archived.',
+                                icon: 'success', 
+                                customClass: {
+                                    popup: 'custom-swal-popup-small',
+                                    title: 'custom-swal-title',
+                                    htmlContainer: 'custom-swal-text',
+                                    confirmButton: 'custom-confirm-btn'
+                                }
+                            });
                         } else {
                             Swal.fire('Error', 'Application not found.', 'error');
                         }
@@ -511,14 +996,14 @@ function initializePageFunctions(userId) {
             return;
         }
 
-        Swal.fire({
-            title: 'Loading Archived Applications',
-            text: 'Fetching archived volunteer group applications...',
-            allowOutsideClick: false,
-            didOpen: () => {
-                Swal.showLoading();
-            }
-        });
+        // Swal.fire({
+        //     title: 'Loading Archived Applications',
+        //     text: 'Fetching archived volunteer group applications...',
+        //     allowOutsideClick: false,
+        //     didOpen: () => {
+        //         Swal.showLoading();
+        //     }
+        // });
 
         try {
             // Assuming archived applications are stored under 'abvnApplications/rejectedABVN'
@@ -644,18 +1129,17 @@ function initializePageFunctions(userId) {
             text: 'This will retrieve the volunteer group application from archived records and move it back to pending applications.',
             icon: 'question',
             showCancelButton: true,
-            confirmButtonText: 'Yes, retrieve it!',
-            cancelButtonText: 'No, keep it archived'
+            confirmButtonText: 'Retrieve',
+            cancelButtonText: 'Cancel',
+            customClass: {
+                popup: 'custom-swal-popup-small',
+                title: 'custom-swal-title',
+                htmlContainer: 'custom-swal-text', 
+                confirmButton: 'swal2-button-confirm-clean',
+                cancelButton: 'swal2-button-cancel-clean'
+            },
         }).then(async (result) => {
             if (result.isConfirmed) {
-                Swal.fire({
-                    title: 'Retrieving Application...',
-                    text: 'Moving application data back to active records...',
-                    allowOutsideClick: false,
-                    didOpen: () => {
-                        Swal.showLoading();
-                    }
-                });
 
                 try {
                     const snapshot = await database.ref(`abvnApplications/rejectedABVN/${uid}`).once('value');
@@ -663,6 +1147,46 @@ function initializePageFunctions(userId) {
 
                     if (!vgDataToRetrieve) {
                         Swal.fire('Error', 'Archived application data not found for retrieval.', 'error');
+                        return;
+                    }
+
+                    // Check for duplicates in pendingABVN and approvedABVN
+                    const pendingSnapshot = await database.ref('abvnApplications/pendingABVN').once('value');
+                    const approvedSnapshot = await database.ref('abvnApplications/approvedABVN').once('value');
+                    let isDuplicate = false;
+                    let duplicateReason = '';
+
+                    if (pendingSnapshot.exists()) {
+                        pendingSnapshot.forEach((child) => {
+                            const pendingData = child.val();
+                            if (pendingData.organizationName.toLowerCase() === vgDataToRetrieve.organizationName.toLowerCase() ||
+                                pendingData.email.toLowerCase() === vgDataToRetrieve.email.toLowerCase()) {
+                                isDuplicate = true;
+                                duplicateReason = pendingData.organizationName.toLowerCase() === vgDataToRetrieve.organizationName.toLowerCase() ? 'organization name' : 'email';
+                                return true;
+                            }
+                        });
+                    }
+
+                    if (!isDuplicate && approvedSnapshot.exists()) {
+                        approvedSnapshot.forEach((child) => {
+                            const approvedData = child.val();
+                            if (approvedData.organizationName.toLowerCase() === vgDataToRetrieve.organizationName.toLowerCase() &&
+                                approvedData.email.toLowerCase() === vgDataToRetrieve.email.toLowerCase()) {
+                                isDuplicate = true;
+                                duplicateReason = 'organization name and email';
+                                return true;
+                            }
+                        });
+                    }
+
+                    if (isDuplicate) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Duplicate Found',
+                            html: `An application with this ${duplicateReason} already exists in the pending or approved applications.<br><br>Please check the respective lists before proceeding.`,
+                            confirmButtonText: 'OK'
+                        });
                         return;
                     }
 
@@ -677,11 +1201,20 @@ function initializePageFunctions(userId) {
                     await database.ref(`abvnApplications/rejectedABVN/${uid}`).remove();
 
                     Swal.close();
-                    Swal.fire('Retrieved!', 'The volunteer group application has been retrieved and is now pending.', 'success');
+                    // Swal.fire({
+                    //     title: 'Retrieved!',
+                    //     text: 'Volunteer Group has been retrieved to pending applications.',
+                    //     icon: 'success',
+                    //     customClass: {
+                    //         popup: 'custom-swal-popup-small',
+                    //         title: 'custom-swal-title',
+                    //         htmlContainer: 'custom-swal-text',
+                    //         confirmButton: 'custom-confirm-btn'
+                    //     }
+                    // });
 
-                    // Refresh both the active pending and archived tables
-                    fetchPendingApplications(); // Re-fetch active pending
-                    fetchAndRenderArchivedVGs(); // Re-fetch archived to update the modal
+                    fetchPendingApplications(); 
+                    fetchAndRenderArchivedVGs(); 
                 } catch (error) {
                     console.error("Error retrieving VG:", error);
                     Swal.fire('Error', 'Failed to retrieve application: ' + error.message, 'error');
@@ -743,14 +1276,11 @@ function initializePageFunctions(userId) {
     fetchPendingApplications();
 }
 
-// Function to clear search inputs (moved here from HTML script block)
+// Function to clear search inputs
 function clearDInputs() {
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
         searchInput.value = '';
-        // Assuming applySearchAndSort is available in the scope where clearDInputs is called
-        // If not, this function might need to be passed as a parameter or be part of a larger object.
-        // For this structure, it's called after initializePageFunctions, so it should be fine.
         if (typeof applySearchAndSort === 'function') {
             applySearchAndSort();
         } else {

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../components/sidebar.css" />
     <link rel="stylesheet" href="../css/global.css" />
-    <link rel="stylesheet" href="../css/pending.css" />
+    <link rel="stylesheet" href="../css/vgandvolunteers.css" />
     <link rel='stylesheet' href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css'/>
 
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -73,8 +73,7 @@
                             <th>Age</th>
                             <th>Social Media</th>
                             <th>Additional Info</th>
-                            <th>General Availability</th>
-                            <th>Time Availability</th>
+                            <th>Date/Time Availability</th>
                             <th>Region</th>
                             <th>Province</th>
                             <th>City</th>
@@ -120,9 +119,26 @@
             <h3>Endorse Volunteer to ABVN</h3>
             <form id="endorseABVNForm">
                 <p>Select a nearby ABVN to endorse this volunteer:</p>
+                <div class="filter-controls">
+                    <input type="text" id="abvnSearchInput" placeholder="Search by organization name or location">
+                    <select id="regionFilter">
+                        <option value="">All Regions</option>
+                        <!-- Populated dynamically -->
+                    </select>
+                    <select id="provinceFilter">
+                        <option value="">All Provinces</option>
+                        <!-- Populated dynamically -->
+                    </select>
+                    <select id="cityFilter">
+                        <option value="">All Cities</option>
+                        <!-- Populated dynamically -->
+                    </select>
+                    <button type="button" id="clearFiltersBtn">Clear Filters</button>
+                </div>
                 <div class="abvn-radio-group" id="abvnListContainer">
                     <p>Loading ABVN locations...</p>
-                    </div>
+                </div>
+                <p id="filterResultsInfo">Showing 0 ABVN groups</p>
                 <button type="submit" id="endorseABVNSubmitBtn" disabled>Endorse to Selected ABVN</button>
             </form>
         </div>
@@ -131,7 +147,7 @@
     <div class="modal" id="archivedModal" style="display: none;">
         <div class="modal-content">
             <span class="close-button" id="closeArchivedModalBtn">×</span>
-            <h2>Archived Pending ABVN Applications</h2>
+            <h2>Archived Pending Volunteer Applications</h2>
             <div class="table-container" style="max-height: 400px; overflow-y: auto;">
                 <table id="archivedTable">
                     <thead>
