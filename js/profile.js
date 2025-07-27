@@ -473,26 +473,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
                         if (passwordNeedsResetAfterTerms) {
                             await Swal.fire({
-                                 icon: 'success',
+                                icon: 'success',
                                 title: 'Agreement Accepted',
                                 text: 'Thank you for accepting the Terms and Conditions. For your security, please change your temporary password now.',
                                 allowOutsideClick: false,
                                 allowEscapeKey: false,
                                 confirmButtonText: 'Change Password',
-                                width: '460px',
-                                padding: '1.75em',
-                                background: '#f9f9f9',
-                                color: '#2c3e50',
-                                confirmButtonColor: '#007BFF', 
                                 buttonsStyling: true,
-                                // customClass: {
-                                //     popup: 'rounded-xl shadow-lg',
-                                //     title: 'text-lg font-semibold',
-                                //     confirmButton: 'px-4 py-2'
-                                // },
                                 customClass: {
-                                    confirmButton: 'swal2-confirm-large',
-                                    cancelButton: 'swal2-cancel-large'
+                                    popup: 'custom-swal-popup-small', 
+                                    title: 'custom-swal-title', 
+                                    htmlContainer: 'custom-swal-text', 
+                                    confirmButton: 'custom-confirm-btn' 
                                 },
                             });
                             if (basicInfoSection) basicInfoSection.style.display = 'none';

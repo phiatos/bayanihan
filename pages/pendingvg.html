@@ -21,7 +21,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     
-    <title>Pending ABVN Applications</title>
+    <title>Bayanihan | Angat Buhay Disaster Relief Portal</title>
 </head>
 <body>
     <div class="main-container">
@@ -81,8 +81,10 @@
                 </button>
 
                 <div class="import-section">
-                    <input type="file" id="excelFileInput" accept=".xlsx, .xls">
-                    <button id="importExcelBtn" class="action-button">Import from Excel</button>
+                    <input type="file" id="excelFileInput" accept=".xls,.xlsx" style="display: none;"/>
+                    <button id="importExcelBtn" class="importExcelBtn" type="button">
+                        <i class='bx bxs-file-import'  style="font-size: 1.2rem;"></i>Import from Excel
+                    </button>
                 </div>
                 
                 <div id="importStatusModal" class="modal" style="display: none;">
@@ -125,10 +127,11 @@
             </div>   
 
             <br>
-                <div class="pdf-buttons">
-                    <button id="exportBtn" class="pdf-button" type="button"><i class='bx bxs-file-pdf'></i>Export to Excel</button>
-                    <button id="savePdfBtn" class="excel-button" type="button"><i class='bx bxs-file-export'></i>Save to PDF</button>
-                </div>
+            <div class="pdf-buttons">
+                <button id="exportBtn" class="pdf-button" type="button"><i class='bx bxs-file-pdf'></i>Export to Excel</button>
+                <button id="savePdfBtn" class="excel-button" type="button"><i class='bx bxs-file-export'></i>Save to PDF</button>
+            </div>
+            
         </div>
     </div>
 
