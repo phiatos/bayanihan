@@ -169,24 +169,31 @@ function initializePageFunctions(userId) {
     function showPreviewModal(volunteer) {
         const fullName = getFullName(volunteer);
         modalContent.innerHTML = `
-            <h3 style="color: #FA3B99;">Approved Volunteer Details</h3>
-            <p><strong>Scheduled Date/Time:</strong> ${formatDate(volunteer.scheduledDateTime || volunteer.timestamp)}</p>
-            <p><strong>Full Name:</strong> ${fullName}</p>
-            <p><strong>Email:</strong> ${volunteer.email || 'N/A'}</p>
-            <p><strong>Mobile Number:</strong> ${volunteer.mobileNumber || 'N/A'}</p>
-            <p><strong>Age:</strong> ${volunteer.age || 'N/A'}</p>
-            <p><strong>Social Media:</strong> ${volunteer.socialMediaLink ? `<a href="${volunteer.socialMediaLink}" target="_blank">${volunteer.socialMediaLink}</a>` : 'N/A'}</p>
-            <p><strong>Additional Info:</strong> ${volunteer.additionalInfo || 'N/A'}</p>
-            <h3 style="color: #FA3B99;">Address Information</h3>
-            <p><strong>Region:</strong> ${volunteer.address?.region || 'N/A'}</p>
-            <p><strong>Province:</strong> ${volunteer.address?.province || 'N/A'}</p>
-            <p><strong>City:</strong> ${volunteer.address?.city || 'N/A'}</p>
-            <p><strong>Barangay:</strong> ${volunteer.address?.barangay || 'N/A'}</p>
-            <p><strong>Street Address:</strong> ${volunteer.address?.streetAddress || 'N/A'}</p>
-            <h3 style="color: #FA3B99;">Availability</h3>
-            <p><strong>General Availability:</strong> ${volunteer.availability?.general || 'N/A'}</p>
-            <p><strong>Available Days:</strong> ${volunteer.availability?.specificDays ? volunteer.availability.specificDays.join(', ') : 'N/A'}</p>
-            <p><strong>Time Availability:</strong> ${volunteer.availability?.timeAvailability || 'N/A'}</p>
+            <div class="modal-content-inner" style="padding: 20px;">
+                <h2>Approved Volunteer Details</h2>
+
+                <p><strong>Scheduled Date/Time:</strong> ${formatDate(volunteer.scheduledDateTime || volunteer.timestamp)}</p>
+                <p><strong>Full Name:</strong> ${fullName}</p>
+                <p><strong>Email:</strong> ${volunteer.email || 'N/A'}</p>
+                <p><strong>Mobile Number:</strong> ${volunteer.mobileNumber || 'N/A'}</p>
+                <p><strong>Age:</strong> ${volunteer.age || 'N/A'}</p>
+                <p><strong>Social Media:</strong> ${volunteer.socialMediaLink ? `<a href="${volunteer.socialMediaLink}" target="_blank">${volunteer.socialMediaLink}</a>` : 'N/A'}</p>
+                <p><strong>Additional Info:</strong> ${volunteer.additionalInfo || 'N/A'}</p>
+                <hr>
+                <h2>Address Information:</h2>
+                <div style="margin-left: 15px;">
+                    <p><strong>Region:</strong> ${volunteer.address?.region || 'N/A'}</p>
+                    <p><strong>Province:</strong> ${volunteer.address?.province || 'N/A'}</p>
+                    <p><strong>City:</strong> ${volunteer.address?.city || 'N/A'}</p>
+                    <p><strong>Barangay:</strong> ${volunteer.address?.barangay || 'N/A'}</p>
+                    <p><strong>Street Address:</strong> ${volunteer.address?.streetAddress || 'N/A'}</p>
+                </div>
+                <hr>
+                <h2>Availability:</h2>
+                <p><strong>General Availability:</strong> ${volunteer.availability?.general || 'N/A'}</p>
+                <p><strong>Available Days:</strong> ${volunteer.availability?.specificDays ? volunteer.availability.specificDays.join(', ') : 'N/A'}</p>
+                <p><strong>Time Availability:</strong> ${volunteer.availability?.timeAvailability || 'N/A'}</p>
+            </div>
         `;
         previewModal.style.display = 'flex';
     }

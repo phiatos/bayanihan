@@ -655,19 +655,27 @@ function showVolunteerDetails(volunteer) {
     let socialMediaHtml = getSocialMediaLink(volunteer.socialMediaLink);
 
     modalContentDiv.innerHTML = `
-        <h2>Volunteer Details</h2>
-        <p><strong>Full Name:</strong> ${getFullName(volunteer)}</p>
-        <p><strong>Email:</strong> ${volunteer.email || 'N/A'}</p>
-        <p><strong>Mobile Number:</strong> ${volunteer.mobileNumber || 'N/A'}</p>
-        <p><strong>Age:</strong> ${volunteer.age || 'N/A'}</p>
-        <p><strong>Social Media:</strong><br>${socialMediaHtml}</p>
-        <p><strong>Additional Info:</strong> ${volunteer.additionalInfo || 'N/A'}</p>
-        <p><strong>Region:</strong> ${volunteer.address?.region || 'N/A'}</p>
-        <p><strong>Province:</strong> ${volunteer.address?.province || 'N/A'}</p>
-        <p><strong>City:</strong> ${volunteer.address?.city || 'N/A'}</p>
-        <p><strong>Barangay:</strong> ${volunteer.address?.barangay || 'N/A'}</p>
-        <p><strong>Endorsed To ABVN:</strong> ${volunteer.endorsedToABVNName ? `${volunteer.endorsedToABVNName} (${volunteer.endorsedToABVNLocation})` : 'N/A'}</p>
-        <p><strong>Endorsement Date:</strong> ${formatDate(volunteer.endorsementDate)}</p>
+        <div class="modal-content-inner" style="padding: 20px;">
+            <h2>Volunteer Details:</h2>
+            <p><strong>Full Name:</strong> ${getFullName(volunteer)}</p>
+            <p><strong>Email:</strong> ${volunteer.email || 'N/A'}</p>
+            <p><strong>Mobile Number:</strong> ${volunteer.mobileNumber || 'N/A'}</p>
+            <p><strong>Age:</strong> ${volunteer.age || 'N/A'}</p>
+            <p><strong>Social Media:</strong><br>${socialMediaHtml}</p>
+            <p><strong>Additional Info:</strong> ${volunteer.additionalInfo || 'N/A'}</p>
+            <hr>
+            <h2>Address Information:</h2>
+            <div style="margin-left: 15px;">
+                <p><strong>Region:</strong> ${volunteer.address?.region || 'N/A'}</p>
+                <p><strong>Province:</strong> ${volunteer.address?.province || 'N/A'}</p>
+                <p><strong>City:</strong> ${volunteer.address?.city || 'N/A'}</p>
+                <p><strong>Barangay:</strong> ${volunteer.address?.barangay || 'N/A'}</p>
+            </div>
+            <hr>
+            <h2>Endorsement Details:</h2>
+            <p><strong>Endorsed To ABVN:</strong> ${volunteer.endorsedToABVNName ? `${volunteer.endorsedToABVNName} (${volunteer.endorsedToABVNLocation})` : 'N/A'}</p>
+            <p><strong>Endorsement Date:</strong> ${formatDate(volunteer.endorsementDate)}</p>
+        </div>
     `;
     previewModal.style.display = 'flex';
 }

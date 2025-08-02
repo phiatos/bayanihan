@@ -201,7 +201,7 @@ function initializePageFunctions(userId) {
         let specificSlotsHtml = '';
 
         if (volunteer.availability && volunteer.availability.specificDateTimeSlots && volunteer.availability.specificDateTimeSlots.length > 0) {
-            specificSlotsHtml = `<h4 style="margin-top: 20px; margin-bottom: 10px; color: #14AEBB;">Specific Date & Time Slots:</h4><div style="margin-left: 15px;"><ol style="padding-left: 20px; margin-top: 5px;">`;
+            specificSlotsHtml = `<h5 style="margin-bottom: 10px; color: #14AEBB;">Specific Date & Time Slots:</h5><div style="margin-left: 15px;"><ol style="padding-left: 20px; margin-top: 5px;">`;
             volunteer.availability.specificDateTimeSlots.forEach(slot => {
                 if (slot.date && slot.time) {
                     specificSlotsHtml += `<li>${slot.date} at ${slot.time}</li>`;
@@ -215,7 +215,7 @@ function initializePageFunctions(userId) {
         modalContent.innerHTML = `
             <div class="modal-content-inner" style="padding: 20px;">
 
-                <h4 style="margin-top: 0px; margin-bottom: 10px; color: #FA3B99;">Volunteer Details :</h4>
+                <h2>Volunteer Details:</h2>
 
                 <p><strong>Application Date/Time:</strong> ${formatDate(volunteer.timestamp)}</p>
                 <p><strong>Full Name:</strong> ${fullName}</p>
@@ -224,10 +224,8 @@ function initializePageFunctions(userId) {
                 <p><strong>Age:</strong> ${volunteer.age || 'N/A'}</p>
                 <p><strong>Social Media:</strong> ${volunteer.socialMediaLink ? `<a href="${volunteer.socialMediaLink}" target="_blank" rel="noopener noreferrer">${volunteer.socialMediaLink}</a>` : 'N/A'}</p>
                 <p><strong>Additional Info:</strong> ${volunteer.additionalInfo || 'N/A'}</p>
-
                 <hr>
-
-                <h4 style="margin-top: 20px; margin-bottom: 10px; color: #FA3B99;">Address Information:</h4>
+                <h2>Address Information:</h2>
                 <div style="margin-left: 15px;">
                     <p><strong>Region:</strong> ${volunteer.address?.region || 'N/A'}</p>
                     <p><strong>Province:</strong> ${volunteer.address?.province || 'N/A'}</p>
@@ -235,10 +233,8 @@ function initializePageFunctions(userId) {
                     <p><strong>Barangay:</strong> ${volunteer.address?.barangay || 'N/A'}</p>
                     <p><strong>Street Address:</strong> ${volunteer.address?.streetAddress || 'N/A'}</p>
                 </div>
-
                 <hr>
-
-                <h4 style="margin-top: 20px; margin-bottom: 10px; color: #FA3B99;">Availability:</h4>
+                <h2>Availability:</h2>
                 ${specificSlotsHtml}
             </div>
         `;
