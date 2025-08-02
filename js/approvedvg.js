@@ -71,8 +71,6 @@ function checkInactivity() {
         text: 'You\'ve been inactive for a while. Do you want to continue your session or log out?',
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33',
         confirmButtonText: 'Stay Logged In',
         cancelButtonText: 'Log Out',
         allowOutsideClick: false,
@@ -683,14 +681,14 @@ function showPreviewModal(applicationData) {
 
     modalContentDiv.innerHTML = `
         <div class="modal-content-inner" style="padding: 20px;">
-            <h4 style="margin-top: 0px; margin-bottom: 10px; color: #FA3B99;">Organization Details:</h4>
+            <h2>Organization Details:</h2>
             <p><strong>Organization Name:</strong> ${applicationData.organizationName || 'N/A'}</p>
             <p><strong>Contact Person:</strong> ${applicationData.contactPerson || 'N/A'}</p>
             <p><strong>Email:</strong> ${applicationData.email || 'N/A'}</p>
             <p><strong>Mobile Number:</strong> ${applicationData.mobileNumber || 'N/A'}</p>
             <p><strong>Social Media Link:</strong> ${applicationData.socialMediaLink ? `<a href="${applicationData.socialMediaLink}" target="_blank" rel="noopener noreferrer">${applicationData.socialMediaLink}</a>` : 'N/A'}</p>
             <hr>
-            <h4 style="margin-top: 20px; margin-bottom: 10px; color: #FA3B99;">Headquarters Address:</h4>
+            <h2>Headquarters Address:</h2>
             <div style="margin-left: 15px;">
                 <p><strong>Region:</strong> ${applicationData.headquarters?.region || 'N/A'}</p>
                 <p><strong>Province:</strong> ${applicationData.headquarters?.province || 'N/A'}</p>
@@ -699,11 +697,11 @@ function showPreviewModal(applicationData) {
                 <p><strong>Street Address:</strong> ${applicationData.headquarters?.streetAddress || 'N/A'}</p>
             </div>
             <hr>
-            <h4 style="margin-top: 20px; margin-bottom: 10px; color: #FA3B99;">Organizational Background:</h4>
+            <h2>Organizational Background:</h2>
             <p><strong>Mission/Background:</strong> ${applicationData.organizationalBackgroundMission || 'N/A'}</p>
             <p><strong>Areas of Expertise/Focus:</strong> ${applicationData.areasOfExpertiseFocus || 'N/A'}</p>
             <hr>
-            <h4 style="margin-top: 20px; margin-bottom: 10px; color: #FA3B99;">Legal & Documents:</h4>
+            <h2>Legal & Documents:</h2>
             <p><strong>Legal Status/Registration:</strong> ${applicationData.legalStatusRegistration || 'N/A'}</p>
             <p><strong>Required Documents:</strong> ${applicationData.requiredDocumentsLink ? `<a href="${applicationData.requiredDocumentsLink}" target="_blank" rel="noopener noreferrer">View Document</a>` : 'N/A'}</p>
             <hr>
@@ -745,11 +743,11 @@ async function handleTableActions(event) {
                 text: `Are you sure you want to register "${applicationToRegister.organizationName}" into Volunteer Group Management? This will create a user account and move the application to "Registered".`,
                 icon: 'question',
                 showCancelButton: true,
-                confirmButtonColor: '#3085d6',
-                cancelButtonColor: '#d33',
                 confirmButtonText: 'Register',
                 cancelButtonText: 'Cancel',
                 reverseButtons: true,
+                focusCancel: true,
+                allowOutsideClick: false,
                 customClass: {
                     popup: 'custom-swal-popup-small',
                     title: 'custom-swal-title',
@@ -761,20 +759,6 @@ async function handleTableActions(event) {
                 if (result.isConfirmed) {
                     await registerVolunteerGroup(applicationToRegister);
                 } else if (result.dismiss === Swal.DismissReason.cancel) {
-                    Swal.fire({
-                        title: 'Cancelled',
-                        text: 'Registration cancelled.',
-                        icon: 'info',
-                        timer: 1600,
-                        showConfirmButton: false,
-                        timerProgressBar: true,
-                        customClass: {
-                            popup: 'swal2-popup-info-clean',
-                            title: 'swal2-title-info-clean',
-                            htmlContainer: 'swal2-text-info-clean',
-                            confirmButton: 'custom-confirm-btn'
-                        }
-                    });
                 }
             });
         } else {
@@ -1092,9 +1076,6 @@ async function handleEditFormSubmission() {
         reverseButtons: true,
         focusCancel: true,
         allowOutsideClick: false,
-        confirmButtonColor: '#4CAF50',
-        cancelButtonColor: '#f44336',
-        padding: '1.25em',
         customClass: {
             popup: 'custom-swal-popup-small',
             title: 'custom-swal-title',
@@ -1161,6 +1142,7 @@ async function handleEditFormSubmission() {
             timer: 1600,
             showConfirmButton: false,
             timerProgressBar: true,
+            allowOutsideClick: false,
             customClass: {
                 popup: 'swal2-popup-success-clean',
                 title: 'swal2-title-success-clean',
@@ -1407,6 +1389,7 @@ async function registerVolunteerGroup(applicationData) {
             timer: 4000,
             timerProgressBar: true,
             showConfirmButton: false,
+            allowOutsideClick: false,
             customClass: {
                 popup: 'swal2-popup-success-clean',
                 title: 'swal2-title-success-clean',
@@ -1669,6 +1652,7 @@ async function handleExcelFileSelect(event) {
                     timer: 1600,
                     showConfirmButton: false,
                     timerProgressBar: true,
+                    allowOutsideClick: false,
                     customClass: {
                         popup: 'swal2-popup-success-clean',
                         title: 'swal2-title-success-clean',

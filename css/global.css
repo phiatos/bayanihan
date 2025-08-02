@@ -281,24 +281,7 @@ tr {
   pointer-events: none; /* ensures no accidental clicks when hidden */
 }
 
-.modal-content {
-  background: var(--light-bg);
-  padding: 30px;
-  width: 90%;
-  max-width: 900px; /* keep it responsive */
-  max-height: 85vh;
-  overflow-y: auto;
-  box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);
-  border: 3px solid var(--primary-color);
-  border-radius: 16px;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  animation: animatetop 0.4s ease-out;
-  animation-duration: 0.4s;
-  display: flex; /* Flex container for modal content */
-  flex-direction: column; /* Stack children vertically */
-}
+
 
 @keyframes animatetop {
   0% {
@@ -310,7 +293,6 @@ tr {
     transform: translateY(0) scale(1);
   }
 }
-
 
 .close, .close-button, .closeBtn {
   color: #aaa;
@@ -400,7 +382,6 @@ tr {
   box-sizing: border-box;
 }
 
-
 h2, h4, strong{
   color: var(--primary-color);
 }
@@ -462,9 +443,177 @@ h2, h4, strong{
 }
 
 /* ==========================================================================
+ Edit Modal
+========================================================================== */
+#editModalTitle {
+  font-size: 1.25rem;
+  font-weight: 600;
+  align-content: center;
+  margin-top: -30px;
+  border-radius: 0 0 20px 20px;
+  width: 50%;
+  text-align: center;
+  padding: 10px;
+  background-color: var(--primary-color);
+  color: #ffffff;
+}
+
+.modal-content {
+  background-color: var(--light-bg);
+  margin: auto;
+  padding: 25px;
+  border: 3px solid var(--primary-color);
+  border-radius: 16px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  width: 90%;
+  max-width: 500px;
+  max-height: 90vh;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  animation: fadeIn 0.3s ease-out;
+  box-sizing: border-box;
+  overflow-y: auto;
+}
+
+.modal-content.small-modal {
+  max-width: 400px;
+  padding: 20px;
+}
+
+.modal-content h4 {
+  color: var(--primary-color);
+  margin-top: 0;
+  margin-bottom: 20px;
+  font-size: 1.8rem;
+  text-align: center;
+  font-weight: 600;
+}
+
+.modal-content h2 {
+  margin-top: 0px;
+  margin-bottom: 10px; 
+  color: var(--accent-color);
+}
+
+.modal-content .form-group {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin-top: 15px;
+  gap: 0.5rem;
+}
+
+.modal-content input[type="text"],
+.modal-content input[type="email"],
+.modal-content input[type="number"],
+.modal-content input[type="tel"],
+.modal-content input[type="date"],
+.modal-content input[type="url"],
+.modal-content textarea,
+.modal-content select {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid #d1d5db;
+  background-color: #f9fafb;
+  font-size: 15px;
+  transition: all 0.2s ease-in-out;
+  outline: none;
+}
+
+.modal-content input:focus,
+.modal-content select:focus {
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+  background-color: #ffffff;
+}
+
+.modal-content input::placeholder,
+.modal-content select::placeholder {
+  color: #9ca3af;
+  font-size: 14px;
+}
+
+.modal-content select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 20 20' fill='gray' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7 7l3-3 3 3m0 6l-3 3-3-3' /%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  background-size: 1rem;
+}
+
+.modal-content button[type="submit"],
+.modal-content button[type="button"] {
+  padding: 14px;
+  width: 100%;
+  background-color: var(--primary-color);
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 600;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.modal-content button:hover {
+  background-color: var(--button-hover);
+  transform: scale(1.01);
+}
+
+.modal-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1.5rem;
+  font-size: 14px;
+}
+
+.modal-content th,
+.modal-content td {
+  padding: 12px 16px;
+  border: 1px solid #e5e7eb;
+  text-align: left;
+}
+
+.modal-content th {
+  background-color: #f3f4f6;
+  color: #111827;
+  font-weight: 600;
+}
+
+.modal-content-inner p {
+  text-align: justify;
+  font-size: 14px;
+}
+
+.modal-content label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #14AEBB;
+  margin-bottom: 0;
+}
+
+.close, .close-button {
+  color: var(--gray);
+  position: absolute;
+  top: 15px;
+  right: 20px;
+  font-size: 30px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.close:hover, .close-button:hover,
+.close:focus, .close-button:focus {
+  color: var(--accent-color);
+  text-decoration: none;
+}
+
+/* ==========================================================================
   Table Styling (reliefslog, reportslog, activation)
 ========================================================================== */
-/* Table wrapper for horizontal scroll on small screens */
 .table-container {
   width: 100%;
   min-height: 100px;
@@ -475,9 +624,9 @@ h2, h4, strong{
 
 table {
   width: 100%;
-  min-width: 400px;   /* minimum width for readability */
-  max-width: 1200px;  /* maximum width to avoid stretching too wide */
-  margin: 0 auto;     /* center table if smaller than container */
+  min-width: 400px;   
+  max-width: 1200px; 
+  margin: 0 auto;    
   
   border-collapse: collapse;
   border-spacing: 0;
@@ -630,7 +779,8 @@ button:disabled {
 }
 
 /* General Action Buttons */
-.viewBtn,.editBtn,
+.viewBtn,
+.editBtn,
 .deleteBtn,
 .approveBtn,
 .rejectBtn,
@@ -658,7 +808,12 @@ button:disabled {
 }
 
 /* Table Cell Styling for Action Buttons */
-td:has(.viewBtn, .approveBtn, .rejectBtn, .editBtn, .registerBtn, .saveSinglePdfBtn) {
+td:has(.viewBtn, .editBtn, 
+.approveBtn, .registerBtn, 
+.saveSinglePdfBtn, .savePDFBtn,
+.actionBtn, .endorseBtn,
+.deleteBtn, .rejectBtn, .archiveBtn,
+.rescheduleBtn) {
   display: flex;
   gap: 5px;
   justify-content: center;
@@ -667,12 +822,12 @@ td:has(.viewBtn, .approveBtn, .rejectBtn, .editBtn, .registerBtn, .saveSinglePdf
 }
 
 /* Refined Action Buttons (Circular) */
-.viewBtn,
-.approveBtn,
-.rejectBtn,
-.editBtn,
-.registerBtn,
-.saveSinglePdfBtn {
+.viewBtn, .editBtn, 
+.approveBtn, .registerBtn,
+.saveSinglePdfBtn, .savePDFBtn,
+.actionBtn, .endorseBtn,
+.deleteBtn, .rejectBtn, .archiveBtn,
+.rescheduleBtn {
   width: 40px;
   height: 40px;
   padding: 0;
@@ -685,12 +840,12 @@ td:has(.viewBtn, .approveBtn, .rejectBtn, .editBtn, .registerBtn, .saveSinglePdf
   transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.viewBtn:hover,
-.approveBtn:hover,
-.rejectBtn:hover,
-.editBtn:hover,
-.registerBtn:hover,
-.saveSinglePdfBt:hover {
+.viewBtn:hover, .editBtn:hover,
+.approveBtn:hover, .registerBtn:hover,
+.saveSinglePdfBtn:hover, .savePDFBtn:hover,
+.rejectBtn:hover, .deleteBtn:hover, .archiveBtn:hover,
+.actionBtn:hover, .endorseBtn:hover,
+.rescheduleBtn:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
@@ -1669,11 +1824,11 @@ label:has(+ textarea[required])::after {
 
 /* pendinginkind and monetary */
 .my-confirm-button-class {
-  width: 150px !important; /* Example width */
+  width: 150px !important; 
 }
 
 .my-cancel-button-class {
-  width: 120px !important; /* Example width */
+  width: 120px !important; 
 }
 
 .my-custom-swal-popup {

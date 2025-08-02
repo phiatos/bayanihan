@@ -365,15 +365,15 @@ function renderVolunteersTable() {
 
         const actionsCell = row.insertCell();
         const viewButton = document.createElement('button');
-        viewButton.textContent = 'View';
-        viewButton.classList.add('viewBtn', 'view-info-button');
+        viewButton.innerHTML = "<i class='bx bx-show-alt'></i>";
+        viewButton.classList.add('viewBtn');
         viewButton.onclick = () => showVolunteerDetails(volunteer);
         actionsCell.appendChild(viewButton);
 
         // --- Archive Button ---
         const archiveButton = document.createElement('button');
-        archiveButton.textContent = 'Archive';
-        archiveButton.classList.add('action-button', 'archive-button');
+        archiveButton.innerHTML = "<i class='bx bx-x-circle'></i>";
+        archiveButton.classList.add('archiveBtn');
         archiveButton.onclick = () => archiveVolunteer(volunteer); 
         actionsCell.appendChild(archiveButton);
     });

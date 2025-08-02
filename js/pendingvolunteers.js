@@ -567,9 +567,9 @@ function initializePageFunctions(userId) {
                 <td>${volunteer.address?.barangay || 'N/A'}</td>
                 <td>${displayStatusNotes}</td>
                 <td>
-                    <button class="viewBtn" data-key="${volunteer.key}">View</button>
-                    <button class="actionBtn" data-key="${volunteer.key}">Actions <i class='bx bxs-chevron-down'></i></button>
-                    
+                    <button class="actionBtn" data-key="${volunteer.key}"><i class='bx bx-dots-vertical-rounded'></i></button>
+                    <button class="viewBtn" data-key="${volunteer.key}"><i class='bx bx-show-alt'></i></button>
+                    <button class="saveSinglePdfBtn" data-key="${volunteer.key}"><i class='bx bxs-file-pdf'></i></button>
                 </td>
             `;
         });
@@ -1519,6 +1519,8 @@ function initializePageFunctions(userId) {
             Swal.fire('Email Error', 'Failed to send endorsement email. Please try again.', 'error');
         }
     }
+
+    
 
     document.addEventListener('click', (event) => {
         if (currentDropdown && !currentDropdown.contains(event.target) && !event.target.closest('.actionBtn')) {

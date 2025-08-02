@@ -227,8 +227,8 @@ function renderAdminTable(data) {
         
         const actionsCell = row.insertCell(5);
         actionsCell.innerHTML = `
-            <button class="editBtn" data-uid="${admin.uid}">Edit</button>
-            <button class="deleteBtn" data-uid="${admin.uid}">Archived</button>
+            <button class="editBtn" data-uid="${admin.uid}"><i class='bx bx-edit'></i></button>
+            <button class="deleteBtn" data-uid="${admin.uid}"><i class="bx bx-x-circle"></i></button>
         `;
     });
 
@@ -652,12 +652,22 @@ function deleteAdmin(uid) {
         return;
     }
     Swal.fire({
-        title: 'Are you sure?',
-        text: 'This will archive the AB Admin account to "deletedAdmins" and remove it from the active list. This action cannot be undone.',
+        title: 'Are you sure to archive this admin?',
+        text: "This will move it to archived records.",        
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonText: 'Yes, archive it!',
-        cancelButtonText: 'No, keep it'
+        confirmButtonText: 'Reject',
+        cancelButtonText: 'Cancel',
+        reverseButtons: true,
+        focusCancel: true,
+        allowOutsideClick: false,
+        customClass: {
+            popup: 'custom-swal-popup-small',
+            title: 'custom-swal-title',
+            htmlContainer: 'custom-swal-content',
+            confirmButton: 'custom-confirm-btn',
+            cancelButton: 'custom-cancel-btn'
+        }
     }).then(async (result) => {
         if (result.isConfirmed) {
             Swal.fire({
@@ -779,12 +789,22 @@ async function retrieveAdmin(uid) {
     }
 
     Swal.fire({
-        title: 'Are you sure?',
+        title: 'Retrieve Application?',
         text: 'This will retrieve the admin account from archived records and make it active again.',
         icon: 'question',
         showCancelButton: true,
-        confirmButtonText: 'Yes, retrieve it!',
-        cancelButtonText: 'No, keep it archived'
+        confirmButtonText: 'Retrieve',
+        cancelButtonText: 'Cancel',
+        reverseButtons: true,
+        focusCancel: true,
+        allowOutsideClick: false,
+        customClass: {
+            popup: 'custom-swal-popup-small',
+            title: 'custom-swal-title',
+            htmlContainer: 'custom-swal-content',
+            confirmButton: 'custom-confirm-btn',
+            cancelButton: 'custom-cancel-btn'
+        }
     }).then(async (result) => {
         if (result.isConfirmed) {
             Swal.fire({

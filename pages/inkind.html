@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="../components/sidebar.css" />
-    <link rel="stylesheet" href="../css/inkind.css" />
+    <link rel="stylesheet" href="../css/donations.css" />
     <link rel="stylesheet" href="../css/global.css" />
     <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" />
 
@@ -21,7 +21,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 
-    <title>In-Kind Donation</title>
+    <title>Bayanihan | Angat Buhay Disaster Relief Portal</title>
 </head>
 <body>
     <div class="main-container">
@@ -168,6 +168,24 @@
                         <button id="viewArchived" aria-label="View Archived Admins">
                             <i class='bx bx-archive' style="color: white; font-size: 20px;"></i>
                         </button>
+
+                        <div class="import-section">
+                            <input type="file" id="excelFileInput" accept=".xls,.xlsx" style="display: none;"/>
+                            <button id="importExcelBtn" class="importExcelBtn" type="button">
+                                <i class='bx bxs-file-import'  style="font-size: 1.2rem;"></i>Import from Excel
+                            </button>
+                        </div>
+                        
+                        <div id="importStatusModal" class="modal" style="display: none;">
+                            <div class="modal-content custom-swal-popup-small">
+                                <span class="close-button" id="closeImportStatusModalBtn">&times;</span>
+                                <h2 class="custom-swal-title">Excel Import Status</h2>
+                                <div id="importProgressBar" style="width: 0%; background-color: #4CAF50; height: 20px; text-align: center; line-height: 20px; color: white;">0%</div>
+                                <p id="importStatusText" class="custom-swal-text">Processing data...</p>
+                                <ul id="importErrorList" class="custom-swal-text" style="color: red; list-style-type: none; padding: 0;"></ul>
+                            </div>
+                        </div>
+                        
                     </div>
                 </div>
 
@@ -190,8 +208,7 @@
                             <th>Staff-In Charge</th>
                             <th>Status</th>
                             <th>Donation Date</th>
-                            <th>Action</th>
-                            <th>Endorse</th>
+                            <th>Action</th>                        
                         </tr>
                         </thead>
                         <tbody></tbody>
@@ -225,31 +242,87 @@
                 </div>
             </div>
 
+            <!-- Edit Modal -->
             <div class="modal" id="editModal" style="display:none;">
                 <div class="modal-content">
                     <span class="close-button" id="closeEditModalBtn">×</span>
-                    <h4>Edit Donation</h4>
-                    <label>Encoder: <input type="text" id="edit-encoder"></label>
-                    <label>Name: <input type="text" id="edit-name"></label>
-                    <label>Type: <input type="text" id="edit-type"></label>
-                    <label>Address: <input type="text" id="edit-address"></label>
-                    <label>Contact Person: <input type="text" id="edit-contactPerson"></label>
-                    <label>Number: <input type="tel" id="edit-number"></label>
-                    <label>Email: <input type="email" id="edit-email"></label>
-                    <label>Type of Assistance: <input type="text" id="edit-assistance"></label>
-                    <label>Valuation: <input type="number" id="edit-valuation"></label>
-                    <label>Additional Notes: <input type="text" id="edit-additionalnotes"></label>
-                    <label>Status:
-                        <select id="edit-status">
-                            <option value="closed-successful">Closed-successful</option>
-                            <option value="pending">Pending</option>
-                            <option value="closed">Closed</option>
-                        </select>
-                    </label>
-                    <label>Staff-In Charge: <input type="text" id="edit-staffIncharge"></label>
-                    <label>Donation Date: <input type="date" id="edit-donationDate"></label>
-                    <button type="button" id="saveEditBtn">Save Changes</button>
-                    <button type="button" id="cancelEditBtn">Cancel</button>
+                    <h4 id="editModalTitle">Edit Donation</h4>
+                    
+                    <form id="editDonationForm"> 
+                        <div class="form-group">
+                            <label for="edit-encoder">Encoder</label>
+                            <input type="text" id="edit-encoder" placeholder="Enter encoder" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="edit-name">Partner/Donor Name</label>
+                            <input type="text" id="edit-name" placeholder="Enter name" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="edit-type">Partner/Donor Type</label>
+                            <input type="text" id="edit-type" placeholder="Enter type" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="edit-address">Address</label>
+                            <input type="text" id="edit-address" placeholder="Enter address" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="edit-contactPerson">Contact Person</label>
+                            <input type="text" id="edit-contactPerson" placeholder="Enter contact person" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="edit-number">Number</label>
+                            <input type="tel" id="edit-number" placeholder="Enter number" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="edit-email">Email</label>
+                            <input type="email" id="edit-email" placeholder="Enter email" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="edit-assistance">Type of Assistance</label>
+                            <input type="text" id="edit-assistance" placeholder="Enter type of assistance" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="edit-valuation">Valuation</label>
+                            <input type="number" id="edit-valuation" placeholder="Enter valuation" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="edit-additionalnotes">Additional Notes</label>
+                            <input type="text" id="edit-additionalnotes" placeholder="Enter additional notes">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="edit-status">Status</label>
+                            <select id="edit-status" required>
+                                <option value="closed-successful">Closed-successful</option>
+                                <option value="pending">Pending</option>
+                                <option value="closed">Closed</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="edit-staffIncharge">Staff-In Charge</label>
+                            <input type="text" id="edit-staffIncharge" placeholder="Enter Staff-In Charge" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="edit-donationDate">Donation Date</label>
+                            <input type="date" id="edit-donationDate" placeholder="Select donation date" required>
+                        </div>
+                        
+                        <div style="margin-top: 20px;">
+                            <button type="button" id="saveEditBtn">Save Changes</button>
+                            <button type="button" id="cancelEditBtn">Cancel</button>
+                        </div>
+                    </form>
                 </div>
             </div>
 

@@ -442,9 +442,9 @@ function initializePageFunctions(userId) {
                 <td>${volunteer.address?.barangay || 'N/A'}</td>
                 <td>${scheduledDateTimeDisplay}</td>
                 <td>
-                    <button class="viewBtn" data-key="${volunteer.key}">View</button>
-                    <button class="rescheduleBtn" data-key="${volunteer.key}">Reschedule</button>
-                    <button class="archiveBtn" data-key="${volunteer.key}">Archive</button>
+                    <button class="viewBtn" data-key="${volunteer.key}"><i class='bx bx-show-alt'></i></button>
+                    <button class="rescheduleBtn" data-key="${volunteer.key}"><i class='bx bx-calendar-edit'></i></button>
+                    <button class="archiveBtn" data-key="${volunteer.key}"><i class="bx bx-x-circle"></i></button>
                 </td>
             `;
         });
