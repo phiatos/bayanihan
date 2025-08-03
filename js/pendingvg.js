@@ -1219,7 +1219,20 @@ function exportToExcel() {
     const filename = `pending-abvn-applications_${formattedDateTime}.xlsx`;
 
     XLSX.writeFile(wb, filename);
-    Swal.fire("Success", `Pending ABVN Applications exported to ${filename}!`, "success");
+    Swal.fire({
+        title: 'Export Successful!',
+        text: `Volunteer group application details have been exported to Excel "${filename}".`,
+        icon: 'success',
+        timer: 2500,
+        showConfirmButton: false,
+        timerProgressBar: true,
+        allowOutsideClick: false,
+        customClass: {
+            popup: 'swal2-popup-success-clean',
+            title: 'swal2-title-success-clean',
+            htmlContainer: 'swal2-text-success-clean'
+        }
+    });
 }
 
 // PDF all 
@@ -1323,7 +1336,20 @@ function exportToPDF() {
 
         doc.save(filename);
         Swal.close();
-        Swal.fire("Success", `Pending ABVN Applications exported to "${filename}"`, "success");
+        Swal.fire({
+            title: 'Export Successful!',
+            text: `Volunteer group application details have been exported to PDF "${filename}".`,
+            icon: 'success',
+            timer: 2500,
+            showConfirmButton: false,
+            timerProgressBar: true,
+            allowOutsideClick: false,
+            customClass: {
+                popup: 'swal2-popup-success-clean',
+                title: 'swal2-title-success-clean',
+                htmlContainer: 'swal2-text-success-clean'
+            }
+        });
     };
 
     logo.onerror = function() {

@@ -50,12 +50,18 @@ function checkInactivity() {
         text: 'You\'ve been inactive for a while. Do you want to continue your session or log out?',
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33',
         confirmButtonText: 'Stay Login',
         cancelButtonText: 'Log Out',
+        reverseButtons: true,
+        focusCancel: true,
         allowOutsideClick: false,
-        reverseButtons: true
+        customClass: {
+            popup: 'custom-swal-popup-small',
+            title: 'custom-swal-title',
+            htmlContainer: 'custom-swal-content',
+            confirmButton: 'custom-confirm-btn',
+            cancelButton: 'custom-cancel-btn'
+        },
     }).then((result) => {
         if (result.isConfirmed) {
             resetInactivityTimer();
@@ -127,6 +133,8 @@ function initializePageFunctions(userId) {
     const archivedTableBody = document.getElementById('archivedTableBody');
     const archivedEntriesInfo = document.getElementById('archivedEntriesInfo');
     const archivedPagination = document.getElementById('archivedPagination');
+    const exportBtn = document.getElementById('exportBtn');
+    const savePdfBtn = document.getElementById('savePdfBtn');
 
     // Modals
     const previewModal = document.getElementById('previewModal');
@@ -156,6 +164,10 @@ function initializePageFunctions(userId) {
     // Event listeners for search and sort
     searchInput.addEventListener('input', applySearchAndSort);
     sortSelect.addEventListener('change', applySearchAndSort);
+
+    // Event listeners for export buttons
+    exportBtn.addEventListener('click', exportToExcel);
+    savePdfBtn.addEventListener('click', exportToPDF);
 
     viewApprovedBtn.addEventListener('click', () => {
         window.location.href = '../pages/approvedvolunteers.html';
@@ -514,6 +526,266 @@ function initializePageFunctions(userId) {
         });
     }
 
+    // Export Excel 
+    function exportToExcel() {
+        if (filteredApplications.length === 0) {
+            Swal.fire("Info", "No data to export!", "info");
+            return;
+        }
+        const dataForExport = filteredApplications.map((volunteer, i) => {
+            const applicationDateTime = formatDate(volunteer.applicationDateandTime);
+            if (applicationDateTime === 'N/A') {
+                console.warn(`Missing or invalid applicationDateandTime for volunteer ${volunteer.key}:`, volunteer.applicationDateandTime);
+            }
+            return {
+                "No.": i + 1,
+                "Full Name": getFullName(volunteer) || 'N/A',
+                "Email": volunteer.email || 'N/A',
+                "Mobile Number": String(volunteer.mobileNumber || 'N/A'),
+                "Age": volunteer.age || 'N/A',
+                "Social Media": volunteer.socialMediaLink || 'N/A',
+                "Region": volunteer.address?.region || 'N/A',
+                "Province": volunteer.address?.province || 'N/A',
+                "City": volunteer.address?.city || 'N/A',
+                "Barangay": volunteer.address?.barangay || 'N/A',
+                "Additional Info": volunteer.additionalInfo || 'N/A',
+                "Date/Time Availability": volunteer.availability?.specificDateTimeSlots?.map(slot => `${slot.date} at ${slot.time}`).join('; ') || 'N/A',
+                "Application Date/Time": applicationDateTime,
+                "Status Notes": typeof volunteer.statusNotes === 'string' ? volunteer.statusNotes : (Array.isArray(volunteer.statusNotes) && volunteer.statusNotes.length > 0 ? volunteer.statusNotes[volunteer.statusNotes.length - 1].note : '-')
+            };
+        });
+        const ws = XLSX.utils.json_to_sheet(dataForExport);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Pending Volunteer Applications");
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        const hours = String(today.getHours()).padStart(2, '0');
+        const minutes = String(today.getMinutes()).padStart(2, '0');
+        const seconds = String(today.getSeconds()).padStart(2, '0');
+        const formattedDateTime = `${year}-${month}-${day}_${hours}${minutes}${seconds}`;
+        const filename = `pending-volunteer-applications_${formattedDateTime}.xlsx`;
+        XLSX.writeFile(wb, filename);
+        Swal.fire({
+            title: 'Export Successful!',
+            text: `Volunteer application details have been exported to Excel "${filename}".`,
+            icon: 'success',
+            timer: 2500,
+            showConfirmButton: false,
+            timerProgressBar: true,
+            allowOutsideClick: false,
+            customClass: {
+                popup: 'swal2-popup-success-clean',
+                title: 'swal2-title-success-clean',
+                htmlContainer: 'swal2-text-success-clean'
+            }
+        });
+    }
+
+    // PDF all
+    function exportToPDF() {
+        if (filteredApplications.length === 0) {
+            Swal.fire("Info", "No data to export to PDF!", "info");
+            return;
+        }
+        Swal.fire({
+            title: 'Generating PDF',
+            text: 'Please wait while your PDF is being generated...',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('landscape');
+        let yOffset = 20;
+        const logo = new Image();
+        logo.src = '../assets/images/AB_logo.png';
+        logo.onload = function() {
+            const pageWidth = doc.internal.pageSize.width;
+            const logoWidth = 30;
+            const logoHeight = (logo.naturalHeight / logo.naturalWidth) * logoWidth;
+            const margin = 14;
+            doc.addImage(logo, 'PNG', pageWidth - logoWidth - margin, margin, logoWidth, logoHeight);
+            doc.setFontSize(18);
+            doc.text("Pending Volunteer Applications Report", 14, yOffset);
+            yOffset += 10;
+            doc.setFontSize(10);
+            const now = new Date();
+            const options = {
+                year: 'numeric', month: 'long', day: 'numeric',
+                hour: '2-digit', minute: '2-digit', second: '2-digit',
+                hour12: true, timeZone: 'Asia/Manila'
+            };
+            doc.text(`Report Generated: ${now.toLocaleString('en-US', options)} (PHT)`, 14, yOffset);
+            yOffset += 15;
+            const head = [[
+                "No.", "Full Name", "Email", "Mobile Number", "Age", "Social Media",
+                "Region", "Province", "City", "Barangay", "Additional Info",
+                "Date/Time Availability", "Application Date/Time", "Status Notes"
+            ]];
+            const body = filteredApplications.map((volunteer, i) => {
+                const applicationDateTime = formatDate(volunteer.applicationDateandTime);
+                if (applicationDateTime === 'N/A') {
+                    console.warn(`Missing or invalid applicationDateandTime for volunteer ${volunteer.key}:`, volunteer.applicationDateandTime);
+                }
+                return [
+                    i + 1,
+                    getFullName(volunteer) || 'N/A',
+                    volunteer.email || 'N/A',
+                    String(volunteer.mobileNumber || 'N/A'),
+                    volunteer.age || 'N/A',
+                    volunteer.socialMediaLink || 'N/A',
+                    volunteer.address?.region || 'N/A',
+                    volunteer.address?.province || 'N/A',
+                    volunteer.address?.city || 'N/A',
+                    volunteer.address?.barangay || 'N/A',
+                    volunteer.additionalInfo || 'N/A',
+                    volunteer.availability?.specificDateTimeSlots?.map(slot => `${slot.date} at ${slot.time}`).join('; ') || 'N/A',
+                    applicationDateTime,
+                    typeof volunteer.statusNotes === 'string' ? volunteer.statusNotes : (Array.isArray(volunteer.statusNotes) && volunteer.statusNotes.length > 0 ? volunteer.statusNotes[volunteer.statusNotes.length - 1].note : '-')
+                ];
+            });
+            doc.autoTable({
+                head: head,
+                body: body,
+                startY: yOffset,
+                theme: 'grid',
+                headStyles: {
+                    fillColor: [20, 174, 187],
+                    textColor: [255, 255, 255],
+                    halign: 'center'
+                },
+                styles: {
+                    fontSize: 8,
+                    cellPadding: 2
+                },
+                didDrawPage: function(data) {
+                    doc.setFontSize(8);
+                    const pageNumberText = `Page ${data.pageNumber} of ${doc.internal.getNumberOfPages()}`;
+                    const poweredByText = "Powered by: Appvance";
+                    const pageWidth = doc.internal.pageSize.width;
+                    const margin = data.settings.margin.left;
+                    const footerY = doc.internal.pageSize.height - 10;
+                    doc.text(pageNumberText, margin, footerY);
+                    doc.text(poweredByText, pageWidth - margin, footerY, { align: 'right' });
+                }
+            });
+            const nowForFilename = new Date();
+            const year = nowForFilename.getFullYear();
+            const month = String(nowForFilename.getMonth() + 1).padStart(2, '0');
+            const day = String(nowForFilename.getDate()).padStart(2, '0');
+            const hours = String(nowForFilename.getHours()).padStart(2, '0');
+            const minutes = String(nowForFilename.getMinutes()).padStart(2, '0');
+            const seconds = String(nowForFilename.getSeconds()).padStart(2, '0');
+            const formattedDateTime = `${year}-${month}-${day}_${hours}${minutes}${seconds}`;
+            const filename = `pending-volunteer-applications_${formattedDateTime}.pdf`;
+            doc.save(filename);
+            Swal.close();
+            Swal.fire({
+                title: 'Export Successful!',
+                text: `Volunteer application details have been exported to PDF "${filename}".`,
+                icon: 'success',
+                timer: 2500,
+                showConfirmButton: false,
+                timerProgressBar: true,
+                allowOutsideClick: false,
+                customClass: {
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    htmlContainer: 'swal2-text-success-clean'
+                }
+            });
+        };
+        logo.onerror = function() {
+            Swal.close();
+            Swal.fire("Error", "Failed to load logo image. Please check the path: '../assets/images/AB_logo.png'", "error");
+        };
+    }
+
+    // PDF Single
+    function saveSingleApplicationPdf(volunteer) {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const logo = new Image();
+        logo.src = '../assets/images/AB_logo.png';
+        logo.onload = function() {
+            const pageWidth = doc.internal.pageSize.width;
+            const pageHeight = doc.internal.pageSize.height;
+            const logoWidth = 30;
+            const logoHeight = (logo.naturalHeight / logo.naturalWidth) * logoWidth;
+            const margin = 14;
+            const maxTextWidth = pageWidth - 2 * margin;
+            doc.addImage(logo, 'PNG', pageWidth - logoWidth - margin, margin, logoWidth, logoHeight);
+            doc.setFontSize(18);
+            doc.text("Volunteer Application Details", 14, 22);
+            doc.setFontSize(10);
+            doc.text(`Report Generated: ${new Date().toLocaleString('en-US', { timeZone: 'Asia/Manila' })}`, 14, 30);
+            let y = 45;
+            const addDetail = (label, value) => {
+                const text = `${label}: ${value || 'N/A'}`;
+                const textLines = doc.splitTextToSize(text, maxTextWidth);
+                textLines.forEach(line => {
+                    if (y + 7 > pageHeight - 20) {
+                        doc.addPage();
+                        y = 20;
+                        doc.addImage(logo, 'PNG', pageWidth - logoWidth - margin, margin, logoWidth, logoHeight);
+                        doc.setFontSize(18);
+                        doc.text("Volunteer Application Details (Continued)", 14, 22);
+                        doc.setFontSize(10);
+                    }
+                    doc.text(line, 14, y);
+                    y += 7;
+                });
+                return y;
+            };
+            y = addDetail("Full Name", getFullName(volunteer));
+            y = addDetail("Email", volunteer.email);
+            y = addDetail("Mobile Number", String(volunteer.mobileNumber));
+            y = addDetail("Age", volunteer.age);
+            y = addDetail("Social Media Link", volunteer.socialMediaLink);
+            y = addDetail("Region", volunteer.address?.region);
+            y = addDetail("Province", volunteer.address?.province);
+            y = addDetail("City", volunteer.address?.city);
+            y = addDetail("Barangay", volunteer.address?.barangay);
+            y = addDetail("Street Address", volunteer.address?.streetAddress);
+            y = addDetail("Additional Info", volunteer.additionalInfo);
+            y = addDetail("Date/Time Availability", volunteer.availability?.specificDateTimeSlots?.map(slot => `${slot.date} at ${slot.time}`).join('; '));
+            const applicationDateTime = formatDate(volunteer.applicationDateandTime);
+            if (applicationDateTime === 'N/A') {
+                console.warn(`Missing or invalid applicationDateandTime for volunteer ${volunteer.key}:`, volunteer.applicationDateandTime);
+            }
+            y = addDetail("Application Date/Time", applicationDateTime);
+            y = addDetail("Status Notes", typeof volunteer.statusNotes === 'string' ? volunteer.statusNotes : (Array.isArray(volunteer.statusNotes) && volunteer.statusNotes.length > 0 ? volunteer.statusNotes[volunteer.statusNotes.length - 1].note : '-'));
+            doc.setFontSize(8);
+            const footerY = doc.internal.pageSize.height - 10;
+            const pageNumberText = `Page ${doc.internal.getNumberOfPages()} of ${doc.internal.getNumberOfPages()}`;
+            const poweredByText = "Powered by: Appvance";
+            doc.text(pageNumberText, margin, footerY);
+            doc.text(poweredByText, pageWidth - margin, footerY, { align: 'right' });
+            const sanitizedFullName = getFullName(volunteer).replace(/[^a-zA-Z0-9-_]/g, '_') || 'unknown';
+            doc.save(`volunteer_${sanitizedFullName}_${new Date().toISOString().slice(0, 10)}.pdf`);
+            Swal.fire({
+                title: 'Export Successful!',
+                text: 'Volunteer application details have been exported to PDF.',
+                icon: 'success',
+                timer: 1600,
+                showConfirmButton: false,
+                timerProgressBar: true,
+                allowOutsideClick: false,
+                customClass: {
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    htmlContainer: 'swal2-text-success-clean'
+                }
+            });
+        };
+        logo.onerror = function() {
+            Swal.fire("Error", "Failed to load logo image. Please check the path: '../assets/images/AB_logo.png'", "error");
+        };
+    }
+
     // --- Rendering Functions ---
     function renderApplications(applicationsToRender) {
         volunteersContainer.innerHTML = '';
@@ -784,6 +1056,9 @@ function initializePageFunctions(userId) {
         const target = event.target;
         const rowWithKey = target.closest('tr[data-key]');
         const clickedActionButton = target.closest('.actionBtn');
+        const clickedViewButton = target.closest('.viewBtn');
+        const clickedSaveSinglePdfButton = target.closest('.saveSinglePdfBtn');
+
         if (!rowWithKey) {
             if (currentDropdown && !currentDropdown.contains(target)) {
                 currentDropdown.remove();
@@ -974,7 +1249,7 @@ function initializePageFunctions(userId) {
                     }
                 });
             });
-        } else if (target.classList.contains('viewBtn') || target.closest('.viewBtn')) {
+        } else if (clickedViewButton) {
             if (currentDropdown) {
                 currentDropdown.remove();
                 currentDropdown = null;
@@ -984,6 +1259,9 @@ function initializePageFunctions(userId) {
                 }
             }
             showPreviewModal(volunteer);
+            resetCurrentVolunteer();
+        } else if (clickedSaveSinglePdfButton) {
+            saveSingleApplicationPdf(volunteer);
             resetCurrentVolunteer();
         }
     });
