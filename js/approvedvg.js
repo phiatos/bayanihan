@@ -1751,10 +1751,23 @@ function exportToExcel() {
     const minutes = String(today.getMinutes()).padStart(2, '0');
     const seconds = String(today.getSeconds()).padStart(2, '0');
     const formattedDateTime = `${year}-${month}-${day}_${hours}${minutes}${seconds}`;
-    const filename = `approved-abvn-applications_${formattedDateTime}.xlsx`; // Changed filename
+    const filename = `approved-abvn-applications_${formattedDateTime}.xlsx`; 
 
-    XLSX.writeFile(wb, filename); // Changed to XLSX.writeFile for direct download
-    Swal.fire("Success", `Approved ABVN Applications exported to ${filename}!`, "success");
+    XLSX.writeFile(wb, filename); 
+    Swal.fire({
+        title: 'Export Successful!',
+        text: `Approved ABVN Applications details have been exported to Excel "${filename}".`,
+        icon: 'success',
+        timer: 2500,
+        showConfirmButton: false,
+        timerProgressBar: true,
+        allowOutsideClick: false,
+        customClass: {
+            popup: 'swal2-popup-success-clean',
+            title: 'swal2-title-success-clean',
+            htmlContainer: 'swal2-text-success-clean'
+        }
+    });
 }
 
 
@@ -1860,7 +1873,20 @@ function exportToPDF() {
 
         doc.save(filename);
         Swal.close();
-        Swal.fire("Success", `Approved ABVN Applications exported to "${filename}"`, "success");
+        Swal.fire({
+            title: 'Export Successful!',
+            text: `Approved ABVN Applications details have been exported to PDF "${filename}".`,
+            icon: 'success',
+            timer: 2500,
+            showConfirmButton: false,
+            timerProgressBar: true,
+            allowOutsideClick: false,
+            customClass: {
+                popup: 'swal2-popup-success-clean',
+                title: 'swal2-title-success-clean',
+                htmlContainer: 'swal2-text-success-clean'
+            }
+        });  
     };
 
     logo.onerror = function() {

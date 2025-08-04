@@ -45,12 +45,18 @@ function checkInactivity() {
         text: 'You\'ve been inactive for a while. Do you want to continue your session or log out?',
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33',
         confirmButtonText: 'Stay Login',
         cancelButtonText: 'Log Out',
+        reverseButtons: true,
+        focusCancel: true,
         allowOutsideClick: false,
-        reverseButtons: true
+        customClass: {
+            popup: 'custom-swal-popup-small',
+            title: 'custom-swal-title',
+            htmlContainer: 'custom-swal-content',
+            confirmButton: 'custom-confirm-btn',
+            cancelButton: 'custom-cancel-btn'
+        },
     }).then((result) => {
         if (result.isConfirmed) {
             resetInactivityTimer();
@@ -110,6 +116,8 @@ function initializePageFunctions(userId) {
     const archivedTableBody = document.getElementById('archivedTableBody');
     const archivedEntriesInfo = document.getElementById('archivedEntriesInfo');
     const archivedPaginationContainer = document.getElementById('archivedPagination');
+    const exportBtn = document.getElementById('exportBtn');
+    const savePdfBtn = document.getElementById('savePdfBtn');
 
     let allApprovedApplications = [];
     let filteredApprovedApplications = [];
@@ -196,6 +204,271 @@ function initializePageFunctions(userId) {
             </div>
         `;
         previewModal.style.display = 'flex';
+    }
+
+    // Export Functions
+    function exportToExcel() {
+        if (filteredApprovedApplications.length === 0) {
+            Swal.fire("Info", "No data to export!", "info");
+            return;
+        }
+        const dataForExport = filteredApprovedApplications.map((volunteer, i) => {
+            const applicationDateTime = formatDate(volunteer.applicationDateandTime);
+            if (applicationDateTime === 'N/A') {
+                console.warn(`Missing or invalid applicationDateandTime for volunteer ${volunteer.key}:`, volunteer.applicationDateandTime);
+            }
+            return {
+                "No.": i + 1,
+                "Full Name": getFullName(volunteer) || 'N/A',
+                "Email": volunteer.email || 'N/A',
+                "Mobile Number": String(volunteer.mobileNumber || 'N/A'),
+                "Age": volunteer.age || 'N/A',
+                "Social Media": volunteer.socialMediaLink || 'N/A',
+                "Region": volunteer.address?.region || 'N/A',
+                "Province": volunteer.address?.province || 'N/A',
+                "City": volunteer.address?.city || 'N/A',
+                "Barangay": volunteer.address?.barangay || 'N/A',
+                "Additional Info": volunteer.additionalInfo || 'N/A',
+                "General Availability": volunteer.availability?.general || 'N/A',
+                "Available Days": volunteer.availability?.specificDays ? volunteer.availability.specificDays.join(', ') : 'N/A',
+                "Time Availability": volunteer.availability?.timeAvailability || 'N/A',
+                "Scheduled Date/Time": formatDate(volunteer.scheduledDateTime || volunteer.applicationDateandTime),
+                "Application Date/Time": applicationDateTime
+            };
+        });
+        const ws = XLSX.utils.json_to_sheet(dataForExport);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Approved Volunteer Applications");
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        const hours = String(today.getHours()).padStart(2, '0');
+        const minutes = String(today.getMinutes()).padStart(2, '0');
+        const seconds = String(today.getSeconds()).padStart(2, '0');
+        const formattedDateTime = `${year}-${month}-${day}_${hours}${minutes}${seconds}`;
+        const filename = `approved-volunteer-applications_${formattedDateTime}.xlsx`;
+        XLSX.writeFile(wb, filename);
+        Swal.fire({
+            title: 'Export Successful!',
+            text: `Approved volunteer application details have been exported to Excel "${filename}".`,
+            icon: 'success',
+            timer: 2500,
+            showConfirmButton: false,
+            timerProgressBar: true,
+            allowOutsideClick: false,
+            customClass: {
+                popup: 'swal2-popup-success-clean',
+                title: 'swal2-title-success-clean',
+                htmlContainer: 'swal2-text-success-clean'
+            }
+        });
+    }
+
+    function exportToPDF() {
+        if (filteredApprovedApplications.length === 0) {
+            Swal.fire("Info", "No data to export to PDF!", "info");
+            return;
+        }
+        Swal.fire({
+            title: 'Generating PDF',
+            text: 'Please wait while your PDF is being generated...',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('landscape');
+        let yOffset = 20;
+        const logo = new Image();
+        logo.src = '../assets/images/AB_logo.png';
+        logo.onload = function() {
+            const pageWidth = doc.internal.pageSize.width;
+            const logoWidth = 30;
+            const logoHeight = (logo.naturalHeight / logo.naturalWidth) * logoWidth;
+            const margin = 14;
+            doc.addImage(logo, 'PNG', pageWidth - logoWidth - margin, margin, logoWidth, logoHeight);
+            doc.setFontSize(18);
+            doc.text("Approved Volunteer Applications Report", 14, yOffset);
+            yOffset += 10;
+            doc.setFontSize(10);
+            const now = new Date();
+            const options = {
+                year: 'numeric', month: 'long', day: 'numeric',
+                hour: '2-digit', minute: '2-digit', second: '2-digit',
+                hour12: true, timeZone: 'Asia/Manila'
+            };
+            doc.text(`Report Generated: ${now.toLocaleString('en-US', options)} (PHT)`, 14, yOffset);
+            yOffset += 15;
+            const head = [[
+                "No.", "Full Name", "Email", "Mobile Number", "Age", "Social Media",
+                "Region", "Province", "City", "Barangay", "Additional Info",
+                "General Availability", "Available Days", "Time Availability",
+                "Scheduled Date/Time", "Application Date/Time"
+            ]];
+            const body = filteredApprovedApplications.map((volunteer, i) => {
+                const applicationDateTime = formatDate(volunteer.applicationDateandTime);
+                if (applicationDateTime === 'N/A') {
+                    console.warn(`Missing or invalid applicationDateandTime for volunteer ${volunteer.key}:`, volunteer.applicationDateandTime);
+                }
+                return [
+                    i + 1,
+                    getFullName(volunteer) || 'N/A',
+                    volunteer.email || 'N/A',
+                    String(volunteer.mobileNumber || 'N/A'),
+                    volunteer.age || 'N/A',
+                    volunteer.socialMediaLink || 'N/A',
+                    volunteer.address?.region || 'N/A',
+                    volunteer.address?.province || 'N/A',
+                    volunteer.address?.city || 'N/A',
+                    volunteer.address?.barangay || 'N/A',
+                    volunteer.additionalInfo || 'N/A',
+                    volunteer.availability?.general || 'N/A',
+                    volunteer.availability?.specificDays ? volunteer.availability.specificDays.join(', ') : 'N/A',
+                    volunteer.availability?.timeAvailability || 'N/A',
+                    formatDate(volunteer.scheduledDateTime || volunteer.applicationDateandTime),
+                    applicationDateTime
+                ];
+            });
+            doc.autoTable({
+                head: head,
+                body: body,
+                startY: yOffset,
+                theme: 'grid',
+                headStyles: {
+                    fillColor: [20, 174, 187],
+                    textColor: [255, 255, 255],
+                    halign: 'center'
+                },
+                styles: {
+                    fontSize: 8,
+                    cellPadding: 2
+                },
+                didDrawPage: function(data) {
+                    doc.setFontSize(8);
+                    const pageNumberText = `Page ${data.pageNumber} of ${doc.internal.getNumberOfPages()}`;
+                    const poweredByText = "Powered by: Appvance";
+                    const pageWidth = doc.internal.pageSize.width;
+                    const margin = data.settings.margin.left;
+                    const footerY = doc.internal.pageSize.height - 10;
+                    doc.text(pageNumberText, margin, footerY);
+                    doc.text(poweredByText, pageWidth - margin, footerY, { align: 'right' });
+                }
+            });
+            const nowForFilename = new Date();
+            const year = nowForFilename.getFullYear();
+            const month = String(nowForFilename.getMonth() + 1).padStart(2, '0');
+            const day = String(nowForFilename.getDate()).padStart(2, '0');
+            const hours = String(nowForFilename.getHours()).padStart(2, '0');
+            const minutes = String(nowForFilename.getMinutes()).padStart(2, '0');
+            const seconds = String(nowForFilename.getSeconds()).padStart(2, '0');
+            const formattedDateTime = `${year}-${month}-${day}_${hours}${minutes}${seconds}`;
+            const filename = `approved-volunteer-applications_${formattedDateTime}.pdf`;
+            doc.save(filename);
+            Swal.close();
+            Swal.fire({
+                title: 'Export Successful!',
+                text: `Approved volunteer application details have been exported to PDF "${filename}".`,
+                icon: 'success',
+                timer: 2500,
+                showConfirmButton: false,
+                timerProgressBar: true,
+                allowOutsideClick: false,
+                customClass: {
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    htmlContainer: 'swal2-text-success-clean'
+                }
+            });
+        };
+        logo.onerror = function() {
+            Swal.close();
+            Swal.fire("Error", "Failed to load logo image. Please check the path: '../assets/images/AB_logo.png'", "error");
+        };
+    }
+
+    function saveSingleApplicationPdf(volunteer) {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const logo = new Image();
+        logo.src = '../assets/images/AB_logo.png';
+        logo.onload = function() {
+            const pageWidth = doc.internal.pageSize.width;
+            const pageHeight = doc.internal.pageSize.height;
+            const logoWidth = 30;
+            const logoHeight = (logo.naturalHeight / logo.naturalWidth) * logoWidth;
+            const margin = 14;
+            const maxTextWidth = pageWidth - 2 * margin;
+            doc.addImage(logo, 'PNG', pageWidth - logoWidth - margin, margin, logoWidth, logoHeight);
+            doc.setFontSize(18);
+            doc.text("Approved Volunteer Application Details", 14, 22);
+            doc.setFontSize(10);
+            doc.text(`Report Generated: ${new Date().toLocaleString('en-US', { timeZone: 'Asia/Manila' })}`, 14, 30);
+            let y = 45;
+            const addDetail = (label, value) => {
+                const text = `${label}: ${value || 'N/A'}`;
+                const textLines = doc.splitTextToSize(text, maxTextWidth);
+                textLines.forEach(line => {
+                    if (y + 7 > pageHeight - 20) {
+                        doc.addPage();
+                        y = 20;
+                        doc.addImage(logo, 'PNG', pageWidth - logoWidth - margin, margin, logoWidth, logoHeight);
+                        doc.setFontSize(18);
+                        doc.text("Approved Volunteer Application Details (Continued)", 14, 22);
+                        doc.setFontSize(10);
+                    }
+                    doc.text(line, 14, y);
+                    y += 7;
+                });
+                return y;
+            };
+            y = addDetail("Full Name", getFullName(volunteer));
+            y = addDetail("Email", volunteer.email);
+            y = addDetail("Mobile Number", String(volunteer.mobileNumber));
+            y = addDetail("Age", volunteer.age);
+            y = addDetail("Social Media Link", volunteer.socialMediaLink);
+            y = addDetail("Region", volunteer.address?.region);
+            y = addDetail("Province", volunteer.address?.province);
+            y = addDetail("City", volunteer.address?.city);
+            y = addDetail("Barangay", volunteer.address?.barangay);
+            y = addDetail("Street Address", volunteer.address?.streetAddress);
+            y = addDetail("Additional Info", volunteer.additionalInfo);
+            y = addDetail("General Availability", volunteer.availability?.general);
+            y = addDetail("Available Days", volunteer.availability?.specificDays ? volunteer.availability.specificDays.join(', ') : 'N/A');
+            y = addDetail("Time Availability", volunteer.availability?.timeAvailability);
+            y = addDetail("Scheduled Date/Time", formatDate(volunteer.scheduledDateTime || volunteer.applicationDateandTime));
+            const applicationDateTime = formatDate(volunteer.applicationDateandTime);
+            if (applicationDateTime === 'N/A') {
+                console.warn(`Missing or invalid applicationDateandTime for volunteer ${volunteer.key}:`, volunteer.applicationDateandTime);
+            }
+            y = addDetail("Application Date/Time", applicationDateTime);
+            doc.setFontSize(8);
+            const footerY = doc.internal.pageSize.height - 10;
+            const pageNumberText = `Page ${doc.internal.getNumberOfPages()} of ${doc.internal.getNumberOfPages()}`;
+            const poweredByText = "Powered by: Appvance";
+            doc.text(pageNumberText, margin, footerY);
+            doc.text(poweredByText, pageWidth - margin, footerY, { align: 'right' });
+            const sanitizedFullName = getFullName(volunteer).replace(/[^a-zA-Z0-9-_]/g, '_') || 'unknown';
+            doc.save(`approved_volunteer_${sanitizedFullName}_${new Date().toISOString().slice(0, 10)}.pdf`);
+            Swal.fire({
+                title: 'Export Successful!',
+                text: 'Approved volunteer application details have been exported to PDF.',
+                icon: 'success',
+                timer: 1600,
+                showConfirmButton: false,
+                timerProgressBar: true,
+                allowOutsideClick: false,
+                customClass: {
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    htmlContainer: 'swal2-text-success-clean'
+                }
+            });
+        };
+        logo.onerror = function() {
+            Swal.fire("Error", "Failed to load logo image. Please check the path: '../assets/images/AB_logo.png'", "error");
+        };
     }
 
     // Data Fetching Function (Approved Volunteers)
@@ -452,6 +725,7 @@ function initializePageFunctions(userId) {
                     <button class="viewBtn" data-key="${volunteer.key}"><i class='bx bx-show-alt'></i></button>
                     <button class="rescheduleBtn" data-key="${volunteer.key}"><i class='bx bx-calendar-edit'></i></button>
                     <button class="archiveBtn" data-key="${volunteer.key}"><i class="bx bx-x-circle"></i></button>
+                    <button class="saveSinglePdfBtn" data-key="${volunteer.key}"><i class='bx bxs-file-pdf'></i></button>
                 </td>
             `;
         });
@@ -915,14 +1189,22 @@ function initializePageFunctions(userId) {
         }
 
         Swal.fire({
-            title: 'Are you sure?',
-            text: `You are about to archive the application for ${getFullName(volunteer)}. This will move it to archived records.`,
+            title: 'Are you sure to archive this application?',
+            text: "This will move it to archived records.",
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
-            confirmButtonText: 'Yes, archive it!',
-            cancelButtonText: 'Cancel'
+            confirmButtonText: 'Reject',
+            cancelButtonText: 'Cancel',
+            reverseButtons: true,
+            focusCancel: true,
+            allowOutsideClick: false,
+            customClass: {
+                popup: 'custom-swal-popup-small',
+                title: 'custom-swal-title',
+                htmlContainer: 'custom-swal-content',
+                confirmButton: 'custom-confirm-btn',
+                cancelButton: 'custom-cancel-btn'
+            }
         }).then(async (result) => {
             if (result.isConfirmed) {
                 try {
@@ -938,11 +1220,20 @@ function initializePageFunctions(userId) {
                     volunteerToArchive.archivedAt = firebase.database.ServerValue.TIMESTAMP;
                     await database.ref(`deletedApprovedVolunteerApplications/${volunteerKey}`).set(volunteerToArchive);
                     await approvedVolunteerRef.remove();
-                    Swal.fire(
-                        'Archived!',
-                        `${getFullName(volunteer)}'s application has been archived.`,
-                        'success'
-                    );
+                    Swal.fire({
+                        title: 'Archived!',
+                        text: `${getFullName(volunteer)}'s application has been archived.`,
+                        icon: 'success',
+                        timer: 1600,
+                        showConfirmButton: false,
+                        timerProgressBar: true,
+                        allowOutsideClick: false,
+                        customClass: {
+                            popup: 'swal2-popup-success-clean',
+                            title: 'swal2-title-success-clean',
+                            htmlContainer: 'swal2-text-success-clean',
+                        }
+                    });
                     fetchApprovedVolunteers();
                 } catch (error) {
                     console.error("Error archiving volunteer application: ", error);
@@ -978,6 +1269,19 @@ function initializePageFunctions(userId) {
         applySearchAndSort();
     });
 
+    // Add event listeners for export buttons
+    if (exportBtn) {
+        exportBtn.addEventListener('click', exportToExcel);
+    } else {
+        console.warn("Export Excel button (exportBtn) not found in the DOM.");
+    }
+
+    if (savePdfBtn) {
+        savePdfBtn.addEventListener('click', exportToPDF);
+    } else {
+        console.warn("Export PDF button (savePdfBtn) not found in the DOM.");
+    }
+
     // Add event listeners for approved table buttons
     volunteersContainer.addEventListener('click', async (event) => {
         const target = event.target;
@@ -985,12 +1289,21 @@ function initializePageFunctions(userId) {
         const rescheduleButton = target.closest('.rescheduleBtn');
         const archiveButton = target.closest('.archiveBtn');
 
-        if (viewButton) {
+         if (viewButton) {
             handleViewClick(viewButton);
         } else if (rescheduleButton) {
             handleRescheduleClick(rescheduleButton);
         } else if (archiveButton) {
             handleArchiveClick(archiveButton);
+        } else if (saveSinglePdfBtn) {
+            const volunteerKey = saveSinglePdfBtn.dataset.key;
+            const volunteer = allApprovedApplications.find(v => v.key === volunteerKey);
+            if (volunteer) {
+                saveSingleApplicationPdf(volunteer);
+            } else {
+                console.warn("Volunteer data not found for PDF export:", volunteerKey);
+                Swal.fire('Error', 'Volunteer data not found for PDF export.', 'error');
+            }
         }
     });
 

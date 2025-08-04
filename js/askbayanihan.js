@@ -336,6 +336,21 @@ ${historyContext}
     addMessage(response, false);
   });
 
+  // suggested fix by grok
+//   sendButton.addEventListener('click', async () => {
+//   const message = chatInput.value.trim();
+//   if (!message || isTyping) return;
+//   isTyping = true;
+//   addMessage(message, true);
+//   chatInput.value = '';
+//   showLoading();
+//   const isSystemQuery = isSystemRelated(message);
+//   const response = await getGeminiResponse(message, isSystemQuery);
+//   removeLoading();
+//   addMessage(response, false);
+//   isTyping = false;
+// });
+
   chatInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') sendButton.click();
   });
