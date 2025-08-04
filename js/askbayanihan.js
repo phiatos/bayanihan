@@ -436,3 +436,18 @@ function autoScrollChat() {
   chatContainer.scrollTop = chatContainer.scrollHeight;
 }
 
+
+//Navbar Fix
+  window.addEventListener("scroll", function () {
+    const navbar = document.querySelector(".navbar");
+    const scrollThreshold = 80; // Adjust where you want it to disappear
+
+    if (window.scrollY > scrollThreshold) {
+      navbar.style.opacity = "0";
+      navbar.style.pointerEvents = "none"; // Prevent interaction when hidden
+      navbar.style.transition = "opacity 0.5s ease";
+    } else {
+      navbar.style.opacity = "1";
+      navbar.style.pointerEvents = "auto";
+    }
+  });
