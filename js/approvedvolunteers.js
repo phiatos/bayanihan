@@ -389,6 +389,10 @@ function initializePageFunctions(userId) {
     }
 
     function saveSingleApplicationPdf(volunteer) {
+        if (!window.jspdf) {
+            Swal.fire('Error', 'jsPDF library is not loaded. Please ensure it is included.', 'error');
+            return;
+        }
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
         const logo = new Image();
@@ -404,7 +408,13 @@ function initializePageFunctions(userId) {
             doc.setFontSize(18);
             doc.text("Approved Volunteer Application Details", 14, 22);
             doc.setFontSize(10);
-            doc.text(`Report Generated: ${new Date().toLocaleString('en-US', { timeZone: 'Asia/Manila' })}`, 14, 30);
+            const now = new Date();
+            const options = {
+                year: 'numeric', month: 'long', day: 'numeric',
+                hour: '2-digit', minute: '2-digit', second: '2-digit',
+                hour12: true, timeZone: 'Asia/Manila'
+            };
+            doc.text(`Report Generated: ${now.toLocaleString('en-US', options)} (PHT)`, 14, 30);
             let y = 45;
             const addDetail = (label, value) => {
                 const text = `${label}: ${value || 'N/A'}`;
@@ -450,7 +460,12 @@ function initializePageFunctions(userId) {
             doc.text(pageNumberText, margin, footerY);
             doc.text(poweredByText, pageWidth - margin, footerY, { align: 'right' });
             const sanitizedFullName = getFullName(volunteer).replace(/[^a-zA-Z0-9-_]/g, '_') || 'unknown';
-            doc.save(`approved_volunteer_${sanitizedFullName}_${new Date().toISOString().slice(0, 10)}.pdf`);
+            const nowForFilename = new Date();
+            const year = nowForFilename.getFullYear();
+            const month = String(nowForFilename.getMonth() + 1).padStart(2, '0');
+            const day = String(nowForFilename.getDate()).padStart(2, '0');
+            const formattedDate = `${year}-${month}-${day}`;
+            doc.save(`approved_volunteer_${sanitizedFullName}_${formattedDate}.pdf`);
             Swal.fire({
                 title: 'Export Successful!',
                 text: 'Approved volunteer application details have been exported to PDF.',
@@ -506,7 +521,7 @@ function initializePageFunctions(userId) {
         const colCount = archivedTableBody.parentElement.querySelectorAll('thead tr th').length;
         archivedTableBody.innerHTML = `<tr><td colspan="${colCount}" style="text-align: center;">Loading archived volunteer applications...</td></tr>`;
 
-        database.ref('deletedApprovedVolunteerApplications').once('value', (snapshot) => {
+        database.ref('volunteerApplications/rejectedVolunteer').once('value', (snapshot) => {
             allArchivedVolunteerData = [];
             if (snapshot.exists()) {
                 snapshot.forEach((childSnapshot) => {
@@ -575,7 +590,7 @@ function initializePageFunctions(userId) {
                 <td>${scheduledDateTimeDisplay}</td>
                 <td>${formatDate(volunteer.archivedAt)}</td>
                 <td>
-                    <button class="actionBtn" data-key="${volunteer.key}">Retrieve</button>
+                    <button class="retrieveBtn" data-key="${volunteer.key}">Retrieve</button>
                 </td>
             `;
         });
@@ -994,20 +1009,28 @@ function initializePageFunctions(userId) {
 
         if (target.classList.contains('viewBtn') || target.closest('.viewBtn')) {
             showPreviewModal(volunteer);
-        } else if (target.classList.contains('actionBtn') || target.closest('.actionBtn')) {
+        } else if (target.classList.contains('retrieveBtn') || target.closest('.retrieveBtn')) {
             Swal.fire({
-                title: 'Retrieve Volunteer Application?',
-                text: `Do you want to retrieve the application for ${getFullName(volunteer)}? This will move it back to approved applications.`,
+                title: 'Retrieve Application?',
+                text: `${getFullName(volunteer)} will move the volunteer group application from archived records back to pending applications.`,
                 icon: 'question',
                 showCancelButton: true,
-                confirmButtonColor: '#3085d6',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'Yes, Retrieve!',
-                cancelButtonText: 'Cancel'
+                confirmButtonText: 'Retrieve',
+                cancelButtonText: 'Cancel',
+                reverseButtons: true,
+                focusCancel: true,
+                allowOutsideClick: false,
+                customClass: {
+                    popup: 'custom-swal-popup-small',
+                    title: 'custom-swal-title',
+                    htmlContainer: 'custom-swal-content',
+                    confirmButton: 'custom-confirm-btn',
+                    cancelButton: 'custom-cancel-btn'
+                },
             }).then(async (result) => {
                 if (result.isConfirmed) {
                     try {
-                        const archivedRef = database.ref(`deletedApprovedVolunteerApplications/${volunteerKey}`);
+                        const archivedRef = database.ref(`volunteerApplications/rejectedVolunteer/${volunteerKey}`);
                         const snapshot = await archivedRef.once('value');
                         const volunteerData = snapshot.val();
 
@@ -1016,7 +1039,20 @@ function initializePageFunctions(userId) {
                             volunteerData.status = 'confirmedByAB';
                             await database.ref(`volunteerApplications/approvedVolunteer/${volunteerKey}`).set(volunteerData);
                             await archivedRef.remove();
-                            Swal.fire('Retrieved!', 'The volunteer application has been moved back to approved.', 'success');
+                            Swal.fire({
+                                title: 'Retrieved!',
+                                text: 'Volunteer Group has been retrieved to approved volunteers.',
+                                icon: 'success',
+                                timer: 1600,
+                                showConfirmButton: false,
+                                timerProgressBar: true,
+                                allowOutsideClick: false,
+                                customClass: {
+                                    popup: 'swal2-popup-success-clean',
+                                    title: 'swal2-title-success-clean',
+                                    htmlContainer: 'swal2-text-success-clean',
+                                }
+                            });
                             fetchAndRenderArchivedVolunteerApplications();
                             fetchApprovedVolunteers();
                         } else {
@@ -1218,7 +1254,7 @@ function initializePageFunctions(userId) {
                     }
 
                     volunteerToArchive.archivedAt = firebase.database.ServerValue.TIMESTAMP;
-                    await database.ref(`deletedApprovedVolunteerApplications/${volunteerKey}`).set(volunteerToArchive);
+                    await database.ref(`volunteerApplications/rejectedVolunteer/${volunteerKey}`).set(volunteerToArchive);
                     await approvedVolunteerRef.remove();
                     Swal.fire({
                         title: 'Archived!',
@@ -1288,8 +1324,9 @@ function initializePageFunctions(userId) {
         const viewButton = target.closest('.viewBtn');
         const rescheduleButton = target.closest('.rescheduleBtn');
         const archiveButton = target.closest('.archiveBtn');
+        const saveSinglePdfBtn = target.closest('.saveSinglePdfBtn');
 
-         if (viewButton) {
+        if (viewButton) {
             handleViewClick(viewButton);
         } else if (rescheduleButton) {
             handleRescheduleClick(rescheduleButton);

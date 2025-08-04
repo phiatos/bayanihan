@@ -1614,7 +1614,20 @@ function initializePageFunctions(userId) {
                     });
                     await database.ref(`volunteerApplications/pendingVolunteer/${currentVolunteerKey}`).remove();
                     await sendEndorsementEmail(currentVolunteerData, abvnGroupData);
-                    Swal.fire('Endorsed!', 'Volunteer has been endorsed to the selected ABVN group, and an endorsement email sent.', 'success');
+                    Swal.fire({
+                        title: 'Endorsed!',
+                        text: 'Volunteer has been endorsed to the selected ABVN group, and an endorsement email sent.',
+                        icon: 'success',
+                        timer: 3000,
+                        showConfirmButton: false,
+                        timerProgressBar: true,
+                        allowOutsideClick: false,
+                        customClass: {
+                            popup: 'swal2-popup-success-clean',
+                            title: 'swal2-title-success-clean',
+                            htmlContainer: 'swal2-text-success-clean',
+                        }
+                    });
                     hideEndorseABVNModal();
                 } catch (error) {
                     console.error("Error endorsing volunteer to ABVN: ", error);
