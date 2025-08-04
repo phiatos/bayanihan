@@ -312,21 +312,20 @@ document.addEventListener("DOMContentLoaded", () => {
                 form.reset();
                 formHasChanges = false;
                 Swal.fire({
-                icon: 'success',
-                title: 'Donation Added!',
-                text: 'Your donation has been successfully recorded.',
-                timer: 2000,
-                showConfirmButton: false,
-                background: '#e6f4ea',          
-                color: '#1b5e20',               
-                iconColor: '#2e7d32',    
-                customClass: {
-                    popup: 'swal2-popup-success-clean',
-                    title: 'swal2-title-success-clean',
-                    content: 'swal2-text-success-clean'
-                }
+                    icon: 'success',
+                    title: 'Donation Added!',
+                    text: 'Your donation has been successfully recorded.',
+                    timer: 2000,
+                    showConfirmButton: false,
+                    background: '#e6f4ea',
+                    color: '#1b5e20',
+                    iconColor: '#2e7d32',
+                    customClass: {
+                        popup: 'swal2-popup-success-clean',
+                        title: 'swal2-title-success-clean',
+                        htmlContainer: 'swal2-text-success-clean'
+                    }
                 });
-
             })
             .catch(error => {
                 console.error("Error adding donation:", error);
@@ -424,9 +423,9 @@ document.addEventListener("DOMContentLoaded", () => {
                     <td>${d.bank || 'N/A'}</td>
                     <td>${d.proof ? `<a href="${d.proof}" target="_blank">View Proof</a>` : 'N/A'}</td>
                     <td>
-                        <button class="editBtn">Edit</button>
-                        <button class="deleteBtn">Archive</button>
-                        <button class="savePDFBtn">Save PDF</button>
+                        <button class="editBtn"><i class='bx bx-edit'></i></button>
+                        <button class="deleteBtn"><i class="bx bx-x-circle"></i></button>
+                        <button class="savePDFBtn"><i class='bx bxs-file-pdf'></i></button>
                     </td>
                 `;
                 tr.querySelector(".editBtn").addEventListener("click", () => openEditModal(d.firebaseKey));
@@ -583,7 +582,20 @@ document.addEventListener("DOMContentLoaded", () => {
         // Construct the filename with the date
         const filename = `monetary-donations_${formattedDate}.xlsx`;
         XLSX.writeFile(wb, filename);
-        Swal.fire("Success", `Monetary Donations exported to ${filename}!`, "success");
+        Swal.fire({
+            title: 'Export Successful!',
+            text: `Monetary Donations exported to "${filename}"!`,
+            icon: 'success',
+            timer: 2500,
+            showConfirmButton: false,
+            timerProgressBar: true,
+            allowOutsideClick: false,
+            customClass: {
+                popup: 'swal2-popup-success-clean',
+                title: 'swal2-title-success-clean',
+                htmlContainer: 'swal2-text-success-clean'
+            }
+        });
     });
 
     // --- PDF Export Functionality (All Data)---
@@ -664,7 +676,20 @@ document.addEventListener("DOMContentLoaded", () => {
             const filename = `all-monetary-donations_${new Date().toISOString().slice(0, 10)}.pdf`;
             doc.save(filename);
             Swal.close();
-            Swal.fire("Success", `All Monetary Donations exported to "${filename}"`, "success");
+            Swal.fire({
+                title: 'Success!',
+                text: `All Monetary Donations exported to "${filename}"`,
+                icon: 'success',
+                timer: 2500,
+                showConfirmButton: false,
+                timerProgressBar: true,
+                allowOutsideClick: false,
+                customClass: {
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    htmlContainer: 'swal2-text-success-clean'
+                }
+            });
         };
 
         logo.onerror = function() {
@@ -724,16 +749,15 @@ document.addEventListener("DOMContentLoaded", () => {
             title: 'Export Successful!',
             text: 'Monetary donation details have been exported to PDF.',
             icon: 'success',
-            color: '#1b5e20',
-            iconColor: '#43a047',
-            confirmButtonColor: '#388e3c',
-            confirmButtonText: 'Great!',
-            customClass: {
-                popup: 'swal2-popup-success-export',
-                title: 'swal2-title-success-export',
-                content: 'swal2-text-success-export',
-                confirmButton: 'swal2-button-success-export'
-            }
+                timer: 1600,
+                showConfirmButton: false,
+                timerProgressBar: true,
+                allowOutsideClick: false,
+                customClass: {
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    htmlContainer: 'swal2-text-success-clean'
+                }
             });
 
         };
@@ -745,22 +769,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function deleteRow(firebaseKey) {
         Swal.fire({
-            title: 'Are you sure?',
-            text: "This monetary donation entry will be deleted from the list but saved to deleted donations!",
+            title: 'Are you sure to reject this donation?',
+            text: "This will move it to archived records.",
             icon: 'warning',
-            iconColor: '#ffa000',
             showCancelButton: true,
-            confirmButtonColor: '#d32f2f',  // stronger red
-            cancelButtonColor: '#546e7a',   // blue-gray
-            confirmButtonText: 'Yes, delete it!',
+            confirmButtonText: 'Reject',
             cancelButtonText: 'Cancel',
             reverseButtons: true,
+            focusCancel: true,
+            allowOutsideClick: false,
             customClass: {
-                popup: 'swal2-popup-delete-clean',
-                title: 'swal2-title-delete-clean',
-                content: 'swal2-text-delete-clean',
-                confirmButton: 'swal2-button-confirm-clean',
-                cancelButton: 'swal2-button-cancel-clean'
+                popup: 'custom-swal-popup-small',
+                title: 'custom-swal-title',
+                htmlContainer: 'custom-swal-content',
+                confirmButton: 'custom-confirm-btn',
+                cancelButton: 'custom-cancel-btn'
             }
         }).then((result) => {
             if (result.isConfirmed) {
@@ -780,7 +803,20 @@ document.addEventListener("DOMContentLoaded", () => {
                         return database.ref(`donations/monetary/${firebaseKey}`).remove();
                     })
                     .then(() => {
-                        Swal.fire('Deleted!', 'The donation entry has been moved to deleted donations.', 'success');
+                        Swal.fire({
+                            title: 'Rejected!',
+                            text: 'The donation has been rejected and archived.',
+                            icon: 'success',
+                            timer: 1600,
+                            showConfirmButton: false,
+                            timerProgressBar: true,
+                            allowOutsideClick: false,
+                            customClass: {
+                                popup: 'swal2-popup-success-clean',
+                                title: 'swal2-title-success-clean',
+                                htmlContainer: 'swal2-text-success-clean',
+                            }
+                        });
                     })
                     .catch(error => {
                         console.error("Error moving donation to deleted donations:", error);
@@ -897,19 +933,18 @@ document.addEventListener("DOMContentLoaded", () => {
                 .then(() => {
                     closeEditModal();
                     Swal.fire({
-                    title: 'Success!',
-                    text: 'Donation updated successfully!',
-                    icon: 'success',
-                    color: '#1b5e20',
-                    iconColor: '#43a047',
-                    confirmButtonColor: '#388e3c',
-                    confirmButtonText: 'OK',
-                    customClass: {
-                        popup: 'swal2-popup-success-clean',
-                        title: 'swal2-title-success-clean',
-                        content: 'swal2-text-success-clean',
-                        confirmButton: 'swal2-button-success-clean'
-                    }
+                        title: 'Success!',
+                        text: 'Donation updated successfully!',
+                        icon: 'success',
+                        timer: 1600,
+                        showConfirmButton: false,
+                        timerProgressBar: true,
+                        allowOutsideClick: false,
+                        customClass: {
+                            popup: 'swal2-popup-success-clean',
+                            title: 'swal2-title-success-clean',
+                            htmlContainer: 'swal2-text-success-clean',
+                        }
                     });
 
                     editingKey = null;

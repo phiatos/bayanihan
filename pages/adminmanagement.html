@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../components/sidebar.css" />
-    <link rel="stylesheet" href="../css/volunteergroupmanagement.css" />
     <link rel="stylesheet" href="../css/global.css" />
+    <link rel="stylesheet" href="../css/volunteergroupmanagement.css" />
     <link rel='stylesheet' href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css'/>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
@@ -17,11 +17,12 @@
 
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
     
-    <title>Admin Management</title>
+    <title>Bayanihan | Angat Buhay Disaster Relief Portal</title>
 </head>
 <body>
     <div class="main-container">
         <div class="sidebar-placeholder"></div>
+
         <div id="main-content">
             <div class="container">
                 <div class="controls">
@@ -95,40 +96,57 @@
             <div class="modal" id="addAdminModal" style="display: none;">
                 <div class="modal-content">
                     <span class="close-button" id="closeModalBtn">×</span>
-                    <h2 id="modalTitle">Add Admin</h2>
+                    <h4 id="editModalTitle">Add Admin</h4>
+
                     <form id="addAdminForm">
 
-                        <label for="firstName">First Name</label>
-                        <input type="text" id="firstName" name="firstName" placeholder="e.g. Juan" required />
+                        <div class="form-group">
+                            <label for="firstName">First Name</label>
+                            <input type="text" id="firstName" name="firstName" placeholder="e.g. Juan" required />
+                        </div>
 
-                        <label for="middleInitial">Middle Initial (Optional)</label>
-                        <input type="text" id="middleInitial" name="middleInitial" maxlength="1" placeholder="e.g. A" />
+                        <div class="form-group">
+                            <label for="middleInitial">Middle Initial (Optional)</label>
+                            <input type="text" id="middleInitial" name="middleInitial" maxlength="1" placeholder="e.g. A" />
+                        </div>
 
-                        <label for="lastName">Last Name</label>
-                        <input type="text" id="lastName" name="lastName" placeholder="e.g. Dela Cruz" required />
+                        <div class="form-group">
+                            <label for="lastName">Last Name</label>
+                            <input type="text" id="lastName" name="lastName" placeholder="e.g. Dela Cruz" required />
+                        </div>
 
-                        <label for="nameExtension">Name Extension (e.g. Jr., Sr., III - Optional)</label>
-                        <input type="text" id="nameExtension" name="nameExtension" placeholder="e.g. Jr." />
+                        <div class="form-group">
+                            <label for="nameExtension">Name Extension (e.g. Jr., Sr., III - Optional)</label>
+                            <input type="text" id="nameExtension" name="nameExtension" placeholder="e.g. Jr." />
+                        </div>
 
-                        <label for="email">Email Address</label>
-                        <input type="email" id="email" name="email" placeholder="e.g. juan.delacruz@example.com" required />
-                        
-                        <label for="mobile">Mobile Number</label>
-                        <input type="tel" id="mobile" name="mobile" placeholder="e.g. 09171234567" pattern="[0-9]{11}" required />
-                        
-                        <label for="socialMedia">Social Media Link (e.g., Facebook Profile URL)</label>
-                        <input type="url" id="socialMedia" name="socialMedia" placeholder="e.g. https://facebook.com/yourprofile" />
+                        <div class="form-group">
+                            <label for="email">Email Address</label>
+                            <input type="email" id="email" name="email" placeholder="e.g. juan.delacruz@example.com" required />
+                        </div>
 
-                        <label for="adminPosition">Position</label>
-                        <select id="adminPosition" name="adminPosition"  required>
-                            <option value="" selected disabled>Select one</option>
-                            <option value="position-one">Position One</option>
-                            <option value="position-two">Position Two</option>
-                            <option value="position-three" disabled>Super Admin</option>
-                        </select>
+                        <div class="form-group">
+                            <label for="mobile">Mobile Number</label>
+                            <input type="tel" id="mobile" name="mobile" placeholder="e.g. 09171234567" pattern="[0-9]{11}" required />
+                        </div>
+
+                        <div class="form-group">
+                            <label for="socialMedia">Social Media Link (e.g., Facebook Profile URL)</label>
+                            <input type="url" id="socialMedia" name="socialMedia" placeholder="e.g. https://facebook.com/yourprofile" />
+                        </div>
+
+                        <div class="form-group">
+                            <label for="adminPosition">Position</label>
+                            <select id="adminPosition" name="adminPosition" required>
+                                <option value="" selected disabled>Select one</option>
+                                <option value="position-one">Position One</option>
+                                <option value="position-two">Position Two</option>
+                                <option value="position-three" disabled>Super Admin</option>
+                            </select>
+                        </div>
 
                         <div style="margin-top: 20px;">
-                            <button type="submit" style="width: 25%;">Next</button>
+                            <button type="submit">Save Changes</button>
                         </div>
                     </form>
                 </div>
@@ -160,39 +178,57 @@
             <div class="modal" id="editAdminModal" style="display: none;">
                 <div class="modal-content">
                     <span class="close-button" id="closeEditModalBtn">×</span>
-                    <h2 id="editModalTitle">Edit Admin Details</h2>
+                    <h4 id="editModalTitle">Edit Admin Details</h2>
+
                     <form id="editAdminForm">
-                        <label for="editFirstName">First Name</label>
-                        <input type="text" id="editFirstName" name="firstName" placeholder="e.g. Juan" required />
 
-                        <label for="editMiddleInitial">Middle Initial (Optional)</label>
-                        <input type="text" id="editMiddleInitial" name="middleInitial" maxlength="1" placeholder="e.g. A" />
+                        <div class="form-group">
+                            <label for="editFirstName">First Name</label>
+                            <input type="text" id="editFirstName" name="firstName" placeholder="e.g. Juan" required />
+                        </div>
 
-                        <label for="editLastName">Last Name</label>
-                        <input type="text" id="editLastName" name="lastName" placeholder="e.g. Dela Cruz" required />
+                        <div class="form-group">
+                            <label for="editMiddleInitial">Middle Initial (Optional)</label>
+                            <input type="text" id="editMiddleInitial" name="middleInitial" maxlength="1" placeholder="e.g. A" />
+                        </div>
 
-                        <label for="editNameExtension">Name Extension (e.g. Jr., Sr., III - Optional)</label>
-                        <input type="text" id="editNameExtension" name="nameExtension" placeholder="e.g. Jr." />
+                        <div class="form-group">
+                            <label for="editLastName">Last Name</label>
+                            <input type="text" id="editLastName" name="lastName" placeholder="e.g. Dela Cruz" required />
+                        </div>
 
-                        <label for="editEmail">Email Address</label>
-                        <input type="email" id="editEmail" name="email" placeholder="e.g. juan.delacruz@example.com" required />
-                        
-                        <label for="editMobile">Mobile Number</label>
-                        <input type="tel" id="editMobile" name="mobile" placeholder="e.g. 09171234567" pattern="[0-9]{11}" required />
-                        
-                        <label for="editSocialMedia">Social Media Link (e.g., Facebook Profile URL)</label>
-                        <input type="url" id="editSocialMedia" name="socialMedia" placeholder="e.g. https://facebook.com/yourprofile" />
+                        <div class="form-group">
+                            <label for="editNameExtension">Name Extension (e.g. Jr., Sr., III - Optional)</label>
+                            <input type="text" id="editNameExtension" name="nameExtension" placeholder="e.g. Jr." />
+                        </div>
 
-                        <label for="editAdminPosition">Position</label>
-                        <select id="editAdminPosition" name="adminPosition" required>
-                            <option value="" selected disabled>Select one</option>
-                            <option value="position-one">Position One</option>
-                            <option value="position-two">Position Two</option>
-                            <option value="position-three" disabled>Super Admin</option>
-                        </select>
+                        <div class="form-group">
+                            <label for="editEmail">Email Address</label>
+                            <input type="email" id="editEmail" name="email" placeholder="e.g. juan.delacruz@example.com" required />
+                        </div>
+
+                        <div class="form-group">
+                            <label for="editMobile">Mobile Number</label>
+                            <input type="tel" id="editMobile" name="mobile" placeholder="e.g. 09171234567" pattern="[0-9]{11}" required />
+                        </div>
+
+                        <div class="form-group">
+                            <label for="editSocialMedia">Social Media Link (e.g., Facebook Profile URL)</label>
+                            <input type="url" id="editSocialMedia" name="socialMedia" placeholder="e.g. https://facebook.com/yourprofile" />
+                        </div>
+
+                        <div class="form-group">
+                            <label for="editAdminPosition">Position</label>
+                            <select id="editAdminPosition" name="adminPosition" required>
+                                <option value="" selected disabled>Select one</option>
+                                <option value="position-one">Position One</option>
+                                <option value="position-two">Position Two</option>
+                                <option value="position-three" disabled>Super Admin</option>
+                            </select>
+                        </div>
 
                         <div style="margin-top: 20px;">
-                            <button type="submit" style="width: 25%;">Save Changes</button>
+                            <button type="submit">Save Changes</button>
                         </div>
                     </form>
                 </div>

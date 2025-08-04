@@ -601,7 +601,7 @@ function showPreviewModal(applicationData) {
 
     modalContentDiv.innerHTML = `
         <div class="modal-content-inner" style="padding: 20px;">
-            <h4 style="margin-top: 0px; margin-bottom: 10px; color: #FA3B99;">Organization Details :</h4>
+            <h2>Organization Details:</h2>
             <p><strong>Application Date/Time:</strong> ${formattedTimestamp}</p>
             <p><strong>Organization Name:</strong> ${applicationData.organizationName || 'N/A'}</p>
             <p><strong>Contact Person:</strong> ${applicationData.contactPerson || 'N/A'}</p>
@@ -609,7 +609,7 @@ function showPreviewModal(applicationData) {
             <p><strong>Mobile Number:</strong> ${applicationData.mobileNumber || 'N/A'}</p>
             <p><strong>Social Media Link:</strong> ${applicationData.socialMediaLink ? `<a href="${applicationData.socialMediaLink}" target="_blank" rel="noopener noreferrer">${applicationData.socialMediaLink}</a>` : 'N/A'}</p>
             <hr>
-            <h4 style="margin-top: 20px; margin-bottom: 10px; color: #FA3B99;">Headquarters Address:</h4>
+            <h2>Headquarters Address:</h2>
             <div style="margin-left: 15px;">
                 <p><strong>Region:</strong> ${applicationData.headquarters?.region || 'N/A'}</p>
                 <p><strong>Province:</strong> ${applicationData.headquarters?.province || 'N/A'}</p>
@@ -618,11 +618,11 @@ function showPreviewModal(applicationData) {
                 <p><strong>Street Address:</strong> ${applicationData.headquarters?.streetAddress || 'N/A'}</p>
             </div>
             <hr>
-            <h4 style="margin-top: 20px; margin-bottom: 10px; color: #FA3B99;">Organizational Background:</h4>
+            <h2>Organizational Background:</h2>
             <p><strong>Mission/Background:</strong> ${applicationData.organizationalBackgroundMission || 'N/A'}</p>
             <p><strong>Areas of Expertise/Focus:</strong> ${applicationData.areasOfExpertiseFocus || 'N/A'}</p>
             <hr>
-            <h4 style="margin-top: 20px; margin-bottom: 10px; color: #FA3B99;">Legal & Documents:</h4>
+            <h2>Legal & Documents:</h2>
             <p><strong>Legal Status/Registration:</strong> ${applicationData.legalStatusRegistration || 'N/A'}</p>
             <p><strong>Required Documents:</strong> ${applicationData.requiredDocumentsLink ? `<a href="${applicationData.requiredDocumentsLink}" target="_blank" rel="noopener noreferrer">View Document</a>` : 'N/A'}</p>
         </div>
@@ -1219,7 +1219,20 @@ function exportToExcel() {
     const filename = `pending-abvn-applications_${formattedDateTime}.xlsx`;
 
     XLSX.writeFile(wb, filename);
-    Swal.fire("Success", `Pending ABVN Applications exported to ${filename}!`, "success");
+    Swal.fire({
+        title: 'Export Successful!',
+        text: `Volunteer group application details have been exported to Excel "${filename}".`,
+        icon: 'success',
+        timer: 2500,
+        showConfirmButton: false,
+        timerProgressBar: true,
+        allowOutsideClick: false,
+        customClass: {
+            popup: 'swal2-popup-success-clean',
+            title: 'swal2-title-success-clean',
+            htmlContainer: 'swal2-text-success-clean'
+        }
+    });
 }
 
 // PDF all 
@@ -1323,7 +1336,20 @@ function exportToPDF() {
 
         doc.save(filename);
         Swal.close();
-        Swal.fire("Success", `Pending ABVN Applications exported to "${filename}"`, "success");
+        Swal.fire({
+            title: 'Export Successful!',
+            text: `Volunteer group application details have been exported to PDF "${filename}".`,
+            icon: 'success',
+            timer: 2500,
+            showConfirmButton: false,
+            timerProgressBar: true,
+            allowOutsideClick: false,
+            customClass: {
+                popup: 'swal2-popup-success-clean',
+                title: 'swal2-title-success-clean',
+                htmlContainer: 'swal2-text-success-clean'
+            }
+        });
     };
 
     logo.onerror = function() {
