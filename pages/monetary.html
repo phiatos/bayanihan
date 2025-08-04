@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../components/sidebar.css" />
-    <link rel="stylesheet" href="../css/inkind.css" />
+    <link rel="stylesheet" href="../css/donations.css" />
     <link rel="stylesheet" href="../css/global.css" />
     <link rel='stylesheet' href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css'/>
 
@@ -21,7 +21,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     
-    <title>Monetary Donations</title>
+    <title>Bayanihan | Angat Buhay Disaster Relief Portal</title>
 </head>
 <body>
     <div class="main-container">
@@ -139,6 +139,24 @@
                         <button id="viewArchived" aria-label="View Archived Admins">
                             <i class='bx bx-archive' style="color: white; font-size: 20px;"></i>
                         </button>
+
+                        <div class="import-section">
+                            <input type="file" id="excelFileInput" accept=".xls,.xlsx" style="display: none;"/>
+                            <button id="importExcelBtn" class="importExcelBtn" type="button">
+                                <i class='bx bxs-file-import'  style="font-size: 1.2rem;"></i>Import from Excel
+                            </button>
+                        </div>
+
+                        <div id="importStatusModal" class="modal" style="display: none;">
+                            <div class="modal-content custom-swal-popup-small">
+                                <span class="close-button" id="closeImportStatusModalBtn">&times;</span>
+                                <h2 class="custom-swal-title">Excel Import Status</h2>
+                                <div id="importProgressBar" style="width: 0%; background-color: #4CAF50; height: 20px; text-align: center; line-height: 20px; color: white;">0%</div>
+                                <p id="importStatusText" class="custom-swal-text">Processing data...</p>
+                                <ul id="importErrorList" class="custom-swal-text" style="color: red; list-style-type: none; padding: 0;"></ul>
+                            </div>
+                        </div>
+                        
                     </div>
                 </div>
 
@@ -179,19 +197,64 @@
             <div class="modal" id="editModal" style="display:none;">
                 <div class="modal-content">
                     <span class="close-button" id="closeEditModalBtn">×</span>
-                    <h4>Edit Monetary Donation</h4>
-                    <label>Encoder: <input type="text" id="edit-encoder"></label>
-                    <label>Name/Company: <input type="text" id="edit-name"></label>
-                    <label>Location: <input type="text" id="edit-address"></label>
-                    <label>Number: <input type="tel" id="edit-number"></label>
-                    <label>Amount Donated: <input type="number" id="edit-amount"></label>
-                    <label>Cash Invoice #: <input type="text" id="edit-invoice" readonly></label>
-                    <label>Date Received: <input type="date" id="edit-dateReceived"></label>
-                    <label>Email: <input type="email" id="edit-email"></label>
-                    <label>Bank: <input type="text" id="edit-bank"></label>
-                    <label>Proof of Transaction (Google Drive Link): <input type="url" id="edit-proof"></label>
-                    <button type="button" id="saveEditBtn">Save Changes</button>
-                    <button type="button" id="cancelEditBtn">Cancel</button>
+                    <h4 id="editModalTitle">Edit Monetary Donation</h4>
+
+                    <form id="editDonationForm"> 
+                        <div class="form-group">
+                            <label>Encoder:</label>
+                            <input type="text" id="edit-encoder" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Name/Company:</label>
+                            <input type="text" id="edit-name" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Location:</label>
+                            <input type="text" id="edit-address" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Number:</label>
+                            <input type="tel" id="edit-number" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Amount Donated:</label>
+                            <input type="number" id="edit-amount" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Cash Invoice #:</label>
+                            <input type="text" id="edit-invoice" readonly>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Date Received:</label>
+                            <input type="date" id="edit-dateReceived" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Email:</label>
+                            <input type="email" id="edit-email" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Bank:</label>
+                            <input type="text" id="edit-bank" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Proof of Transaction (Google Drive Link):</label>
+                            <input type="url" id="edit-proof" required>
+                        </div>
+
+                        <div style="margin-top: 20px;">
+                            <button type="button" id="saveEditBtn">Save Changes</button>
+                            <button type="button" id="cancelEditBtn">Cancel</button>
+                        </div>
+                    </form>
                 </div>
             </div>
 

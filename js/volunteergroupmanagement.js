@@ -263,8 +263,8 @@ function renderTable(dataToRender = filteredData) {
             <td>${row.address?.barangay || 'N/A'}</td>
             <td>${row.address?.streetAddress || 'N/A'}</td>
             <td>
-                <button class="editBtn" data-id="${row.id}">Edit</button>
-                <button class="deleteBtn" data-id="${row.id}">Archive</button>
+                <button class="editBtn" data-id="${row.id}"><i class='bx bx-edit'></i></button>
+                <button class="deleteBtn" data-id="${row.id}"><i class="bx bx-x-circle"></i></button>
             </td>
         `;
         tableBody.appendChild(tr);
@@ -766,12 +766,12 @@ if (addOrgForm) {
             const fullAddress = `${orgData.address.streetAddress !== 'N/A' ? orgData.address.streetAddress + ', ' : ''}${orgData.address.barangay}, ${orgData.address.city}, ${orgData.address.province}, ${orgData.address.region}`;
 
             confirmDetails.innerHTML = `
-                <p><strong style="color: #4059A5;">Organization:</strong> ${orgData.organization}</p>
-                <p><strong style="color: #4059A5;">Full Address:</strong> ${fullAddress}</p>
-                <p><strong style="color: #4059A5;">Contact Person:</strong> ${orgData.contactPerson}</p>
-                <p><strong style="color: #4059A5;">Email:</strong> ${orgData.email}</p>
-                <p><strong style="color: #4059A5;">Mobile:</strong> ${orgData.mobileNumber}</p>
-                <p><strong style="color: #4059A5;">Social Media:</strong> ${orgData.socialMedia}</p>
+                <p><strong style="color: #FA3B99;">Organization:</strong> ${orgData.organization}</p>
+                <p><strong style="color: #FA3B99;">Full Address:</strong> ${fullAddress}</p>
+                <p><strong style="color: #FA3B99;">Contact Person:</strong> ${orgData.contactPerson}</p>
+                <p><strong style="color: #FA3B99;">Email:</strong> ${orgData.email}</p>
+                <p><strong style="color: #FA3B99;">Mobile:</strong> ${orgData.mobileNumber}</p>
+                <p><strong style="color: #FA3B99;">Social Media:</strong> ${orgData.socialMedia}</p>
             `;
         }
 
@@ -1362,11 +1362,21 @@ function attachRowHandlers() {
                         });
                     }
                 } else if (result.dismiss === Swal.DismissReason.cancel || result.dismiss === Swal.DismissReason.backdrop) {
-                    Swal.fire(
-                        'Cancelled',
-                        'The volunteer group was not archived.', // Changed text
-                        'info'
-                    );
+                    Swal.fire({
+                        title: 'Cancelled',
+                        text: 'The application has been cancelled.',
+                        icon: 'info',
+                        timer: 1600,
+                        showConfirmButton: false,
+                        timerProgressBar: true,
+                        allowOutsideClick: false,
+                        customClass: {
+                            popup: 'swal2-popup-success-clean',
+                            title: 'swal2-title-success-clean',
+                            htmlContainer: 'swal2-text-success-clean',
+                        }
+                    });
+                    return;
                 }
             });
         });
