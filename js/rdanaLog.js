@@ -158,9 +158,12 @@ function checkInactivity() {
         <td>${log.effects?.affectedPopulation ?? "N/A"}</td>
         <td>${log.needs?.priority?.join(", ") ?? "N/A"}</td>
         <td>
-          <button class="viewBtn">View</button>
-          <button class="deleteBtn">Archive</button>
-          <button class="savePDFBtn">Save PDF</button>
+          <button class="viewBtn"><i class='bx bx-show-alt'></i>
+</button>
+          <button class="deleteBtn"><i class="bx bx-x-circle"></i>
+</button>
+          <button class="savePDFBtn"><i class='bx bxs-file-pdf'></i>
+</button>
         </td>
       `;
       // Attach event listeners programmatically

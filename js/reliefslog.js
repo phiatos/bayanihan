@@ -316,9 +316,12 @@ function checkInactivity() {
 
                 <td>
                     <button class="saveBtn" data-key="${item.firebaseKey}">Save </button>
-                    <button class="viewBtn" data-index="${data.indexOf(item)}">View</button>
-                    <button class="deleteBtn" data-key="${item.firebaseKey}">Archive</button>
-                    <button class="savePDFBtn" data-index="${data.indexOf(item)}">Save PDF</button>
+                    <button class="viewBtn" data-index="${data.indexOf(item)}"><i class='bx bx-show-alt'></i>
+</button>
+                    <button class="deleteBtn" data-key="${item.firebaseKey}"><i class="bx bx-x-circle"></i>
+</button>
+                    <button class="savePDFBtn" data-index="${data.indexOf(item)}"><i class='bx bxs-file-pdf'></i>
+</button>
                 </td>
             `;
 

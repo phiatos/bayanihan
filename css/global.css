@@ -684,6 +684,9 @@ td {
   font-size: 11px;         /* smaller font for data cells */
   vertical-align: top;
   padding: 8px 8px;
+  white-space: nowrap;       /* keep text on one line */
+  overflow: hidden;
+  text-overflow: ellipsis;   /* add "..." when too long */
 }
 
 th {
