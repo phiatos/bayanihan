@@ -101,88 +101,80 @@ document.addEventListener('DOMContentLoaded', () => {
             title.textContent = category;
             section.appendChild(title);
 
-             // Converts Big Quantities to Readable Ones
-function formatLargeNumber(numStr) {
-    try {
-        let num = BigInt(numStr || "0");
-        const trillion = 1_000_000_000_000n;
-        const billion = 1_000_000_000n;
-        const million = 1_000_000n;
-        const thousand = 1_000n;
+            // Converts Big Quantities to Readable Ones
+            function formatLargeNumber(numStr) {
+                try {
+                    let num = BigInt(numStr || "0");
+                    const trillion = 1_000_000_000_000n;
+                    const billion = 1_000_000_000n;
+                    const million = 1_000_000n;
+                    const thousand = 1_000n;
 
-        if (num >= trillion) {
-            return (Number(num) / Number(trillion)).toFixed(2).replace(/\.?0+$/, '') + 'T';
-        } else if (num >= billion) {
-            return (Number(num) / Number(billion)).toFixed(2).replace(/\.?0+$/, '') + 'B';
-        } else if (num >= million) {
-            return (Number(num) / Number(million)).toFixed(2).replace(/\.?0+$/, '') + 'M';
-        } else if (num >= thousand) {
-            return (Number(num) / Number(thousand)).toFixed(2).replace(/\.?0+$/, '') + 'k';
-        }
-        return num.toString();
-    } catch (error) {
-        console.warn('Invalid number input:', numStr);
-        return numStr;
-    }
-}
+                    if (num >= trillion) {
+                        return (Number(num) / Number(trillion)).toFixed(2).replace(/\.?0+$/, '') + 'T';
+                    } else if (num >= billion) {
+                        return (Number(num) / Number(billion)).toFixed(2).replace(/\.?0+$/, '') + 'B';
+                    } else if (num >= million) {
+                        return (Number(num) / Number(million)).toFixed(2).replace(/\.?0+$/, '') + 'M';
+                    } else if (num >= thousand) {
+                        return (Number(num) / Number(thousand)).toFixed(2).replace(/\.?0+$/, '') + 'k';
+                    }
+                    return num.toString();
+                } catch (error) {
+                    console.warn('Invalid number input:', numStr);
+                    return numStr;
+                }
+            }
 
-categories[category].forEach(item => {
-    if (Object.prototype.hasOwnProperty.call(summaryData, item)) { // safer check
-        let displayKey = item
-            .replace(/([A-Z])/g, ' $1')
-            .replace(/^./, str => str.toUpperCase());
+            categories[category].forEach(item => {
+                if (Object.prototype.hasOwnProperty.call(summaryData, item)) {
+                    let displayKey = item
+                        .replace(/([A-Z])/g, ' $1')
+                        .replace(/^./, str => str.toUpperCase());
 
-        displayKey = displayKey
-            .replace('Area Of Operation', 'Area of Operation')
-            .replace('Time Of Intervention', 'Completion of Time Intervention')
-            .replace('Calamity Area Details', 'Calamity Area')
-            .replace('Date Of Report', 'Date of Report')
-            .replace('Report ID', 'Report ID')
-            .replace('Start Date', 'Start Date')
-            .replace('End Date', 'End Date')
-            .replace('Volunteer Group Name', 'Volunteer Group')
-            .replace('No Of Individuals Or Families', 'No. of Individuals or Families')
-            .replace('No Of Food Packs', 'No. of Food Packs')
-            .replace('No Of Hot Meals', 'No. of Hot Meals')
-            .replace('Liters Of Water', 'Liters of Water')
-            .replace('No Of Volunteers Mobilized', 'No. of Volunteers Mobilized')
-            .replace('No Of Organizations Activated', 'No. of Organizations Activated')
-            .replace('Total Value Of In Kind Donations', 'Total Value of In-Kind Donations')
-            .replace('Total Monetary Donations', 'Total Monetary Donations')
-            .replace('NotesAdditionalInformation', 'Notes/Additional Information'); 
-        let value = summaryData[item];
+                    displayKey = displayKey
+                        .replace('Area Of Operation', 'Area of Operation')
+                        .replace('Time Of Intervention', 'Completion of Time Intervention')
+                        .replace('Calamity Area Details', 'Calamity Area')
+                        .replace('Date Of Report', 'Date of Report')
+                        .replace('Report ID', 'Report ID')
+                        .replace('Start Date', 'Start Date')
+                        .replace('End Date', 'End Date')
+                        .replace('Volunteer Group Name', 'Volunteer Group')
+                        .replace('No Of Individuals Or Families', 'No. of Individuals or Families')
+                        .replace('No Of Food Packs', 'No. of Food Packs')
+                        .replace('No Of Hot Meals', 'No. of Hot Meals')
+                        .replace('Liters Of Water', 'Liters of Water')
+                        .replace('No Of Volunteers Mobilized', 'No. of Volunteers Mobilized')
+                        .replace('No Of Organizations Activated', 'No. of Organizations Activated')
+                        .replace('Total Value Of In Kind Donations', 'Total Value of In-Kind Donations')
+                        .replace('Total Monetary Donations', 'Total Monetary Donations')
+                        .replace('NotesAdditionalInformation', 'Notes/Additional Information'); 
+                    let value = summaryData[item];
 
-        if (item === "DateOfReport" || item === "StartDate" || item === "EndDate") {
-            value = formatDate(value);
-        } else if (item === "TimeOfIntervention") {
-            value = formatTime(value);
-        } else if (/^NoOf|^Total/.test(item) && !isNaN(value)) {
-            // Apply large number formatting for count/total fields
-            value = formatLargeNumber(value);
-        }
+                    if (item === "DateOfReport" || item === "StartDate" || item === "EndDate") {
+                        value = formatDate(value);
+                    } else if (item === "TimeOfIntervention") {
+                        value = formatTime(value);
+                    } else if (/^NoOf|^Total/.test(item) && !isNaN(value)) {
+                        value = formatLargeNumber(value);
+                    }
 
-        console.log("Final summaryData:", summaryData);
-
-
-        const fieldDiv = document.createElement("div");
-        fieldDiv.className = "summary-box";
-        const formattedValue = (value === undefined || value === null || value.toString().trim() === '') ? 'N/A' : value;
-        fieldDiv.innerHTML = `<strong>${displayKey}:</strong> <span>${formattedValue}</span>`
-        section.appendChild(fieldDiv);
-    }
-});
-
+                    const fieldDiv = document.createElement("div");
+                    fieldDiv.className = "summary-box";
+                    const formattedValue = (value === undefined || value === null || value.toString().trim() === '') ? 'N/A' : value;
+                    fieldDiv.innerHTML = `<strong>${displayKey}:</strong> <span>${formattedValue}</span>`;
+                    section.appendChild(fieldDiv);
+                }
+            });
 
             container.appendChild(section);
         }
 
         // Back button logic
         document.getElementById('backBtn').addEventListener('click', () => {
-        // Save current summaryData back to localStorage to keep form data
-            // localStorage.setItem("reportData", JSON.stringify(summaryData));
-            window.history.back()
+            window.history.back();
             localStorage.setItem("returnToStep", "form-container-2");
-            
         });
 
         // Submit button logic
@@ -200,35 +192,70 @@ categories[category].forEach(item => {
                     return;
                 }
 
-                summaryData["userUid"] = user.uid;
-                summaryData["Status"] = "Pending";
-                summaryData["Timestamp"] = firebase.database.ServerValue.TIMESTAMP;
+                // Show simplified confirmation dialog
+                if (confirm("Are you sure you want to submit the report?")) {
+                    summaryData["userUid"] = user.uid;
+                    summaryData["Status"] = "Pending";
+                    summaryData["Timestamp"] = firebase.database.ServerValue.TIMESTAMP;
 
-                database.ref("reports/submitted").push(summaryData)
-                    .then(() => {
-                        console.log("Report successfully saved to Firebase");
+                    database.ref("reports/submitted").push(summaryData)
+                        .then(async (result) => {
+                            console.log("Report successfully saved to Firebase");
 
-                        localStorage.removeItem("reportData");
-                        localStorage.removeItem("returnToStep");
+                            // Notify admin
+                            const message = `New report (${summaryData.ReportID}) submitted by ${summaryData.VolunteerGroupName} from ${summaryData.VolunteerGroupName} on ${summaryData.DateOfReport}.`;
+                            const reportRefKey = result.key; // Get the pushed key
+                            await notifyAdmin(message, null, null, null, reportRefKey, summaryData.VolunteerGroupName, summaryData.VolunteerGroupName);
 
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Report Submitted',
-                            text: 'Your report has been successfully submitted for verification!',
-                        }).then(() => {
-                            window.location.href = "../pages/dashboard.html";
+                            localStorage.removeItem("reportData");
+                            localStorage.removeItem("returnToStep");
+
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Report Submitted',
+                                text: 'Your report has been successfully submitted for verification!',
+                            }).then(() => {
+                                window.location.href = "../pages/dashboard.html";
+                            });
+                        })
+                        .catch((error) => {
+                            console.error("Error saving report to Firebase:", error);
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: 'Failed to submit report: ' + error.message,
+                            });
                         });
-                    })
-                    .catch((error) => {
-                        console.error("Error saving report to Firebase:", error);
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: 'Failed to submit report: ' + error.message,
-                        });
-                    });
+                } else {
+                    console.log("Report submission canceled by user.");
+                }
             });
         });
+
+        // Notify admin function
+        const notifyAdmin = async (message, calamityType, location, details, reportId, senderName, organization) => {
+            try {
+                const identifier = `report_${reportId}_${Date.now()}`;
+                const key = database.ref("notifications").push().key;
+                await database.ref("notifications").child(key).set({
+                    message,
+                    calamityType: calamityType || null,
+                    location: location || null,
+                    details: details || null,
+                    eventId: null,
+                    reportId,
+                    senderName,
+                    organization,
+                    identifier,
+                    timestamp: Date.now(),
+                    read: false,
+                    type: "admin"
+                });
+                console.log(`Admin notified of new report - Report ID: ${reportId}, Key: ${key}`);
+            } catch (error) {
+                console.error("Error notifying admin:", error);
+            }
+        };
 
     }).catch(error => {
         console.error("Error during report removal process:", error);
