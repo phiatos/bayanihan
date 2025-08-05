@@ -222,8 +222,6 @@ function checkInactivity() {
     pagination.appendChild(createButton('Next', currentPage + 1, currentPage === totalPages));
   }
 
-
-// NEW: Reject Func
 function deleteLog(firebaseKey, globalIndex) {
   Swal.fire({
     title: 'Are you sure?',
@@ -341,8 +339,6 @@ function deleteLog(firebaseKey, globalIndex) {
   });
 }
 
-// NEW: Open & Closing of Modal
-
 document.getElementById('viewArchived').addEventListener('click', () => {
   document.getElementById('archivedModal').style.display = 'flex';
   loadArchivedReports();
@@ -351,8 +347,6 @@ document.getElementById('viewArchived').addEventListener('click', () => {
 document.getElementById('closeArchivedModalBtn').addEventListener('click', () => {
   document.getElementById('archivedModal').style.display = 'none';
 });
-
-// NEW: Rendering of Archived Report
 
 let archivedCurrentPage = 1;
 const archivedRowsPerPage = 5; // Number of rows per page
@@ -425,7 +419,6 @@ function loadArchivedReports(page = 1) {
   });
 }
 
-// NEW: Restore Func
 
 function restoreReport(reportKey) {
   Swal.fire({
