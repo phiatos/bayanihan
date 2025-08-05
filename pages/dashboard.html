@@ -14,6 +14,22 @@
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <title>Bayanihan | Angat Buhay Disaster Relief Portal</title>
+    <style>
+        #notifBadge {
+            position: absolute;
+            background-color: #ff4444;
+            color: #fff;
+            border-radius: 50%;
+            padding: 2px 6px;
+            font-size: 12px;
+            top: -5px;
+            right: -5px;
+            display: none; /* Hidden by default, shown when there are unread notifications */
+        }
+        .unread {
+            background-color: #ffeeee; /* Light red for unread notifications */
+        }
+    </style>
 </head>
 <body>
     <div class="main-container">
@@ -21,10 +37,11 @@
         <div id="main-content">
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <header>Dashboard</header>
-                <!-- Notification Bell -->
+                <!-- Notification Bell with Counter Badge -->
                 <div id="bell">
                     <i class='bx bx-bell'></i>
                     <span id="notifDot"></span>
+                    <span id="notifBadge"></span> <!-- Badge for unread count -->
                 </div>
             </div>
 
@@ -42,6 +59,8 @@
                     <ul class="notification-list" id="calamityList"></ul>
                     <ul class="notification-list" id="adminList"></ul>
                 </div>
+                <!-- Mark All as Read Button (for AB ADMIN) -->
+                <button id="markAllRead" style="display: none; margin: 10px auto; padding: 5px 10px; background-color: #3085d6; color: white; border: none; border-radius: 5px; cursor: pointer;">Mark All as Read</button>
             </div>
 
             <!-- Dashboard Container -->
@@ -199,8 +218,10 @@
             const calamityList = document.getElementById('calamityList');
             const adminList = document.getElementById('adminList');
             const notifDot = document.getElementById('notifDot');
+            const notifBadge = document.getElementById('notifBadge');
             const tabCalamity = document.getElementById('tabCalamity');
             const tabAdmin = document.getElementById('tabAdmin');
+            const markAllReadBtn = document.getElementById('markAllRead');
 
             if (bell && drawer) {
                 bell.addEventListener('click', () => {
@@ -238,9 +259,9 @@
                 });
             }
 
-            // Load Notifications with Warning Levels
+            // Load Notifications with Warning Levels and Badge Update
             window.loadNotifications = function() {
-                if (!calamityList || !adminList || !notifDot) {
+                if (!calamityList || !adminList || !notifDot || !notifBadge) {
                     console.error("Notification elements not found");
                     return;
                 }
@@ -261,7 +282,9 @@
                         if (!notification.read) li.classList.add("unread");
                         li.addEventListener("click", () => {
                             li.classList.remove("unread");
-                            database.ref(`notifications/${key}`).update({ read: true });
+                            database.ref(`notifications/${key}`).update({ read: true }).then(() => {
+                                updateNotificationBadge();
+                            });
                         });
                         adminList.prepend(li);
                     } else {
@@ -293,21 +316,51 @@
                         }
                     }
 
-                    // Update notification dot
-                    const hasUnread = document.querySelectorAll(".unread").length > 0 ||
-                                     document.querySelectorAll("#calamityList li .province-list span").length > 0;
-                    notifDot.style.display = hasUnread ? "inline-block" : "none";
+                    // Update notification dot and badge
+                    updateNotificationBadge();
                 }, error => {
                     console.error("Fetch error:", error);
                     Swal.fire({ icon: "error", title: "Error", text: "Failed to load notifications." });
                 });
             };
 
+            // Update notification badge with unread count
+            function updateNotificationBadge() {
+                if (!notifBadge) return;
+                database.ref("notifications")
+                    .orderByChild("read")
+                    .equalTo(false)
+                    .once("value", snapshot => {
+                        const unreadCount = snapshot.numChildren();
+                        notifBadge.textContent = unreadCount > 0 ? unreadCount : '';
+                        notifBadge.style.display = unreadCount > 0 ? "inline-flex" : "none";
+                        notifDot.style.display = unreadCount > 0 ? "inline-block" : "none";
+                    });
+            }
+
             // Ensure notifications load if initializeDashboard sets up userRole
             if (typeof initializeDashboard === 'function') {
                 initializeDashboard().then(() => {
                     if (window.userRole === "AB ADMIN" && typeof loadNotifications === 'function') {
                         loadNotifications();
+                        markAllReadBtn.style.display = "block"; // Show mark all read button for AB ADMIN
+                        markAllReadBtn.addEventListener("click", () => {
+                            database.ref("notifications").once("value", snapshot => {
+                                const updates = {};
+                                snapshot.forEach(child => {
+                                    if (!child.val().read) {
+                                        updates[`${child.key}/read`] = true;
+                                    }
+                                });
+                                if (Object.keys(updates).length > 0) {
+                                    database.ref("notifications").update(updates).then(() => {
+                                        calamityList.querySelectorAll("li").forEach(li => li.classList.remove("unread"));
+                                        adminList.querySelectorAll("li").forEach(li => li.classList.remove("unread"));
+                                        updateNotificationBadge();
+                                    });
+                                }
+                            });
+                        });
                     }
                 }).catch(error => console.error('Dashboard init error:', error));
             }

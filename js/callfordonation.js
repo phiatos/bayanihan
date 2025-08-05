@@ -1,3 +1,28 @@
+// Notify admin function
+const notifyAdmin = async (message, calamityType, location, details, donationId, senderName, organization) => {
+    try {
+        const identifier = `donation_${donationId}_${Date.now()}`;
+        const key = firebase.database().ref("notifications").push().key;
+        await firebase.database().ref("notifications").child(key).set({
+            message,
+            calamityType: calamityType || null,
+            location: location || null,
+            details: details || null,
+            eventId: null,
+            donationId,
+            senderName,
+            organization,
+            identifier,
+            timestamp: Date.now(),
+            read: false,
+            type: "admin"
+        });
+        console.log(`Admin notified of new donation - Donation ID: ${donationId}, Key: ${key}`);
+    } catch (error) {
+        console.error("Error notifying admin:", error);
+    }
+};
+
 document.addEventListener('DOMContentLoaded', () => {
     const firebaseConfig = {
         apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
@@ -16,6 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const database = firebase.database();
 
     const userRole = localStorage.getItem('userRole');
+    let currentOrganization = 'Unknown Group'; // Global variable to store organization
 
     // DOM elements
     const form = document.getElementById('form-container-1');
@@ -101,8 +127,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Role-based submission eligibility check
                 const currentUserRole = userDataFromDb.role;
-                const organization = userDataFromDb.organization || 'Unknown Group';
-                console.log('User Role:', currentUserRole, 'Organization:', organization);
+                currentOrganization = userDataFromDb.organization || 'Unknown Group'; // Store organization globally
+                console.log('User Role:', currentUserRole, 'Organization:', currentOrganization);
 
                 if (currentUserRole === 'AB ADMIN') {
                     console.log('AB ADMIN role detected. Submission allowed.');
@@ -116,7 +142,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     toggleFormElements(true); // Enable form
                 } else if (currentUserRole === 'ABVN') {
                     console.log('ABVN role detected. Checking organization activations.');
-                    if (organization === 'Unknown Group') {
+                    if (currentOrganization === 'Unknown Group') {
                         console.warn('ABVN user has no organization assigned.');
                         Swal.fire({
                             icon: 'warning',
@@ -131,7 +157,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Check for active activations
                     const organizationActivationsSnapshot = await database.ref("activations")
                         .orderByChild("organization")
-                        .equalTo(organization)
+                        .equalTo(currentOrganization)
                         .once('value');
 
                     let organizationHasActiveActivations = false;
@@ -143,7 +169,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
 
                     if (organizationHasActiveActivations) {
-                        console.log(`Organization "${organization}" has active operations. Submission allowed.`);
+                        console.log(`Organization "${currentOrganization}" has active operations. Submission allowed.`);
                         canSubmit = true;
                         if (submitButton) {
                             submitButton.disabled = false;
@@ -153,7 +179,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                         toggleFormElements(true); // Enable form
                     } else {
-                        console.warn(`Organization "${organization}" has no active operations. Redirecting to dashboard.`);
+                        console.warn(`Organization "${currentOrganization}" has no active operations. Redirecting to dashboard.`);
                         Swal.fire({
                             icon: 'warning',
                             title: 'Inactive Organization',
@@ -902,7 +928,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Save to Firebase under the 'callfordonation' node
                 firebase.database().ref('callfordonation').push(newDonation)
-                    .then(() => {
+                    .then((snapshot) => {
+                        const donationKey = snapshot.key;
+                        // Notify admin after successful save
+                        const message = `New donation call "${donationDrive}" submitted by ${contactPerson} from ${currentOrganization} on ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} at ${new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })} PST.`; // Use currentOrganization
+                        notifyAdmin(message, null, null, null, donationKey, contactPerson, currentOrganization);
+
                         // Clear form fields after successful submission
                         document.getElementById('donationDrive').value = '';
                         document.getElementById('contactPerson').value = '';
@@ -1154,7 +1185,7 @@ document.addEventListener('DOMContentLoaded', () => {
             addDetail("Status", donation.status);
             addDetail("Submitted Date/Time", new Date(donation.dateTime).toLocaleString());
 
-            if (donation.image) {
+                       if (donation.image) {
                 y += 10;
                 const imgWidth = 80;
                 const imgHeight = (imgWidth / logo.naturalWidth) * logo.naturalHeight;

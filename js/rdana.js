@@ -29,7 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let familiesServed = "";
   let currentUserGroupName = '';
   let currentUserUid = '';
-  let canSubmit = false; // NEW: Flag to control submission eligibility
+  let canSubmit = false; // Flag to control submission eligibility
 
   const submittedReportsContainer = document.getElementById("submittedReportsContainer");
   const paginationContainer = document.getElementById("pagination");
@@ -45,9 +45,34 @@ document.addEventListener('DOMContentLoaded', () => {
       .replace(/[^a-zA-Z0-9_]/g, '');
   }
 
+  // Notify admin function
+  const notifyAdmin = async (message, disasterType, location, details, rdanaId, senderName, organization) => {
+    try {
+      const identifier = `rdana_${rdanaId}_${Date.now()}`;
+      const key = firebase.database().ref("notifications").push().key;
+      await firebase.database().ref("notifications").child(key).set({
+        message,
+        calamityType: disasterType || null,
+        location: location || null,
+        details: details || null,
+        eventId: null,
+        rdanaId,
+        senderName,
+        organization,
+        identifier,
+        timestamp: Date.now(),
+        read: false,
+        type: "admin"
+      });
+      console.log(`Admin notified of new RDANA report - RDANA ID: ${rdanaId}, Key: ${key}`);
+    } catch (error) {
+      console.error("Error notifying admin:", error);
+    }
+  };
+
   // Variables for inactivity detection --------------------------------------------------------------------
-let inactivityTimeout;
-const INACTIVITY_TIME = 1800000; // 30 minutes in milliseconds
+  let inactivityTimeout;
+  const INACTIVITY_TIME = 1800000; // 30 minutes in milliseconds
 
   // Function to reset the inactivity timer
   function resetInactivityTimer() {
@@ -150,7 +175,7 @@ const INACTIVITY_TIME = 1800000; // 30 minutes in milliseconds
       currentUserGroupName = userDataFromDb.organization || 'Unknown Group';
       console.log('User Role:', currentUserRole, 'Organization:', currentUserGroupName);
 
-      // NEW: Role-based submission eligibility check
+      // Role-based submission eligibility check
       const submitBtn = document.getElementById("submitReportBtn");
       if (currentUserRole === 'AB ADMIN') {
         console.log('AB ADMIN role detected. Submission allowed.');
@@ -511,7 +536,7 @@ const INACTIVITY_TIME = 1800000; // 30 minutes in milliseconds
           newSubmitBtn.disabled = true;
           newSubmitBtn.textContent = "Submitting...";
 
-          // NEW: Check if submission is allowed
+          // Check if submission is allowed
           if (!canSubmit) {
             Swal.fire({
               icon: 'error',
@@ -595,7 +620,12 @@ const INACTIVITY_TIME = 1800000; // 30 minutes in milliseconds
 
             const ref = database.ref("rdana/submitted");
             ref.push(reportData)
-              .then(() => {
+              .then((snapshot) => {
+                const rdanaId = snapshot.key;
+                // Notify admin after successful save
+                const message = `New RDANA report "${profileData[sanitizeKey('Type of Disaster')] || 'N/A'}" submitted by ${profileData[sanitizeKey('Prepared By')] || 'Unknown'} from ${currentUserGroupName} on ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} at ${new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })} PST.`;
+                notifyAdmin(message, profileData[sanitizeKey('Type of Disaster')], profileData[sanitizeKey('Site Location/Address (Barangay)')], summary, rdanaId, profileData[sanitizeKey('Prepared By')] || 'Unknown', currentUserGroupName);
+
                 console.log("RDANA report saved successfully to rdana/submitted");
                 Swal.fire({
                   icon: 'success',
