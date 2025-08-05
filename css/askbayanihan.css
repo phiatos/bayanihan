@@ -1,4 +1,22 @@
 /* askbayanihan.css */
+
+body {
+  position: relative;
+  background-color: var(--light-bg);
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-image: url("../assets/images/launchpage-bg.png");
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center;
+  opacity: 0.3;
+  z-index: -1;
+}
+
 .abvn-registration {
   padding: 20px;
   background: url('../assets/images/background.jpg') no-repeat center center fixed;

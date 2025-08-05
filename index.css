@@ -404,6 +404,34 @@ body {
 }
 
 
+/*Map Sort Options*/
+
+.map-controls {
+  margin-bottom: 1.2rem;
+  margin-right: 1rem;
+  text-align: center;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: #333;
+}
+
+#regionFilter {
+  padding: 0.6rem 1rem;
+  font-size: 1rem;
+  border-radius: 8px;
+  border: 1.5px solid #ccc;
+  background-color: #fff;
+  transition: border-color 0.25s ease;
+  cursor: pointer;
+  appearance: none;
+  outline-offset: 2px;
+}
+
+#regionFilter:focus {
+  border-color: #14aebb;
+  outline: none;
+  box-shadow: 0 0 5px rgba(20, 174, 187, 0.4);
+}
+
 
 /*Footer*/
 
