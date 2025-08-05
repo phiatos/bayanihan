@@ -422,48 +422,176 @@ function renderPagination(totalItems, filteredLogs) {
   }
 
   function rejectReport(report) {
-    auth.onAuthStateChanged(user => {
-      if (!user) {
-        Swal.fire({
-          icon: 'error',
-          title: 'Authentication Required',
-          text: 'Please sign in to reject reports.',
-        }).then(() => {
-          window.location.href = "../pages/login.html";
-        });
-        return;
-      }
+  auth.onAuthStateChanged(user => {
+    if (!user) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Authentication Required',
+        text: 'Please sign in to reject reports.',
+      }).then(() => {
+        window.location.href = "../pages/login.html";
+      });
+      return;
+    }
 
-      console.log("Attempting to reject report:", report.rdanaId);
+    console.log("Attempting to reject report:", report.rdanaId);
 
-      Promise.all([
+    // Step 1: Get the report data before removing
+    database.ref(`rdana/submitted/${report.firebaseKey}`).once('value').then(snapshot => {
+      const reportData = snapshot.val();
+      if (!reportData) throw new Error("Report not found in submitted.");
+
+      // Step 2: Move to archived
+      return database.ref(`rdana/rejected/${report.firebaseKey}`).set({
+        ...reportData,
+        archivedAt: new Date().toISOString(),
+        status: "Rejected" // Optional: Mark status as Rejected
+      }).then(() => reportData);
+    }).then(reportData => {
+      // Step 3: Remove from submitted & user's reports
+      return Promise.all([
         database.ref(`rdana/submitted/${report.firebaseKey}`).remove(),
         database.ref(`users/${report.userUid}/rdanaReports/${report.firebaseKey}`).remove()
-      ])
-        .then(() => {
-          console.log("RDANA report rejected and removed");
-          Swal.fire({
-          icon: 'error',
-          title: 'Report Rejected',
-          text: 'The RDANA report has been rejected and removed from the system.',
-          background: '#f8d7da',         
-          color: '#721c24',               
-          iconColor: '#b02a37',         
-          confirmButtonColor: '#b02a37',  
-          timer: 3000,
-          showConfirmButton: true,
-        });
-        })
-        .catch(error => {
-          console.error("Error during RDANA report rejection:", error);
-          Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'Failed to reject RDANA report: ' + error.message,
-          });
-        });
+      ]);
+    }).then(() => {
+      console.log("RDANA report rejected and archived");
+      Swal.fire({
+        icon: 'error',
+        title: 'Report Rejected',
+        text: 'The RDANA report has been rejected and archived.',
+        background: '#f8d7da',
+        color: '#721c24',
+        iconColor: '#b02a37',
+        confirmButtonColor: '#b02a37',
+        timer: 3000,
+        showConfirmButton: true,
+      });
+    }).catch(error => {
+      console.error("Error during RDANA report rejection:", error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Failed to reject RDANA report: ' + error.message,
+      });
     });
-  }
+  });
+}
+
+document.getElementById('viewArchived').addEventListener('click', () => {
+  document.getElementById('archivedModal').style.display = 'flex';
+  loadArchivedReports();
+});
+
+document.getElementById('closeArchivedModalBtn').addEventListener('click', () => {
+  document.getElementById('archivedModal').style.display = 'none';
+});
+
+let rejectedCurrentPage = 1;
+const rejectedRowsPerPage = 5; // Number of rows per page
+
+function loadArchivedReports(page = 1) {
+  const archivedTableBody = document.getElementById('archivedTableBody');
+  const archivedEntriesInfo = document.getElementById('archivedEntriesInfo'); // Make sure this exists in your HTML
+  const archivedPagination = document.getElementById('archivedPagination');   // Make sure this exists in your HTML
+
+  archivedTableBody.innerHTML = '<tr><td colspan="6">Loading...</td></tr>';
+
+  database.ref('rdana/rejected').once('value').then(snapshot => {
+    const data = snapshot.val();
+    archivedTableBody.innerHTML = '';
+
+    if (!data) {
+      archivedTableBody.innerHTML = '<tr><td colspan="6">No archived reports found.</td></tr>';
+      if (archivedEntriesInfo) archivedEntriesInfo.textContent = "Showing 0 to 0 of 0 entries";
+      if (archivedPagination) archivedPagination.innerHTML = "";
+      return;
+    }
+
+    const reports = Object.entries(data).map(([key, report]) => ({ key, ...report }));
+    const totalEntries = reports.length;
+
+    // PAGINATION
+    const totalPages = Math.ceil(totalEntries / rejectedRowsPerPage);
+    rejectedCurrentPage = page;
+    const start = (rejectedCurrentPage - 1) * rejectedRowsPerPage;
+    const end = start + rejectedRowsPerPage;
+    const paginatedReports = reports.slice(start, end);
+
+    // Populate table with paginated data
+    paginatedReports.forEach(report => {
+      const row = `
+        <tr>
+          <td>${report.rdanaId || 'N/A'}</td>
+          <td>${report.rdanaGroup || 'N/A'}</td>
+          <td>${new Date(report.dateTime).toLocaleString()}</td>
+          <td>${report.siteLocation || 'N/A'}</td>
+          <td>${new Date(report.archivedAt).toLocaleString()}</td>
+          <td>
+            <button class="restore-btn" data-key="${report.key}">Restore</button>
+          </td>
+        </tr>
+      `;
+      archivedTableBody.insertAdjacentHTML('beforeend', row);
+    });
+
+    // Update entry info
+    if (archivedEntriesInfo) {
+      archivedEntriesInfo.textContent = `Showing ${start + 1} to ${Math.min(end, totalEntries)} of ${totalEntries} entries`;
+    }
+
+    // Build pagination buttons
+    if (archivedPagination) {
+      archivedPagination.innerHTML = '';
+      for (let i = 1; i <= totalPages; i++) {
+        const btn = document.createElement('button');
+        btn.textContent = i;
+        btn.className = i === rejectedCurrentPage ? 'active-page' : '';
+        btn.addEventListener('click', () => loadArchivedReports(i));
+        archivedPagination.appendChild(btn);
+      }
+    }
+
+    // Attach event listeners for restore buttons
+    document.querySelectorAll('.restore-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const reportKey = e.target.dataset.key;
+        restoreReport(reportKey);
+      });
+    });
+  });
+}
+
+
+function restoreReport(reportKey) {
+  Swal.fire({
+    title: 'Restore Report?',
+    text: 'This will move the report back to the active list.',
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonColor: '#28a745',
+    cancelButtonColor: '#6c757d',
+    confirmButtonText: 'Yes, Restore it!'
+  }).then(result => {
+    if (result.isConfirmed) {
+      database.ref(`rdana/rejected/${reportKey}`).once('value').then(snapshot => {
+        const reportData = snapshot.val();
+        if (!reportData) throw new Error('Report not found in archive.');
+
+        // Move back to approved
+        return database.ref(`rdana/submitted/${reportKey}`).set(reportData).then(() => {
+          return database.ref(`rdana/rejected/${reportKey}`).remove();
+        });
+      }).then(() => {
+        Swal.fire('Restored!', 'The report has been moved back to the active list.', 'success');
+        loadArchivedReports(); // refresh table
+      }).catch(err => {
+        console.error(err);
+        Swal.fire('Error', err.message, 'error');
+      });
+    }
+  });
+}
+
 
   const viewApprovedBtn = document.getElementById("viewApprovedBtn");
   if (viewApprovedBtn) {
