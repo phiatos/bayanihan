@@ -22,6 +22,12 @@ let activationsListenerCallback;
 let allVolunteerGroups = [];
 let approvedReports = []; // Store approved reports
 
+let regionProvinces = {
+    luzon: ["Ilocos Norte", "Ilocos Sur", "La Union", "Pangasinan", "Benguet", "Abra", "Ifugao", "Kalinga", "Apayao", "Cagayan", "Isabela", "Nueva Vizcaya", "Quirino", "Aurora", "Nueva Ecija", "Bulacan", "Pampanga", "Tarlac", "Zambales", "Bataan", "Rizal", "Laguna", "Batangas", "Cavite", "Quezon", "Metro Manila"],
+    visayas: ["Aklan", "Antique", "Capiz", "Guimaras", "Iloilo", "Negros Occidental", "Bohol", "Cebu", "Negros Oriental", "Siquijor", "Biliran", "Eastern Samar", "Leyte", "Northern Samar", "Samar", "Southern Leyte"],
+    mindanao: ["Zamboanga del Norte", "Zamboanga del Sur", "Zamboanga Sibugay", "Bukidnon", "Camiguin", "Lanao del Norte", "Misamis Occidental", "Misamis Oriental", "Compostela Valley", "Davao del Norte", "Davao del Sur", "Davao Oriental", "Davao Occidental", "North Cotabato", "Sarangani", "South Cotabato", "Sultan Kudarat", "Agusan del Norte", "Agusan del Sur", "Dinagat Islands", "Surigao del Norte", "Surigao del Sur", "Basilan", "Lanao del Sur", "Maguindanao", "Sulu", "Tawi-Tawi"]
+};
+
 const firebaseConfig = {
     apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
     authDomain: "bayanihan-5ce7e.firebaseapp.com",
@@ -167,25 +173,29 @@ function initializeMap() {
         return;
     }
 
+    // Default bounds (whole PH)
     const philippinesBounds = {
-        north: 21.5,
-        south: 4.5,
-        west: 114.0,
-        east: 127.0
+    north: 22.5,  // +1 to give space above Batanes
+    south: 3.5,   // -1 to include more sea area below Mindanao
+    west: 113.0,  // -1 to include waters west of Palawan
+    east: 128.5   // +1.5 to include waters east of Mindanao
     };
+
 
     const defaultLocation = { lat: 14.5995, lng: 121.05 };
 
+    // Initialize Google Map
     map = new google.maps.Map(mapDiv, {
-        center: defaultLocation,
-        zoom: 6,
-        restriction: {
-            latLngBounds: philippinesBounds,
-            strictBounds: true
-        },
-        mapTypeId: "roadmap"
+    center: defaultLocation,
+    zoom: 7,
+    restriction: {
+        latLngBounds: philippinesBounds,
+        strictBounds: true
+    },
+    mapTypeId: "roadmap"
     });
 
+    // Load GeoJSON Provinces
     fetch('./json/ph_admin1.geojson')
         .then(res => {
             if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
@@ -197,6 +207,7 @@ function initializeMap() {
             geoJsonLayer = map.data;
             geoJsonLayer.addGeoJson(data);
 
+            // Default style
             geoJsonLayer.setStyle({
                 fillColor: '#FA3C99',
                 fillOpacity: 0.5,
@@ -205,6 +216,7 @@ function initializeMap() {
                 clickable: false
             });
 
+            // Hover effect
             geoJsonLayer.addListener('mouseover', event => {
                 geoJsonLayer.overrideStyle(event.feature, { fillOpacity: 0.7 });
             });
@@ -213,6 +225,7 @@ function initializeMap() {
                 geoJsonLayer.revertStyle(event.feature);
             });
 
+            // Click info popup
             geoJsonLayer.addListener('click', event => {
                 const name = event.feature.getProperty("name") || event.feature.getProperty("NAME_1") || "Unnamed Province";
                 const content = `<strong>${name}</strong>`;
@@ -223,14 +236,18 @@ function initializeMap() {
                 infowindow.open(map);
             });
 
-            // Ensure approved reports are loaded before adding markers
+            // Region filter event listener
+            document.getElementById("regionFilter").addEventListener("change", function () {
+                filterRegion(this.value);
+            });
+
+            // Load markers after GeoJSON
             loadApprovedReports().then(() => {
                 console.log("Approved reports loaded before adding markers");
                 addMarkersForActiveActivations();
                 fetchReports();
             }).catch(error => {
                 console.error("Failed to load approved reports before adding markers:", error);
-                // Proceed anyway to avoid blocking the map
                 addMarkersForActiveActivations();
                 fetchReports();
             });
@@ -244,6 +261,95 @@ function initializeMap() {
             });
         });
 }
+
+
+// Approximate bounds for each main region
+const regionBounds = {
+    luzon: {
+        north: 19.5,
+        south: 13.5,
+        west: 119.0,
+        east: 123.0
+    },
+    visayas: {
+        north: 13.8,
+        south: 9.8,
+        west: 123.0,
+        east: 125.5
+    },
+    mindanao: {
+        north: 9.8,
+        south: 5.5,
+        west: 120.0,
+        east: 126.5
+    },
+    all: {
+        north: 24.0,   // a bit further north to include Batanes + sea above
+        south: 2.5,    // a bit further south to include Tawi-Tawi + sea below
+        west: 111.5,   // a bit further west to include more of West PH Sea and Palawan waters
+        east: 130.0    // a bit further east to include Pacific waters past Mindanao
+    }
+
+};
+
+
+
+function filterRegion(region) {
+    geoJsonLayer.setStyle(feature => {
+        const provinceName = feature.getProperty("NAME_1");
+
+        // When "All" is selected, everything has the default pink style
+        if (region === "all") {
+            return {
+                fillColor: '#FA3C99',
+                fillOpacity: 0.5,
+                strokeColor: '#FFF',
+                strokeWeight: 1
+            };
+        }
+
+        // Highlight provinces in the selected region
+        if (regionProvinces[region].includes(provinceName)) {
+            return {
+                fillColor: '#FF6EC7', // Brighter pink for highlight
+                fillOpacity: 0.7,
+                strokeColor: '#FFF',
+                strokeWeight: 2
+            };
+        }
+
+        // Non-selected provinces: still pink but slightly transparent
+        return {
+            fillColor: '#FA3C99',
+            fillOpacity: 0.2,
+            strokeColor: '#FFF',
+            strokeWeight: 1
+        };
+    });
+
+    // Auto-zoom to region if not "all"
+    if (region !== "all") {
+        const bounds = new google.maps.LatLngBounds(
+            { lat: regionBounds[region].south, lng: regionBounds[region].west },
+            { lat: regionBounds[region].north, lng: regionBounds[region].east }
+        );
+        map.fitBounds(bounds);
+    } else {
+        // Reset to whole Philippines
+        const fullBounds = new google.maps.LatLngBounds(
+            { lat: regionBounds.all.south, lng: regionBounds.all.west },
+            { lat: regionBounds.all.north, lng: regionBounds.all.east }
+        );
+        map.fitBounds(fullBounds);
+    }
+}
+
+
+document.getElementById("regionFilter").addEventListener("change", function () {
+    filterRegion(this.value);
+});
+
+
 
 async function loadApprovedReports() {
     try {
