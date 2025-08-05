@@ -113,7 +113,128 @@ function generateTempPassword() {
 // Function to validate email format (re-used)
 function isValidEmail(email) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
+    const validDomains = ['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'icloud.com', 'protonmail.com'];
+    const domain = email.split('@')[1]?.toLowerCase();
+    return emailRegex.test(email) && validDomains.includes(domain);
+}
+
+// Function to validate mobile number format
+function isValidMobile(mobile) {
+    const mobileRegex = /^09[0-9]{9}$/;
+    return mobileRegex.test(mobile);
+}
+
+// Function to check if mobile number is already in use by another user
+async function isMobileNumberInUse(mobile, excludeUid) {
+    try {
+        const snapshot = await database.ref('users').once('value');
+        const users = snapshot.val();
+        for (const uid in users) {
+            if (uid !== excludeUid && users[uid].mobile === mobile) {
+                return true;
+            }
+        }
+        return false;
+    } catch (error) {
+        console.error("Error checking mobile number in use:", error);
+        return false;
+    }
+}
+
+// Function to check if email is already in use by another user
+async function isEmailInUse(email, excludeUid) {
+    try {
+        const snapshot = await database.ref('users').once('value');
+        const users = snapshot.val();
+        for (const uid in users) {
+            if (uid !== excludeUid && users[uid].email === email) {
+                return true;
+            }
+        }
+        return false;
+    } catch (error) {
+        console.error("Error checking email in use:", error);
+        return false;
+    }
+}
+
+// Function to check if data is unchanged
+async function isDataUnchanged(uid, updatedData) {
+    try {
+        const snapshot = await database.ref(`users/${uid}`).once('value');
+        const adminData = snapshot.val();
+        if (!adminData) return false;
+
+        return (
+            adminData.firstName === updatedData.firstName &&
+            adminData.middleInitial === updatedData.middleInitial &&
+            adminData.lastName === updatedData.lastName &&
+            adminData.nameExtension === updatedData.nameExtension &&
+            adminData.email === updatedData.email &&
+            adminData.mobile === updatedData.mobile &&
+            adminData.socialMedia === updatedData.socialMedia &&
+            adminData.adminPosition === updatedData.adminPosition
+        );
+    } catch (error) {
+        console.error("Error checking unchanged data:", error);
+        return false;
+    }
+}
+
+// Function to verify Super Admin password
+async function verifySuperAdminPassword() {
+    const { value: password } = await Swal.fire({
+        title: 'Enter Super Admin Password',
+        input: 'password',
+        inputLabel: 'Please provide your password to confirm changes.',
+        inputPlaceholder: 'Enter your password',
+        showCancelButton: true,
+        confirmButtonText: 'Verify',
+        cancelButtonText: 'Cancel',
+        allowOutsideClick: false,
+        customClass: {
+            popup: 'swal2-popup-success-clean',
+            title: 'swal2-title-success-clean',
+            htmlContainer: 'swal2-text-success-clean',
+            confirmButton: 'custom-confirm-btn',
+            cancelButton: 'custom-cancel-btn'
+        },
+        inputValidator: (value) => {
+            if (!value) {
+                return 'You need to enter your password!';
+            }
+        }
+    });
+
+    if (!password) {
+        return false; // User canceled or didn't provide a password
+    }
+
+    try {
+        const user = auth.currentUser;
+        if (!user) {
+            throw new Error('No user is currently signed in.');
+        }
+        const credential = firebase.auth.EmailAuthProvider.credential(user.email, password);
+        await user.reauthenticateWithCredential(credential);
+        return true;
+    } catch (error) {
+        console.error("Error verifying Super Admin password:", error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Invalid Password',
+            text: 'The provided password is incorrect. Please try again.',
+            showConfirmButton: true,
+            confirmButtonText: 'OK',
+            customClass: {
+                popup: 'swal2-popup-success-clean',
+                title: 'swal2-title-success-clean',
+                htmlContainer: 'swal2-text-success-clean',
+                confirmButton: 'custom-confirm-btn'
+            }
+        });
+        return false;
+    }
 }
 
 // Function to clear AB Admin registration form
@@ -133,24 +254,40 @@ auth.onAuthStateChanged(user => {
                     addNewAdminButton.style.display = 'block'; 
                 }
                 console.log("Current user is a Super Admin.");
+                fetchAndRenderAdmins();
             } else {
                 currentUserIsSuperAdmin = false;
-                if (addNewAdminButton) {
-                    addNewAdminButton.style.display = 'none'; 
-                }
-                console.log("Current user is NOT a Super Admin. Limiting access.");
+                console.log("Current user is NOT a Super Admin. Redirecting...");
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Access Denied',
+                    text: 'Only Super Admins can access this page.',
+                    showConfirmButton: false,
+                    timer: 2000,
+                    allowOutsideClick: false,
+                    timerProgressBar: true,
+                    customClass: {
+                        popup: 'swal2-popup-success-clean',
+                        title: 'swal2-title-success-clean',
+                        htmlContainer: 'swal2-text-success-clean'
+                    }
+                }).then(() => {
+                    window.location.href = '../pages/login.html'; 
+                });
             }
-            // Always fetch and render table (but editing/deleting might be restricted by rules/UI)
-            fetchAndRenderAdmins(); 
         }).catch(error => {
             console.error("Error fetching user role:", error);
             currentUserIsSuperAdmin = false;
-            if (addNewAdminButton) {
-                addNewAdminButton.style.display = 'none';
-            }
-            fetchAndRenderAdmins(); 
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Failed to verify user role. Redirecting...',
+                showConfirmButton: false,
+                timer: 2000
+            }).then(() => {
+                window.location.href = '../pages/login.html';
+            });
         });
-
     } else {
         console.log("No user signed in. Redirecting to login...");
         Swal.fire({
@@ -315,7 +452,19 @@ function applySearchAndSortAdmins() {
 if (addNewAdminButton) {
     addNewAdminButton.addEventListener('click', () => {
         if (!currentUserIsSuperAdmin) {
-            Swal.fire('Access Denied', 'You do not have permission to add AB Admin accounts.', 'error');
+            Swal.fire({
+                title: 'Access Denied',
+                text: 'You do not have permission to add AB Admin accounts.',
+                icon: 'error',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    htmlContainer: 'swal2-text-success-clean',
+                    confirmButton: 'custom-confirm-btn'
+                }
+            });
             return;
         }
         clearAddAdminInputs(); 
@@ -354,7 +503,19 @@ if (addAdminForm) {
 
         // 1. Super Admin Role Check (redundant but good for client-side defense)
         if (!currentUserIsSuperAdmin) {
-            Swal.fire('Access Denied', 'You do not have permission to add AB Admin accounts.', 'error');
+            Swal.fire({
+                title: 'Access Denied',
+                text: 'You do not have permission to add AB Admin accounts.',
+                icon: 'error',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    htmlContainer: 'swal2-text-success-clean',
+                    confirmButton: 'custom-confirm-btn'
+                }
+            });
             return;
         }
 
@@ -377,12 +538,34 @@ if (addAdminForm) {
             Swal.fire({
                 icon: 'error',
                 title: 'Invalid Email',
-                text: 'Please enter a valid email address.'
+                text: 'Please enter a valid email address.',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                allowOutsideClick: false,
+                customClass: {
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    htmlContainer: 'swal2-text-success-clean',
+                    confirmButton: 'custom-confirm-btn'
+                }
             });
             return;
         }
-        if (!/^[0-9]{11}$/.test(mobile)) {
-            Swal.fire('Error', 'Mobile number must be 11 digits.', 'error');
+        if (!isValidMobile(mobile)) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Invalid Mobile Number',
+                text: 'Please enter a valid mobile number.',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                allowOutsideClick: false,
+                customClass: {
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    htmlContainer: 'swal2-text-success-clean',
+                    confirmButton: 'custom-confirm-btn'
+                }
+            });
             return;
         }
 
@@ -502,7 +685,15 @@ if (confirmSaveBtn) {
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
-                text: `Failed to add AB Admin: ${errorMessage}`
+                text: `Failed to add AB Admin: ${errorMessage}`,
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    htmlContainer: 'swal2-text-success-clean',
+                    confirmButton: 'custom-confirm-btn'
+                }
             });
         }
     });
@@ -534,7 +725,6 @@ if (sortSelect) {
 
 // Function to populate the edit modal with admin data
 async function populateEditModal(uid) {
-
     try {
         const snapshot = await database.ref(`users/${uid}`).once('value');
         const adminData = snapshot.val();
@@ -565,7 +755,19 @@ async function populateEditModal(uid) {
 // --- Edit Admin ---
 function editAdmin(uid) {
     if (!currentUserIsSuperAdmin) {
-        Swal.fire('Access Denied', 'You do not have permission to edit admin accounts.', 'error');
+        Swal.fire({
+            title: 'Access Denied',
+            text: 'You do not have permission to edit admin accounts.',
+            icon: 'error',
+            showConfirmButton: true,
+            confirmButtonText: 'OK',
+            customClass: {
+                popup: 'swal2-popup-success-clean',
+                title: 'swal2-title-success-clean',
+                htmlContainer: 'swal2-text-success-clean',
+                confirmButton: 'custom-confirm-btn'
+            }
+        });
         return;
     }
     populateEditModal(uid);
@@ -577,7 +779,19 @@ if (editAdminForm) {
         e.preventDefault();
 
         if (!currentUserIsSuperAdmin) {
-            Swal.fire('Access Denied', 'You do not have permission to edit admin accounts.', 'error');
+            Swal.fire({
+                title: 'Access Denied',
+                text: 'You do not have permission to edit admin accounts.',
+                icon: 'error',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    htmlContainer: 'swal2-text-success-clean',
+                    confirmButton: 'custom-confirm-btn'
+                }
+            });
             return;
         }
 
@@ -599,7 +813,7 @@ if (editAdminForm) {
             adminPosition: editAdminPositionSelect.value
         };
 
-        // Client-side Validation (similar to add admin)
+        // Client-side Validation
         if (!updatedData.firstName || !updatedData.lastName || !updatedData.email || !updatedData.mobile || !updatedData.adminPosition) {
             Swal.fire('Error', 'Please fill in all required fields.', 'error');
             return;
@@ -608,13 +822,101 @@ if (editAdminForm) {
             Swal.fire({
                 icon: 'error',
                 title: 'Invalid Email',
-                text: 'Please enter a valid email address.'
+                text: 'Please enter a valid email address.',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                allowOutsideClick: false,
+                customClass: {
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    htmlContainer: 'swal2-text-success-clean',
+                    confirmButton: 'custom-confirm-btn'
+                }
             });
             return;
         }
-        if (!/^[0-9]{11}$/.test(updatedData.mobile)) {
-            Swal.fire('Error', 'Mobile number must be 11 digits.', 'error');
+        if (!isValidMobile(updatedData.mobile)) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Invalid Mobile Number',
+                text: 'Please enter a valid mobile number.',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                allowOutsideClick: false,
+                customClass: {
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    htmlContainer: 'swal2-text-success-clean',
+                    confirmButton: 'custom-confirm-btn'
+                }
+            });
             return;
+        }
+
+        // Check if mobile number is already in use by another user
+        const mobileInUse = await isMobileNumberInUse(updatedData.mobile, uid);
+        if (mobileInUse) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Mobile Number In Use',
+                text: 'The mobile number is already in use by another account.',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                allowOutsideClick: false,
+                customClass: {
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    htmlContainer: 'swal2-text-success-clean',
+                    confirmButton: 'custom-confirm-btn'
+                }
+            });
+            return;
+        }
+
+        // Check if email is already in use by another user
+        const emailInUse = await isEmailInUse(updatedData.email, uid);
+        if (emailInUse) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Email In Use',
+                text: 'The email address is already in use by another account.',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                allowOutsideClick: false,
+                customClass: {
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    htmlContainer: 'swal2-text-success-clean',
+                    confirmButton: 'custom-confirm-btn'
+                }
+            });
+            return;
+        }
+
+        // Check if data is unchanged
+        const unchanged = await isDataUnchanged(uid, updatedData);
+        if (unchanged) {
+            Swal.fire({
+                icon: 'info',
+                title: 'No Changes Detected',
+                text: 'No changes were made to the admin details.',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    htmlContainer: 'swal2-text-success-clean',
+                    confirmButton: 'custom-confirm-btn'
+                }
+            });
+            editAdminModal.style.display = 'none';
+            return;
+        }
+
+        // Verify Super Admin password
+        const passwordVerified = await verifySuperAdminPassword();
+        if (!passwordVerified) {
+            return; // Stop if password verification fails or is canceled
         }
 
         Swal.fire({
@@ -629,11 +931,35 @@ if (editAdminForm) {
         try {
             await database.ref(`users/${uid}`).update(updatedData);
             Swal.close();
-            Swal.fire('Success', 'Admin details updated successfully!', 'success');
+            Swal.fire({
+                icon: 'success',
+                title: 'Success',
+                text: 'Admin details updated successfully!',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    htmlContainer: 'swal2-text-success-clean',
+                    confirmButton: 'custom-confirm-btn'
+                }
+            });
             editAdminModal.style.display = 'none';
             fetchAndRenderAdmins(); 
         } catch (error) {
-            Swal.fire('Error', 'Failed to update admin: ' + error.message, 'error');
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Failed to update admin: ' + error.message,
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    htmlContainer: 'swal2-text-success-clean',
+                    confirmButton: 'custom-confirm-btn'
+                }
+            });
         }
     });
 }
@@ -648,7 +974,19 @@ if (closeEditModalBtn) {
 // --- Delete Admin ---
 function deleteAdmin(uid) {
     if (!currentUserIsSuperAdmin) {
-        Swal.fire('Access Denied', 'You do not have permission to delete admin accounts.', 'error');
+        Swal.fire({
+            title: 'Access Denied',
+            text: 'You do not have permission to delete admin accounts.',
+            icon: 'error',
+            showConfirmButton: true,
+            confirmButtonText: 'OK',
+            customClass: {
+                popup: 'swal2-popup-success-clean',
+                title: 'swal2-title-success-clean',
+                htmlContainer: 'swal2-text-success-clean',
+                confirmButton: 'custom-confirm-btn'
+            }
+        });
         return;
     }
     Swal.fire({
@@ -784,7 +1122,19 @@ function renderArchivedTable(data) {
 
 async function retrieveAdmin(uid) {
     if (!currentUserIsSuperAdmin) {
-        Swal.fire('Access Denied', 'You do not have permission to retrieve admin accounts.', 'error');
+        Swal.fire({
+            title: 'Access Denied',
+            text: 'You do not have permission to delete admin accounts.',
+            icon: 'error',
+            showConfirmButton: true,
+            confirmButtonText: 'OK',
+            customClass: {
+                popup: 'swal2-popup-success-clean',
+                title: 'swal2-title-success-clean',
+                htmlContainer: 'swal2-text-success-clean',
+                confirmButton: 'custom-confirm-btn'
+            }
+        });
         return;
     }
 
@@ -853,7 +1203,19 @@ async function retrieveAdmin(uid) {
 if (viewArchivedButton) {
     viewArchivedButton.addEventListener('click', () => {
         if (!currentUserIsSuperAdmin) {
-            Swal.fire('Access Denied', 'You do not have permission to view archived admin accounts.', 'error');
+            Swal.fire({
+                title: 'Access Denied',
+                text: 'You do not have permission to view archived admin accounts.',
+                icon: 'error',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    htmlContainer: 'swal2-text-success-clean',
+                    confirmButton: 'custom-confirm-btn'
+                }
+            });
             return;
         }
         currentArchivedPage = 1; // Reset to first page when opening
