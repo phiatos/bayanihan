@@ -1,32 +1,16 @@
-const firebaseConfig = {
-    apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
-    authDomain: "bayanihan-5ce7e.firebaseapp.com",
-    databaseURL: "https://bayanihan-5ce7e-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "bayanihan-5ce7e",
-    storageBucket: "bayanihan-5ce7e.appspot.com",
-    messagingSenderId: "593123849917",
-    appId: "1:593123849917:web:eb85a63a536eeff78ce9d4",
-    measurementId: "G-ZTQ9VXXVV0",
-};
-
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const database = firebase.database();
-
+// dashboard.js
+// Global variables
 let map, markers = [], geocoder, autocomplete, reportsListener, userRole, userEmail, userUid, currentInfoWindow, singleInfoWindow, isInfoWindowClicked = false;
 let calamityMarkers = [], calamityListener, notificationsListener;
-
 // Session lock to prevent multiple executions
 const SESSION_KEY = 'dashboard_initialized';
 const CALAMITY_TRACKING_KEY = 'calamity_tracking_lock';
 const SESSION_TIMESTAMP_KEY = 'session_timestamp';
 const PROCESSED_CALAMITIES_KEY = 'processed_calamities';
 const PROCESSED_NOTIFICATIONS_KEY = 'processed_notifications';
-
 // Persistent in-memory cache, synced with sessionStorage
 let processedCalamities = new Set();
 let processedNotifications = new Set();
-
 // Sync Sets with sessionStorage on modification
 function syncProcessedCalamities() {
     sessionStorage.setItem(PROCESSED_CALAMITIES_KEY, JSON.stringify([...processedCalamities]));
@@ -34,23 +18,19 @@ function syncProcessedCalamities() {
 function syncProcessedNotifications() {
     sessionStorage.setItem(PROCESSED_NOTIFICATIONS_KEY, JSON.stringify([...processedNotifications]));
 }
-
 // API keys
 const WEATHER_API_KEY = "a98203b9ad890d981c589718b2d6d69d";
 const GEMINI_API_KEY = "AIzaSyDWv5Yh1VjKzP4pVIhyyr6hu54nlPvx61Y";
 const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent";
-
 // Variables for inactivity detection
 let inactivityTimeout;
 const INACTIVITY_TIME = 1800000; // 30 minutes in milliseconds
-
 // Function to reset the inactivity timer
 function resetInactivityTimer() {
     clearTimeout(inactivityTimeout);
     inactivityTimeout = setTimeout(checkInactivity, INACTIVITY_TIME);
     console.log("Inactivity timer reset.");
 }
-
 // Function to check for inactivity and prompt the user
 function checkInactivity() {
     Swal.fire({
@@ -60,7 +40,7 @@ function checkInactivity() {
         showCancelButton: true,
         confirmButtonColor: '#3085d6',
         cancelButtonColor: '#d33',
-        confirmButtonText: 'Stay Login',
+        confirmButtonText: 'Stay Logged In',
         cancelButtonText: 'Log Out',
         allowOutsideClick: false,
         reverseButtons: true
@@ -79,12 +59,10 @@ function checkInactivity() {
         }
     });
 }
-
 // Attach event listeners to detect user activity
 ['mousemove', 'keydown', 'scroll', 'click'].forEach(eventType => {
     document.addEventListener(eventType, resetInactivityTimer);
 });
-
 // Cache for API responses (persisted in sessionStorage)
 const apiCache = {
     get: (key) => {
@@ -96,7 +74,6 @@ const apiCache = {
     },
     has: (key) => !!sessionStorage.getItem(`apiCache_${key}`),
 };
-
 // Emergency hotlines
 const emergencyHotlines = {
     national: {
@@ -109,7 +86,6 @@ const emergencyHotlines = {
         BFP: ["(032) 261-9111"],
     },
 };
-
 // Provinces list for weather and calamity tracking
 const provinces = [
     { name: "Metro Manila", lat: 14.5995, lng: 120.9842 },
@@ -190,7 +166,6 @@ const provinces = [
     { name: "Romblon", lat: 12.5833, lng: 122.2667 },
     { name: "Palawan", lat: 9.7400, lng: 118.7400 },
 ];
-
 // Throttle utility to reduce frequent updates
 const throttle = (func, limit) => {
     let lastFunc, lastRan;
@@ -209,7 +184,6 @@ const throttle = (func, limit) => {
         }
     };
 };
-
 // Format numbers
 function formatLargeNumber(numStr) {
     let num = BigInt(numStr || '0');
@@ -217,47 +191,39 @@ function formatLargeNumber(numStr) {
     const billion = 1_000_000_000n;
     const million = 1_000_000n;
     const thousand = 1_000n;
-
     if (num >= trillion) return (Number(num) / Number(trillion)).toFixed(2).replace(/\.?0+$/, '') + 'T';
     if (num >= billion) return (Number(num) / Number(billion)).toFixed(2).replace(/\.?0+$/, '') + 'B';
     if (num >= million) return (Number(num) / Number(million)).toFixed(2).replace(/\.?0+$/, '') + 'M';
     if (num >= thousand) return (Number(num) / Number(thousand)).toFixed(2).replace(/\.?0+$/, '') + 'k';
     return num.toString();
 }
-
 function animateNumber(elementId, target, duration = 1000, decimals = 0) {
     const element = document.getElementById(elementId);
     if (!element) {
         console.error(`Element with ID ${elementId} not found`);
         return;
     }
-
     let start = 0;
     const stepTime = 16;
     const steps = duration / stepTime;
     const increment = target / steps;
     let currentStep = 0;
-
     function step() {
         currentStep++;
         start += increment;
         if (currentStep >= steps) start = target;
-
         const displayValue = decimals > 0 ? start.toFixed(decimals) : Math.floor(start);
         element.textContent = formatNumber(parseFloat(displayValue), elementId);
         highlight(element);
-
         if (currentStep < steps) requestAnimationFrame(step);
     }
     requestAnimationFrame(step);
 }
-
 function formatNumber(num, id) {
     if (id === 'amount-raised' || id === 'inkind-donations') return '₱' + abbreviateNumber(num);
     if (num >= 10000) return formatLargeNumber(num.toString());
     return num.toLocaleString();
 }
-
 function abbreviateNumber(number) {
     const absNumber = Math.abs(number);
     if (absNumber >= 1.0e+9) return (number / 1.0e+9).toFixed(2) + "B";
@@ -265,13 +231,28 @@ function abbreviateNumber(number) {
     if (absNumber >= 1.0e+3) return (number / 1.0e+3).toFixed(2) + "K";
     return number.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
-
 function highlight(element) {
     element.style.transition = 'color 0.3s ease';
     element.style.color = '#FFF';
     setTimeout(() => element.style.color = '#FFF', 300);
 }
-
+// Firebase configuration
+const firebaseConfig = {
+    apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
+    authDomain: "bayanihan-5ce7e.firebaseapp.com",
+    databaseURL: "https://bayanihan-5ce7e-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "bayanihan-5ce7e",
+    storageBucket: "bayanihan-5ce7e.appspot.com",
+    messagingSenderId: "593123849917",
+    appId: "1:593123849917:web:eb85a63a536eeff78ce9d4",
+    measurementId: "G-ZTQ9VXXVV0",
+};
+// Initialize Firebase only if not already initialized
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
+const auth = firebase.auth();
+const database = firebase.database();
 // Elements
 const headerEl = document.querySelector("header");
 const foodPacksEl = document.getElementById("food-packs");
@@ -284,31 +265,39 @@ const searchInput = document.getElementById("search-input");
 const calamityList = document.getElementById("calamityList");
 const adminList = document.getElementById("adminList");
 const notifDot = document.getElementById("notifDot");
+const notifBadge = document.createElement("span"); // New badge for unread count
+notifBadge.id = "notifBadge";
+notifBadge.style.position = "absolute";
+notifBadge.style.backgroundColor = "#ff4444";
+notifBadge.style.color = "#fff";
+notifBadge.style.borderRadius = "50%";
+notifBadge.style.padding = "2px 6px";
+notifBadge.style.fontSize = "12px";
+notifBadge.style.top = "-5px";
+notifBadge.style.right = "-5px";
 const mapDiv = document.getElementById("map");
-
+// Append badge to notifDot if it exists
+if (notifDot && !notifDot.querySelector("#notifBadge")) {
+    notifDot.appendChild(notifBadge);
+}
 // Initialize dashboard with session lock
 window.initializeDashboard = function () {
     if (!mapDiv) {
         console.error("Map container not found");
         return;
     }
-
     cleanupDashboard(); // Force cleanup on every load
-
     const sessionInitialized = sessionStorage.getItem(SESSION_KEY);
     const sessionTimestamp = sessionStorage.getItem(SESSION_TIMESTAMP_KEY);
     const currentTime = Date.now();
     const sessionAgeLimit = 30 * 60 * 1000;
-
     if (sessionInitialized && sessionTimestamp && (currentTime - parseInt(sessionTimestamp) < sessionAgeLimit)) {
         console.log("Dashboard already initialized in this session, skipping. Timestamp:", new Date(parseInt(sessionTimestamp)).toISOString());
         return;
     }
-
     console.log("Initializing dashboard at", new Date().toISOString());
     sessionStorage.setItem(SESSION_KEY, 'true');
     sessionStorage.setItem(SESSION_TIMESTAMP_KEY, currentTime.toString());
-
     auth.onAuthStateChanged(user => {
         if (!user) {
             Swal.fire({
@@ -322,7 +311,6 @@ window.initializeDashboard = function () {
         }
         userUid = user.uid;
         console.log(`Logged-in user UID: ${userUid}`);
-        
         database.ref(`users/${user.uid}`).once("value", snapshot => {
             const userData = snapshot.val();
             if (!userData || !userData.role) {
@@ -336,10 +324,8 @@ window.initializeDashboard = function () {
                 });
                 return;
             }
-
             const passwordNeedsReset = userData.password_needs_reset || false;
             const profilePage = '../pages/profile.html';
-
             if (passwordNeedsReset) {
                 console.log("Password change required. Redirecting to profile page.");
                 Swal.fire({
@@ -356,36 +342,29 @@ window.initializeDashboard = function () {
                 });
                 return;
             }
-
             userRole = userData.role;
             userEmail = user.email;
             console.log(`Role: ${userRole}, Email: ${userEmail}`);
-
             headerEl.textContent = userRole === "AB ADMIN" ? "Admin Dashboard" : "Volunteer Dashboard";
-
             initializeMap();
             if (!map) {
                 console.error("Map initialization failed.");
                 return;
             }
-
             addWeatherDataForProvinces();
             trackCalamities();
             setupAdminNotifications();
             fetchReports();
-
             if (userRole === "ABVN") {
                 map.setOptions({
                     disableDefaultUI: true,
                     draggable: false,
                 });
             }
-
             cleanDuplicateCalamities();
             cleanDuplicateNotifications();
             cleanOldCalamities();
             migrateLegacyCalamities();
-
             initializeProcessedSets();
         }, error => {
             console.error("Error fetching user data:", error);
@@ -397,13 +376,11 @@ window.initializeDashboard = function () {
         });
     });
 };
-
 // Initialize processed sets from database
 async function initializeProcessedSets() {
     try {
         processedCalamities.clear();
         processedNotifications.clear();
-
         const calamitySnapshot = await database.ref("calamities").once("value");
         const calamities = calamitySnapshot.val();
         if (calamities) {
@@ -414,7 +391,6 @@ async function initializeProcessedSets() {
             syncProcessedCalamities();
             console.log("Initialized processedCalamities from database:", processedCalamities.size);
         }
-
         const notifSnapshot = await database.ref("notifications").once("value");
         const notifications = notifSnapshot.val();
         if (notifications) {
@@ -429,7 +405,6 @@ async function initializeProcessedSets() {
         console.error("Error initializing processed sets:", error);
     }
 }
-
 // Initialize map
 function initializeMap() {
     try {
@@ -443,9 +418,7 @@ function initializeMap() {
             });
             return;
         }
-
         const defaultLocation = { lat: 14.5995, lng: 120.9842 };
-
         if (!window.google || !window.google.maps) {
             console.error("Google Maps API not loaded");
             Swal.fire({
@@ -455,7 +428,6 @@ function initializeMap() {
             });
             return;
         }
-
         if (!map || mapDiv !== map.getDiv()) {
             map = new google.maps.Map(mapDiv, {
                 center: defaultLocation,
@@ -464,9 +436,7 @@ function initializeMap() {
             });
             console.log("Map initialized successfully with Google Maps");
         }
-
         geocoder = new google.maps.Geocoder();
-
         if (!searchInput) {
             console.error("Search input not found");
             Swal.fire({
@@ -476,13 +446,11 @@ function initializeMap() {
             });
             return;
         }
-
         autocomplete = new google.maps.places.Autocomplete(searchInput, {
             componentRestrictions: { country: "PH" },
             types: ["geocode"],
         });
         autocomplete.bindTo("bounds", map);
-
         autocomplete.addListener("place_changed", () => {
             const place = autocomplete.getPlace();
             if (!place.geometry || !place.geometry.location) {
@@ -494,21 +462,16 @@ function initializeMap() {
                 });
                 return;
             }
-
             map.setCenter(place.geometry.location);
             map.setZoom(12);
             console.log("Map centered on:", place.geometry.location.toString());
         });
-
         google.maps.event.trigger(map, "resize");
         console.log("Map resize event triggered");
-
         singleInfoWindow = new google.maps.InfoWindow();
-
         map.addListener("click", (event) => {
             showWeatherInfoWindow(event.latLng.lat(), event.latLng.lng());
         });
-
         updateRainWarningOverlay();
     } catch (error) {
         console.error("Failed to initialize Google Maps:", error);
@@ -519,17 +482,14 @@ function initializeMap() {
         });
     }
 }
-
 // Add weather data for all provinces with dynamic icons and rain notifications
 function addWeatherDataForProvinces() {
     if (!map) {
         console.error("Map not initialized, cannot add weather data for provinces.");
         return;
     }
-
     markers.forEach(marker => marker.setMap(null));
     markers = [];
-
     const addWeatherMarker = async (province) => {
         console.log(`Fetching weather for ${province.name}`);
         try {
@@ -541,16 +501,13 @@ function addWeatherDataForProvinces() {
                 weatherData = await response.json();
                 apiCache.set(cacheKey, weatherData);
             }
-
             const forecastResponse = await fetch(`https://api.openweathermap.org/data/2.5/forecast?lat=${province.lat}&lon=${province.lng}&appid=${WEATHER_API_KEY}&units=metric`);
             if (!forecastResponse.ok) throw new Error(`HTTP error! Status: ${forecastResponse.status}`);
             const forecastData = await forecastResponse.json();
-
             const condition = weatherData.weather[0].main.toLowerCase();
             const cloudCover = weatherData.clouds.all || 0;
             const pop = (forecastData.list[0].pop || 0) * 100;
             const rainfall = forecastData.list[0].rain ? forecastData.list[0].rain["3h"] || 0 : 0;
-
             let sunnyPercent = 0, rainyPercent = 0, cloudyPercent = cloudCover;
             if (condition.includes("clear")) {
                 sunnyPercent = 100 - cloudCover;
@@ -569,11 +526,9 @@ function addWeatherDataForProvinces() {
             } else {
                 sunnyPercent = Math.max(0, 100 - cloudCover);
             }
-
             let icon = "☁️";
             if (condition.includes("clear")) icon = "☀️";
             if (condition.includes("rain") || condition.includes("drizzle") || condition.includes("thunderstorm")) icon = "🌧️";
-
             const markerSvg = `
     <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
         <text x="20" y="22" font-size="20" text-anchor="middle" fill="#FFFFFF">${icon}</text>
@@ -588,9 +543,7 @@ function addWeatherDataForProvinces() {
                 },
                 title: province.name,
             });
-
             markers.push(marker);
-
             const weatherInfo = `
                 <div style="font-size: 14px;">
                     <b>${province.name} Weather</b><br>
@@ -605,7 +558,6 @@ function addWeatherDataForProvinces() {
             const infoWindow = new google.maps.InfoWindow({
                 content: weatherInfo,
             });
-
             marker.addListener("click", () => {
                 if (currentInfoWindow) singleInfoWindow.close();
                 singleInfoWindow.setContent(weatherInfo);
@@ -614,7 +566,6 @@ function addWeatherDataForProvinces() {
                 isInfoWindowClicked = true;
                 console.log(`Weather InfoWindow opened for ${province.name}`);
             });
-
             singleInfoWindow?.addListener("closeclick", () => {
                 isInfoWindowClicked = false;
                 currentInfoWindow = null;
@@ -640,40 +591,32 @@ function addWeatherDataForProvinces() {
             markers.push(marker);
         }
     };
-
     provinces.forEach(province => addWeatherMarker(province));
 }
-
 // Track all calamities
 function trackCalamities() {
     if (!map) {
         console.error("Map not initialized, cannot track calamities.");
         return;
     }
-
     const calamityTrackingInitialized = sessionStorage.getItem(CALAMITY_TRACKING_KEY);
     const sessionTimestamp = sessionStorage.getItem(SESSION_TIMESTAMP_KEY);
     const currentTime = Date.now();
     const sessionAgeLimit = 30 * 60 * 1000;
-
     if (calamityTrackingInitialized && sessionTimestamp && (currentTime - parseInt(sessionTimestamp) < sessionAgeLimit)) {
         console.log("Calamity tracking already executed in this session, skipping.");
         loadExistingCalamities();
         return;
     }
-
     console.log("Starting calamity tracking at", new Date().toISOString());
     sessionStorage.setItem(CALAMITY_TRACKING_KEY, 'true');
     sessionStorage.setItem(SESSION_TIMESTAMP_KEY, currentTime.toString());
-
     calamityMarkers.forEach(marker => marker.setMap(null));
     calamityMarkers = [];
-
     if (calamityListener) {
         calamityListener.off();
         calamityListener = null;
     }
-
     trackEarthquakes();
     trackFloods();
     trackFire();
@@ -682,7 +625,6 @@ function trackCalamities() {
     trackLandslides();
     trackTsunamis();
 }
-
 // Load existing calamities to display markers without re-tracking
 async function loadExistingCalamities() {
     try {
@@ -692,10 +634,8 @@ async function loadExistingCalamities() {
             console.log("No existing calamities to load.");
             return;
         }
-
         calamityMarkers.forEach(marker => marker.setMap(null));
         calamityMarkers = [];
-
         for (const calamity of Object.values(calamities)) {
             if (!calamity.coordinates) continue;
             await addCalamityMarker(calamity.type, calamity.location, calamity.coordinates, calamity.details, calamity.eventId);
@@ -705,26 +645,21 @@ async function loadExistingCalamities() {
         console.error("Error loading existing calamities:", error);
     }
 }
-
 // Generate a consistent identifier for a calamity
 function generateCalamityIdentifier(type, location, time, magnitude = '', rainfall = '') {
     const normalizedTime = new Date(time);
     normalizedTime.setMinutes(0, 0, 0);
     const timeString = normalizedTime.toISOString();
-
     const normalizedLocation = location ? location.trim().toLowerCase() : '';
     const normalizedMagnitude = magnitude ? parseFloat(magnitude).toFixed(1) : '';
     const normalizedRainfall = rainfall ? parseFloat(rainfall).toFixed(1) : '';
-
     const identifier = `${type}|${normalizedLocation}|${timeString}|${normalizedMagnitude}|${normalizedRainfall}`;
     console.log(`Generated identifier for ${type} in ${location}: ${identifier}`);
     return identifier;
 }
-
 // Check if a calamity already exists
 async function calamityExists(eventId, type, location, time, magnitude = '', rainfall = '') {
     const identifier = generateCalamityIdentifier(type, location, time, magnitude, rainfall);
-
     if (eventId && processedCalamities.has(eventId)) {
         console.log(`Calamity already processed in persisted cache - Event ID: ${eventId}`);
         return true;
@@ -733,7 +668,6 @@ async function calamityExists(eventId, type, location, time, magnitude = '', rai
         console.log(`Calamity already processed in persisted cache - Identifier: ${identifier}`);
         return true;
     }
-
     try {
         const snapshotByEventId = await database.ref("calamities")
             .orderByChild("eventId")
@@ -746,7 +680,6 @@ async function calamityExists(eventId, type, location, time, magnitude = '', rai
             syncProcessedCalamities();
             return true;
         }
-
         const snapshotByIdentifier = await database.ref("calamities")
             .orderByChild("identifier")
             .equalTo(identifier)
@@ -758,7 +691,6 @@ async function calamityExists(eventId, type, location, time, magnitude = '', rai
             syncProcessedCalamities();
             return true;
         }
-
         console.log(`Calamity not found in database - Event ID: ${eventId || 'none'}, Identifier: ${identifier}`);
         return false;
     } catch (error) {
@@ -766,7 +698,6 @@ async function calamityExists(eventId, type, location, time, magnitude = '', rai
         return false;
     }
 }
-
 // Track earthquake
 async function trackEarthquakes() {
     const philippinesBounds = {
@@ -775,7 +706,6 @@ async function trackEarthquakes() {
         minLon: 116.0,
         maxLon: 128.0,
     };
-
     const cacheKey = 'earthquakes';
     let data;
     if (apiCache.has(cacheKey)) {
@@ -799,7 +729,6 @@ async function trackEarthquakes() {
                     .once("value");
                 const recentQuakes = snapshot.val();
                 if (!recentQuakes) return;
-
                 for (const quake of Object.values(recentQuakes)) {
                     await addCalamityMarker("Earthquake", quake.location, quake.coordinates, quake.details, quake.eventId);
                 }
@@ -809,16 +738,13 @@ async function trackEarthquakes() {
             return;
         }
     }
-
     await processEarthquakeData(data);
 }
-
 async function processEarthquakeData(data) {
     if (!data.features || data.features.length === 0) {
         console.warn("No earthquake data found.");
         return;
     }
-
     for (const quake of data.features) {
         const eventId = quake.id;
         const coords = quake.geometry.coordinates;
@@ -826,19 +752,16 @@ async function processEarthquakeData(data) {
         const place = quake.properties.place;
         const time = new Date(quake.properties.time).toISOString();
         const details = `Magnitude: ${magnitude}, Time: ${time}`;
-
         const exists = await calamityExists(eventId, "Earthquake", place, time, magnitude);
         if (exists) {
             console.log(`Skipping saving duplicate earthquake - Event ID: ${eventId}`);
             await addCalamityMarker("Earthquake", place, { lat: coords[1], lng: coords[0] }, details, eventId);
             continue;
         }
-
         const identifier = generateCalamityIdentifier("Earthquake", place, time, magnitude);
         processedCalamities.add(eventId);
         processedCalamities.add(identifier);
         syncProcessedCalamities();
-
         const calamityRef = database.ref("calamities").push();
         await calamityRef.set({
             type: "Earthquake",
@@ -851,16 +774,13 @@ async function processEarthquakeData(data) {
             identifier: identifier,
             timestamp: Date.now(),
         });
-
         console.log(`Saved new earthquake - Event ID: ${eventId}, Location: ${place}, Identifier: ${identifier}`);
         await addCalamityMarker("Earthquake", place, { lat: coords[1], lng: coords[0] }, details, eventId);
     }
 }
-
 // Track floods
 async function trackFloods() {
     const rainfallThreshold = 50;
-
     const addFloodMarker = throttle(async (province) => {
         const cacheKey = `flood_${province.name}`;
         let forecastData;
@@ -877,27 +797,22 @@ async function trackFloods() {
                 return;
             }
         }
-
         const rainfall = forecastData.list[0].rain ? forecastData.list[0].rain["3h"] || 0 : 0;
         if (rainfall < rainfallThreshold) return;
-
         const time = new Date(forecastData.list[0].dt * 1000).toISOString();
         const details = `Rainfall: ${rainfall} mm in last 3 hours, Time: ${time}`;
         const roundedTimestamp = Math.floor(new Date(time).getTime() / (60 * 60 * 1000)) * (60 * 60 * 1000);
         const eventId = `flood_${province.name}_${roundedTimestamp}`;
-
         const exists = await calamityExists(eventId, "Flood Risk", province.name, time, '', rainfall);
         if (exists) {
             console.log(`Skipping saving duplicate flood risk - Event ID: ${eventId}`);
             await addCalamityMarker("Flood Risk", province.name, { lat: province.lat, lng: province.lng }, details, eventId);
             return;
         }
-
         const identifier = generateCalamityIdentifier("Flood Risk", province.name, time, '', rainfall);
         processedCalamities.add(eventId);
         processedCalamities.add(identifier);
         syncProcessedCalamities();
-
         const calamityRef = database.ref("calamities").push();
         await calamityRef.set({
             type: "Flood Risk",
@@ -910,14 +825,11 @@ async function trackFloods() {
             identifier: identifier,
             timestamp: Date.now(),
         });
-
         console.log(`Saved new flood risk - Event ID: ${eventId}, Location: ${province.name}, Identifier: ${identifier}`);
         await addCalamityMarker("Flood Risk", province.name, { lat: province.lat, lng: province.lng }, details, eventId);
     }, 1000);
-
     provinces.forEach(province => addFloodMarker(province));
 }
-
 // Track house fires
 async function trackFire() {
     const calamityTrackingInitialized = sessionStorage.getItem(CALAMITY_TRACKING_KEY);
@@ -925,24 +837,20 @@ async function trackFire() {
         console.log("House fire tracking already executed in this session, skipping.");
         return;
     }
-
     if (calamityListener) {
         calamityListener.off();
         console.log("Removed existing calamity listener for house fires");
     }
-
     calamityListener = database.ref("calamities").orderByChild("type").equalTo("House Fire").limitToLast(50);
     calamityListener.on("child_added", async snapshot => {
         const fire = snapshot.val();
         if (!fire.coordinates) return;
-
         const eventId = fire.eventId || snapshot.key;
         const identifier = fire.identifier || generateCalamityIdentifier("House Fire", fire.location, fire.time);
         if (processedCalamities.has(eventId) || processedCalamities.has(identifier)) {
             console.log(`Skipping duplicate house fire - Event ID: ${eventId}, Identifier: ${identifier}`);
             return;
         }
-
         processedCalamities.add(eventId);
         processedCalamities.add(identifier);
         syncProcessedCalamities();
@@ -951,7 +859,6 @@ async function trackFire() {
         console.error("Error fetching house fire data:", error);
     });
 }
-
 // Track typhoons
 async function trackTyphoons() {
     const calamityTrackingInitialized = sessionStorage.getItem(CALAMITY_TRACKING_KEY);
@@ -959,11 +866,9 @@ async function trackTyphoons() {
         console.log("Typhoon tracking already executed in this session, skipping.");
         return;
     }
-
     const snapshot = await database.ref("calamities").orderByChild("type").equalTo("Typhoon").limitToLast(5).once("value");
     const typhoons = snapshot.val();
     if (!typhoons) return;
-
     for (const typhoon of Object.values(typhoons)) {
         const eventId = typhoon.eventId || snapshot.key;
         const identifier = typhoon.identifier || generateCalamityIdentifier("Typhoon", typhoon.location, typhoon.time);
@@ -971,14 +876,12 @@ async function trackTyphoons() {
             console.log(`Skipping duplicate typhoon - Event ID: ${eventId}, Identifier: ${identifier}`);
             continue;
         }
-
         processedCalamities.add(eventId);
         processedCalamities.add(identifier);
         syncProcessedCalamities();
         await addCalamityMarker("Typhoon", typhoon.location, typhoon.coordinates, typhoon.details, eventId);
     }
 }
-
 // Track volcanic eruptions
 async function trackVolcanicEruptions() {
     const calamityTrackingInitialized = sessionStorage.getItem(CALAMITY_TRACKING_KEY);
@@ -986,11 +889,9 @@ async function trackVolcanicEruptions() {
         console.log("Volcanic eruption tracking already executed in this session, skipping.");
         return;
     }
-
     const snapshot = await database.ref("calamities").orderByChild("type").equalTo("Volcanic Eruption").limitToLast(5).once("value");
     const eruptions = snapshot.val();
     if (!eruptions) return;
-
     for (const eruption of Object.values(eruptions)) {
         const eventId = eruption.eventId || snapshot.key;
         const identifier = eruption.identifier || generateCalamityIdentifier("Volcanic Eruption", eruption.location, eruption.time);
@@ -998,25 +899,21 @@ async function trackVolcanicEruptions() {
             console.log(`Skipping duplicate volcanic eruption - Event ID: ${eventId}, Identifier: ${identifier}`);
             continue;
         }
-
         processedCalamities.add(eventId);
         processedCalamities.add(identifier);
         syncProcessedCalamities();
         await addCalamityMarker("Volcanic Eruption", eruption.location, eruption.coordinates, eruption.details, eventId);
     }
 }
-
 // Track landslides
 async function trackLandslides() {
     const rainfallThreshold = 100;
-
     const addLandslideMarker = throttle(async (province) => {
         const calamityTrackingInitialized = sessionStorage.getItem(CALAMITY_TRACKING_KEY);
         if (calamityTrackingInitialized) {
             console.log("Landslide tracking already executed in this session for", province.name, "skipping.");
             return;
         }
-
         const cacheKey = `landslide_${province.name}`;
         let forecastData;
         if (apiCache.has(cacheKey)) {
@@ -1032,27 +929,22 @@ async function trackLandslides() {
                 return;
             }
         }
-
         const rainfall = forecastData.list[0].rain ? forecastData.list[0].rain["3h"] || 0 : 0;
         if (rainfall < rainfallThreshold) return;
-
         const time = new Date(forecastData.list[0].dt * 1000).toISOString();
         const details = `Rainfall: ${rainfall} mm in last 3 hours, Time: ${time}`;
         const roundedTimestamp = Math.floor(new Date(time).getTime() / (60 * 60 * 1000)) * (60 * 60 * 1000);
         const eventId = `landslide_${province.name}_${roundedTimestamp}`;
-
         const exists = await calamityExists(eventId, "Landslide Risk", province.name, time, '', rainfall);
         if (exists) {
             console.log(`Skipping saving duplicate landslide risk - Event ID: ${eventId}`);
             await addCalamityMarker("Landslide Risk", province.name, { lat: province.lat, lng: province.lng }, details, eventId);
             return;
         }
-
         const identifier = generateCalamityIdentifier("Landslide Risk", province.name, time, '', rainfall);
         processedCalamities.add(eventId);
         processedCalamities.add(identifier);
         syncProcessedCalamities();
-
         const calamityRef = database.ref("calamities").push();
         await calamityRef.set({
             type: "Landslide Risk",
@@ -1065,14 +957,11 @@ async function trackLandslides() {
             identifier: identifier,
             timestamp: Date.now(),
         });
-
         console.log(`Saved new landslide risk - Event ID: ${eventId}, Location: ${province.name}, Identifier: ${identifier}`);
         await addCalamityMarker("Landslide Risk", province.name, { lat: province.lat, lng: province.lng }, details, eventId);
     }, 1000);
-
     provinces.forEach(province => addLandslideMarker(province));
 }
-
 // Track tsunamis
 async function trackTsunamis() {
     const calamityTrackingInitialized = sessionStorage.getItem(CALAMITY_TRACKING_KEY);
@@ -1080,11 +969,9 @@ async function trackTsunamis() {
         console.log("Tsunami tracking already executed in this session, skipping.");
         return;
     }
-
     const snapshot = await database.ref("calamities").orderByChild("type").equalTo("Tsunami").limitToLast(5).once("value");
     const tsunamis = snapshot.val();
     if (!tsunamis) return;
-
     for (const tsunami of Object.values(tsunamis)) {
         const eventId = tsunami.eventId || snapshot.key;
         const identifier = tsunami.identifier || generateCalamityIdentifier("Tsunami", tsunami.location, tsunami.time);
@@ -1092,18 +979,15 @@ async function trackTsunamis() {
             console.log(`Skipping duplicate tsunami - Event ID: ${eventId}, Identifier: ${identifier}`);
             continue;
         }
-
         processedCalamities.add(eventId);
         processedCalamities.add(identifier);
         syncProcessedCalamities();
         await addCalamityMarker("Tsunami", tsunami.location, tsunami.coordinates, tsunami.details, eventId);
     }
 }
-
 // Check for duplicate notification
 async function hasRecentNotification(eventId, type, location, time, magnitude = '', rainfall = '') {
     const identifier = generateCalamityIdentifier(type, location, time, magnitude, rainfall);
-
     try {
         const snapshotByEventId = await database.ref("notifications")
             .orderByChild("eventId")
@@ -1116,7 +1000,6 @@ async function hasRecentNotification(eventId, type, location, time, magnitude = 
             syncProcessedNotifications();
             return true;
         }
-
         const snapshotByIdentifier = await database.ref("notifications")
             .orderByChild("identifier")
             .equalTo(identifier)
@@ -1128,7 +1011,6 @@ async function hasRecentNotification(eventId, type, location, time, magnitude = 
             syncProcessedNotifications();
             return true;
         }
-
         if (eventId && processedNotifications.has(eventId)) {
             console.log(`Notification already processed in cache - Event ID: ${eventId}`);
             return true;
@@ -1137,7 +1019,6 @@ async function hasRecentNotification(eventId, type, location, time, magnitude = 
             console.log(`Notification already processed in cache - Identifier: ${identifier}`);
             return true;
         }
-
         console.log(`No notification found - Event ID: ${eventId || 'none'}, Identifier: ${identifier}`);
         return false;
     } catch (error) {
@@ -1145,7 +1026,6 @@ async function hasRecentNotification(eventId, type, location, time, magnitude = 
         return false;
     }
 }
-
 // Reverse geocode to get location name
 async function getLocationName(lat, lng) {
     return new Promise((resolve) => {
@@ -1158,7 +1038,6 @@ async function getLocationName(lat, lng) {
         });
     });
 }
-
 // Calamity marker with fun design and interactivity
 async function addCalamityMarker(type, location, coordinates, details, eventId) {
     const icons = {
@@ -1170,7 +1049,6 @@ async function addCalamityMarker(type, location, coordinates, details, eventId) 
         "Landslide Risk": "⛰️",
         "Tsunami": "🌊",
     };
-
     const currentTime = Date.now();
     const timeMatch = details.match(/Time: (.+)/);
     const eventTime = timeMatch ? new Date(timeMatch[1]).getTime() : currentTime;
@@ -1179,7 +1057,6 @@ async function addCalamityMarker(type, location, coordinates, details, eventId) 
         console.log(`Skipping earthquake marker for ${location} - older than 12 hours`);
         return;
     }
-
     const markerDiv = document.createElement("div");
     markerDiv.innerHTML = `
         <div style="
@@ -1200,7 +1077,6 @@ async function addCalamityMarker(type, location, coordinates, details, eventId) 
         }
     `;
     document.head.appendChild(style);
-
     const marker = new google.maps.Marker({
         position: { lat: coordinates.lat, lng: coordinates.lng },
         map: map,
@@ -1214,9 +1090,7 @@ async function addCalamityMarker(type, location, coordinates, details, eventId) 
             scaledSize: new google.maps.Size(40, 40),
         },
     });
-
     calamityMarkers.push(marker);
-
     const realLocation = await getLocationName(coordinates.lat, coordinates.lng);
     const infoWindowContent = `
         <div>
@@ -1227,19 +1101,16 @@ async function addCalamityMarker(type, location, coordinates, details, eventId) 
     const infoWindow = new google.maps.InfoWindow({
         content: infoWindowContent,
     });
-
     markerDiv.addEventListener("mouseover", () => {
         markerDiv.style.transform = "scale(1.3)";
     });
     markerDiv.addEventListener("mouseout", () => {
         markerDiv.style.transform = "scale(1)";
     });
-
     marker.addListener("click", () => {
         console.log(`Clicked marker for ${type} at ${location}`);
         markerDiv.style.animation = "none";
         markerDiv.style.animation = "bounce 0.5s ease";
-
         const bounceStyle = document.createElement("style");
         bounceStyle.textContent = `
             @keyframes bounce {
@@ -1249,14 +1120,12 @@ async function addCalamityMarker(type, location, coordinates, details, eventId) 
             }
         `;
         document.head.appendChild(bounceStyle);
-
         if (currentInfoWindow) singleInfoWindow.close();
         singleInfoWindow.setContent(infoWindowContent);
         singleInfoWindow.open(map, marker);
         currentInfoWindow = marker;
         isInfoWindowClicked = true;
         showWeatherInfoWindow(coordinates.lat, coordinates.lng);
-
         if (userRole === "AB ADMIN") {
             const magnitudeMatch = details.match(/Magnitude: (\d+\.\d+)/);
             const rainfallMatch = details.match(/Rainfall: (\d+\.?\d*) mm/);
@@ -1264,20 +1133,17 @@ async function addCalamityMarker(type, location, coordinates, details, eventId) 
             const magnitude = magnitudeMatch ? magnitudeMatch[1] : '';
             const rainfall = rainfallMatch ? rainfallMatch[1] : '';
             const time = timeMatch ? timeMatch[1] : null;
-
-            const warningLevel = rainfall >= 100 ? "Red Warning: Heavy Rain" : 
-                              rainfall >= 50 ? "Orange Warning: Moderate Rain" : 
+            const warningLevel = rainfall >= 100 ? "Red Warning: Heavy Rain" :
+                              rainfall >= 50 ? "Orange Warning: Moderate Rain" :
                               rainfall >= 20 ? "Yellow Warning: Light Rain" : "";
             generateLenlenAlert(type, location, details, eventId, warningLevel);
         }
     });
-
     singleInfoWindow?.addListener("closeclick", () => {
         isInfoWindowClicked = false;
         currentInfoWindow = null;
         markerDiv.style.animation = "pulse 2s infinite";
     });
-
     if (userRole === "AB ADMIN") {
         const magnitudeMatch = details.match(/Magnitude: (\d+\.\d+)/);
         const rainfallMatch = details.match(/Rainfall: (\d+\.?\d*) mm/);
@@ -1285,17 +1151,15 @@ async function addCalamityMarker(type, location, coordinates, details, eventId) 
         const magnitude = magnitudeMatch ? magnitudeMatch[1] : '';
         const rainfall = rainfallMatch ? rainfallMatch[1] : '';
         const time = timeMatch ? timeMatch[1] : null;
-
         const hasDuplicate = await hasRecentNotification(eventId, type, location, time, magnitude, rainfall);
         if (!hasDuplicate) {
-            const warningLevel = rainfall >= 100 ? "Red Warning: Heavy Rain" : 
-                              rainfall >= 50 ? "Orange Warning: Moderate Rain" : 
+            const warningLevel = rainfall >= 100 ? "Red Warning: Heavy Rain" :
+                              rainfall >= 50 ? "Orange Warning: Moderate Rain" :
                               rainfall >= 20 ? "Yellow Warning: Light Rain" : "";
             generateLenlenAlert(type, location, details, eventId, warningLevel);
         }
     }
 }
-
 // Show weather info window at clicked location
 async function showWeatherInfoWindow(lat, lng) {
     try {
@@ -1309,15 +1173,12 @@ async function showWeatherInfoWindow(lat, lng) {
             weatherData = await response.json();
             apiCache.set(cacheKey, weatherData);
         }
-
         const forecastResponse = await fetch(`https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lng}&appid=${WEATHER_API_KEY}&units=metric`);
         if (!forecastResponse.ok) throw new Error(`HTTP error! Status: ${forecastResponse.status}`);
-        const forecastData = await forecastResponse.json();
-
+        const forecastData = await response.json();
         const condition = weatherData.weather[0].main.toLowerCase();
         const cloudCover = weatherData.clouds.all || 0;
         const pop = (forecastData.list[0].pop || 0) * 100;
-
         let sunnyPercent = 0, rainyPercent = 0, cloudyPercent = cloudCover;
         if (condition.includes("clear")) {
             sunnyPercent = 100 - cloudCover;
@@ -1327,12 +1188,10 @@ async function showWeatherInfoWindow(lat, lng) {
         } else {
             sunnyPercent = Math.max(0, 100 - cloudCover);
         }
-
         let icon = "☁️";
         if (condition.includes("clear")) icon = "☀️";
         if (condition.includes("rain") || condition.includes("drizzle") || condition.includes("thunderstorm")) icon = "🌧️";
-
-        const realLocation = await getLocationName(lat, lng);
+                const realLocation = await getLocationName(lat, lng);
         const weatherInfo = `
             <div>
                 <b>Weather at ${realLocation}</b><br>
@@ -1343,14 +1202,12 @@ async function showWeatherInfoWindow(lat, lng) {
                 Temperature: ${weatherData.main.temp}°C
             </div>
         `;
-
         if (currentInfoWindow) singleInfoWindow.close();
         singleInfoWindow.setContent(weatherInfo);
         singleInfoWindow.setPosition({ lat, lng });
         singleInfoWindow.open(map);
         currentInfoWindow = { getPosition: () => ({ lat, lng }) };
         isInfoWindowClicked = true;
-
         singleInfoWindow.addListener("closeclick", () => {
             isInfoWindowClicked = false;
             currentInfoWindow = null;
@@ -1364,24 +1221,20 @@ async function showWeatherInfoWindow(lat, lng) {
         });
     }
 }
-
 // Lenlen alert generator with rain warning levels
 async function generateLenlenAlert(calamityType, location, details, eventId, warningLevel = "") {
     try {
         const prompt = `
             You are Lenlen, a disaster tracking assistant. Generate a concise admin notification for a ${calamityType} in ${location} with the following details. Include the ${warningLevel} if provided, and suggest an appropriate emergency hotline from the list if applicable.
-
             Details:
             - Location: ${location}
             - Calamity Type: ${calamityType}
             - Details: ${details}
             - Emergency Hotlines: ${JSON.stringify(emergencyHotlines)}
             - Warning Level: ${warningLevel}
-
             Format the response as a single sentence, e.g.:
             "Flood risk detected in Cebu with 60 mm rainfall in the last 3 hours (Orange Warning: Moderate Rain)—contact BFP at (032) 261-9111 for assistance."
         `;
-
         const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
             method: "POST",
             headers: {
@@ -1395,77 +1248,36 @@ async function generateLenlenAlert(calamityType, location, details, eventId, war
                 }],
             }),
         });
-
         if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-
         const data = await response.json();
         const message = data.candidates[0].content.parts[0].text;
-
         await notifyAdmin(`Lenlen Alert - ${message}`, calamityType, location, details, eventId);
     } catch (error) {
         console.error("Error generating alert:", error);
         await notifyAdmin(`🚨 ${calamityType} detected in ${location}. ${details} ${warningLevel ? `(${warningLevel})` : ""}`, calamityType, location, details, eventId);
     }
 }
-
-// Notify admin
+// Notify admin (updated to include callfordonation, reliefrequest, rdana)
 const notifyAdmin = throttle(async (message, calamityType, location, details, eventId) => {
-    if (!calamityList || !adminList || !notifDot) {
-        console.error("Notification list elements not found.");
+    if (!calamityList || !adminList || !notifDot || !notifBadge) {
+        console.error("Notification list elements or badge not found.");
         return;
     }
-
     const magnitudeMatch = details.match(/Magnitude: (\d+\.\d+)/);
     const rainfallMatch = details.match(/Rainfall: (\d+\.?\d*) mm/);
     const timeMatch = details.match(/Time: (.+)/);
     const magnitude = magnitudeMatch ? magnitudeMatch[1] : '';
     const rainfall = rainfallMatch ? rainfallMatch[1] : '';
     const time = timeMatch ? timeMatch[1] : null;
-
     const identifier = generateCalamityIdentifier(calamityType, location, time, magnitude, rainfall);
     const hasDuplicate = await hasRecentNotification(eventId, calamityType, location, time, magnitude, rainfall);
     if (hasDuplicate) {
         console.log(`Skipping duplicate - Event ID: ${eventId}, Identifier: ${identifier}`);
         return;
     }
-
     processedNotifications.add(eventId);
     processedNotifications.add(identifier);
     syncProcessedNotifications();
-
-    const li = document.createElement("li");
-    li.innerHTML = `
-        <strong>${calamityType ? "🚨 Calamity Alert:" : "🔔 Admin Notification:"}</strong> ${message}
-        <span class="timestamp">${new Date().toLocaleTimeString()}</span>
-    `;
-    li.classList.add("unread");
-    li.style.cursor = "pointer"; // Make clickable
-    li.addEventListener("click", () => {
-        console.log(`Notification clicked: ${message}`);
-        // Optionally open info window or navigate to calamity details
-        if (currentInfoWindow) singleInfoWindow.close();
-        singleInfoWindow.setContent(`
-            <div>
-                <b>${calamityType} in ${location}</b><br>
-                ${details}<br>
-                <button onclick="window.location.href='#';">View Details</button>
-            </div>
-        `);
-        singleInfoWindow.setPosition({ lat: coordinates.lat, lng: coordinates.lng });
-        singleInfoWindow.open(map);
-        currentInfoWindow = { getPosition: () => ({ lat: coordinates.lat, lng: coordinates.lng }) };
-        li.classList.remove("unread"); // Mark as read on click
-        database.ref(`notifications/${key}`).update({ read: true });
-    });
-
-    if (calamityType) {
-        calamityList.prepend(li);
-    } else {
-        adminList.prepend(li);
-    }
-
-    notifDot.style.display = "block";
-
     const key = database.ref("notifications").push().key;
     await database.ref("notifications").child(key).set({
         message,
@@ -1478,23 +1290,69 @@ const notifyAdmin = throttle(async (message, calamityType, location, details, ev
         read: false,
         type: calamityType ? "calamity" : "admin"
     });
-
     console.log(`Saved new notification - Event ID: ${eventId}, Key: ${key}`);
+
+    // Check for new calls for donation, relief requests, or RDANA submissions
+    if (userRole === "AB ADMIN") {
+        await checkNewSubmissions("callfordonation", key, "Call for Donation", location, details, eventId);
+        await checkNewSubmissions("reliefrequest", key, "Relief Request", location, details, eventId);
+        await checkNewSubmissions("rdana", key, "RDANA Submission", location, details, eventId);
+    }
+
+    updateNotificationBadge();
 }, 10000);
 
+async function checkNewSubmissions(node, key, type, location, details, eventId) {
+    const snapshot = await database.ref(node).orderByChild("status").equalTo("pending").once("value");
+    const submissions = snapshot.val();
+    if (submissions) {
+        for (const [subKey, submission] of Object.entries(submissions)) {
+            const subEventId = `${type}_${subKey}_${Date.now()}`;
+            const subIdentifier = generateCalamityIdentifier(type, submission.location || location, submission.timestamp || Date.now(), '', '');
+            if (!processedNotifications.has(subEventId) && !processedNotifications.has(subIdentifier)) {
+                const subMessage = `${type} pending at ${submission.location || location}: ${submission.details || details}`;
+                await database.ref("notifications").child(key || database.ref("notifications").push().key).set({
+                    message: subMessage,
+                    calamityType: type,
+                    location: submission.location || location,
+                    details: submission.details || details,
+                    eventId: subEventId,
+                    identifier: subIdentifier,
+                    timestamp: Date.now(),
+                    read: false,
+                    type: "admin"
+                });
+                processedNotifications.add(subEventId);
+                processedNotifications.add(subIdentifier);
+                syncProcessedNotifications();
+                console.log(`Notified new ${type} - Event ID: ${subEventId}`);
+            }
+        }
+    }
+}
+
+// Update notification badge with unread count
+function updateNotificationBadge() {
+    if (!notifBadge) return;
+    database.ref("notifications")
+        .orderByChild("read")
+        .equalTo(false)
+        .once("value", snapshot => {
+            const unreadCount = snapshot.numChildren();
+            notifBadge.textContent = unreadCount > 0 ? unreadCount : '';
+            notifBadge.style.display = unreadCount > 0 ? "inline-flex" : "none";
+            notifDot.style.display = unreadCount > 0 ? "block" : "none";
+        });
+}
 // Setup admin notifications
 function setupAdminNotifications() {
-    if (!calamityList || !adminList || !notifDot) return;
-
-    // Load notifications for both AB ADMIN and ABVN roles for calamity alerts
+    if (!calamityList || !adminList || !notifDot || !notifBadge) return;
     loadNotifications();
-
     const markAllReadBtn = document.getElementById("markAllRead");
     if (markAllReadBtn && userRole === "AB ADMIN") {
         markAllReadBtn.addEventListener("click", async () => {
             try {
                 if (notificationsListener) notificationsListener.off();
-
                 const snapshot = await database.ref("notifications").once("value");
                 const updates = {};
                 snapshot.forEach(child => {
@@ -1502,16 +1360,15 @@ function setupAdminNotifications() {
                         updates[`${child.key}/read`] = true;
                     }
                 });
-
                 if (Object.keys(updates).length > 0) {
                     await database.ref("notifications").update(updates);
                     console.log("Marked all notifications as read.");
                 }
-
                 calamityList.querySelectorAll("li").forEach(li => li.classList.remove("unread"));
                 adminList.querySelectorAll("li").forEach(li => li.classList.remove("unread"));
                 notifDot.style.display = "none";
-
+                notifBadge.textContent = '';
+                notifBadge.style.display = "none";
                 await initializeProcessedSets();
                 loadNotifications();
             } catch (error) {
@@ -1521,91 +1378,156 @@ function setupAdminNotifications() {
         });
     }
 }
-
 // Load and listen to notifications
 function loadNotifications() {
-    const calamityList = document.getElementById("calamityList");
-    const adminList = document.getElementById("adminList");
-    const notifDot = document.getElementById("notifDot");
-
-    if (!calamityList || !adminList || !notifDot) {
+    if (!calamityList || !adminList || !notifDot || !notifBadge) {
         console.error("Notification list or dot not found.");
+        Swal.fire({
+            icon: "error",
+            title: "Error",
+            text: "Notification elements not found. Please check the dashboard setup.",
+        });
         return;
     }
-
     if (notificationsListener) {
         notificationsListener.off();
         console.log("Previous notifications listener removed.");
     }
-
     notificationsListener = database.ref("notifications").limitToLast(50);
     notificationsListener.on("child_added", snapshot => {
         const notification = snapshot.val();
         const key = snapshot.key;
         console.log("New notification received:", notification);
-
-        // Temporarily disable duplicate check for testing
-        // if (notification.read && processedNotifications.has(notification.eventId || notification.identifier)) return;
-        if (document.querySelector(`li[data-key="${key}"]`)) return;
-
+        if (processedNotifications.has(notification.identifier) || document.querySelector(`li[data-key="${key}"]`)) {
+            console.log(`Skipping duplicate notification - Key: ${key}, Identifier: ${notification.identifier}`);
+            return;
+        }
+        if (notification.type === "admin" && userRole !== "AB ADMIN") {
+            console.log(`Skipping admin notification for non-admin user: ${notification.message}`);
+            return;
+        }
+        processedNotifications.add(notification.identifier);
+        syncProcessedNotifications();
         const li = document.createElement("li");
-        li.innerHTML = `
-            <strong>${notification.calamityType ? "🚨 Calamity Alert:" : "🔔 Admin Notification:"}</strong> ${notification.message}
-            <span class="timestamp">${new Date(notification.timestamp).toLocaleTimeString()}</span>
-        `;
+        let content = `<strong>${notification.calamityType ? "🚨 Calamity Alert:" : "🔔 Admin Notification:"}</strong> ${notification.message}`;
+        if (notification.reportId) {
+            content += ` <a href="#" class="view-report-link" data-report-id="${notification.reportId}">View Report</a>`;
+        }
+        content += `<span class="timestamp">${new Date(notification.timestamp).toLocaleString("en-US", {
+            hour: "numeric",
+            minute: "numeric",
+            hour12: true,
+        })}</span>`;
+        li.innerHTML = content;
         li.dataset.key = key;
         li.style.cursor = "pointer";
-        if (!notification.read) li.classList.add("unread");
-
+        if (!notification.read) {
+            li.classList.add("unread");
+            li.style.backgroundColor = "#ffeeee"; // Red tint for unread
+        } else {
+            li.style.backgroundColor = "#ffffff"; // Default color for read
+        }
         li.addEventListener("click", () => {
             console.log(`Notification clicked: ${notification.message}`);
-            const coordinates = provinces.find(p => p.name === notification.location) || { lat: 14.5995, lng: 120.9842 };
-            if (currentInfoWindow) singleInfoWindow.close();
-            singleInfoWindow.setContent(`
-                <div>
-                    <b>${notification.calamityType || ''} in ${notification.location}</b><br>
-                    ${notification.details || ''}<br>
-                    <button onclick="window.location.href='#';">View Details</button>
-                </div>
-            `);
-            singleInfoWindow.setPosition(coordinates);
-            singleInfoWindow.open(map);
-            currentInfoWindow = { getPosition: () => coordinates };
             li.classList.remove("unread");
-            database.ref(`notifications/${key}`).update({ read: true });
+            li.style.backgroundColor = "#ffffff"; // Reset to default on read
+            database.ref(`notifications/${key}`).update({ read: true }).catch(error => {
+                console.error("Error marking notification as read:", error);
+                Swal.fire({
+                    icon: "error",
+                    title: "Error",
+                    text: "Failed to mark notification as read.",
+                });
+            });
+            database.ref("notifications")
+                .orderByChild("read")
+                .equalTo(false)
+                .once("value", snapshot => {
+                    const unreadCount = snapshot.numChildren();
+                    notifBadge.textContent = unreadCount > 0 ? unreadCount : '';
+                    notifBadge.style.display = unreadCount > 0 ? "inline-flex" : "none";
+                    notifDot.style.display = unreadCount > 0 ? "block" : "none";
+                });
+            if (notification.location && notification.type === "calamity") {
+                const coordinates = provinces.find(p => p.name === notification.location) || { lat: 14.5995, lng: 120.9842 };
+                if (currentInfoWindow) singleInfoWindow.close();
+                singleInfoWindow.setContent(`
+                    <div>
+                        <b>${notification.calamityType || ''} in ${notification.location}</b><br>
+                        ${notification.details || ''}
+                    </div>
+                `);
+                singleInfoWindow.setPosition(coordinates);
+                singleInfoWindow.open(map);
+                currentInfoWindow = { getPosition: () => coordinates };
+                map.setCenter(coordinates);
+                map.setZoom(12);
+            }
         });
-
-        if (notification.calamityType) {
+        const viewReportLink = li.querySelector(".view-report-link");
+        if (viewReportLink) {
+            viewReportLink.addEventListener("click", async (e) => {
+                e.preventDefault();
+                const reportId = viewReportLink.getAttribute("data-report-id");
+                window.location.href = `../pages/reportsverification.html?reportId=${reportId}`;
+                await verifyReport(reportId);
+            });
+        }
+        if (notification.type === "calamity") {
             calamityList.prepend(li);
         } else {
             adminList.prepend(li);
         }
-
-        if (notification.eventId) processedNotifications.add(notification.eventId);
-        if (notification.identifier) processedNotifications.add(notification.identifier);
-        syncProcessedNotifications();
-
-        const hasUnread = calamityList.querySelectorAll("li.unread").length > 0 ||
-                         adminList.querySelectorAll("li.unread").length > 0;
-        notifDot.style.display = hasUnread ? "block" : "none";
+        updateNotificationBadge();
     }, error => {
-        console.error("Fetch error:", error);
-        Swal.fire({ icon: "error", title: "Error", text: "Failed to load notifications." });
+        console.error("Error fetching notifications:", error);
+        Swal.fire({
+            icon: "error",
+            title: "Error",
+            text: "Failed to load notifications.",
+        });
     });
 }
-
+// Verify report in reportssubmission
+async function verifyReport(reportId) {
+    try {
+        const snapshot = await database.ref("reportssubmission").orderByChild("reportId").equalTo(reportId).once("value");
+        const report = snapshot.val();
+        if (report) {
+            console.log(`Report found with ID: ${reportId}`);
+            Swal.fire({
+                icon: "success",
+                title: "Report Found",
+                text: `Report with ID ${reportId} has been located and is available for verification.`,
+            });
+        } else {
+            console.log(`No report found with ID: ${reportId}`);
+            Swal.fire({
+                icon: "warning",
+                title: "Report Not Found",
+                text: `No report with ID ${reportId} exists in the submission list.`,
+            });
+        }
+    } catch (error) {
+        console.error("Error verifying report:", error);
+        Swal.fire({
+            icon: "error",
+            title: "Error",
+            text: "Failed to verify report. Please try again later.",
+        });
+    }
+}
+// Setup tab switching for notification drawer
 function setupTabSwitching() {
     const tabCalamity = document.getElementById("tabCalamity");
     const tabAdmin = document.getElementById("tabAdmin");
     if (!tabCalamity || !tabAdmin) return;
-
     tabCalamity.addEventListener("click", () => {
         tabCalamity.classList.add("active");
         tabAdmin.classList.remove("active");
         calamityList.classList.remove("hidden");
         adminList.classList.add("hidden");
     });
-
     tabAdmin.addEventListener("click", () => {
         tabAdmin.classList.add("active");
         tabCalamity.classList.remove("active");
@@ -1613,24 +1535,20 @@ function setupTabSwitching() {
         calamityList.classList.add("hidden");
     });
 }
-
 // Fetch reports
 function fetchReports() {
     if (reportsListener) {
         reportsListener.off();
         console.log("Removed existing reports listener");
     }
-
     reportsListener = database.ref("reports/approved").limitToLast(50);
     reportsListener.on("value", snapshot => {
         let totalFoodPacks = 0, totalHotMeals = 0, totalWaterLiters = 0, totalVolunteers = 0, totalMonetaryDonations = 0, totalInKindDonations = 0;
-
         const reports = snapshot.val();
         if (reports) {
             const reportEntries = Object.entries(reports);
             reportEntries.forEach(([key, report]) => {
                 if (userRole === "ABVN" && report.userUid !== userUid) return;
-
                 totalFoodPacks += parseFloat(report.NoOfFoodPacks || 0);
                 totalHotMeals += parseFloat(report.NoOfHotMeals || 0);
                 totalWaterLiters += parseFloat(report.LitersOfWater || 0);
@@ -1639,292 +1557,191 @@ function fetchReports() {
                 totalInKindDonations += parseFloat(report.TotalValueOfInKindDonations || 0);
             });
         }
-
-        animateNumber('food-packs', totalFoodPacks, 1000, 0);
-        animateNumber('hot-meals', totalHotMeals, 1000, 0);
-        animateNumber('water-liters', totalWaterLiters, 1000, 0);
-        animateNumber('volunteers', totalVolunteers, 1000, 0);
+        animateNumber('food-packs', totalFoodPacks);
+        animateNumber('hot-meals', totalHotMeals);
+        animateNumber('water-liters', totalWaterLiters);
+        animateNumber('volunteers', totalVolunteers);
         animateNumber('amount-raised', totalMonetaryDonations, 1000, 2);
         animateNumber('inkind-donations', totalInKindDonations, 1000, 2);
     }, error => {
-        console.error("Error fetching approved reports:", error);
-        if (foodPacksEl) foodPacksEl.textContent = "0";
-        if (hotMealsEl) hotMealsEl.textContent = "0";
-        if (waterLitersEl) waterLitersEl.textContent = "0";
-        if (volunteersEl) volunteersEl.textContent = "0";
-        if (amountRaisedEl) amountRaisedEl.textContent = "₱0.00 (Error)";
-        if (inKindDonationsEl) inKindDonationsEl.textContent = "₱0.00 (Error)";
+        console.error("Error fetching reports:", error);
+        Swal.fire({
+            icon: "error",
+            title: "Error",
+            text: "Failed to load reports.",
+        });
     });
 }
-
-// Clean up duplicate calamities
+// Cleanup dashboard resources
+function cleanupDashboard() {
+    console.log("Cleaning up dashboard resources at", new Date().toISOString());
+    if (map) {
+        google.maps.event.clearInstanceListeners(map);
+        markers.forEach(marker => marker.setMap(null));
+        calamityMarkers.forEach(marker => marker.setMap(null));
+        markers = [];
+        calamityMarkers = [];
+        if (currentInfoWindow) singleInfoWindow.close();
+        currentInfoWindow = null;
+        singleInfoWindow = null;
+        map = null;
+    }
+    if (calamityListener) {
+        calamityListener.off();
+        calamityListener = null;
+    }
+    if (notificationsListener) {
+        notificationsListener.off();
+        notificationsListener = null;
+    }
+    if (reportsListener) {
+        reportsListener.off();
+        reportsListener = null;
+    }
+    sessionStorage.removeItem(SESSION_KEY);
+    sessionStorage.removeItem(CALAMITY_TRACKING_KEY);
+    sessionStorage.removeItem(SESSION_TIMESTAMP_KEY);
+    processedCalamities.clear();
+    processedNotifications.clear();
+    syncProcessedCalamities();
+    syncProcessedNotifications();
+    console.log("Dashboard cleanup completed.");
+}
+// Update rain warning overlay
+function updateRainWarningOverlay() {
+    const overlay = new google.maps.OverlayView();
+    overlay.onAdd = function () {
+        const layer = document.createElement("div");
+        layer.style.borderStyle = "none";
+        layer.style.borderWidth = "0px";
+        layer.style.position = "absolute";
+        const panes = this.getPanes();
+        panes.overlayLayer.appendChild(layer);
+    };
+    overlay.draw = function () {
+        const projection = this.getProjection();
+        const bounds = map.getBounds();
+        if (!bounds) return;
+        const ne = projection.fromLatLngToDivPixel(bounds.getNorthEast());
+        const sw = projection.fromLatLngToDivPixel(bounds.getSouthWest());
+        const overlay = this.getPanes().overlayLayer.firstChild;
+        if (overlay) {
+            overlay.style.left = sw.x + "px";
+            overlay.style.top = ne.y + "px";
+            overlay.style.width = (ne.x - sw.x) + "px";
+            overlay.style.height = (sw.y - ne.y) + "px";
+            overlay.style.backgroundColor = "rgba(255, 0, 0, 0.2)";
+            overlay.style.display = isInfoWindowClicked ? "block" : "none";
+        }
+    };
+    overlay.onRemove = function () {
+        const overlay = this.getPanes().overlayLayer.firstChild;
+        if (overlay) overlay.parentNode.removeChild(overlay);
+    };
+    overlay.setMap(map);
+}
+// Clean duplicate calamities
 async function cleanDuplicateCalamities() {
     try {
         const snapshot = await database.ref("calamities").once("value");
         const calamities = snapshot.val();
-        if (!calamities) {
-            console.log("No calamities found to clean up duplicates.");
-            return;
+        if (!calamities) return;
+        const uniqueCalamities = new Map();
+        for (const [key, calamity] of Object.entries(calamities)) {
+            const identifier = calamity.identifier || generateCalamityIdentifier(calamity.type, calamity.location, calamity.time, calamity.magnitude, calamity.rainfall);
+            if (!uniqueCalamities.has(identifier) || (calamity.timestamp && calamity.timestamp > (uniqueCalamities.get(identifier)?.timestamp || 0))) {
+                uniqueCalamities.set(identifier, { key, ...calamity });
+            }
         }
-
-        const seen = new Map();
         const updates = {};
-
         Object.entries(calamities).forEach(([key, calamity]) => {
-            const identifier = calamity.identifier || generateCalamityIdentifier(
-                calamity.type,
-                calamity.location,
-                calamity.time,
-                calamity.magnitude || '',
-                calamity.rainfall || ''
-            );
-            if (seen.has(identifier)) {
-                updates[key] = null;
-                console.log(`Removing duplicate calamity - Key: ${key}, Identifier: ${identifier}`);
-            } else {
-                seen.set(identifier, key);
-                if (!calamity.identifier) {
-                    updates[`${key}/identifier`] = identifier;
-                }
-                console.log(`Keeping calamity - Key: ${key}, Identifier: ${identifier}`);
+            const identifier = calamity.identifier || generateCalamityIdentifier(calamity.type, calamity.location, calamity.time, calamity.magnitude, calamity.rainfall);
+            if (uniqueCalamities.get(identifier).key !== key) {
+                updates[`/calamities/${key}`] = null;
             }
         });
-
         if (Object.keys(updates).length > 0) {
-            await database.ref("calamities").update(updates);
-            console.log("Cleaned up duplicate calamities and migrated identifiers.");
-        } else {
-            console.log("No duplicate calamities found to clean up.");
+            await database.ref().update(updates);
+            console.log("Removed duplicate calamities:", Object.keys(updates).length);
         }
     } catch (error) {
-        console.error("Error cleaning up duplicate calamities:", error);
+        console.error("Error cleaning duplicate calamities:", error);
     }
 }
-
-// Clean up duplicate notifications
+// Clean duplicate notifications
 async function cleanDuplicateNotifications() {
     try {
         const snapshot = await database.ref("notifications").once("value");
         const notifications = snapshot.val();
-        if (!notifications) {
-            console.log("No notifications found to clean up duplicates.");
-            return;
+        if (!notifications) return;
+        const uniqueNotifications = new Map();
+        for (const [key, notification] of Object.entries(notifications)) {
+            const identifier = notification.identifier || generateCalamityIdentifier(notification.calamityType, notification.location, notification.time, notification.magnitude, notification.rainfall);
+            if (!uniqueNotifications.has(identifier) || (notification.timestamp && notification.timestamp > (uniqueNotifications.get(identifier)?.timestamp || 0))) {
+                uniqueNotifications.set(identifier, { key, ...notification });
+            }
         }
-
-        const seen = new Map();
         const updates = {};
-
         Object.entries(notifications).forEach(([key, notification]) => {
-            const identifier = notification.identifier || generateCalamityIdentifier(
-                notification.calamityType,
-                notification.location,
-                notification.details.match(/Time: (.+)/)?.[1] || '',
-                notification.details.match(/Magnitude: (\d+\.\d+)/)?.[1] || '',
-                notification.details.match(/Rainfall: (\d+\.?\d*) mm/)?.[1] || ''
-            );
-            if (seen.has(identifier)) {
-                updates[key] = null;
-                console.log(`Removing duplicate notification - Key: ${key}, Identifier: ${identifier}`);
-            } else {
-                seen.set(identifier, key);
-                if (!notification.identifier) {
-                    updates[`${key}/identifier`] = identifier;
-                }
-                console.log(`Keeping notification - Key: ${key}, Identifier: ${identifier}`);
+            const identifier = notification.identifier || generateCalamityIdentifier(notification.calamityType, notification.location, notification.time, notification.magnitude, notification.rainfall);
+            if (uniqueNotifications.get(identifier).key !== key) {
+                updates[`/notifications/${key}`] = null;
             }
         });
-
         if (Object.keys(updates).length > 0) {
-            await database.ref("notifications").update(updates);
-            console.log("Cleaned up duplicate notifications and migrated identifiers.");
-        } else {
-            console.log("No duplicate notifications found to clean up.");
+            await database.ref().update(updates);
+            console.log("Removed duplicate notifications:", Object.keys(updates).length);
         }
     } catch (error) {
-        console.error("Error cleaning up duplicate notifications:", error);
+        console.error("Error cleaning duplicate notifications:", error);
     }
 }
-
-// Migrate legacy calamities
-async function migrateLegacyCalamities() {
-    try {
-        const snapshot = await database.ref("calamities").once("value");
-        const calamities = snapshot.val();
-        if (!calamities) {
-            console.log("No calamities found for migration.");
-            return;
-        }
-
-        const updates = {};
-        Object.entries(calamities).forEach(([key, calamity]) => {
-            if (!calamity.identifier) {
-                const identifier = generateCalamityIdentifier(
-                    calamity.type,
-                    calamity.location,
-                    calamity.time,
-                    calamity.magnitude || '',
-                    calamity.rainfall || ''
-                );
-                updates[`${key}/identifier`] = identifier;
-                console.log(`Migrating legacy calamity - Key: ${key}, Identifier: ${identifier}`);
-            }
-        });
-
-        if (Object.keys(updates).length > 0) {
-            await database.ref("calamities").update(updates);
-            console.log("Migrated legacy calamities with identifier.");
-        } else {
-            console.log("No legacy calamities needed migration.");
-        }
-    } catch (error) {
-        console.error("Error migrating legacy calamities:", error);
-    }
-}
-
-// Clean up old calamities
+// Clean old calamities (older than 30 days)
 async function cleanOldCalamities() {
     try {
         const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
         const snapshot = await database.ref("calamities").once("value");
         const calamities = snapshot.val();
-        if (!calamities) {
-            console.log("No calamities found to clean up old entries.");
-            return;
-        }
-
+        if (!calamities) return;
         const updates = {};
         Object.entries(calamities).forEach(([key, calamity]) => {
-            if (calamity.timestamp < thirtyDaysAgo) {
-                updates[key] = null;
-                console.log(`Removing old calamity - Key: ${key}, Timestamp: ${calamity.timestamp}`);
+            if (calamity.timestamp && calamity.timestamp < thirtyDaysAgo) {
+                updates[`/calamities/${key}`] = null;
             }
         });
-
         if (Object.keys(updates).length > 0) {
-            await database.ref("calamities").update(updates);
-            console.log("Cleaned up old calamities.");
-
-            const notifSnapshot = await database.ref("notifications").once("value");
-            const notifications = notifSnapshot.val();
-            if (notifications) {
-                const notifUpdates = {};
-                Object.entries(notifications).forEach(([notifKey, notification]) => {
-                    if (notification.timestamp < thirtyDaysAgo) {
-                        notifUpdates[notifKey] = null;
-                        console.log(`Removing old notification - Key: ${notifKey}, Timestamp: ${notification.timestamp}`);
-                    }
-                });
-
-                if (Object.keys(notifUpdates).length > 0) {
-                    await database.ref("notifications").update(notifUpdates);
-                    console.log("Cleaned up old notifications.");
-                }
-            }
-        } else {
-            console.log("No old calamities found to clean up.");
+            await database.ref().update(updates);
+            console.log("Removed old calamities:", Object.keys(updates).length);
         }
     } catch (error) {
-        console.error("Error cleaning up old calamities:", error);
+        console.error("Error cleaning old calamities:", error);
     }
 }
-
-// Cleanup dashboard
-function cleanupDashboard() {
-    console.log("Cleaning up dashboard state");
-
-    clearTimeout(inactivityTimeout);
-    ['mousemove', 'keydown', 'scroll', 'click'].forEach(eventType => {
-        document.removeEventListener(eventType, resetInactivityTimer);
-    });
-    console.log("Removed inactivity timer listeners.");
-
-       if (map) {
-        markers.forEach(marker => marker.setMap(null));
-        markers = [];
-        calamityMarkers.forEach(marker => marker.setMap(null));
-        calamityMarkers = [];
-        if (currentInfoWindow) singleInfoWindow.close();
-        currentInfoWindow = null;
-        isInfoWindowClicked = false;
-        google.maps.event.clearInstanceListeners(map);
-        map = null;
-        console.log("Cleared map and markers.");
-    }
-
-    if (calamityListener) {
-        calamityListener.off();
-        calamityListener = null;
-        console.log("Removed calamity listener.");
-    }
-
-    if (reportsListener) {
-        reportsListener.off();
-        reportsListener = null;
-        console.log("Removed reports listener.");
-    }
-
-    if (notificationsListener) {
-        notificationsListener.off();
-        notificationsListener = null;
-        console.log("Removed notifications listener.");
-    }
-
-    sessionStorage.removeItem(SESSION_KEY);
-    sessionStorage.removeItem(CALAMITY_TRACKING_KEY);
-    sessionStorage.removeItem(SESSION_TIMESTAMP_KEY);
-    sessionStorage.removeItem(PROCESSED_CALAMITIES_KEY);
-    sessionStorage.removeItem(PROCESSED_NOTIFICATIONS_KEY);
-    processedCalamities.clear();
-    processedNotifications.clear();
-    console.log("Cleared session storage and in-memory caches.");
-
-    document.querySelectorAll("#calamityList li, #adminList li").forEach(li => li.remove());
-    const notifDot = document.getElementById("notifDot");
-    if (notifDot) notifDot.style.display = "none";
-    console.log("Cleared notification lists and dot.");
-}
-
-// Update rain warning overlay
-function updateRainWarningOverlay() {
-    const overlay = document.getElementById("rainWarningOverlay");
-    if (!overlay || userRole !== "AB ADMIN") return;
-
-    let hasWarning = false;
-    const checkRainConditions = async () => {
-        for (const province of provinces) {
-            try {
-                const cacheKey = `weather_${province.lat}_${province.lng}`;
-                let weatherData = apiCache.get(cacheKey);
-                if (!weatherData) {
-                    const response = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${province.lat}&lon=${province.lng}&appid=${WEATHER_API_KEY}&units=metric`);
-                    if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-                    weatherData = await response.json();
-                    apiCache.set(cacheKey, weatherData);
-                }
-
-                const forecastResponse = await fetch(`https://api.openweathermap.org/data/2.5/forecast?lat=${province.lat}&lon=${province.lng}&appid=${WEATHER_API_KEY}&units=metric`);
-                if (!forecastResponse.ok) throw new Error(`HTTP error! Status: ${forecastResponse.status}`);
-                const forecastData = await forecastResponse.json();
-
-                const rainfall = forecastData.list[0].rain ? forecastData.list[0].rain["3h"] || 0 : 0;
-                if (rainfall >= 20) {
-                    hasWarning = true;
-                    break;
-                }
-            } catch (error) {
-                console.error(`Error updating rain warning for ${province.name}:`, error);
+// Migrate legacy calamities (add missing eventId and identifier)
+async function migrateLegacyCalamities() {
+    try {
+        const snapshot = await database.ref("calamities").once("value");
+        const calamities = snapshot.val();
+        if (!calamities) return;
+        const updates = {};
+        Object.entries(calamities).forEach(([key, calamity]) => {
+            if (!calamity.eventId || !calamity.identifier) {
+                const eventId = calamity.eventId || key;
+                const identifier = calamity.identifier || generateCalamityIdentifier(calamity.type, calamity.location, calamity.time, calamity.magnitude, calamity.rainfall);
+                updates[`/calamities/${key}/eventId`] = eventId;
+                updates[`/calamities/${key}/identifier`] = identifier;
+                processedCalamities.add(eventId);
+                processedCalamities.add(identifier);
             }
+        });
+        if (Object.keys(updates).length > 0) {
+            await database.ref().update(updates);
+            syncProcessedCalamities();
+            console.log("Migrated legacy calamities:", Object.keys(updates).length);
         }
-
-        overlay.style.display = hasWarning ? "block" : "none";
-        if (hasWarning) {
-            overlay.textContent = "⚠️ Rain Warning: Flood risk detected in one or more areas. Check details on the map.";
-        }
-    };
-
-    checkRainConditions();
-    setInterval(checkRainConditions, 15 * 60 * 1000); // Check every 15 minutes
+    } catch (error) {
+        console.error("Error migrating legacy calamities:", error);
+    }
 }
-
-// Initialize the dashboard when the page loads
+// Initialize dashboard when the page loads
 window.addEventListener("load", initializeDashboard);

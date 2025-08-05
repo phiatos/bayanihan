@@ -1,3 +1,28 @@
+// Notify admin function (defined globally within the file)
+const notifyAdmin = async (message, calamityType, location, details, requestId, senderName, organization) => {
+    try {
+        const identifier = `request_${requestId}_${Date.now()}`;
+        const key = firebase.database().ref("notifications").push().key;
+        await firebase.database().ref("notifications").child(key).set({
+            message,
+            calamityType: calamityType || null,
+            location: location || null,
+            details: details || null,
+            eventId: null,
+            requestId,
+            senderName,
+            organization,
+            identifier,
+            timestamp: Date.now(),
+            read: false,
+            type: "admin"
+        });
+        console.log(`Admin notified of new relief request - Request ID: ${requestId}, Key: ${key}`);
+    } catch (error) {
+        console.error("Error notifying admin:", error);
+    }
+};
+
 document.addEventListener('DOMContentLoaded', () => {
     // Firebase configuration
     const firebaseConfig = {
@@ -618,7 +643,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Handle form submission to save data to Firebase
-    formPage2.addEventListener('submit', (e) => {
+    formPage2.addEventListener('submit', async (e) => {
         e.preventDefault();
         console.log('Submit button clicked');
 
@@ -659,32 +684,38 @@ document.addEventListener('DOMContentLoaded', () => {
         const requestRef = database.ref('requestRelief/requests').push();
         const userRequestRef = database.ref(`users/${userUid}/requests/${requestRef.key}`);
 
-        Promise.all([
-            requestRef.set(newRequest),
-            userRequestRef.set(newRequest)
-        ])
-            .then(() => {
-                console.log('Data saved to Firebase successfully');
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Request Submitted',
-                    text: 'Your relief request has been successfully submitted!',
-                }).then(() => {
-                    formPage1.reset();
-                    formPage2.reset();
-                    addedItems.length = 0;
-                    renderItemsTable();
-                    formPage2.style.display = 'none';
-                    formPage1.style.display = 'block';
-                });
-            })
-            .catch((error) => {
-                console.error('Failed to save data to Firebase:', error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Failed to submit request: ' + error.message,
-                });
+        try {
+            await Promise.all([
+                requestRef.set(newRequest),
+                userRequestRef.set(newRequest)
+            ]);
+
+            console.log('Data saved to Firebase successfully');
+
+            // Notify admin
+            const message = `New relief request submitted by ${contactPerson} from ${volunteerOrganization} for ${donationCategory} on ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} at ${new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })} PST.`;
+            const requestRefKey = requestRef.key;
+            await notifyAdmin(message, null, null, null, requestRefKey, contactPerson, volunteerOrganization);
+
+            Swal.fire({
+                icon: 'success',
+                title: 'Request Submitted',
+                text: 'Your relief request has been successfully submitted!',
+            }).then(() => {
+                formPage1.reset();
+                formPage2.reset();
+                addedItems.length = 0;
+                renderItemsTable();
+                formPage2.style.display = 'none';
+                formPage1.style.display = 'block';
             });
+        } catch (error) {
+            console.error('Failed to save data to Firebase:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Failed to submit request: ' + error.message,
+            });
+        }
     });
 });
