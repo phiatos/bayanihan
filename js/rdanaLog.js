@@ -70,6 +70,7 @@ function checkInactivity() {
   const rowsPerPage = 5;
   let currentPage = 1;
 
+
   // Check if user is authenticated
   auth.onAuthStateChanged(user => {
     if (!user) {
@@ -221,7 +222,7 @@ function checkInactivity() {
     pagination.appendChild(createButton('Next', currentPage + 1, currentPage === totalPages));
   }
 
-  function deleteLog(firebaseKey, globalIndex) {
+function deleteLog(firebaseKey, globalIndex) {
   Swal.fire({
     title: 'Are you sure?',
     text: 'This will remove the RDANA log from the active list but keep it in the database for future access.',
@@ -274,19 +275,26 @@ function checkInactivity() {
             return Promise.resolve();
           }
 
-          // Move to deletedrdana with the actual key
-          return database.ref(`deletedrdana/${actualKey}`).set({
+          // NEW: Move to archived node as well
+          const archivePromise = database.ref(`rdana/archived/${actualKey}`).set({
+            ...logData,
+            archivedAt: new Date().toISOString()
+          });
+
+          // Move to deletedrdana
+          const deletePromise = database.ref(`deletedrdana/${actualKey}`).set({
             ...logData,
             deletedAt: new Date().toISOString()
-          }).then(() => ({ actualKey }));
+          });
+
+          // Wait for both archive and delete writes
+          return Promise.all([archivePromise, deletePromise]).then(() => ({ actualKey }));
         })
         .then(result => {
-          if (!result) {
-            // If the log wasn't found, proceed with UI update
-            return Promise.resolve();
-          }
+          if (!result) return Promise.resolve();
           const { actualKey } = result;
-          // Remove from rdana/approved and users/${userUid}/rdanaReports using the actual key
+
+          // Remove from rdana/approved and users/${userUid}/rdanaReports
           return Promise.all([
             database.ref(`rdana/approved/${actualKey}`).remove(),
             database.ref(`users/${userUid}/rdanaReports/${actualKey}`).remove()
@@ -306,7 +314,7 @@ function checkInactivity() {
           Swal.fire({
             icon: 'success',
             title: 'Deleted',
-            text: 'RDANA log has been moved to the deleted list or was already removed.',
+            text: 'RDANA log has been archived and moved to the deleted list.',
             timer: 2500,
             showConfirmButton: false,
             background: '#fff5f5',
@@ -330,6 +338,118 @@ function checkInactivity() {
     }
   });
 }
+
+document.getElementById('viewArchived').addEventListener('click', () => {
+  document.getElementById('archivedModal').style.display = 'flex';
+  loadArchivedReports();
+});
+
+document.getElementById('closeArchivedModalBtn').addEventListener('click', () => {
+  document.getElementById('archivedModal').style.display = 'none';
+});
+
+let archivedCurrentPage = 1;
+const archivedRowsPerPage = 5; // Number of rows per page
+
+function loadArchivedReports(page = 1) {
+  const archivedTableBody = document.getElementById('archivedTableBody');
+  const archivedEntriesInfo = document.getElementById('archivedEntriesInfo');
+  const archivedPagination = document.getElementById('archivedPagination');
+
+  archivedTableBody.innerHTML = '<tr><td colspan="6">Loading...</td></tr>';
+
+  database.ref('rdana/archived').once('value').then(snapshot => {
+    const data = snapshot.val();
+    archivedTableBody.innerHTML = '';
+
+    if (!data) {
+      archivedTableBody.innerHTML = '<tr><td colspan="6">No archived reports found.</td></tr>';
+      archivedEntriesInfo.textContent = "Showing 0 to 0 of 0 entries";
+      archivedPagination.innerHTML = "";
+      return;
+    }
+
+    const reports = Object.entries(data).map(([key, report]) => ({ key, ...report }));
+    const totalEntries = reports.length;
+
+    // PAGINATION
+    const totalPages = Math.ceil(totalEntries / archivedRowsPerPage);
+    archivedCurrentPage = page;
+    const start = (archivedCurrentPage - 1) * archivedRowsPerPage;
+    const end = start + archivedRowsPerPage;
+    const paginatedReports = reports.slice(start, end);
+
+    // Populate table with paginated data
+    paginatedReports.forEach(report => {
+      const row = `
+        <tr>
+          <td>${report.rdanaId || 'N/A'}</td>
+          <td>${report.rdanaGroup || 'N/A'}</td>
+          <td>${new Date(report.dateTime).toLocaleString()}</td>
+          <td>${report.siteLocation || 'N/A'}</td>
+          <td>${new Date(report.archivedAt).toLocaleString()}</td>
+          <td>
+            <button class="restore-btn" data-key="${report.key}">Restore</button>
+          </td>
+        </tr>
+      `;
+      archivedTableBody.insertAdjacentHTML('beforeend', row);
+    });
+
+    // Update entry info
+    archivedEntriesInfo.textContent = `Showing ${start + 1} to ${Math.min(end, totalEntries)} of ${totalEntries} entries`;
+
+    // Build pagination buttons
+    archivedPagination.innerHTML = '';
+    for (let i = 1; i <= totalPages; i++) {
+      const btn = document.createElement('button');
+      btn.textContent = i;
+      btn.className = i === archivedCurrentPage ? 'active-page' : '';
+      btn.addEventListener('click', () => loadArchivedReports(i));
+      archivedPagination.appendChild(btn);
+    }
+
+    // Attach event listeners for restore buttons
+    document.querySelectorAll('.restore-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const reportKey = e.target.dataset.key;
+        restoreReport(reportKey);
+      });
+    });
+  });
+}
+
+
+function restoreReport(reportKey) {
+  Swal.fire({
+    title: 'Restore Report?',
+    text: 'This will move the report back to the active list.',
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonColor: '#28a745',
+    cancelButtonColor: '#6c757d',
+    confirmButtonText: 'Yes, Restore it!'
+  }).then(result => {
+    if (result.isConfirmed) {
+      database.ref(`rdana/archived/${reportKey}`).once('value').then(snapshot => {
+        const reportData = snapshot.val();
+        if (!reportData) throw new Error('Report not found in archive.');
+
+        // Move back to approved
+        return database.ref(`rdana/approved/${reportKey}`).set(reportData).then(() => {
+          return database.ref(`rdana/archived/${reportKey}`).remove();
+        });
+      }).then(() => {
+        Swal.fire('Restored!', 'The report has been moved back to the active list.', 'success');
+        loadArchivedReports(); // refresh table
+      }).catch(err => {
+        console.error(err);
+        Swal.fire('Error', err.message, 'error');
+      });
+    }
+  });
+}
+
 
   function viewLog(globalIndex) {
     const log = filteredLogs[globalIndex];
