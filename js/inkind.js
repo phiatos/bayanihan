@@ -24,6 +24,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let editingKey = null;
     let formHasChanges = false;
     let currentUserIsSuperAdmin = false;
+    let currentUserAdminPosition = null;
     let allArchivedInKindDonation = [];
     let currentArchivedPage = 1;
     const archivedRowsPerPage = 5;
@@ -68,12 +69,11 @@ document.addEventListener("DOMContentLoaded", () => {
             text: 'You\'ve been inactive for a while. Do you want to continue your session or log out?',
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#3085d6',
-            cancelButtonColor: '#d33',
             confirmButtonText: 'Stay Login',
             cancelButtonText: 'Log Out',
-            allowOutsideClick: false,
             reverseButtons: true,
+            focusCancel: true,
+            allowOutsideClick: false,
             customClass: {
                 popup: 'custom-swal-popup-small',
                 title: 'custom-swal-title',
@@ -299,13 +299,16 @@ document.addEventListener("DOMContentLoaded", () => {
         database.ref(`users/${user.uid}`).once('value', snapshot => {
             const userData = snapshot.val();
             currentUserIsSuperAdmin = userData && userData.isSuperAdmin === true;
+            currentUserAdminPosition = userData && userData.adminPosition;
             console.log("Super Admin status:", currentUserIsSuperAdmin);
+            console.log("Admin Position:", currentUserAdminPosition);
             loadDonations(user.uid);
             updateSearchPlaceholder();
             resetInactivityTimer();
         }).catch(error => {
             console.error("Error fetching user role:", error);
             currentUserIsSuperAdmin = false;
+            currentUserAdminPosition = null;
             loadDonations(user.uid);
             updateSearchPlaceholder();
             resetInactivityTimer();
@@ -347,7 +350,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function hasImportPermission() {
-        return currentUserIsSuperAdmin;
+        return currentUserIsSuperAdmin || currentUserAdminPosition === 'position-one';
     }
 
     function showAccessDeniedAlert(action) {
@@ -445,6 +448,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
     form.addEventListener("submit", (e) => {
         e.preventDefault();
+
+        if (!hasImportPermission()) {
+            showAccessDeniedAlert('add this donation');
+            return;
+        }
+        
         if (validateForm()) {
             const user = auth.currentUser;
             if (!user) {

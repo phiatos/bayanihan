@@ -76,7 +76,6 @@ const confirmModal = document.getElementById('confirmModal');
 const confirmDetailsDiv = document.getElementById('confirmDetails');
 const editDetailsBtn = document.getElementById('editDetailsBtn'); 
 const confirmSaveBtn = document.getElementById('confirmSaveBtn');
-const successModal = document.getElementById('successModal');
 const closeSuccessBtn = document.getElementById('closeSuccessBtn');
 
 // Edit Modal elements
@@ -100,7 +99,6 @@ const archivedTableBody = document.querySelector('#archivedTable tbody');
 const archivedEntriesInfo = document.querySelector("#archivedEntriesInfo");
 const archivedPaginationContainer = document.querySelector("#archivedPagination");
 
-// Function to generate a secure temporary password (re-used)
 function generateTempPassword() {
     const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     let password = "";
@@ -122,6 +120,16 @@ function isValidEmail(email) {
 function isValidMobile(mobile) {
     const mobileRegex = /^09[0-9]{9}$/;
     return mobileRegex.test(mobile);
+}
+
+// Function to validate URL format
+function isValidURL(url) {
+    try {
+        new URL(url);
+        return true;
+    } catch {
+        return false;
+    }
 }
 
 // Function to check if mobile number is already in use by another user
@@ -184,7 +192,7 @@ async function isDataUnchanged(uid, updatedData) {
 // Function to verify Super Admin password
 async function verifySuperAdminPassword() {
     const { value: password } = await Swal.fire({
-        title: 'Enter Super Admin Password',
+        title: 'Enter Admin Password',
         input: 'password',
         inputLabel: 'Please provide your password to confirm changes.',
         inputPlaceholder: 'Enter your password',
@@ -207,7 +215,7 @@ async function verifySuperAdminPassword() {
     });
 
     if (!password) {
-        return false; // User canceled or didn't provide a password
+        return false; 
     }
 
     try {
@@ -350,19 +358,32 @@ function renderAdminTable(data) {
         adminTableBody.innerHTML = '<tr><td colspan="7" style="text-align: center;">No admin accounts found.</td></tr>';
     }
 
-    paginatedData.forEach(admin => {
+    paginatedData.forEach((admin, index) => {
         const row = adminTableBody.insertRow();
         row.dataset.uid = admin.uid; 
 
+        // Calculate row number
+        const rowNumber = (currentPage - 1) * rowsPerPage + index + 1;
+
+        // Add numbering column
+        row.insertCell(0).textContent = rowNumber;
+
         const fullName = `${admin.firstName || ''} ${admin.middleInitial ? admin.middleInitial + '.' : ''} ${admin.lastName || ''} ${admin.nameExtension || ''}`.trim();
 
-        row.insertCell(0).textContent = fullName || 'N/A';
-        row.insertCell(1).textContent = admin.email || 'N/A';
-        row.insertCell(2).textContent = admin.mobile || 'N/A';
-        row.insertCell(3).textContent = admin.socialMedia || 'N/A';
-        row.insertCell(4).textContent = `${admin.adminPosition || 'N/A'} (${admin.role || 'N/A'})`;
+        row.insertCell(1).textContent = fullName || 'N/A';
+        row.insertCell(2).textContent = admin.email || 'N/A';
+        row.insertCell(3).textContent = admin.mobile || 'N/A';
         
-        const actionsCell = row.insertCell(5);
+        // Social Media column with clickable link
+        const socialMediaCell = row.insertCell(4);
+        const socialMediaValue = admin.socialMedia || 'N/A';
+        socialMediaCell.innerHTML = isValidURL(socialMediaValue) 
+            ? `<a href="${socialMediaValue}" target="_blank" rel="noopener noreferrer">${socialMediaValue}</a>`
+            : socialMediaValue;
+
+        row.insertCell(5).textContent = `${admin.adminPosition || 'N/A'} (${admin.role || 'N/A'})`;
+        
+        const actionsCell = row.insertCell(6);
         actionsCell.innerHTML = `
             <button class="editBtn" data-uid="${admin.uid}"><i class='bx bx-edit'></i></button>
             <button class="deleteBtn" data-uid="${admin.uid}"><i class="bx bx-x-circle"></i></button>
@@ -372,7 +393,7 @@ function renderAdminTable(data) {
     // Use the global pagination functions
     renderPagination(data, currentPage, rowsPerPage, paginationContainer, (newPage) => {
         currentPage = newPage;
-        renderAdminTable(data); // Re-render the current view
+        renderAdminTable(data); 
     });
     updateEntriesInfo(data, currentPage, rowsPerPage, entriesInfo);
 
@@ -490,10 +511,6 @@ window.addEventListener('click', (event) => {
     if (event.target === confirmModal) {
         confirmModal.style.display = 'none';
     }
-    if (event.target === successModal) {
-        successModal.style.display = 'none';
-        clearAddAdminInputs();
-    }
 });
 
 // Handle "Next" button in Add Admin form
@@ -538,7 +555,7 @@ if (addAdminForm) {
             Swal.fire({
                 icon: 'error',
                 title: 'Invalid Email',
-                text: 'Please enter a valid email address.',
+                text: 'Please enter a valid email address from an allowed domain.',
                 showConfirmButton: true,
                 confirmButtonText: 'OK',
                 allowOutsideClick: false,
@@ -555,7 +572,7 @@ if (addAdminForm) {
             Swal.fire({
                 icon: 'error',
                 title: 'Invalid Mobile Number',
-                text: 'Please enter a valid mobile number.',
+                text: 'Mobile number must be 11 digits starting with "09"',
                 showConfirmButton: true,
                 confirmButtonText: 'OK',
                 allowOutsideClick: false,
@@ -664,13 +681,11 @@ if (confirmSaveBtn) {
 
             // Clean up and refresh
             confirmModal.style.display = 'none';
-            // successModal.style.display = 'flex'; // You can use this if you want the success modal to show
             clearAddAdminInputs();
-            delete window.tempAdminFormData; // Clear temporary data
-            await secondaryAuth.signOut(); // Important: Sign out the secondary app
+            delete window.tempAdminFormData; 
+            await secondaryAuth.signOut(); 
             console.log("Secondary app signed out after AB Admin creation.");
-
-            fetchAndRenderAdmins(); // Refresh the table to show the new admin
+            fetchAndRenderAdmins(); 
 
         } catch (error) {
             Swal.hideLoading(); // Hide loading on error
@@ -696,15 +711,6 @@ if (confirmSaveBtn) {
                 }
             });
         }
-    });
-}
-
-// Handle close success button
-if (closeSuccessBtn) {
-    closeSuccessBtn.addEventListener('click', () => {
-        successModal.style.display = 'none';
-        clearAddAdminInputs();
-        // No need to fetchAndRenderAdmins again here if it's done after confirmSaveBtn
     });
 }
 
@@ -937,15 +943,19 @@ if (editAdminForm) {
                 text: 'Admin details updated successfully!',
                 showConfirmButton: true,
                 confirmButtonText: 'OK',
+                timer: 3000,
+                timerProgressBar: true,
+                allowOutsideClick: false,
                 customClass: {
                     popup: 'swal2-popup-success-clean',
                     title: 'swal2-title-success-clean',
                     htmlContainer: 'swal2-text-success-clean',
                     confirmButton: 'custom-confirm-btn'
                 }
+            }).then(() => {
+                editAdminModal.style.display = 'none';
+                fetchAndRenderAdmins(); 
             });
-            editAdminModal.style.display = 'none';
-            fetchAndRenderAdmins(); 
         } catch (error) {
             Swal.fire({
                 icon: 'error',
@@ -989,57 +999,80 @@ function deleteAdmin(uid) {
         });
         return;
     }
-    Swal.fire({
-        title: 'Are you sure to archive this admin?',
-        text: "This will move it to archived records.",        
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Reject',
-        cancelButtonText: 'Cancel',
-        reverseButtons: true,
-        focusCancel: true,
-        allowOutsideClick: false,
-        customClass: {
-            popup: 'custom-swal-popup-small',
-            title: 'custom-swal-title',
-            htmlContainer: 'custom-swal-content',
-            confirmButton: 'custom-confirm-btn',
-            cancelButton: 'custom-cancel-btn'
+
+    // Verify Super Admin password before proceeding
+    verifySuperAdminPassword().then((passwordVerified) => {
+        if (!passwordVerified) {
+            return; // Stop if password verification fails or is canceled
         }
-    }).then(async (result) => {
-        if (result.isConfirmed) {
-            Swal.fire({
-                title: 'Archiving Admin...',
-                text: 'Moving admin data to deleted records...',
-                allowOutsideClick: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                }
-            });
 
-            try {
-                const snapshot = await database.ref(`users/${uid}`).once('value');
-                const adminDataToMove = snapshot.val();
-
-                if (!adminDataToMove) {
-                    Swal.fire('Error', 'Admin data not found for deletion/archiving.', 'error');
-                    return;
-                }
-                adminDataToMove.deletedAt = new Date().toISOString();
-
-                await database.ref(`deletedAdmins/${uid}`).set(adminDataToMove);
-
-                await database.ref(`users/${uid}`).remove();
-
-                Swal.close();
-                Swal.fire('Archived!', 'The admin account has been moved to archived records.', 'success');
-                fetchAndRenderAdmins(); 
-            } catch (error) {
-                console.error("Error archiving admin:", error);
-                Swal.close(); 
-                Swal.fire('Error', 'Failed to archive admin: ' + error.message, 'error');
+        Swal.fire({
+            title: 'Are you sure to archive this admin?',
+            text: "This will move it to archived records.",        
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Archive',
+            cancelButtonText: 'Cancel',
+            reverseButtons: true,
+            focusCancel: true,
+            allowOutsideClick: false,
+            customClass: {
+                popup: 'custom-swal-popup-small',
+                title: 'custom-swal-title',
+                htmlContainer: 'custom-swal-content',
+                confirmButton: 'custom-confirm-btn',
+                cancelButton: 'custom-cancel-btn'
             }
-        }
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'Archiving Admin...',
+                    text: 'Moving admin data to deleted records...',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                try {
+                    const snapshot = await database.ref(`users/${uid}`).once('value');
+                    const adminDataToMove = snapshot.val();
+
+                    if (!adminDataToMove) {
+                        Swal.fire('Error', 'Admin data not found for deletion/archiving.', 'error');
+                        return;
+                    }
+                    adminDataToMove.deletedAt = new Date().toISOString();
+
+                    await database.ref(`deletedAdmins/${uid}`).set(adminDataToMove);
+                    await database.ref(`users/${uid}`).remove();
+
+                    Swal.close();
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Archived!',
+                        text: 'The admin account has been moved to archived records.',
+                        timer: 3000,
+                        timerProgressBar: true,
+                        showConfirmButton: true,
+                        confirmButtonText: 'OK',
+                        allowOutsideClick: false,
+                        customClass: {
+                            popup: 'swal2-popup-success-clean',
+                            title: 'swal2-title-success-clean',
+                            htmlContainer: 'swal2-text-success-clean',
+                            confirmButton: 'custom-confirm-btn'
+                        }
+                    }).then(() => {
+                        fetchAndRenderAdmins(); 
+                    });
+                } catch (error) {
+                    console.error("Error archiving admin:", error);
+                    Swal.close(); 
+                    Swal.fire('Error', 'Failed to archive admin: ' + error.message, 'error');
+                }
+            }
+        });
     });
 }
 
@@ -1185,11 +1218,25 @@ async function retrieveAdmin(uid) {
                 await database.ref(`deletedAdmins/${uid}`).remove();
 
                 Swal.close();
-                Swal.fire('Retrieved!', 'The admin account has been retrieved and is now active.', 'success');
-
-                // Refresh both the active and archived admin tables
-                fetchAndRenderAdmins();
-                fetchAndRenderArchivedAdmins(); // Re-fetch archived to update the modal
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Retrieved!',
+                    text: 'The admin account has been retrieved and is now active.',
+                    timer: 3000,
+                    timerProgressBar: true,
+                    showConfirmButton: true,
+                    confirmButtonText: 'OK',
+                    allowOutsideClick: false,
+                    customClass: {
+                        popup: 'swal2-popup-success-clean',
+                        title: 'swal2-title-success-clean',
+                        htmlContainer: 'swal2-text-success-clean',
+                        confirmButton: 'custom-confirm-btn'
+                    }
+                }).then(() => {
+                    fetchAndRenderAdmins();
+                    fetchAndRenderArchivedAdmins();
+                });
             } catch (error) {
                 console.error("Error retrieving admin:", error);
                 Swal.close();
@@ -1238,10 +1285,6 @@ window.addEventListener('click', (event) => {
     }
     if (event.target === confirmModal) {
         confirmModal.style.display = 'none';
-    }
-    if (event.target === successModal) {
-        successModal.style.display = 'none';
-        clearAddAdminInputs();
     }
     if (event.target === archivedModal) { 
         archivedModal.style.display = 'none';
