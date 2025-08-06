@@ -1083,6 +1083,10 @@ modalActivateSubmitBtn.addEventListener("click", async () => {
     const latitude = modalLatitudeInput.value;
     const longitude = modalLongitudeInput.value;
 
+    if (!areaOfOperation && !calamityType) {
+        Swal.fire({ icon: 'warning', title: 'Missing Fields', text: 'Please supply missing fields.' });
+        return;
+    }
     if (!areaOfOperation) {
         Swal.fire({ icon: 'warning', title: 'Missing Field', text: 'Please enter an Area of Operations.' });
         return;
