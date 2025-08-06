@@ -73,7 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let formHasChanges = false;
     let canSubmit = false; // Flag to control submission eligibility
 
-    // Add event listeners to the form inputs to track changes
+    //  event listeners to the form inputs to track changes
     if (form) {
         form.addEventListener('input', () => {
             formHasChanges = true;

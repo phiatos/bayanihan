@@ -261,7 +261,7 @@ tr {
  Modal
 ========================================================================== */
 .modal {
-  display: none; /* Hidden by default */
+  display: flex; /* Hidden by default */
   position: fixed;
   z-index: 1000;
   left: 0;
