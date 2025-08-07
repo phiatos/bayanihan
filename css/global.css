@@ -17,6 +17,7 @@
   --gray: #9e9e9e;
   --swal-title-color: #34495e;
   --swal-text-color: #566573;
+  --swal-bg-lightred: #ffebee;
 }
 
 * {
@@ -436,6 +437,7 @@ h2, h4, strong{
   border-collapse: collapse;
   margin-top: 10px;
 }
+
 .info-table td {
   text-align: left;
   padding-right: 0px;
@@ -1585,7 +1587,7 @@ label:has(+ textarea[required])::after {
   font-weight: 500 !important;
 }
 
-/* --- SweetAlert2 (Warning/Error) --- */
+/* --- SweetAlert2 (Warning) --- */
 .swal2-popup-warning-clean {
   border-radius: 14px;
   padding: 1rem 1rem;
@@ -1623,6 +1625,38 @@ label:has(+ textarea[required])::after {
   border-color: #d97706;
 }
 
+/* --- SweetAlert2 (Error) --- */
+.swal2-popup-error-clean {
+  border-radius: 14px;
+  padding: 2.5rem 3rem;
+  background: var(--swal-bg-lightred);
+  box-shadow: 0 12px 30px rgba(183, 28, 28, 0.25);
+  color: #b71c1c;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  max-width: 420px;
+}
+
+.swal2-title-error-clean {
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: #b71c1c;
+  margin-bottom: 0.25rem;
+}
+
+.swal2-text-error-clean {
+  font-size: 1.05rem;
+  color: #c62828;
+}
+
+.my-error-button {
+  border-radius: 8px !important;
+  padding: 10px 20px !important;
+  font-size: 1rem !important;
+  font-weight: 500 !important;
+  background-color: #c62828 !important;
+  color: #ffffff !important;
+}
+
 /* --- SweetAlert2 (Custom General) --- */
 .custom-swal-popup {
   border-radius: 16px;
@@ -1639,6 +1673,15 @@ label:has(+ textarea[required])::after {
   box-shadow: 0 12px 30px rgba(50, 50, 93, 0.1);
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   max-width: 380px;
+  text-align: center;
+}
+
+.custom-swal-popup-large {
+  border-radius: 12px;
+  padding: 1.5rem 2rem;
+  box-shadow: 0 12px 30px rgba(50, 50, 93, 0.1);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  max-width: 650px;
   text-align: center;
 }
 
