@@ -634,3 +634,41 @@ header {
   }
 }
 
+/* Metrics Table */
+
+  .abvn-metrics{
+    padding: 10px;
+    margin: 10px;
+  }
+
+ .metrics-table {
+      width: 100%;
+      border-collapse: collapse;
+      background-color: #ffffff;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .metrics-table th,
+    .metrics-table td {
+      padding: 16px;
+      text-align: left;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    .metrics-table th {
+      background-color: #0fbaba;
+      color: white;
+    }
+
+    .metrics-table tr:hover {
+      background-color: #f1fdfd;
+    }
+
+    .metrics-title {
+      font-size: 24px;
+      margin-bottom: 20px;
+      color: #0fbaba;
+      text-align: center;
+    }
