@@ -355,6 +355,10 @@ window.initializeDashboard = function () {
             trackCalamities();
             setupAdminNotifications();
             fetchReports();
+            // Fetch and render ABVN metrics only for AB ADMIN
+            if (userRole === "AB ADMIN") {
+                fetchAndRenderABVNMetrics();
+            }
             if (userRole === "ABVN") {
                 map.setOptions({
                     disableDefaultUI: true,
@@ -1572,6 +1576,162 @@ function fetchReports() {
         });
     });
 }
+
+// Formatting functions
+function formatWithCommas(value) {
+    return value != null ? Number(value).toLocaleString() : "-";
+}
+
+function formatCompact(value) {
+    return value != null
+        ? new Intl.NumberFormat('en', {
+            notation: 'compact',
+            compactDisplay: 'short',
+        }).format(value)
+        : "-";
+}
+
+function formatCurrency(value) {
+    return value != null
+        ? new Intl.NumberFormat('en-PH', {
+            style: 'currency',
+            currency: 'PHP',
+            minimumFractionDigits: 0,
+        }).format(value)
+        : "-";
+}
+
+// Function to fetch and render metrics
+async function fetchAndRenderAllMetrics(sectionName) {
+    const metricsTableBody = document.querySelector(`.${sectionName.toLowerCase().replace(/ /g, '-')}-metrics .metrics-table tbody`);
+    console.log(`[${new Date().toLocaleTimeString()}] Targeting ${sectionName} table body:`, metricsTableBody);
+    if (!metricsTableBody) {
+        console.error(`[${new Date().toLocaleTimeString()}] ${sectionName} table body not found`);
+        return;
+    }
+
+    try {
+        metricsTableBody.innerHTML = '';
+        const snapshot = await database.ref("reports/approved").once("value");
+        const reports = snapshot.val();
+        console.log(`[${new Date().toLocaleTimeString()}] Fetched reports:`, reports);
+        if (!reports) {
+            metricsTableBody.innerHTML = "<tr><td colspan='7'>No data available</td></tr>";
+            return;
+        }
+
+        const processedReportIDs = new Set();
+        const allMetrics = {};
+
+        Object.entries(reports).forEach(([key, report]) => {
+            const reportID = report.ReportID || key;
+            if (processedReportIDs.has(reportID)) {
+                console.warn(`[${new Date().toLocaleTimeString()}] Duplicate ReportID: ${reportID}`);
+                return;
+            }
+            processedReportIDs.add(reportID);
+
+            const volunteerGroup = report.organization || report.VolunteerGroupName || "Unknown";
+            if (!allMetrics[volunteerGroup]) {
+                allMetrics[volunteerGroup] = {
+                    foodPacks: 0,
+                    hotMeals: 0,
+                    waterLiters: 0,
+                    volunteers: 0,
+                    monetaryDonations: 0,
+                    inKindDonations: 0,
+                    inKindItems: new Set(),
+                };
+            }
+            allMetrics[volunteerGroup].foodPacks += parseFloat(report.NoOfFoodPacks || report.foodPacks || 0);
+            allMetrics[volunteerGroup].hotMeals += parseFloat(report.NoOfHotMeals || report.hotMeals || 0);
+            allMetrics[volunteerGroup].waterLiters += parseFloat(report.LitersOfWater || report.water || 0);
+            allMetrics[volunteerGroup].volunteers += parseFloat(report.NoOfVolunteersMobilized || report.volunteers || 0);
+            allMetrics[volunteerGroup].monetaryDonations += parseFloat(report.TotalMonetaryDonations || report.amountRaised || 0);
+            allMetrics[volunteerGroup].inKindDonations += parseFloat(report.TotalValueOfInKindDonations || report.inKindValue || 0);
+            if (report.inKindItems) {
+                report.inKindItems.split(',').forEach(item => allMetrics[volunteerGroup].inKindItems.add(item.trim()));
+            }
+        });
+
+        Object.entries(allMetrics).forEach(([group, metrics]) => {
+            let inKindDisplay = metrics.inKindItems.size > 0
+                ? Array.from(metrics.inKindItems).join(', ')
+                : formatCurrency(metrics.inKindDonations) || '-';
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${group}</td>
+                <td>${formatCompact(metrics.foodPacks)}</td>
+                <td>${formatCompact(metrics.hotMeals)}</td>
+                <td>${formatWithCommas(metrics.waterLiters)} L</td>
+                <td>${formatCompact(metrics.volunteers)}</td>
+                <td>${formatCurrency(metrics.monetaryDonations)}</td>
+                <td>${inKindDisplay}</td>
+            `;
+            metricsTableBody.appendChild(tr);
+        });
+
+        if (Object.keys(allMetrics).length === 0) {
+            metricsTableBody.innerHTML = "<tr><td colspan='7'>No data available</td></tr>";
+        }
+        console.log(`[${new Date().toLocaleTimeString()}] Metrics rendered for ${sectionName}:`, allMetrics);
+    } catch (error) {
+        console.error(`[${new Date().toLocaleTimeString()}] Error in ${sectionName} metrics:`, error);
+        metricsTableBody.innerHTML = "<tr><td colspan='7'>Error loading data</td></tr>";
+    }
+}
+
+// Function to check user role and manage ABVN visibility
+function checkUserRoleAndRender() {
+    firebase.auth().onAuthStateChanged((user) => {
+        console.log(`[${new Date().toLocaleTimeString()}] Auth state changed, user:`, user);
+        if (user) {
+            database.ref(`users/${user.uid}`).once("value").then((snapshot) => {
+                const userData = snapshot.val();
+                console.log(`[${new Date().toLocaleTimeString()}] User data:`, userData);
+                const isAdmin = userData?.role === "AB ADMIN"; // Updated to match "AB ADMIN"
+                console.log(`[${new Date().toLocaleTimeString()}] Is Admin:`, isAdmin);
+
+                const abvnMetricsDiv = document.querySelector('.abvn-metrics');
+                console.log(`[${new Date().toLocaleTimeString()}] ABVN div found:`, abvnMetricsDiv);
+                if (abvnMetricsDiv) {
+                    if (!isAdmin) {
+                        abvnMetricsDiv.remove();
+                        console.log(`[${new Date().toLocaleTimeString()}] ABVN removed for non-ADMIN`);
+                    } else {
+                        fetchAndRenderAllMetrics("ABVN").catch(err => console.error(`[${new Date().toLocaleTimeString()}] ABVN render failed:`, err));
+                        console.log(`[${new Date().toLocaleTimeString()}] ABVN rendering attempted for ADMIN`);
+                    }
+                } else {
+                    console.error(`[${new Date().toLocaleTimeString()}] ABVN metrics div not found`);
+                }
+
+                fetchAndRenderAllMetrics("PENDING APPROVALS").catch(err => console.error(err));
+                fetchAndRenderAllMetrics("RELIEF OPERATIONS").catch(err => console.error(err));
+                fetchAndRenderAllMetrics("RDANA").catch(err => console.error(err));
+            }).catch(err => console.error(`[${new Date().toLocaleTimeString()}] User data fetch error:`, err));
+        } else {
+            console.log(`[${new Date().toLocaleTimeString()}] No user logged in`);
+            const abvnMetricsDiv = document.querySelector('.abvn-metrics');
+            if (abvnMetricsDiv) abvnMetricsDiv.remove();
+            fetchAndRenderAllMetrics("PENDING APPROVALS").catch(err => console.error(err));
+            fetchAndRenderAllMetrics("RELIEF OPERATIONS").catch(err => console.error(err));
+            fetchAndRenderAllMetrics("RDANA").catch(err => console.error(err));
+        }
+    });
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', () => {
+    if (database && firebase) {
+        console.log(`[${new Date().toLocaleTimeString()}] Initializing with database and firebase`);
+        checkUserRoleAndRender();
+    } else {
+        console.error(`[${new Date().toLocaleTimeString()}] Database or Firebase not initialized`);
+    }
+});
+
 // Cleanup dashboard resources
 function cleanupDashboard() {
     console.log("Cleaning up dashboard resources at", new Date().toISOString());
