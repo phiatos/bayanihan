@@ -904,7 +904,7 @@ document.addEventListener("DOMContentLoaded", () => {
             document.getElementById("edit-email").value = donationToEdit.email || '';
             document.getElementById("edit-bank").value = donationToEdit.bank || '';
             document.getElementById("edit-proof").value = donationToEdit.proof || "";
-            editModal.style.display = "block";
+            editModal.style.display = "flex";
             Array.from(editModal.querySelectorAll('input, select')).forEach(clearError);
         }
     }

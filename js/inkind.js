@@ -24,6 +24,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let editingKey = null;
     let formHasChanges = false;
     let currentUserIsSuperAdmin = false;
+    let currentUserAdminPosition = null;
     let allArchivedInKindDonation = [];
     let currentArchivedPage = 1;
     const archivedRowsPerPage = 5;
@@ -56,6 +57,64 @@ document.addEventListener("DOMContentLoaded", () => {
     let inactivityTimeout;
     const INACTIVITY_TIME = 1800000;
 
+    // Function to validate email format
+    function isValidEmail(email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const validDomains = ['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'icloud.com', 'protonmail.com'];
+        const domain = email.split('@')[1]?.toLowerCase();
+        return emailRegex.test(email) && validDomains.includes(domain);
+    }
+
+    // Function to validate mobile number format
+    function isValidMobile(mobile) {
+        const mobileRegex = /^09[0-9]{9}$/;
+        return mobileRegex.test(mobile);
+    }
+
+    // Function to check if mobile number is already in use
+    async function isMobileNumberInUse(mobile, excludeKey) {
+        try {
+            const paths = ['donations/inkind', 'deletedDonations/deletedinkind'];
+            for (const path of paths) {
+                const snapshot = await database.ref(path).once('value');
+                const records = snapshot.val();
+                if (records) {
+                    for (const key in records) {
+                        if (key !== excludeKey && records[key].number === mobile) {
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        } catch (error) {
+            console.error("Error checking mobile number in use:", error);
+            return false;
+        }
+    }
+
+    // Function to check if email is already in use
+    async function isEmailInUse(email, excludeKey) {
+        try {
+            const paths = ['donations/inkind', 'deletedDonations/deletedinkind'];
+            for (const path of paths) {
+                const snapshot = await database.ref(path).once('value');
+                const records = snapshot.val();
+                if (records) {
+                    for (const key in records) {
+                        if (key !== excludeKey && records[key].email === email) {
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        } catch (error) {
+            console.error("Error checking email in use:", error);
+            return false;
+        }
+    }
+
     function resetInactivityTimer() {
         clearTimeout(inactivityTimeout);
         inactivityTimeout = setTimeout(checkInactivity, INACTIVITY_TIME);
@@ -68,12 +127,11 @@ document.addEventListener("DOMContentLoaded", () => {
             text: 'You\'ve been inactive for a while. Do you want to continue your session or log out?',
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#3085d6',
-            cancelButtonColor: '#d33',
             confirmButtonText: 'Stay Login',
             cancelButtonText: 'Log Out',
-            allowOutsideClick: false,
             reverseButtons: true,
+            focusCancel: true,
+            allowOutsideClick: false,
             customClass: {
                 popup: 'custom-swal-popup-small',
                 title: 'custom-swal-title',
@@ -299,13 +357,16 @@ document.addEventListener("DOMContentLoaded", () => {
         database.ref(`users/${user.uid}`).once('value', snapshot => {
             const userData = snapshot.val();
             currentUserIsSuperAdmin = userData && userData.isSuperAdmin === true;
+            currentUserAdminPosition = userData && userData.adminPosition;
             console.log("Super Admin status:", currentUserIsSuperAdmin);
+            console.log("Admin Position:", currentUserAdminPosition);
             loadDonations(user.uid);
             updateSearchPlaceholder();
             resetInactivityTimer();
         }).catch(error => {
             console.error("Error fetching user role:", error);
             currentUserIsSuperAdmin = false;
+            currentUserAdminPosition = null;
             loadDonations(user.uid);
             updateSearchPlaceholder();
             resetInactivityTimer();
@@ -347,7 +408,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function hasImportPermission() {
-        return currentUserIsSuperAdmin;
+        return currentUserIsSuperAdmin || currentUserAdminPosition === 'position-one';
     }
 
     function showAccessDeniedAlert(action) {
@@ -392,60 +453,130 @@ document.addEventListener("DOMContentLoaded", () => {
         inputField.classList.remove('error');
     };
 
-    const validateForm = () => {
-        let isValid = true;
-        const fieldsToCheck = [
-            { input: form.encoder, label: "Encoder", lettersOnly: true },
-            { input: form.name, label: "Name", lettersOnly: true },
-            { input: form.type, label: "Type", lettersOnly: true },
-            { input: form.contactPerson, label: "Contact Person", lettersOnly: true },
-            { input: form.assistance, label: "Type of Assistance", lettersOnly: true },
-            { input: form.number, label: "Number", numberOnly: true },
-            { input: form.valuation, label: "Valuation", numberOnly: true },
-            { input: form.address, label: "Address" },
-            { input: form.email, label: "Email" },
-            { input: form.additionalnotes, label: "Additional Notes", required: false },
-            { input: form.status, label: "Status" },
-            { input: form.staffIncharge, label: "Staff-In Charge", lettersOnly: true },
-            { input: document.getElementById("donationDate"), label: "Donation Date", isDate: true },
-        ];
+    async function validateForm() {
+    let isValid = true;
+    const fieldsToCheck = [
+        { input: form.encoder, label: "Encoder", lettersOnly: true },
+        { input: form.name, label: "Name", lettersOnly: true },
+        { input: form.type, label: "Type", lettersOnly: true },
+        { input: form.contactPerson, label: "Contact Person", lettersOnly: true },
+        { input: form.assistance, label: "Type of Assistance", lettersOnly: true },
+        { input: form.number, label: "Number", numberOnly: true, checkMobile: true },
+        { input: form.valuation, label: "Valuation", numberOnly: true },
+        { input: form.address, label: "Address" },
+        { input: form.email, label: "Email", checkEmail: true },
+        { input: form.additionalnotes, label: "Additional Notes", required: false },
+        { input: form.status, label: "Status" },
+        { input: form.staffIncharge, label: "Staff-In Charge", lettersOnly: true },
+        { input: document.getElementById("donationDate"), label: "Donation Date", isDate: true },
+    ];
 
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-        fieldsToCheck.forEach(({ input, label, lettersOnly, numberOnly, isDate, required = true }) => {
-            clearError(input);
-            if (required && isEmpty(input.value)) {
-                showError(input, `${label} is required`);
+    for (const { input, label, lettersOnly, numberOnly, checkEmail, checkMobile, isDate, required = true } of fieldsToCheck) {
+        clearError(input);
+        if (required && isEmpty(input.value)) {
+            showError(input, `${label} is required`);
+            isValid = false;
+        } else if (!isEmpty(input.value) && lettersOnly && !isLettersOnly(input.value)) {
+            showError(input, `${label} should only contain letters and spaces`);
+            isValid = false;
+        } else if (!isEmpty(input.value) && numberOnly && !isValidNumber(input.value)) {
+            showError(input, `${label} should only contain numbers`);
+            isValid = false;
+        } else if (!isEmpty(input.value) && checkEmail && !isValidEmail(input.value)) {
+            showError(input, 'Please enter a valid email address from an allowed domain.');
+            isValid = false;
+        } else if (!isEmpty(input.value) && checkMobile && !isValidMobile(input.value)) {
+            showError(input, 'Mobile number must be 11 digits starting with "09"');
+            isValid = false;
+        } else if (isDate && !isEmpty(input.value)) {
+            const donationDate = new Date(input.value);
+            if (isNaN(donationDate.getTime())) {
+                showError(input, `${label} is not a valid date`);
                 isValid = false;
-            } else if (!isEmpty(input.value) && lettersOnly && !isLettersOnly(input.value)) {
-                showError(input, `${label} should only contain letters and spaces`);
+            } else if (donationDate.setHours(0,0,0,0) > today.setHours(0,0,0,0)) {
+                showError(input, `${label} cannot be a future date`);
                 isValid = false;
-            } else if (!isEmpty(input.value) && numberOnly && !isValidNumber(input.value)) {
-                showError(input, `${label} should only contain numbers`);
-                isValid = false;
-            } else if (isDate && !isEmpty(input.value)) {
-                const donationDate = new Date(input.value);
-                if (isNaN(donationDate.getTime())) {
-                    showError(input, `${label} is not a valid date`);
-                    isValid = false;
-                } else if (donationDate.setHours(0,0,0,0) > today.setHours(0,0,0,0)) {
-                    showError(input, `${label} cannot be a future date`);
-                    isValid = false;
+            }
+        }
+    }
+
+    // Check for potential duplicates and warn user
+    if (isValid) {
+        const email = form.email.value.trim();
+        const mobile = form.number.value.trim();
+        const name = form.name.value.trim().toLowerCase();
+
+        let isDuplicate = false;
+        let duplicateFields = [];
+
+        const paths = ['donations/inkind', 'deletedDonations/deletedinkind'];
+        for (const path of paths) {
+            const snapshot = await database.ref(path).once('value');
+            const records = snapshot.val();
+            if (records) {
+                for (const key in records) {
+                    const record = records[key];
+                    if (record.email === email) {
+                        isDuplicate = true;
+                        duplicateFields.push('email');
+                    }
+                    if (record.number === mobile) {
+                        isDuplicate = true;
+                        duplicateFields.push('mobile number');
+                    }
+                    if (record.name.toLowerCase() === name) {
+                        isDuplicate = true;
+                        duplicateFields.push('name');
+                    }
                 }
             }
-        });
+        }
 
-        return isValid;
-    };
+        if (isDuplicate) {
+            const result = await Swal.fire({
+                title: 'Potential Duplicate Donation',
+                html: `A donation with the same mobile number and email address already exists.<br><br>Do you want to proceed with adding this donation?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, Add Donation',
+                cancelButtonText: 'Cancel',
+                reverseButtons: true,
+                focusCancel: true,
+                allowOutsideClick: false,
+                customClass: {
+                    popup: 'custom-swal-popup-large',
+                    title: 'custom-swal-title',
+                    htmlContainer: 'custom-swal-content',
+                    confirmButton: 'custom-confirm-btn',
+                    cancelButton: 'custom-cancel-btn'
+                }
+            });
+
+            if (!result.isConfirmed) {
+                isValid = false;
+            }
+        }
+    }
+
+    return isValid;
+}
 
     form.addEventListener("input", () => {
         formHasChanges = true;
     });
 
-    form.addEventListener("submit", (e) => {
+    form.addEventListener("submit", async (e) => {
         e.preventDefault();
-        if (validateForm()) {
+
+        if (!hasImportPermission()) {
+            showAccessDeniedAlert('add this donation');
+            return;
+        }
+        
+        if (await validateForm()) {
             const user = auth.currentUser;
             if (!user) {
                 Swal.fire("Error", "User not authenticated!", "error");
@@ -481,6 +612,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     text: 'Your donation has been successfully recorded.',
                     timer: 2000,
                     showConfirmButton: false,
+                    timerProgressBar: true,
                     background: '#e6f4ea',
                     color: '#1b5e20',
                     iconColor: '#2e7d32',
@@ -1012,8 +1144,11 @@ document.addEventListener("DOMContentLoaded", () => {
                     if (!record.number || record.number.toString().trim() === '') {
                         isValidRecord = false;
                         rowErrors.push('Missing Number');
+                    } else if (!isValidMobile(record.number.toString())) {
+                        isValidRecord = false;
+                        rowErrors.push('Mobile number must be 11 digits starting with "09"');
                     }
-                    if (!record.email || record.email.trim() === '' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(record.email)) {
+                    if (!record.email || record.email.trim() === '' || !isValidEmail(record.email)) {
                         isValidRecord = false;
                         rowErrors.push('Invalid or Missing Email');
                     }
@@ -1037,6 +1172,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     // Check for duplicates
                     const nameLower = record.name ? record.name.trim().toLowerCase() : '';
                     const emailLower = record.email ? record.email.trim().toLowerCase() : '';
+                    const number = record.number ? record.number.toString().trim() : '';
                     if (nameLower && existingRecords.has(nameLower)) {
                         isValidRecord = false;
                         rowErrors.push('Duplicate Name');
@@ -1045,7 +1181,10 @@ document.addEventListener("DOMContentLoaded", () => {
                         isValidRecord = false;
                         rowErrors.push('Duplicate Email');
                     }
-
+                    if (number && existingRecords.has(number)) {
+                        isValidRecord = false;
+                        rowErrors.push('Duplicate Number');
+                    }
                     if (!record.donationDate) {
                         record.donationDate = new Date().toISOString().slice(0, 10);
                     } else {
@@ -1506,7 +1645,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function openEndorseModal(firebaseKey) {
         const modal = document.getElementById("endorseModal");
-        modal.style.display = "block";
+        modal.style.display = "flex";
         const abvnList = document.getElementById("abvnList");
 
         abvnList.innerHTML = '<p>Loading organizations...</p>';
@@ -1605,7 +1744,8 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("endorseModal").style.display = "none";
     });
 
-    const validateEditForm = () => {
+    async function validateEditForm() {
+        console.log("Starting validateEditForm at", new Date().toISOString());
         let isValid = true;
         const fieldsToCheck = [
             { input: document.getElementById("edit-encoder"), label: "Encoder", lettersOnly: true },
@@ -1613,44 +1753,253 @@ document.addEventListener("DOMContentLoaded", () => {
             { input: document.getElementById("edit-type"), label: "Type", lettersOnly: true },
             { input: document.getElementById("edit-contactPerson"), label: "Contact Person", lettersOnly: true },
             { input: document.getElementById("edit-assistance"), label: "Type of Assistance", lettersOnly: true },
-            { input: document.getElementById("edit-number"), label: "Number", numberOnly: true },
+            { input: document.getElementById("edit-number"), label: "Number", numberOnly: true, checkMobile: true },
             { input: document.getElementById("edit-valuation"), label: "Valuation", numberOnly: true },
             { input: document.getElementById("edit-address"), label: "Address" },
-            { input: document.getElementById("edit-email"), label: "Email" },
+            { input: document.getElementById("edit-email"), label: "Email", checkEmail: true },
             { input: document.getElementById("edit-additionalnotes"), label: "Additional Notes", required: false },
             { input: document.getElementById("edit-status"), label: "Status" },
             { input: document.getElementById("edit-staffIncharge"), label: "Staff-In Charge", lettersOnly: true },
             { input: document.getElementById("edit-donationDate"), label: "Donation Date", isDate: true },
         ];
 
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        // Log all input values for debugging
+        console.log("Edit form input values:", {
+            encoder: document.getElementById("edit-encoder")?.value,
+            name: document.getElementById("edit-name")?.value,
+            type: document.getElementById("edit-type")?.value,
+            address: document.getElementById("edit-address")?.value,
+            contactPerson: document.getElementById("edit-contactPerson")?.value,
+            number: document.getElementById("edit-number")?.value,
+            email: document.getElementById("edit-email")?.value,
+            assistance: document.getElementById("edit-assistance")?.value,
+            valuation: document.getElementById("edit-valuation")?.value,
+            additionalnotes: document.getElementById("edit-additionalnotes")?.value,
+            status: document.getElementById("edit-status")?.value,
+            staffIncharge: document.getElementById("edit-staffIncharge")?.value,
+            donationDate: document.getElementById("edit-donationDate")?.value
+        });
 
-        fieldsToCheck.forEach(({ input, label, lettersOnly, numberOnly, isDate, required = true }) => {
+        // Step 1: Check for blank fields, invalid formats, and future dates
+        for (const { input, label, lettersOnly, numberOnly, checkEmail, checkMobile, isDate, required = true } of fieldsToCheck) {
+            if (!input) {
+                console.error(`Input for ${label} not found in DOM`);
+                isValid = false;
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Form Error',
+                    text: `Input field for ${label} is missing. Please check the form.`,
+                    background: '#fcebea',
+                    color: '#b71c1c',
+                    iconColor: '#c62828',
+                    confirmButtonColor: '#c62828',
+                    customClass: {
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean'
+                    }
+                });
+                return false;
+            }
+
             clearError(input);
+            console.log(`Validating ${label}:`, input.value);
             if (required && isEmpty(input.value)) {
                 showError(input, `${label} is required`);
+                console.log(`${label} is empty`);
                 isValid = false;
             } else if (!isEmpty(input.value) && lettersOnly && !isLettersOnly(input.value)) {
                 showError(input, `${label} should only contain letters and spaces`);
+                console.log(`${label} contains invalid characters`);
                 isValid = false;
             } else if (!isEmpty(input.value) && numberOnly && !isValidNumber(input.value)) {
                 showError(input, `${label} should only contain numbers`);
+                console.log(`${label} is not a valid number`);
+                isValid = false;
+            } else if (!isEmpty(input.value) && checkEmail && !isValidEmail(input.value)) {
+                showError(input, 'Please enter a valid email address from an allowed domain.');
+                console.log(`${label} is not a valid email`);
+                isValid = false;
+            } else if (!isEmpty(input.value) && checkMobile && !isValidMobile(input.value)) {
+                showError(input, 'Mobile number must be 11 digits starting with "09"');
+                console.log(`${label} is not a valid mobile number`);
                 isValid = false;
             } else if (isDate && !isEmpty(input.value)) {
                 const donationDate = new Date(input.value);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
                 if (isNaN(donationDate.getTime())) {
                     showError(input, `${label} is not a valid date`);
+                    console.log(`${label} is not a valid date`);
                     isValid = false;
-                } else if (donationDate.setHours(0,0,0,0) > today.setHours(0,0,0,0)) {
+                } else if (donationDate.setHours(0, 0, 0, 0) > today.setHours(0, 0, 0, 0)) {
                     showError(input, `${label} cannot be a future date`);
+                    console.log(`${label} is a future date`);
                     isValid = false;
                 }
             }
-        });
+        }
 
+        // Step 2: Check for unchanged data
+        if (isValid) {
+            const donationToEdit = allDonations.find(d => d.firebaseKey === editingKey);
+            if (!donationToEdit) {
+                console.error("Donation to edit not found for firebaseKey:", editingKey);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Donation data not found for editing.',
+                    background: '#fcebea',
+                    color: '#b71c1c',
+                    iconColor: '#c62828',
+                    confirmButtonColor: '#c62828',
+                    customClass: {
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean'
+                    }
+                });
+                return false;
+            }
+
+            const formData = {
+                encoder: document.getElementById("edit-encoder").value.trim(),
+                name: document.getElementById("edit-name").value.trim(),
+                type: document.getElementById("edit-type").value.trim(),
+                address: document.getElementById("edit-address").value.trim(),
+                contactPerson: document.getElementById("edit-contactPerson").value.trim(),
+                number: document.getElementById("edit-number").value.trim(),
+                email: document.getElementById("edit-email").value.trim().toLowerCase(),
+                assistance: document.getElementById("edit-assistance").value.trim(),
+                valuation: document.getElementById("edit-valuation").value.trim(),
+                additionalnotes: document.getElementById("edit-additionalnotes").value.trim(),
+                status: document.getElementById("edit-status").value.trim(),
+                staffIncharge: document.getElementById("edit-staffIncharge").value.trim(),
+                donationDate: document.getElementById("edit-donationDate").value.trim(),
+            };
+
+            const isUnchanged = (
+                formData.encoder === (donationToEdit.encoder || '') &&
+                formData.name === (donationToEdit.name || '') &&
+                formData.type === (donationToEdit.type || '') &&
+                formData.address === (donationToEdit.address || '') &&
+                formData.contactPerson === (donationToEdit.contactPerson || '') &&
+                formData.number === (donationToEdit.number || '') &&
+                formData.email === (donationToEdit.email || '').toLowerCase() &&
+                formData.assistance === (donationToEdit.assistance || '') &&
+                formData.valuation === (donationToEdit.valuation || '') &&
+                formData.additionalnotes === (donationToEdit.additionalnotes || '') &&
+                formData.status === (donationToEdit.status || '') &&
+                formData.staffIncharge === (donationToEdit.staffIncharge || '') &&
+                formData.donationDate === (donationToEdit.donationDate || '')
+            );
+
+            console.log("Unchanged data check:", { isUnchanged, formData, original: donationToEdit });
+            if (isUnchanged) {
+                console.log("No changes detected in edit form");
+                Swal.fire({
+                    title: 'No Changes Detected',
+                    text: 'The donation data has not been modified. No update is needed.',
+                    icon: 'info',
+                    timer: 2000,
+                    showConfirmButton: false,
+                    timerProgressBar: true,
+                    allowOutsideClick: false,
+                    customClass: {
+                        popup: 'swal2-popup-info-clean',
+                        title: 'swal2-title-info-clean',
+                        htmlContainer: 'swal2-text-info-clean',
+                    }
+                });
+                return false;
+            }
+        }
+
+        // Step 3: Check for potential duplicates
+        if (isValid) {
+            const email = document.getElementById("edit-email").value.trim().toLowerCase();
+            const mobile = document.getElementById("edit-number").value.trim();
+            const name = document.getElementById("edit-name").value.trim().toLowerCase();
+            console.log("Checking duplicates for:", { email, mobile, name });
+
+            let isDuplicate = false;
+            let duplicateFields = [];
+
+            const paths = ['donations/inkind', 'deletedDonations/deletedinkind'];
+            for (const path of paths) {
+                try {
+                    const snapshot = await database.ref(path).once('value');
+                    const records = snapshot.val();
+                    if (records) {
+                        for (const key in records) {
+                            if (key !== editingKey) {
+                                const record = records[key];
+                                if (record.email && record.email.toLowerCase() === email) {
+                                    isDuplicate = true;
+                                    duplicateFields.push('email');
+                                }
+                                if (record.number === mobile) {
+                                    isDuplicate = true;
+                                    duplicateFields.push('mobile number');
+                                }
+                                if (record.name && record.name.toLowerCase() === name) {
+                                    isDuplicate = true;
+                                    duplicateFields.push('name');
+                                }
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error(`Error checking duplicates in ${path}:`, error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: `Failed to check duplicates: ${error.message}`,
+                        background: '#fcebea',
+                        color: '#b71c1c',
+                        iconColor: '#c62828',
+                        confirmButtonColor: '#c62828',
+                        customClass: {
+                            popup: 'swal2-popup-error-clean',
+                            title: 'swal2-title-error-clean',
+                            htmlContainer: 'swal2-text-error-clean'
+                        }
+                    });
+                    return false;
+                }
+            }
+
+            if (isDuplicate) {
+                console.log("Duplicates found:", duplicateFields);
+                const result = await Swal.fire({
+                    title: 'Potential Duplicate Donation',
+                    html: `A donation with the same ${duplicateFields.join(", ")} already exists.<br><br>Do you want to proceed with updating this donation?`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Yes, Update Donation',
+                    cancelButtonText: 'Cancel',
+                    reverseButtons: true,
+                    focusCancel: true,
+                    allowOutsideClick: false,
+                    customClass: {
+                        popup: 'custom-swal-popup-large',
+                        title: 'custom-swal-title',
+                        htmlContainer: 'custom-swal-content',
+                        confirmButton: 'custom-confirm-btn',
+                        cancelButton: 'custom-cancel-btn'
+                    }
+                });
+
+                if (!result.isConfirmed) {
+                    console.log("User cancelled due to duplicate donation");
+                    isValid = false;
+                }
+            }
+        }
+
+        console.log("validateEditForm completed, isValid:", isValid);
         return isValid;
-    };
+    }
 
     function openEditModal(firebaseKey) {
         editingKey = firebaseKey;
@@ -1670,57 +2019,123 @@ document.addEventListener("DOMContentLoaded", () => {
             document.getElementById("edit-status").value = donationToEdit.status;
             document.getElementById("edit-staffIncharge").value = donationToEdit.staffIncharge;
             document.getElementById("edit-donationDate").value = donationToEdit.donationDate || '';
-            editModal.style.display = "block";
+            editModal.style.display = "flex";
         }
     }
 
-    document.getElementById("saveEditBtn").addEventListener("click", () => {
-        if (editingKey !== null) {
-            if (validateEditForm()) {
-                const updatedDonation = {
-                    encoder: document.getElementById("edit-encoder").value,
-                    name: document.getElementById("edit-name").value,
-                    type: document.getElementById("edit-type").value,
-                    address: document.getElementById("edit-address").value,
-                    contactPerson: document.getElementById("edit-contactPerson").value,
-                    number: document.getElementById("edit-number").value,
-                    email: document.getElementById("edit-email").value,
-                    assistance: document.getElementById("edit-assistance").value,
-                    valuation: document.getElementById("edit-valuation").value,
-                    additionalnotes: document.getElementById("edit-additionalnotes").value,
-                    status: document.getElementById("edit-status").value,
-                    staffIncharge: document.getElementById("edit-staffIncharge").value,
-                    donationDate: document.getElementById("edit-donationDate").value,
-                    id: allDonations.find(d => d.firebaseKey === editingKey).id,
-                    userUid: allDonations.find(d => d.firebaseKey === editingKey).userUid,
-                    createdAt: allDonations.find(d => d.firebaseKey === editingKey).createdAt,
-                    updatedAt: new Date().toISOString(),
-                };
+    document.getElementById("saveEditBtn").addEventListener("click", async () => {
+        console.log("Save edit button clicked at", new Date().toISOString(), "editingKey:", editingKey);
+        if (editingKey === null) {
+            console.error("No donation selected for editing");
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'No donation selected for editing.',
+                background: '#fcebea',
+                color: '#b71c1c',
+                iconColor: '#c62828',
+                confirmButtonColor: '#c62828',
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean'
+                }
+            });
+            return;
+        }
 
-                database.ref(`donations/inkind/${editingKey}`).set(updatedDonation)
-                .then(() => {
-                    closeEditModal();
-                    Swal.fire({
-                        title: 'Success!',
-                        text: 'Donation updated successfully!',
-                        icon: 'success',
-                        timer: 1600,
-                        showConfirmButton: false,
-                        timerProgressBar: true,
-                        allowOutsideClick: false,
-                        customClass: {
-                            popup: 'swal2-popup-success-clean',
-                            title: 'swal2-title-success-clean',
-                            htmlContainer: 'swal2-text-success-clean',
-                        }
-                    });
-                    editingKey = null;
-                })
-                .catch(error => {
-                    console.error("Error updating donation:", error);
-                    Swal.fire("Error", "Failed to update donation: " + error.message, "error");
-                });
-            }
+        if (!hasImportPermission()) {
+            console.log("Permission denied for editing");
+            showAccessDeniedAlert('update this donation');
+            return;
+        }
+
+        console.log("Calling validateEditForm");
+        const isValid = await validateEditForm();
+        console.log("validateEditForm result:", isValid);
+
+        if (!isValid) {
+            console.log("Validation failed, stopping update");
+            Swal.fire({
+                icon: 'error',
+                title: 'Validation Failed',
+                text: 'Please correct the errors in the form and try again.',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                background: '#fcebea',
+                color: '#b71c1c',
+                iconColor: '#c62828',
+                confirmButtonColor: '#c62828',
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
+                }
+            });
+            return;
+        }
+
+        console.log("Validation passed, updating donation");
+        const updatedDonation = {
+            encoder: document.getElementById("edit-encoder").value.trim(),
+            name: document.getElementById("edit-name").value.trim(),
+            type: document.getElementById("edit-type").value.trim(),
+            address: document.getElementById("edit-address").value.trim(),
+            contactPerson: document.getElementById("edit-contactPerson").value.trim(),
+            number: document.getElementById("edit-number").value.trim(),
+            email: document.getElementById("edit-email").value.trim(),
+            assistance: document.getElementById("edit-assistance").value.trim(),
+            valuation: document.getElementById("edit-valuation").value.trim(),
+            additionalnotes: document.getElementById("edit-additionalnotes").value.trim(),
+            status: document.getElementById("edit-status").value.trim(),
+            staffIncharge: document.getElementById("edit-staffIncharge").value.trim(),
+            donationDate: document.getElementById("edit-donationDate").value.trim(),
+            id: allDonations.find(d => d.firebaseKey === editingKey)?.id,
+            userUid: allDonations.find(d => d.firebaseKey === editingKey)?.userUid,
+            createdAt: allDonations.find(d => d.firebaseKey === editingKey)?.createdAt,
+            updatedAt: new Date().toISOString(),
+        };
+
+        console.log("Updating donation in Firebase:", updatedDonation);
+        try {
+            await database.ref(`donations/inkind/${editingKey}`).set(updatedDonation);
+            console.log("Donation updated successfully");
+            closeEditModal();
+            Swal.fire({
+                icon: 'success',
+                title: 'Donation Updated!',
+                text: 'Your donation has been successfully updated.',
+                timer: 2000,
+                showConfirmButton: false,
+                timerProgressBar: true,
+                background: '#e6f4ea',
+                color: '#1b5e20',
+                iconColor: '#2e7d32',
+                customClass: {
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    htmlContainer: 'swal2-text-success-clean'
+                }
+            });
+            editingKey = null;
+            renderTable();
+        } catch (error) {
+            console.error("Error updating donation:", error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Failed to Update Donation',
+                text: 'An error occurred: ' + error.message,
+                background: '#fcebea',
+                color: '#b71c1c',
+                iconColor: '#c62828',
+                confirmButtonColor: '#c62828',
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean'
+                }
+            });
         }
     });
 
