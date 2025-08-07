@@ -421,6 +421,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     <td>${new Date(d.dateReceived).toLocaleDateString('en-PH')}</td>
                     <td>${d.email || 'N/A'}</td>
                     <td>${d.bank || 'N/A'}</td>
+                    <td>${d.referenceNumber || 'N/A'}</td>
                     <td>${d.proof ? `<a href="${d.proof}" target="_blank">View Proof</a>` : 'N/A'}</td>
                     <td>
                         <button class="editBtn"><i class='bx bx-edit'></i></button>
