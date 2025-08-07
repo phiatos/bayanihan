@@ -315,13 +315,10 @@ function checkInactivity() {
                 </td>
 
                 <td>
-                    <button class="saveBtn" data-key="${item.firebaseKey}">Save </button>
-                    <button class="viewBtn" data-index="${data.indexOf(item)}"><i class='bx bx-show-alt'></i>
-</button>
-                    <button class="deleteBtn" data-key="${item.firebaseKey}"><i class="bx bx-x-circle"></i>
-</button>
-                    <button class="savePDFBtn" data-index="${data.indexOf(item)}"><i class='bx bxs-file-pdf'></i>
-</button>
+                    <button class="saveBtn" data-key="${item.firebaseKey}"><i class='bx bx-save'></i></button>
+                    <button class="viewBtn" data-index="${data.findIndex(d => d.firebaseKey === item.firebaseKey)}"><i class='bx bx-show-alt'></i></button>
+                    <button class="deleteBtn" data-key="${item.firebaseKey}"><i class="bx bx-x-circle"></i></button>
+                    <button class="savePDFBtn" data-index="${data.indexOf(item)}"><i class='bx bxs-file-pdf'></i></button>
                 </td>
             `;
 
@@ -476,7 +473,15 @@ function checkInactivity() {
                 itemsTableBody.insertAdjacentHTML('beforeend', `<tr><td>${i.name}</td><td>${i.quantity}</td><td>${i.notes}</td></tr>`);
             });
 
-            document.getElementById('reliefModal').classList.remove('hidden');
+            const modal = document.getElementById('reliefModal');
+            modal.classList.remove('hidden');
+            modal.style.display = 'flex'; // ← this forces visibility regardless of CSS class
+
+            document.getElementById('closeModal').addEventListener('click', () => {
+            const modal = document.getElementById('reliefModal');
+            modal.classList.add('hidden');
+            modal.style.display = 'none'; // reset display
+            });
         }
 
         if (e.target.classList.contains('savePDFBtn')) {
@@ -490,51 +495,230 @@ function checkInactivity() {
         }
 
         if (e.target.classList.contains('deleteBtn')) {
-            const firebaseKey = e.target.dataset.key;
-            console.log('Delete button clicked for ID:', firebaseKey);
-
-            Swal.fire({
-                title: 'Are you sure?',
-                text: "You will not be able to recover this request!",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonText: 'Yes, delete it!',
-                cancelButtonText: 'No, cancel!',
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    // Fetch the request to get the userUid
-                    database.ref(`requestRelief/requests/${firebaseKey}`).once('value', snapshot => {
-                        const request = snapshot.val();
-                        const userUid = request.userUid;
-
-                        // Delete from both nodes
-                        Promise.all([
-                            database.ref(`requestRelief/requests/${firebaseKey}`).remove(),
-                            database.ref(`users/${userUid}/requests/${firebaseKey}`).remove()
-                        ])
-                        .then(() => {
-                            Swal.fire(
-                                'Deleted!',
-                                'The request has been deleted.',
-                                'success'
-                            );
-                            data = data.filter(item => item.firebaseKey !== firebaseKey);
-                            filteredData = [...data];
-                            renderTable();
-                        })
-                        .catch((error) => {
-                            Swal.fire(
-                                'Error!',
-                                'Failed to delete the request. Please try again.',
-                                'error'
-                            );
-                            console.error('Delete failed:', error);
-                        });
-                    });
-                }
-            });
+        const firebaseKey = e.target.dataset.key;
+        archiveRequest(firebaseKey, () => {
+            // Remove from main data array
+            data = data.filter(item => item.firebaseKey !== firebaseKey);
+            filteredData = [...data];
+            renderTable(); // refresh main table if needed
+            renderArchivedTable(); // refresh archive modal content
+        });
         }
     });
+
+    function archiveRequest(firebaseKey, onSuccessCallback) {
+    Swal.fire({
+        title: 'Are you sure?',
+        text: "This request will be archived, not deleted.",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, archive it!',
+        cancelButtonText: 'No, cancel!',
+        background: '#fff',
+        color: '#212529',
+        iconColor: '#f0ad4e',
+        customClass: {
+        popup: 'custom-swal-popup',
+        title: 'custom-swal-title',
+        content: 'custom-swal-text',
+        confirmButton: 'custom-confirm-btn',
+        cancelButton: 'custom-cancel-btn'
+        },
+        buttonsStyling: false
+    }).then(result => {
+        if (!result.isConfirmed) return;
+
+        // Step 1: Fetch the original request
+        database.ref(`requestRelief/requests/${firebaseKey}`).once('value')
+        .then(snapshot => {
+            const requestData = snapshot.val();
+
+            if (!requestData) {
+            throw new Error('Request not found.');
+            }
+
+            const userUid = requestData.userUid;
+
+            // Step 2: Archive the request
+            const archiveRef = database.ref(`requestRelief/archived/${firebaseKey}`);
+            const userRef = database.ref(`users/${userUid}/requests/${firebaseKey}`);
+            const activeRef = database.ref(`requestRelief/requests/${firebaseKey}`);
+
+            return archiveRef.set({
+            ...requestData,
+            archivedAt: new Date().toISOString()
+            }).then(() => {
+            return Promise.all([
+                activeRef.remove(),
+                userRef.remove()
+            ]);
+            });
+        })
+        .then(() => {
+            Swal.fire({
+            icon: 'success',
+            title: 'Archived!',
+            text: 'The request has been moved to the archive.',
+            timer: 2000,
+            showConfirmButton: false
+            });
+
+            // Optional: run callback to update UI
+            if (typeof onSuccessCallback === 'function') {
+            onSuccessCallback();
+            }
+        })
+        .catch(error => {
+            console.error('Archive failed:', error);
+            Swal.fire({
+            icon: 'error',
+            title: 'Archive Error',
+            text: error.message || 'Failed to archive the request. Please try again.'
+            });
+        });
+    });
+    }
+
+    let archivedCurrentPage = 1;
+const archivedRowsPerPage = 5;
+
+function renderArchivedTable() {
+  const archivedTableBody = document.getElementById('archivedTableBody');
+  const archivedEntriesInfo = document.getElementById('archivedEntriesInfo');
+  const archivedPagination = document.getElementById('archivedPagination');
+
+  archivedTableBody.innerHTML = '<tr><td colspan="10">Loading...</td></tr>';
+
+  database.ref('requestRelief/archived').once('value').then(snapshot => {
+    const data = snapshot.val();
+    console.log("Archived data from Firebase:", data);
+    archivedTableBody.innerHTML = '';
+
+    if (!data) {
+      archivedTableBody.innerHTML = '<tr><td colspan="10">No archived requests found.</td></tr>';
+      archivedEntriesInfo.textContent = "Showing 0 to 0 of 0 entries";
+      archivedPagination.innerHTML = "";
+      return;
+    }
+
+    // Convert to array & filter valid entries
+    const requests = Object.entries(data)
+      .map(([key, req]) => req ? ({ firebaseKey: key, ...req }) : null)
+      .filter(Boolean); // Remove nulls
+
+    const totalEntries = requests.length;
+    const totalPages = Math.ceil(totalEntries / archivedRowsPerPage);
+
+    // Clamp page number
+    if (archivedCurrentPage > totalPages) archivedCurrentPage = totalPages || 1;
+    if (archivedCurrentPage < 1) archivedCurrentPage = 1;
+
+    const start = (archivedCurrentPage - 1) * archivedRowsPerPage;
+    const end = Math.min(start + archivedRowsPerPage, totalEntries);
+    const paginatedRequests = requests.slice(start, end);
+
+    if (paginatedRequests.length === 0) {
+      archivedTableBody.innerHTML = '<tr><td colspan="10">No data available for this page.</td></tr>';
+    } else {
+      paginatedRequests.forEach((item, index) => {
+        const rowIndex = start + index + 1;
+        const archivedAtFormatted = item.archivedAt
+          ? new Date(item.archivedAt).toLocaleString()
+          : 'Not timestamped';
+
+        archivedTableBody.innerHTML += `
+          <tr>
+            <td>${rowIndex || 'N/A'}</td>
+            <td>${item.volunteerOrganization || 'N/A'}</td>
+            <td>${item.city || 'N/A'}</td>
+            <td>${item.address || 'N/A'}</td>
+            <td>${item.contactPerson || 'N/A'}</td>
+            <td>${item.category || 'N/A'}</td>
+            <td>${archivedAtFormatted}</td>
+            <td>
+              <button class="restoreBtn" data-key="${item.firebaseKey}">Restore</button>
+            </td>
+          </tr>`;
+      });
+    }
+
+    archivedEntriesInfo.textContent =
+      `Showing ${totalEntries === 0 ? 0 : start + 1} to ${end} of ${totalEntries} entries`;
+
+    // Render pagination buttons
+    archivedPagination.innerHTML = '';
+    for (let i = 1; i <= totalPages; i++) {
+      const btn = document.createElement('button');
+      btn.textContent = i;
+      btn.className = i === archivedCurrentPage ? 'active-page' : '';
+      btn.addEventListener('click', () => {
+        archivedCurrentPage = i;
+        renderArchivedTable();
+      });
+      archivedPagination.appendChild(btn);
+    }
+
+    // Attach restore button handlers
+    document.querySelectorAll('.restoreBtn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const key = e.target.dataset.key;
+        restoreArchivedRequest(key);
+      });
+    });
+  }).catch(err => {
+    console.error('Error loading archived requests:', err);
+    archivedTableBody.innerHTML = '<tr><td colspan="10">Error loading data.</td></tr>';
+  });
+}
+
+function restoreArchivedRequest(firebaseKey) {
+  Swal.fire({
+    title: 'Restore Request?',
+    text: 'This will move the request back to the active list.',
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonColor: '#28a745',
+    cancelButtonColor: '#6c757d',
+    confirmButtonText: 'Yes, Restore it!'
+  }).then(result => {
+    if (result.isConfirmed) {
+      database.ref(`requestRelief/archived/${firebaseKey}`).once('value')
+        .then(snapshot => {
+          const requestData = snapshot.val();
+          if (!requestData) throw new Error('Request not found in archive.');
+
+          const userUid = requestData.userUid;
+          if (!userUid) throw new Error('Missing userUid in archived request.');
+
+          return Promise.all([
+            database.ref(`requestRelief/requests/${firebaseKey}`).set(requestData),
+            database.ref(`users/${userUid}/requests/${firebaseKey}`).set(requestData),
+            database.ref(`requestRelief/archived/${firebaseKey}`).remove()
+          ]);
+        })
+        .then(() => {
+          Swal.fire('Restored!', 'The request has been moved back to active.', 'success');
+          renderArchivedTable();
+        })
+        .catch(err => {
+          console.error(err);
+          Swal.fire('Error', err.message || 'Failed to restore request.', 'error');
+        });
+    }
+  });
+}
+
+// Modal open/close triggers
+document.getElementById('viewArchived').addEventListener('click', function () {
+  document.getElementById('archivedModal').style.display = 'flex';
+  renderArchivedTable(); // Call the right function here
+});
+
+document.getElementById('closeArchivedModalBtn').addEventListener('click', function () {
+  document.getElementById('archivedModal').style.display = 'none';
+});
+
+
 
     searchInput.addEventListener('input', function() {
         const searchTerm = this.value.toLowerCase();
@@ -774,3 +958,4 @@ function checkInactivity() {
         };
     }
 });
+
