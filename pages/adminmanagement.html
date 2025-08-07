@@ -35,27 +35,27 @@
                         </div>
                         <div class="custom-select-wrapper">
                             <select id="sortSelect">
-                                <option value="" disabled selected hidden>Sort by</option>
-                                <optgroup label="Organization Details">
-                                    <option value="organizationName-asc">Organization Name (A-Z)</option>
-                                    <option value="organizationName-desc">Organization Name (Z-A)</option>
-                                    <option value="contactPerson-asc">Contact Person (A-Z)</option>
-                                    <option value="contactPerson-desc">Contact Person (Z-A)</option>
-                                    <option value="email-asc">Email (A-Z)</option>
-                                    <option value="email-desc">Email (Z-A)</option>
-                                    <option value="mobileNumber-asc">Mobile Number (Ascending)</option>
-                                    <option value="mobileNumber-desc">Mobile Number (Descending)</option>
+                                    <option value="">Sort by</option>                                
+                                    <optgroup label="Organization Details">
+                                        <option value="organizationName-asc">Organization Name (A-Z)</option>
+                                        <option value="organizationName-desc">Organization Name (Z-A)</option>
+                                        <option value="contactPerson-asc">Contact Person (A-Z)</option>
+                                        <option value="contactPerson-desc">Contact Person (Z-A)</option>
+                                        <option value="email-asc">Email (A-Z)</option>
+                                        <option value="email-desc">Email (Z-A)</option>
+                                        <option value="mobileNumber-asc">Mobile Number (Ascending)</option>
+                                        <option value="mobileNumber-desc">Mobile Number (Descending)</option>
                                     </optgroup>
-                                <optgroup label="Location">
-                                    <option value="region-asc">Region (A-Z)</option>
-                                    <option value="region-desc">Region (Z-A)</option>
-                                    <option value="province-asc">Province (A-Z)</option>
-                                    <option value="province-desc">Province (Z-A)</option>
-                                    <option value="city-asc">City (A-Z)</option>
-                                    <option value="city-desc">City (Z-A)</option>
-                                    <option value="barangay-asc">Barangay (A-Z)</option>
-                                    <option value="barangay-desc">Barangay (Z-A)</option>
-                                </optgroup>
+                                    <optgroup label="Location">
+                                        <option value="region-asc">Region (A-Z)</option>
+                                        <option value="region-desc">Region (Z-A)</option>
+                                        <option value="province-asc">Province (A-Z)</option>
+                                        <option value="province-desc">Province (Z-A)</option>
+                                        <option value="city-asc">City (A-Z)</option>
+                                        <option value="city-desc">City (Z-A)</option>
+                                        <option value="barangay-asc">Barangay (A-Z)</option>
+                                        <option value="barangay-desc">Barangay (Z-A)</option>
+                                    </optgroup>
                                 </select>
                             <i class='bx bx-chevron-down'></i>
                         </div>
@@ -70,6 +70,7 @@
                 <table id="adminTable">
                     <thead>
                         <tr>
+                            <th>No.</th>
                             <th>Name</th>
                             <th>Email</th>
                             <th>Mobile Number</th>
@@ -127,7 +128,7 @@
 
                         <div class="form-group">
                             <label for="mobile">Mobile Number</label>
-                            <input type="tel" id="mobile" name="mobile" placeholder="e.g. 09171234567" pattern="[0-9]{11}" required />
+                            <input type="number" id="mobile" name="mobile" placeholder="e.g. 09171234567" required />
                         </div>
 
                         <div class="form-group">
@@ -164,16 +165,6 @@
                 </div>
             </div>
 
-            <!-- Success Modal -->
-            <div class="modal" id="successModal" style="display:none;">
-                <div class="modal-content">
-                    <h2 style="text-align: center;">Volunteer Group Successfully Added</h2>
-                    <p style="font-weight: 500; color: #8E8E93; text-align: center;">A temporary password has been sent to the newly added volunteer group.<i class='bx bxs-check-circle'></i> </p>
-                    
-                    <button id="closeSuccessBtn">Continue</button>
-                </div>
-            </div> 
-
             <!-- Edit Modal -->
             <div class="modal" id="editAdminModal" style="display: none;">
                 <div class="modal-content">
@@ -209,7 +200,7 @@
 
                         <div class="form-group">
                             <label for="editMobile">Mobile Number</label>
-                            <input type="tel" id="editMobile" name="mobile" placeholder="e.g. 09171234567" pattern="[0-9]{11}" required />
+                            <input type="tel" id="editMobile" name="mobile" placeholder="e.g. 09171234567" required />
                         </div>
 
                         <div class="form-group">

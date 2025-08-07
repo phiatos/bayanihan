@@ -50,22 +50,151 @@ function generateTempPassword() {
     return password;
 }
 
+// Function to validate email format
+function isValidEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const validDomains = ['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'icloud.com', 'protonmail.com'];
+    const domain = email.split('@')[1]?.toLowerCase();
+    return emailRegex.test(email) && validDomains.includes(domain);
+}
+
+// Function to validate mobile number format
+function isValidMobile(mobile) {
+    const mobileRegex = /^09[0-9]{9}$/;
+    return mobileRegex.test(mobile);
+}
+
+// Function to check if mobile number is already in use by another user
+async function isMobileNumberInUse(mobile, excludeUid) {
+    try {
+        const snapshot = await database.ref('users').once('value');
+        const users = snapshot.val();
+        for (const uid in users) {
+            if (uid !== excludeUid && users[uid].mobile === mobile) {
+                return true;
+            }
+        }
+        return false;
+    } catch (error) {
+        console.error("Error checking mobile number in use:", error);
+        return false;
+    }
+}
+
+// Function to check if email is already in use by another user
+async function isEmailInUse(email, excludeUid) {
+    try {
+        const snapshot = await database.ref('users').once('value');
+        const users = snapshot.val();
+        for (const uid in users) {
+            if (uid !== excludeUid && users[uid].email === email) {
+                return true;
+            }
+        }
+        return false;
+    } catch (error) {
+        console.error("Error checking email in use:", error);
+        return false;
+    }
+}
+
+// Function to check if data is unchanged
+async function isDataUnchanged(orgId, updatedData) {
+    try {
+        const snapshot = await database.ref(`volunteerGroups/${orgId}`).once('value');
+        const orgData = snapshot.val();
+        if (!orgData) return false;
+
+        return (
+            orgData.organization === updatedData.organization &&
+            orgData.contactPerson === updatedData.contactPerson &&
+            orgData.email === updatedData.email &&
+            orgData.mobileNumber === updatedData.mobileNumber &&
+            orgData.socialMedia === updatedData.socialMedia &&
+            orgData.address.region === updatedData.address.region &&
+            orgData.address.province === updatedData.address.province &&
+            orgData.address.city === updatedData.address.city &&
+            orgData.address.barangay === updatedData.address.barangay &&
+            orgData.address.streetAddress === updatedData.address.streetAddress
+        );
+    } catch (error) {
+        console.error("Error checking unchanged data:", error);
+        return false;
+    }
+}
+
+// Function to verify Super Admin password
+async function verifySuperAdminPassword() {
+    const { value: password } = await Swal.fire({
+        title: 'Enter Admin Password',
+        input: 'password',
+        inputLabel: 'Please provide your password to confirm changes.',
+        inputPlaceholder: 'Enter your password',
+        showCancelButton: true,
+        confirmButtonText: 'Verify',
+        cancelButtonText: 'Cancel',
+        allowOutsideClick: false,
+        customClass: {
+            popup: 'swal2-popup-success-clean',
+            title: 'swal2-title-success-clean',
+            htmlContainer: 'swal2-text-success-clean',
+            confirmButton: 'custom-confirm-btn',
+            cancelButton: 'custom-cancel-btn'
+        },
+        inputValidator: (value) => {
+            if (!value) {
+                return 'You need to enter your password!';
+            }
+        }
+    });
+
+    if (!password) {
+        return false; // User canceled or didn't provide a password
+    }
+
+    try {
+        const user = auth.currentUser;
+        if (!user) {
+            throw new Error('No user is currently signed in.');
+        }
+        const credential = firebase.auth.EmailAuthProvider.credential(user.email, password);
+        await user.reauthenticateWithCredential(credential);
+        return true;
+    } catch (error) {
+        console.error("Error verifying Super Admin password:", error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Invalid Password',
+            text: 'The provided password is incorrect. Please try again.',
+            showConfirmButton: true,
+            confirmButtonText: 'OK',
+            customClass: {
+                popup: 'swal2-popup-success-clean',
+                title: 'swal2-title-success-clean',
+                htmlContainer: 'swal2-text-success-clean',
+                confirmButton: 'custom-confirm-btn'
+            }
+        });
+        return false;
+    }
+}
+
 let data = [];
 let filteredData = [];
 const rowsPerPage = 5;
 let currentPage = 1;
 
-let archivedData = []; // New: To store archived data
-let filteredArchivedData = []; // New: To store filtered archived data
-const archivedRowsPerPage = 5; // New: Rows per page for archived table
-let archivedCurrentPage = 1; // New: Current page for archived table
+let archivedData = [];
+let filteredArchivedData = [];
+const archivedRowsPerPage = 5;
+let archivedCurrentPage = 1;
 
 let currentAddressCell = null;
 let editingRowId = null;
 let orgData = null;
 let isProcessing = false;
 let currentEditOrgKey = null;
-let isSuperAdmin = false; // Flag to check super admin status
+let isSuperAdmin = false;
 
 // DOM elements
 const tableBody = document.querySelector("#orgTable tbody");
@@ -85,7 +214,6 @@ const provinceSelect = document.getElementById('province');
 const citySelect = document.getElementById('city');
 const barangaySelect = document.getElementById('barangay');
 
-// --- Get Edit Modal Elements ---
 const editOrgModal = document.getElementById('editOrgModal');
 const closeEditModalBtn = document.getElementById('closeEditModalBtn');
 const editOrgForm = document.getElementById('editOrgForm');
@@ -95,18 +223,17 @@ const editCitySelect = document.getElementById('editCity');
 const editBarangaySelect = document.getElementById('editBarangay');
 const editOrgFirebaseKeyInput = document.getElementById('editOrgFirebaseKey');
 
-const regionTextInput = document.getElementById('region-text'); // Corrected ID
-const provinceTextInput = document.getElementById('province-text'); // Corrected ID
-const cityTextInput = document.getElementById('city-text'); // Corrected ID
-const barangayTextInput = document.getElementById('barangay-text'); // Corrected ID
+const regionTextInput = document.getElementById('region-text');
+const provinceTextInput = document.getElementById('province-text');
+const cityTextInput = document.getElementById('city-text');
+const barangayTextInput = document.getElementById('barangay-text');
 
-// New: Archived Modal Elements
 const archivedModal = document.getElementById('archivedModal');
 const closeArchivedModalBtn = document.getElementById('closeArchivedModalBtn');
 const archivedTableBody = document.querySelector('#archivedTable tbody');
 const archivedEntriesInfo = document.getElementById('archivedEntriesInfo');
 const archivedPaginationContainer = document.getElementById('archivedPagination');
-const viewArchivedBtn = document.getElementById('viewArchived'); // Get the button reference
+const viewArchivedBtn = document.getElementById('viewArchived');
 
 // Floating button visibility
 document.addEventListener('mousemove', (e) => {
@@ -122,46 +249,22 @@ document.addEventListener('mousemove', (e) => {
     }
 });
 
-// Utility functions
-function formatMobileNumber(mobile) {
-    let cleaned = mobile.replace(/\D/g, "");
-
-    if (cleaned.startsWith("63") && cleaned.length === 12) {
-        cleaned = "0" + cleaned.slice(2);
-    }
-    if (/^09\d{9}$/.test(cleaned)) {
-        return cleaned;
-    }
-    if (/^\d{9}$/.test(cleaned) && (mobile.startsWith('9') || mobile.startsWith('+639') || mobile.startsWith('09'))) {
-        return '0' + cleaned;
-    }
-    return null;
-}
-
-// Basic email validation regex
-function isValidEmail(email) {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
-
-// Function to clear add form inputs
+// Utility function to clear add form inputs
 function clearAInputs() {
     addOrgForm.reset();
-    my_handlers.fill_regions(); // Re-populate regions to reset location dropdowns
+    my_handlers.fill_regions();
 }
 
 // Fetch and render table data
 function fetchAndRenderTable() {
-    // This function now only fetches and renders the main table data.
-    // The super admin check and initial fetching of archived data are handled
-    // within the auth.onAuthStateChanged listener.
-    database.ref("volunteerGroups").on("value", snapshot => { // Changed to .on() for real-time updates
+    database.ref("volunteerGroups").on("value", snapshot => {
         const fetchedData = snapshot.val();
         console.log("Fetched volunteerGroups:", fetchedData);
         if (!fetchedData) {
             console.warn("No data found in volunteerGroups node.");
-            data = []; // Clear data if no entries
-            filteredData = []; // Clear filtered data
-            applySearchAndSort(); // Re-render with no data
+            data = [];
+            filteredData = [];
+            applySearchAndSort();
             Swal.fire({
                 icon: "info",
                 title: "No Data",
@@ -174,7 +277,7 @@ function fetchAndRenderTable() {
             return;
         }
         data = Object.entries(fetchedData).map(([key, entry]) => ({
-            id: key, // Store the Firebase unique ID as 'id'
+            id: key,
             organization: entry.organization || "N/A",
             contactPerson: entry.contactPerson || "N/A",
             email: entry.email || "N/A",
@@ -192,7 +295,7 @@ function fetchAndRenderTable() {
     });
 }
 
-// New: Fetch and render archived table data
+// Fetch and render archived table data
 function fetchAndRenderArchivedTable() {
     database.ref("deletedVolunteerGroups").on("value", snapshot => {
         const fetchedArchivedData = snapshot.val();
@@ -218,12 +321,11 @@ function fetchAndRenderArchivedTable() {
                 barangay: entry.address?.barangay || "N/A",
                 streetAddress: entry.address?.streetAddress || "N/A"
             },
-            deletedAt: entry.deletedAt || "N/A" // Capture deletion timestamp
+            deletedAt: entry.deletedAt || "N/A"
         }));
         applyArchivedSearchAndSort();
     });
 }
-
 
 // Render table
 function renderTable(dataToRender = filteredData) {
@@ -235,18 +337,13 @@ function renderTable(dataToRender = filteredData) {
     const pageData = dataToRender.slice(start, end);
 
     if (pageData.length === 0 && searchInput.value.trim() !== "") {
-        const noResultsRow = document.createElement("tr");
-        noResultsRow.innerHTML = `<td colspan="12" class="text-center">No results found for your search.</td>`;
-        tableBody.appendChild(noResultsRow);
+        tableBody.innerHTML = `<tr><td colspan="12" class="text-center">No results found for your search.</td></tr>`;
     } else if (pageData.length === 0) {
-        const noDataRow = document.createElement("tr");
-        noDataRow.innerHTML = `<td colspan="12" class="text-center">No volunteer groups to display.</td>`;
-        tableBody.appendChild(noDataRow);
+        tableBody.innerHTML = `<tr><td colspan="12" class="text-center">No volunteer groups to display.</td></tr>`;
     }
 
-
     pageData.forEach((row, index) => {
-        const displayNo = start + index + 1; // Sequential number for display
+        const displayNo = start + index + 1;
         const tr = document.createElement("tr");
         tr.innerHTML = `
             <td>${displayNo}</td>
@@ -255,7 +352,7 @@ function renderTable(dataToRender = filteredData) {
             <td>${row.email}</td>
             <td>${row.mobileNumber}</td>
             <td>
-            ${row.socialMedia && row.socialMedia !== 'N/A' ? `<a href="${row.socialMedia}" target="_blank" rel="noopener noreferrer">${row.socialMedia}</a>` : 'N/A'}
+                ${row.socialMedia && row.socialMedia !== 'N/A' ? `<a href="${row.socialMedia}" target="_blank" rel="noopener noreferrer">${row.socialMedia}</a>` : 'N/A'}
             </td>
             <td>${row.address?.region || 'N/A'}</td>
             <td>${row.address?.province || 'N/A'}</td>
@@ -272,10 +369,10 @@ function renderTable(dataToRender = filteredData) {
 
     updateEntriesInfo(dataToRender.length);
     renderPagination(dataToRender.length);
-    attachRowHandlers(); // Re-attach handlers after rendering
+    attachRowHandlers();
 }
 
-// New: Render archived table
+// Render archived table
 function renderArchivedTable(dataToRender = filteredArchivedData) {
     console.log("Rendering archived table with data:", dataToRender);
     if (!archivedTableBody) return;
@@ -285,9 +382,7 @@ function renderArchivedTable(dataToRender = filteredArchivedData) {
     const pageData = dataToRender.slice(start, end);
 
     if (pageData.length === 0) {
-        const noResultsRow = document.createElement("tr");
-        noResultsRow.innerHTML = `<td colspan="5" class="text-center">No archived volunteer groups to display.</td>`;
-        archivedTableBody.appendChild(noResultsRow);
+        archivedTableBody.innerHTML = `<tr><td colspan="5" class="text-center">No archived volunteer groups to display.</td></tr>`;
     }
 
     pageData.forEach((row) => {
@@ -309,19 +404,16 @@ function renderArchivedTable(dataToRender = filteredArchivedData) {
 
     updateArchivedEntriesInfo(dataToRender.length);
     renderArchivedPagination(dataToRender.length);
-    attachArchivedRowHandlers(); // New: Attach handlers for archived table
+    attachArchivedRowHandlers();
 }
-
 
 var my_handlers = {
     fill_regions: function() {
-        // Clear current selections in hidden text inputs when re-filling regions
         if (regionTextInput) regionTextInput.value = '';
         if (provinceTextInput) provinceTextInput.value = '';
         if (cityTextInput) cityTextInput.value = '';
         if (barangayTextInput) barangayTextInput.value = '';
 
-        // Reset dropdowns to their default "Choose" states
         regionSelect.innerHTML = '<option value="" selected="true" disabled>Choose Region</option>';
         regionSelect.selectedIndex = 0;
 
@@ -346,17 +438,14 @@ var my_handlers = {
             })
             .then(data => {
                 console.log("Region data loaded (Vanilla JS):", data);
-                // Validate data structure
                 if (!Array.isArray(data) || !data.every(item => item.region_code && item.region_name)) {
                     throw new Error("Invalid region data structure");
                 }
 
-                // Sort regions alphabetically
                 data.sort(function(a, b) {
                     return a.region_name.localeCompare(b.region_name);
                 });
 
-                // Populate the region dropdown
                 data.forEach(entry => {
                     const opt = document.createElement('option');
                     opt.value = entry.region_code;
@@ -366,7 +455,6 @@ var my_handlers = {
             })
             .catch(error => {
                 console.error("Request for region.json Failed (Vanilla JS): " + error.message);
-                console.error("Fetch error object: ", error);
                 Swal.fire({
                     icon: 'error',
                     title: 'Failed to Load Regions',
@@ -378,7 +466,6 @@ var my_handlers = {
     fill_provinces: function() {
         var region_code = regionSelect.value;
 
-        // Warn if no region is selected
         if (!region_code) {
             Swal.fire({
                 icon: 'warning',
@@ -386,12 +473,11 @@ var my_handlers = {
                 text: 'Please select a region before choosing a province.',
                 confirmButtonText: 'OK'
             });
-            // Reset dependent dropdowns and hidden inputs
             provinceSelect.innerHTML = '<option value="" selected="true" disabled>Choose Province</option>';
             provinceSelect.selectedIndex = 0;
             citySelect.innerHTML = '<option value="" selected="true" disabled>Choose Province First</option>';
             citySelect.selectedIndex = 0;
-            barangaySelect.innerHTML = '<option value="" selected="true" disabled>Choose City First</option>'; // Corrected from 'Choose Barangay'
+            barangaySelect.innerHTML = '<option value="" selected="true" disabled>Choose City First</option>';
             barangaySelect.selectedIndex = 0;
             if (provinceTextInput) provinceTextInput.value = '';
             if (cityTextInput) cityTextInput.value = '';
@@ -399,16 +485,13 @@ var my_handlers = {
             return;
         }
 
-        // Update hidden text input for region
         var region_text = regionSelect.options[regionSelect.selectedIndex].textContent;
         if (regionTextInput) regionTextInput.value = region_text;
 
-        // Clear dependent hidden text inputs
         if (provinceTextInput) provinceTextInput.value = '';
         if (cityTextInput) cityTextInput.value = '';
         if (barangayTextInput) barangayTextInput.value = '';
 
-        // Reset dependent dropdowns
         provinceSelect.innerHTML = '<option value="" selected="true" disabled>Choose Province</option>';
         provinceSelect.selectedIndex = 0;
 
@@ -430,22 +513,18 @@ var my_handlers = {
             })
             .then(data => {
                 console.log("Province data loaded (Vanilla JS):", data);
-                // Validate data structure
                 if (!Array.isArray(data) || !data.every(item => item.region_code && item.province_code && item.province_name)) {
                     throw new Error("Invalid province data structure");
                 }
 
-                // Filter provinces by selected region code
                 var result = data.filter(function(value) {
-                    return value.region_code === region_code; // Use strict equality
+                    return value.region_code === region_code;
                 });
 
-                // Sort provinces alphabetically
                 result.sort(function(a, b) {
                     return a.province_name.localeCompare(b.province_name);
                 });
 
-                // Populate the province dropdown
                 result.forEach(entry => {
                     const opt = document.createElement('option');
                     opt.value = entry.province_code;
@@ -455,7 +534,6 @@ var my_handlers = {
             })
             .catch(error => {
                 console.error("Request for province.json Failed (Vanilla JS): " + error.message);
-                console.error("Fetch error object: ", error);
                 Swal.fire({
                     icon: 'error',
                     title: 'Failed to Load Provinces',
@@ -467,7 +545,6 @@ var my_handlers = {
     fill_cities: function() {
         var province_code = provinceSelect.value;
 
-        // Warn if no province is selected
         if (!province_code) {
             Swal.fire({
                 icon: 'warning',
@@ -475,7 +552,6 @@ var my_handlers = {
                 text: 'Please select a province before choosing a city/municipality.',
                 confirmButtonText: 'OK'
             });
-            // Reset dependent dropdowns and hidden inputs
             citySelect.innerHTML = '<option value="" selected="true" disabled>Choose City / Municipality</option>';
             citySelect.selectedIndex = 0;
             barangaySelect.innerHTML = '<option value="" selected="true" disabled>Choose City First</option>';
@@ -485,15 +561,12 @@ var my_handlers = {
             return;
         }
 
-        // Update hidden text input for province
         var province_text = provinceSelect.options[provinceSelect.selectedIndex].textContent;
         if (provinceTextInput) provinceTextInput.value = province_text;
 
-        // Clear dependent hidden text inputs
         if (cityTextInput) cityTextInput.value = '';
         if (barangayTextInput) barangayTextInput.value = '';
 
-        // Reset dependent dropdowns
         citySelect.innerHTML = '<option value="" selected="true" disabled>Choose City / Municipality</option>';
         citySelect.selectedIndex = 0;
 
@@ -512,22 +585,18 @@ var my_handlers = {
             })
             .then(data => {
                 console.log("City data loaded (Vanilla JS):", data);
-                // Validate data structure
                 if (!Array.isArray(data) || !data.every(item => item.province_code && item.city_code && item.city_name)) {
                     throw new Error("Invalid city data structure");
                 }
 
-                // Filter cities by selected province code
                 var result = data.filter(function(value) {
-                    return value.province_code === province_code; // Use strict equality
+                    return value.province_code === province_code;
                 });
 
-                // Sort cities alphabetically
                 result.sort(function(a, b) {
                     return a.city_name.localeCompare(b.city_name);
                 });
 
-                // Populate the city dropdown
                 result.forEach(entry => {
                     const opt = document.createElement('option');
                     opt.value = entry.city_code;
@@ -537,7 +606,6 @@ var my_handlers = {
             })
             .catch(error => {
                 console.error("Request for city.json Failed (Vanilla JS): " + error.message);
-                console.error("Fetch error object: ", error);
                 Swal.fire({
                     icon: 'error',
                     title: 'Failed to Load Cities',
@@ -549,7 +617,6 @@ var my_handlers = {
     fill_barangays: function() {
         var city_code = citySelect.value;
 
-        // Warn if no city is selected
         if (!city_code) {
             Swal.fire({
                 icon: 'warning',
@@ -557,21 +624,17 @@ var my_handlers = {
                 text: 'Please select a city/municipality before choosing a barangay.',
                 confirmButtonText: 'OK'
             });
-            // Reset dependent dropdown and hidden input
             barangaySelect.innerHTML = '<option value="" selected="true" disabled>Choose Barangay</option>';
             barangaySelect.selectedIndex = 0;
             if (barangayTextInput) barangayTextInput.value = '';
             return;
         }
 
-        // Update hidden text input for city
         var city_text = citySelect.options[citySelect.selectedIndex].textContent;
         if (cityTextInput) cityTextInput.value = city_text;
 
-        // Clear dependent hidden text input
         if (barangayTextInput) barangayTextInput.value = '';
 
-        // Reset dependent dropdown
         barangaySelect.innerHTML = '<option value="" selected="true" disabled>Choose Barangay</option>';
         barangaySelect.selectedIndex = 0;
 
@@ -587,22 +650,18 @@ var my_handlers = {
             })
             .then(data => {
                 console.log("Barangay data loaded (Vanilla JS):", data);
-                // Validate data structure
                 if (!Array.isArray(data) || !data.every(item => item.city_code && item.brgy_code && item.brgy_name)) {
                     throw new Error("Invalid barangay data structure");
                 }
 
-                // Filter barangays by selected city code
                 var result = data.filter(function(value) {
-                    return value.city_code === city_code; // Use strict equality
+                    return value.city_code === city_code;
                 });
 
-                // Sort barangays alphabetically
                 result.sort(function(a, b) {
                     return a.brgy_name.localeCompare(b.brgy_name);
                 });
 
-                // Populate the barangay dropdown
                 result.forEach(entry => {
                     const opt = document.createElement('option');
                     opt.value = entry.brgy_code;
@@ -612,7 +671,6 @@ var my_handlers = {
             })
             .catch(error => {
                 console.error("Request for barangay.json Failed (Vanilla JS): " + error.message);
-                console.error("Fetch error object: ", error);
                 Swal.fire({
                     icon: 'error',
                     title: 'Failed to Load Barangays',
@@ -622,25 +680,37 @@ var my_handlers = {
             });
     },
     onchange_barangay: function() {
-        // Update hidden text input for barangay
         var barangay_text = barangaySelect.options[barangaySelect.selectedIndex].textContent;
         if (barangayTextInput) barangayTextInput.value = barangay_text;
     },
 };
 
-// Attach event listeners for the location dropdowns
 if (regionSelect) regionSelect.addEventListener('change', my_handlers.fill_provinces);
 if (provinceSelect) provinceSelect.addEventListener('change', my_handlers.fill_cities);
 if (citySelect) citySelect.addEventListener('change', my_handlers.fill_barangays);
 if (barangaySelect) barangaySelect.addEventListener('change', my_handlers.onchange_barangay);
 
-// Call the initial fill for regions directly on page load
 my_handlers.fill_regions();
-
 
 // Event listeners for modals and buttons
 if (addNew) {
     addNew.addEventListener('click', () => {
+        if (!isSuperAdmin) {
+            Swal.fire({
+                title: 'Access Denied',
+                text: 'You do not have permission to add volunteer groups.',
+                icon: 'error',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    htmlContainer: 'swal2-text-success-clean',
+                    confirmButton: 'custom-confirm-btn'
+                }
+            });
+            return;
+        }
         if (addOrgModal) {
             addOrgModal.style.display = 'flex';
             addOrgForm.reset();
@@ -657,16 +727,6 @@ if (closeAddOrgModalBtn) {
     });
 }
 
-if (continueSuccessBtn) {
-    continueSuccessBtn.addEventListener('click', () => {
-        const successModal = document.getElementById('successModal');
-        if (successModal) {
-            successModal.style.display = 'none';
-        }
-    });
-}
-
-// In vgm.js, replace the existing window click listener
 window.addEventListener('click', (event) => {
     if (event.target === addOrgModal) {
         addOrgModal.style.display = 'none';
@@ -682,9 +742,6 @@ window.addEventListener('click', (event) => {
     if (event.target === document.getElementById('confirmModal')) {
         document.getElementById('confirmModal').style.display = 'none';
     }
-    if (event.target === document.getElementById('successModal')) {
-        document.getElementById('successModal').style.display = 'none';
-    }
 });
 
 // Event listener for the form submission to show confirmation modal
@@ -692,7 +749,23 @@ if (addOrgForm) {
     addOrgForm.addEventListener('submit', async e => {
         e.preventDefault();
 
-        // Get form data for organization information
+        if (!isSuperAdmin) {
+            Swal.fire({
+                title: 'Access Denied',
+                text: 'You do not have permission to add volunteer groups.',
+                icon: 'error',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    htmlContainer: 'swal2-text-success-clean',
+                    confirmButton: 'custom-confirm-btn'
+                }
+            });
+            return;
+        }
+
         const organization = document.getElementById('organization').value.trim();
         const contactPerson = document.getElementById('contactPerson').value.trim();
         const email = document.getElementById('email').value.trim();
@@ -700,20 +773,27 @@ if (addOrgForm) {
         const socialMedia = document.getElementById('socialMedia').value.trim();
         const streetAddress = document.getElementById('streetAddress')?.value.trim() || '';
 
-        // Get selected text content from location dropdowns
         const selectedRegionText = regionSelect.options[regionSelect.selectedIndex]?.textContent || '';
         const selectedProvinceText = provinceSelect.options[provinceSelect.selectedIndex]?.textContent || '';
         const selectedCityText = citySelect.options[citySelect.selectedIndex]?.textContent || '';
         const selectedBarangayText = barangaySelect.options[barangaySelect.selectedIndex]?.textContent || '';
 
-        // Validation functions (assuming these are defined elsewhere in your script)
-        // const isValidEmail = email => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email); // Already defined globally
-        const formattedMobile = formatMobileNumber(mobileNumber);
-
-        // --- Validation Checks ---
+        // Validation Checks
         if (!organization || !contactPerson || !email || !mobileNumber ||
             !selectedRegionText || !selectedProvinceText || !selectedCityText || !selectedBarangayText) {
-            Swal.fire('Error', 'Please fill in all required fields (Organization, Contact Person, Contact Information, and Full Address).', 'error');
+            Swal.fire({
+                icon: 'error',
+                title: 'Missing Fields',
+                text: 'Please fill in all required fields (Organization, Contact Person, Email, Mobile Number, and Full Address).',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    htmlContainer: 'swal2-text-success-clean',
+                    confirmButton: 'custom-confirm-btn'
+                }
+            });
             return;
         }
 
@@ -721,31 +801,77 @@ if (addOrgForm) {
             Swal.fire({
                 icon: 'error',
                 title: 'Invalid Email',
-                text: 'Please enter a valid email address.'
+                text: 'Please enter a valid email address from an allowed domain.',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    htmlContainer: 'swal2-text-success-clean',
+                    confirmButton: 'custom-confirm-btn'
+                }
             });
             return;
         }
 
-        if (!formattedMobile) {
+        if (!isValidMobile(mobileNumber)) {
             Swal.fire({
                 icon: 'error',
                 title: 'Invalid Mobile Number',
-                text: 'Mobile number must be 11 digits starting with "09" (e.g., 09123456789).'
+                text: 'Mobile number must be 11 digits starting with "09"',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    htmlContainer: 'swal2-text-success-clean',
+                    confirmButton: 'custom-confirm-btn'
+                }
             });
             return;
         }
 
-        if (!addOrgForm.checkValidity()) {
-            addOrgForm.reportValidity();
+        const emailInUse = await isEmailInUse(email, null);
+        if (emailInUse) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Email In Use',
+                text: 'The email address is already in use by another account.',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    htmlContainer: 'swal2-text-success-clean',
+                    confirmButton: 'custom-confirm-btn'
+                }
+            });
             return;
         }
 
-        // Create an object to store organization data
+        const mobileInUse = await isMobileNumberInUse(mobileNumber, null);
+        if (mobileInUse) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Mobile Number In Use',
+                text: 'The mobile number is already in use by another account.',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    htmlContainer: 'swal2-text-success-clean',
+                    confirmButton: 'custom-confirm-btn'
+                }
+            });
+            return;
+        }
+
         orgData = {
             organization: organization,
             contactPerson: contactPerson,
             email: email,
-            mobileNumber: formattedMobile,
+            mobileNumber: mobileNumber,
             socialMedia: socialMedia || "N/A",
             address: {
                 region: selectedRegionText,
@@ -757,25 +883,19 @@ if (addOrgForm) {
             timestamp: new Date().toISOString()
         };
 
-        // orgData.hq = `${orgData.address.barangay}, ${orgData.address.city}, ${orgData.address.province}, ${orgData.address.region}`;
-
-        // --- Display Confirmation Details ---
         const confirmDetails = document.getElementById('confirmDetails');
         if (confirmDetails) {
-            // Construct the full address string for display
             const fullAddress = `${orgData.address.streetAddress !== 'N/A' ? orgData.address.streetAddress + ', ' : ''}${orgData.address.barangay}, ${orgData.address.city}, ${orgData.address.province}, ${orgData.address.region}`;
-
             confirmDetails.innerHTML = `
-                <p><strong style="color: #FA3B99;">Organization:</strong> ${orgData.organization}</p>
-                <p><strong style="color: #FA3B99;">Full Address:</strong> ${fullAddress}</p>
-                <p><strong style="color: #FA3B99;">Contact Person:</strong> ${orgData.contactPerson}</p>
-                <p><strong style="color: #FA3B99;">Email:</strong> ${orgData.email}</p>
-                <p><strong style="color: #FA3B99;">Mobile:</strong> ${orgData.mobileNumber}</p>
-                <p><strong style="color: #FA3B99;">Social Media:</strong> ${orgData.socialMedia}</p>
+                <p><strong>Organization:</strong> ${orgData.organization}</p>
+                <p><strong>Full Address:</strong> ${fullAddress}</p>
+                <p><strong>Contact Person:</strong> ${orgData.contactPerson}</p>
+                <p><strong>Email:</strong> ${orgData.email}</p>
+                <p><strong>Mobile:</strong> ${orgData.mobileNumber}</p>
+                <p><strong>Social Media:</strong> ${orgData.socialMedia}</p>
             `;
         }
 
-        // Hide add organization modal and show confirmation modal
         if (addOrgModal) addOrgModal.style.display = 'none';
         const confirmModal = document.getElementById('confirmModal');
         if (confirmModal) confirmModal.style.display = 'flex';
@@ -793,10 +913,16 @@ if (confirmSaveBtn) {
             Swal.fire({
                 icon: 'error',
                 title: 'Organization Not Found',
-                text: 'We couldn’t find any data for the selected organization. Please check your selection or try again.',
-                confirmButtonText: 'OK'
+                text: 'We couldn’t find any data for the selected organization. Please try again.',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    htmlContainer: 'swal2-text-success-clean',
+                    confirmButton: 'custom-confirm-btn'
+                }
             });
-
             isProcessing = false;
             confirmSaveBtn.disabled = false;
             return;
@@ -819,48 +945,24 @@ if (confirmSaveBtn) {
         };
 
         try {
-            // Verify admin is signed in
             const adminUser = auth.currentUser;
             if (!adminUser) {
                 throw new Error("No admin signed in. Please sign in again.");
             }
             console.log("Current admin:", adminUser.uid);
 
-            // Check if mobile number already exists
-            const usersSnapshot = await database.ref('users').once('value');
-            const users = usersSnapshot.val();
-
-            console.log("All users in database:", users);
-            if (users) {
-                for (const userId in users) {
-                    const userData = users[userId];
-                    const storedMobile = formatMobileNumber(userData.mobile);
-                    const incomingMobile = formatMobileNumber(orgData.mobileNumber);
-
-                    console.log(`Comparing mobile: ${incomingMobile} with stored: ${userData.mobile} -> ${storedMobile}`);
-
-                    // Compare only if both are valid mobile numbers
-                    if (storedMobile && incomingMobile && storedMobile === incomingMobile) {
-                        console.log(`Match found! Mobile number ${orgData.mobileNumber} already registered for user:`, userData);
-                        throw new Error("Mobile number already registered.");
-                    }
-                }
-            }
-
-            // Create Firebase Authentication account with the actual email
             const tempPassword = generateTempPassword();
             let userCredential;
             try {
                 userCredential = await secondaryAuth.createUserWithEmailAndPassword(orgData.email, tempPassword);
             } catch (error) {
                 if (error.code === 'auth/email-already-in-use') {
-                    throw new Error("Email already registered. Please use a different email.");
+                    throw new Error("The email address is already in use by another account.");
                 }
                 throw new Error("Error creating user in Firebase Authentication: " + error.message);
             }
             const newUser = userCredential.user;
 
-            // Save user data to users/<uid>
             await database.ref(`users/${newUser.uid}`).set({
                 role: "ABVN",
                 email: orgData.email,
@@ -880,7 +982,6 @@ if (confirmSaveBtn) {
                 password_needs_reset: true
             });
 
-            // Save volunteer group
             const snapshot = await database.ref('volunteerGroups').once('value');
             const groups = snapshot.val();
             const nextKey = groups ? Math.max(...Object.keys(groups).map(Number)) + 1 : 1;
@@ -890,7 +991,6 @@ if (confirmSaveBtn) {
                 userId: newUser.uid
             });
 
-            // Send EmailJS confirmation with temporary password (Updated to exclude mobileNumber)
             await emailjs.send('service_g5f0erj', 'template_0yk865p', {
                 email: orgData.email,
                 organization: orgData.organization,
@@ -899,32 +999,42 @@ if (confirmSaveBtn) {
                 verification_message: `Please log in using the provided email and temporary password. You will be prompted to verify your email and reset your password upon your first login.`
             });
 
-            Swal.fire({ //Updated
+            Swal.fire({
                 icon: 'success',
-                title: 'Volunteer Group Added!',
-                text: 'Login credentials have been sent via email.',
+                title: 'Volunteer Group Successfully Added!',
+                html: 'A temporary password has been sent to the newly added volunteer group. <i class="bx bxs-check-circle"></i>',
                 timer: 3000,
                 timerProgressBar: true,
-                showConfirmButton: false
+                showConfirmButton: false,
+                customClass: {
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    htmlContainer: 'swal2-text-success-clean'
+                }
             });
-
 
             orgData = null;
             const confirmModal = document.getElementById('confirmModal');
-            const successModal = document.getElementById('successModal');
             if (confirmModal) confirmModal.style.display = 'none';
-            if (successModal) successModal.style.display = 'flex';
-            fetchAndRenderTable(); // Re-fetch and render main table
-            fetchAndRenderArchivedTable(); // New: Re-fetch and render archived table
+            clearAInputs();
+            fetchAndRenderTable();
+            fetchAndRenderArchivedTable();
 
-            // Sign out secondary app (important for security)
             await secondaryAuth.signOut();
         } catch (error) {
             console.error('Error adding volunteer group:', error);
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
-                text: `Failed to add group: ${error.message}`
+                text: `Failed to add group: ${error.message}`,
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    htmlContainer: 'swal2-text-success-clean',
+                    confirmButton: 'custom-confirm-btn'
+                }
             });
         } finally {
             isProcessing = false;
@@ -934,12 +1044,10 @@ if (confirmSaveBtn) {
     });
 }
 
-// --- Edit Modal Handlers ---
 if (closeEditModalBtn) {
     closeEditModalBtn.addEventListener('click', () => {
         editOrgModal.style.display = 'none';
         editOrgForm.reset();
-        // Optionally, reset dropdowns for edit modal here if needed
     });
 }
 
@@ -955,14 +1063,25 @@ function openEditModal(orgId) {
     const orgToEdit = data.find(org => org.id === orgId);
     if (!orgToEdit) {
         console.error("Organization not found for editing:", orgId);
-        Swal.fire('Error', 'Volunteer group not found.', 'error');
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Volunteer group not found.',
+            showConfirmButton: true,
+            confirmButtonText: 'OK',
+            customClass: {
+                popup: 'swal2-popup-success-clean',
+                title: 'swal2-title-success-clean',
+                htmlContainer: 'swal2-text-success-clean',
+                confirmButton: 'custom-confirm-btn'
+            }
+        });
         return;
     }
 
     currentEditOrgKey = orgId;
     editOrgFirebaseKeyInput.value = orgId;
 
-    // Populate form fields
     document.getElementById('editOrganization').value = orgToEdit.organization;
     document.getElementById('editContactPerson').value = orgToEdit.contactPerson;
     document.getElementById('editEmail').value = orgToEdit.email;
@@ -970,7 +1089,6 @@ function openEditModal(orgId) {
     document.getElementById('editSocialMedia').value = orgToEdit.socialMedia === "N/A" ? "" : orgToEdit.socialMedia;
     document.getElementById('editStreetAddress').value = orgToEdit.address.streetAddress === "N/A" ? "" : orgToEdit.address.streetAddress;
 
-    // Populate location dropdowns for edit modal
     populateEditLocationDropdowns(orgToEdit.address.region, orgToEdit.address.province, orgToEdit.address.city, orgToEdit.address.barangay);
 
     editOrgModal.style.display = 'flex';
@@ -978,14 +1096,12 @@ function openEditModal(orgId) {
 
 // Function to populate edit modal location dropdowns
 async function populateEditLocationDropdowns(selectedRegion, selectedProvince, selectedCity, selectedBarangay) {
-    // Clear and reset dropdowns
     editRegionSelect.innerHTML = '<option value="" selected="true" disabled>Choose Region</option>';
     editProvinceSelect.innerHTML = '<option value="" selected="true" disabled>Choose Province</option>';
     editCitySelect.innerHTML = '<option value="" selected="true" disabled>Choose City / Municipality</option>';
     editBarangaySelect.innerHTML = '<option value="" selected="true" disabled>Choose Barangay</option>';
 
     try {
-        // Fetch and fill regions
         const regionResponse = await fetch('../json/region.json');
         if (!regionResponse.ok) throw new Error(`HTTP error! Status: ${regionResponse.status}`);
         const regions = await regionResponse.json();
@@ -996,13 +1112,11 @@ async function populateEditLocationDropdowns(selectedRegion, selectedProvince, s
             opt.textContent = entry.region_name;
             editRegionSelect.appendChild(opt);
         });
-        // Set selected region
         const regionFound = regions.find(r => r.region_name === selectedRegion);
         if (regionFound) {
             editRegionSelect.value = regionFound.region_code;
         }
 
-        // Fetch and fill provinces
         const provinceResponse = await fetch('../json/province.json');
         if (!provinceResponse.ok) throw new Error(`HTTP error! Status: ${provinceResponse.status}`);
         const provinces = await provinceResponse.json();
@@ -1014,13 +1128,11 @@ async function populateEditLocationDropdowns(selectedRegion, selectedProvince, s
             opt.textContent = entry.province_name;
             editProvinceSelect.appendChild(opt);
         });
-        // Set selected province
         const provinceFound = filteredProvinces.find(p => p.province_name === selectedProvince);
         if (provinceFound) {
             editProvinceSelect.value = provinceFound.province_code;
         }
 
-        // Fetch and fill cities
         const cityResponse = await fetch('../json/city.json');
         if (!cityResponse.ok) throw new Error(`HTTP error! Status: ${cityResponse.status}`);
         const cities = await cityResponse.json();
@@ -1032,13 +1144,11 @@ async function populateEditLocationDropdowns(selectedRegion, selectedProvince, s
             opt.textContent = entry.city_name;
             editCitySelect.appendChild(opt);
         });
-        // Set selected city
         const cityFound = filteredCities.find(c => c.city_name === selectedCity);
         if (cityFound) {
             editCitySelect.value = cityFound.city_code;
         }
 
-        // Fetch and fill barangays
         const barangayResponse = await fetch('../json/barangay.json');
         if (!barangayResponse.ok) throw new Error(`HTTP error! Status: ${barangayResponse.status}`);
         const barangays = await barangayResponse.json();
@@ -1050,23 +1160,28 @@ async function populateEditLocationDropdowns(selectedRegion, selectedProvince, s
             opt.textContent = entry.brgy_name;
             editBarangaySelect.appendChild(opt);
         });
-        // Set selected barangay
         const barangayFound = filteredBarangays.find(b => b.brgy_name === selectedBarangay);
         if (barangayFound) {
             editBarangaySelect.value = barangayFound.brgy_code;
         }
-
     } catch (error) {
         console.error("Error populating edit location dropdowns:", error);
         Swal.fire({
             icon: 'error',
             title: 'Failed to Load Location Data',
-            text: `Unable to load location data for editing: ${error.message}.`
+            text: `Unable to load location data for editing: ${error.message}.`,
+            showConfirmButton: true,
+            confirmButtonText: 'OK',
+            customClass: {
+                popup: 'swal2-popup-success-clean',
+                title: 'swal2-title-success-clean',
+                htmlContainer: 'swal2-text-success-clean',
+                confirmButton: 'custom-confirm-btn'
+            }
         });
     }
 }
 
-// Event listeners for edit modal location dropdowns
 editRegionSelect.addEventListener('change', async () => {
     editProvinceSelect.innerHTML = '<option value="" selected="true" disabled>Choose Province</option>';
     editCitySelect.innerHTML = '<option value="" selected="true" disabled>Choose City / Municipality</option>';
@@ -1133,15 +1248,42 @@ editCitySelect.addEventListener('change', async () => {
     }
 });
 
-
-// Event listener for the edit form submission
 if (editOrgForm) {
     editOrgForm.addEventListener('submit', async e => {
         e.preventDefault();
 
+        if (!isSuperAdmin) {
+            Swal.fire({
+                title: 'Access Denied',
+                text: 'You do not have permission to edit volunteer groups.',
+                icon: 'error',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    htmlContainer: 'swal2-text-success-clean',
+                    confirmButton: 'custom-confirm-btn'
+                }
+            });
+            return;
+        }
+
         const orgId = editOrgFirebaseKeyInput.value;
         if (!orgId) {
-            Swal.fire('Error', 'No organization ID found for editing.', 'error');
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'No organization ID found for editing.',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    htmlContainer: 'swal2-text-success-clean',
+                    confirmButton: 'custom-confirm-btn'
+                }
+            });
             return;
         }
 
@@ -1155,12 +1297,24 @@ if (editOrgForm) {
         const updatedRegionText = editRegionSelect.options[editRegionSelect.selectedIndex]?.textContent || '';
         const updatedProvinceText = editProvinceSelect.options[editProvinceSelect.selectedIndex]?.textContent || '';
         const updatedCityText = editCitySelect.options[editCitySelect.selectedIndex]?.textContent || '';
-        const updatedBarangayText = editBarangaySelect.options[editBarangaySelect.selectedIndex]?.textContent || '';
+        const updatedBarangayText = editBarangaySelect.options[editBarangaySelect.selectedIndex]?.textContent || ''; // Fixed barangay index bug
 
-        // Validation Checks (similar to add form)
+        // Validation Checks
         if (!updatedOrganization || !updatedContactPerson || !updatedEmail || !updatedMobileNumber ||
             !updatedRegionText || !updatedProvinceText || !updatedCityText || !updatedBarangayText) {
-            Swal.fire('Error', 'Please fill in all required fields (Organization, Contact Person, Contact Information, and Full Address).', 'error');
+            Swal.fire({
+                icon: 'error',
+                title: 'Missing Fields',
+                text: 'Please fill in all required fields (Organization, Contact Person, Email, Mobile Number, and Full Address).',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    htmlContainer: 'swal2-text-success-clean',
+                    confirmButton: 'custom-confirm-btn'
+                }
+            });
             return;
         }
 
@@ -1168,105 +1322,190 @@ if (editOrgForm) {
             Swal.fire({
                 icon: 'error',
                 title: 'Invalid Email',
-                text: 'Please enter a valid email address.'
+                text: 'Please enter a valid email address from an allowed domain.',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    htmlContainer: 'swal2-text-success-clean',
+                    confirmButton: 'custom-confirm-btn'
+                }
             });
             return;
         }
 
-        const formattedUpdatedMobile = formatMobileNumber(updatedMobileNumber);
-        if (!formattedUpdatedMobile) {
+        if (!isValidMobile(updatedMobileNumber)) {
             Swal.fire({
                 icon: 'error',
                 title: 'Invalid Mobile Number',
-                text: 'Mobile number must be 11 digits starting with "09" (e.g., 09123456789).'
+                text: 'Mobile number must be 11 digits starting with "09"',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    htmlContainer: 'swal2-text-success-clean',
+                    confirmButton: 'custom-confirm-btn'
+                }
             });
             return;
         }
 
-        if (!editOrgForm.checkValidity()) {
-            editOrgForm.reportValidity();
-            return;
-        }
-
-        // --- Password Verification Step ---
-        const { value: password } = await Swal.fire({
-            title: 'Confirm Changes',
-            text: 'To save these changes, please enter your password:',
-            icon: 'question',
-            input: 'password',
-            inputPlaceholder: 'Enter your password',
-            showCancelButton: true,
-            confirmButtonText: 'Confirm',
-            cancelButtonText: 'Cancel',
-            reverseButtons: true,
-            focusCancel: true,
-            allowOutsideClick: false,
-            confirmButtonColor: '#4CAF50',
-            cancelButtonColor: '#f44336',
-            padding: '1.25em',
-            customClass: {
-                confirmButton: 'swal2-confirm-large',
-                cancelButton: 'swal2-cancel-large'
-            },
-            preConfirm: async (enteredPassword) => {
-                if (!enteredPassword) {
-                    Swal.showValidationMessage('Password is required to confirm changes.');
-                    return false;
-                }
-                // Call the existing password verification function
-                const isPasswordValid = await verifyUserPassword(enteredPassword);
-                if (!isPasswordValid) {
-                    // verifyUserPassword already shows validation message if incorrect
-                    return false;
-                }
-                return true; // Password is valid
+        const updatedData = {
+            organization: updatedOrganization,
+            contactPerson: updatedContactPerson,
+            email: updatedEmail,
+            mobileNumber: updatedMobileNumber,
+            socialMedia: updatedSocialMedia || "N/A",
+            address: {
+                region: updatedRegionText,
+                province: updatedProvinceText,
+                city: updatedCityText,
+                barangay: updatedBarangayText,
+                streetAddress: updatedStreetAddress || "N/A"
             }
-        });
+        };
 
-        // If the user cancelled or password verification failed, stop here.
-        if (!password) {
-            Swal.fire(
-                'Cancelled',
-                'Your changes were not saved.',
-                'info'
-            );
+        // Fetch the userId from volunteerGroups to use in isMobileNumberInUse and isEmailInUse
+        let userId;
+        try {
+            const snapshot = await database.ref(`volunteerGroups/${orgId}`).once('value');
+            const orgData = snapshot.val();
+            if (!orgData || !orgData.userId) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Unable to find user ID for this organization.',
+                    showConfirmButton: true,
+                    confirmButtonText: 'OK',
+                    customClass: {
+                        popup: 'swal2-popup-success-clean',
+                        title: 'swal2-title-success-clean',
+                        htmlContainer: 'swal2-text-success-clean',
+                        confirmButton: 'custom-confirm-btn'
+                    }
+                });
+                return;
+            }
+            userId = orgData.userId;
+        } catch (error) {
+            console.error("Error fetching userId:", error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: `Failed to fetch organization data: ${error.message}`,
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    htmlContainer: 'swal2-text-success-clean',
+                    confirmButton: 'custom-confirm-btn'
+                }
+            });
             return;
         }
 
-        // If we reach here, password verification was successful.
-        try {
-            const updatedData = {
-                organization: updatedOrganization,
-                contactPerson: updatedContactPerson,
-                email: updatedEmail,
-                mobileNumber: formattedUpdatedMobile,
-                socialMedia: updatedSocialMedia || "N/A",
-                address: {
-                    region: updatedRegionText,
-                    province: updatedProvinceText,
-                    city: updatedCityText,
-                    barangay: updatedBarangayText,
-                    streetAddress: updatedStreetAddress || "N/A"
+        // Check for unchanged data first
+        const unchanged = await isDataUnchanged(orgId, updatedData);
+        if (unchanged) {
+            Swal.fire({
+                icon: 'info',
+                title: 'No Changes Detected',
+                text: 'No changes were made to the volunteer group details.',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    htmlContainer: 'swal2-text-success-clean',
+                    confirmButton: 'custom-confirm-btn'
                 }
-            };
+            });
+            editOrgModal.style.display = 'none';
+            return;
+        }
 
+        // Check if mobile number is in use (using userId instead of orgId)
+        const mobileInUse = await isMobileNumberInUse(updatedMobileNumber, userId);
+        if (mobileInUse) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Mobile Number In Use',
+                text: 'The mobile number is already in use by another account.',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    htmlContainer: 'swal2-text-success-clean',
+                    confirmButton: 'custom-confirm-btn'
+                }
+            });
+            return;
+        }
+
+        // Check if email is in use (using userId instead of orgId)
+        const emailInUse = await isEmailInUse(updatedEmail, userId);
+        if (emailInUse) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Email In Use',
+                text: 'The email address is already in use by another account.',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    htmlContainer: 'swal2-text-success-clean',
+                    confirmButton: 'custom-confirm-btn'
+                }
+            });
+            return;
+        }
+
+        const passwordVerified = await verifySuperAdminPassword();
+        if (!passwordVerified) {
+            return;
+        }
+
+        try {
             await database.ref(`volunteerGroups/${orgId}`).update(updatedData);
             console.log("Volunteer group updated successfully!");
-            Swal.fire(
-                'Updated!',
-                'The volunteer group has been updated.',
-                'success'
-            );
+            Swal.fire({
+                icon: 'success',
+                title: 'Success',
+                text: 'The volunteer group has been updated.',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                timer: 3000,
+                timerProgressBar: true,
+                customClass: {
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    htmlContainer: 'swal2-text-success-clean',
+                    confirmButton: 'custom-confirm-btn'
+                }
+            });
             editOrgModal.style.display = 'none';
             editOrgForm.reset();
             fetchAndRenderTable();
         } catch (error) {
             console.error("Error updating volunteer group:", error);
-            Swal.fire(
-                'Error!',
-                'Failed to update volunteer group. Please try again.',
-                'error'
-            );
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: `Failed to update volunteer group: ${error.message}`,
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    htmlContainer: 'swal2-text-success-clean',
+                    confirmButton: 'custom-confirm-btn'
+                }
+            });
         }
     });
 }
@@ -1282,113 +1521,146 @@ function attachRowHandlers() {
 
     document.querySelectorAll('.deleteBtn').forEach(button => {
         button.addEventListener('click', () => {
+            if (!isSuperAdmin) {
+                Swal.fire({
+                    title: 'Access Denied',
+                    text: 'You do not have permission to archive volunteer groups.',
+                    icon: 'error',
+                    showConfirmButton: true,
+                    confirmButtonText: 'OK',
+                    customClass: {
+                        popup: 'swal2-popup-success-clean',
+                        title: 'swal2-title-success-clean',
+                        htmlContainer: 'swal2-text-success-clean',
+                        confirmButton: 'custom-confirm-btn'
+                    }
+                });
+                return;
+            }
+
             const rowId = button.getAttribute('data-id');
             const orgName = button.closest('tr').children[1].textContent;
 
-            Swal.fire({
-                icon: 'warning',
-                title: `Are you sure you want to archive "${orgName}"?`, // Changed text to "archive"
-                text: 'This will remove the volunteer group from the active list but keep a record in the database for future access. To proceed, please enter your password:',
-                input: 'password', // Add this for password input
-                inputPlaceholder: 'Enter your password',
-                showCancelButton: true,
-                confirmButtonText: 'Yes, archive it!', // Changed text to "archive"
-                cancelButtonText: 'Cancel',
-                reverseButtons: true, // Puts confirm on the right
-                focusCancel: true, // Focus on cancel button
-                allowOutsideClick: false,
-                confirmButtonColor: '#4CAF50',
-                cancelButtonColor: '#f44336',
-                padding: '1.25em',
-                customClass: {
-                    confirmButton: 'swal2-confirm-large',
-                    cancelButton: 'swal2-cancel-large'
-                },
-                preConfirm: (password) => {
-                    if (!password) {
-                        Swal.showValidationMessage('Password is required to confirm archiving.'); // Changed text
-                        return false; // Prevent closing the modal
-                    }
-                    return verifyUserPassword(password);
-                },
-                allowOutsideClick: () => !Swal.isLoading()
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    if (result.value) { // Proceed only if password verification was successful
-                        // Fetch the volunteer group data
-                        database.ref(`volunteerGroups/${rowId}`).once('value')
-                            .then(snapshot => {
-                                const groupData = snapshot.val();
-                                if (!groupData) throw new Error("Volunteer group not found.");
-
-                                // Move to deletedVolunteerGroups node with a timestamp
-                                return database.ref(`deletedVolunteerGroups/${rowId}`).set({
-                                    ...groupData,
-                                    deletedAt: new Date().toISOString(), // Add deletion timestamp
-                                });
-                            })
-                            .then(() => {
-                                // Remove from the active volunteerGroups node
-                                return database.ref(`volunteerGroups/${rowId}`).remove();
-                            })
-                            .then(() => {
-                                Swal.fire({
-                                    icon: 'success',
-                                    title: 'Archived!', // Changed title
-                                    text: `Volunteer group "${orgName}" has been moved to the archived list.`, // Changed text
-                                    timer: 2000,
-                                    showConfirmButton: false
-                                });
-                                fetchAndRenderTable(); // Re-render main table
-                                fetchAndRenderArchivedTable(); // Re-render archived table
-                            })
-                            .catch(error => {
-                                console.error("Volunteer group archiving error:", error); // Changed error log
-                                Swal.fire({
-                                    icon: 'error',
-                                    title: 'Archiving Error', // Changed title
-                                    text: `Failed to archive volunteer group: ${error.message}. Please try again.`, // Changed text
-                                    footer: 'If the issue persists, contact support.'
-                                });
-                            });
-                    } else {
-                        // Password verification failed or was cancelled within preConfirm
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Authentication Failed',
-                            text: 'The password you entered is incorrect. Archiving cancelled.', // Changed text
-                            timer: 3000,
-                            showConfirmButton: false
-                        });
-                    }
-                } else if (result.dismiss === Swal.DismissReason.cancel || result.dismiss === Swal.DismissReason.backdrop) {
-                    Swal.fire({
-                        title: 'Cancelled',
-                        text: 'The application has been cancelled.',
-                        icon: 'info',
-                        timer: 1600,
-                        showConfirmButton: false,
-                        timerProgressBar: true,
-                        allowOutsideClick: false,
-                        customClass: {
-                            popup: 'swal2-popup-success-clean',
-                            title: 'swal2-title-success-clean',
-                            htmlContainer: 'swal2-text-success-clean',
-                        }
-                    });
+            // Verify Super Admin password before proceeding
+            verifySuperAdminPassword().then((passwordVerified) => {
+                if (!passwordVerified) {
                     return;
                 }
+
+                Swal.fire({
+                    title: `Are you sure to archive "${orgName}"?`,
+                    text: "This will move it to archived records.",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Archive',
+                    cancelButtonText: 'Cancel',
+                    reverseButtons: true,
+                    focusCancel: true,
+                    allowOutsideClick: false,
+                    customClass: {
+                        popup: 'custom-swal-popup-small',
+                        title: 'custom-swal-title',
+                        htmlContainer: 'custom-swal-content',
+                        confirmButton: 'custom-confirm-btn',
+                        cancelButton: 'custom-cancel-btn'
+                    }
+                }).then(async (result) => {
+                    if (result.isConfirmed) {
+                        Swal.fire({
+                            title: 'Archiving Volunteer Group...',
+                            text: 'Moving volunteer group data to archived records...',
+                            allowOutsideClick: false,
+                            didOpen: () => {
+                                Swal.showLoading();
+                            }
+                        });
+
+                        try {
+                            const snapshot = await database.ref(`volunteerGroups/${rowId}`).once('value');
+                            const groupData = snapshot.val();
+                            if (!groupData) {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error',
+                                    text: 'Volunteer group data not found for archiving.',
+                                    showConfirmButton: true,
+                                    confirmButtonText: 'OK',
+                                    customClass: {
+                                        popup: 'swal2-popup-success-clean',
+                                        title: 'swal2-title-success-clean',
+                                        htmlContainer: 'swal2-text-success-clean',
+                                        confirmButton: 'custom-confirm-btn'
+                                    }
+                                });
+                                return;
+                            }
+
+                            groupData.deletedAt = new Date().toISOString();
+                            await database.ref(`deletedVolunteerGroups/${rowId}`).set(groupData);
+                            await database.ref(`volunteerGroups/${rowId}`).remove();
+
+                            Swal.close();
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Archived!',
+                                text: `Volunteer group "${orgName}" has been moved to archived records.`,
+                                timer: 3000,
+                                timerProgressBar: true,
+                                showConfirmButton: true,
+                                confirmButtonText: 'OK',
+                                allowOutsideClick: false,
+                                customClass: {
+                                    popup: 'swal2-popup-success-clean',
+                                    title: 'swal2-title-success-clean',
+                                    htmlContainer: 'swal2-text-success-clean',
+                                    confirmButton: 'custom-confirm-btn'
+                                }
+                            }).then(() => {
+                                fetchAndRenderTable();
+                                fetchAndRenderArchivedTable();
+                            });
+                        } catch (error) {
+                            console.error("Volunteer group archiving error:", error);
+                            Swal.close();
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Archiving Error',
+                                text: `Failed to archive volunteer group: ${error.message}. Please try again.`,
+                                showConfirmButton: true,
+                                confirmButtonText: 'OK',
+                                customClass: {
+                                    popup: 'swal2-popup-success-clean',
+                                    title: 'swal2-title-success-clean',
+                                    htmlContainer: 'swal2-text-success-clean',
+                                    confirmButton: 'custom-confirm-btn'
+                                }
+                            });
+                        }
+                    }
+                });
             });
         });
     });
 }
 
-// New: Function to attach handlers to dynamically created archived table rows
+// Function to attach handlers to dynamically created archived table rows
 function attachArchivedRowHandlers() {
     document.querySelectorAll('.retrieveBtn').forEach(button => {
         button.addEventListener('click', () => {
             if (!isSuperAdmin) {
-                Swal.fire('Access Denied', 'Only Super Admins can restore archived groups.', 'error');
+                Swal.fire({
+                    title: 'Access Denied',
+                    text: 'Only Super Admins can restore archived groups.',
+                    icon: 'error',
+                    showConfirmButton: true,
+                    confirmButtonText: 'OK',
+                    customClass: {
+                        popup: 'swal2-popup-success-clean',
+                        title: 'swal2-title-success-clean',
+                        htmlContainer: 'swal2-text-success-clean',
+                        confirmButton: 'custom-confirm-btn'
+                    }
+                });
                 return;
             }
 
@@ -1397,117 +1669,84 @@ function attachArchivedRowHandlers() {
             const orgName = orgToRestore ? orgToRestore.organization : 'N/A';
 
             Swal.fire({
+                title: `Retrieve "${orgName}"?`,
+                text: 'This will retrieve the admin account from archived records and make it active again.',
                 icon: 'question',
-                title: `Restore "${orgName}"?`,
-                text: 'Are you sure you want to restore this volunteer group to the active list? To proceed, please enter your password:',
-                input: 'password',
-                inputPlaceholder: 'Enter your password',
                 showCancelButton: true,
-                confirmButtonText: 'Yes, restore it!',
+                confirmButtonText: 'Retrieve',
                 cancelButtonText: 'Cancel',
                 reverseButtons: true,
                 focusCancel: true,
                 allowOutsideClick: false,
-                confirmButtonColor: '#4CAF50',
-                cancelButtonColor: '#f44336',
-                padding: '1.25em',
                 customClass: {
-                    confirmButton: 'swal2-confirm-large',
-                    cancelButton: 'swal2-cancel-large'
-                },
-                preConfirm: (password) => {
-                    if (!password) {
-                        Swal.showValidationMessage('Password is required to confirm restoration.');
-                        return false;
-                    }
-                    return verifyUserPassword(password);
-                },
-                allowOutsideClick: () => !Swal.isLoading()
-            }).then((result) => {
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    htmlContainer: 'swal2-text-success-clean',
+                    confirmButton: 'custom-confirm-btn',
+                    cancelButton: 'custom-cancel-btn'
+                }
+            }).then(async (result) => {
                 if (result.isConfirmed) {
-                    if (result.value) { // Password verified
-                        if (!orgToRestore) {
-                            Swal.fire('Error', 'Volunteer group data not found for restoration.', 'error');
-                            return;
-                        }
-                        // Remove deletedAt and other temporary fields before restoring
-                        const { deletedAt, ...restoredData } = orgToRestore;
-
-                        // Move from deletedVolunteerGroups to volunteerGroups
-                        database.ref(`volunteerGroups/${rowId}`).set(restoredData)
-                            .then(() => {
-                                return database.ref(`deletedVolunteerGroups/${rowId}`).remove(); // Remove from archived
-                            })
-                            .then(() => {
-                                Swal.fire({
-                                    icon: 'success',
-                                    title: 'Restored!',
-                                    text: `Volunteer group "${orgName}" has been restored to the active list.`,
-                                    timer: 2000,
-                                    showConfirmButton: false
-                                });
-                                fetchAndRenderTable(); // Re-render main table
-                                fetchAndRenderArchivedTable(); // Re-render archived table
-                            })
-                            .catch(error => {
-                                console.error("Volunteer group restoration error:", error);
-                                Swal.fire({
-                                    icon: 'error',
-                                    title: 'Restoration Error',
-                                    text: `Failed to restore volunteer group: ${error.message}. Please try again.`,
-                                    footer: 'If the issue persists, contact support.'
-                                });
-                            });
-                    } else {
+                    if (!orgToRestore) {
                         Swal.fire({
                             icon: 'error',
-                            title: 'Authentication Failed',
-                            text: 'The password you entered is incorrect. Restoration cancelled.',
+                            title: 'Error',
+                            text: 'Volunteer group data not found for restoration.',
+                            showConfirmButton: true,
+                            confirmButtonText: 'OK',
+                            customClass: {
+                                popup: 'swal2-popup-success-clean',
+                                title: 'swal2-title-success-clean',
+                                htmlContainer: 'swal2-text-success-clean',
+                                confirmButton: 'custom-confirm-btn'
+                            }
+                        });
+                        return;
+                    }
+
+                    const { deletedAt, ...restoredData } = orgToRestore;
+
+                    try {
+                        await database.ref(`volunteerGroups/${rowId}`).set(restoredData);
+                        await database.ref(`deletedVolunteerGroups/${rowId}`).remove();
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Retrieved!',
+                            text: `Volunteer group "${orgName}" has been restored to the active list.`,
                             timer: 3000,
-                            showConfirmButton: false
+                            timerProgressBar: true,
+                            showConfirmButton: true,
+                            confirmButtonText: 'OK',
+                            allowOutsideClick: false,
+                            customClass: {
+                                popup: 'swal2-popup-success-clean',
+                                title: 'swal2-title-success-clean',
+                                htmlContainer: 'swal2-text-success-clean',
+                                confirmButton: 'custom-confirm-btn'
+                            }
+                        });
+                        fetchAndRenderTable();
+                        fetchAndRenderArchivedTable();
+                    } catch (error) {
+                        console.error("Volunteer group restoration error:", error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Restoration Error',
+                            text: `Failed to restore volunteer group: ${error.message}. Please try again.`,
+                            showConfirmButton: true,
+                            confirmButtonText: 'OK',
+                            customClass: {
+                                popup: 'swal2-popup-success-clean',
+                                title: 'swal2-title-success-clean',
+                                htmlContainer: 'swal2-text-success-clean',
+                                confirmButton: 'custom-confirm-btn'
+                            }
                         });
                     }
-                } else if (result.dismiss === Swal.DismissReason.cancel || result.dismiss === Swal.DismissReason.backdrop) {
-                    Swal.fire(
-                        'Cancelled',
-                        'The volunteer group was not restored.',
-                        'info'
-                    );
                 }
             });
         });
     });
-}
-
-
-async function verifyUserPassword(password) {
-    // Show loading state while verifying password
-    Swal.showLoading();
-
-    try {
-        const user = auth.currentUser;
-        if (!user) {
-            throw new Error("No user is currently logged in.");
-        }
-
-        const credential = firebase.auth.EmailAuthProvider.credential(user.email, password);
-        await user.reauthenticateWithCredential(credential);
-
-        Swal.hideLoading();
-        return true; // Password is correct
-    } catch (error) {
-        Swal.hideLoading();
-        console.error("Password re-authentication failed:", error);
-        // Provide specific error messages based on Firebase error codes if needed
-        if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-            Swal.showValidationMessage('Incorrect password.');
-        } else if (error.code === 'auth/user-not-found') {
-            Swal.showValidationMessage('User not found. Please log in again.');
-        } else {
-            Swal.showValidationMessage(`Authentication error: ${error.message}`);
-        }
-        return false; // Password is incorrect or another error occurred
-    }
 }
 
 function updateEntriesInfo(totalItems) {
@@ -1516,15 +1755,12 @@ function updateEntriesInfo(totalItems) {
     entriesInfo.textContent = `Showing ${totalItems ? startIndex + 1 : 0} to ${endIndex} of ${totalItems} entries`;
 }
 
-// New: Update archived entries info
 function updateArchivedEntriesInfo(totalItems) {
     const startIndex = (archivedCurrentPage - 1) * archivedRowsPerPage;
     const endIndex = Math.min(startIndex + archivedRowsPerPage, totalItems);
     archivedEntriesInfo.textContent = `Showing ${totalItems ? startIndex + 1 : 0} to ${endIndex} of ${totalItems} entries`;
 }
 
-
-// Pagination
 function renderPagination(totalRows) {
     if (!paginationContainer) return;
     paginationContainer.innerHTML = "";
@@ -1539,17 +1775,16 @@ function renderPagination(totalRows) {
         if (active) btn.classList.add("active-page");
         btn.addEventListener("click", () => {
             currentPage = page;
-            renderTable(filteredData); // Re-render with filtered data
+            renderTable(filteredData);
         });
         return btn;
     };
     paginationContainer.appendChild(createButton("Prev", currentPage - 1, currentPage === 1));
 
-    const maxVisiblePages = 5; // Number of page buttons to show (e.g., 1 2 3 4 5)
+    const maxVisiblePages = 5;
     let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
     let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
 
-    // Adjust startPage if not enough pages after current to fill maxVisiblePages
     if (endPage - startPage < maxVisiblePages - 1) {
         startPage = Math.max(1, endPage - maxVisiblePages + 1);
     }
@@ -1560,7 +1795,6 @@ function renderPagination(totalRows) {
     paginationContainer.appendChild(createButton("Next", currentPage + 1, currentPage === totalPages));
 }
 
-// New: Render archived pagination
 function renderArchivedPagination(totalRows) {
     if (!archivedPaginationContainer) return;
     archivedPaginationContainer.innerHTML = "";
@@ -1575,7 +1809,7 @@ function renderArchivedPagination(totalRows) {
         if (active) btn.classList.add("active-page");
         btn.addEventListener("click", () => {
             archivedCurrentPage = page;
-            renderArchivedTable(filteredArchivedData); // Re-render with filtered archived data
+            renderArchivedTable(filteredArchivedData);
         });
         return btn;
     };
@@ -1595,12 +1829,9 @@ function renderArchivedPagination(totalRows) {
     archivedPaginationContainer.appendChild(createButton("Next", archivedCurrentPage + 1, archivedCurrentPage === totalPages));
 }
 
-
-// --- Search and Sort Logic ---
 function applySearchAndSort() {
-    let currentData = [...data]; // Start with a fresh copy of all data
+    let currentData = [...data];
 
-    // Apply search filter
     const searchTerm = searchInput.value.toLowerCase().trim();
     if (searchTerm) {
         currentData = currentData.filter(item => {
@@ -1626,73 +1857,9 @@ function applySearchAndSort() {
         });
     }
 
-    // Apply sort
     const sortValue = sortSelect.value;
     if (sortValue) {
         currentData.sort((a, b) => {
-            let valA, valB;
-            let order = 1; // Default ascending
-
-            const parts = sortValue.split('-');
-            const field = parts[0];
-            if (parts.length > 1 && parts[1] === 'desc') {
-                order = -1; // Descending
-            }
-
-            if (['organization', 'contactPerson', 'email', 'mobileNumber', 'socialMedia'].includes(field)) {
-                valA = (a[field] || '').toString().toLowerCase();
-                valB = (b[field] || '').toString().toLowerCase();
-            } else if (['region', 'province', 'city', 'barangay', 'streetAddress'].includes(field)) {
-                valA = (a.address?.[field] || '').toLowerCase();
-                valB = (b.address?.[field] || '').toLowerCase();
-            } else {
-                valA = (a.organization || '').toLowerCase(); // Default sort
-                valB = (b.organization || '').toLowerCase();
-            }
-
-            return valA.localeCompare(valB) * order;
-        });
-    }
-
-    filteredData = currentData; // Update the global filteredData
-    currentPage = 1; // Reset to the first page after search/sort
-    renderTable(filteredData);
-}
-
-// New: Search and Sort Logic for Archived Table
-function applyArchivedSearchAndSort() {
-    let currentArchivedData = [...archivedData];
-
-    // No dedicated search/sort inputs for archived modal in HTML, so skipping for now.
-    // If you add them, uncomment and adapt the following:
-    /*
-    const archivedSearchInput = document.getElementById('archivedSearchInput'); // Placeholder ID
-    const archivedSortSelect = document.getElementById('archivedSortSelect'); // Placeholder ID
-
-    const searchTerm = archivedSearchInput ? archivedSearchInput.value.toLowerCase().trim() : '';
-    if (searchTerm) {
-        currentArchivedData = currentArchivedData.filter(item => {
-            const organization = (item.organization || '').toLowerCase();
-            const email = (item.email || '').toLowerCase();
-            const region = (item.address?.region || '').toLowerCase();
-            const province = (item.address?.province || '').toLowerCase();
-            const city = (item.address?.city || '').toLowerCase();
-            const barangay = (item.address?.barangay || '').toLowerCase();
-            const streetAddress = (item.address?.streetAddress || '').toLowerCase();
-
-            return organization.includes(searchTerm) ||
-                   email.includes(searchTerm) ||
-                   region.includes(searchTerm) ||
-                   province.includes(searchTerm) ||
-                   city.includes(searchTerm) ||
-                   barangay.includes(searchTerm) ||
-                   streetAddress.includes(searchTerm);
-        });
-    }
-
-    const sortValue = archivedSortSelect ? archivedSortSelect.value : '';
-    if (sortValue) {
-        currentArchivedData.sort((a, b) => {
             let valA, valB;
             let order = 1;
 
@@ -1702,36 +1869,39 @@ function applyArchivedSearchAndSort() {
                 order = -1;
             }
 
-            if (['organization', 'email'].includes(field)) {
+            if (['organization', 'contactPerson', 'email', 'mobileNumber', 'socialMedia'].includes(field)) {
                 valA = (a[field] || '').toString().toLowerCase();
                 valB = (b[field] || '').toString().toLowerCase();
             } else if (['region', 'province', 'city', 'barangay', 'streetAddress'].includes(field)) {
                 valA = (a.address?.[field] || '').toLowerCase();
                 valB = (b.address?.[field] || '').toLowerCase();
-            } else if (field === 'deletedAt') {
-                valA = new Date(a.deletedAt || 0).getTime();
-                valB = new Date(b.deletedAt || 0).getTime();
-                return (valA - valB) * order;
             } else {
                 valA = (a.organization || '').toLowerCase();
                 valB = (b.organization || '').toLowerCase();
             }
+
             return valA.localeCompare(valB) * order;
         });
     }
-    */
+
+    filteredData = currentData;
+    currentPage = 1;
+    renderTable(filteredData);
+}
+
+function applyArchivedSearchAndSort() {
+    let currentArchivedData = [...archivedData];
 
     filteredArchivedData = currentArchivedData;
     archivedCurrentPage = 1;
     renderArchivedTable(filteredArchivedData);
 }
 
-
 function clearDInputs() {
     if (!searchInput || !clearBtn) return;
     searchInput.value = '';
     clearBtn.style.display = 'none';
-    applySearchAndSort(); // Re-apply search/sort to clear filter
+    applySearchAndSort();
 }
 
 if (clearBtn) {
@@ -1745,9 +1915,8 @@ if (searchInput) {
         clearTimeout(searchTimeout);
         searchTimeout = setTimeout(() => {
             applySearchAndSort();
-            // Show/hide clear button based on search input
             clearBtn.style.display = searchInput.value.trim() ? 'flex' : 'none';
-        }, 300); // Debounce for 300ms
+        }, 300);
     });
 }
 
@@ -1764,10 +1933,8 @@ if (viewArchivedBtn) {
         }
         console.log("archivedModal element before display attempt:", archivedModal, archivedModal.style.display);
         if (archivedModal) {
-            // Hide other modals to prevent overlap
             document.getElementById('addOrgModal').style.display = 'none';
             document.getElementById('confirmModal').style.display = 'none';
-            document.getElementById('successModal').style.display = 'none';
             document.getElementById('editOrgModal').style.display = 'none';
             
             console.log("archivedModal element found. Setting display to flex.");
@@ -1784,15 +1951,6 @@ if (closeArchivedModalBtn) {
         if (archivedModal) {
             archivedModal.style.display = 'none';
         }
-    });
-}
-
-const closeSuccessBtn = document.getElementById('closeSuccessBtn');
-if (closeSuccessBtn) {
-    closeSuccessBtn.addEventListener('click', () => {
-        clearAInputs(); // Assuming clearAInputs() is defined elsewhere to clear the add form
-        const successModal = document.getElementById('successModal');
-        if (successModal) successModal.style.display = 'none';
     });
 }
 

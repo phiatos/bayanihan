@@ -282,7 +282,7 @@ function updateModalUserInfo(userData) {
   const userOrg = document.getElementById('modal-user-org');
   const shareUserName = document.getElementById('share-modal-user-name');
   if (userName && userOrg) {
-    userName.textContent = userData.contactPerson;
+    userName.textContent = userData.contactPerson || userData.firstName ;
     userOrg.textContent = userData.organization;
   }
   if (shareUserName) {
@@ -318,9 +318,14 @@ async function createPost() {
   const content = modalPostContent.value.trim();
   const category = modalPostCategory.value;
   const file = mediaInput.files[0];
+  if (!title && !category && !content && !file) {
+    console.log(`[${new Date().toISOString()}] Fields are blank`);
+    Swal.fire('Missing Fields', 'Please fill all the fields', 'warning');
+    return;
+  }
   if (!content && !file) {
     console.log(`[${new Date().toISOString()}] No content or media provided`);
-    Swal.fire('Please add content or media to post', '', 'warning');
+    Swal.fire('Missing Field', 'Please add content or media to post', 'warning');
     return;
   }
   if (!category) {

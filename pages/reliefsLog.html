@@ -65,6 +65,9 @@
                         </select>
                         <i class='bx bx-chevron-down'></i>
                     </div>
+                    <button id="viewArchived" aria-label="View Archived">
+                        <i class='bx bx-archive' style="color: white; font-size: 20px;"></i>
+                    </button>
                 </div>
             </div>
 
@@ -124,6 +127,35 @@
             <p><strong>Donation Category:</strong> <span id="modalCategory"></span></p>
             <p><strong>Volunteer Group:</strong> <span id="modalGroup"></span></p>
           </div>
+        </div>
+    </div>
+
+    <div class="modal" id="archivedModal" style="display: none;">
+        <div class="modal-content">
+            <span class="close-button" id="closeArchivedModalBtn">×</span>
+            <h2>Archived Relief Requests</h2>
+            <div class="table-container" style="max-height: 400px; overflow-y: auto;">
+                <table id="archivedTable">
+                    <thead>
+                        <tr>
+                            <th>No.</th>
+                            <th>Volunteer Group</th>
+                            <th>Location</th>
+                            <th>Drop-off Location</th>
+                            <th>Contact Person</th>
+                            <th>Request Category</th>
+                            <th>Archived Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="archivedTableBody">
+                    </tbody>
+                </table>
+            </div>
+            <div class="pagination-info" style="margin-top: 15px;">
+                <span id="archivedEntriesInfo">Showing 0 to 0 of 0 entries</span>
+                <div id="archivedPagination" class="pagination"></div>
+            </div>
         </div>
     </div>
 
