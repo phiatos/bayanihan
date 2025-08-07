@@ -38,20 +38,6 @@
   border-color: var(--primary-hover);
 }
 
-#modal-post-category {
-  width: 20%;
-  padding: 8px;
-  margin-right: 5px;
-  margin-left: 630px;
-  border: 2px solid var(--primary-color);
-  border-radius: 8px;
-  background-color: transparent;
-  color: var(--primary-color);
-  font-size: 12px;
-  cursor: pointer;
-  transition: border-color 0.3s;
-}
-
 #modal-post-category:focus {
   outline: none;
   border-color: var(--primary-hover);
@@ -146,15 +132,14 @@ display: flex;
   height: 100%;
   background-color: rgba(0, 0, 0, 0.5);
   display: flex;
-  align-items: center;
-  justify-content: center;
+  align-content: center;
   z-index: 1000;
 }
 
 .modal-content {
   background-color: #fff;
   border-radius: 15px;
-  margin: 5% auto;
+  margin: 0;
   width: 90%;
   max-width: 500px;
   position: relative;
@@ -164,7 +149,6 @@ display: flex;
   display: flex;
   flex-direction: column;
   overflow: auto;
-  overflow-x: hidden;
 }
 
 .modal-header {
@@ -172,21 +156,27 @@ display: flex;
   top: 0;
   background-color: transparent;
   z-index: 2;
-  padding: 20px;
+  padding: 10px 0;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  border-bottom: 1px solid var(--primary-color);
 }
 
-.modal-header select {
+  #modal-post-category {
+  position: absolute;
+  right: 55px;
+  margin-top: 15%;
   padding: 8px;
   border: 2px solid var(--primary-color);
   border-radius: 8px;
   background-color: transparent;
   color: var(--primary-color);
-  font-size: 14px;
   cursor: pointer;
   max-width: 150px;
+  width: 40%;
+  font-size: 12px;
+  transition: border-color 0.3s;
 }
 
 .modal-header select:focus {
@@ -261,7 +251,7 @@ display: flex;
   overflow-y: auto;
   overflow-x: hidden;
   padding: 20px;
-  padding-top: 0;
+  padding-top: 30;
   box-sizing: border-box;
   flex-grow: 1;
   margin-bottom: 20px;
@@ -285,7 +275,7 @@ display: flex;
 .modal-input-area textarea {
   width: 100%;
   padding: 10px;
-  background-color: transparent;
+  background-color: var(--primary-color);
   border-color: transparent;
   border-radius: 4px;
   resize: vertical;
@@ -345,8 +335,9 @@ display: flex;
 .modal-footer {
   display: flex;
   justify-content: space-between;
-  /* align-items: center; */
   padding: 0;
+  border-top: 1px solid var(--primary-color);
+
 }
 
 .share-modal-footer{
