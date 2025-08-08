@@ -131,16 +131,16 @@
               </thead>
               <tbody id="tableBody">
                 <tr>
-                <td><input type="text" placeholder="Enter Municipalities/Communities" required maxlength="50"/></td>
-                <td><input type="number" placeholder="Enter Total Population" min="0" required oninput="if(this.value < 0) this.value = 0;"/></td>
-                <td><input type="number" placeholder="Enter Affected Population" min="0" required oninput="if(this.value < 0) this.value = 0;"/></td>
-                <td><input type="number" placeholder="No. of Deaths" min="0" required oninput="if(this.value < 0) this.value = 0;"/></td>
-                <td><input type="number" placeholder="No. of Injured" min="0" required oninput="if(this.value < 0) this.value = 0;"/></td>
-                <td><input type="number" placeholder="No. of Missing" min="0" required oninput="if(this.value < 0) this.value = 0;"/></td>
-                <td><input type="number" placeholder="No. of Children" min="0" required oninput="if(this.value < 0) this.value = 0;"/></td>
-                <td><input type="number" placeholder="No. of Women" min="0" required oninput="if(this.value < 0) this.value = 0;"/></td>
-                <td><input type="number" placeholder="No. of Senior Citizens" min="0" required oninput="if(this.value < 0) this.value = 0;"/></td>
-                <td><input type="number" placeholder="No. of PWD" min="0" required oninput="if(this.value < 0) this.value = 0;"/></td>
+                <td><input type="text" placeholder="try Enter Municipalities/Communities" required maxlength="50"/></td>
+                <td><input type="text" class="number-input" placeholder="Enter Total Population" required/></td>
+                <td><input type="text" class="number-input" placeholder="Enter Affected Population" required/></td>
+                <td><input type="text" class="number-input" placeholder="No. of Deaths" required/></td>
+                <td><input type="text" class="number-input" placeholder="No. of Injured" required/></td>
+                <td><input type="text" class="number-input" placeholder="No. of Missing" required/></td>
+                <td><input type="text" class="number-input" placeholder="No. of Children" required/></td>
+                <td><input type="text" class="number-input" placeholder="No. of Women" required/></td>
+                <td><input type="text" class="number-input"placeholder="No. of Senior Citizens" required/></td>
+                <td><input type="text" class="number-input" placeholder="No. of PWD" required/></td>
 
                   <td><button type="reset" class="removeRowBtn">Clear</button></td>
                 </tr>
@@ -313,7 +313,7 @@
               </div>
               <div class="input-field">
                 <label>Estimated Quantity:</label>
-                <input type="number" placeholder="Estimated No. of Families to Benefit" />
+                <input type="text" class="number-input" placeholder="Estimated No. of Families to Benefit"/>
               </div>
             </div>
           </div>
@@ -331,7 +331,7 @@
               </div>
               <div class="input-field">
                 <label>Number of Families Served:</label>
-                <input type="number" placeholder="Enter number of families" required/>
+                <input type="text" class="number-input" placeholder="Enter number of families" required/>
               </div>
             </div>
 

@@ -285,9 +285,24 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Input validation for text fields
-  document.querySelectorAll('input[type="text"]').forEach(input => {
-    input.addEventListener('input', function () {
+document.querySelectorAll('input[type="text"]').forEach(input => {
+  input.addEventListener('input', function () {
+
+    if (this.classList.contains('number-input')) {
+      // Number-only validation here:
+      this.value = this.value
+        .replace(/-/g, '')           // Remove minus signs
+        .replace(/[^0-9.]/g, '')     // Allow digits and decimal point
+        .replace(/(\..*)\./g, '$1'); // Only one decimal point
+
+      // Remove leading zeros except for "0." pattern
+      if (/^0[0-9]/.test(this.value)) {
+        this.value = this.value.replace(/^0+/, '');
+      }
+    } else {
+      // Your existing text input validations
       this.value = this.value.charAt(0).toUpperCase() + this.value.slice(1);
+
       if (this.placeholder.includes('Name') || this.placeholder.includes('Organization')) {
         this.value = this.value.replace(/[^a-zA-Z\s,-]/g, '');
       }
@@ -295,16 +310,22 @@ document.addEventListener('DOMContentLoaded', () => {
         this.value = this.value.replace(/[^a-zA-Z0-9\s,-]/g, '');
       } else if (this.placeholder.includes('Name') || this.placeholder.includes('Organization') || (this.id === 'OthersInput')) {
         this.value = this.value.replace(/[^a-zA-Z\s,-]/g, '');
-      } else if (this.placeholder.includes('City/Municipality') || this.placeholder.includes('Province') || this.placeholder.includes('Relief Assistance') || this.placeholder.includes('Items') || this.placeholder.includes('Barangay')) {
+      } else if (
+        this.placeholder.includes('City/Municipality') ||
+        this.placeholder.includes('Province') ||
+        this.placeholder.includes('Relief Assistance') ||
+        this.placeholder.includes('Items') ||
+        this.placeholder.includes('Barangay')
+      ) {
         this.value = this.value.replace(/[^a-zA-Z\s,-]/g, '');
       } else {
         this.value = this.value.replace(/[^a-zA-Z\s]/g, '');
       }
-      if (this.type === 'number') {
-        if (this.value < 0) this.value = '';
-      }
-    });
+    }
   });
+});
+
+
 
   function formatDate(date) {
     return date.toISOString().split('T')[0];
