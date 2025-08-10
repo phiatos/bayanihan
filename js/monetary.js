@@ -252,6 +252,7 @@ document.addEventListener("DOMContentLoaded", () => {
             dateReceived: { label: 'Date Received', isDate: true },
             email: { label: 'Email', isEmail: true },
             bank: { label: 'Bank' },
+            referenceNumber: { label: 'Reference Number', required: false },
             proof: { label: 'Proof of Transaction', required: false }
         }[input.id];
         if (fieldConfig) {
@@ -265,6 +266,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 dateReceived: form.dateReceived,
                 email: form.email,
                 bank: form.bank,
+                referenceNumber: form.referenceNumber,
                 proof: form.proof
             }));
         }
@@ -282,6 +284,7 @@ document.addEventListener("DOMContentLoaded", () => {
             'edit-dateReceived': { label: 'Date Received', isDate: true },
             'edit-email': { label: 'Email', isEmail: true },
             'edit-bank': { label: 'Bank' },
+            'edit-referenceNumber': { label: 'Reference Number', required: false },
             'edit-proof': { label: 'Proof of Transaction', required: false }
         }[input.id];
         if (fieldConfig) {
@@ -295,6 +298,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 dateReceived: document.getElementById("edit-dateReceived"),
                 email: document.getElementById("edit-email"),
                 bank: document.getElementById("edit-bank"),
+                referenceNumber: document.getElementById("edit-referenceNumber"),
                 proof: document.getElementById("edit-proof")
             }, editingKey));
         }
@@ -1015,6 +1019,7 @@ document.addEventListener("DOMContentLoaded", () => {
             { id: "dateReceived", label: "Date Received", isDate: true },
             { id: "email", label: "Email", isEmail: true },
             { id: "bank", label: "Bank" },
+            { id: "referenceNumber", label: "Reference Number", required: false },
             { id: "proof", label: "Proof of Transaction", required: false },
         ];
 
@@ -1119,6 +1124,7 @@ document.addEventListener("DOMContentLoaded", () => {
             dateReceived: form.dateReceived,
             email: form.email,
             bank: form.bank,
+            referenceNumber: form.referenceNumber,
             proof: form.proof
         };
         const isValid = await validateDonationForm(inputs);
@@ -1139,6 +1145,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 dateReceived: inputs.dateReceived.value,
                 email: inputs.email.value,
                 bank: inputs.bank.value,
+                referenceNumber: inputs.referenceNumber.value,
                 proof: inputs.proof.value,
                 id: Date.now(),
                 userUid: user.uid,
@@ -1192,6 +1199,7 @@ document.addEventListener("DOMContentLoaded", () => {
             form.dateReceived.value = '';
             form.email.value = '';
             form.bank.value = '';
+            form.referenceNumber.value = '';
             form.proof.value = '';
             document.getElementById("invoice").value = generateCashInvoiceNumber();
             formHasChanges = false;
@@ -1266,6 +1274,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 <p><strong>Date Received:</strong> ${donation.dateReceived ? new Date(donation.dateReceived).toLocaleDateString('en-PH') : 'N/A'}</p>
                 <p><strong>Email:</strong> ${donation.email || 'N/A'}</p>
                 <p><strong>Bank:</strong> ${donation.bank || 'N/A'}</p>
+                <p><strong>Reference Number:</strong> ${donation.referenceNumber || 'N/A'}</p>
                 <p><strong>Proof of Transaction:</strong> ${donation.proof ? `<a href="${donation.proof}" target="_blank" rel="noopener noreferrer">View Proof</a>` : 'N/A'}</p>
                 <p><strong>Recorded On:</strong> ${formattedTimestamp}</p>
             </div>
@@ -1619,6 +1628,7 @@ document.addEventListener("DOMContentLoaded", () => {
             addDetail("Date Received", new Date(donation.dateReceived).toLocaleDateString('en-PH'));
             addDetail("Email", donation.email);
             addDetail("Bank", donation.bank);
+            addDetail("Reference Number", donation.referenceNumber);
             addDetail("Proof of Transaction", donation.proof);
             addDetail("Recorded On", new Date(donation.createdAt).toLocaleString());
 
@@ -1763,6 +1773,7 @@ document.addEventListener("DOMContentLoaded", () => {
             document.getElementById("edit-dateReceived").value = donationToEdit.dateReceived || '';
             document.getElementById("edit-email").value = donationToEdit.email || '';
             document.getElementById("edit-bank").value = donationToEdit.bank || '';
+            document.getElementById("edit-referenceNumber").value = donationToEdit.referenceNumber || ''; 
             document.getElementById("edit-proof").value = donationToEdit.proof || "";
             editModal.style.display = "flex";
             Array.from(editModal.querySelectorAll('input, select')).forEach(clearError);
@@ -1781,6 +1792,7 @@ document.addEventListener("DOMContentLoaded", () => {
             dateReceived: document.getElementById("edit-dateReceived"),
             email: document.getElementById("edit-email"),
             bank: document.getElementById("edit-bank"),
+            referenceNumber: document.getElementById("edit-referenceNumber"),
             proof: document.getElementById("edit-proof")
         };
         const isValid = await validateDonationForm(inputs, editingKey);
@@ -1800,6 +1812,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 dateReceived: inputs.dateReceived.value,
                 email: inputs.email.value,
                 bank: inputs.bank.value,
+                referenceNumber: inputs.referenceNumber.value,
                 proof: inputs.proof.value,
                 id: donation.id,
                 userUid: donation.userUid,
