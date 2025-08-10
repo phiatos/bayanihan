@@ -375,13 +375,23 @@ document.querySelectorAll('input[type="text"]').forEach(input => {
       const minDateTime = new Date(occurrenceDateTime.getTime() + 24 * 60 * 60 * 1000);
       const maxDateTime = new Date(occurrenceDateTime.getTime() + 48 * 60 * 60 * 1000);
       if (infoDateTime < minDateTime) {
-        alert('Information gathered must be at least 24 hours after the occurrence.');
+        Swal.fire({
+          icon: 'warning',
+          title: 'Invalid Information',
+          text: 'Information gathered must be at least 24 hours after the occurrence.',
+          confirmButtonText: 'OK'
+        });
         infoTimeInput.value = '';
         infoTimeInput.focus();
         return;
       }
       if (infoDateTime > maxDateTime) {
-        alert('Information gathered must be no later than 48 hours after the occurrence.');
+        Swal.fire({
+          icon: 'warning',
+          title: 'Invalid Information',
+          text: 'Information gathered must be no later than 48 hours after the occurrence.',
+          confirmButtonText: 'OK'
+        });
         infoTimeInput.value = '';
         infoTimeInput.focus();
         return;
