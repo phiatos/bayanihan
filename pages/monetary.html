@@ -39,7 +39,7 @@
                             <input type="text" id="encoder" placeholder="Enter encoder name" maxlength="70" required>
                         </div>
                         <div class="input-field">
-                            <label for="name">Names/Company</label>
+                            <label for="name">Name/Company</label>
                             <input type="text" id="name" placeholder="Enter name or company" maxlength="100" required>
                         </div>
                         <div class="input-field">
@@ -47,8 +47,8 @@
                             <input type="text" id="address" placeholder="Enter city or full address" maxlength="150" required>
                         </div>
                         <div class="input-field">
-                            <label for="number">Number</label>
-                            <input type="tel" id="number" placeholder="Enter contact number" maxlength="15" required>
+                            <label for="number">Mobile Number</label>
+                            <input type="number" id="number" placeholder="Enter mobile number" maxlength="15" pattern="09[0-9]{9}" required>
                         </div>
                         <div class="input-field">
                             <label for="amount">Amount Donated</label>
@@ -72,7 +72,7 @@
                         </div>
                         <div class="input-field">
                             <label for="proof">Proof of Transaction (Gdrive Link)</label>
-                            <input type="url" id="proof" placeholder="Enter Google Drive link" maxlength="255" required/>
+                            <input type="url" id="proof" placeholder="Enter Google Drive link" maxlength="255"/>
                         </div>
                     </div>
 
@@ -92,7 +92,7 @@
                     <div class="controls_right">
                         <div class="search-wrapper">
                             <i class="fa fa-search"></i>
-                            <input type="text" placeholder="Search" id="searchInput" />
+                            <input type="text" id="searchInput" placeholder="Search" autocomplete="off">
                         </div>
                         <div class="custom-select-wrapper">
                             <select id="sortSelect">
@@ -136,14 +136,18 @@
                             </select>
                             <i class='bx bx-chevron-down'></i>
                         </div>
-                        <button id="viewArchived" aria-label="View Archived Admins">
-                            <i class='bx bx-archive' style="color: white; font-size: 20px;"></i>
-                        </button>
+
+                        <div class="button-group">
+                            <button id="viewArchived" aria-label="View Archived Admins">
+                                <i class='bx bx-archive' style="color: white; font-size: 20px;"></i>
+                            </button>
+                            <button id="downloadTemplateBtn"><i class='bx bx-file-blank'></i></button>
+                        </div>
 
                         <div class="import-section">
                             <input type="file" id="excelFileInput" accept=".xls,.xlsx" style="display: none;"/>
                             <button id="importExcelBtn" class="importExcelBtn" type="button">
-                                <i class='bx bxs-file-import'  style="font-size: 1.2rem;"></i>Import from Excel
+                                <i class='bx bxs-file-import' style="font-size: 1.2rem;"></i>Import from Excel
                             </button>
                         </div>
 
@@ -166,7 +170,7 @@
                     <tr>
                         <th>No.</th>
                         <th>Encoder</th>
-                        <th>Name/Company</th>
+                        <th>Name</th>
                         <th>Location</th>
                         <th>Number</th>
                         <th>Amount Donated</th>
@@ -190,10 +194,17 @@
 
                 <br>
                 <div class="pdf-buttons">
-                <button id="exportBtn" class="pdf-button" type="button"><i class='bx bxs-file-pdf'></i>Export to Excel</button>
-                <button id="savePdfBtn" class="excel-button" type="button"><i class='bx bxs-file-export'></i>Save to PDF</button>
+                    <button id="exportBtn" class="pdf-button" type="button"><i class='bx bxs-file-pdf'></i>Export to Excel</button>
+                    <button id="savePdfBtn" class="excel-button" type="button"><i class='bx bxs-file-export'></i>Save to PDF</button>
                 </div>
             </section>
+
+            <div id="previewModal" class="modal" style="display: none;">
+                <div class="modal-content">
+                    <span id="closeModal" class="close">&times;</span>
+                    <div id="modalContent"></div>
+                </div>
+            </div>
 
             <div class="modal" id="editModal" style="display:none;">
                 <div class="modal-content">
@@ -207,7 +218,7 @@
                         </div>
 
                         <div class="form-group">
-                            <label>Name/Company:</label>
+                            <label>Name:</label>
                             <input type="text" id="edit-name" required>
                         </div>
 
@@ -217,8 +228,8 @@
                         </div>
 
                         <div class="form-group">
-                            <label>Number:</label>
-                            <input type="tel" id="edit-number" required>
+                            <label>Mobile Number:</label>
+                            <input type="number" id="edit-number" pattern="09[0-9]{9}" required>
                         </div>
 
                         <div class="form-group">
@@ -246,11 +257,9 @@
                             <input type="text" id="edit-bank" required>
                         </div>
 
-                        
-
                         <div class="form-group">
                             <label>Proof of Transaction (Google Drive Link):</label>
-                            <input type="url" id="edit-proof" required>
+                            <input type="url" id="edit-proof">
                         </div>
 
                         <div style="margin-top: 20px;">
@@ -260,8 +269,6 @@
                     </form>
                 </div>
             </div>
-
-
             
             <!-- Archived Modal -->
             <div class="modal" id="archivedModal" style="display: none;">
@@ -274,7 +281,7 @@
                                 <tr>
                                     <th>No.</th>
                                     <th>Encoder</th>
-                                    <th>Name/Company</th>
+                                    <th>Name</th>
                                     <th>Location</th>
                                     <th>Number</th>
                                     <th>Amount Donated</th>
@@ -284,6 +291,7 @@
                                     <th>Bank</th>
                                     <th>Reference No.</th>
                                     <th>Proof of Transaction</th>
+                                    <th>Deleted At</th>
                                     <th>Action</th>
                                 </tr>
                             </thead>
