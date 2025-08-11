@@ -610,7 +610,7 @@ function showPreviewModal(applicationData) {
             <p><strong>Social Media Link:</strong> ${applicationData.socialMediaLink ? `<a href="${applicationData.socialMediaLink}" target="_blank" rel="noopener noreferrer">${applicationData.socialMediaLink}</a>` : 'N/A'}</p>
             <hr>
             <h2>Headquarters Address:</h2>
-            <div style="margin-left: 15px;">
+            <div style="margin-left: 10px;">
                 <p><strong>Region:</strong> ${applicationData.headquarters?.region || 'N/A'}</p>
                 <p><strong>Province:</strong> ${applicationData.headquarters?.province || 'N/A'}</p>
                 <p><strong>City:</strong> ${applicationData.headquarters?.city || 'N/A'}</p>

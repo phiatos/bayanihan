@@ -108,7 +108,7 @@ function generateTempPassword() {
     return password;
 }
 
-// Function to validate email format (re-used)
+// Function to validate email format 
 function isValidEmail(email) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const validDomains = ['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'icloud.com', 'protonmail.com'];
