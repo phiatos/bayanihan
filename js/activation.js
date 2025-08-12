@@ -1072,6 +1072,7 @@ async function getNextActivationNumber() {
 }
 
 modalActivateSubmitBtn.addEventListener("click", async () => {
+    
     if (!selectedGroupForActivation) {
         Swal.fire({ icon: 'error', title: 'Error', text: 'No organization selected for activation.' });
         return;
