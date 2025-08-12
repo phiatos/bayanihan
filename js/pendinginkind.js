@@ -20,6 +20,14 @@ if (!firebase.apps.length) {
 
 const database = firebase.database();
 
+// EmailJS Configuration
+const serviceID = 'service_mzpjk2a';
+const templateID = 'template_owchxrw';
+const publicKey = 'zQTkHE6hGtoKPZM_L';
+
+// Initialize EmailJS
+emailjs.init(publicKey);
+
 // Global variables for managing donations and UI state
 let allDonations = [];
 let filteredDonations = [];
@@ -265,55 +273,101 @@ function checkInactivity() {
         }
     }
 
-   async function updateDonationStatus(id, donationData, newStatus) {
-        Swal.fire({
-            title: `Are you sure you want to ${newStatus.toLowerCase()} this donation?`,
-            // Adjusted text to reflect that neither Approved nor Rejected changes the status field itself
-            text: newStatus === 'Approved' ? 'This will move the donation to the approved donations list, keeping its current status.' : 'This will remove the donation from the pending list, keeping its current status.',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#3085d6',
-            cancelButtonColor: '#d33',
-            confirmButtonText: `Yes, ${newStatus.toLowerCase()} it!`,
-            customClass: {
-                confirmButton: 'my-confirm-button-class',
-                cancelButton: 'my-cancel-button-class'
-            }
-        }).then(async (result) => {
-            if (result.isConfirmed) {
-                try {
-                    if (newStatus === 'Approved') {
-                        // For 'Approved', we first fetch the existing data from pendingInkind
-                        const snapshot = await database.ref('pendingInkind/' + id).once('value');
-                        const approvedDonation = snapshot.val(); // This contains the full donation data
+    // Function to send the approval email
+    function sendApprovalEmail(donation) {
+        const donorEmail = donation.email;
+        const donorName = donation.name || 'Donor'; 
 
-                        if (approvedDonation) {
-                            // Status field is deliberately NOT changed here.
-                            approvedDonation.approvedAt = new Date().toISOString(); // Add approval timestamp
-                            approvedDonation.updatedAt = new Date().toISOString();   // Add general update timestamp
+        if (!donorEmail) {
+            console.warn("No email address provided for this donor. Skipping email notification.");
+            return;
+        }
 
-                            // Move the donation to the 'donations/inkind' path
-                            await database.ref('donations/inkind/' + id).set(approvedDonation);
+        // Define the template parameters to match your email template
+        const templateParams = {
+            to_email: donorEmail,
+            donor_name: donorName,
+            item_type: donation.assistance || 'N/A', // Match {{item_type}}
+            description: donation.additionalnotes || 'N/A', // Match {{description}}
+            valuation: donation.valuation || 'N/A', // Match {{valuation}}
+            donation_date: donation.donationDate || 'N/A' // Match {{donation_date}}
+        };
+        
+        // Check if donation.valuation is a number and format it
+        if (donation.valuation && !isNaN(parseFloat(donation.valuation))) {
+            templateParams.valuation = parseFloat(donation.valuation).toLocaleString('en-PH', { 
+                minimumFractionDigits: 2, 
+                maximumFractionDigits: 2 
+            });
+        } else {
+            templateParams.valuation = 'N/A';
+        }
 
-                            // Then, remove it from the 'pendingInkind' table
-                            await database.ref('pendingInkind/' + id).remove();
 
-                        } else {
-                            throw new Error("Donation data not found in pendingInkind for approval.");
-                        }
-                    } else if (newStatus === 'Rejected') {
-                        await database.ref('pendingInkind/' + id).remove();
-                    }
-
-                    // Show success message
-                    Swal.fire('Updated!', `Donation has been ${newStatus.toLowerCase()}.`, 'success');
-                } catch (error) {
-                    console.error(`Error processing donation status to ${newStatus} in Firebase:`, error);
-                    Swal.fire('Error', `Failed to ${newStatus.toLowerCase()} donation. Error: ${error.message}`, 'error');
-                }
-            }
-        });
+        // Use EmailJS to send the email
+        emailjs.send(serviceID, templateID, templateParams)
+            .then((response) => {
+                console.log('Email successfully sent!', response.status, response.text);
+                Swal.fire({
+                    title: 'Email Sent!',
+                    text: 'The donor has been notified via email.',
+                    icon: 'success',
+                    showConfirmButton: false,
+                    timer: 2000
+                });
+            }, (error) => {
+                console.error('Failed to send email:', error);
+                Swal.fire('Email Error', 'Failed to send the approval email. Please check your EmailJS settings.', 'error');
+            });
     }
+
+    async function updateDonationStatus(id, donationData, newStatus) {
+    Swal.fire({
+        title: `Are you sure you want to ${newStatus.toLowerCase()} this donation?`,
+        // The rest of your existing Swal.fire text...
+        text: newStatus === 'Approved' ? 'This will move the donation to the approved donations list, keeping its current status and send email to the donor.' : 'This will remove the donation from the pending list, keeping its current status.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: `Yes, ${newStatus.toLowerCase()} it!`,
+        customClass: {
+            confirmButton: 'my-confirm-button-class',
+            cancelButton: 'my-cancel-button-class'
+        }
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            try {
+                if (newStatus === 'Approved') {
+                    // Your existing logic to move the donation to the 'donations/inkind' path
+                    const snapshot = await database.ref('pendingInkind/' + id).once('value');
+                    const approvedDonation = snapshot.val();
+                    if (approvedDonation) {
+                        approvedDonation.approvedAt = new Date().toISOString();
+                        approvedDonation.updatedAt = new Date().toISOString();
+                        // Assuming 'donations/inkind' is a direct child of the root, you should verify this path
+                        await database.ref('donations/inkind/' + id).set(approvedDonation);
+                        await database.ref('pendingInkind/' + id).remove();
+
+                        // Call the function to send the email
+                        sendApprovalEmail(approvedDonation);
+
+                    } else {
+                        throw new Error("Donation data not found in pendingInkind for approval.");
+                    }
+                } else if (newStatus === 'Rejected') {
+                    await database.ref('pendingInkind/' + id).remove();
+                }
+
+                // Show a success message for the database operation. The email will have its own message.
+                Swal.fire('Updated!', `Donation has been ${newStatus.toLowerCase()}.`, 'success');
+            } catch (error) {
+                console.error(`Error processing donation status to ${newStatus} in Firebase:`, error);
+                Swal.fire('Error', `Failed to ${newStatus.toLowerCase()} donation. Error: ${error.message}`, 'error');
+            }
+        }
+    });
+}
 
     loadDonationsFromFirebase();
 });

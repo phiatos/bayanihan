@@ -1105,7 +1105,7 @@ function initializePageFunctions(userId) {
             dropdown.style.left = `${rect.left + window.scrollX}px`;
             dropdown.innerHTML = `
                 <button id="dropdownConfirmByAB"><i class='bx bxs-check-circle'></i>Confirm by AB</button>
-                <button id="dropdownDirectedToABVN"><i class='bx bxs-group'></i>Directed to ABVN</button>
+                <button id="dropdownDirectedToABVN"><i class='bx bxs-group'></i>Endorsed to ABVN</button>
                 <button id="dropdownSetStalled"><i class='bx bxs-hand'></i>Status Notes</button>
                 <button id="dropdownArchive"><i class='bx bx-archive'></i>Archive</button>
             `;
@@ -1382,16 +1382,16 @@ function initializePageFunctions(userId) {
         now.setMilliseconds(0);
         if (selectedDate <= now) {
             Swal.fire({
+                icon: 'error',
                 title: 'Invalid Date',
                 text: 'You cannot schedule a volunteer for a date and time that has already passed. Please select a future date and time.',
-                icon: 'error',
+                showConfirmButton: true,
                 confirmButtonText: 'Understood',
                 customClass: {
-                    popup: 'swal-invalid-date-popup',
-                    title: 'swal-invalid-date-title',
-                    htmlContainer: 'swal-invalid-date-text',
-                    icon: 'swal-invalid-date-icon',
-                    confirmButton: 'swal-invalid-date-confirm-button'
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
                 }
             });
             return;
@@ -1402,13 +1402,12 @@ function initializePageFunctions(userId) {
                 title: 'Invalid Date',
                 text: 'Scheduled date and time must be at least 1 hour in the future.',
                 icon: 'error',
-                confirmButtonText: 'Understood',
+                confirmButtonText: 'Ok',
                 customClass: {
-                    popup: 'swal-invalid-date-popup',
-                    title: 'swal-invalid-date-title',
-                    htmlContainer: 'swal-invalid-date-text',
-                    icon: 'swal-invalid-date-icon',
-                    confirmButton: 'swal-invalid-date-confirm-button'
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
                 }
             });
             return;

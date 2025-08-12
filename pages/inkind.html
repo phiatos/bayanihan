@@ -7,6 +7,16 @@
     <link rel="stylesheet" href="../css/donations.css" />
     <link rel="stylesheet" href="../css/global.css" />
     <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" />
+    
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+    <script type="text/javascript">
+        (function() {
+            // Replace with your actual Public Key
+            emailjs.init({
+                publicKey: "zQTkHE6hGtoKPZM_L",
+            });
+        })();
+    </script>
 
     <!-- Firebase Compat SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -20,7 +30,7 @@
     <!-- PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
-
+    
     <title>Bayanihan | Angat Buhay Disaster Relief Portal</title>
 </head>
 <body>
@@ -36,47 +46,47 @@
                         <div class="fields">
                             <div class="input-field">
                                 <label for="encoder">Encoder</label>
-                                <input type="text" id="encoder" placeholder="Enter encoder" maxlength="30" required/>
+                                <input type="text" id="encoder" name="encoder" placeholder="Enter encoder" maxlength="30" required/>
                             </div>
                             <div class="input-field">
                                 <label for="name">Partner/Donor Name</label>
-                                <input type="text" id="name" placeholder="Enter name" maxlength="100" required/>
+                                <input type="text" id="name" name="name" placeholder="Enter name" maxlength="100" required/>
                             </div>
                             <div class="input-field">
                                 <label for="type">Partner/Donor Type</label>
-                                <input type="text" id="type" placeholder="Enter type" maxlength="30" required/>
+                                <input type="text" id="type" name="type" placeholder="Enter type" maxlength="30" required/>
                             </div>
                             <div class="input-field">
                                 <label for="address">Address</label>
-                                <input type="text" id="address" placeholder="Enter address" maxlength="150" required/>
+                                <input type="text" id="address" name="address" placeholder="Enter address" maxlength="150" required/>
                             </div>
                             <div class="input-field">
                                 <label for="contactPerson">Contact Person</label>
-                                <input type="text" id="contactPerson" placeholder="Enter contact person" maxlength="70" required/>
+                                <input type="text" id="contactPerson" name="contactPerson" placeholder="Enter contact person" maxlength="70" required/>
                             </div>
                             <div class="input-field">
-                                <label for="number">Number</label>
-                                <input type="number" id="number" placeholder="Enter number" maxlength="15" required/>
+                                <label for="number">Mobile Number</label>
+                                <input type="number" id="number" name="number" placeholder="Enter mobile number" maxlength="15" pattern="09[0-9]{9}" required/>
                             </div>
                             <div class="input-field">
                                 <label for="email">Email</label>
-                                <input type="email" id="email" placeholder="Enter email" maxlength="100" required/>
+                                <input type="email" id="email" name="email" placeholder="Enter email" maxlength="100" required/>
                             </div>
                             <div class="input-field">
                                 <label for="assistance">Type of Assistance</label>
-                                <input type="text" id="assistance" placeholder="Enter type of assistance" maxlength="50" required/>
+                                <input type="text" id="assistance" name="assistance" placeholder="Enter type of assistance" maxlength="50" required/>
                             </div>
                             <div class="input-field">
                                 <label for="valuation">Valuation</label>
-                                <input type="number" id="valuation" placeholder="Enter valuation" maxlength="999999999" required/>
+                                <input type="number" id="valuation" name="valuation" placeholder="Enter valuation" maxlength="999999999" required/>
                             </div>
                             <div class="input-field">
                                 <label for="additionalnotes">Additional Notes</label>
-                                <input type="text" id="additionalnotes" placeholder="Enter additional notes" maxlength="300"/>
+                                <input type="text" id="additionalnotes" name="additionalnotes" placeholder="Enter additional notes" maxlength="300"/>
                             </div>
                             <div class="input-field">
                                 <label for="status">Status</label>
-                                <select id="status" required>
+                                <select id="status" name="status" required>
                                     <option value="" disabled selected>Select Status</option>
                                     <option value="closed-successful">Closed-successful</option>
                                     <option value="pending">Pending</option>
@@ -85,16 +95,16 @@
                             </div>
                             <div class="input-field">
                                 <label for="staffIncharge">Staff-In Charge</label>
-                                <input type="text" id="staffIncharge" placeholder="Enter Staff-In Charge" maxlength="70" required/>
+                                <input type="text" id="staffIncharge" name="staffIncharge" placeholder="Enter Staff-In Charge" maxlength="70" required/>
                             </div>
                             <div class="input-field">
                                 <label for="donationDate">Donation Date</label>
-                                <input type="date" id="donationDate" placeholder="Select donation date" required/>
+                                <input type="date" id="donationDate" name="donationDate" placeholder="Select donation date" required/>
                             </div>
                         </div>
 
                         <div class="donation-buttons">
-                            <button type="submit"  id="addDonationBtn" class="bayanihanBtn">Add Donation</button>
+                            <button type="submit" class="bayanihanBtn">Add Donation</button>
                             <button type="button" id="clearFormBtn" class="bayanihanBtn">Clear Form</button>
                         </div>
                     </form>
@@ -164,17 +174,21 @@
                             </select>
                             <i class='bx bx-chevron-down'></i>
                         </div>
-                        <button id="viewArchived" aria-label="View Archived Admins">
-                            <i class='bx bx-archive' style="color: white; font-size: 20px;"></i>
-                        </button>
+
+                        <div class="button-group">
+                            <button id="viewArchived" aria-label="View Archived Admins">
+                                <i class='bx bx-archive' style="color: white; font-size: 20px;"></i>
+                            </button>
+                            <button id="downloadTemplateBtn"><i class='bx bx-file-blank'></i></button>
+                        </div>
 
                         <div class="import-section">
                             <input type="file" id="excelFileInput" accept=".xls,.xlsx" style="display: none;"/>
                             <button id="importExcelBtn" class="importExcelBtn" type="button">
-                                <i class='bx bxs-file-import'  style="font-size: 1.2rem;"></i>Import from Excel
+                                <i class='bx bxs-file-import' style="font-size: 1.2rem;"></i>Import from Excel
                             </button>
                         </div>
-                        
+
                         <div id="importStatusModal" class="modal" style="display: none;">
                             <div class="modal-content custom-swal-popup-small">
                                 <span class="close-button" id="closeImportStatusModalBtn">&times;</span>
@@ -184,11 +198,9 @@
                                 <ul id="importErrorList" class="custom-swal-text" style="color: red; list-style-type: none; padding: 0;"></ul>
                             </div>
                         </div>
-                        
                     </div>
                 </div>
 
-                
                 <div class="table-container">
                     <table id="inKindTable">
                         <thead>
@@ -201,13 +213,13 @@
                             <th>Contact Person</th>
                             <th>Number</th>
                             <th>Email</th>
-                            <th>Type of Assistance</th>
+                            <th>Assistance</th>
                             <th>Valuation</th>
                             <th>Additional Notes</th>
-                            <th>Staff-In Charge</th>
                             <th>Status</th>
+                            <th>Staff-In-Charge</th>
                             <th>Donation Date</th>
-                            <th>Action</th>                        
+                            <th>Actions</th>               
                         </tr>
                         </thead>
                         <tbody></tbody>
@@ -225,6 +237,13 @@
                 <button id="savePdfBtn" class="excel-button" type="button"><i class='bx bxs-file-export'></i>Save to PDF</button>
                 </div>
             </section>
+
+            <div id="previewModal" class="modal" style="display: none;">
+                <div class="modal-content">
+                    <span id="closeModal" class="close">&times;</span>
+                    <div id="modalContent"></div>
+                </div>
+            </div>
 
             <div class="modal" id="endorseModal" style="display:none;">
                 <div class="modal-content">
@@ -250,73 +269,61 @@
                     <form id="editDonationForm"> 
                         <div class="form-group">
                             <label for="edit-encoder">Encoder</label>
-                            <input type="text" id="edit-encoder" placeholder="Enter encoder" required>
+                            <input type="text" id="edit-encoder" name="edit-encoder" placeholder="Enter encoder" required>
                         </div>
-                        
                         <div class="form-group">
                             <label for="edit-name">Partner/Donor Name</label>
-                            <input type="text" id="edit-name" placeholder="Enter name" required>
+                            <input type="text" id="edit-name" name="edit-name" placeholder="Enter name" required>
                         </div>
-
                         <div class="form-group">
                             <label for="edit-type">Partner/Donor Type</label>
-                            <input type="text" id="edit-type" placeholder="Enter type" required>
+                            <input type="text" id="edit-type" name="edit-type" placeholder="Enter type" required>
                         </div>
-
                         <div class="form-group">
                             <label for="edit-address">Address</label>
-                            <input type="text" id="edit-address" placeholder="Enter address" required>
+                            <input type="text" id="edit-address" name="edit-address" placeholder="Enter address" required>
                         </div>
-
                         <div class="form-group">
                             <label for="edit-contactPerson">Contact Person</label>
-                            <input type="text" id="edit-contactPerson" placeholder="Enter contact person" required>
+                            <input type="text" id="edit-contactPerson" name="edit-contactPerson" placeholder="Enter contact person" required>
                         </div>
-
                         <div class="form-group">
                             <label for="edit-number">Number</label>
-                            <input type="number" id="edit-number" placeholder="Enter number" required>
+                            <input type="number" id="edit-number" name="edit-number" placeholder="Enter number" maxlength="15" pattern="09[0-9]{9}" required>
                         </div>
-
                         <div class="form-group">
                             <label for="edit-email">Email</label>
-                            <input type="email" id="edit-email" placeholder="Enter email" required>
+                            <input type="email" id="edit-email" name="edit-email" placeholder="Enter email" required>
                         </div>
-
                         <div class="form-group">
                             <label for="edit-assistance">Type of Assistance</label>
-                            <input type="text" id="edit-assistance" placeholder="Enter type of assistance" required>
+                            <input type="text" id="edit-assistance" name="edit-assistance" placeholder="Enter type of assistance" required>
                         </div>
-
                         <div class="form-group">
                             <label for="edit-valuation">Valuation</label>
-                            <input type="number" id="edit-valuation" placeholder="Enter valuation" required>
+                            <input type="number" id="edit-valuation" name="edit-valuation" placeholder="Enter valuation" required>
                         </div>
-
                         <div class="form-group">
                             <label for="edit-additionalnotes">Additional Notes</label>
-                            <input type="text" id="edit-additionalnotes" placeholder="Enter additional notes">
+                            <input type="text" id="edit-additionalnotes" name="edit-additionalnotes" placeholder="Enter additional notes">
                         </div>
-
                         <div class="form-group">
                             <label for="edit-status">Status</label>
-                            <select id="edit-status" required>
+                            <select id="edit-status" name="edit-status" required>
                                 <option value="closed-successful">Closed-successful</option>
                                 <option value="pending">Pending</option>
                                 <option value="closed">Closed</option>
                             </select>
                         </div>
-
                         <div class="form-group">
                             <label for="edit-staffIncharge">Staff-In Charge</label>
-                            <input type="text" id="edit-staffIncharge" placeholder="Enter Staff-In Charge" required>
+                            <input type="text" id="edit-staffIncharge" name="edit-staffIncharge" placeholder="Enter Staff-In Charge" required>
                         </div>
-
                         <div class="form-group">
                             <label for="edit-donationDate">Donation Date</label>
-                            <input type="date" id="edit-donationDate" placeholder="Select donation date" max="" required/>
+                            <input type="date" id="edit-donationDate" name="edit-donationDate" placeholder="Select donation date" max="" required/>
                         </div>
-                        
+
                         <div style="margin-top: 20px;">
                             <button type="button" id="saveEditBtn">Save Changes</button>
                             <button type="button" id="cancelEditBtn">Cancel</button>
@@ -352,8 +359,7 @@
                                     <th>Actions</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                </tbody>
+                            <tbody></tbody>
                         </table>
                     </div>
                     <div class="pagination-info" style="margin-top: 15px;">
@@ -378,7 +384,6 @@
             .catch(err => console.error('Error loading sidebar:', err));
     </script>
 
-    <!-- <script src="../js/inactivity-detector.js"></script>  -->
     <script type="module" src="../js/inkind.js"></script>
 </body>
 </html>

@@ -1,4 +1,3 @@
-
 let map;
 let markers = [];
 let autocomplete;
@@ -54,10 +53,10 @@ function initMap() {
         });
         infowindow.open(map, marker);
 
-        // Populate the AreaOfOperation input with the selected location
-        const areaOfOperationInput = document.getElementById('inKindDonorAddress');
-        if (areaOfOperationInput) {
-            areaOfOperationInput.value = place.formatted_address;
+        // Populate the inKindDonorAddress input with the selected location
+        const inKindDonorAddressInput = document.getElementById('inKindDonorAddress');
+        if (inKindDonorAddressInput) {
+            inKindDonorAddressInput.value = place.formatted_address;
         }
 
         // Close the modal after selecting a location
@@ -95,10 +94,10 @@ function initMap() {
                 });
                 infowindow.open(map, marker);
 
-                // Populate the AreaOfOperation input with the pinned location
-                const areaOfOperationInput = document.getElementById('inKindDonorAddress');
-                if (areaOfOperationInput) {
-                    areaOfOperationInput.value = address;
+                // Populate the inKindDonorAddress input with the pinned location
+                const inKindDonorAddressInput = document.getElementById('inKindDonorAddress');
+                if (inKindDonorAddressInput) {
+                    inKindDonorAddressInput.value = address;
                 }
 
                 // Close the modal after pinning a location
@@ -115,9 +114,9 @@ function initMap() {
                 });
 
                 // Fallback: Use coordinates if geocoding fails
-                const areaOfOperationInput = document.getElementById('inKindDonorAddress');
-                if (areaOfOperationInput) {
-                    areaOfOperationInput.value = `Lat: ${event.latLng.lat()}, Lng: ${event.latLng.lng()}`;
+                const inKindDonorAddressInput = document.getElementById('inKindDonorAddress');
+                if (inKindDonorAddressInput) {
+                    inKindDonorAddressInput.value = `Lat: ${event.latLng.lat()}, Lng: ${event.latLng.lng()}`;
                 }
 
                 const mapModal = document.getElementById('mapModal');
@@ -151,7 +150,7 @@ function initMap() {
                     map: map,
                     title: "You are here",
                     icon: {
-                        url: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png", // A more common blue dot icon
+                        url: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png",
                     },
                 });
                 markers.push(marker);
@@ -243,7 +242,6 @@ firebase.auth().onAuthStateChanged((user) => {
     }
 });
 
-
 document.addEventListener('DOMContentLoaded', () => {
     const inKindBtn = document.getElementById('inKindBtn');
     const monetaryBtn = document.getElementById('monetaryBtn');
@@ -254,12 +252,35 @@ document.addEventListener('DOMContentLoaded', () => {
     const amountDonatedInput = document.getElementById('amountDonated');
     const cashInvoiceInput = document.getElementById('cashInvoice');
     const bankSelect = document.getElementById('bank');
+    const inKindValuationInput = document.getElementById('valuation');
+    const pinBtn = document.getElementById('pinBtn');
+    const mapModal = document.getElementById('mapModal');
+    const closeBtn = document.querySelector('.closeBtn');
+    const inKindDonationDateInput = document.getElementById('donationDate');
+    const monetaryDonationDateInput = document.getElementById('monetaryDonationDate');
+    const referenceNumberInput = document.getElementById('referenceNumber');
 
-      // Map modal elements (assuming these exist in your HTML)
-    const pinBtn = document.getElementById('pinBtn'); // Ensure this element exists
-    const mapModal = document.getElementById('mapModal'); // Ensure this element exists
-    const closeBtn = document.querySelector('.closeBtn'); // Reverted to querySelector for flexibility as in first version
+    // Set default donation date to current date
+    const today = new Date().toISOString().split('T')[0]; // Format: YYYY-MM-DD
+    if (inKindDonationDateInput) {
+        inKindDonationDateInput.value = today;
+    }
+    if (monetaryDonationDateInput) {
+        monetaryDonationDateInput.value = today;
+    }
 
+    // Footer visibility on scroll
+    document.addEventListener("scroll", () => {
+        const footer = document.querySelector(".footer");
+        const scrollPosition = window.scrollY + window.innerHeight;
+        const documentHeight = document.documentElement.scrollHeight;
+        // Show footer when within 50px of the bottom
+        if (scrollPosition >= documentHeight - 50) {
+            footer.classList.add("visible");
+        } else {
+            footer.classList.remove("visible");
+        }
+    });
 
     if (inKindBtn && monetaryBtn && inKindDonationForm && monetaryDonationForm) {
         inKindBtn.addEventListener('click', () => {
@@ -277,24 +298,17 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error("One or more required elements (buttons or forms) not found in the DOM. Check your HTML IDs.");
     }
 
-    // --- Number Input Validation (11 digits, starts with 09) ---
+    // Phone Number Validation
     const validatePhoneNumber = (inputElement) => {
         inputElement.addEventListener('input', () => {
             let value = inputElement.value.replace(/\D/g, ''); 
-            
-            // Auto-prefix with 09 if the first digit is 9 (common for mobile numbers)
+
+            // Auto-prefix with 09 if the first digit is 9
             if (value.length === 1 && value.charAt(0) === '9') {
                 value = '0' + value;
             } else if (value.length > 0 && !value.startsWith('09')) {
-                // If it doesn't start with 09, try to correct it, but don't force if user is typing something else
-                // This is a more lenient auto-correction
-                if (value.length >= 2 && value.substring(0, 2) !== '09') {
-                    // If they type 639..., try to fix it to 09...
-                    if (value.startsWith('63')) {
-                        value = '0' + value.substring(2);
-                    } else {
-                        // For any other non-09 start, just keep it, validation on blur will catch it
-                    }
+                if (value.startsWith('63')) {
+                    value = '0' + value.substring(2);
                 }
             }
 
@@ -304,17 +318,15 @@ document.addEventListener('DOMContentLoaded', () => {
             inputElement.value = value;
         });
 
-        // The alert will only trigger on blur if the number is invalid
+        // Validate on blur only if field has at least one digit
         inputElement.addEventListener('blur', () => {
             const value = inputElement.value;
-            if (value.length !== 11 || !value.startsWith('09')) {
+            if (value.length > 0 && (value.length !== 11 || !value.startsWith('09'))) {
                 Swal.fire({
                     icon: 'error',
                     title: 'Invalid Number Format',
                     text: 'Please enter an 11-digit mobile number starting with 09 (e.g., 09171234567).'
                 });
-                // Optionally, clear the field or leave it for the user to correct
-                // inputElement.value = ''; 
             }
         });
     };
@@ -326,36 +338,57 @@ document.addEventListener('DOMContentLoaded', () => {
         validatePhoneNumber(inKindContactNumberInput);
     }
 
-    // --- Amount Donated Formatting ---
+    // Amount Donated Formatting (Monetary Form)
     if (amountDonatedInput) {
         amountDonatedInput.addEventListener('input', (event) => {
-            let value = event.target.value.replace(/,/g, ''); // Remove existing commas
-
-            // Check if the value is empty or not a valid number before formatting
+            let value = event.target.value.replace(/,/g, '');
             if (value === '' || isNaN(value)) {
-                event.target.value = ''; // Clear if not a number
+                event.target.value = '';
                 return;
             }
-
-            // Convert to a number, then format back to string with commas
+            const cursorPosition = event.target.selectionStart;
+            const originalLength = event.target.value.length;
             event.target.value = Number(value).toLocaleString('en-US', {
                 minimumFractionDigits: 0,
                 maximumFractionDigits: 0
             });
+            const newLength = event.target.value.length;
+            const cursorOffset = newLength - originalLength;
+            event.target.setSelectionRange(cursorPosition + cursorOffset, cursorPosition + cursorOffset);
         });
     }
 
-    // --- Cash Invoice Random Generation ---
+    // In-Kind Valuation Formatting
+    if (inKindValuationInput) {
+        inKindValuationInput.addEventListener('input', (event) => {
+            let value = event.target.value.replace(/,/g, '');
+            if (value === '' || isNaN(value)) {
+                event.target.value = '';
+                return;
+            }
+            const cursorPosition = event.target.selectionStart;
+            const originalLength = event.target.value.length;
+            event.target.value = Number(value).toLocaleString('en-US', {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            });
+            const newLength = event.target.value.length;
+            const cursorOffset = newLength - originalLength;
+            event.target.setSelectionRange(cursorPosition + cursorOffset, cursorPosition + cursorOffset);
+        });
+    }
+
+    // Cash Invoice Random Generation
     if (cashInvoiceInput) {
         const generateCashInvoice = () => {
-            const randomNumber = Math.floor(100000 + Math.random() * 900000); // 6-digit random number
+            const randomNumber = Math.floor(100000 + Math.random() * 900000);
             return `CINV-${randomNumber}`;
         };
         cashInvoiceInput.value = generateCashInvoice();
-        // You might want to disable the input if it's auto-generated
-        cashInvoiceInput.setAttribute('readonly', true);
+        // Removed readonly attribute to make cashInvoice editable
     }
 
+    // In-Kind Donation Form Submission
     if (inKindDonationForm) {
         inKindDonationForm.addEventListener('submit', async (event) => {
             event.preventDefault();
@@ -364,10 +397,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const inKindDonorType = document.getElementById('inKindDonorType').value;
             const inKindDonorAddress = document.getElementById('inKindDonorAddress').value;
             const inKindContactPerson = document.getElementById('inKindContactPerson').value;
-            const inKindContactNumber = document.getElementById('inKindContactNumber').value; 
+            const inKindContactNumber = document.getElementById('inKindContactNumber').value;
             const inKindDonorEmail = document.getElementById('inKindDonorEmail').value;
             const itemType = document.getElementById('itemType').value;
-            const value = document.getElementById('value').value;
+            const value = document.getElementById('valuation').value.replace(/,/g, ''); // Remove commas for submission
             const description = document.getElementById('description').value;
             const status = document.getElementById('status').value;
             const staffIncharge = document.getElementById('staffIncharge').value;
@@ -382,9 +415,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // --- Value Input Validation ---
-            const parsedValue = parseFloat(value); 
-
+            // Value Input Validation
+            const parsedValue = parseFloat(value);
             if (isNaN(parsedValue) || parsedValue <= 0) {
                 Swal.fire({
                     icon: 'error',
@@ -394,24 +426,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // checks future date validation
+            // Date Validation: Donation Date cannot be a past date
             const today = new Date();
-            today.setHours(0, 0, 0, 0); 
-
+            today.setHours(0, 0, 0, 0);
             const selectedInKindDate = new Date(donationDate);
             selectedInKindDate.setHours(0, 0, 0, 0);
-
-            if (selectedInKindDate > today) {
+            if (selectedInKindDate < today) {
                 Swal.fire({
                     icon: 'error',
                     title: 'Invalid Date',
-                    text: 'Donation Date cannot be a future date.'
+                    text: 'Donation Date cannot be a past date. It must be today or a future date.'
                 });
-                return; 
+                return;
             }
 
-            // Validate inKindContactNumber again for submission
-            if (inKindContactNumber.length !== 11 || !inKindContactNumber.startsWith('09')) {
+            // Phone Number Validation (optional)
+            if (inKindContactNumber.length > 0 && (inKindContactNumber.length !== 11 || !inKindContactNumber.startsWith('09'))) {
                 Swal.fire({
                     icon: 'error',
                     title: 'Invalid Contact Number',
@@ -431,7 +461,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 type: inKindDonorType,
                 address: inKindDonorAddress,
                 contactPerson: inKindContactPerson,
-                number: inKindContactNumber,
+                number: inKindContactNumber || '',
                 email: inKindDonorEmail,
                 assistance: itemType,
                 valuation: parsedValue,
@@ -450,6 +480,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     text: 'In Kind Donation submitted successfully.'
                 });
                 inKindDonationForm.reset();
+                // Reset donation date to current date after form reset
+                if (inKindDonationDateInput) {
+                    inKindDonationDateInput.value = today;
+                }
             } catch (error) {
                 console.error("Error submitting in-kind donation to Firebase:", error);
                 Swal.fire({
@@ -461,6 +495,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // GCash and Bank Details Toggle
     if (gcashDiv) gcashDiv.style.display = 'none';
     if (bankDiv) bankDiv.style.display = 'none';
 
@@ -476,46 +511,39 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-        // --- Modal Elements and Event Listeners ---
+    // Map Modal Event Listeners
     if (pinBtn && mapModal && closeBtn) {
         pinBtn.addEventListener('click', (e) => {
             e.preventDefault();
             console.log("Pin button clicked!");
             mapModal.classList.add('show');
-            console.log("mapModal classList:", mapModal.classList);
-            // Initialize the map when the modal is opened (if not already initialized)
             if (!map) {
                 initMap();
             } else {
-                // If map already exists, just resize it to fit the modal
                 setTimeout(() => {
                     if (map) {
                         google.maps.event.trigger(map, 'resize');
-                        // Center map to current area of operation if available
-                        const currentArea = areaOfOperationInput.value;
-                        if (currentArea) {
+                        const inKindDonorAddressInput = document.getElementById('inKindDonorAddress').value;
+                        if (inKindDonorAddressInput) {
                             const geocoder = new google.maps.Geocoder();
-                            geocoder.geocode({ 'address': currentArea }, (results, status) => {
+                            geocoder.geocode({ 'address': inKindDonorAddressInput }, (results, status) => {
                                 if (status === 'OK' && results[0]) {
                                     map.setCenter(results[0].geometry.location);
-                                    // Clear existing markers and add a new one for the current area
-                                    markers.forEach((marker) => marker.setMap(null));
-                                    markers = [];
+                                    clearMarkers();
                                     const marker = new google.maps.Marker({
                                         map: map,
                                         position: results[0].geometry.location,
-                                        title: currentArea,
+                                        title: inKindDonorAddressInput,
                                     });
                                     markers.push(marker);
                                 }
                             });
                         } else {
-                            // If no area of operation, center on Philippines
                             map.setCenter({ lat: 12.8797, lng: 121.7740 });
                             map.setZoom(6);
                         }
                     }
-                }, 100); // Small delay to allow modal to render
+                }, 100);
             }
         });
 
@@ -532,6 +560,7 @@ document.addEventListener('DOMContentLoaded', () => {
         console.warn('Modal elements (pinBtn, mapModal, closeBtn) not found. Map functionality may be impaired.');
     }
 
+    // Monetary Donation Form Submission
     if (monetaryDonationForm) {
         console.log("Monetary Donation Form element found.");
         monetaryDonationForm.addEventListener('submit', async (event) => {
@@ -541,18 +570,19 @@ document.addEventListener('DOMContentLoaded', () => {
             const monetaryEncoder = document.getElementById('monetaryEncoder').value;
             const monetaryDonorName = document.getElementById('monetaryDonorName').value;
             const monetaryLocation = document.getElementById('monetaryLocation').value;
-            const monetaryNumber = document.getElementById('monetaryNumber').value; // Validated
-            const amountDonated = document.getElementById('amountDonated').value.replace(/,/g, ''); // Remove commas for submission
-            const cashInvoice = document.getElementById('cashInvoice').value; // Auto-generated
+            const monetaryNumber = document.getElementById('monetaryNumber').value;
+            const amountDonated = document.getElementById('amountDonated').value.replace(/,/g, '');
+            const cashInvoice = document.getElementById('cashInvoice').value;
             const monetaryDonationDate = document.getElementById('monetaryDonationDate').value;
             const monetaryEmail = document.getElementById('monetaryEmail').value;
-            const bank = document.getElementById('bank').value; // Dropdown value
+            const bank = document.getElementById('bank').value;
             const proofofTransferFile = document.getElementById('proofofTransfer').value;
+            const referenceNumber = document.getElementById('referenceNumber').value;
 
             console.log("Collected values:", {
                 monetaryEncoder, monetaryDonorName, monetaryLocation, monetaryNumber,
                 amountDonated, cashInvoice, monetaryDonationDate, monetaryEmail, bank,
-                proofofTransferFile: proofofTransferFile ? proofofTransferFile.name : 'No file selected'
+                proofofTransferFile, referenceNumber
             });
 
             if (!monetaryDonorName || !amountDonated || !monetaryDonationDate) {
@@ -565,9 +595,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // --- Amount Donated Input Validation ---
+            // Amount Donated Validation
             const parsedAmount = parseFloat(amountDonated);
-
             if (isNaN(parsedAmount) || parsedAmount <= 0) {
                 Swal.fire({
                     icon: 'error',
@@ -577,24 +606,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
+            // Date Validation: Date Received cannot be a past date
             const today = new Date();
             today.setHours(0, 0, 0, 0);
-
             const selectedMonetaryDate = new Date(monetaryDonationDate);
-            selectedMonetaryDate.setHours(0, 0, 0, 0); 
-
-            if (selectedMonetaryDate > today) {
+            selectedMonetaryDate.setHours(0, 0, 0, 0);
+            if (selectedMonetaryDate < today) {
                 Swal.fire({
                     icon: 'error',
                     title: 'Invalid Date',
-                    title: 'Invalid Date',
-                    text: 'Date Received cannot be a future date.'
+                    text: 'Date Received cannot be a past date. It must be today or a future date.'
                 });
-                return; 
+                return;
             }
 
-            // Validate monetaryNumber again for submission
-            if (monetaryNumber.length !== 11 || !monetaryNumber.startsWith('09')) {
+            // Phone Number Validation (optional)
+            if (monetaryNumber.length > 0 && (monetaryNumber.length !== 11 || !monetaryNumber.startsWith('09'))) {
                 Swal.fire({
                     icon: 'error',
                     title: 'Invalid Contact Number',
@@ -604,7 +631,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const proofofTransferText = document.getElementById('proofofTransfer').value;
-
             let proofOfTransferUrl = proofofTransferText;
 
             const newMonetaryDonation = {
@@ -612,13 +638,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 encoder: monetaryEncoder,
                 name: monetaryDonorName,
                 address: monetaryLocation,
-                number: monetaryNumber,
+                number: monetaryNumber || '',
                 amountDonated: parsedAmount,
                 invoice: cashInvoice,
                 dateReceived: monetaryDonationDate,
                 email: monetaryEmail,
                 bank: bank,
                 proof: proofOfTransferUrl,
+                referenceNumber: referenceNumber || '', // Save reference number
                 createdAt: new Date().toISOString()
             };
 
@@ -637,15 +664,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 monetaryDonationForm.reset();
                 if (gcashDiv) gcashDiv.style.display = 'none';
                 if (bankDiv) bankDiv.style.display = 'none';
-                // Regenerate cash invoice for the next potential donation
                 if (cashInvoiceInput) {
                     const generateCashInvoice = () => {
-                        const randomNumber = Math.floor(100000 + Math.random() * 900000); // 6-digit random number
+                        const randomNumber = Math.floor(100000 + Math.random() * 900000);
                         return `CINV-${randomNumber}`;
                     };
                     cashInvoiceInput.value = generateCashInvoice();
                 }
-
+                // Reset donation date to current date after form reset
+                if (monetaryDonationDateInput) {
+                    monetaryDonationDateInput.value = today;
+                }
             } catch (error) {
                 console.error("Error submitting monetary donation to Firebase Realtime Database:", error);
                 Swal.fire({
@@ -658,25 +687,24 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
         console.error("ERROR: Monetary Donation Form element with ID 'monetaryDonationForm' not found!");
     }
-});
 
-const donationButtons = document.querySelectorAll('.donation-buttons button');
-
-donationButtons.forEach(button => {
-    button.addEventListener('click', () => {
-        donationButtons.forEach(btn => btn.classList.remove('active'));
-        button.classList.add('active');
+    // Button Active State for Donation Buttons
+    const donationButtons = document.querySelectorAll('.donation-buttons button');
+    donationButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            donationButtons.forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+        });
     });
-});
 
-
-const buttons = document.querySelectorAll('.gcash-btn, .banktrans-btn');
-
-buttons.forEach(btn => {
-  btn.addEventListener('click', () => {
-    buttons.forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-  });
+    // Button Active State for GCash/Bank Buttons
+    const buttons = document.querySelectorAll('.gcash-btn, .banktrans-btn');
+    buttons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            buttons.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        });
+    });
 });
 
 //Navbar Fix

@@ -249,12 +249,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${formatCurrency(report["TotalValueOfInKindDonations"])}</td>
                 <td>${formatCurrency(report["TotalMonetaryDonations"])}</td>
                 <td>
-                    <button class="viewBtn"><i class='bx bx-show-alt'></i>
-</button>
-                    <button class="savePDFBtn"><i class='bx bxs-file-pdf'></i>
-</button>
-                    <button class="deleteBtn"><i class="bx bx-x-circle"></i>
-</button>
+                    <button class="viewBtn"><i class="bx bx-show-alt"></i></button>
+                    <button class="savePDFBtn"><i class="bx bxs-file-pdf"></i></button>
+                    <button class="deleteBtn"><i class="bx bx-x-circle"></i></button>
                 </td>
             `;
 

@@ -10,10 +10,10 @@ document.addEventListener("DOMContentLoaded", () => {
         measurementId: "G-ZTQ9VXXVV0",
     };
 
-    // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
     const auth = firebase.auth();
+    const archivedMonetaryRef = database.ref('donations/archivedDonations/monetary');
 
     const form = document.getElementById("form-container-1");
     const tableBody = document.querySelector("#monetaryTable tbody");
@@ -23,75 +23,825 @@ document.addEventListener("DOMContentLoaded", () => {
     const savePdfBtn = document.getElementById("savePdfBtn");
     const entriesInfo = document.getElementById("entriesInfo");
     const paginationContainer = document.getElementById("pagination");
-    const clearFormBtn = document.getElementById("clearFormBtn"); 
-    const editModal = document.getElementById("editModal"); 
+    const clearFormBtn = document.getElementById("clearFormBtn");
+    const editModal = document.getElementById("editModal");
+    const importExcelBtn = document.getElementById("importExcelBtn");
+    const excelFileInput = document.getElementById("excelFileInput");
+    const importStatusModal = document.getElementById("importStatusModal");
+    const closeImportStatusModalBtn = document.getElementById("closeImportStatusModalBtn");
+    const importProgressBar = document.getElementById("importProgressBar");
+    const importStatusText = document.getElementById("importStatusText");
+    const importErrorList = document.getElementById("importErrorList");
+    const archivedModal = document.getElementById('archivedModal');
+    const closeArchivedModalBtn = document.getElementById('closeArchivedModalBtn');
+    const viewArchivedBtn = document.getElementById('viewArchived');
+    const archivedTableBody = document.querySelector('#archivedTable tbody');
+    const archivedEntriesInfo = document.getElementById('archivedEntriesInfo');
+    const archivedPagination = document.getElementById('archivedPagination');
 
     const rowsPerPage = 10;
     let currentPage = 1;
     let allDonations = [];
     let filteredAndSortedDonations = [];
+    let archivedData = [];
+    let archivedCurrentPage = 1;
+    const archivedItemsPerPage = 10;
     let editingKey = null;
-    // let currentAuthUserUid = null; 
-
     let formHasChanges = false;
-
-    // Variables for inactivity detection --------------------------------------------------------------------
+    const INACTIVITY_TIME = 1800000;
     let inactivityTimeout;
-    const INACTIVITY_TIME = 1800000; // 30 minutes in milliseconds
+    let permissions = { canView: false, canEdit: false, canArchive: false, canRetrieve: false };
 
-    // Function to reset the inactivity timer
+    // Email validation 
+    function isValidEmail(email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const validDomains = ['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'icloud.com', 'protonmail.com'];
+        const domain = email.split('@')[1]?.toLowerCase();
+        return emailRegex.test(email) && validDomains.includes(domain);
+    }
+
+    // Mobile number validation
+    function isValidMobile(mobile) {
+        const mobileRegex = /^09[0-9]{9}$/;
+        return mobileRegex.test(mobile);
+    }
+
+    // Add real-time input restrictions for number fields
+    const numberInput = form.number;
+    const editNumberInput = document.getElementById("edit-number");
+
+    function restrictNumberInput(input) {
+        input.addEventListener("input", () => {
+            // Remove non-digits and prevent decimals/exponential notation
+            input.value = input.value.replace(/[^0-9]/g, '');
+            // Limit to 11 digits
+            if (input.value.length > 11) {
+                input.value = input.value.slice(0, 11);
+            }
+            // Enforce 09 prefix
+            if (input.value && !input.value.startsWith('09')) {
+                input.value = '09' + input.value.replace(/^09/, '').slice(0, 9);
+            }
+        });
+    }
+
+    restrictNumberInput(numberInput);
+    restrictNumberInput(editNumberInput);
+
+    // checkForDuplicate (email, mobile num, and name)
+    async function checkForDuplicate(number, email, name, excludeKey = null) {
+        const snapshot = await database.ref('donations/savedDonations/monetary').once('value');
+        const donations = snapshot.val();
+        const duplicates = { email: false, number: false, name: false, all: false };
+
+        if (!donations) return duplicates;
+
+        for (const key in donations) {
+            if (excludeKey && key === excludeKey) continue;
+            const donation = donations[key];
+            if (donation.email.toLowerCase() === email.toLowerCase()) duplicates.email = true;
+            if (donation.number === number) duplicates.number = true;
+            if (donation.name.toLowerCase() === name.toLowerCase()) duplicates.name = true;
+            if (donation.number === number && donation.email.toLowerCase() === email.toLowerCase() && donation.name.toLowerCase() === name.toLowerCase()) {
+                duplicates.all = true;
+            }
+        }
+        return duplicates;
+    }
+
+    async function checkAdminPermissions() {
+        const user = auth.currentUser;
+        if (!user) {
+            Swal.fire('Error', 'User not authenticated.', 'error');
+            return { canView: false, canEdit: false, canArchive: false, canRetrieve: false };
+        }
+        const snapshot = await database.ref(`users/${user.uid}`).once('value');
+        const userData = snapshot.val();
+        const adminPosition = userData?.adminPosition || '';
+        return {
+            canView: ['Super Admin', 'position-one', 'position-two'].includes(adminPosition),
+            canEdit: ['Super Admin', 'position-one', 'position-two'].includes(adminPosition),
+            canArchive: ['Super Admin', 'position-one'].includes(adminPosition),
+            canRetrieve: ['Super Admin', 'position-one'].includes(adminPosition)
+        };
+    }
+
+    async function verifySuperAdminPassword() {
+        console.log('verifySuperAdminPassword called, current searchInput value:', searchInput.value);
+        const { value: password } = await Swal.fire({
+            title: 'Enter Admin Password',
+            input: 'password',
+            inputPlaceholder: 'Enter password here',
+            inputAttributes: { 
+                autocapitalize: 'off', 
+                autocorrect: 'off', 
+                autocomplete: 'new-password' 
+            },
+            showCancelButton: true,
+            confirmButtonText: 'Verify',
+            showLoaderOnConfirm: true,
+            reverseButtons: true,
+            focusCancel: true,
+            preConfirm: async (password) => {
+                try {
+                    const user = auth.currentUser;
+                    const credential = firebase.auth.EmailAuthProvider.credential(user.email, password);
+                    await auth.signInWithCredential(credential);
+                    return true;
+                } catch (error) {
+                    Swal.showValidationMessage(`Verification failed: ${error.message}`);
+                    return false;
+                }
+            },
+            allowOutsideClick: () => !Swal.isLoading(),
+            customClass: {
+                popup: 'custom-swal-popup',
+                title: 'custom-swal-title',
+                input: 'custom-swal-input',
+                confirmButton: 'custom-confirm-btn',
+                cancelButton: 'custom-cancel-btn'
+            }
+        });
+        if (!password) {
+            searchInput.value = '';
+            return false;
+        }
+        searchInput.value = ''; 
+        return password; 
+    }
+
     function resetInactivityTimer() {
         clearTimeout(inactivityTimeout);
         inactivityTimeout = setTimeout(checkInactivity, INACTIVITY_TIME);
-        console.log("Inactivity timer reset.");
     }
 
-    // Function to check for inactivity and prompt the user
     function checkInactivity() {
         Swal.fire({
             title: 'Are you still there?',
             text: 'You\'ve been inactive for a while. Do you want to continue your session or log out?',
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#3085d6',
-            cancelButtonColor: '#d33',
             confirmButtonText: 'Stay Login',
             cancelButtonText: 'Log Out',
+            reverseButtons: true,
+            focusCancel: true,
             allowOutsideClick: false,
-            reverseButtons: true
+            customClass: {
+                popup: 'custom-swal-popup-small',
+                title: 'custom-swal-title',
+                htmlContainer: 'custom-swal-content',
+                confirmButton: 'custom-confirm-btn',
+                cancelButton: 'custom-cancel-btn'
+            },
         }).then((result) => {
             if (result.isConfirmed) {
-                resetInactivityTimer(); // User chose to continue, reset the timer
-                console.log("User chose to continue session.");
+                resetInactivityTimer();
             } else if (result.dismiss === Swal.DismissReason.cancel) {
-                // User chose to log out
                 auth.signOut().then(() => {
-                    console.log("User logged out due to inactivity.");
-                    window.location.href = "../pages/login.html"; // Redirect to login page
+                    window.location.href = "../pages/login.html";
                 }).catch((error) => {
-                    console.error("Error logging out:", error);
                     Swal.fire('Error', 'Failed to log out. Please try again.', 'error');
                 });
             }
         });
     }
-
-    // Attach event listeners to detect user activity
+    
     ['mousemove', 'keydown', 'scroll', 'click'].forEach(eventType => {
         document.addEventListener(eventType, resetInactivityTimer);
     });
-    //-------------------------------------------------------------------------------------
 
-    // Generate initial cash invoice number
-    const generateCashInvoiceNumber = () => {
+    function validateInputInRealTime(input, fieldConfig, inputs, excludeKey = null) {
+        clearError(input);
+        if (fieldConfig.required !== false && isEmpty(input.value)) {
+            showError(input, `${fieldConfig.label} is required.`);
+        } else if (!isEmpty(input.value)) {
+            if (fieldConfig.lettersOnly && !isLettersOnly(input.value)) {
+                showError(input, `${fieldConfig.label} should only contain letters and spaces.`);
+            }
+            if (fieldConfig.telNumber && !isValidMobile(input.value)) {
+                showError(input, `Mobile number must be 11 digits starting with "09"`);
+            }
+            if (fieldConfig.numericAmount) {
+                if (!isValidNumericAmount(input.value)) {
+                    showError(input, `${fieldConfig.label} should only contain numbers.`);
+                } else if (fieldConfig.positiveNumber && parseFloat(input.value) <= 0) {
+                    showError(input, `${fieldConfig.label} must be a positive number.`);
+                }
+            }
+            if (fieldConfig.isEmail && !isValidEmail(input.value.trim())) {
+                showError(input, `Please enter a valid email address from an allowed domain.`);
+            }
+            if (fieldConfig.isDate) {
+                const receivedDate = new Date(input.value);
+                if (isNaN(receivedDate.getTime())) {
+                    showError(input, `${fieldConfig.label} is not a valid date.`);
+                } else if (receivedDate.setHours(0, 0, 0, 0) > new Date().setHours(0, 0, 0, 0)) {
+                    showError(input, `${fieldConfig.label} cannot be a future date.`);
+                }
+            }
+        }
+    }
+
+    // Real-time validation for main form
+    Array.from(form.querySelectorAll('input')).forEach(input => {
+        const fieldConfig = {
+            encoder: { label: 'Encoder', lettersOnly: true },
+            name: { label: 'Name', lettersOnly: false },
+            address: { label: 'Location' },
+            number: { label: 'Number', telNumber: true },
+            amount: { label: 'Amount Donated', numericAmount: true, positiveNumber: true },
+            invoice: { label: 'Cash Invoice #', required: false },
+            dateReceived: { label: 'Date Received', isDate: true },
+            email: { label: 'Email', isEmail: true },
+            bank: { label: 'Bank' },
+            referenceNumber: { label: 'Reference Number', required: false },
+            proof: { label: 'Proof of Transaction', required: false }
+        }[input.id];
+        if (fieldConfig) {
+            input.addEventListener('input', () => validateInputInRealTime(input, fieldConfig, {
+                encoder: form.encoder,
+                name: form.name,
+                address: form.address,
+                number: form.number,
+                amount: form.amount,
+                invoice: form.invoice,
+                dateReceived: form.dateReceived,
+                email: form.email,
+                bank: form.bank,
+                referenceNumber: form.referenceNumber,
+                proof: form.proof
+            }));
+        }
+    });
+
+    // Real-time validation for edit modal
+    Array.from(editModal.querySelectorAll('input')).forEach(input => {
+        const fieldConfig = {
+            'edit-encoder': { label: 'Encoder', lettersOnly: true },
+            'edit-name': { label: 'Name', lettersOnly: false },
+            'edit-address': { label: 'Location' },
+            'edit-number': { label: 'Number', telNumber: true },
+            'edit-amount': { label: 'Amount Donated', numericAmount: true, positiveNumber: true },
+            'edit-invoice': { label: 'Cash Invoice #', required: false },
+            'edit-dateReceived': { label: 'Date Received', isDate: true },
+            'edit-email': { label: 'Email', isEmail: true },
+            'edit-bank': { label: 'Bank' },
+            'edit-referenceNumber': { label: 'Reference Number', required: false },
+            'edit-proof': { label: 'Proof of Transaction', required: false }
+        }[input.id];
+        if (fieldConfig) {
+            input.addEventListener('input', () => validateInputInRealTime(input, fieldConfig, {
+                encoder: document.getElementById("edit-encoder"),
+                name: document.getElementById("edit-name"),
+                address: document.getElementById("edit-address"),
+                number: document.getElementById("edit-number"),
+                amount: document.getElementById("edit-amount"),
+                invoice: document.getElementById("edit-invoice"),
+                dateReceived: document.getElementById("edit-dateReceived"),
+                email: document.getElementById("edit-email"),
+                bank: document.getElementById("edit-bank"),
+                referenceNumber: document.getElementById("edit-referenceNumber"),
+                proof: document.getElementById("edit-proof")
+            }, editingKey));
+        }
+    });
+
+    viewArchivedBtn.addEventListener('click', async () => {
+        if (!permissions.canRetrieve) {
+            Swal.fire({
+                title: 'Error',
+                text: 'You do not have permission to view archived donations.',
+                icon: 'error',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
+                }
+            });
+            return;
+        }
+        archivedModal.style.display = 'flex';
+        fetchArchivedDonations();
+    });
+
+    closeArchivedModalBtn.addEventListener('click', () => {
+        archivedModal.style.display = 'none';
+    });
+
+    window.addEventListener('click', (event) => {
+        if (event.target === archivedModal) {
+            archivedModal.style.display = 'none';
+        }
+    });
+
+    importExcelBtn.addEventListener("click", () => {
+        if (!permissions.canEdit) {
+            Swal.fire('Error', 'You do not have permission to import donations.', 'error');
+            return;
+        }
+        excelFileInput.click();
+    });
+
+    closeImportStatusModalBtn.addEventListener("click", () => {
+        importStatusModal.style.display = "none";
+    });
+
+    function closeImportStatusModal() {
+        importStatusModal.style.display = "none";
+    }
+
+    function showImportStatusModal(message) {
+        importStatusModal.style.display = "flex";
+        importProgressBar.style.width = "0%";
+        importProgressBar.textContent = "0%";
+        importStatusText.textContent = message || "Processing file...";
+        importErrorList.innerHTML = "";
+    }
+
+    function updateImportStatus(progress, message) {
+        const percentage = Math.round(progress);
+        importProgressBar.style.width = `${percentage}%`;
+        importProgressBar.textContent = `${percentage}%`;
+        importStatusText.textContent = message;
+    }
+
+    function downloadExcelTemplate() {
+        const headers = [
+            "Encoder",
+            "Name",
+            "Location",
+            "Number",
+            "Amount Donated",
+            "Cash Invoice #",
+            "Date Received",
+            "Email",
+            "Bank",
+            "Reference No.",
+            "Proof of Transaction"
+        ];
+        const sampleData = [{
+            Encoder: "John Smith",
+            Name: "Jane Doe",
+            Location: "Manila",
+            Number: "09123456789",
+            "Amount Donated": 1000.50,
+            "Cash Invoice #": "CINV-123456",
+            "Date Received": "2025-08-10",
+            Email: "jane.doe@gmail.com",
+            Bank: "BDO",
+            "Reference No.": "REF123",
+            "Proof of Transaction": "https://drive.google.com/sample"
+        }];
+        const instructions = [{
+            Instructions: "1. Ensure mobile numbers are 11 digits starting with '09' (e.g., 09123456789). Format the Number column as 'Text' in Excel to preserve leading zeros.\n2. Duplicate donations (same name, mobile number, and email) are allowed but will prompt for confirmation during import."
+        }];
+
+        const ws = XLSX.utils.json_to_sheet(sampleData, { header: headers });
+        const wsInstructions = XLSX.utils.json_to_sheet(instructions);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Monetary Donations Template");
+        XLSX.utils.book_append_sheet(wb, wsInstructions, "Instructions");
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        const formattedDate = `${year}-${month}-${day}`;
+        const filename = `monetary_donations_template_${formattedDate}.xlsx`;
+        XLSX.writeFile(wb, filename);
+        Swal.fire({
+            title: 'Template Downloaded!',
+            text: `Excel template saved as "${filename}"`,
+            icon: 'success',
+            showConfirmButton: true,
+            confirmButtonText: 'OK',
+            customClass: {
+                popup: 'swal2-popup-success-clean',
+                title: 'swal2-title-success-clean',
+                htmlContainer: 'swal2-text-success-clean',
+                confirmButton: 'my-success-button'
+            }
+        });
+    }
+
+    excelFileInput.addEventListener("change", (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        showImportStatusModal("Reading file...");
+
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                const headers = json[0];
+                const requiredHeaders = ["Encoder", "Name", "Location", "Number", "Amount Donated", "Date Received", "Email", "Bank"];
+                const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
+                if (missingHeaders.length > 0) {
+                    importErrorList.innerHTML = `<li>Missing required columns: ${missingHeaders.join(', ')}</li>`;
+                    updateImportStatus(0, "Import failed due to missing columns.");
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: `Missing required columns: ${missingHeaders.join(', ')}`,
+                        showConfirmButton: true,
+                        confirmButtonText: 'OK',
+                        customClass: {
+                            popup: 'swal2-popup-error-clean',
+                            title: 'swal2-title-error-clean',
+                            htmlContainer: 'swal2-text-error-clean',
+                            confirmButton: 'my-error-button'
+                        }
+                    });
+                    importStatusModal.style.display = 'flex';
+                    return;
+                }
+
+                const rows = json.slice(1);
+                const donationsToImport = [];
+                const potentialDuplicates = [];
+                const importErrors = [];
+                const totalRows = rows.length;
+                let processedRows = 0;
+
+                for (let i = 0; i < totalRows; i++) {
+                    const row = rows[i];
+                    if (!row || row.every(cell => !cell || cell.toString().trim() === '')) {
+                        importErrors.push(`Row ${i + 2}: Empty row skipped.`);
+                        continue;
+                    }
+                    processedRows++;
+                    const progress = (processedRows / totalRows) * 100;
+                    updateImportStatus(progress, `Processing row ${processedRows} of ${totalRows}...`);
+
+                    // Create donation object
+                    const donation = {
+                        encoder: String(row[headers.indexOf("Encoder")] || '').trim(),
+                        name: String(row[headers.indexOf("Name")] || '').trim(),
+                        address: String(row[headers.indexOf("Location")] || '').trim(),
+                        number: String(row[headers.indexOf("Number")] || '').trim().replace(/\D/g, ''),
+                        amount: parseFloat(row[headers.indexOf("Amount Donated")] || 0).toString(),
+                        invoice: String(row[headers.indexOf("Cash Invoice #")] || '').trim(),
+                        dateReceived: String(row[headers.indexOf("Date Received")] || '').trim(),
+                        email: String(row[headers.indexOf("Email")] || '').trim(),
+                        bank: String(row[headers.indexOf("Bank")] || '').trim(),
+                        referenceNumber: String(row[headers.indexOf("Reference No.")] || '').trim(),
+                        proof: String(row[headers.indexOf("Proof of Transaction")] || '').trim(),
+                        userUid: firebase.auth().currentUser.uid,
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString()
+                    };
+
+                    // Normalize mobile number
+                    if (donation.number && donation.number.length === 10 && donation.number.startsWith('9')) {
+                        donation.number = '0' + donation.number;
+                    }
+
+                    // Create mock input elements for validateDonationForm
+                    const mockInputs = {
+                        encoder: { value: donation.encoder, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                        name: { value: donation.name, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                        address: { value: donation.address, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                        number: { value: donation.number, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                        amount: { value: donation.amount, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                        invoice: { value: donation.invoice, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                        dateReceived: { value: donation.dateReceived, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                        email: { value: donation.email, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                        bank: { value: donation.bank, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                        proof: { value: donation.proof, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null }
+                    };
+
+                    // Override showError to collect errors instead of modifying DOM
+                    const originalShowError = showError;
+                    const rowErrors = [];
+                    showError = (input, message) => {
+                        rowErrors.push(`Row ${i + 2}: ${message}`);
+                    };
+
+                    // Validate using validateDonationForm
+                    const isValidRow = await validateDonationForm(mockInputs);
+
+                    // Restore original showError
+                    showError = originalShowError;
+
+                    if (!isValidRow) {
+                        if (rowErrors.length > 0) {
+                            importErrors.push(...rowErrors);
+                        }
+                        continue;
+                    }
+
+                    // Format dateReceived to match form submission format
+                    if (donation.dateReceived) {
+                        const parsedDate = new Date(donation.dateReceived);
+                        if (!isNaN(parsedDate.getTime())) {
+                            donation.dateReceived = parsedDate.toISOString().slice(0, 10);
+                        }
+                    }
+
+                    // Convert amount back to number for storage
+                    donation.amountDonated = parseFloat(donation.amount);
+
+                    // Check for duplicates
+                    const duplicates = await checkForDuplicate(donation.number, donation.email, donation.name);
+                    if (duplicates.all || duplicates.email || duplicates.number || duplicates.name) {
+                        const duplicateMessages = [];
+                        if (duplicates.all) {
+                            duplicateMessages.push(`Row ${i + 2}: Same name, mobile number, and email already exist.`);
+                        } else {
+                            if (duplicates.email) duplicateMessages.push(`Row ${i + 2}: Email already used.`);
+                            if (duplicates.number) duplicateMessages.push(`Row ${i + 2}: Mobile number already used.`);
+                            if (duplicates.name) duplicateMessages.push(`Row ${i + 2}: Name already used.`);
+                        }
+                        potentialDuplicates.push({
+                            rowIndex: i + 2,
+                            donation,
+                            duplicateMessages
+                        });
+                    } else {
+                        donationsToImport.push(donation);
+                    }
+
+                    await new Promise(resolve => setTimeout(resolve, 10));
+                }
+
+                // Handle potential duplicates with a confirmation prompt
+                if (potentialDuplicates.length > 0) {
+                    const duplicateMessages = potentialDuplicates.map(d => d.duplicateMessages.join('<br>')).join('<br>');
+                    const result = await Swal.fire({
+                        title: 'Potential Duplicate Donations Detected',
+                        html: `${duplicateMessages}<br><br>Do you want to proceed with importing these records?`,
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Proceed Anyway',
+                        cancelButtonText: 'Skip Duplicates',
+                        reverseButtons: true,
+                        customClass: {
+                            popup: 'custom-swal-popup-large',
+                            title: 'custom-swal-title',
+                            htmlContainer: 'custom-swal-content',
+                            confirmButton: 'custom-confirm-btn',
+                            cancelButton: 'custom-cancel-btn'
+                        }
+                    });
+
+                    if (result.isConfirmed) {
+                        potentialDuplicates.forEach(d => donationsToImport.push(d.donation));
+                    } else {
+                        potentialDuplicates.forEach(d => {
+                            importErrors.push(d.duplicateMessages.join(''));
+                        });
+                    }
+                }
+
+                if (donationsToImport.length > 0) {
+                    updateImportStatus(100, `Importing ${donationsToImport.length} records to Firebase...`);
+                    const updates = {};
+                    donationsToImport.forEach(donation => {
+                        const newKey = database.ref().child('donations/savedDonations/monetary').push().key;
+                        updates[`donations/savedDonations/monetary/${newKey}`] = donation;
+                    });
+
+                    await database.ref().update(updates);
+                    updateImportStatus(100, `Import complete! ${donationsToImport.length} records added.`);
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success!',
+                        text: `${donationsToImport.length} monetary donation records imported successfully.`,
+                        showConfirmButton: true,
+                        confirmButtonText: 'OK',
+                        customClass: {
+                            popup: 'swal2-popup-success-clean',
+                            title: 'swal2-title-success-clean',
+                            htmlContainer: 'swal2-text-success-clean',
+                            confirmButton: 'my-success-button'
+                        }
+                    }).then(() => {
+                        if (importErrors.length === 0) {
+                            closeImportStatusModal();
+                        }
+                    });
+                } else {
+                    updateImportStatus(100, "Import failed. No valid records found.");
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'No valid records found in the Excel file. Please check the data format.',
+                        showConfirmButton: true,
+                        confirmButtonText: 'OK',
+                        customClass: {
+                            popup: 'swal2-popup-error-clean',
+                            title: 'swal2-title-error-clean',
+                            htmlContainer: 'swal2-text-error-clean',
+                            confirmButton: 'my-error-button'
+                        }
+                    });
+                    importStatusModal.style.display = 'flex';
+                }
+
+                if (importErrors.length > 0) {
+                    importErrorList.innerHTML = '<li>Errors:</li>' + importErrors.map(err => `<li>${err}</li>`).join('');
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Warning',
+                        text: 'Some records were not imported due to errors. Check the status modal for details.',
+                        showConfirmButton: true,
+                        confirmButtonText: 'OK',
+                        customClass: {
+                            popup: 'swal2-popup-warning-clean',
+                            title: 'swal2-title-warning-clean',
+                            htmlContainer: 'swal2-text-warning-clean',
+                            confirmButton: 'my-warning-button'
+                        }
+                    });
+                    importStatusModal.style.display = 'flex';
+                }
+            } catch (error) {
+                importErrorList.innerHTML = `<li>Error: ${error.message}</li>`;
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'An error occurred while importing the Excel file: ' + error.message,
+                    showConfirmButton: true,
+                    confirmButtonText: 'OK',
+                    customClass: {
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean',
+                        confirmButton: 'my-error-button'
+                    }
+                });
+                importStatusModal.style.display = 'flex';
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    });
+
+    function fetchArchivedDonations() {
+        archivedMonetaryRef.on('value', (snapshot) => {
+            archivedData = [];
+            snapshot.forEach((childSnapshot) => {
+                const donation = childSnapshot.val();
+                donation.id = childSnapshot.key;
+                archivedData.push(donation);
+            });
+
+            archivedData.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            renderArchivedTable(archivedCurrentPage);
+            renderArchivedPagination();
+        });
+    }
+
+    function renderArchivedTable(page) {
+        archivedTableBody.innerHTML = '';
+        const start = (page - 1) * archivedItemsPerPage;
+        const end = start + archivedItemsPerPage;
+        const paginatedItems = archivedData.slice(start, end);
+
+        if (paginatedItems.length === 0) {
+            archivedTableBody.innerHTML = '<tr><td colspan="14" class="no-data">No archived monetary donations found.</td></tr>';
+            archivedEntriesInfo.textContent = 'Showing 0 to 0 of 0 entries';
+            return;
+        }
+
+        paginatedItems.forEach((item, index) => {
+            const row = archivedTableBody.insertRow();
+            row.innerHTML = `
+                <td>${start + index + 1}</td>
+                <td>${item.encoder}</td>
+                <td>${item.name}</td>
+                <td>${item.address}</td>
+                <td>${item.number}</td>
+                <td>${item.amountDonated.toLocaleString('en-PH', { style: 'currency', currency: 'PHP' })}</td>
+                <td>${item.invoice}</td>
+                <td>${item.dateReceived}</td>
+                <td>${item.email}</td>
+                <td>${item.bank}</td>
+                <td>${item.referenceNumber || 'N/A'}</td>
+                <td><a href="${item.proof}" target="_blank">View Proof</a></td>
+                <td>${item.deletedAt ? new Date(item.deletedAt).toLocaleDateString('en-PH') : 'N/A'}</td>
+                <td>
+                    ${permissions.canRetrieve ? `<button class="retrieve-btn" data-id="${item.id}" title="Retrieve"><i class='bx bx-archive-in'></i></button>` : ''}
+                </td>
+            `;
+        });
+
+        const totalEntries = archivedData.length;
+        const startEntry = start + 1;
+        const endEntry = Math.min(start + paginatedItems.length, totalEntries);
+        archivedEntriesInfo.textContent = `Showing ${startEntry} to ${endEntry} of ${totalEntries} entries`;
+
+        if (permissions.canRetrieve) {
+            document.querySelectorAll('.retrieve-btn').forEach(button => {
+                button.addEventListener('click', (event) => retrieveDonation(event.target.dataset.id));
+            });
+        }
+    }
+
+    function renderArchivedPagination() {
+        archivedPagination.innerHTML = '';
+        const totalPages = Math.ceil(archivedData.length / archivedItemsPerPage);
+
+        for (let i = 1; i <= totalPages; i++) {
+            const pageBtn = document.createElement('button');
+            pageBtn.textContent = i;
+            pageBtn.classList.add('pagination-button');
+            if (i === archivedCurrentPage) {
+                pageBtn.classList.add('active');
+            }
+            pageBtn.addEventListener('click', () => {
+                archivedCurrentPage = i;
+                renderArchivedTable(archivedCurrentPage);
+                renderArchivedPagination();
+            });
+            archivedPagination.appendChild(pageBtn);
+        }
+    }
+
+    async function retrieveDonation(firebaseKey) {
+        if (!permissions.canRetrieve) {
+            Swal.fire('Error', 'You do not have permission to retrieve donations.', 'error');
+            return;
+        }
+        Swal.fire({
+            title: 'Retrieve Donation?',
+            text: 'This will retrieve the donation from archived records and make it active again.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Retrieve',
+            cancelButtonText: 'Cancel',
+            reverseButtons: true,
+            focusCancel: true,
+            allowOutsideClick: false,
+            customClass: {
+                popup: 'custom-swal-popup-small',
+                title: 'custom-swal-title',
+                htmlContainer: 'custom-swal-content',
+                confirmButton: 'custom-confirm-btn',
+                cancelButton: 'custom-cancel-btn'
+            }
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'Retrieving Donation...',
+                    text: 'Moving donation data back to active records...',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                try {
+                    const snapshot = await database.ref(`donations/archivedDonations/monetary/${firebaseKey}`).once('value');
+                    const donationToRetrieve = snapshot.val();
+                    if (!donationToRetrieve) {
+                        Swal.fire('Error', 'Archived donation data not found for retrieval.', 'error');
+                        return;
+                    }
+                    delete donationToRetrieve.deletedAt;
+                    await database.ref(`donations/savedDonations/monetary/${firebaseKey}`).set(donationToRetrieve);
+                    await database.ref(`donations/archivedDonations/monetary/${firebaseKey}`).remove();
+                    Swal.close();
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Retrieved!',
+                        text: 'The donation has been retrieved and is now active.',
+                        timer: 2000,
+                        showConfirmButton: false,
+                        timerProgressBar: true,
+                        customClass: {
+                            popup: 'swal2-popup-success-clean',
+                            title: 'swal2-title-success-clean',
+                            htmlContainer: 'swal2-text-success-clean'
+                        }
+                    }).then(() => {
+                        renderTable();
+                        fetchArchivedDonations();
+                    });
+                } catch (error) {
+                    Swal.close();
+                    Swal.fire('Error', 'Failed to retrieve donation: ' + error.message, 'error');
+                }
+            }
+        });
+    }
+
+    function generateCashInvoiceNumber() {
         const prefix = "CINV-";
         const randomNumber = Math.floor(100000 + Math.random() * 900000);
         return prefix + randomNumber;
-    };
+    }
+
     document.getElementById("invoice").value = generateCashInvoiceNumber();
 
-    // Function to update search input placeholder
-    const updateSearchPlaceholder = () => {
+    function updateSearchPlaceholder() {
         const selectedSort = sortSelect.value;
         let placeholderText = "Search";
 
@@ -104,93 +854,138 @@ document.addEventListener("DOMContentLoaded", () => {
             case "name-desc":
                 placeholderText = "Search by Name";
                 break;
-            case "type-asc":
-            case "type-desc":
-                placeholderText = "Search by Type";
-                break;
             case "address-asc":
             case "address-desc":
                 placeholderText = "Search by Address";
-                break;
-            case "contactPerson-asc":
-            case "contactPerson-desc":
-                placeholderText = "Search by Contact Person";
                 break;
             case "number-asc":
             case "number-desc":
                 placeholderText = "Search by Number";
                 break;
+            case "amount-asc":
+            case "amount-desc":
+                placeholderText = "Search by Amount";
+                break;
+            case "invoice-asc":
+            case "invoice-desc":
+                placeholderText = "Search by Invoice";
+                break;
+            case "dateReceived-asc":
+            case "dateReceived-desc":
+                placeholderText = "Search by Date Received";
+                break;
             case "email-asc":
             case "email-desc":
                 placeholderText = "Search by Email";
                 break;
-            case "valuation-asc":
-            case "valuation-desc":
-                placeholderText = "Search by Valuation";
+            case "bank-asc":
+            case "bank-desc":
+                placeholderText = "Search by Bank";
                 break;
-            case "status-asc":
-            case "status-desc":
-                placeholderText = "Search by Status";
-                break;
-            case "donationDate-asc":
-            case "donationDate-desc":
-                placeholderText = "Search by Donation Date";
-                break;
-            default:
-                placeholderText = "Search by Name, Encoder, Staff-In Charge"; // Default broad search
         }
         searchInput.placeholder = placeholderText;
-    };
-    
-    auth.onAuthStateChanged(user => {
+    }
+
+    auth.onAuthStateChanged(async user => {
         if (!user) {
             Swal.fire({
                 icon: 'error',
                 title: 'Authentication Required',
                 text: 'Please sign in to access in-kind donations.',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
+                }
             }).then(() => {
                 window.location.href = "../pages/login.html";
             });
             return;
         }
-        console.log("User authenticated:", user.uid);
+        permissions = await checkAdminPermissions();
+        if (!permissions.canView) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Access Denied',
+                text: 'You do not have permission to access this page.',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
+                }
+            }).then(() => {
+                window.location.href = "../pages/login.html";
+            });
+            return;
+        }
         loadDonations(user.uid);
-        updateSearchPlaceholder(); 
+        updateSearchPlaceholder();
         resetInactivityTimer();
+        if (!permissions.canArchive) {
+            document.querySelectorAll('.archiveBtn').forEach(btn => btn.style.display = 'none');
+        }
+        if (!permissions.canEdit) {
+            document.querySelectorAll('.editBtn').forEach(btn => btn.style.display = 'none');
+        }
     });
 
     function loadDonations(userUid) {
-        database.ref("donations/monetary").on("value", snapshot => {
+        database.ref("donations/savedDonations/monetary").on("value", snapshot => {
             allDonations = [];
             const donations = snapshot.val();
             if (donations) {
                 Object.keys(donations).forEach(key => {
                     const donation = donations[key];
                     allDonations.push({
-                        firebaseKey: key,
-                        userUid: donation.userUid,
-                        ...donation
+                        firebaseKey: key, 
+                        userUid: donation.userUid || userUid, 
+                        encoder: donation.encoder || '',
+                        name: donation.name || '',
+                        address: donation.address || '',
+                        number: donation.number || '',
+                        amountDonated: donation.amountDonated || 0,
+                        invoice: donation.invoice || '',
+                        dateReceived: donation.dateReceived || '',
+                        email: donation.email || '',
+                        bank: donation.bank || '',
+                        referenceNumber: donation.referenceNumber || '',
+                        proof: donation.proof || '',
+                        id: donation.id || Date.now(), 
+                        createdAt: donation.createdAt || new Date().toISOString(),
+                        updatedAt: donation.updatedAt || new Date().toISOString()
                     });
                 });
             }
             filteredAndSortedDonations = [...allDonations];
             renderTable();
         }, error => {
-            console.error("Error fetching in-kind donations:", error);
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
-                text: 'Failed to load in-kind donations: ' + error.message,
+                text: 'Failed to load monetary donations: ' + error.message,
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
+                }
             });
         });
     }
 
     const isEmpty = (value) => value.trim() === "";
     const isLettersOnly = (value) => /^[a-zA-Z\s]+$/.test(value);
-    const isValidNumber = (value) => /^\+?\d{7,15}$/.test(value.replace(/\s/g, ''));
-    const isValidNumericAmount = (value) => /^\d+(\.\d{1,2})?$/.test(value);
+    const isValidNumericAmount = (value) => /^\d*\.?\d{0,2}$/.test(value);
 
-    const showError = (inputField, message) => {
+    function showError(inputField, message) {
         const errorDiv = inputField.nextElementSibling;
         if (!errorDiv || !errorDiv.classList.contains('error-message')) {
             const newErrorDiv = document.createElement('div');
@@ -201,35 +996,38 @@ document.addEventListener("DOMContentLoaded", () => {
             errorDiv.textContent = message;
         }
         inputField.classList.add('error');
-    };
+    }
 
-    // Function to clear an error message
-    const clearError = (inputField) => {
+    function clearError(inputField) {
         const errorDiv = inputField.nextElementSibling;
         if (errorDiv && errorDiv.classList.contains('error-message')) {
             errorDiv.textContent = '';
         }
         inputField.classList.remove('error');
-    };
+    }
 
-    const validateForm = () => {
+    async function validateDonationForm(inputs, excludeKey = null) {
         let isValid = true;
-        const fieldsToCheck = [
-            { input: form.encoder, label: "Encoder", lettersOnly: true },
-            { input: form.name, label: "Name/Company", lettersOnly: false },
-            { input: form.address, label: "Location" },
-            { input: form.number, label: "Number", telNumber: true },
-            { input: form.amount, label: "Amount Donated", numericAmount: true, positiveNumber: true },
-            { input: form.invoice, label: "Cash Invoice #", required: false },
-            { input: form.dateReceived, label: "Date Received", isDate: true},
-            { input: form.email, label: "Email", isEmail: true },
-            { input: form.bank, label: "Bank" },
-            { input: form.proof, label: "Proof of Transaction", required: false },
-        ];
-
         const today = new Date();
 
-        fieldsToCheck.forEach(({ input, label, lettersOnly, telNumber, numericAmount, positiveNumber, isEmail, isDate = false, required = true }) => {
+        // Define fields to validate with their properties
+        const fieldsToCheck = [
+            { id: "encoder", label: "Encoder", lettersOnly: true },
+            { id: "name", label: "Name", lettersOnly: false },
+            { id: "address", label: "Location" },
+            { id: "number", label: "Number", telNumber: true },
+            { id: "amount", label: "Amount Donated", numericAmount: true, positiveNumber: true },
+            { id: "invoice", label: "Cash Invoice #", required: false },
+            { id: "dateReceived", label: "Date Received", isDate: true },
+            { id: "email", label: "Email", isEmail: true },
+            { id: "bank", label: "Bank" },
+            { id: "referenceNumber", label: "Reference Number", required: false },
+            { id: "proof", label: "Proof of Transaction", required: false },
+        ];
+
+        // Validate each field
+        fieldsToCheck.forEach(({ id, label, lettersOnly, telNumber, numericAmount, positiveNumber, isEmail, isDate = false, required = true }) => {
+            const input = inputs[id];
             clearError(input);
             if (required && isEmpty(input.value)) {
                 showError(input, `${label} is required.`);
@@ -239,8 +1037,8 @@ document.addEventListener("DOMContentLoaded", () => {
                     showError(input, `${label} should only contain letters and spaces.`);
                     isValid = false;
                 }
-                if (telNumber && !isValidNumber(input.value)) {
-                    showError(input, `${label} should be a valid phone number.`);
+                if (telNumber && !isValidMobile(input.value)) {
+                    showError(input, `Mobile number must be 11 digits starting with "09"`);
                     isValid = false;
                 }
                 if (numericAmount) {
@@ -253,21 +1051,17 @@ document.addEventListener("DOMContentLoaded", () => {
                     }
                 }
                 if (isEmail) {
-                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                    if (!emailRegex.test(input.value.trim())) {
-                        showError(input, `Please enter a valid ${label.toLowerCase()} address.`);
+                    if (!isValidEmail(input.value.trim())) {
+                        showError(input, `Please enter a valid email address from an allowed domain.`);
                         isValid = false;
                     }
                 }
-
-                if (isDate) { // Check if this field is marked as a date
+                if (isDate) {
                     const receivedDate = new Date(input.value);
-                    if (isNaN(receivedDate.getTime())) { // Check for invalid date strings
+                    if (isNaN(receivedDate.getTime())) {
                         showError(input, `${label} is not a valid date.`);
                         isValid = false;
-                    }
-                    // Allows current date, prevents future dates
-                    else if (receivedDate.setHours(0,0,0,0) > today.setHours(0,0,0,0)) {
+                    } else if (receivedDate.setHours(0, 0, 0, 0) > today.setHours(0, 0, 0, 0)) {
                         showError(input, `${label} cannot be a future date.`);
                         isValid = false;
                     }
@@ -275,16 +1069,68 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
 
+        // Check for duplicate donation
+        if (isValid) {
+            const number = inputs.number.value;
+            const email = inputs.email.value;
+            const name = inputs.name.value;
+            const duplicates = await checkForDuplicate(number, email, name, excludeKey);
+            const duplicateMessages = [];
+            if (duplicates.all) {
+                duplicateMessages.push("A donation with the same name, mobile number, and email already exists.");
+            } else {
+                if (duplicates.email) duplicateMessages.push("<li>This email is already used in another donation.</li>");
+                if (duplicates.number) duplicateMessages.push("<li>This mobile number is already used in another donation.</li>");
+                if (duplicates.name) duplicateMessages.push("<li>This name is already used in another donation.</li>");
+            }
+
+            if (duplicateMessages.length > 0) {
+                return new Promise((resolve) => {
+                    Swal.fire({
+                        title: 'Potential Duplicate Donation',
+                        html: duplicateMessages.join('<br>') + '<br>Proceed anyway?',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Proceed Anyway',
+                        cancelButtonText: 'Cancel',
+                        reverseButtons: true,
+                        customClass: {
+                            popup: 'custom-swal-popup-large',
+                            title: 'custom-swal-title',
+                            htmlContainer: 'custom-swal-content',
+                            confirmButton: 'custom-confirm-btn',
+                            cancelButton: 'custom-cancel-btn'
+                        }
+                    }).then((result) => {
+                        resolve(result.isConfirmed);
+                    });
+                });
+            }
+        }
         return isValid;
-    };
+    }
 
     form.addEventListener("input", () => {
         formHasChanges = true;
     });
 
-    form.addEventListener("submit", (e) => {
+    form.addEventListener("submit", async (e) => {
         e.preventDefault();
-        if (validateForm()) {
+        const inputs = {
+            encoder: form.encoder,
+            name: form.name,
+            address: form.address,
+            number: form.number,
+            amount: form.amount,
+            invoice: form.invoice,
+            dateReceived: form.dateReceived,
+            email: form.email,
+            bank: form.bank,
+            referenceNumber: form.referenceNumber,
+            proof: form.proof
+        };
+        const isValid = await validateDonationForm(inputs);
+        if (isValid) {
             const user = auth.currentUser;
             if (!user) {
                 Swal.fire("Error", "User not authenticated!", "error");
@@ -292,24 +1138,26 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             const newDonation = {
-                encoder: form.encoder.value,
-                name: form.name.value,
-                address: form.address.value,
-                number: form.number.value,
-                amountDonated: parseFloat(form.amount.value),
-                invoice: form.invoice.value,
-                dateReceived: form.dateReceived.value,
-                email: form.email.value,
-                bank: form.bank.value,
-                proof: form.proof.value,
+                encoder: inputs.encoder.value,
+                name: inputs.name.value,
+                address: inputs.address.value,
+                number: inputs.number.value,
+                amountDonated: parseFloat(inputs.amount.value),
+                invoice: inputs.invoice.value,
+                dateReceived: inputs.dateReceived.value,
+                email: inputs.email.value,
+                bank: inputs.bank.value,
+                referenceNumber: inputs.referenceNumber.value,
+                proof: inputs.proof.value,
                 id: Date.now(),
                 userUid: user.uid,
                 createdAt: new Date().toISOString(),
             };
 
-            database.ref("donations/monetary").push(newDonation)
+            database.ref("donations/savedDonations/monetary").push(newDonation)
             .then(() => {
                 form.reset();
+                document.getElementById("invoice").value = generateCashInvoiceNumber();
                 formHasChanges = false;
                 Swal.fire({
                     icon: 'success',
@@ -317,9 +1165,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     text: 'Your donation has been successfully recorded.',
                     timer: 2000,
                     showConfirmButton: false,
-                    background: '#e6f4ea',
-                    color: '#1b5e20',
-                    iconColor: '#2e7d32',
+                    timerProgressBar: true,
                     customClass: {
                         popup: 'swal2-popup-success-clean',
                         title: 'swal2-title-success-clean',
@@ -328,20 +1174,18 @@ document.addEventListener("DOMContentLoaded", () => {
                 });
             })
             .catch(error => {
-                console.error("Error adding donation:", error);
                 Swal.fire({
-                icon: 'error',
-                title: 'Failed to Add Donation',
-                text: 'An error occurred: ' + error.message,
-                background: '#fcebea',         
-                color: '#b71c1c',               
-                iconColor: '#c62828',           
-                confirmButtonColor: '#c62828',  
-                customClass: {
-                    popup: 'swal2-popup-error-clean',
-                    title: 'swal2-title-error-clean',
-                    content: 'swal2-text-error-clean'
-                }
+                    icon: 'error',
+                    title: 'Failed to Add Donation',
+                    text: 'An error occurred: ' + error.message,
+                    showConfirmButton: true,
+                    confirmButtonText: 'OK',
+                    customClass: {
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean',
+                        confirmButton: 'my-error-button'
+                    }
                 });
             });
         }
@@ -357,10 +1201,9 @@ document.addEventListener("DOMContentLoaded", () => {
             form.dateReceived.value = '';
             form.email.value = '';
             form.bank.value = '';
+            form.referenceNumber.value = '';
             form.proof.value = '';
-
             document.getElementById("invoice").value = generateCashInvoiceNumber();
-
             formHasChanges = false;
             const errorMessages = form.querySelectorAll('.error-message');
             errorMessages.forEach(msg => msg.textContent = '');
@@ -370,23 +1213,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (formHasChanges) {
             Swal.fire({
-            title: 'Discard Changes?',
-            text: 'You have unsaved changes. Are you sure you want to clear the form?',
-            icon: 'warning',                                
-            iconColor: '#f57c00',               
-            showCancelButton: true,
-            confirmButtonColor: '#c62828',      
-            cancelButtonColor: '#546e7a',        
-            confirmButtonText: 'Yes, clear it!',
-            cancelButtonText: 'No, keep editing',
-            reverseButtons: true,               
-            customClass: {
-                popup: 'swal2-popup-warning-clean',
-                title: 'swal2-title-warning-clean',
-                content: 'swal2-text-warning-clean',
-                confirmButton: 'swal2-button-confirm-clean',
-                cancelButton: 'swal2-button-cancel-clean'
-            }
+                title: 'Discard Changes?',
+                text: 'You have unsaved changes. Are you sure you want to clear the form?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, clear it!',
+                cancelButtonText: 'No, keep editing',
+                reverseButtons: true,
+                focusCancel: true,
+                allowOutsideClick: false,
+                customClass: {
+                    popup: 'custom-swal-popup-small',
+                    title: 'custom-swal-title',
+                    htmlContainer: 'custom-swal-content',
+                    confirmButton: 'custom-confirm-btn',
+                    cancelButton: 'custom-cancel-btn'
+                }
             }).then((result) => {
                 if (result.isConfirmed) {
                     clearFormFields();
@@ -396,7 +1238,60 @@ document.addEventListener("DOMContentLoaded", () => {
             clearFormFields();
         }
     });
-    
+
+    function showViewModal(donation) {
+        const modalContentDiv = document.getElementById('modalContent');
+        const previewModal = document.getElementById('previewModal');
+        if (!previewModal || !modalContentDiv) {
+            Swal.fire({
+                title: 'Error',
+                text: 'Modal not found. Please check the page setup.',
+                icon: 'error',
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean'
+                }
+            });
+            return;
+        }
+
+        const formattedTimestamp = donation.createdAt ? new Date(donation.createdAt).toLocaleString('en-PH', {
+            year: 'numeric', month: 'short', day: 'numeric',
+            hour: '2-digit', minute: '2-digit', second: '2-digit'
+        }) : 'N/A';
+
+        modalContentDiv.innerHTML = `
+            <div class="modal-content-inner" style="padding: 20px;">
+                <h2>Donor Information:</h2>
+                <p><strong>Encoder:</strong> ${donation.encoder || 'N/A'}</p>
+                <p><strong>Name:</strong> ${donation.name || 'N/A'}</p>
+                <p><strong>Location:</strong> ${donation.address || 'N/A'}</p>
+                <p><strong>Number:</strong> ${donation.number || 'N/A'}</p>
+                <hr>
+                <h2>Transaction Details</h2>
+                <p><strong>Amount Donated:</strong> ${parseFloat(donation.amountDonated || 0).toLocaleString('en-PH', { style: 'currency', currency: 'PHP' })}</p>
+                <p><strong>Cash Invoice #:</strong> ${donation.invoice || 'N/A'}</p>
+                <p><strong>Date Received:</strong> ${donation.dateReceived ? new Date(donation.dateReceived).toLocaleDateString('en-PH') : 'N/A'}</p>
+                <p><strong>Email:</strong> ${donation.email || 'N/A'}</p>
+                <p><strong>Bank:</strong> ${donation.bank || 'N/A'}</p>
+                <p><strong>Reference Number:</strong> ${donation.referenceNumber || 'N/A'}</p>
+                <p><strong>Proof of Transaction:</strong> ${donation.proof ? `<a href="${donation.proof}" target="_blank" rel="noopener noreferrer">View Proof</a>` : 'N/A'}</p>
+                <p><strong>Recorded On:</strong> ${formattedTimestamp}</p>
+            </div>
+        `;
+        previewModal.style.display = 'flex';
+    }
+
+    function hideViewModal() {
+        const previewModal = document.getElementById('previewModal');
+        const modalContentDiv = document.getElementById('modalContent');
+        if (previewModal && modalContentDiv) {
+            previewModal.style.display = 'none';
+            modalContentDiv.innerHTML = '';
+        }
+    }
+
     function renderTable() {
         const startIndex = (currentPage - 1) * rowsPerPage;
         const endIndex = startIndex + rowsPerPage;
@@ -404,9 +1299,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         tableBody.innerHTML = "";
         if (currentPageRows.length === 0) {
-            const noDataRow = document.createElement("tr");
-            noDataRow.innerHTML = `<td colspan="12" style="text-align: center;">No donations found.</td>`;
-            tableBody.appendChild(noDataRow);
+            tableBody.innerHTML = `<tr><td colspan="12" style="text-align: center;">No donations found.</td></tr>`;
         } else {
             currentPageRows.forEach((d, i) => {
                 const tr = document.createElement("tr");
@@ -416,20 +1309,43 @@ document.addEventListener("DOMContentLoaded", () => {
                     <td>${d.name || 'N/A'}</td>
                     <td>${d.address || 'N/A'}</td>
                     <td>${d.number || 'N/A'}</td>
-                    <td>${parseFloat(d.amountDonated  || 0).toLocaleString('en-PH', { style: 'currency', currency: 'PHP' })}</td>
+                    <td>${parseFloat(d.amountDonated || 0).toLocaleString('en-PH', { style: 'currency', currency: 'PHP' })}</td>
                     <td>${d.invoice || 'N/A'}</td>
                     <td>${new Date(d.dateReceived).toLocaleDateString('en-PH')}</td>
                     <td>${d.email || 'N/A'}</td>
                     <td>${d.bank || 'N/A'}</td>
+                    <td>${d.referenceNumber || 'N/A'}</td>
                     <td>${d.proof ? `<a href="${d.proof}" target="_blank">View Proof</a>` : 'N/A'}</td>
                     <td>
-                        <button class="editBtn"><i class='bx bx-edit'></i></button>
-                        <button class="deleteBtn"><i class="bx bx-x-circle"></i></button>
+                        <button class="viewBtn"><i class='bx bx-show-alt'></i></button>
+                        ${permissions.canEdit ? `<button class="editBtn"><i class='bx bx-edit'></i></button>` : ''}
+                        ${permissions.canArchive ? `<button class="archiveBtn"><i class="bx bx-x-circle"></i></button>` : ''}
                         <button class="savePDFBtn"><i class='bx bxs-file-pdf'></i></button>
                     </td>
                 `;
-                tr.querySelector(".editBtn").addEventListener("click", () => openEditModal(d.firebaseKey));
-                tr.querySelector(".deleteBtn").addEventListener("click", () => deleteRow(d.firebaseKey));
+                tr.querySelector(".viewBtn").addEventListener("click", () => {
+                    const donationToView = allDonations.find(app => app.firebaseKey === d.firebaseKey);
+                    if (donationToView) {
+                        showViewModal(donationToView);
+                    } else {
+                        Swal.fire({
+                            title: 'Error',
+                            text: 'Donation details not found.',
+                            icon: 'error',
+                            customClass: {
+                                popup: 'swal2-popup-error-clean',
+                                title: 'swal2-title-error-clean',
+                                htmlContainer: 'swal2-text-error-clean'
+                            }
+                        });
+                    }
+                });
+                if (permissions.canEdit) {
+                    tr.querySelector(".editBtn").addEventListener("click", () => openEditModal(d.firebaseKey));
+                }
+                if (permissions.canArchive) {
+                    tr.querySelector(".archiveBtn").addEventListener("click", () => deleteRow(d.firebaseKey));
+                }
                 tr.querySelector(".savePDFBtn").addEventListener("click", () => saveSingleMonetaryDonationPdf(d));
                 tableBody.appendChild(tr);
             });
@@ -449,7 +1365,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    const createPaginationButton = (label, page, disabled = false, isActive = false) => {
+    function createPaginationButton(label, page, disabled = false, isActive = false) {
         const btn = document.createElement('button');
         btn.textContent = label;
         if (disabled) btn.disabled = true;
@@ -461,7 +1377,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
         return btn;
-    };
+    }
 
     function renderPagination() {
         paginationContainer.innerHTML = '';
@@ -488,7 +1404,6 @@ document.addEventListener("DOMContentLoaded", () => {
         paginationContainer.appendChild(createPaginationButton('Next', Math.min(totalPages, currentPage + 1), currentPage === totalPages));
     }
 
-    // Event listener for search input
     searchInput.addEventListener("input", () => {
         const searchTerm = searchInput.value.toLowerCase();
         const currentSort = sortSelect.value;
@@ -498,13 +1413,12 @@ document.addEventListener("DOMContentLoaded", () => {
             if (currentSort.includes('name')) return (d.name || '').toLowerCase().includes(searchTerm);
             if (currentSort.includes('address')) return (d.address || '').toLowerCase().includes(searchTerm);
             if (currentSort.includes('number')) return String(d.number || '').includes(searchTerm);
-            if (currentSort.includes('amount')) return String(d.amountDonated || '').includes(searchTerm); 
+            if (currentSort.includes('amount')) return String(d.amountDonated || '').includes(searchTerm);
             if (currentSort.includes('invoice')) return (d.invoice || '').toLowerCase().includes(searchTerm);
             if (currentSort.includes('dateReceived')) return (d.dateReceived || '').toLowerCase().includes(searchTerm);
             if (currentSort.includes('email')) return (d.email || '').toLowerCase().includes(searchTerm);
             if (currentSort.includes('bank')) return (d.bank || '').toLowerCase().includes(searchTerm);
 
-            // Default broad search if no specific sort or 'Sort by' is selected
             return (d.name || '').toLowerCase().includes(searchTerm) ||
                 (d.encoder || '').toLowerCase().includes(searchTerm) ||
                 (d.address || '').toLowerCase().includes(searchTerm) ||
@@ -516,15 +1430,14 @@ document.addEventListener("DOMContentLoaded", () => {
                 (d.bank || '').toLowerCase().includes(searchTerm);
         });
 
-        currentPage = 1; // Reset to the first page after filtering
+        currentPage = 1;
         renderTable();
     });
 
-    // Event listener for sort select
     sortSelect.addEventListener("change", () => {
         const sortVal = sortSelect.value;
         applySorting(filteredAndSortedDonations, sortVal);
-        updateSearchPlaceholder(); 
+        updateSearchPlaceholder();
         renderTable();
     });
 
@@ -546,10 +1459,9 @@ document.addEventListener("DOMContentLoaded", () => {
         else if (sortVal === "email-asc") arr.sort((a, b) => (a.email || '').localeCompare(b.email || ''));
         else if (sortVal === "email-desc") arr.sort((a, b) => (b.email || '').localeCompare(a.email || ''));
         else if (sortVal === "bank-asc") arr.sort((a, b) => (a.bank || '').localeCompare(b.bank || ''));
-        else if (sortVal === "bank-desc") arr.sort((a, b) => (b.bank || '').localeCompare(a.bank || ''));
+        else if (sortVal === "bank-desc") arr.sort((a, b) => (b.email || '').localeCompare(a.email || ''));
     }
 
-    // --- Excel Export Functionality ---
     exportBtn.addEventListener("click", () => {
         if (allDonations.length === 0) {
             Swal.fire("Info", "No data to export!", "info");
@@ -559,7 +1471,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const dataForExport = allDonations.map((d, i) => ({
             "No.": i + 1,
             "Encoder": d.encoder,
-            "Name/Company": d.name,
+            "Name": d.name,
             "Location": d.address,
             "Number": d.number,
             "Amount Donated": d.amountDonated,
@@ -573,32 +1485,28 @@ document.addEventListener("DOMContentLoaded", () => {
         const ws = XLSX.utils.json_to_sheet(dataForExport);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Monetary Donations");
-        // Get current date and format it for the filename
         const today = new Date();
         const year = today.getFullYear();
-        const month = String(today.getMonth() + 1).padStart(2, '0'); 
-        const day = String(today.getDate()).padStart(2, '0'); 
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
         const formattedDate = `${year}-${month}-${day}`;
-        // Construct the filename with the date
         const filename = `monetary-donations_${formattedDate}.xlsx`;
         XLSX.writeFile(wb, filename);
         Swal.fire({
             title: 'Export Successful!',
             text: `Monetary Donations exported to "${filename}"!`,
             icon: 'success',
-            timer: 2500,
-            showConfirmButton: false,
-            timerProgressBar: true,
-            allowOutsideClick: false,
+            showConfirmButton: true,
+            confirmButtonText: 'OK',
             customClass: {
                 popup: 'swal2-popup-success-clean',
                 title: 'swal2-title-success-clean',
-                htmlContainer: 'swal2-text-success-clean'
+                htmlContainer: 'swal2-text-success-clean',
+                confirmButton: 'my-success-button'
             }
         });
     });
 
-    // --- PDF Export Functionality (All Data)---
     savePdfBtn.addEventListener("click", () => {
         if (allDonations.length === 0) {
             Swal.fire("Info", "No data to export to PDF!", "info");
@@ -607,7 +1515,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF('landscape');
-
         let yOffset = 20;
         const logo = new Image();
         logo.src = '../assets/images/AB_logo.png';
@@ -619,7 +1526,6 @@ document.addEventListener("DOMContentLoaded", () => {
             const margin = 14;
 
             doc.addImage(logo, 'PNG', pageWidth - logoWidth - margin, margin, logoWidth, logoHeight);
-
             doc.setFontSize(18);
             doc.text("Monetary Donations Report", 14, yOffset);
             yOffset += 10;
@@ -627,19 +1533,14 @@ document.addEventListener("DOMContentLoaded", () => {
             doc.text(`Report Generated: ${new Date().toLocaleString()}`, 14, yOffset);
             yOffset += 15;
 
-            const head = [[
-                "No.", "Encoder", "Name/Company", "Location",
-                "Number", "Amount Donated", "Cash Invoice #",
-                "Date Received", "Email", "Bank"
-            ]];
-
+            const head = [["No.", "Encoder", "Name", "Location", "Number", "Amount Donated", "Cash Invoice #", "Date Received", "Email", "Bank"]];
             const body = allDonations.map((d, i) => [
                 i + 1,
                 d.encoder || 'N/A',
                 d.name || 'N/A',
                 d.address || 'N/A',
                 String(d.number) || 'N/A',
-                `PHP ${parseFloat(d.amountDonated || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 
+                `PHP ${parseFloat(d.amountDonated || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
                 d.invoice || 'N/A',
                 new Date(d.dateReceived).toLocaleDateString('en-PH') || 'N/A',
                 d.email || 'N/A',
@@ -660,7 +1561,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     fontSize: 8,
                     cellPadding: 2
                 },
-                didDrawPage: function (data) {
+                didDrawPage: function(data) {
                     doc.setFontSize(8);
                     const pageNumberText = `Page ${data.pageNumber} of ${doc.internal.getNumberOfPages()}`;
                     const poweredByText = "Powered by: Appvance";
@@ -675,19 +1576,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const filename = `all-monetary-donations_${new Date().toISOString().slice(0, 10)}.pdf`;
             doc.save(filename);
-            Swal.close();
             Swal.fire({
                 title: 'Success!',
                 text: `All Monetary Donations exported to "${filename}"`,
                 icon: 'success',
-                timer: 2500,
-                showConfirmButton: false,
-                timerProgressBar: true,
-                allowOutsideClick: false,
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
                 customClass: {
                     popup: 'swal2-popup-success-clean',
                     title: 'swal2-title-success-clean',
-                    htmlContainer: 'swal2-text-success-clean'
+                    htmlContainer: 'swal2-text-success-clean',
+                    confirmButton: 'my-success-button'
                 }
             });
         };
@@ -697,11 +1596,9 @@ document.addEventListener("DOMContentLoaded", () => {
         };
     });
 
-    // --- Save Single Donation to PDF ---
     function saveSingleMonetaryDonationPdf(donation) {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
-
         const logo = new Image();
         logo.src = '../assets/images/AB_logo.png';
 
@@ -712,7 +1609,6 @@ document.addEventListener("DOMContentLoaded", () => {
             const margin = 14;
 
             doc.addImage(logo, 'PNG', pageWidth - logoWidth - margin, margin, logoWidth, logoHeight);
-
             doc.setFontSize(18);
             doc.text("Monetary Donation Details", 14, 22);
             doc.setFontSize(10);
@@ -725,14 +1621,15 @@ document.addEventListener("DOMContentLoaded", () => {
             };
 
             addDetail("Encoder", donation.encoder);
-            addDetail("Name/Company", donation.name);
+            addDetail("Name", donation.name);
             addDetail("Location", donation.address);
             addDetail("Number", String(donation.number));
-            addDetail("Amount Donated", `PHP ${parseFloat(donation.amountDonated || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`); 
+            addDetail("Amount Donated", `PHP ${parseFloat(donation.amountDonated || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
             addDetail("Cash Invoice #", donation.invoice);
             addDetail("Date Received", new Date(donation.dateReceived).toLocaleDateString('en-PH'));
             addDetail("Email", donation.email);
             addDetail("Bank", donation.bank);
+            addDetail("Reference Number", donation.referenceNumber);
             addDetail("Proof of Transaction", donation.proof);
             addDetail("Recorded On", new Date(donation.createdAt).toLocaleString());
 
@@ -746,20 +1643,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
             doc.save(`monetary_donation_${new Date().toISOString().slice(0, 10)}.pdf`);
             Swal.fire({
-            title: 'Export Successful!',
-            text: 'Monetary donation details have been exported to PDF.',
-            icon: 'success',
-                timer: 1600,
-                showConfirmButton: false,
-                timerProgressBar: true,
-                allowOutsideClick: false,
+                title: 'Export Successful!',
+                text: 'Monetary donation details have been exported to PDF.',
+                icon: 'success',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
                 customClass: {
                     popup: 'swal2-popup-success-clean',
                     title: 'swal2-title-success-clean',
-                    htmlContainer: 'swal2-text-success-clean'
+                    htmlContainer: 'swal2-text-success-clean',
+                    confirmButton: 'my-success-button'
                 }
             });
-
         };
 
         logo.onerror = function() {
@@ -767,13 +1662,34 @@ document.addEventListener("DOMContentLoaded", () => {
         };
     }
 
-    function deleteRow(firebaseKey) {
+    async function deleteRow(firebaseKey) {
+        if (!permissions.canArchive) {
+            Swal.fire('Error', 'You do not have permission to archive donations.', 'error');
+            return;
+        }
+        const isVerified = await verifySuperAdminPassword();
+        if (!isVerified) {
+            Swal.fire({
+                title: 'Error',
+                text: 'Incorrect admin password.',
+                icon: 'error',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
+                }
+            });
+            return;
+        }
         Swal.fire({
-            title: 'Are you sure to reject this donation?',
+            title: 'Are you sure to archive this donation?',
             text: "This will move it to archived records.",
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonText: 'Reject',
+            confirmButtonText: 'Archive',
             cancelButtonText: 'Cancel',
             reverseButtons: true,
             focusCancel: true,
@@ -798,167 +1714,139 @@ document.addEventListener("DOMContentLoaded", () => {
                     deletedAt: new Date().toISOString()
                 };
 
-                database.ref(`deleteddonations/deletedmonetary/${firebaseKey}`).set(deletedDonation)
+                database.ref(`donations/archivedDonations/monetary/${firebaseKey}`).set(deletedDonation)
                     .then(() => {
-                        return database.ref(`donations/monetary/${firebaseKey}`).remove();
+                        return database.ref(`donations/savedDonations/monetary/${firebaseKey}`).remove();
                     })
                     .then(() => {
                         Swal.fire({
-                            title: 'Rejected!',
-                            text: 'The donation has been rejected and archived.',
+                            title: 'Archived!',
+                            text: 'The donation has been archived.',
                             icon: 'success',
-                            timer: 1600,
-                            showConfirmButton: false,
-                            timerProgressBar: true,
-                            allowOutsideClick: false,
+                            showConfirmButton: true,
+                            confirmButtonText: 'OK',
                             customClass: {
                                 popup: 'swal2-popup-success-clean',
                                 title: 'swal2-title-success-clean',
                                 htmlContainer: 'swal2-text-success-clean',
+                                confirmButton: 'my-success-button'
                             }
                         });
                     })
                     .catch(error => {
-                        console.error("Error moving donation to deleted donations:", error);
                         Swal.fire("Error", "Failed to delete donation: " + error.message, "error");
                     });
             }
         });
     }
 
-    const validateEditForm = () => {
-        let isValid = true;
-        const fieldsToCheck = [
-            { input: document.getElementById("edit-encoder"), label: "Encoder", lettersOnly: true },
-            { input: document.getElementById("edit-name"), label: "Name/Company", lettersOnly: false },
-            { input: document.getElementById("edit-address"), label: "Location" },
-            { input: document.getElementById("edit-number"), label: "Number", telNumber: true },
-            { input: document.getElementById("edit-amount"), label: "Amount Donated", numericAmount: true, positiveNumber: true },
-            { input: document.getElementById("edit-invoice"), label: "Cash Invoice #", required: false },
-            { input: document.getElementById("edit-dateReceived"), label: "Date Received", isDate: true},
-            { input: document.getElementById("edit-email"), label: "Email", isEmail: true },
-            { input: document.getElementById("edit-bank"), label: "Bank" },
-            { input: document.getElementById("edit-proof"), label: "Proof of Transaction", required: false },
-        ];
-
-        const today = new Date();
-
-        fieldsToCheck.forEach(({ input, label, lettersOnly, telNumber, numericAmount, positiveNumber, isEmail, isDate = false, required = true }) => {
-            clearError(input);
-            if (required && isEmpty(input.value)) {
-                showError(input, `${label} is required.`);
-                isValid = false;
-            } else if (!isEmpty(input.value)) {
-                if (lettersOnly && !isLettersOnly(input.value)) {
-                    showError(input, `${label} should only contain letters and spaces.`);
-                    isValid = false;
+    async function openEditModal(firebaseKey) {
+        if (!permissions.canEdit) {
+            Swal.fire('Error', 'You do not have permission to edit donations.', 'error');
+            return;
+        }
+        const isVerified = await verifySuperAdminPassword();
+        if (!isVerified) {
+            Swal.fire({
+                title: 'Error',
+                text: 'Incorrect admin password.',
+                icon: 'error',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
                 }
-                if (telNumber && !isValidNumber(input.value)) {
-                    showError(input, `${label} should be a valid phone number.`);
-                    isValid = false;
-                }
-                if (numericAmount) {
-                    if (!isValidNumericAmount(input.value)) {
-                        showError(input, `${label} should only contain numbers.`);
-                        isValid = false;
-                    } else if (positiveNumber && parseFloat(input.value) <= 0) {
-                        showError(input, `${label} must be a positive number.`);
-                        isValid = false;
-                    }
-                }
-                if (isEmail) {
-                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                    if (!emailRegex.test(input.value.trim())) {
-                        showError(input, `Please enter a valid ${label.toLowerCase()} address.`);
-                        isValid = false;
-                    }
-                }
-                if (isDate) { 
-                const receivedDate = new Date(input.value);
-                    if (isNaN(receivedDate.getTime())) { 
-                        showError(input, `${label} is not a valid date.`);
-                        isValid = false;
-                    }
-                    // Allows current date, prevents future dates
-                    else if (receivedDate.setHours(0,0,0,0) > today.setHours(0,0,0,0)) {
-                        showError(input, `${label} cannot be a future date.`);
-                        isValid = false;
-                    }
-                }
-            }
-        });
-        return isValid;
-    };
-
-    function openEditModal(firebaseKey) {
+            });
+            return;
+        }
         editingKey = firebaseKey;
         const donationToEdit = allDonations.find(d => d.firebaseKey === firebaseKey);
-        if (donationToEdit) {
-            document.getElementById("edit-encoder").value = donationToEdit.encoder || '';
-            document.getElementById("edit-name").value = donationToEdit.name || '';
-            document.getElementById("edit-address").value = donationToEdit.address || '';
-            document.getElementById("edit-number").value = donationToEdit.number || '';
-            document.getElementById("edit-amount").value = donationToEdit.amountDonated; 
-            document.getElementById("edit-invoice").value = donationToEdit.invoice || '';
-            document.getElementById("edit-dateReceived").value = donationToEdit.dateReceived || '';
-            document.getElementById("edit-email").value = donationToEdit.email || '';
-            document.getElementById("edit-bank").value = donationToEdit.bank || '';
-            document.getElementById("edit-proof").value = donationToEdit.proof || "";
-            editModal.style.display = "flex";
-            Array.from(editModal.querySelectorAll('input, select')).forEach(clearError);
+            if (donationToEdit) {
+                document.getElementById("edit-encoder").value = donationToEdit.encoder || '';
+                document.getElementById("edit-name").value = donationToEdit.name || '';
+                document.getElementById("edit-address").value = donationToEdit.address || '';
+                document.getElementById("edit-number").value = donationToEdit.number || '';
+                document.getElementById("edit-amount").value = donationToEdit.amountDonated;
+                document.getElementById("edit-invoice").value = donationToEdit.invoice || '';
+                document.getElementById("edit-dateReceived").value = donationToEdit.dateReceived || '';
+                document.getElementById("edit-email").value = donationToEdit.email || '';
+                document.getElementById("edit-bank").value = donationToEdit.bank || '';
+                document.getElementById("edit-referenceNumber").value = donationToEdit.referenceNumber || ''; 
+                document.getElementById("edit-proof").value = donationToEdit.proof || "";
+                editModal.style.display = "flex";
+                Array.from(editModal.querySelectorAll('input, select')).forEach(clearError);
+            }
         }
-    }
 
-    document.getElementById("saveEditBtn").addEventListener("click", () => {
+        document.getElementById("saveEditBtn").addEventListener("click", async () => {
         if (editingKey !== null) {
-            if (validateEditForm()) {
+            const inputs = {
+                encoder: document.getElementById("edit-encoder"),
+                name: document.getElementById("edit-name"),
+                address: document.getElementById("edit-address"),
+                number: document.getElementById("edit-number"),
+                amount: document.getElementById("edit-amount"),
+                invoice: document.getElementById("edit-invoice"),
+                dateReceived: document.getElementById("edit-dateReceived"),
+                email: document.getElementById("edit-email"),
+                bank: document.getElementById("edit-bank"),
+                referenceNumber: document.getElementById("edit-referenceNumber"),
+                proof: document.getElementById("edit-proof")
+            };
+            const isValid = await validateDonationForm(inputs, editingKey);
+            if (isValid) {
+                const donation = allDonations.find(d => d.firebaseKey === editingKey);
+                if (!donation) {
+                    Swal.fire("Error", "Donation not found!", "error");
+                    return;
+                }
                 const updatedDonation = {
-                    encoder: document.getElementById("edit-encoder").value,
-                    name: document.getElementById("edit-name").value,
-                    address: document.getElementById("edit-address").value,
-                    number: document.getElementById("edit-number").value,
-                    amountDonated: parseFloat(document.getElementById("edit-amount").value),
-                    invoice: document.getElementById("edit-invoice").value,
-                    dateReceived: document.getElementById("edit-dateReceived").value,
-                    email: document.getElementById("edit-email").value,
-                    bank: document.getElementById("edit-bank").value,
-                    proof: document.getElementById("edit-proof").value,
-                    id: allDonations.find(d => d.firebaseKey === editingKey).id,
-                    userUid: allDonations.find(d => d.firebaseKey === editingKey).userUid,
-                    createdAt: allDonations.find(d => d.firebaseKey === editingKey).createdAt,
-                    updatedAt: new Date().toISOString(), 
+                    encoder: inputs.encoder.value,
+                    name: inputs.name.value,
+                    address: inputs.address.value,
+                    number: inputs.number.value,
+                    amountDonated: parseFloat(inputs.amount.value),
+                    invoice: inputs.invoice.value,
+                    dateReceived: inputs.dateReceived.value,
+                    email: inputs.email.value,
+                    bank: inputs.bank.value,
+                    referenceNumber: inputs.referenceNumber.value,
+                    proof: inputs.proof.value,
+                    id: donation.id,
+                    userUid: donation.userUid,
+                    createdAt: donation.createdAt,
+                    updatedAt: new Date().toISOString(),
                 };
 
-                database.ref(`donations/monetary/${editingKey}`).update(updatedDonation) // Use .update() instead of .set() to only change specified fields
-                .then(() => {
-                    closeEditModal();
-                    Swal.fire({
-                        title: 'Success!',
-                        text: 'Donation updated successfully!',
-                        icon: 'success',
-                        timer: 1600,
-                        showConfirmButton: false,
-                        timerProgressBar: true,
-                        allowOutsideClick: false,
-                        customClass: {
-                            popup: 'swal2-popup-success-clean',
-                            title: 'swal2-title-success-clean',
-                            htmlContainer: 'swal2-text-success-clean',
-                        }
+                database.ref(`donations/savedDonations/monetary/${editingKey}`).update(updatedDonation)
+                    .then(() => {
+                        closeEditModal();
+                        Swal.fire({
+                            title: 'Success!',
+                            text: 'Donation updated successfully!',
+                            icon: 'success',
+                            showConfirmButton: true,
+                            confirmButtonText: 'OK',
+                            customClass: {
+                                popup: 'swal2-popup-success-clean',
+                                title: 'swal2-title-success-clean',
+                                htmlContainer: 'swal2-text-success-clean',
+                                confirmButton: 'my-success-button'
+                            }
+                        });
+                        editingKey = null;
+                    })
+                    .catch(error => {
+                        Swal.fire("Error", "Failed to update donation: " + error.message, "error");
                     });
-
-                    editingKey = null;
-                })
-                .catch(error => {
-                    console.error("Error updating donation:", error);
-                    Swal.fire("Error", "Failed to update donation: " + error.message, "error");
-                });
             }
         }
     });
 
     function closeEditModal() {
-        const editModal = document.getElementById("editModal");
         editModal.style.display = "none";
         editingKey = null;
         const errorMessages = editModal.querySelectorAll('.error-message');
@@ -967,6 +1855,8 @@ document.addEventListener("DOMContentLoaded", () => {
         errorInputs.forEach(input => input.classList.remove('error'));
     }
 
-    document.getElementById("closeEditModalBtn").addEventListener("click", closeEditModal); 
+    document.getElementById("closeEditModalBtn").addEventListener("click", closeEditModal);
     document.getElementById("cancelEditBtn").addEventListener("click", closeEditModal);
+    document.getElementById("closeModal").addEventListener("click", hideViewModal);
+    document.getElementById("downloadTemplateBtn").addEventListener("click", downloadExcelTemplate);
 });

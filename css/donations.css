@@ -214,10 +214,6 @@ hr {
   .input-field {
       width: calc((100% - 15px) / 2);
   }
-  h2{
-      text-align: center;
-      margin-top: 20px;
-  }
 }
 
 @media (max-width: 600px) {

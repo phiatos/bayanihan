@@ -17,7 +17,25 @@
   --gray: #9e9e9e;
   --swal-title-color: #34495e;
   --swal-text-color: #566573;
+
+  /* SweetAlert2 Success Colors */
+  --swal-bg-lightgreen: #e6f4ea;
+  --swal-dark-green: #1b5e20;
+  --swal-success-shadow: rgba(16, 185, 129, 0.25);
+
+  /* SweetAlert2 Warning Colors */
+  --swal-warning-shadow: rgba(253, 224, 71, 0.15);
+  --swal-warning-title: #b45309;
+  --swal-warning-text: #92400e;
+  --swal-warning-btn-bg: #f59e0b;
+  --swal-warning-btn-hover: #d97706;
+
+  /* SweetAlert2 Error Colors */
   --swal-bg-lightred: #ffebee;
+  --swal-error-shadow: rgba(183, 28, 28, 0.25);
+  --swal-error-title: #b71c1c;
+  --swal-error-text: #c62828;
+  --swal-error-btn-bg: #c62828;
 }
 
 * {
@@ -283,8 +301,6 @@ tr {
   pointer-events: none; /* ensures no accidental clicks when hidden */
 }
 
-
-
 @keyframes animatetop {
   0% {
     opacity: 0;
@@ -343,12 +359,12 @@ tr {
   border: 1px solid #ccc;
   border-radius: 4px;
   font-size: 1em;
-  width: 100%; /* Full width within container */
-  box-sizing: border-box; /* Include padding/border in width */
+  width: 100%;
+  box-sizing: border-box; 
 }
 
 /* Area Input in Modal */
-.modal-area-input-container { /* New container for the input field */
+.modal-area-input-container {
   display: flex;
   flex-direction: column;
   gap: 5px;
@@ -775,6 +791,59 @@ tbody tr td button {
 button:disabled {
   background-color: #aaa;
   cursor: not-allowed;
+}
+
+.button-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Styles for the "View Archived" button */
+#viewArchived {
+  width: 45px;
+  height: 45px;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+  font-size: 20px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  background-color: var(--gray); 
+}
+
+#viewArchived:hover {
+  background-color: #7b7b7b; 
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Styles for the "Download Template" button */
+#downloadTemplateBtn {
+  width: 45px;
+  height: 45px;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+  font-size: 20px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  background-color: var(--blue); 
+  color: #fff;
+}
+
+#downloadTemplateBtn:hover {
+  background-color: var(--blue-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
 /* Activation and Bayanihan Buttons */
@@ -1577,9 +1646,9 @@ label:has(+ textarea[required])::after {
 .swal2-popup-success-clean {
   border-radius: 14px;
   padding: 2.5rem 3rem;
-  background: var(--white);
-  box-shadow: 0 12px 30px rgba(16, 185, 129, 0.25);
-  color: #065f46;
+  background: var(--swal-bg-lightgreen);
+  box-shadow: 0 12px 30px var(--swal-success-shadow);
+  color: var(--swal-dark-green);
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   max-width: 420px;
 }
@@ -1587,13 +1656,13 @@ label:has(+ textarea[required])::after {
 .swal2-title-success-clean {
   font-size: 1.7rem;
   font-weight: 700;
-  color: #065f46;
+  color: var(--swal-dark-green); 
   margin-bottom: 0.25rem;
 }
 
 .swal2-text-success-clean {
   font-size: 1.05rem;
-  color: #064e3b;
+  color: var(--swal-dark-green); 
 }
 
 .my-success-button {
@@ -1601,6 +1670,8 @@ label:has(+ textarea[required])::after {
   padding: 10px 20px !important;
   font-size: 1rem !important;
   font-weight: 500 !important;
+  background-color: var(--swal-dark-green) !important; 
+  color: var(--white) !important;
 }
 
 /* --- SweetAlert2 (Warning) --- */
@@ -1608,8 +1679,8 @@ label:has(+ textarea[required])::after {
   border-radius: 14px;
   padding: 1rem 1rem;
   background: var(--white);
-  box-shadow: 0 12px 30px rgba(253, 224, 71, 0.15);
-  color: #b45309; 
+  box-shadow: 0 12px 30px var(--swal-warning-shadow);
+  color: var(--swal-warning-title); 
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   max-width: 380px;
   max-height: fit-content;
@@ -1618,13 +1689,13 @@ label:has(+ textarea[required])::after {
 .swal2-title-warning-clean {
   font-size: 1.7rem;
   font-weight: 700;
-  color: #b45309; 
+  color: var(--swal-warning-title); 
   margin-bottom: 0.25rem;
 }
 
 .swal2-text-warning-clean {
   font-size: 1.05rem;
-  color: #92400e;
+  color: var(--swal-warning-text);
 }
 
 .my-warning-button {
@@ -1632,13 +1703,13 @@ label:has(+ textarea[required])::after {
   padding: 10px 20px !important;
   font-size: 1rem !important;
   font-weight: 500 !important;
-  background-color: #f59e0b;
+  background-color: var(--swal-warning-btn-bg);
   color: #fff;
 }
 
 .my-warning-button:hover {
-  background-color: #d97706;
-  border-color: #d97706;
+  background-color: var(--swal-warning-btn-hover);
+  border-color: var(--swal-warning-btn-hover);
 }
 
 /* --- SweetAlert2 (Error) --- */
@@ -1646,8 +1717,8 @@ label:has(+ textarea[required])::after {
   border-radius: 14px;
   padding: 2.5rem 3rem;
   background: var(--swal-bg-lightred);
-  box-shadow: 0 12px 30px rgba(183, 28, 28, 0.25);
-  color: #b71c1c;
+  box-shadow: 0 12px 30px var(--swal-error-shadow);
+  color: var(--swal-error-title);
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   max-width: 420px;
 }
@@ -1655,13 +1726,13 @@ label:has(+ textarea[required])::after {
 .swal2-title-error-clean {
   font-size: 1.7rem;
   font-weight: 700;
-  color: #b71c1c;
+  color: var(--swal-error-title);
   margin-bottom: 0.25rem;
 }
 
 .swal2-text-error-clean {
   font-size: 1.05rem;
-  color: #c62828;
+  color: var(--swal-error-text);
 }
 
 .my-error-button {
@@ -1669,8 +1740,8 @@ label:has(+ textarea[required])::after {
   padding: 10px 20px !important;
   font-size: 1rem !important;
   font-weight: 500 !important;
-  background-color: #c62828 !important;
-  color: #ffffff !important;
+  background-color: var(--swal-error-btn-bg) !important;
+  color: var(--white) !important;
 }
 
 /* --- SweetAlert2 (Custom General) --- */
@@ -1767,55 +1838,6 @@ label:has(+ textarea[required])::after {
   width: 190px;
   border-radius: 6px;
   font-weight: 600;
-}
-
-.swal-invalid-date-popup {
-  border-radius: 15px !important;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25) !important;
-  background-color: var(--white) !important;
-  padding: 30px !important;
-  border: 1px solid var(--accent-color) !important;
-}
-
-.swal-invalid-date-title {
-  color: #dc3545 !important;
-  font-size: 2em !important;
-  font-weight: 700 !important;
-  margin-bottom: 20px !important;
-  text-align: center !important;
-}
-
-.swal-invalid-date-text {
-  color: var(--black) !important;
-  font-size: 1.15em !important;
-  line-height: 1.6 !important;
-  margin-bottom: 30px !important;
-  text-align: center !important;
-}
-
-.swal-invalid-date-icon.swal2-icon.swal2-error {
-  border-color: #dc3545 !important;
-  color: #dc3545 !important;
-}
-
-.swal-invalid-date-confirm-button {
-  background-color: var(--primary-color) !important;
-  color: var(--white) !important;
-  border: none !important;
-  padding: 12px 20px !important;
-  border-radius: 8px !important;
-  font-size: 1.1em !important;
-  font-weight: 600 !important;
-  width: 200px !important;
-  cursor: pointer !important;
-  transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease !important;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15) !important;
-}
-
-.swal-invalid-date-confirm-button:hover {
-  background-color: var(--button-hover) !important;
-  transform: translateY(-2px) !important;
-  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.25) !important;
 }
 
 /* --- Media Queries (Responsive Design) --- */

@@ -6,6 +6,7 @@
   <title>Bayanihan | Angat Buhay Disaster Relief Portal</title>
   <link rel="stylesheet" href="../index.css" />
   <link rel="stylesheet" href="../css/application.css" />
+  <link rel="stylesheet" href="../css/global.css" />
   <link rel="icon" href="../assets/images/logox192.png" />
 
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -76,18 +77,13 @@
 
           <div class="form-group">
             <label for="age">Age</label>
-            <input type="number" id="age" name="age" placeholder="e.g. Volunteers must be at least 18 years old" min="18" max="120" />
+            <input type="number" id="age" name="age" placeholder="e.g. Volunteers must be at least 18 years old" min="18" max="120" required/>
           </div>
 
           <div class="form-group">
             <label for="socialMedia">Social Media Link (e.g., Facebook Profile URL)</label>
-            <input type="url" id="socialMedia" name="socialMedia" placeholder="e.g. https://facebook.com/yourprofile" />
+            <input type="url" id="socialMedia" name="socialMedia" placeholder="e.g. https://facebook.com/yourprofile" required/>
             <small>Optional, but helps us connect with you.</small>
-          </div>
-
-          <div class="form-group">
-            <label for="additionalInfo">Skills, Experience, or Other Relevant Information (Optional)</label>
-            <textarea id="additionalInfo" name="additionalInfo" rows="4" placeholder="e.g. I have experience in medical aid, I am a licensed driver, etc."></textarea>
           </div>
         </fieldset>
 
@@ -122,6 +118,105 @@
             <label for="streetAddress">Block/Lot/Unit Number and Street</label>
             <input type="text" id="streetAddress" name="streetAddress" placeholder="e.g. Blk 1 Lot 2, Main St." required />
           </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Skills</legend>
+
+            <div class="skills-group">
+              <label>Disaster Response Skills</label>
+              <div>
+                <input type="checkbox" name="skills" value="First Aid & Basic Life Support"> First Aid & Basic Life Support
+              </div>
+              <div>
+                <input type="checkbox" name="skills" value="Search & Rescue"> Search & Rescue
+              </div>
+              <div>
+                <input type="checkbox" name="skills" value="Evacuation Assistance"> Evacuation Assistance
+              </div>
+              <div>
+                <input type="checkbox" name="skills" value="Relief Goods Distribution"> Relief Goods Distribution
+              </div>
+              <div>
+                <input type="checkbox" name="skills" value="On-the-ground responders"> On-the-ground responders
+              </div>
+            </div>
+
+            <div class="skills-group">
+              <label>Transportation & Logistics Skills</label>
+              <div>
+                <input type="checkbox" name="skills" value="Logistics & Supply Chain Management"> Logistics & Supply Chain Management
+              </div>
+              <div>
+                <input type="checkbox" name="skills" value="Transport Coordination"> Transport Coordination
+              </div>
+              <div>
+                <input type="checkbox" name="skills" value="Truck Driving"> Truck Driving
+              </div>
+              <div>
+                <input type="checkbox" name="skills" value="Bus Driving"> Bus Driving
+              </div>
+              <div>
+                <input type="checkbox" name="skills" value="Van or Shuttle Driving"> Van / Shuttle Driving
+              </div>
+              <div>
+                <input type="checkbox" name="skills" value="Motorcycle Delivery"> Motorcycle Delivery
+              </div>
+              <div>
+                <input type="checkbox" name="skills" value="Forklift Operation"> Forklift Operation
+              </div>
+            </div>
+
+            <div class="skills-group">
+              <label>Medical Skills</label>
+              <div>
+                <input type="checkbox" name="skills" value="General Medicine"> General Medicine
+              </div>
+              <div>
+                <input type="checkbox" name="skills" value="Pediatrics"> Pediatrics
+              </div>
+              <div>
+                <input type="checkbox" name="skills" value="Psychology / Mental Health"> Psychology / Mental Health
+              </div>
+              <div>
+                <input type="checkbox" name="skills" value="Nursing"> Nursing
+              </div>
+              <div>
+                <input type="checkbox" name="skills" value="Paramedic / Emergency Medical Technician"> Paramedic / EMT
+              </div>
+              <div>
+                <input type="checkbox" name="skills" value="Pharmacy"> Pharmacy
+              </div>
+            </div>
+
+            <div class="skills-group">
+              <label>Specialized Skills</label>
+              <div>
+                <input type="checkbox" name="skills" value="Engineering / Construction"> Engineering / Construction
+              </div>
+              <div>
+                <input type="checkbox" name="skills" value="Water, Sanitation & Hygiene"> Water, Sanitation & Hygiene
+              </div>
+              <div>
+                <input type="checkbox" name="skills" value="Agricultural Recovery"> Agricultural Recovery
+              </div>
+              <div>
+                <input type="checkbox" name="skills" value="Animal Rescue & Care"> Animal Rescue & Care
+              </div>
+              <div>
+                <input type="checkbox" name="skills" value="Information Technology"> Information Technology
+              </div>
+            </div>
+
+            <div class="skills-group">
+              <div>
+                <input type="checkbox" name="skills" value="Other" id="otherSkillCheckbox">
+                <span style="color: var(--primary-color); font-weight: 600;">Other (please specify)</span>
+              </div>
+              <textarea id="otherSkillComments" name="otherSkillComments" placeholder="Please specify your skills here." rows="4" style="display: none;"></textarea>
+            </div>
+
+          <small>You may select up to 1–3 skills.</small>
         </fieldset>
 
         <fieldset>
