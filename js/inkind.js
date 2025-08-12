@@ -1,5 +1,3 @@
-import { renderPagination, updateEntriesInfo, getPaginatedData } from '../js/pagination.js';
-
 document.addEventListener("DOMContentLoaded", () => {
     const firebaseConfig = {
         apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
@@ -16,6 +14,31 @@ document.addEventListener("DOMContentLoaded", () => {
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
     const auth = firebase.auth();
+    const archivedInKindRef = database.ref('donations/archivedDonations/inkind');
+
+    const form = document.getElementById("form-container-1");
+    const tableBody = document.querySelector("#inKindTable tbody");
+    const searchInput = document.getElementById("searchInput");
+    const sortSelect = document.getElementById("sortSelect");
+    const exportBtn = document.getElementById("exportBtn");
+    const savePdfBtn = document.getElementById("savePdfBtn");
+    const entriesInfo = document.getElementById("entriesInfo");
+    const paginationContainer = document.getElementById("pagination");
+    const clearFormBtn = document.getElementById("clearFormBtn");
+    const editModal = document.getElementById("editModal");
+    const importExcelBtn = document.getElementById('importExcelBtn');
+    const excelFileInput = document.getElementById('excelFileInput');
+    const importStatusModal = document.getElementById('importStatusModal');
+    const closeImportStatusModalBtn = document.getElementById('closeImportStatusModalBtn');
+    const importProgressBar = document.getElementById('importProgressBar');
+    const importStatusText = document.getElementById('importStatusText');
+    const importErrorList = document.getElementById('importErrorList');
+    const archivedModal = document.getElementById('archivedModal');
+    const closeArchivedModalBtn = document.getElementById('closeArchivedModalBtn');
+    const viewArchivedBtn = document.getElementById('viewArchived');
+    const archivedTableBody = document.querySelector('#archivedTable tbody');
+    const archivedEntriesInfo = document.querySelector("#archivedEntriesInfo");
+    const archivedPaginationContainer = document.querySelector("#archivedPagination");
 
     const rowsPerPage = 10;
     let currentPage = 1;
@@ -27,35 +50,11 @@ document.addEventListener("DOMContentLoaded", () => {
     let currentUserAdminPosition = null;
     let allArchivedInKindDonation = [];
     let currentArchivedPage = 1;
+    let isAdminVerified = false;
     const archivedRowsPerPage = 5;
-
-    // DOM elements
-    const form = document.getElementById("form-container-1");
-    const tableBody = document.querySelector("#inKindTable tbody");
-    const searchInput = document.getElementById("searchInput");
-    const sortSelect = document.getElementById("sortSelect");
-    const exportBtn = document.getElementById("exportBtn");
-    const savePdfBtn = document.getElementById("savePdfBtn");
-    const entriesInfo = document.getElementById("entriesInfo");
-    const paginationContainer = document.getElementById("pagination");
-    const clearFormBtn = document.getElementById("clearFormBtn");
-    const viewArchivedButton = document.getElementById('viewArchived');
-    const archivedModal = document.getElementById('archivedModal');
-    const closeArchivedModalBtn = document.getElementById('closeArchivedModalBtn');
-    const archivedTableBody = document.querySelector('#archivedTable tbody');
-    const archivedEntriesInfo = document.querySelector("#archivedEntriesInfo");
-    const archivedPaginationContainer = document.querySelector("#archivedPagination");
-    const excelFileInput = document.getElementById('excelFileInput');
-    const importExcelBtn = document.getElementById('importExcelBtn');
-    const importStatusModal = document.getElementById('importStatusModal');
-    const closeImportStatusModalBtn = document.getElementById('closeImportStatusModalBtn');
-    const importProgressBar = document.getElementById('importProgressBar');
-    const importStatusText = document.getElementById('importStatusText');
-    const importErrorList = document.getElementById('importErrorList');
-
-    // Inactivity detection
     let inactivityTimeout;
     const INACTIVITY_TIME = 1800000;
+    let permissions = { canView: false, canEdit: false, canArchive: false, canRetrieve: false };
 
     // Function to validate email format
     function isValidEmail(email) {
@@ -71,54 +70,161 @@ document.addEventListener("DOMContentLoaded", () => {
         return mobileRegex.test(mobile);
     }
 
-    // Function to check if mobile number is already in use
-    async function isMobileNumberInUse(mobile, excludeKey) {
-        try {
-            const paths = ['donations/inkind', 'deletedDonations/deletedinkind'];
-            for (const path of paths) {
-                const snapshot = await database.ref(path).once('value');
-                const records = snapshot.val();
-                if (records) {
-                    for (const key in records) {
-                        if (key !== excludeKey && records[key].number === mobile) {
-                            return true;
-                        }
-                    }
-                }
-            }
-            return false;
-        } catch (error) {
-            console.error("Error checking mobile number in use:", error);
-            return false;
-        }
+    // Function to validate valuation format
+    function isValidValuation(value) {
+        const valuationRegex = /^\d+(\.\d{1,2})?$/;
+        const numValue = parseFloat(value);
+        return valuationRegex.test(value) && numValue > 0 && numValue <= 1000000;
     }
 
-    // Function to check if email is already in use
-    async function isEmailInUse(email, excludeKey) {
-        try {
-            const paths = ['donations/inkind', 'deletedDonations/deletedinkind'];
-            for (const path of paths) {
+    function isValidNumber(value) {
+        return /^\d+(\.\d+)?$/.test(value);
+    }
+
+    // Add real-time input restrictions for number fields
+    const numberInput = form.number;
+    const editNumberInput = document.getElementById("edit-number");
+
+    function restrictNumberInput(input) {
+        input.addEventListener("input", () => {
+            let value = input.value.replace(/[^0-9]/g, '');
+            if (value.length > 11) value = value.slice(0, 11);
+            if (value && !value.startsWith('09')) {
+                value = '09' + value.replace(/^09/, '').slice(0, 9);
+            }
+            input.value = value;
+        });
+        input.addEventListener("paste", (e) => {
+            e.preventDefault();
+            const pastedData = (e.clipboardData || window.clipboardData).getData('text').replace(/[^0-9]/g, '');
+            if (pastedData) {
+                input.value = '09' + pastedData.slice(0, 9);
+            }
+        });
+    }
+
+    restrictNumberInput(numberInput);
+    restrictNumberInput(editNumberInput);
+
+    // Check for duplicate email, number, and name
+    async function checkForDuplicate(number, email, name, excludeKey = null) {
+        const duplicates = { email: false, number: false, name: false, all: false };
+        const paths = ['donations/savedDonations/inkind', 'donations/archivedDonations/inkind'];
+
+        for (const path of paths) {
+            try {
                 const snapshot = await database.ref(path).once('value');
-                const records = snapshot.val();
-                if (records) {
-                    for (const key in records) {
-                        if (key !== excludeKey && records[key].email === email) {
-                            return true;
-                        }
+                const donations = snapshot.val();
+                if (!donations) continue;
+
+                for (const key in donations) {
+                    if (excludeKey && key === excludeKey) continue;
+                    const donation = donations[key];
+                    if (donation.email && donation.email.toLowerCase() === email.toLowerCase()) duplicates.email = true;
+                    if (donation.number === number) duplicates.number = true;
+                    if (donation.name && donation.name.toLowerCase() === name.toLowerCase()) duplicates.name = true;
+                    if (donation.number === number && donation.email.toLowerCase() === email.toLowerCase() && donation.name.toLowerCase() === name.toLowerCase()) {
+                        duplicates.all = true;
                     }
                 }
+            } catch (error) {
+                logErrorToFirebase(error, `checkForDuplicate_${path}`);
             }
-            return false;
-        } catch (error) {
-            console.error("Error checking email in use:", error);
+        }
+        return duplicates;
+    }
+
+    // Function to sanitize input to prevent XSS
+    function sanitizeInput(input) {
+        if (typeof input !== 'string') return input;
+        return input.replace(/[<>&"']/g, (match) => ({
+            '<': '&lt;',
+            '>': '&gt;',
+            '&': '&amp;',
+            '"': '&quot;',
+            "'": '&#x27;'
+        })[match]);
+    }
+
+    // Function to log errors to Firebase
+    function logErrorToFirebase(error, context) {
+        const errorLog = {
+            message: error.message,
+            stack: error.stack,
+            context: context,
+            timestamp: new Date().toISOString(),
+            userUid: auth.currentUser ? auth.currentUser.uid : 'anonymous'
+        };
+        database.ref('errorLogs/inkind').push(errorLog)
+            .catch(err => console.error("Failed to log error to Firebase:", err));
+    }
+
+    // Check admin permissions
+    async function checkAdminPermissions() {
+        const user = auth.currentUser;
+        if (!user) {
+            Swal.fire('Error', 'User not authenticated.', 'error');
+            return { canView: false, canEdit: false, canArchive: false, canRetrieve: false };
+        }
+        const snapshot = await database.ref(`users/${user.uid}`).once('value');
+        const userData = snapshot.val();
+        const adminPosition = userData?.adminPosition || '';
+        return {
+            canView: ['Super Admin', 'position-one', 'position-two'].includes(adminPosition),
+            canEdit: ['Super Admin', 'position-one', 'position-two'].includes(adminPosition),
+            canArchive: ['Super Admin', 'position-one'].includes(adminPosition),
+            canRetrieve: ['Super Admin', 'position-one'].includes(adminPosition)
+        };
+    }
+
+    // Verify Super Admin password
+    async function verifySuperAdminPassword() {
+        const { value: password } = await Swal.fire({
+            title: 'Enter Admin Password',
+            input: 'password',
+            inputPlaceholder: 'Enter password here',
+            inputAttributes: {
+                autocapitalize: 'off',
+                autocorrect: 'off',
+                autocomplete: 'new-password'
+            },
+            showCancelButton: true,
+            confirmButtonText: 'Verify',
+            showLoaderOnConfirm: true,
+            reverseButtons: true,
+            focusCancel: true,
+            preConfirm: async (password) => {
+                try {
+                    const user = auth.currentUser;
+                    const credential = firebase.auth.EmailAuthProvider.credential(user.email, password);
+                    await auth.signInWithCredential(credential);
+                    return true;
+                } catch (error) {
+                    Swal.showValidationMessage(`Verification failed: ${error.message}`);
+                    return false;
+                }
+            },
+            allowOutsideClick: () => !Swal.isLoading(),
+            customClass: {
+                popup: 'custom-swal-popup',
+                title: 'custom-swal-title',
+                input: 'custom-swal-input',
+                confirmButton: 'custom-confirm-btn',
+                cancelButton: 'custom-cancel-btn'
+            }
+        });
+        if (!password) {
+            isAdminVerified = true;
+            searchInput.value = '';
             return false;
         }
+        searchInput.value = '';
+        return password;
     }
 
     function resetInactivityTimer() {
         clearTimeout(inactivityTimeout);
         inactivityTimeout = setTimeout(checkInactivity, INACTIVITY_TIME);
-        console.log("Inactivity timer reset.");
     }
 
     function checkInactivity() {
@@ -142,13 +248,10 @@ document.addEventListener("DOMContentLoaded", () => {
         }).then((result) => {
             if (result.isConfirmed) {
                 resetInactivityTimer();
-                console.log("User chose to continue session.");
             } else if (result.dismiss === Swal.DismissReason.cancel) {
                 auth.signOut().then(() => {
-                    console.log("User logged out due to inactivity.");
                     window.location.href = "../pages/login.html";
                 }).catch((error) => {
-                    console.error("Error logging out:", error);
                     Swal.fire('Error', 'Failed to log out. Please try again.', 'error');
                 });
             }
@@ -158,6 +261,682 @@ document.addEventListener("DOMContentLoaded", () => {
     ['mousemove', 'keydown', 'scroll', 'click'].forEach(eventType => {
         document.addEventListener(eventType, resetInactivityTimer);
     });
+
+    function validateInputInRealTime(input, fieldConfig, inputs, excludeKey = null) {
+        clearError(input);
+        if (fieldConfig.required !== false && isEmpty(input.value)) {
+            showError(input, `${fieldConfig.label} is required.`);
+        } else if (!isEmpty(input.value)) {
+            if (fieldConfig.lettersOnly && !isLettersOnly(input.value)) {
+                showError(input, `${fieldConfig.label} should only contain letters and spaces.`);
+            }
+            if (fieldConfig.telNumber && !isValidMobile(input.value)) {
+                showError(input, `Mobile number must be 11 digits starting with "09"`);
+            }
+            if (fieldConfig.numericAmount) {
+                if (!isValidNumericAmount(input.value)) {
+                    showError(input, `${fieldConfig.label} should only contain numbers.`);
+                } else if (fieldConfig.positiveNumber && parseFloat(input.value) <= 0) {
+                    showError(input, `${fieldConfig.label} must be a positive number.`);
+                }
+            }
+            if (fieldConfig.isEmail && !isValidEmail(input.value.trim())) {
+                showError(input, `Please enter a valid email address from an allowed domain.`);
+            }
+            if (fieldConfig.isDate) {
+                const receivedDate = new Date(input.value);
+                if (isNaN(receivedDate.getTime())) {
+                    showError(input, `${fieldConfig.label} is not a valid date.`);
+                } else if (receivedDate.setHours(0, 0, 0, 0) > new Date().setHours(0, 0, 0, 0)) {
+                    showError(input, `${fieldConfig.label} cannot be a future date.`);
+                }
+            }
+        }
+    }
+
+    // Real-time validation for the form
+    Array.from(form.querySelectorAll('input, select')).forEach(input => {
+        const fieldConfig = {
+            encoder: { label: 'Encoder', lettersOnly: true },
+            name: { label: 'Name', lettersOnly: true },
+            type: { label: 'Type', lettersOnly: true },
+            contactPerson: { label: 'Contact Person', lettersOnly: true },
+            assistance: { label: 'Type of Assistance', lettersOnly: true },
+            number: { label: 'Number', numberOnly: true, checkMobile: true },
+            valuation: { label: 'Valuation', numberOnly: true, checkValuation: true },
+            address: { label: 'Address' },
+            email: { label: 'Email', checkEmail: true },
+            additionalnotes: { label: 'Additional Notes', required: false },
+            status: { label: 'Status' },
+            staffIncharge: { label: 'Staff-In Charge', lettersOnly: true },
+            donationDate: { label: 'Donation Date', isDate: true }
+        }[input.name];
+        if (fieldConfig) {
+            input.addEventListener('input', () => {
+                validateInputInRealTime(input, fieldConfig, {
+                    encoder: form.encoder,
+                    name: form.name,
+                    type: form.type,
+                    contactPerson: form.contactPerson,
+                    assistance: form.assistance,
+                    number: form.number,
+                    valuation: form.valuation,
+                    address: form.address,
+                    email: form.email,
+                    additionalnotes: form.additionalnotes,
+                    status: form.status,
+                    staffIncharge: form.staffIncharge,
+                    donationDate: form.donationDate
+                });
+            });
+        }
+    });
+
+    // Real-time validation for edit modal
+    Array.from(editModal.querySelectorAll('input, select')).forEach(input => {
+        const fieldConfig = {
+            'edit-encoder': { label: 'Encoder', lettersOnly: true },
+            'edit-name': { label: 'Name', lettersOnly: true },
+            'edit-type': { label: 'Type', lettersOnly: true },
+            'edit-contactPerson': { label: 'Contact Person', lettersOnly: true },
+            'edit-assistance': { label: 'Type of Assistance', lettersOnly: true },
+            'edit-number': { label: 'Number', numberOnly: true, checkMobile: true },
+            'edit-valuation': { label: 'Valuation', numberOnly: true, checkValuation: true },
+            'edit-address': { label: 'Address' },
+            'edit-email': { label: 'Email', checkEmail: true },
+            'edit-additionalnotes': { label: 'Additional Notes', required: false },
+            'edit-status': { label: 'Status' },
+            'edit-staffIncharge': { label: 'Staff-In Charge', lettersOnly: true },
+            'edit-donationDate': { label: 'Donation Date', isDate: true }
+        }[input.id];
+        if (fieldConfig) {
+            input.addEventListener('input', () => validateInputInRealTime(input, fieldConfig, {
+                encoder: document.getElementById("edit-encoder"),
+                name: document.getElementById("edit-name"),
+                type: document.getElementById("edit-type"),
+                contactPerson: document.getElementById("edit-contactPerson"),
+                assistance: document.getElementById("edit-assistance"),
+                number: document.getElementById("edit-number"),
+                valuation: document.getElementById("edit-valuation"),
+                address: document.getElementById("edit-address"),
+                email: document.getElementById("edit-email"),
+                additionalnotes: document.getElementById("edit-additionalnotes"),
+                status: document.getElementById("edit-status"),
+                staffIncharge: document.getElementById("edit-staffIncharge"),
+                donationDate: document.getElementById("edit-donationDate")
+            }, editingKey));
+        }
+    });
+
+    viewArchivedBtn.addEventListener('click', async () => {
+        if (!permissions.canRetrieve) {
+            Swal.fire({
+                title: 'Error',
+                text: 'You do not have permission to view archived donations.',
+                icon: 'error',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
+                }
+            });
+            return;
+        }
+        archivedModal.style.display = 'flex';
+        fetchArchivedDonations();
+    });
+
+    closeArchivedModalBtn.addEventListener('click', () => {
+        archivedModal.style.display = 'none';
+    });
+
+    window.addEventListener('click', (event) => {
+        if (event.target === archivedModal) {
+            archivedModal.style.display = 'none';
+        }
+    });
+
+    importExcelBtn.addEventListener("click", () => {
+        if (!permissions.canEdit) {
+            Swal.fire('Error', 'You do not have permission to import donations.', 'error');
+            return;
+        }
+        excelFileInput.click();
+    });
+
+    closeImportStatusModalBtn.addEventListener("click", () => {
+        importStatusModal.style.display = "none";
+    });
+
+    function closeImportStatusModal() {
+        importStatusModal.style.display = "none";
+    }
+
+    function showImportStatusModal(message) {
+        importStatusModal.style.display = "flex";
+        importProgressBar.style.width = "0%";
+        importProgressBar.textContent = "0%";
+        importStatusText.textContent = message || "Processing file...";
+        importErrorList.innerHTML = "";
+    }
+
+    function updateImportStatus(progress, message) {
+        const percentage = Math.round(progress);
+        importProgressBar.style.width = `${percentage}%`;
+        importProgressBar.textContent = `${percentage}%`;
+        importStatusText.textContent = message;
+    }
+
+    function downloadExcelTemplate() {
+        const headers = [
+            "Encoder",
+            "Name",
+            "Type",
+            "Address",
+            "Contact Person",
+            "Number",
+            "Email",
+            "Assistance",
+            "Valuation",
+            "Additional Notes",
+            "Status",
+            "Staff-In-Charge",
+            "Donation Date"
+        ];
+        const sampleData = [{
+            Encoder: "John Smith",
+            Name: "Jane Doe",
+            Type: "Clothing",
+            Address: "Manila",
+            "Contact Person": "Jane Doe",
+            Number: "09123456789",
+            Email: "jane.doe@gmail.com",
+            Assistance: "Relief Goods",
+            Valuation: 5000.00,
+            "Additional Notes": "Donated used clothes in good condition",
+            Status: "Received",
+            "Staff-In-Charge": "Maria Cruz",
+            "Donation Date": "2025-08-10"
+        }];
+        const instructions = [{
+            Instructions: "1. Ensure mobile numbers are 11 digits starting with '09' (e.g., 09123456789). Format the Number column as 'Text' in Excel to preserve leading zeros.\n2. Valuation must be a positive number with up to 2 decimal places, max 1,000,000.\n3. Duplicate donations (same name, mobile number, and email) are allowed but will prompt for confirmation during import."
+        }];
+
+        const ws = XLSX.utils.json_to_sheet(sampleData, { header: headers });
+        const wsInstructions = XLSX.utils.json_to_sheet(instructions);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "In-Kind Donations Template");
+        XLSX.utils.book_append_sheet(wb, wsInstructions, "Instructions");
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        const formattedDate = `${year}-${month}-${day}`;
+        const filename = `inkind_donations_template_${formattedDate}.xlsx`;
+        XLSX.writeFile(wb, filename);
+        Swal.fire({
+            title: 'Template Downloaded!',
+            text: `Excel template saved as "${filename}"`,
+            icon: 'success',
+            showConfirmButton: true,
+            confirmButtonText: 'OK',
+            customClass: {
+                popup: 'swal2-popup-success-clean',
+                title: 'swal2-title-success-clean',
+                htmlContainer: 'swal2-text-success-clean',
+                confirmButton: 'my-success-button'
+            }
+        });
+    }
+
+    excelFileInput.addEventListener("change", (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        showImportStatusModal("Reading file...");
+
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                const headers = json[0];
+                const requiredHeaders = [
+                    "Encoder",
+                    "Name",
+                    "Type",
+                    "Address",
+                    "Contact Person",
+                    "Number",
+                    "Email",
+                    "Assistance",
+                    "Valuation",
+                    "Additional Notes",
+                    "Status",
+                    "Staff-In-Charge",
+                    "Donation Date"
+                ];
+                const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
+                if (missingHeaders.length > 0) {
+                    importErrorList.innerHTML = `<li>Missing required columns: ${missingHeaders.join(', ')}</li>`;
+                    updateImportStatus(0, "Import failed due to missing columns.");
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: `Missing required columns: ${missingHeaders.join(', ')}`,
+                        showConfirmButton: true,
+                        confirmButtonText: 'OK',
+                        customClass: {
+                            popup: 'swal2-popup-error-clean',
+                            title: 'swal2-title-error-clean',
+                            htmlContainer: 'swal2-text-error-clean',
+                            confirmButton: 'my-error-button'
+                        }
+                    });
+                    importStatusModal.style.display = 'flex';
+                    return;
+                }
+
+                const rows = json.slice(1);
+                const donationsToImport = [];
+                const potentialDuplicates = [];
+                const importErrors = [];
+                const totalRows = rows.length;
+                let processedRows = 0;
+
+                for (let i = 0; i < totalRows; i++) {
+                    const row = rows[i];
+                    if (!row || row.every(cell => !cell || cell.toString().trim() === '')) {
+                        importErrors.push(`Row ${i + 2}: Empty row skipped.`);
+                        continue;
+                    }
+                    processedRows++;
+                    const progress = (processedRows / totalRows) * 100;
+                    updateImportStatus(progress, `Processing row ${processedRows} of ${totalRows}...`);
+
+                    // Create donation object for in-kind donations
+                    const donation = {
+                        encoder: String(row[headers.indexOf("Encoder")] || '').trim(),
+                        name: String(row[headers.indexOf("Name")] || '').trim(),
+                        type: String(row[headers.indexOf("Type")] || '').trim(),
+                        address: String(row[headers.indexOf("Address")] || '').trim(),
+                        contactPerson: String(row[headers.indexOf("Contact Person")] || '').trim(),
+                        number: String(row[headers.indexOf("Number")] || '').trim().replace(/\D/g, ''),
+                        email: String(row[headers.indexOf("Email")] || '').trim(),
+                        assistance: String(row[headers.indexOf("Assistance")] || '').trim(),
+                        valuation: String(row[headers.indexOf("Valuation")] || '').trim(),
+                        additionalnotes: String(row[headers.indexOf("Additional Notes")] || '').trim(),
+                        status: String(row[headers.indexOf("Status")] || '').trim(),
+                        staffIncharge: String(row[headers.indexOf("Staff-In-Charge")] || '').trim(),
+                        donationDate: String(row[headers.indexOf("Donation Date")] || '').trim(),
+                        userUid: firebase.auth().currentUser.uid,
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString()
+                    };
+
+                    // Normalize mobile number
+                    if (donation.number && donation.number.length === 10 && donation.number.startsWith('9')) {
+                        donation.number = '0' + donation.number;
+                    }
+
+                    // Create mock input elements for validateDonationForm
+                    const mockInputs = {
+                        encoder: { value: donation.encoder, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                        name: { value: donation.name, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                        type: { value: donation.type, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                        address: { value: donation.address, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                        contactPerson: { value: donation.contactPerson, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                        number: { value: donation.number, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                        email: { value: donation.email, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                        assistance: { value: donation.assistance, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                        valuation: { value: donation.valuation, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                        additionalnotes: { value: donation.additionalnotes, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                        status: { value: donation.status, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                        staffIncharge: { value: donation.staffIncharge, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                        donationDate: { value: donation.donationDate, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null }
+                    };
+
+                    // Override showError to collect errors instead of modifying DOM
+                    const originalShowError = showError;
+                    const rowErrors = [];
+                    showError = (input, message) => {
+                        rowErrors.push(`Row ${i + 2}: ${message}`);
+                    };
+
+                    // Validate using validateDonationForm
+                    const isValidRow = await validateDonationForm(mockInputs);
+
+                    // Restore original showError
+                    showError = originalShowError;
+
+                    if (!isValidRow) {
+                        if (rowErrors.length > 0) {
+                            importErrors.push(...rowErrors);
+                        }
+                        continue;
+                    }
+
+                    // Format donationDate to match form submission format
+                    if (donation.donationDate) {
+                        const parsedDate = new Date(donation.donationDate);
+                        if (!isNaN(parsedDate.getTime())) {
+                            donation.donationDate = parsedDate.toISOString().slice(0, 10);
+                        }
+                    }
+
+                    // Convert valuation to number for storage
+                    donation.valuation = parseFloat(donation.valuation) || 0;
+
+                    // Check for duplicates
+                    const duplicates = await checkForDuplicate(donation.number, donation.email, donation.name);
+                    if (duplicates.all || duplicates.email || duplicates.number || duplicates.name) {
+                        const duplicateMessages = [];
+                        if (duplicates.all) {
+                            duplicateMessages.push(`Row ${i + 2}: Same name, mobile number, and email already exist.`);
+                        } else {
+                            if (duplicates.email) duplicateMessages.push(`Row ${i + 2}: Email already used.`);
+                            if (duplicates.number) duplicateMessages.push(`Row ${i + 2}: Mobile number already used.`);
+                            if (duplicates.name) duplicateMessages.push(`Row ${i + 2}: Name already used.`);
+                        }
+                        potentialDuplicates.push({
+                            rowIndex: i + 2,
+                            donation,
+                            duplicateMessages
+                        });
+                    } else {
+                        donationsToImport.push(donation);
+                    }
+
+                    await new Promise(resolve => setTimeout(resolve, 10));
+                }
+
+                // Handle potential duplicates with a confirmation prompt
+                if (potentialDuplicates.length > 0) {
+                    const duplicateMessages = potentialDuplicates.map(d => d.duplicateMessages.join('<br>')).join('<br>');
+                    const result = await Swal.fire({
+                        title: 'Potential Duplicate Donations Detected',
+                        html: `${duplicateMessages}<br><br>Do you want to proceed with importing these records?`,
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Proceed Anyway',
+                        cancelButtonText: 'Skip Duplicates',
+                        reverseButtons: true,
+                        customClass: {
+                            popup: 'custom-swal-popup-large',
+                            title: 'custom-swal-title',
+                            htmlContainer: 'custom-swal-content',
+                            confirmButton: 'custom-confirm-btn',
+                            cancelButton: 'custom-cancel-btn'
+                        }
+                    });
+
+                    if (result.isConfirmed) {
+                        potentialDuplicates.forEach(d => donationsToImport.push(d.donation));
+                    } else {
+                        potentialDuplicates.forEach(d => {
+                            importErrors.push(d.duplicateMessages.join(''));
+                        });
+                    }
+                }
+
+                if (donationsToImport.length > 0) {
+                    updateImportStatus(100, `Importing ${donationsToImport.length} records to Firebase...`);
+                    const updates = {};
+                    donationsToImport.forEach(donation => {
+                        const newKey = database.ref().child('donations/savedDonations/inkind').push().key;
+                        updates[`donations/savedDonations/inkind/${newKey}`] = donation;
+                    });
+
+                    try {
+                        await database.ref().update(updates);
+                        updateImportStatus(100, `Import complete! ${donationsToImport.length} records added.`);
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success!',
+                            text: `${donationsToImport.length} in-kind donation records imported successfully.`,
+                            showConfirmButton: true,
+                            confirmButtonText: 'OK',
+                            customClass: {
+                                popup: 'swal2-popup-success-clean',
+                                title: 'swal2-title-success-clean',
+                                htmlContainer: 'swal2-text-success-clean',
+                                confirmButton: 'my-success-button'
+                            }
+                        }).then(() => {
+                            if (importErrors.length === 0) {
+                                closeImportStatusModal();
+                            }
+                        });
+                    } catch (error) {
+                        importErrorList.innerHTML = `<li>Error: ${error.message}</li>`;
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: `Failed to import records: ${error.message}`,
+                            showConfirmButton: true,
+                            confirmButtonText: 'OK',
+                            customClass: {
+                                popup: 'swal2-popup-error-clean',
+                                title: 'swal2-title-error-clean',
+                                htmlContainer: 'swal2-text-error-clean',
+                                confirmButton: 'my-error-button'
+                            }
+                        });
+                        importStatusModal.style.display = 'flex';
+                    }
+                } else {
+                    updateImportStatus(100, "Import failed. No valid records found.");
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'No valid records found in the Excel file. Please check the data format.',
+                        showConfirmButton: true,
+                        confirmButtonText: 'OK',
+                        customClass: {
+                            popup: 'swal2-popup-error-clean',
+                            title: 'swal2-title-error-clean',
+                            htmlContainer: 'swal2-text-error-clean',
+                            confirmButton: 'my-error-button'
+                        }
+                    });
+                    importStatusModal.style.display = 'flex';
+                }
+
+                if (importErrors.length > 0) {
+                    importErrorList.innerHTML = '<li>Errors:</li>' + importErrors.map(err => `<li>${err}</li>`).join('');
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Warning',
+                        text: 'Some records were not imported due to errors. Check the status modal for details.',
+                        showConfirmButton: true,
+                        confirmButtonText: 'OK',
+                        customClass: {
+                            popup: 'swal2-popup-warning-clean',
+                            title: 'swal2-title-warning-clean',
+                            htmlContainer: 'swal2-text-warning-clean',
+                            confirmButton: 'my-warning-button'
+                        }
+                    });
+                    importStatusModal.style.display = 'flex';
+                }
+            } catch (error) {
+                importErrorList.innerHTML = `<li>Error: ${error.message}</li>`;
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'An error occurred while importing the Excel file: ' + error.message,
+                    showConfirmButton: true,
+                    confirmButtonText: 'OK',
+                    customClass: {
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean',
+                        confirmButton: 'my-error-button'
+                    }
+                });
+                importStatusModal.style.display = 'flex';
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    });
+
+    function fetchArchivedDonations() {
+        archivedInKindRef.on('value', (snapshot) => { 
+            allArchivedInKindDonation = []; 
+            snapshot.forEach((childSnapshot) => {
+                const donation = childSnapshot.val();
+                donation.id = childSnapshot.key;
+                allArchivedInKindDonation.push(donation);
+            });
+
+            allArchivedInKindDonation.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            renderArchivedTable(currentArchivedPage);
+            renderArchivedPagination();
+        });
+    }
+
+    function renderArchivedTable(page) {
+        archivedTableBody.innerHTML = '';
+        const start = (page - 1) * archivedRowsPerPage; 
+        const end = start + archivedRowsPerPage;
+        const paginatedItems = allArchivedInKindDonation.slice(start, end); 
+
+        if (paginatedItems.length === 0) {
+            archivedTableBody.innerHTML = '<tr><td colspan="14" class="no-data">No archived in-kind donations found.</td></tr>';
+            archivedEntriesInfo.textContent = 'Showing 0 to 0 of 0 entries';
+            return;
+        }
+
+        paginatedItems.forEach((item, index) => {
+            const row = archivedTableBody.insertRow();
+            row.innerHTML = `
+                <td>${start + index + 1}</td>
+                <td>${item.encoder}</td>
+                <td>${item.name}</td>
+                <td>${item.type}</td>
+                <td>${item.address}</td> <!-- Fixed column order -->
+                <td>${item.contactPerson}</td>
+                <td>${item.number}</td>
+                <td>${item.email}</td> <!-- Fixed column order -->
+                <td>${item.assistance}</td>
+                <td>${parseFloat(item.valuation || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                <td>${item.additionalnotes}</td>
+                <td>${item.status}</td>
+                <td>${item.staffIncharge}</td>
+                <td>${item.donationDate ? new Date(item.donationDate).toLocaleDateString('en-PH') : 'N/A'}</td>
+                <td>${item.rejectedAt ? new Date(item.rejectedAt).toLocaleDateString('en-PH') : 'N/A'}</td>
+                <td>
+                    ${permissions.canRetrieve ? `<button class="retrieve-btn" data-id="${item.id}" title="Retrieve">Retrieve</button>` : ''}
+                </td>
+            `;
+        });
+
+        const totalEntries = allArchivedInKindDonation.length; 
+        const startEntry = start + 1;
+        const endEntry = Math.min(start + paginatedItems.length, totalEntries);
+        archivedEntriesInfo.textContent = `Showing ${startEntry} to ${endEntry} of ${totalEntries} entries`;
+
+        if (permissions.canRetrieve) {
+            document.querySelectorAll('.retrieve-btn').forEach(button => {
+                button.addEventListener('click', (event) => retrieveDonation(event.target.dataset.id));
+            });
+        }
+    }
+
+    function renderArchivedPagination() {
+        archivedPaginationContainer.innerHTML = ''; 
+        const totalPages = Math.ceil(allArchivedInKindDonation.length / archivedRowsPerPage);
+
+        for (let i = 1; i <= totalPages; i++) {
+            const pageBtn = document.createElement('button');
+            pageBtn.textContent = i;
+            pageBtn.classList.add('pagination-button');
+            if (i === currentArchivedPage) {
+                pageBtn.classList.add('active');
+            }
+            pageBtn.addEventListener('click', () => {
+                currentArchivedPage = i;
+                renderArchivedTable(currentArchivedPage);
+                renderArchivedPagination();
+            });
+            archivedPaginationContainer.appendChild(pageBtn);
+        }
+    }
+
+    async function retrieveDonation(firebaseKey) {
+        if (!permissions.canRetrieve) {
+            Swal.fire('Error', 'You do not have permission to retrieve donations.', 'error');
+            return;
+        }
+        Swal.fire({
+            title: 'Retrieve Donation?',
+            text: 'This will retrieve the donation from archived records and make it active again.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Retrieve',
+            cancelButtonText: 'Cancel',
+            reverseButtons: true,
+            focusCancel: true,
+            allowOutsideClick: false,
+            customClass: {
+                popup: 'custom-swal-popup-small',
+                title: 'custom-swal-title',
+                htmlContainer: 'custom-swal-content',
+                confirmButton: 'custom-confirm-btn',
+                cancelButton: 'custom-cancel-btn'
+            }
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'Retrieving Donation...',
+                    text: 'Moving donation data back to active records...',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                try {
+                    const snapshot = await database.ref(`donations/archivedDonations/inkind/${firebaseKey}`).once('value');
+                    const donationToRetrieve = snapshot.val();
+                    if (!donationToRetrieve) {
+                        Swal.fire('Error', 'Archived donation data not found for retrieval.', 'error');
+                        return;
+                    }
+                    delete donationToRetrieve.rejectedAt;
+                    await database.ref(`donations/savedDonations/inkind/${firebaseKey}`).set(donationToRetrieve);
+                    await database.ref(`donations/archivedDonations/inkind/${firebaseKey}`).remove();
+                    Swal.close();
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Retrieved!',
+                        text: 'The donation has been retrieved and is now active.',
+                        timer: 2000,
+                        showConfirmButton: false,
+                        timerProgressBar: true,
+                        customClass: {
+                            popup: 'swal2-popup-success-clean',
+                            title: 'swal2-title-success-clean',
+                            htmlContainer: 'swal2-text-success-clean'
+                        }
+                    }).then(() => {
+                        renderTable();
+                        fetchArchivedDonations();
+                    });
+                } catch (error) {
+                    Swal.close();
+                    Swal.fire('Error', 'Failed to retrieve donation: ' + error.message, 'error');
+                }
+            }
+        });
+    }
 
     const updateSearchPlaceholder = () => {
         const selectedSort = sortSelect.value;
@@ -216,165 +995,83 @@ document.addEventListener("DOMContentLoaded", () => {
             case "donationDate-desc":
                 placeholderText = "Search by Donation Date";
                 break;
-            default:
-                placeholderText = "Search by Name, Encoder, Staff-In Charge";
         }
         searchInput.placeholder = placeholderText;
     };
 
-    // Search and Sort functionality
-    function filterAndSortDonations() {
-        const searchTerm = searchInput.value.trim().toLowerCase();
-        const sortOption = sortSelect.value;
-
-        // Start with all donations
-        filteredAndSortedDonations = [...allDonations];
-
-        // Apply search filter
-        if (searchTerm) {
-            filteredAndSortedDonations = filteredAndSortedDonations.filter(donation => {
-                switch (sortSelect.value) {
-                    case "encoder-asc":
-                    case "encoder-desc":
-                        return donation.encoder?.toLowerCase().includes(searchTerm);
-                    case "name-asc":
-                    case "name-desc":
-                        return donation.name?.toLowerCase().includes(searchTerm);
-                    case "type-asc":
-                    case "type-desc":
-                        return donation.type?.toLowerCase().includes(searchTerm);
-                    case "address-asc":
-                    case "address-desc":
-                        return donation.address?.toLowerCase().includes(searchTerm);
-                    case "contactPerson-asc":
-                    case "contactPerson-desc":
-                        return donation.contactPerson?.toLowerCase().includes(searchTerm);
-                    case "number-asc":
-                    case "number-desc":
-                        return donation.number?.toString().toLowerCase().includes(searchTerm);
-                    case "email-asc":
-                    case "email-desc":
-                        return donation.email?.toLowerCase().includes(searchTerm);
-                    case "assistance-asc":
-                    case "assistance-desc":
-                        return donation.assistance?.toLowerCase().includes(searchTerm);
-                    case "valuation-asc":
-                    case "valuation-desc":
-                        return donation.valuation?.toString().toLowerCase().includes(searchTerm);
-                    case "notes-asc":
-                    case "notes-desc":
-                        return donation.additionalnotes?.toLowerCase().includes(searchTerm);
-                    case "status-asc":
-                    case "status-desc":
-                        return donation.status?.toLowerCase().includes(searchTerm);
-                    case "staffIncharge-asc":
-                    case "staffIncharge-desc":
-                        return donation.staffIncharge?.toLowerCase().includes(searchTerm);
-                    case "donationDate-asc":
-                    case "donationDate-desc":
-                        return donation.donationDate?.toLowerCase().includes(searchTerm);
-                    default:
-                        // Default search across multiple fields
-                        return (
-                            donation.name?.toLowerCase().includes(searchTerm) ||
-                            donation.encoder?.toLowerCase().includes(searchTerm) ||
-                            donation.staffIncharge?.toLowerCase().includes(searchTerm) ||
-                            donation.type?.toLowerCase().includes(searchTerm) ||
-                            donation.address?.toLowerCase().includes(searchTerm) ||
-                            donation.contactPerson?.toLowerCase().includes(searchTerm) ||
-                            donation.email?.toLowerCase().includes(searchTerm) ||
-                            donation.assistance?.toLowerCase().includes(searchTerm) ||
-                            donation.additionalnotes?.toLowerCase().includes(searchTerm) ||
-                            donation.status?.toLowerCase().includes(searchTerm)
-                        );
-                }
-            });
-        }
-
-        // Apply sorting
-        if (sortOption) {
-            const [field, direction] = sortOption.split('-');
-            filteredAndSortedDonations.sort((a, b) => {
-                let valueA = a[field] || '';
-                let valueB = b[field] || '';
-                
-                // Handle numeric fields
-                if (field === 'valuation' || field === 'number') {
-                    valueA = parseFloat(valueA) || 0;
-                    valueB = parseFloat(valueB) || 0;
-                } else if (field === 'donationDate') {
-                    // Handle date sorting
-                    valueA = valueA ? new Date(valueA).getTime() : 0;
-                    valueB = valueB ? new Date(valueB).getTime() : 0;
-                } else {
-                    // Handle string fields
-                    valueA = valueA.toString().toLowerCase();
-                    valueB = valueB.toString().toLowerCase();
-                }
-
-                if (valueA === valueB) return 0; // Preserve order for equal elements
-                return direction === 'asc' ? (valueA > valueB ? 1 : -1) : (valueA < valueB ? 1 : -1);
-            });
-        }
-
-        // Reset to page 1 to avoid pagination issues
-        currentPage = 1;
-        renderTable();
-    }
-
-    // Event listeners for search and sort
-    searchInput.addEventListener('input', () => {
-        filterAndSortDonations();
-        updateSearchPlaceholder();
-    });
-
-    sortSelect.addEventListener('change', () => {
-        filterAndSortDonations();
-        updateSearchPlaceholder();
-    });
-
-    auth.onAuthStateChanged(user => {
+    auth.onAuthStateChanged(async user => {
         if (!user) {
             Swal.fire({
                 icon: 'error',
                 title: 'Authentication Required',
                 text: 'Please sign in to access in-kind donations.',
-                timer: 1600,
-                allowOutsideClick: false,
-                showConfirmButton: false,
-                timerProgressBar: true,
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
                 customClass: {
-                    popup: 'swal2-popup-warning-clean',
-                    title: 'swal2-title-warning-clean',
-                    htmlContainer: 'swal2-text-warning-clean',
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
                 }
             }).then(() => {
                 window.location.href = "../pages/login.html";
             });
             return;
         }
-        console.log("User authenticated:", user.uid);
-        database.ref(`users/${user.uid}`).once('value', snapshot => {
-            const userData = snapshot.val();
-            currentUserIsSuperAdmin = userData && userData.isSuperAdmin === true;
-            currentUserAdminPosition = userData && userData.adminPosition;
-            console.log("Super Admin status:", currentUserIsSuperAdmin);
-            console.log("Admin Position:", currentUserAdminPosition);
-            loadDonations(user.uid);
-            updateSearchPlaceholder();
-            resetInactivityTimer();
-        }).catch(error => {
-            console.error("Error fetching user role:", error);
-            currentUserIsSuperAdmin = false;
-            currentUserAdminPosition = null;
-            loadDonations(user.uid);
-            updateSearchPlaceholder();
-            resetInactivityTimer();
+        permissions = await checkAdminPermissions();
+        if (!permissions.canView) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Access Denied',
+                text: 'You do not have permission to access this page.',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
+                }
+            }).then(() => {
+                window.location.href = "../pages/login.html";
+            });
+            return;
+        }
+        loadDonations(user.uid);
+        updateSearchPlaceholder();
+        resetInactivityTimer();
+        // Move event listener here
+        viewArchivedBtn.addEventListener('click', async () => {
+            if (!permissions.canRetrieve) {
+                Swal.fire({
+                    title: 'Error',
+                    text: 'You do not have permission to view archived donations.',
+                    icon: 'error',
+                    showConfirmButton: true,
+                    confirmButtonText: 'OK',
+                    customClass: {
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean',
+                        confirmButton: 'my-error-button'
+                    }
+                });
+                return;
+            }
+            archivedModal.style.display = 'flex';
+            fetchArchivedDonations();
         });
+
+        if (!permissions.canArchive) {
+            document.querySelectorAll('.archiveBtn').forEach(btn => btn.style.display = 'none');
+        }
+        if (!permissions.canEdit) {
+            document.querySelectorAll('.editBtn').forEach(btn => btn.style.display = 'none');
+        }
     });
 
     function loadDonations(userUid) {
-        database.ref("donations/inkind").on("value", snapshot => {
+        database.ref("donations/savedDonations/inkind").on("value", snapshot => {
             allDonations = [];
             const donations = snapshot.val();
             if (donations) {
@@ -382,57 +1079,50 @@ document.addEventListener("DOMContentLoaded", () => {
                     const donation = donations[key];
                     allDonations.push({
                         firebaseKey: key,
-                        userUid: donation.userUid,
-                        ...donation
+                        userUid: donation.userUid || '',
+                        encoder: donation.encoder || '',
+                        name: donation.name || '',
+                        type: donation.type || '',
+                        address: donation.address || '',
+                        contactPerson: donation.contactPerson || '',
+                        number: donation.number || '',
+                        email: donation.email || '',
+                        assistance: donation.assistance || '',
+                        valuation: donation.valuation || 0,
+                        additionalnotes: donation.additionalnotes || '',
+                        status: donation.status || '',
+                        staffIncharge: donation.staffIncharge || '',
+                        donationDate: donation.donationDate || '',
+                        createdAt: donation.createdAt || ''
                     });
                 });
             }
             filteredAndSortedDonations = [...allDonations];
+            applySorting(filteredAndSortedDonations, sortSelect.value);
             renderTable();
         }, error => {
-            console.error("Error fetching in-kind donations:", error);
+            logErrorToFirebase(error, 'loadDonations_inkind');
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
                 text: 'Failed to load in-kind donations: ' + error.message,
+                showConfirmButton: true,
                 confirmButtonText: 'OK',
-                allowOutsideClick: false,
                 customClass: {
-                    popup: 'swal2-popup-warning-clean',
-                    title: 'swal2-title-warning-clean',
-                    htmlContainer: 'swal2-text-warning-clean',
-                    confirmButton: 'my-warning-button'
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
                 }
             });
         });
     }
 
-    function hasImportPermission() {
-        return currentUserIsSuperAdmin || currentUserAdminPosition === 'position-one';
-    }
-
-    function showAccessDeniedAlert(action) {
-        Swal.fire({
-            title: 'Access Denied',
-            text: `You do not have permission to ${action}.`,
-            icon: 'error',
-            timer: 2500,
-            showConfirmButton: false,
-            timerProgressBar: true,
-            allowOutsideClick: false,
-            customClass: {
-                popup: 'swal2-popup-warning-clean',
-                title: 'swal2-title-warning-clean',
-                htmlContainer: 'swal2-text-warning-clean',
-            }
-        });
-    }
-
     const isEmpty = (value) => value.trim() === "";
     const isLettersOnly = (value) => /^[a-zA-Z\s]+$/.test(value);
-    const isValidNumber = (value) => /^\d+(\.\d+)?$/.test(value);
+    const isValidNumericAmount = (value) => /^\d*\.?\d{0,2}$/.test(value);
 
-    const showError = (inputField, message) => {
+    function showError(inputField, message) {
         const errorDiv = inputField.nextElementSibling;
         if (!errorDiv || !errorDiv.classList.contains('error-message')) {
             const newErrorDiv = document.createElement('div');
@@ -443,202 +1133,296 @@ document.addEventListener("DOMContentLoaded", () => {
             errorDiv.textContent = message;
         }
         inputField.classList.add('error');
-    };
+    }
 
-    const clearError = (inputField) => {
+    function clearError(inputField) {
         const errorDiv = inputField.nextElementSibling;
         if (errorDiv && errorDiv.classList.contains('error-message')) {
             errorDiv.textContent = '';
         }
         inputField.classList.remove('error');
-    };
-
-    async function validateForm() {
-    let isValid = true;
-    const fieldsToCheck = [
-        { input: form.encoder, label: "Encoder", lettersOnly: true },
-        { input: form.name, label: "Name", lettersOnly: true },
-        { input: form.type, label: "Type", lettersOnly: true },
-        { input: form.contactPerson, label: "Contact Person", lettersOnly: true },
-        { input: form.assistance, label: "Type of Assistance", lettersOnly: true },
-        { input: form.number, label: "Number", numberOnly: true, checkMobile: true },
-        { input: form.valuation, label: "Valuation", numberOnly: true },
-        { input: form.address, label: "Address" },
-        { input: form.email, label: "Email", checkEmail: true },
-        { input: form.additionalnotes, label: "Additional Notes", required: false },
-        { input: form.status, label: "Status" },
-        { input: form.staffIncharge, label: "Staff-In Charge", lettersOnly: true },
-        { input: document.getElementById("donationDate"), label: "Donation Date", isDate: true },
-    ];
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    for (const { input, label, lettersOnly, numberOnly, checkEmail, checkMobile, isDate, required = true } of fieldsToCheck) {
-        clearError(input);
-        if (required && isEmpty(input.value)) {
-            showError(input, `${label} is required`);
-            isValid = false;
-        } else if (!isEmpty(input.value) && lettersOnly && !isLettersOnly(input.value)) {
-            showError(input, `${label} should only contain letters and spaces`);
-            isValid = false;
-        } else if (!isEmpty(input.value) && numberOnly && !isValidNumber(input.value)) {
-            showError(input, `${label} should only contain numbers`);
-            isValid = false;
-        } else if (!isEmpty(input.value) && checkEmail && !isValidEmail(input.value)) {
-            showError(input, 'Please enter a valid email address from an allowed domain.');
-            isValid = false;
-        } else if (!isEmpty(input.value) && checkMobile && !isValidMobile(input.value)) {
-            showError(input, 'Mobile number must be 11 digits starting with "09"');
-            isValid = false;
-        } else if (isDate && !isEmpty(input.value)) {
-            const donationDate = new Date(input.value);
-            if (isNaN(donationDate.getTime())) {
-                showError(input, `${label} is not a valid date`);
-                isValid = false;
-            } else if (donationDate.setHours(0,0,0,0) > today.setHours(0,0,0,0)) {
-                showError(input, `${label} cannot be a future date`);
-                isValid = false;
-            }
-        }
     }
 
-    // Check for potential duplicates and warn user
-    if (isValid) {
-        const email = form.email.value.trim();
-        const mobile = form.number.value.trim();
-        const name = form.name.value.trim().toLowerCase();
+    async function validateDonationForm(inputs, excludeKey = null, isEditOrArchive = false) {
+        let isValid = true;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
 
-        let isDuplicate = false;
-        let duplicateFields = [];
+        const fieldsToCheck = [
+            { input: inputs.encoder, label: "Encoder", lettersOnly: true },
+            { input: inputs.name, label: "Name", lettersOnly: true },
+            { input: inputs.type, label: "Type", lettersOnly: true },
+            { input: inputs.contactPerson, label: "Contact Person", lettersOnly: true },
+            { input: inputs.assistance, label: "Type of Assistance", lettersOnly: true },
+            { input: inputs.number, label: "Number", numberOnly: true, checkMobile: true },
+            { input: inputs.valuation, label: "Valuation", numberOnly: true, checkValuation: true },
+            { input: inputs.address, label: "Address" },
+            { input: inputs.email, label: "Email", checkEmail: true },
+            { input: inputs.additionalnotes, label: "Additional Notes", required: false },
+            { input: inputs.status, label: "Status" },
+            { input: inputs.staffIncharge, label: "Staff-In Charge", lettersOnly: true },
+            { input: inputs.donationDate, label: "Donation Date", isDate: true },
+        ];
 
-        const paths = ['donations/inkind', 'deletedDonations/deletedinkind'];
-        for (const path of paths) {
-            const snapshot = await database.ref(path).once('value');
-            const records = snapshot.val();
-            if (records) {
-                for (const key in records) {
-                    const record = records[key];
-                    if (record.email === email) {
-                        isDuplicate = true;
-                        duplicateFields.push('email');
-                    }
-                    if (record.number === mobile) {
-                        isDuplicate = true;
-                        duplicateFields.push('mobile number');
-                    }
-                    if (record.name.toLowerCase() === name) {
-                        isDuplicate = true;
-                        duplicateFields.push('name');
+        for (const { input, label, lettersOnly, numberOnly, checkEmail, checkMobile, checkValuation, isDate, required = true } of fieldsToCheck) {
+            if (!input) {
+                console.error(`Input for ${label} is undefined`);
+                isValid = false;
+                continue;
+            }
+            const fieldId = input.id || input.name;
+            if (excludeKey && fieldId === excludeKey) continue;
+
+            clearError(input);
+            const sanitizedValue = sanitizeInput(input.value);
+            if (required && isEmpty(sanitizedValue)) {
+                showError(input, `${label} is required`);
+                isValid = false;
+            } else if (!isEmpty(sanitizedValue)) {
+                if (lettersOnly && !isLettersOnly(sanitizedValue)) {
+                    showError(input, `${label} should only contain letters and spaces`);
+                    isValid = false;
+                }
+                if (numberOnly && !isValidNumber(sanitizedValue)) {
+                    showError(input, `${label} should only contain numbers`);
+                    isValid = false;
+                }
+                if (checkEmail && !isValidEmail(sanitizedValue)) {
+                    showError(input, 'Please enter a valid email address from an allowed domain.');
+                    isValid = false;
+                }
+                if (checkMobile && !isValidMobile(sanitizedValue)) {
+                    showError(input, 'Mobile number must be 11 digits starting with "09"');
+                    isValid = false;
+                }
+                if (checkValuation && !isValidValuation(sanitizedValue)) {
+                    showError(input, 'Valuation must be a positive number with up to 2 decimal places, max 1,000,000');
+                    isValid = false;
+                }
+                if (isDate) {
+                    const donationDate = new Date(sanitizedValue);
+                    if (isNaN(donationDate.getTime())) {
+                        showError(input, `${label} is not a valid date`);
+                        isValid = false;
+                    } else if (donationDate.setHours(0, 0, 0, 0) > today.getTime()) {
+                        showError(input, `${label} cannot be a future date`);
+                        isValid = false;
                     }
                 }
             }
+            input.value = sanitizedValue;
         }
 
-        if (isDuplicate) {
-            const result = await Swal.fire({
-                title: 'Potential Duplicate Donation',
-                html: `A donation with the same mobile number and email address already exists.<br><br>Do you want to proceed with adding this donation?`,
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonText: 'Yes, Add Donation',
-                cancelButtonText: 'Cancel',
-                reverseButtons: true,
-                focusCancel: true,
+        if (!isValid) {
+            console.log('Validation failed:', fieldsToCheck.map(f => ({ label: f.label, value: f.input?.value, error: f.input?.nextElementSibling?.textContent })));
+            return false;
+        }
+
+        const permissions = await checkAdminPermissions();
+        if (!permissions.canEdit) {
+            Swal.fire({
+                title: 'Access Denied',
+                text: 'You do not have permission to add or edit this donation.',
+                icon: 'error',
+                timer: 2500,
+                showConfirmButton: false,
+                timerProgressBar: true,
                 allowOutsideClick: false,
                 customClass: {
-                    popup: 'custom-swal-popup-large',
-                    title: 'custom-swal-title',
-                    htmlContainer: 'custom-swal-content',
-                    confirmButton: 'custom-confirm-btn',
-                    cancelButton: 'custom-cancel-btn'
+                    popup: 'swal2-popup-warning-clean',
+                    title: 'swal2-title-warning-clean',
+                    htmlContainer: 'swal2-text-warning-clean',
                 }
             });
+            return false;
+        }
 
-            if (!result.isConfirmed) {
-                isValid = false;
+        if (isEditOrArchive && !currentUserIsSuperAdmin && !isAdminVerified) {
+            const verified = await verifySuperAdminPassword();
+            if (!verified) {
+                Swal.fire({
+                    title: 'Verification Failed',
+                    text: 'Admin password verification failed. Cannot proceed.',
+                    icon: 'error',
+                    timer: 2500,
+                    showConfirmButton: false,
+                    timerProgressBar: true,
+                    allowOutsideClick: false,
+                    customClass: {
+                        popup: 'swal2-popup-warning-clean',
+                        title: 'swal2-title-warning-clean',
+                        htmlContainer: 'swal2-text-warning-clean',
+                    }
+                });
+                return false;
             }
         }
-    }
 
-    return isValid;
-}
+        const email = sanitizeInput(inputs.email.value.trim());
+        const mobile = sanitizeInput(inputs.number.value.trim());
+        const name = sanitizeInput(inputs.name.value.trim().toLowerCase());
+
+        try {
+            const duplicates = await checkForDuplicate(mobile, email, name, excludeKey);
+            if (duplicates.email || duplicates.number || duplicates.name) {
+                const duplicateFields = [];
+                if (duplicates.email) duplicateFields.push('email');
+                if (duplicates.number) duplicateFields.push('mobile number');
+                if (duplicates.name) duplicateFields.push('name');
+                const result = await Swal.fire({
+                    title: 'Potential Duplicate Donation',
+                    html: `A donation with the same ${duplicateFields.join(", ")} already exists.<br><br>Do you want to proceed?`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Yes, Proceed',
+                    cancelButtonText: 'Cancel',
+                    reverseButtons: true,
+                    focusCancel: true,
+                    allowOutsideClick: false,
+                    customClass: {
+                        popup: 'custom-swal-popup-large',
+                        title: 'custom-swal-title',
+                        htmlContainer: 'custom-swal-content',
+                        confirmButton: 'custom-confirm-btn',
+                        cancelButton: 'custom-cancel-btn'
+                    }
+                });
+
+                if (!result.isConfirmed) return false;
+            }
+        } catch (error) {
+            console.error('Duplicate check failed:', error);
+            Swal.fire({
+                title: 'Error',
+                text: 'Failed to check for duplicates: ' + error.message,
+                icon: 'error',
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
+                }
+            });
+            return false;
+        }
+
+        return isValid;
+    }
 
     form.addEventListener("input", () => {
         formHasChanges = true;
     });
 
+    const clearFormFields = () => {
+        form.encoder.value = '';
+        form.name.value = '';
+        form.type.value = '';
+        form.address.value = '';
+        form.contactPerson.value = '';
+        form.number.value = '';
+        form.email.value = '';
+        form.assistance.value = '';
+        form.valuation.value = '';
+        form.additionalnotes.value = '';
+        form.status.value = '';
+        form.staffIncharge.value = '';
+        form.donationDate.value = '';
+        formHasChanges = false;
+        const errorMessages = form.querySelectorAll('.error-message');
+        errorMessages.forEach(msg => msg.textContent = '');
+        const errorInputs = form.querySelectorAll('.error');
+        errorInputs.forEach(input => input.classList.remove('error'));
+    };
+
     form.addEventListener("submit", async (e) => {
         e.preventDefault();
-
-        if (!hasImportPermission()) {
-            showAccessDeniedAlert('add this donation');
-            return;
-        }
-        
-        if (await validateForm()) {
+        const inputs = {
+            encoder: form.encoder,
+            name: form.name,
+            type: form.type,
+            address: form.address,
+            contactPerson: form.contactPerson,
+            number: form.number,
+            email: form.email,
+            assistance: form.assistance,
+            valuation: form.valuation,
+            additionalnotes: form.additionalnotes,
+            status: form.status,
+            staffIncharge: form.staffIncharge,
+            donationDate: form.donationDate,
+        };
+        const isValid = await validateDonationForm(inputs);
+        if (isValid) {
             const user = auth.currentUser;
             if (!user) {
-                Swal.fire("Error", "User not authenticated!", "error");
+                console.error('No authenticated user');
+                Swal.fire({
+                    title: "Error",
+                    text: "User not authenticated!",
+                    icon: "error",
+                    customClass: {
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean',
+                        confirmButton: 'my-error-button'
+                    }
+                });
                 return;
             }
 
             const newDonation = {
-                encoder: form.encoder.value,
-                name: form.name.value,
-                type: form.type.value,
-                address: form.address.value,
-                contactPerson: form.contactPerson.value,
-                number: form.number.value,
-                email: form.email.value,
-                assistance: form.assistance.value,
-                valuation: form.valuation.value,
-                additionalnotes: form.additionalnotes.value,
+                encoder: sanitizeInput(form.encoder.value),
+                name: sanitizeInput(form.name.value),
+                type: sanitizeInput(form.type.value),
+                address: sanitizeInput(form.address.value),
+                contactPerson: sanitizeInput(form.contactPerson.value),
+                number: sanitizeInput(form.number.value),
+                email: sanitizeInput(form.email.value),
+                assistance: sanitizeInput(form.assistance.value),
+                valuation: parseFloat(form.valuation.value) || 0,
+                additionalnotes: sanitizeInput(form.additionalnotes.value),
                 status: form.status.value,
-                staffIncharge: form.staffIncharge.value,
-                donationDate: document.getElementById("donationDate").value,
-                id: Date.now(),
-                userUid: user.uid,
+                staffIncharge: sanitizeInput(form.staffIncharge.value),
+                donationDate: form.donationDate.value,
                 createdAt: new Date().toISOString(),
+                createdBy: user.uid,
             };
 
-            database.ref("donations/inkind").push(newDonation)
-            .then(() => {
-                form.reset();
-                formHasChanges = false;
+            console.log('New Donation:', newDonation);
+
+            try {
+                await database.ref("donations/savedDonations/inkind").push(newDonation);
                 Swal.fire({
+                    title: 'Success',
+                    text: 'Donation added successfully!',
                     icon: 'success',
-                    title: 'Donation Added!',
-                    text: 'Your donation has been successfully recorded.',
-                    timer: 2000,
+                    timer: 2500,
                     showConfirmButton: false,
                     timerProgressBar: true,
-                    color: '#1b5e20',
-                    iconColor: '#2e7d32',
+                    allowOutsideClick: false,
                     customClass: {
                         popup: 'swal2-popup-success-clean',
                         title: 'swal2-title-success-clean',
-                        htmlContainer: 'swal2-text-success-clean'
+                        htmlContainer: 'swal2-text-success-clean',
                     }
                 });
-            })
-            .catch(error => {
-                console.error("Error adding donation:", error);
+                clearFormFields();
+            } catch (error) {
+                console.error('Error adding donation:', error);
                 Swal.fire({
+                    title: 'Error',
+                    text: 'Failed to add donation: ' + error.message,
                     icon: 'error',
-                    title: 'Failed to Add Donation',
-                    text: 'An error occurred: ' + error.message,
-                    background: '#fcebea',
-                    color: '#b71c1c',
-                    iconColor: '#c62828',
-                    confirmButtonColor: '#c62828',
                     customClass: {
                         popup: 'swal2-popup-error-clean',
                         title: 'swal2-title-error-clean',
-                        htmlContainer: 'swal2-text-error-clean'
+                        htmlContainer: 'swal2-text-error-clean',
+                        confirmButton: 'my-error-button'
                     }
                 });
-            });
+            }
+        } else {
+            console.log('Form submission failed due to validation errors');
         }
     });
 
@@ -648,724 +1432,149 @@ document.addEventListener("DOMContentLoaded", () => {
                 title: 'Discard Changes?',
                 text: 'You have unsaved changes. Are you sure you want to clear the form?',
                 icon: 'warning',
-                iconColor: '#f57c00',
                 showCancelButton: true,
-                confirmButtonColor: '#c62828',
-                cancelButtonColor: '#546e7a',
                 confirmButtonText: 'Yes, clear it!',
                 cancelButtonText: 'No, keep editing',
                 reverseButtons: true,
+                focusCancel: true,
+                allowOutsideClick: false,
                 customClass: {
-                    popup: 'swal2-popup-warning-clean',
-                    title: 'swal2-title-warning-clean',
-                    htmlContainer: 'swal2-text-warning-clean',
-                    confirmButton: 'swal2-button-confirm-clean',
-                    cancelButton: 'swal2-button-cancel-clean'
+                    popup: 'custom-swal-popup-small',
+                    title: 'custom-swal-title',
+                    htmlContainer: 'custom-swal-content',
+                    confirmButton: 'custom-confirm-btn',
+                    cancelButton: 'custom-cancel-btn'
                 }
             }).then((result) => {
                 if (result.isConfirmed) {
-                    form.reset();
-                    formHasChanges = false;
-                    const errorMessages = form.querySelectorAll('.error-message');
-                    errorMessages.forEach(msg => msg.textContent = '');
-                    const errorInputs = form.querySelectorAll('.error');
-                    errorInputs.forEach(input => input.classList.remove('error'));
+                    clearFormFields();
                 }
             });
         } else {
-            form.reset();
-            const errorMessages = form.querySelectorAll('.error-message');
-            errorMessages.forEach(msg => msg.textContent = '');
-            const errorInputs = form.querySelectorAll('.error');
-            errorInputs.forEach(input => input.classList.remove('error'));
+            clearFormFields();
         }
     });
 
-    function deleteRow(firebaseKey) {
-        if (!hasImportPermission()) {
-            showAccessDeniedAlert('reject this donation');
-            return;
-        }
-
-        Swal.fire({
-            title: 'Are you sure to reject this donation?',
-            text: "This will move it to archived records.",
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonText: 'Reject',
-            cancelButtonText: 'Cancel',
-            reverseButtons: true,
-            focusCancel: true,
-            allowOutsideClick: false,
-            customClass: {
-                popup: 'custom-swal-popup-small',
-                title: 'custom-swal-title',
-                htmlContainer: 'custom-swal-content',
-                confirmButton: 'custom-confirm-btn',
-                cancelButton: 'custom-cancel-btn'
-            }
-        }).then((result) => {
-            if (result.isConfirmed) {
-                const donationToDelete = allDonations.find(d => d.firebaseKey === firebaseKey);
-                if (!donationToDelete) {
-                    Swal.fire("Error", "Donation not found!", "error");
-                    return;
+    function showViewModal(donation) {
+        const modalContentDiv = document.getElementById('modalContent');
+        const previewModal = document.getElementById('previewModal');
+        if (!previewModal || !modalContentDiv) {
+            Swal.fire({
+                title: 'Error',
+                text: 'Modal not found. Please check the page setup.',
+                icon: 'error',
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean'
                 }
-
-                const deletedDonation = {
-                    ...donationToDelete,
-                    rejectedAt: new Date().toISOString(),
-                    status: 'Rejected'
-                };
-
-                database.ref(`deletedDonations/deletedinkind/${firebaseKey}`).set(deletedDonation)
-                    .then(() => {
-                        return database.ref(`donations/inkind/${firebaseKey}`).remove();
-                    })
-                    .then(() => {
-                        Swal.fire({
-                            title: 'Rejected!',
-                            text: 'The donation has been rejected and archived.',
-                            icon: 'success',
-                            timer: 1600,
-                            showConfirmButton: false,
-                            timerProgressBar: true,
-                            allowOutsideClick: false,
-                            customClass: {
-                                popup: 'swal2-popup-success-clean',
-                                title: 'swal2-title-success-clean',
-                                htmlContainer: 'swal2-text-success-clean',
-                            }
-                        });
-                        renderTable();
-                    })
-                    .catch(error => {
-                        console.error("Error moving donation to deleted donations:", error);
-                        Swal.fire("Error", "Failed to reject donation: " + error.message, "error");
-                    });
-            }
-        });
-    }
-
-    async function fetchAndRenderArchivedDonations() {
-        if (!hasImportPermission()) {
-            showAccessDeniedAlert('access retrieve archive donation');
-            return;
-        }
-
-        Swal.fire({
-            title: 'Loading Archived Donations',
-            text: 'Fetching archived data from Firebase...',
-            allowOutsideClick: false,
-            didOpen: () => {
-                Swal.showLoading();
-            }
-        });
-
-        try {
-            const snapshot = await database.ref('deletedDonations/deletedinkind').once('value');
-            const archivedDonations = snapshot.val();
-            allArchivedInKindDonation = [];
-
-            for (const key in archivedDonations) {
-                allArchivedInKindDonation.push({
-                    firebaseKey: key,
-                    ...archivedDonations[key]
-                });
-            }
-            Swal.close();
-            renderArchivedTable(allArchivedInKindDonation);
-            archivedModal.style.display = 'flex';
-        } catch (error) {
-            Swal.fire('Error', 'Failed to load archived donation data: ' + error.message, 'error');
-            console.error("Error fetching archived donation data:", error);
-        }
-    }
-
-    function renderArchivedTable(data) {
-        if (!archivedTableBody) {
-            console.error("Archived donation table body not found!");
-            return;
-        }
-
-        archivedTableBody.innerHTML = '';
-
-        const startIndex = (currentArchivedPage - 1) * archivedRowsPerPage;
-        const endIndex = startIndex + archivedRowsPerPage;
-        const paginatedData = data.slice(startIndex, endIndex);
-
-        if (paginatedData.length === 0) {
-            archivedTableBody.innerHTML = '<tr><td colspan="15" style="text-align: center;">No archived donation records found.</td></tr>';
-            updateArchivedEntriesInfo(0);
-            renderArchivedPagination(0);
-            return;
-        }
-
-        paginatedData.forEach((donation, index) => {
-            const row = archivedTableBody.insertRow();
-            row.dataset.firebaseKey = donation.firebaseKey;
-
-            const archivedDate = donation.rejectedAt ? new Date(donation.rejectedAt).toLocaleDateString() : 'N/A';
-
-            row.insertCell(0).textContent = ((currentArchivedPage - 1) * archivedRowsPerPage + index + 1);
-            row.insertCell(1).textContent = donation.encoder || 'N/A';
-            row.insertCell(2).textContent = donation.name || 'N/A';
-            row.insertCell(3).textContent = donation.type || 'N/A';
-            row.insertCell(4).textContent = donation.address || 'N/A';
-            row.insertCell(5).textContent = donation.contactPerson || 'N/A';
-            row.insertCell(6).textContent = donation.number || 'N/A';
-            row.insertCell(7).textContent = donation.email || 'N/A';
-            row.insertCell(8).textContent = donation.assistance || 'N/A';
-            row.insertCell(9).textContent = `₱${parseFloat(donation.valuation || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-            row.insertCell(10).textContent = donation.additionalnotes || 'N/A';
-            row.insertCell(11).textContent = donation.staffIncharge || 'N/A';
-            row.insertCell(12).textContent = donation.status || 'N/A';
-            row.insertCell(13).textContent = donation.donationDate || 'N/A';
-            row.insertCell(14).textContent = donation.rejectedAt || 'N/A';
-            row.insertCell(15).innerHTML = `<button class="retrieveBtn" data-firebase-key="${donation.firebaseKey}">Retrieve</button>`;
-        });
-
-        document.querySelectorAll('.retrieveBtn').forEach(button => {
-            button.addEventListener('click', (event) => retrieveDonation(event.target.dataset.firebaseKey));
-        });
-
-        renderArchivedPagination(data.length);
-        updateArchivedEntriesInfo(data.length);
-    }
-
-    function renderArchivedPagination(totalItems) {
-        archivedPaginationContainer.innerHTML = '';
-        const totalPages = Math.ceil(totalItems / archivedRowsPerPage);
-
-        if (totalPages === 0) {
-            archivedPaginationContainer.innerHTML = '<span>No entries to display</span>';
-            return;
-        }
-
-        const createButton = (label, page, disabled = false, isActive = false) => {
-            const btn = document.createElement('button');
-            btn.textContent = label;
-            if (disabled) btn.disabled = true;
-            if (isActive) btn.classList.add('active-page');
-            btn.addEventListener('click', () => {
-                currentArchivedPage = page;
-                renderArchivedTable(allArchivedInKindDonation);
             });
-            return btn;
-        };
-
-        archivedPaginationContainer.appendChild(createButton('Prev', currentArchivedPage - 1, currentArchivedPage === 1));
-
-        const maxVisible = 5;
-        let startPage = Math.max(1, currentArchivedPage - Math.floor(maxVisible / 2));
-        let endPage = Math.min(totalPages, startPage + maxVisible - 1);
-        if (endPage - startPage < maxVisible - 1) {
-            startPage = Math.max(1, endPage - maxVisible + 1);
-        }
-
-        for (let i = startPage; i <= endPage; i++) {
-            archivedPaginationContainer.appendChild(createButton(i, i, false, i === currentArchivedPage));
-        }
-
-        archivedPaginationContainer.appendChild(createButton('Next', currentArchivedPage + 1, currentArchivedPage === totalPages));
-    }
-
-    function updateArchivedEntriesInfo(totalItems) {
-        const startIndex = (currentArchivedPage - 1) * archivedRowsPerPage;
-        const endIndex = Math.min(startIndex + archivedRowsPerPage, totalItems);
-        archivedEntriesInfo.textContent = `Showing ${totalItems ? startIndex + 1 : 0} to ${endIndex} of ${totalItems} entries`;
-    }
-
-    async function retrieveDonation(firebaseKey) {
-        if (!hasImportPermission()) {
-            showAccessDeniedAlert('retrieve donation records');
             return;
         }
 
-        Swal.fire({
-            title: 'Retrieve Donation?',
-            text: 'This will move the donation from archived records back to active donations.',
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonText: 'Retrieve',
-            cancelButtonText: 'Cancel',
-            reverseButtons: true,
-            focusCancel: true,
-            allowOutsideClick: false,
-            customClass: {
-                popup: 'custom-swal-popup-small',
-                title: 'custom-swal-title',
-                htmlContainer: 'custom-swal-content',
-                confirmButton: 'custom-confirm-btn',
-                cancelButton: 'custom-cancel-btn'
-            },
-        }).then(async (result) => {
-            if (result.isConfirmed) {
-                try {
-                    const snapshot = await database.ref(`deletedDonations/deletedinkind/${firebaseKey}`).once('value');
-                    const donationDataToRetrieve = snapshot.val();
+        const formattedTimestamp = donation.createdAt ? new Date(donation.createdAt).toLocaleString('en-PH', {
+            year: 'numeric', month: 'short', day: 'numeric',
+            hour: '2-digit', minute: '2-digit', second: '2-digit'
+        }) : 'N/A';
 
-                    if (!donationDataToRetrieve) {
-                        Swal.fire('Error', 'Archived donation data not found for retrieval.', 'error');
-                        return;
-                    }
-
-                    const activeSnapshot = await database.ref('donations/inkind').once('value');
-                    let isDuplicate = false;
-                    let duplicateReason = '';
-
-                    if (activeSnapshot.exists()) {
-                        activeSnapshot.forEach((child) => {
-                            const activeData = child.val();
-                            if (activeData.name.toLowerCase() === donationDataToRetrieve.name.toLowerCase() ||
-                                activeData.email.toLowerCase() === donationDataToRetrieve.email.toLowerCase()) {
-                                isDuplicate = true;
-                                duplicateReason = activeData.name.toLowerCase() === donationDataToRetrieve.name.toLowerCase() ? 'name' : 'email';
-                                return true;
-                            }
-                        });
-                    }
-
-                    if (isDuplicate) {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Duplicate Found',
-                            html: `A donation with this ${duplicateReason} already exists in the active donations.<br><br>Please check the active list before proceeding.`,
-                            confirmButtonText: 'OK',
-                            allowOutsideClick: false,
-                            customClass: {
-                                popup: 'swal2-popup-warning-clean',
-                                title: 'swal2-title-warning-clean',
-                                htmlContainer: 'swal2-text-warning-clean',
-                                confirmButton: 'my-warning-button'
-                            }
-                        });
-                        return;
-                    }
-
-                    delete donationDataToRetrieve.rejectedAt;
-                    donationDataToRetrieve.status = 'Pending';
-                    await database.ref(`donations/inkind/${firebaseKey}`).set(donationDataToRetrieve);
-                    await database.ref(`deletedDonations/deletedinkind/${firebaseKey}`).remove();
-                    Swal.close();
-                    await loadDonations(auth.currentUser.uid);
-                    await fetchAndRenderArchivedDonations();
-                    Swal.fire({
-                        title: 'Retrieved!',
-                        text: 'Donation has been retrieved to active donations.',
-                        icon: 'success',
-                        timer: 1600,
-                        showConfirmButton: false,
-                        timerProgressBar: true,
-                        allowOutsideClick: false,
-                        customClass: {
-                            popup: 'swal2-popup-success-clean',
-                            title: 'swal2-title-success-clean',
-                            htmlContainer: 'swal2-text-success-clean',
-                        }
-                    });
-                } catch (error) {
-                    console.error("Error retrieving donation:", error);
-                    Swal.fire('Error', 'Failed to retrieve donation: ' + error.message, 'error');
-                }
-            }
-        });
+        modalContentDiv.innerHTML = `
+            <div class="modal-content-inner" style="padding: 20px;">
+                <h2>Donor Information:</h2>
+                <p><strong>Encoder:</strong> ${sanitizeInput(donation.encoder || 'N/A')}</p>
+                <p><strong>Name:</strong> ${sanitizeInput(donation.name || 'N/A')}</p>
+                <p><strong>Type:</strong> ${sanitizeInput(donation.type || 'N/A')}</p>
+                <p><strong>Address:</strong> ${sanitizeInput(donation.address || 'N/A')}</p>
+                <p><strong>Contact Person:</strong> ${sanitizeInput(donation.contactPerson || 'N/A')}</p>
+                <p><strong>Number:</strong> ${sanitizeInput(donation.number || 'N/A')}</p>
+                <p><strong>Email:</strong> ${sanitizeInput(donation.email || 'N/A')}</p>
+                <hr>
+                <h2>Donation Details:</h2>
+                <p><strong>Assistance:</strong> ${sanitizeInput(donation.assistance || 'N/A')}</p>
+                <p><strong>Valuation:</strong> ₱${parseFloat(donation.valuation || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                <p><strong>Additional Notes:</strong> ${sanitizeInput(donation.additionalnotes || 'N/A')}</p>
+                <p><strong>Status:</strong> ${sanitizeInput(donation.status || 'N/A')}</p>
+                <p><strong>Staff-In-Charge:</strong> ${sanitizeInput(donation.staffIncharge || 'N/A')}</p>
+                <p><strong>Donation Date:</strong> ${donation.donationDate ? new Date(donation.donationDate).toLocaleDateString('en-PH') : 'N/A'}</p>
+                <p><strong>Recorded On:</strong> ${formattedTimestamp}</p>
+            </div>
+        `;
+        previewModal.style.display = 'flex';
     }
 
-    function closeEditModal() {
-        const editModal = document.getElementById("editModal");
-        editModal.style.display = "none";
-        editingKey = null;
-        const errorMessages = editModal.querySelectorAll('.error-message');
-        errorMessages.forEach(msg => msg.textContent = '');
-        const errorInputs = editModal.querySelectorAll('.error');
-        errorInputs.forEach(input => input.classList.remove('error'));
-    }
-
-    if (viewArchivedButton) {
-        viewArchivedButton.addEventListener('click', () => {
-            currentArchivedPage = 1;
-            fetchAndRenderArchivedDonations();
-        });
-    }
-
-    if (closeArchivedModalBtn) {
-        closeArchivedModalBtn.addEventListener('click', () => {
-            archivedModal.style.display = 'none';
-        });
-    }
-
-    if (importExcelBtn) {
-        importExcelBtn.addEventListener('click', () => {
-            if (!hasImportPermission()) {
-                showAccessDeniedAlert('import in-kind donations');
-                return;
-            }
-            excelFileInput.click();
-        });
-    }
-
-    if (excelFileInput) {
-        excelFileInput.addEventListener('change', handleExcelFileSelect);
-    }
-
-    if (closeImportStatusModalBtn) {
-        closeImportStatusModalBtn.addEventListener('click', () => {
-            importStatusModal.style.display = 'none';
-        });
-    }
-
-    document.addEventListener('click', (event) => {
-        if (event.target === archivedModal) {
-            archivedModal.style.display = 'none';
+    function hideViewModal() {
+        const previewModal = document.getElementById('previewModal');
+        const modalContentDiv = document.getElementById('modalContent');
+        if (previewModal && modalContentDiv) {
+            previewModal.style.display = 'none';
+            modalContentDiv.innerHTML = '';
         }
-        if (event.target === document.getElementById("endorseModal")) {
-            document.getElementById("endorseModal").style.display = "none";
-        }
-        if (event.target === document.getElementById("editModal")) {
-            closeEditModal();
-        }
-        if (event.target === importStatusModal) {
-            importStatusModal.style.display = 'none';
-        }
-    });
-
-    async function handleExcelFileSelect(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-
-        if (!hasImportPermission()) {
-            showAccessDeniedAlert('import in-kind donations');
-            return;
-        }
-
-        importProgressBar.style.width = '0%';
-        importProgressBar.textContent = '0%';
-        importProgressBar.style.backgroundColor = '#4CAF50';
-        importStatusText.textContent = 'Reading Excel file...';
-        importErrorList.innerHTML = '';
-        importStatusModal.style.display = 'flex';
-
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-            try {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
-                const firstSheetName = workbook.SheetNames[0];
-                const worksheet = workbook.Sheets[firstSheetName];
-                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-
-                if (jsonData.length === 0) {
-                    throw new Error("The Excel file is empty or could not be read.");
-                }
-
-                const headers = jsonData[0];
-                const rows = jsonData.slice(1);
-                const columnMap = {
-                    'Encoder': 'encoder',
-                    'Name': 'name',
-                    'Type': 'type',
-                    'Address': 'address',
-                    'Contact Person': 'contactPerson',
-                    'Number': 'number',
-                    'Email': 'email',
-                    'Type of Assistance': 'assistance',
-                    'Valuation': 'valuation',
-                    'Additional Notes': 'additionalnotes',
-                    'Status': 'status',
-                    'Staff-In Charge': 'staffIncharge',
-                    'Donation Date': 'donationDate'
-                };
-
-                const expectedHeaders = Object.keys(columnMap);
-                const mappedData = [];
-                const importErrors = [];
-                let processedCount = 0;
-                const totalRecords = rows.length;
-
-                if (totalRecords === 0) {
-                    Swal.fire('No Data', 'The Excel file contains headers but no data rows.', 'info');
-                    importStatusModal.style.display = 'none';
-                    return;
-                }
-
-                importStatusText.textContent = `Validating and preparing ${totalRecords} records...`;
-
-                // Fetch existing records from Firebase for duplicate checking
-                const activeSnapshot = await database.ref('donations/inkind').once('value');
-                const deletedSnapshot = await database.ref('deletedDonations/deletedinkind').once('value');
-
-                const existingRecords = new Set();
-                [activeSnapshot, deletedSnapshot].forEach(snapshot => {
-                    if (snapshot.exists()) {
-                        snapshot.forEach(child => {
-                            const data = child.val();
-                            if (data.name) {
-                                existingRecords.add(data.name.trim().toLowerCase());
-                            }
-                            if (data.email) {
-                                existingRecords.add(data.email.trim().toLowerCase());
-                            }
-                        });
-                    }
-                });
-
-                for (let i = 0; i < totalRecords; i++) {
-                    const row = rows[i];
-                    const record = {};
-                    let isValidRecord = true;
-                    const rowErrors = [];
-
-                    headers.forEach((header, index) => {
-                        const firebaseKey = columnMap[header.trim()];
-                        if (firebaseKey) {
-                            record[firebaseKey] = row[index];
-                        }
-                    });
-
-                    // Validate required fields
-                    if (!record.encoder || record.encoder.trim() === '') {
-                        isValidRecord = false;
-                        rowErrors.push('Missing Encoder');
-                    }
-                    if (!record.name || record.name.trim() === '') {
-                        isValidRecord = false;
-                        rowErrors.push('Missing Name');
-                    }
-                    if (!record.type || record.type.trim() === '') {
-                        isValidRecord = false;
-                        rowErrors.push('Missing Type');
-                    }
-                    if (!record.contactPerson || record.contactPerson.trim() === '') {
-                        isValidRecord = false;
-                        rowErrors.push('Missing Contact Person');
-                    }
-                    if (!record.number || record.number.toString().trim() === '') {
-                        isValidRecord = false;
-                        rowErrors.push('Missing Number');
-                    } else if (!isValidMobile(record.number.toString())) {
-                        isValidRecord = false;
-                        rowErrors.push('Mobile number must be 11 digits starting with "09"');
-                    }
-                    if (!record.email || record.email.trim() === '' || !isValidEmail(record.email)) {
-                        isValidRecord = false;
-                        rowErrors.push('Invalid or Missing Email');
-                    }
-                    if (!record.assistance || record.assistance.trim() === '') {
-                        isValidRecord = false;
-                        rowErrors.push('Missing Type of Assistance');
-                    }
-                    if (!record.valuation || record.valuation.toString().trim() === '' || !isValidNumber(record.valuation)) {
-                        isValidRecord = false;
-                        rowErrors.push('Invalid or Missing Valuation');
-                    }
-                    if (!record.status || record.status.trim() === '') {
-                        isValidRecord = false;
-                        rowErrors.push('Missing Status');
-                    }
-                    if (!record.staffIncharge || record.staffIncharge.trim() === '') {
-                        isValidRecord = false;
-                        rowErrors.push('Missing Staff-In Charge');
-                    }
-
-                    // Check for duplicates
-                    const nameLower = record.name ? record.name.trim().toLowerCase() : '';
-                    const emailLower = record.email ? record.email.trim().toLowerCase() : '';
-                    const number = record.number ? record.number.toString().trim() : '';
-                    if (nameLower && existingRecords.has(nameLower)) {
-                        isValidRecord = false;
-                        rowErrors.push('Duplicate Name');
-                    }
-                    if (emailLower && existingRecords.has(emailLower)) {
-                        isValidRecord = false;
-                        rowErrors.push('Duplicate Email');
-                    }
-                    if (number && existingRecords.has(number)) {
-                        isValidRecord = false;
-                        rowErrors.push('Duplicate Number');
-                    }
-                    if (!record.donationDate) {
-                        record.donationDate = new Date().toISOString().slice(0, 10);
-                    } else {
-                        try {
-                            const date = new Date(record.donationDate);
-                            if (isNaN(date.getTime())) {
-                                throw new Error("Invalid Date");
-                            }
-                            const today = new Date();
-                            today.setHours(0, 0, 0, 0);
-                            if (date.setHours(0, 0, 0, 0) > today.setHours(0, 0, 0, 0)) {
-                                isValidRecord = false;
-                                rowErrors.push('Donation Date cannot be a future date');
-                            } else {
-                                record.donationDate = date.toISOString().slice(0, 10);
-                            }
-                        } catch (e) {
-                            isValidRecord = false;
-                            rowErrors.push('Invalid Donation Date format');
-                        }
-                    }
-
-                    record.id = Date.now();
-                    record.userUid = auth.currentUser.uid;
-                    record.createdAt = new Date().toISOString();
-                    record.status = 'Pending';
-
-                    if (isValidRecord) {
-                        mappedData.push(record);
-                    } else {
-                        importErrors.push(`Row ${i + 2} (${record.name || 'N/A'}): ${rowErrors.join(', ')}`);
-                    }
-                }
-
-                if (mappedData.length === 0) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'No Valid Records',
-                        text: 'No valid records found in the Excel file after validation. Check errors for details.',
-                        confirmButtonText: 'OK',
-                        allowOutsideClick: false,
-                        customClass: {
-                            popup: 'swal2-popup-warning-clean',
-                            title: 'swal2-title-warning-clean',
-                            htmlContainer: 'swal2-text-warning-clean',
-                            confirmButton: 'my-warning-button'
-                        }
-                    });
-                    importErrorList.innerHTML = importErrors.map(err => `<li>${err}</li>`).join('');
-                    importProgressBar.style.backgroundColor = '#f44336';
-                    return;
-                }
-
-                importStatusText.textContent = `Importing ${mappedData.length} valid records to Firebase...`;
-
-                let successCount = 0;
-                let currentErrors = [];
-
-                for (const donationData of mappedData) {
-                    try {
-                        const newDonationRef = database.ref('donations/inkind').push();
-                        await newDonationRef.set(donationData);
-                        successCount++;
-                    } catch (error) {
-                        console.error("Error importing donation:", donationData.name, error);
-                        currentErrors.push(`Failed to import "${donationData.name || 'N/A'}": ${error.message}`);
-                    }
-                    processedCount++;
-                    const progress = Math.round((processedCount / rows.length) * 100);
-                    importProgressBar.style.width = `${progress}%`;
-                    importProgressBar.textContent = `${progress}%`;
-                    importStatusText.textContent = `Processing ${processedCount}/${rows.length} records...`;
-                }
-
-                importErrorList.innerHTML = importErrors.concat(currentErrors).map(err => `<li>${err}</li>`).join('');
-                if (successCount > 0) {
-                    Swal.fire({
-                        title: 'Import Complete!',
-                        html: `Successfully imported ${successCount} new donations. ${importErrors.length + currentErrors.length > 0 ? `<br><br><strong>${importErrors.length + currentErrors.length} issues occurred (including duplicates). Check the status modal for details.</strong>` : ''}`,
-                        icon: 'success',
-                        timer: 1600,
-                        showConfirmButton: false,
-                        timerProgressBar: true,
-                        customClass: {
-                            popup: 'swal2-popup-success-clean',
-                            title: 'swal2-title-success-clean',
-                            htmlContainer: 'swal2-text-success-clean',
-                        }
-                    }).then(() => {
-                        loadDonations(auth.currentUser.uid);
-                        importStatusModal.style.display = 'none';
-                    });
-                } else {
-                    Swal.fire({
-                        title: 'Import Failed',
-                        html: 'No donations were successfully imported. Please check for errors in the status modal.',
-                        icon: 'error',
-                        confirmButtonText: 'OK',
-                        allowOutsideClick: false,
-                        customClass: {
-                            popup: 'swal2-popup-warning-clean',
-                            title: 'swal2-title-warning-clean',
-                            htmlContainer: 'swal2-text-warning-clean',
-                            confirmButton: 'my-warning-button'
-                        }
-                    });
-                }
-
-            } catch (error) {
-                console.error("Error processing Excel file:", error);
-                Swal.fire({
-                    title: 'Error',
-                    html: `Failed to process Excel file: ${error.message}`,
-                    icon: 'error',
-                    confirmButtonText: 'OK',
-                    allowOutsideClick: false,
-                    customClass: {
-                        popup: 'swal2-popup-error-clean',
-                        title: 'swal2-title-error-clean',
-                        htmlContainer: 'swal2-text-error-clean',
-                        confirmButton: 'my-error-button'
-                    }
-                });
-                importProgressBar.style.backgroundColor = '#f44336';
-                importStatusText.textContent = `Error: ${error.message}`;
-                importStatusModal.style.display = 'flex';
-            } finally {
-                event.target.value = '';
-            }
-        };
-
-        reader.readAsArrayBuffer(file);
     }
 
     function renderTable() {
-        const paginatedData = getPaginatedData(filteredAndSortedDonations, currentPage, rowsPerPage);
+        const startIndex = (currentPage - 1) * rowsPerPage;
+        const endIndex = startIndex + rowsPerPage;
+        const currentPageRows = filteredAndSortedDonations.slice(startIndex, endIndex);
 
         tableBody.innerHTML = "";
-        if (paginatedData.length === 0) {
-            const noResultsRow = document.createElement("tr");
-            noResultsRow.innerHTML = `<td colspan="15" style="text-align: center; padding: 20px;">No donations found matching your criteria.</td>`;
-            tableBody.appendChild(noResultsRow);
+        if (currentPageRows.length === 0) {
+            tableBody.innerHTML = `<tr><td colspan="15" style="text-align: center;">No donations found.</td></tr>`;
         } else {
-            paginatedData.forEach((d, i) => {
+            currentPageRows.forEach((d, i) => {
                 const tr = document.createElement("tr");
-                const startIndex = (currentPage - 1) * rowsPerPage;
                 tr.innerHTML = `
                     <td>${startIndex + i + 1}</td>
-                    <td>${d.encoder || 'N/A'}</td>
-                    <td>${d.name || 'N/A'}</td>
-                    <td>${d.type || 'N/A'}</td>
-                    <td>${d.address || 'N/A'}</td>
-                    <td>${d.contactPerson || 'N/A'}</td>
-                    <td>${d.number || 'N/A'}</td>
-                    <td>${d.email || 'N/A'}</td>
-                    <td>${d.assistance || 'N/A'}</td>
+                    <td>${sanitizeInput(d.encoder || 'N/A')}</td>
+                    <td>${sanitizeInput(d.name || 'N/A')}</td>
+                    <td>${sanitizeInput(d.type || 'N/A')}</td>
+                    <td>${sanitizeInput(d.address || 'N/A')}</td>
+                    <td>${sanitizeInput(d.contactPerson || 'N/A')}</td>
+                    <td>${sanitizeInput(d.number || 'N/A')}</td>
+                    <td>${sanitizeInput(d.email || 'N/A')}</td>
+                    <td>${sanitizeInput(d.assistance || 'N/A')}</td>
                     <td>₱${parseFloat(d.valuation || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                    <td>${d.additionalnotes || 'N/A'}</td>
-                    <td>${d.staffIncharge || 'N/A'}</td>
-                    <td>${d.status || 'N/A'}</td>
-                    <td>${d.donationDate || 'N/A'}</td>
+                    <td>${sanitizeInput(d.additionalnotes || 'N/A')}</td>
+                    <td>${sanitizeInput(d.status || 'N/A')}</td>
+                    <td>${sanitizeInput(d.staffIncharge || 'N/A')}</td>
+                    <td>${sanitizeInput(d.donationDate ? new Date(d.donationDate).toLocaleDateString('en-PH') : 'N/A')}</td>
                     <td>
                         <button class="viewBtn"><i class='bx bx-show-alt'></i></button>
-                        <button class="editBtn"><i class='bx bx-edit'></i></button>
-                        <button class="endorseBtn"><i class='bx bx-star' ></i></button>
+                        ${permissions.canEdit ? `<button class="editBtn"><i class='bx bx-edit'></i></button>` : ''}
+                        ${permissions.canArchive ? `<button class="archiveBtn"><i class="bx bx-x-circle"></i></button>` : ''}
+                        <button class="endorseBtn"><i class='bx bx-send'></i></button>
                         <button class="savePDFBtn"><i class='bx bxs-file-pdf'></i></button>
-                        <button class="deleteBtn"><i class="bx bx-x-circle"></i></button>
                     </td>
                 `;
-                tr.querySelector(".editBtn").addEventListener("click", () => openEditModal(d.firebaseKey));
-                tr.querySelector(".deleteBtn").addEventListener("click", () => deleteRow(d.firebaseKey));
+                tr.querySelector(".viewBtn").addEventListener("click", () => {
+                    const donationToView = allDonations.find(app => app.firebaseKey === d.firebaseKey);
+                    if (donationToView) {
+                        showViewModal(donationToView);
+                    } else {
+                        Swal.fire({
+                            title: 'Error',
+                            text: 'Donation details not found.',
+                            icon: 'error',
+                            customClass: {
+                                popup: 'swal2-popup-error-clean',
+                                title: 'swal2-title-error-clean',
+                                htmlContainer: 'swal2-text-error-clean'
+                            }
+                        });
+                    }
+                });
+                if (permissions.canEdit) {
+                    tr.querySelector(".editBtn").addEventListener("click", () => openEditModal(d.firebaseKey));
+                }
+                if (permissions.canArchive) {
+                    tr.querySelector(".archiveBtn").addEventListener("click", () => deleteRow(d.firebaseKey));
+                }
                 tr.querySelector(".endorseBtn").addEventListener("click", () => openEndorseModal(d.firebaseKey));
                 tr.querySelector(".savePDFBtn").addEventListener("click", () => saveSingleDonationPdf(d));
                 tableBody.appendChild(tr);
             });
         }
 
-        updateEntriesInfo(filteredAndSortedDonations, currentPage, rowsPerPage, entriesInfo);
-        renderPagination(filteredAndSortedDonations, currentPage, rowsPerPage, paginationContainer, (page) => {
-            currentPage = page;
-            renderTable();
-        });
+        updatePaginationInfo();
+        renderPagination();
     }
 
     function updatePaginationInfo() {
@@ -1378,74 +1587,171 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    function exportToExcel() {
-        if (filteredAndSortedDonations.length === 0) {
+    function createPaginationButton(label, page, disabled = false, isActive = false) {
+        const btn = document.createElement('button');
+        btn.textContent = label;
+        if (disabled) btn.disabled = true;
+        if (isActive) btn.classList.add('active-page');
+        btn.addEventListener('click', () => {
+            if (!disabled) {
+                currentPage = page;
+                renderTable();
+            }
+        });
+        return btn;
+    }
+
+    function renderPagination() {
+        paginationContainer.innerHTML = '';
+        const totalPages = Math.ceil(filteredAndSortedDonations.length / rowsPerPage);
+
+        if (totalPages === 0) {
+            paginationContainer.innerHTML = '<span>No entries to display</span>';
+            return;
+        }
+
+        paginationContainer.appendChild(createPaginationButton('Prev', Math.max(1, currentPage - 1), currentPage === 1));
+
+        const maxVisible = 5;
+        let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+        let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+        if (endPage - startPage < maxVisible - 1) {
+            startPage = Math.max(1, endPage - maxVisible + 1);
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
+            paginationContainer.appendChild(createPaginationButton(i, i, false, i === currentPage));
+        }
+
+        paginationContainer.appendChild(createPaginationButton('Next', Math.min(totalPages, currentPage + 1), currentPage === totalPages));
+    }
+
+    searchInput.addEventListener("input", () => {
+        const searchTerm = searchInput.value.toLowerCase();
+        const currentSort = sortSelect.value;
+
+        filteredAndSortedDonations = allDonations.filter(d => {
+            if (currentSort.includes('encoder')) return (d.encoder || '').toLowerCase().includes(searchTerm);
+            if (currentSort.includes('name')) return (d.name || '').toLowerCase().includes(searchTerm);
+            if (currentSort.includes('type')) return (d.type || '').toLowerCase().includes(searchTerm);
+            if (currentSort.includes('address')) return (d.address || '').toLowerCase().includes(searchTerm);
+            if (currentSort.includes('contactPerson')) return (d.contactPerson || '').toLowerCase().includes(searchTerm);
+            if (currentSort.includes('number')) return (d.number || '').includes(searchTerm);
+            if (currentSort.includes('email')) return (d.email || '').toLowerCase().includes(searchTerm);
+            if (currentSort.includes('assistance')) return (d.assistance || '').toLowerCase().includes(searchTerm);
+            if (currentSort.includes('valuation')) return String(d.valuation || '').includes(searchTerm);
+            if (currentSort.includes('notes')) return (d.additionalnotes || '').toLowerCase().includes(searchTerm);
+            if (currentSort.includes('status')) return (d.status || '').toLowerCase().includes(searchTerm);
+            if (currentSort.includes('staffIncharge')) return (d.staffIncharge || '').toLowerCase().includes(searchTerm);
+            if (currentSort.includes('donationDate')) return (d.donationDate || '').toLowerCase().includes(searchTerm);
+
+            return (d.encoder || '').toLowerCase().includes(searchTerm) ||
+                (d.name || '').toLowerCase().includes(searchTerm) ||
+                (d.type || '').toLowerCase().includes(searchTerm) ||
+                (d.address || '').toLowerCase().includes(searchTerm) ||
+                (d.contactPerson || '').toLowerCase().includes(searchTerm) ||
+                (d.number || '').includes(searchTerm) ||
+                (d.email || '').toLowerCase().includes(searchTerm) ||
+                (d.assistance || '').toLowerCase().includes(searchTerm) ||
+                String(d.valuation || '').includes(searchTerm) ||
+                (d.additionalnotes || '').toLowerCase().includes(searchTerm) ||
+                (d.status || '').toLowerCase().includes(searchTerm) ||
+                (d.staffIncharge || '').toLowerCase().includes(searchTerm) ||
+                (d.donationDate || '').toLowerCase().includes(searchTerm);
+        });
+
+        currentPage = 1;
+        renderTable();
+    });
+
+    sortSelect.addEventListener("change", () => {
+        const sortVal = sortSelect.value;
+        applySorting(filteredAndSortedDonations, sortVal);
+        updateSearchPlaceholder();
+        renderTable();
+    });
+
+    function applySorting(arr, sortVal) {
+        if (sortVal === "encoder-asc") arr.sort((a, b) => (a.encoder || '').localeCompare(b.encoder || ''));
+        else if (sortVal === "encoder-desc") arr.sort((a, b) => (b.encoder || '').localeCompare(a.encoder || ''));
+        else if (sortVal === "name-asc") arr.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+        else if (sortVal === "name-desc") arr.sort((a, b) => (b.name || '').localeCompare(a.name || ''));
+        else if (sortVal === "type-asc") arr.sort((a, b) => (a.type || '').localeCompare(b.type || ''));
+        else if (sortVal === "type-desc") arr.sort((a, b) => (b.type || '').localeCompare(a.type || ''));
+        else if (sortVal === "address-asc") arr.sort((a, b) => (a.address || '').localeCompare(b.address || ''));
+        else if (sortVal === "address-desc") arr.sort((a, b) => (b.address || '').localeCompare(a.address || ''));
+        else if (sortVal === "contactPerson-asc") arr.sort((a, b) => (a.contactPerson || '').localeCompare(b.contactPerson || ''));
+        else if (sortVal === "contactPerson-desc") arr.sort((a, b) => (b.contactPerson || '').localeCompare(a.contactPerson || ''));
+        else if (sortVal === "number-asc") arr.sort((a, b) => parseInt((a.number || '0').replace(/\D/g, '')) - parseInt((b.number || '0').replace(/\D/g, '')));
+        else if (sortVal === "number-desc") arr.sort((a, b) => parseInt((b.number || '0').replace(/\D/g, '')) - parseInt((a.number || '0').replace(/\D/g, '')));
+        else if (sortVal === "email-asc") arr.sort((a, b) => (a.email || '').localeCompare(b.email || ''));
+        else if (sortVal === "email-desc") arr.sort((a, b) => (b.email || '').localeCompare(a.email || ''));
+        else if (sortVal === "assistance-asc") arr.sort((a, b) => (a.assistance || '').localeCompare(b.assistance || ''));
+        else if (sortVal === "assistance-desc") arr.sort((a, b) => (b.assistance || '').localeCompare(a.assistance || ''));
+        else if (sortVal === "valuation-asc") arr.sort((a, b) => (a.valuation || '').localeCompare(b.valuation || ''));
+        else if (sortVal === "valuation-desc") arr.sort((a, b) => (b.valuation || '').localeCompare(a.valuation || ''));
+        else if (sortVal === "additionalnotes-asc") arr.sort((a, b) => (a.additionalnotes || '').localeCompare(b.additionalnotes || ''));
+        else if (sortVal === "additionalnotes-desc") arr.sort((a, b) => (b.additionalnotes || '').localeCompare(a.additionalnotes || ''));
+        else if (sortVal === "status-asc") arr.sort((a, b) => (a.status || '').localeCompare(b.status || ''));
+        else if (sortVal === "status-desc") arr.sort((a, b) => (b.status || '').localeCompare(a.status || ''));
+        else if (sortVal === "staffIncharge-asc") arr.sort((a, b) => (a.staffIncharge || '').localeCompare(b.staffIncharge || ''));
+        else if (sortVal === "staffIncharge-desc") arr.sort((a, b) => (b.staffIncharge || '').localeCompare(a.staffIncharge || ''));
+        else if (sortVal === "donationDate-asc") arr.sort((a, b) => new Date(a.donationDate || '0') - new Date(b.donationDate || '0'));
+        else if (sortVal === "donationDate-desc") arr.sort((a, b) => new Date(b.donationDate || '0') - new Date(a.donationDate || '0'));
+    }
+
+    exportBtn.addEventListener("click", () => {
+        if (allDonations.length === 0) {
             Swal.fire("Info", "No data to export!", "info");
             return;
         }
 
-        const dataForExport = filteredAndSortedDonations.map((d, i) => ({
+        const dataForExport = allDonations.map((d, i) => ({
             "No.": i + 1,
-            "Encoder": d.encoder || 'N/A',
-            "Name": d.name || 'N/A',
-            "Type": d.type || 'N/A',
-            "Address": d.address || 'N/A',
-            "Contact Person": d.contactPerson || 'N/A',
-            "Number": String(d.number) || 'N/A',
-            "Email": d.email || 'N/A',
-            "Type of Assistance": d.assistance || 'N/A',
-            "Valuation": parseFloat(d.valuation) || 0,
-            "Additional Notes": d.additionalnotes || 'N/A',
-            "Staff-In Charge": d.staffIncharge || 'N/A',
-            "Status": d.status || 'N/A',
-            "Donation Date": d.donationDate || 'N/A'
+            "Encoder": d.encoder,
+            "Name": d.name,
+            "Type": d.type,
+            "Address": d.address,
+            "Contact Person": d.contactPerson,
+            "Number": d.number,
+            "Email": d.email,
+            "Assistance": d.assistance,
+            "Valuation": d.valuation,
+            "Additional Notes": d.additionalnotes,
+            "Staff-In-Charge": d.staffIncharge,
+            "Donation Date": d.donationDate,
         }));
 
         const ws = XLSX.utils.json_to_sheet(dataForExport);
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "In-Kind Donations");
-
+        XLSX.utils.book_append_sheet(wb, ws, "Inkind Donations");
         const today = new Date();
         const year = today.getFullYear();
         const month = String(today.getMonth() + 1).padStart(2, '0');
         const day = String(today.getDate()).padStart(2, '0');
-        const hours = String(today.getHours()).padStart(2, '0');
-        const minutes = String(today.getMinutes()).padStart(2, '0');
-        const seconds = String(today.getSeconds()).padStart(2, '0');
-        const formattedDateTime = `${year}-${month}-${day}_${hours}${minutes}${seconds}`;
-        const filename = `in-kind-donations_${formattedDateTime}.xlsx`;
-
+        const formattedDate = `${year}-${month}-${day}`;
+        const filename = `inkind-donations_${formattedDate}.xlsx`;
         XLSX.writeFile(wb, filename);
         Swal.fire({
             title: 'Export Successful!',
-            text: `In-Kind Donations exported to "${filename}"!`,
+            text: `Inkind Donations exported to "${filename}"!`,
             icon: 'success',
-            timer: 2500,
-            showConfirmButton: false,
-            timerProgressBar: true,
-            allowOutsideClick: false,
+            showConfirmButton: true,
+            confirmButtonText: 'OK',
             customClass: {
                 popup: 'swal2-popup-success-clean',
                 title: 'swal2-title-success-clean',
-                htmlContainer: 'swal2-text-success-clean'
+                htmlContainer: 'swal2-text-success-clean',
+                confirmButton: 'my-success-button'
             }
         });
-    }
-
-    function exportToPDF() {
-        if (filteredAndSortedDonations.length === 0) {
+    });
+    
+    savePdfBtn.addEventListener("click", () => {
+        if (allDonations.length === 0) {
             Swal.fire("Info", "No data to export to PDF!", "info");
             return;
         }
-
-        Swal.fire({
-            title: 'Generating PDF',
-            text: 'Please wait while your PDF is being generated...',
-            allowOutsideClick: false,
-            didOpen: () => {
-                Swal.showLoading();
-            }
-        });
 
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF('landscape');
@@ -1461,39 +1767,28 @@ document.addEventListener("DOMContentLoaded", () => {
 
             doc.addImage(logo, 'PNG', pageWidth - logoWidth - margin, margin, logoWidth, logoHeight);
             doc.setFontSize(18);
+            
             doc.text("In-Kind Donations Report", 14, yOffset);
             yOffset += 10;
             doc.setFontSize(10);
-            const now = new Date();
-            const options = {
-                year: 'numeric', month: 'long', day: 'numeric',
-                hour: '2-digit', minute: '2-digit', second: '2-digit',
-                hour12: true, timeZone: 'Asia/Manila'
-            };
-            doc.text(`Report Generated: ${now.toLocaleString('en-US', options)} (PHT)`, 14, yOffset);
+            doc.text(`Report Generated: ${new Date().toLocaleString()}`, 14, yOffset);
             yOffset += 15;
 
-            const head = [[
-                "No.", "Encoder", "Name", "Type", "Address", "Contact Person",
-                "Number", "Email", "Type of Assistance", "Valuation",
-                "Additional Notes", "Staff-In Charge", "Status", "Donation Date"
-            ]];
-
-            const body = filteredAndSortedDonations.map((d, i) => [
+            const head = [["No.", "Encoder", "Name", "Address", "Contact Person", "Number", "Email", "Assistance", "Valuation", "Additional Notes", "Status", "Staff-In-Charge", "Donation Date"]];
+            const body = allDonations.map((d, i) => [
                 i + 1,
                 d.encoder || 'N/A',
                 d.name || 'N/A',
-                d.type || 'N/A',
                 d.address || 'N/A',
                 d.contactPerson || 'N/A',
                 String(d.number) || 'N/A',
                 d.email || 'N/A',
                 d.assistance || 'N/A',
-                `₱${parseFloat(d.valuation || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+                `PHP ${parseFloat(d.valuation || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
                 d.additionalnotes || 'N/A',
-                d.staffIncharge || 'N/A',
                 d.status || 'N/A',
-                d.donationDate || 'N/A'
+                d.staffIncharge || 'N/A',
+                new Date(d.donationDate).toLocaleDateString('en-PH') || 'N/A'
             ]);
 
             doc.autoTable({
@@ -1523,208 +1818,312 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
             });
 
-            const nowForFilename = new Date();
-            const year = nowForFilename.getFullYear();
-            const month = String(nowForFilename.getMonth() + 1).padStart(2, '0');
-            const day = String(nowForFilename.getDate()).padStart(2, '0');
-            const hours = String(nowForFilename.getHours()).padStart(2, '0');
-            const minutes = String(nowForFilename.getMinutes()).padStart(2, '0');
-            const seconds = String(nowForFilename.getSeconds()).padStart(2, '0');
-            const formattedDateTime = `${year}-${month}-${day}_${hours}${minutes}${seconds}`;
-            const filename = `in-kind-donations_${formattedDateTime}.pdf`;
-
+            const filename = `inkind-donations-report_${new Date().toISOString().slice(0, 10)}.pdf`;
             doc.save(filename);
-            Swal.close();
+            
             Swal.fire({
                 title: 'Success!',
-                text: `All In-Kind Donations exported to "${filename}"`,
+                text: `In-Kind Donations Report exported to "${filename}"!`,
                 icon: 'success',
-                timer: 2500,
-                showConfirmButton: false,
-                timerProgressBar: true,
-                allowOutsideClick: false,
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
                 customClass: {
                     popup: 'swal2-popup-success-clean',
                     title: 'swal2-title-success-clean',
-                    htmlContainer: 'swal2-text-success-clean'
+                    htmlContainer: 'swal2-text-success-clean',
+                    confirmButton: 'my-success-button'
                 }
             });
         };
 
         logo.onerror = function() {
-            Swal.close();
-            Swal.fire("Error", "Failed to load logo image. Please check the path: '../assets/images/AB_logo.png'", "error");
+            Swal.fire("Error", "Failed to load logo image. Please check the path.", "error");
         };
-    }
+    });
 
     function saveSingleDonationPdf(donation) {
+        if (!donation || typeof donation !== 'object') {
+            Swal.fire("Error", "Invalid donation data provided.", "error");
+            return;
+        }
+
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
-
         const logo = new Image();
         logo.src = '../assets/images/AB_logo.png';
 
         logo.onload = function() {
             const pageWidth = doc.internal.pageSize.width;
-            const pageHeight = doc.internal.pageSize.height;
             const logoWidth = 30;
             const logoHeight = (logo.naturalHeight / logo.naturalWidth) * logoWidth;
             const margin = 14;
-            const maxTextWidth = pageWidth - 2 * margin;
 
             doc.addImage(logo, 'PNG', pageWidth - logoWidth - margin, margin, logoWidth, logoHeight);
-
             doc.setFontSize(18);
             doc.text("In-Kind Donation Details", 14, 22);
             doc.setFontSize(10);
-            doc.text(`Report Generated: ${new Date().toLocaleString('en-US', { timeZone: 'Asia/Manila' })}`, 14, 30);
+            doc.text(`Report Generated: ${new Date().toLocaleString('en-PH')}`, 14, 30);
             let y = 45;
 
             const addDetail = (label, value) => {
-                const text = `${label}: ${value || 'N/A'}`;
-                const textLines = doc.splitTextToSize(text, maxTextWidth);
-                textLines.forEach(line => {
-                    if (y + 7 > pageHeight - 20) {
-                        doc.addPage();
-                        y = 20;
-                        doc.addImage(logo, 'PNG', pageWidth - logoWidth - margin, margin, logoWidth, logoHeight);
-                        doc.setFontSize(18);
-                        doc.text("In-Kind Donation Details (Continued)", 14, 22);
-                        doc.setFontSize(10);
-                    }
-                    doc.text(line, 14, y);
-                    y += 7;
-                });
-                return y;
+                const displayValue = (value === null || value === undefined || value === '') ? 'N/A' : value;
+                doc.text(`${label}: ${sanitizeInput(displayValue)}`, 14, y);
+                y += 7;
             };
 
-            y = addDetail("Encoder", donation.encoder);
-            y = addDetail("Name", donation.name);
-            y = addDetail("Type", donation.type);
-            y = addDetail("Address", donation.address);
-            y = addDetail("Contact Person", donation.contactPerson);
-            y = addDetail("Number", String(donation.number));
-            y = addDetail("Email", donation.email);
-            y = addDetail("Type of Assistance", donation.assistance);
-            y = addDetail("Valuation", `₱${parseFloat(donation.valuation || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
-            y = addDetail("Additional Notes", donation.additionalnotes);
-            y = addDetail("Staff-In Charge", donation.staffIncharge);
-            y = addDetail("Status", donation.status);
-            y = addDetail("Donation Date", donation.donationDate || 'N/A');
-            y = addDetail("Recorded On", new Date(donation.createdAt).toLocaleString());
+            addDetail("Encoder", donation.encoder);
+            addDetail("Name", donation.name);
+            addDetail("Type", donation.type);
+            addDetail("Address", donation.address);
+            addDetail("Contact Person", donation.contactPerson);
+            addDetail("Number", donation.number);
+            addDetail("Email", donation.email);
+            addDetail("Assistance", donation.assistance);
+            addDetail("Valuation", `₱${parseFloat(donation.valuation || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
+            addDetail("Additional Notes", donation.additionalnotes);
+            addDetail("Status", donation.status);
+            addDetail("Staff-In-Charge", donation.staffIncharge);
+            addDetail("Donation Date", donation.donationDate ? new Date(donation.donationDate).toLocaleDateString('en-PH') : 'N/A');
+            addDetail("Recorded On", donation.createdAt ? new Date(donation.createdAt).toLocaleString('en-PH') : 'N/A');
 
             doc.setFontSize(8);
             const footerY = doc.internal.pageSize.height - 10;
-            const pageNumberText = `Page ${doc.internal.getNumberOfPages()} of ${doc.internal.getNumberOfPages()}`;
             const poweredByText = "Powered by: Appvance";
 
-            doc.text(pageNumberText, margin, footerY);
+            doc.text(`Page 1 of 1`, margin, footerY);
             doc.text(poweredByText, pageWidth - margin, footerY, { align: 'right' });
 
-            doc.save(`donation_${donation.name || 'unknown'}_${new Date().toISOString().slice(0, 10)}.pdf`);
+            const filename = `inkind_donation_${donation.firebaseKey || 'unknown'}_${new Date().toISOString().slice(0, 10)}.pdf`;
+            doc.save(filename);
+
             Swal.fire({
                 title: 'Export Successful!',
-                text: 'Donation details have been exported to PDF.',
+                text: `In-kind donation details have been exported to "${filename}".`,
                 icon: 'success',
-                timer: 1600,
-                showConfirmButton: false,
-                timerProgressBar: true,
-                allowOutsideClick: false,
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
                 customClass: {
                     popup: 'swal2-popup-success-clean',
                     title: 'swal2-title-success-clean',
-                    htmlContainer: 'swal2-text-success-clean'
+                    htmlContainer: 'swal2-text-success-clean',
+                    confirmButton: 'my-success-button'
                 }
             });
         };
 
         logo.onerror = function() {
-            Swal.fire("Error", "Failed to load logo image. Please check the path: '../assets/images/AB_logo.png'", "error");
+            Swal.fire("Error", "Failed to load logo image. Please check the path.", "error");
         };
     }
 
-    function openEndorseModal(firebaseKey) {
-        const modal = document.getElementById("endorseModal");
-        modal.style.display = "flex";
-        const abvnList = document.getElementById("abvnList");
+    async function deleteRow(firebaseKey) {
+        if (!permissions.canArchive) {
+            Swal.fire('Error', 'You do not have permission to archive donations.', 'error');
+            return;
+        }
 
-        abvnList.innerHTML = '<p>Loading organizations...</p>';
-        abvnList.innerHTML = '';
-
-        let loadedVolunteerGroups = [];
-
-        firebase.database().ref("volunteerGroups/address").once("value")
-            .then((volunteerGroupsSnapshot) => {
-                const fetchedGroups = volunteerGroupsSnapshot.val();
-                if (fetchedGroups) {
-                    for (let key in fetchedGroups) {
-                        const groupData = fetchedGroups[key];
-                        const addressData = groupData.address;
-
-                        let combinedAddress = "Not specified";
-                        if (addressData) {
-                            const addressParts = [];
-                            if (addressData.region && addressData.region.trim() !== '') {
-                                addressParts.push(addressData.region.trim());
-                            }
-                            if (addressData.province && addressData.province.trim() !== '') {
-                                addressParts.push(addressData.province.trim());
-                            }
-                            if (addressData.city && addressData.city.trim() !== '') {
-                                addressParts.push(addressData.city.trim());
-                            }
-                            if (addressParts.length > 0) {
-                                combinedAddress = addressParts.join(', ');
-                            }
-                        }
-                        loadedVolunteerGroups.push({
-                            no: parseInt(key),
-                            organization: groupData.organization || "Unknown",
-                            hq: combinedAddress,
-                        });
-                    }
-                } else {
-                    console.warn("No volunteer groups found.");
+        const isVerified = await verifySuperAdminPassword();
+        isAdminVerified = isVerified;
+        if (!isVerified) {
+            Swal.fire({
+                title: 'Error',
+                text: 'Incorrect admin password.',
+                icon: 'error',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
                 }
-
-                return firebase.database().ref('activations/').once('value');
-            })
-            .then((activationsSnapshot) => {
-                const activations = activationsSnapshot.val();
-                let groupHtml = '';
-
-                if (activations) {
-                    for (const activationId in activations) {
-                        const activationData = activations[activationId];
-                        if (activationData.status === 'active') {
-                            const organizationName = activationData.organization;
-                            const groupId = activationData.groupId;
-
-                            const correspondingVolunteerGroup = loadedVolunteerGroups.find(group => group.no === groupId);
-
-                            let displayHq = "Not specified";
-                            if (correspondingVolunteerGroup && correspondingVolunteerGroup.hq) {
-                                displayHq = correspondingVolunteerGroup.hq;
-                            } else if (activationData.areaOfOperation) {
-                                displayHq = activationData.areaOfOperation;
-                            }
-
-                            if (organizationName) {
-                                groupHtml += `<label><input type="radio" name="abvn" value="${organizationName}" /> ${organizationName} (${displayHq})</label><br/>`;
-                            }
-                        }
-                    }
-                    abvnList.innerHTML = groupHtml;
-                } else {
-                    abvnList.innerHTML = '<p>No activations found for endorsement.</p>';
-                }
-            })
-            .catch((error) => {
-                console.error("Error loading endorsement options:", error);
-                abvnList.innerHTML = '<p>Error loading endorsement options.</p>';
             });
+            return;
+        }
 
-        modal.dataset.firebaseKey = firebaseKey;
+        Swal.fire({
+            title: 'Are you sure to archive this donation?',
+            text: "This will move it to archived records.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Archive',
+            cancelButtonText: 'Cancel',
+            reverseButtons: true,
+            focusCancel: true,
+            allowOutsideClick: false,
+            customClass: {
+                popup: 'custom-swal-popup-small',
+                title: 'custom-swal-title',
+                htmlContainer: 'custom-swal-content',
+                confirmButton: 'custom-confirm-btn',
+                cancelButton: 'custom-cancel-btn'
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const donationToDelete = allDonations.find(d => d.firebaseKey === firebaseKey);
+                if (!donationToDelete) {
+                    Swal.fire("Error", "Donation not found!", "error");
+                    return;
+                }
+
+                const deletedDonation = {
+                    ...donationToDelete,
+                    rejectedAt: new Date().toISOString(),
+                    status: 'Rejected'
+                };
+
+                database.ref(`donations/archivedDonations/inkind/${firebaseKey}`).set(deletedDonation)
+                    .then(() => {
+                        return database.ref(`donations/savedDonations/inkind/${firebaseKey}`).remove();
+                    })
+                    .then(() => {
+                        Swal.fire({
+                            title: 'Archived!',
+                            text: 'The donation has been archived.',
+                            icon: 'success',
+                            showConfirmButton: true,
+                            confirmButtonText: 'OK',
+                            customClass: {
+                                popup: 'swal2-popup-success-clean',
+                                title: 'swal2-title-success-clean',
+                                htmlContainer: 'swal2-text-success-clean',
+                                confirmButton: 'my-success-button'
+                            }
+                        });
+                    })
+                    .catch(error => {
+                        Swal.fire("Error", "Failed to delete donation: " + error.message, "error");
+                    });
+            }
+        });
+    }
+
+    async function openEditModal(firebaseKey) {
+        if (!permissions.canEdit) {
+            Swal.fire('Error', 'You do not have permission to edit donations.', 'error');
+            return;
+        }
+        const isVerified = await verifySuperAdminPassword();
+        isAdminVerified = isVerified;
+        if (!isVerified) {
+            Swal.fire({
+                title: 'Error',
+                text: 'Incorrect admin password.',
+                icon: 'error',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
+                }
+            });
+            return;
+        }
+        editingKey = firebaseKey;
+        const donationToEdit = allDonations.find(d => d.firebaseKey === firebaseKey);
+
+        if (donationToEdit) {
+            document.getElementById("edit-encoder").value = donationToEdit.encoder;
+            document.getElementById("edit-name").value = donationToEdit.name;
+            document.getElementById("edit-type").value = donationToEdit.type;
+            document.getElementById("edit-address").value = donationToEdit.address;
+            document.getElementById("edit-contactPerson").value = donationToEdit.contactPerson;
+            document.getElementById("edit-number").value = donationToEdit.number;
+            document.getElementById("edit-email").value = donationToEdit.email;
+            document.getElementById("edit-assistance").value = donationToEdit.assistance;
+            document.getElementById("edit-valuation").value = donationToEdit.valuation;
+            document.getElementById("edit-additionalnotes").value = donationToEdit.additionalnotes;
+            document.getElementById("edit-status").value = donationToEdit.status;
+            document.getElementById("edit-staffIncharge").value = donationToEdit.staffIncharge;
+            document.getElementById("edit-donationDate").value = donationToEdit.donationDate || '';
+            editModal.style.display = "flex";
+            Array.from(editModal.querySelectorAll('input, select')).forEach(clearError);
+        }
+    }
+
+    saveEditBtn.addEventListener("click", async () => {
+        const inputs = {
+            encoder: document.getElementById("edit-encoder"),
+            name: document.getElementById("edit-name"),
+            type: document.getElementById("edit-type"),
+            address: document.getElementById("edit-address"),
+            contactPerson: document.getElementById("edit-contactPerson"),
+            number: document.getElementById("edit-number"),
+            email: document.getElementById("edit-email"),
+            assistance: document.getElementById("edit-assistance"),
+            valuation: document.getElementById("edit-valuation"),
+            additionalnotes: document.getElementById("edit-additionalnotes"),
+            status: document.getElementById("edit-status"),
+            staffIncharge: document.getElementById("edit-staffIncharge"),
+            donationDate: document.getElementById("edit-donationDate"),
+        };
+
+        const isValid = await validateDonationForm(inputs, null, true);
+        if (isValid) {
+            const updatedDonation = {
+                encoder: sanitizeInput(inputs.encoder.value),
+                name: sanitizeInput(inputs.name.value),
+                type: sanitizeInput(inputs.type.value),
+                address: sanitizeInput(inputs.address.value),
+                contactPerson: sanitizeInput(inputs.contactPerson.value),
+                number: sanitizeInput(inputs.number.value),
+                email: sanitizeInput(inputs.email.value),
+                assistance: sanitizeInput(inputs.assistance.value),
+                valuation: parseFloat(inputs.valuation.value) || 0,
+                additionalnotes: sanitizeInput(inputs.additionalnotes.value),
+                status: inputs.status.value,
+                staffIncharge: sanitizeInput(inputs.staffIncharge.value),
+                donationDate: inputs.donationDate.value,
+            };
+
+            console.log('Updated Donation:', updatedDonation);
+
+            try {
+                await database.ref(`donations/savedDonations/inkind/${editingKey}`).update(updatedDonation);
+                Swal.fire({
+                    title: 'Success',
+                    text: 'Donation updated successfully!',
+                    icon: 'success',
+                    timer: 2500,
+                    showConfirmButton: false,
+                    timerProgressBar: true,
+                    allowOutsideClick: false,
+                    customClass: {
+                        popup: 'swal2-popup-success-clean',
+                        title: 'swal2-title-success-clean',
+                        htmlContainer: 'swal2-text-success-clean',
+                    }
+                });
+                editModal.style.display = "none";
+            } catch (error) {
+                console.error('Error updating donation:', error);
+                Swal.fire({
+                    title: 'Error',
+                    text: 'Failed to update donation: ' + error.message,
+                    icon: 'error',
+                    customClass: {
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean',
+                        confirmButton: 'my-error-button'
+                    }
+                });
+            }
+        } else {
+            console.log('Edit submission failed due to validation errors');
+        }
+    });
+
+    function closeEditModal() {
+        editModal.style.display = "none";
+        editingKey = null;
+        isAdminVerified = false;
+        const errorMessages = editModal.querySelectorAll('.error-message');
+        errorMessages.forEach(msg => msg.textContent = '');
+        const errorInputs = editModal.querySelectorAll('.error');
+        errorInputs.forEach(input => input.classList.remove('error'));
     }
 
     document.getElementById("confirmEndorseBtn").addEventListener("click", () => {
@@ -1743,410 +2142,10 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("cancelEndorseBtn").addEventListener("click", () => {
         document.getElementById("endorseModal").style.display = "none";
     });
-
-    async function validateEditForm() {
-        console.log("Starting validateEditForm at", new Date().toISOString());
-        let isValid = true;
-        const fieldsToCheck = [
-            { input: document.getElementById("edit-encoder"), label: "Encoder", lettersOnly: true },
-            { input: document.getElementById("edit-name"), label: "Name", lettersOnly: true },
-            { input: document.getElementById("edit-type"), label: "Type", lettersOnly: true },
-            { input: document.getElementById("edit-contactPerson"), label: "Contact Person", lettersOnly: true },
-            { input: document.getElementById("edit-assistance"), label: "Type of Assistance", lettersOnly: true },
-            { input: document.getElementById("edit-number"), label: "Number", numberOnly: true, checkMobile: true },
-            { input: document.getElementById("edit-valuation"), label: "Valuation", numberOnly: true },
-            { input: document.getElementById("edit-address"), label: "Address" },
-            { input: document.getElementById("edit-email"), label: "Email", checkEmail: true },
-            { input: document.getElementById("edit-additionalnotes"), label: "Additional Notes", required: false },
-            { input: document.getElementById("edit-status"), label: "Status" },
-            { input: document.getElementById("edit-staffIncharge"), label: "Staff-In Charge", lettersOnly: true },
-            { input: document.getElementById("edit-donationDate"), label: "Donation Date", isDate: true },
-        ];
-
-        // Log all input values for debugging
-        console.log("Edit form input values:", {
-            encoder: document.getElementById("edit-encoder")?.value,
-            name: document.getElementById("edit-name")?.value,
-            type: document.getElementById("edit-type")?.value,
-            address: document.getElementById("edit-address")?.value,
-            contactPerson: document.getElementById("edit-contactPerson")?.value,
-            number: document.getElementById("edit-number")?.value,
-            email: document.getElementById("edit-email")?.value,
-            assistance: document.getElementById("edit-assistance")?.value,
-            valuation: document.getElementById("edit-valuation")?.value,
-            additionalnotes: document.getElementById("edit-additionalnotes")?.value,
-            status: document.getElementById("edit-status")?.value,
-            staffIncharge: document.getElementById("edit-staffIncharge")?.value,
-            donationDate: document.getElementById("edit-donationDate")?.value
-        });
-
-        // Step 1: Check for blank fields, invalid formats, and future dates
-        for (const { input, label, lettersOnly, numberOnly, checkEmail, checkMobile, isDate, required = true } of fieldsToCheck) {
-            if (!input) {
-                console.error(`Input for ${label} not found in DOM`);
-                isValid = false;
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Form Error',
-                    text: `Input field for ${label} is missing. Please check the form.`,
-                    background: '#fcebea',
-                    color: '#b71c1c',
-                    iconColor: '#c62828',
-                    confirmButtonColor: '#c62828',
-                    customClass: {
-                        popup: 'swal2-popup-error-clean',
-                        title: 'swal2-title-error-clean',
-                        htmlContainer: 'swal2-text-error-clean'
-                    }
-                });
-                return false;
-            }
-
-            clearError(input);
-            console.log(`Validating ${label}:`, input.value);
-            if (required && isEmpty(input.value)) {
-                showError(input, `${label} is required`);
-                console.log(`${label} is empty`);
-                isValid = false;
-            } else if (!isEmpty(input.value) && lettersOnly && !isLettersOnly(input.value)) {
-                showError(input, `${label} should only contain letters and spaces`);
-                console.log(`${label} contains invalid characters`);
-                isValid = false;
-            } else if (!isEmpty(input.value) && numberOnly && !isValidNumber(input.value)) {
-                showError(input, `${label} should only contain numbers`);
-                console.log(`${label} is not a valid number`);
-                isValid = false;
-            } else if (!isEmpty(input.value) && checkEmail && !isValidEmail(input.value)) {
-                showError(input, 'Please enter a valid email address from an allowed domain.');
-                console.log(`${label} is not a valid email`);
-                isValid = false;
-            } else if (!isEmpty(input.value) && checkMobile && !isValidMobile(input.value)) {
-                showError(input, 'Mobile number must be 11 digits starting with "09"');
-                console.log(`${label} is not a valid mobile number`);
-                isValid = false;
-            } else if (isDate && !isEmpty(input.value)) {
-                const donationDate = new Date(input.value);
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                if (isNaN(donationDate.getTime())) {
-                    showError(input, `${label} is not a valid date`);
-                    console.log(`${label} is not a valid date`);
-                    isValid = false;
-                } else if (donationDate.setHours(0, 0, 0, 0) > today.setHours(0, 0, 0, 0)) {
-                    showError(input, `${label} cannot be a future date`);
-                    console.log(`${label} is a future date`);
-                    isValid = false;
-                }
-            }
-        }
-
-        // Step 2: Check for unchanged data
-        if (isValid) {
-            const donationToEdit = allDonations.find(d => d.firebaseKey === editingKey);
-            if (!donationToEdit) {
-                console.error("Donation to edit not found for firebaseKey:", editingKey);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Donation data not found for editing.',
-                    background: '#fcebea',
-                    color: '#b71c1c',
-                    iconColor: '#c62828',
-                    confirmButtonColor: '#c62828',
-                    customClass: {
-                        popup: 'swal2-popup-error-clean',
-                        title: 'swal2-title-error-clean',
-                        htmlContainer: 'swal2-text-error-clean'
-                    }
-                });
-                return false;
-            }
-
-            const formData = {
-                encoder: document.getElementById("edit-encoder").value.trim(),
-                name: document.getElementById("edit-name").value.trim(),
-                type: document.getElementById("edit-type").value.trim(),
-                address: document.getElementById("edit-address").value.trim(),
-                contactPerson: document.getElementById("edit-contactPerson").value.trim(),
-                number: document.getElementById("edit-number").value.trim(),
-                email: document.getElementById("edit-email").value.trim().toLowerCase(),
-                assistance: document.getElementById("edit-assistance").value.trim(),
-                valuation: document.getElementById("edit-valuation").value.trim(),
-                additionalnotes: document.getElementById("edit-additionalnotes").value.trim(),
-                status: document.getElementById("edit-status").value.trim(),
-                staffIncharge: document.getElementById("edit-staffIncharge").value.trim(),
-                donationDate: document.getElementById("edit-donationDate").value.trim(),
-            };
-
-            const isUnchanged = (
-                formData.encoder === (donationToEdit.encoder || '') &&
-                formData.name === (donationToEdit.name || '') &&
-                formData.type === (donationToEdit.type || '') &&
-                formData.address === (donationToEdit.address || '') &&
-                formData.contactPerson === (donationToEdit.contactPerson || '') &&
-                formData.number === (donationToEdit.number || '') &&
-                formData.email === (donationToEdit.email || '').toLowerCase() &&
-                formData.assistance === (donationToEdit.assistance || '') &&
-                formData.valuation === (donationToEdit.valuation || '') &&
-                formData.additionalnotes === (donationToEdit.additionalnotes || '') &&
-                formData.status === (donationToEdit.status || '') &&
-                formData.staffIncharge === (donationToEdit.staffIncharge || '') &&
-                formData.donationDate === (donationToEdit.donationDate || '')
-            );
-
-            console.log("Unchanged data check:", { isUnchanged, formData, original: donationToEdit });
-            if (isUnchanged) {
-                console.log("No changes detected in edit form");
-                Swal.fire({
-                    title: 'No Changes Detected',
-                    text: 'The donation data has not been modified. No update is needed.',
-                    icon: 'info',
-                    timer: 2000,
-                    showConfirmButton: false,
-                    timerProgressBar: true,
-                    allowOutsideClick: false,
-                    customClass: {
-                        popup: 'swal2-popup-info-clean',
-                        title: 'swal2-title-info-clean',
-                        htmlContainer: 'swal2-text-info-clean',
-                    }
-                });
-                return false;
-            }
-        }
-
-        // Step 3: Check for potential duplicates
-        if (isValid) {
-            const email = document.getElementById("edit-email").value.trim().toLowerCase();
-            const mobile = document.getElementById("edit-number").value.trim();
-            const name = document.getElementById("edit-name").value.trim().toLowerCase();
-            console.log("Checking duplicates for:", { email, mobile, name });
-
-            let isDuplicate = false;
-            let duplicateFields = [];
-
-            const paths = ['donations/inkind', 'deletedDonations/deletedinkind'];
-            for (const path of paths) {
-                try {
-                    const snapshot = await database.ref(path).once('value');
-                    const records = snapshot.val();
-                    if (records) {
-                        for (const key in records) {
-                            if (key !== editingKey) {
-                                const record = records[key];
-                                if (record.email && record.email.toLowerCase() === email) {
-                                    isDuplicate = true;
-                                    duplicateFields.push('email');
-                                }
-                                if (record.number === mobile) {
-                                    isDuplicate = true;
-                                    duplicateFields.push('mobile number');
-                                }
-                                if (record.name && record.name.toLowerCase() === name) {
-                                    isDuplicate = true;
-                                    duplicateFields.push('name');
-                                }
-                            }
-                        }
-                    }
-                } catch (error) {
-                    console.error(`Error checking duplicates in ${path}:`, error);
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: `Failed to check duplicates: ${error.message}`,
-                        background: '#fcebea',
-                        color: '#b71c1c',
-                        iconColor: '#c62828',
-                        confirmButtonColor: '#c62828',
-                        customClass: {
-                            popup: 'swal2-popup-error-clean',
-                            title: 'swal2-title-error-clean',
-                            htmlContainer: 'swal2-text-error-clean'
-                        }
-                    });
-                    return false;
-                }
-            }
-
-            if (isDuplicate) {
-                console.log("Duplicates found:", duplicateFields);
-                const result = await Swal.fire({
-                    title: 'Potential Duplicate Donation',
-                    html: `A donation with the same ${duplicateFields.join(", ")} already exists.<br><br>Do you want to proceed with updating this donation?`,
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonText: 'Yes, Update Donation',
-                    cancelButtonText: 'Cancel',
-                    reverseButtons: true,
-                    focusCancel: true,
-                    allowOutsideClick: false,
-                    customClass: {
-                        popup: 'custom-swal-popup-large',
-                        title: 'custom-swal-title',
-                        htmlContainer: 'custom-swal-content',
-                        confirmButton: 'custom-confirm-btn',
-                        cancelButton: 'custom-cancel-btn'
-                    }
-                });
-
-                if (!result.isConfirmed) {
-                    console.log("User cancelled due to duplicate donation");
-                    isValid = false;
-                }
-            }
-        }
-
-        console.log("validateEditForm completed, isValid:", isValid);
-        return isValid;
-    }
-
-    function openEditModal(firebaseKey) {
-        editingKey = firebaseKey;
-        const donationToEdit = allDonations.find(d => d.firebaseKey === firebaseKey);
-        if (donationToEdit) {
-            const editModal = document.getElementById("editModal");
-            document.getElementById("edit-encoder").value = donationToEdit.encoder;
-            document.getElementById("edit-name").value = donationToEdit.name;
-            document.getElementById("edit-type").value = donationToEdit.type;
-            document.getElementById("edit-address").value = donationToEdit.address;
-            document.getElementById("edit-contactPerson").value = donationToEdit.contactPerson;
-            document.getElementById("edit-number").value = donationToEdit.number;
-            document.getElementById("edit-email").value = donationToEdit.email;
-            document.getElementById("edit-assistance").value = donationToEdit.assistance;
-            document.getElementById("edit-valuation").value = donationToEdit.valuation;
-            document.getElementById("edit-additionalnotes").value = donationToEdit.additionalnotes;
-            document.getElementById("edit-status").value = donationToEdit.status;
-            document.getElementById("edit-staffIncharge").value = donationToEdit.staffIncharge;
-            document.getElementById("edit-donationDate").value = donationToEdit.donationDate || '';
-            editModal.style.display = "flex";
-        }
-    }
-
-    document.getElementById("saveEditBtn").addEventListener("click", async () => {
-        console.log("Save edit button clicked at", new Date().toISOString(), "editingKey:", editingKey);
-        if (editingKey === null) {
-            console.error("No donation selected for editing");
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'No donation selected for editing.',
-                background: '#fcebea',
-                color: '#b71c1c',
-                iconColor: '#c62828',
-                confirmButtonColor: '#c62828',
-                customClass: {
-                    popup: 'swal2-popup-error-clean',
-                    title: 'swal2-title-error-clean',
-                    htmlContainer: 'swal2-text-error-clean'
-                }
-            });
-            return;
-        }
-
-        if (!hasImportPermission()) {
-            console.log("Permission denied for editing");
-            showAccessDeniedAlert('update this donation');
-            return;
-        }
-
-        console.log("Calling validateEditForm");
-        const isValid = await validateEditForm();
-        console.log("validateEditForm result:", isValid);
-
-        if (!isValid) {
-            console.log("Validation failed, stopping update");
-            Swal.fire({
-                icon: 'error',
-                title: 'Validation Failed',
-                text: 'Please correct the errors in the form and try again.',
-                showConfirmButton: true,
-                confirmButtonText: 'OK',
-                background: '#fcebea',
-                color: '#b71c1c',
-                iconColor: '#c62828',
-                confirmButtonColor: '#c62828',
-                customClass: {
-                    popup: 'swal2-popup-error-clean',
-                    title: 'swal2-title-error-clean',
-                    htmlContainer: 'swal2-text-error-clean',
-                    confirmButton: 'my-error-button'
-                }
-            });
-            return;
-        }
-
-        console.log("Validation passed, updating donation");
-        const updatedDonation = {
-            encoder: document.getElementById("edit-encoder").value.trim(),
-            name: document.getElementById("edit-name").value.trim(),
-            type: document.getElementById("edit-type").value.trim(),
-            address: document.getElementById("edit-address").value.trim(),
-            contactPerson: document.getElementById("edit-contactPerson").value.trim(),
-            number: document.getElementById("edit-number").value.trim(),
-            email: document.getElementById("edit-email").value.trim(),
-            assistance: document.getElementById("edit-assistance").value.trim(),
-            valuation: document.getElementById("edit-valuation").value.trim(),
-            additionalnotes: document.getElementById("edit-additionalnotes").value.trim(),
-            status: document.getElementById("edit-status").value.trim(),
-            staffIncharge: document.getElementById("edit-staffIncharge").value.trim(),
-            donationDate: document.getElementById("edit-donationDate").value.trim(),
-            id: allDonations.find(d => d.firebaseKey === editingKey)?.id,
-            userUid: allDonations.find(d => d.firebaseKey === editingKey)?.userUid,
-            createdAt: allDonations.find(d => d.firebaseKey === editingKey)?.createdAt,
-            updatedAt: new Date().toISOString(),
-        };
-
-        console.log("Updating donation in Firebase:", updatedDonation);
-        try {
-            await database.ref(`donations/inkind/${editingKey}`).set(updatedDonation);
-            console.log("Donation updated successfully");
-            closeEditModal();
-            Swal.fire({
-                icon: 'success',
-                title: 'Donation Updated!',
-                text: 'Your donation has been successfully updated.',
-                timer: 2000,
-                showConfirmButton: false,
-                timerProgressBar: true,
-                color: '#1b5e20',
-                iconColor: '#2e7d32',
-                customClass: {
-                    popup: 'swal2-popup-success-clean',
-                    title: 'swal2-title-success-clean',
-                    htmlContainer: 'swal2-text-success-clean'
-                }
-            });
-            editingKey = null;
-            renderTable();
-        } catch (error) {
-            console.error("Error updating donation:", error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Failed to Update Donation',
-                text: 'An error occurred: ' + error.message,
-                background: '#fcebea',
-                color: '#b71c1c',
-                iconColor: '#c62828',
-                confirmButtonColor: '#c62828',
-                customClass: {
-                    popup: 'swal2-popup-error-clean',
-                    title: 'swal2-title-error-clean',
-                    htmlContainer: 'swal2-text-error-clean'
-                }
-            });
-        }
-    });
-
+    
     document.getElementById("closeEditModalBtn").addEventListener("click", closeEditModal);
     document.getElementById("cancelEditBtn").addEventListener("click", closeEditModal);
+    document.getElementById("closeModal").addEventListener("click", hideViewModal);
+    document.getElementById("downloadTemplateBtn").addEventListener("click", downloadExcelTemplate);
 
-    // Event listeners for buttons
-    if (exportBtn) {
-        exportBtn.addEventListener('click', exportToExcel);
-    }
-
-    if (savePdfBtn) {
-        savePdfBtn.addEventListener('click', exportToPDF);
-    }
 });
