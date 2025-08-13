@@ -86,28 +86,27 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function formatWithCommas(value) {
-    return value != null ? Number(value).toLocaleString() : "-";
+        return value != null ? Number(value).toLocaleString() : "-";
     }
 
     function formatCompact(value) {
-    return value != null
-        ? new Intl.NumberFormat('en', {
-            notation: 'compact',
-            compactDisplay: 'short',
-        }).format(value)
-        : "-";
+        return value != null
+            ? new Intl.NumberFormat('en', {
+                notation: 'compact',
+                compactDisplay: 'short',
+            }).format(value)
+            : "-";
     }
 
     function formatCurrency(value) {
-    return value != null
-        ? new Intl.NumberFormat('en-PH', {
-            style: 'currency',
-            currency: 'PHP',
-            minimumFractionDigits: 0,
-        }).format(value)
-        : "-";
+        return value != null
+            ? new Intl.NumberFormat('en-PH', {
+                style: 'currency',
+                currency: 'PHP',
+                minimumFractionDigits: 0,
+            }).format(value)
+            : "-";
     }
-
 
     function transformReportData(report) {
         return {
@@ -166,7 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderReportsTable(reports, filteredReports) {
         submittedReportsContainer.innerHTML = '';
-        const totalEntries = filteredReports.length; // Use filteredReports for total entries
+        const totalEntries = filteredReports.length;
         const totalPages = Math.ceil(totalEntries / rowsPerPage);
 
         if (reports.length === 0) {
@@ -279,21 +278,32 @@ document.addEventListener('DOMContentLoaded', () => {
                         report["VolunteerGroupName"] = volunteerGroupName;
                         report["Status"] = "Approved";
 
+                        // Prepare notification for the report sender
+                        const notification = {
+                            message: `Your report (ID: ${report.ReportID || report.firebaseKey}) has been approved.`,
+                            timestamp: new Date().toISOString(),
+                            type: "report_approved",
+                            userUid: userUid,
+                            read: false
+                        };
+
+                        // Perform all database operations (approve report and send notification)
                         return Promise.all([
                             database.ref(`reports/approved`).push(report),
                             database.ref(`users/${userUid}/reports/${report.firebaseKey}`).set({ ...report, Status: "Approved" }),
-                            database.ref(`reports/submitted/${report.firebaseKey}`).remove()
+                            database.ref(`reports/submitted/${report.firebaseKey}`).remove(),
+                            database.ref(`notifications`).push(notification)
                         ]);
                     })
                     .then(() => {
                         Swal.fire({
                             icon: 'success',
                             title: 'Report Approved',
-                            text: 'The report has been approved and moved to the approved logs.',
-                            background: '#f0fdf4', 
-                            color: '#065f46',     
-                            iconColor: '#059669',  
-                            confirmButtonColor: '#059669', 
+                            text: 'The report has been approved and the sender has been notified.',
+                            background: '#f0fdf4',
+                            color: '#065f46',
+                            iconColor: '#059669',
+                            confirmButtonColor: '#059669',
                             customClass: {
                                 popup: 'swal2-popup-success-clean',
                                 title: 'swal2-title-success-clean',
@@ -302,15 +312,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         });
                     })
                     .catch(error => {
-                        console.error("Error during report approval:", error);
+                        console.error("Error during report approval or notification:", error);
                         Swal.fire({
                             icon: 'error',
                             title: 'Approval Failed',
-                            text: `Failed to approve report: ${error.message}`,
-                            background: '#fef2f2',       
-                            color: '#7f1d1d',          
-                            iconColor: '#dc2626',        
-                            confirmButtonColor: '#b91c1c', 
+                            text: `Failed to approve report or send notification: ${error.message}`,
+                            background: '#fef2f2',
+                            color: '#7f1d1d',
+                            iconColor: '#dc2626',
+                            confirmButtonColor: '#b91c1c',
                             customClass: {
                                 popup: 'swal2-popup-error-clean',
                                 title: 'swal2-title-error-clean',
@@ -340,10 +350,10 @@ document.addEventListener('DOMContentLoaded', () => {
                             icon: 'info',
                             title: 'Report Rejected',
                             text: 'The report has been rejected and removed.',
-                            background: '#fef2f2',             
-                            color: '#7f1d1d',                  
-                            iconColor: '#dc2626',              
-                            confirmButtonColor: '#b91c1c',     
+                            background: '#fef2f2',
+                            color: '#7f1d1d',
+                            iconColor: '#dc2626',
+                            confirmButtonColor: '#b91c1c',
                             customClass: {
                                 popup: 'swal2-popup-rejected-clean',
                                 title: 'swal2-title-rejected-clean',

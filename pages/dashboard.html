@@ -46,22 +46,22 @@
             </div>
 
             <!-- Notification Drawer -->
-            <div id="notificationDrawer" class="drawer">
-                <div class="drawer-header">
-                    <h3>Notifications</h3>
-                    <button id="closeDrawer" class="close-btn">×</button>
-                </div>
-                <div class="drawer-tabs">
-                    <button id="tabCalamity" class="tab active">Calamity Alerts</button>
-                    <button id="tabAdmin" class="tab">Admin Notifications</button>
-                </div>
-                <div class="drawer-content">
-                    <ul class="notification-list" id="calamityList"></ul>
-                    <ul class="notification-list" id="adminList"></ul>
-                </div>
-                <!-- Mark All as Read Button (for AB ADMIN) -->
-                <button id="markAllRead" style="display: none; margin: 10px auto; padding: 5px 10px; background-color: #3085d6; color: white; border: none; border-radius: 5px; cursor: pointer;">Mark All as Read</button>
-            </div>
+<div id="notificationDrawer" class="drawer">
+    <div class="drawer-header">
+        <h3>Notifications</h3>
+        <button id="closeDrawer" class="close-btn">×</button>
+    </div>
+    <div class="drawer-tabs">
+        <button id="tabCalamity" class="tab active">Calamity Alerts</button>
+        <button id="tabNonCalamity" class="tab">Notifications</button>
+    </div>
+    <div class="drawer-content">
+        <ul class="notification-list" id="calamityList"></ul>
+        <ul class="notification-list" id="adminList"></ul>
+    </div>
+    <!-- Mark All as Read Button (for AB ADMIN) -->
+    <button id="markAllRead" style="display: none; margin: 10px auto; padding: 5px 10px; background-color: #3085d6; color: white; border: none; border-radius: 5px; cursor: pointer;">Mark All as Read</button>
+</div>
 
             <!-- Dashboard Container -->
             <div class="dashboard-container">
@@ -268,160 +268,168 @@
         });
 
         // Notification Bell and Drawer Handling
-        document.addEventListener('DOMContentLoaded', () => {
-            const bell = document.getElementById('bell');
-            const drawer = document.getElementById('notificationDrawer');
-            const closeDrawerBtn = document.getElementById('closeDrawer');
-            const calamityList = document.getElementById('calamityList');
-            const adminList = document.getElementById('adminList');
-            const notifDot = document.getElementById('notifDot');
-            const notifBadge = document.getElementById('notifBadge');
-            const tabCalamity = document.getElementById('tabCalamity');
-            const tabAdmin = document.getElementById('tabAdmin');
-            const markAllReadBtn = document.getElementById('markAllRead');
+       document.addEventListener('DOMContentLoaded', () => {
+    const bell = document.getElementById('bell');
+    const drawer = document.getElementById('notificationDrawer');
+    const closeDrawerBtn = document.getElementById('closeDrawer');
+    const calamityList = document.getElementById('calamityList');
+    const adminList = document.getElementById('adminList');
+    const notifDot = document.getElementById('notifDot');
+    const notifBadge = document.getElementById('notifBadge');
+    const tabCalamity = document.getElementById('tabCalamity');
+    const tabNonCalamity = document.getElementById('tabNonCalamity');
+    const markAllReadBtn = document.getElementById('markAllRead');
 
-            if (bell && drawer) {
-                bell.addEventListener('click', () => {
-                    console.log('Bell clicked');
-                    drawer.classList.toggle('open');
-                    if (drawer.classList.contains('open')) {
-                        adminList.classList.add('hidden');
-                        calamityList.classList.remove('hidden');
-                    }
-                });
-            }
-
-            if (closeDrawerBtn) {
-                closeDrawerBtn.addEventListener('click', () => {
-                    drawer.classList.remove('open');
-                    console.log('Drawer closed');
-                });
-            }
-
-            if (tabCalamity) {
-                tabCalamity.addEventListener('click', () => {
-                    tabCalamity.classList.add('active');
-                    tabAdmin.classList.remove('active');
-                    calamityList.classList.remove('hidden');
-                    adminList.classList.add('hidden');
-                });
-            }
-
-            if (tabAdmin) {
-                tabAdmin.addEventListener('click', () => {
-                    tabAdmin.classList.add('active');
-                    tabCalamity.classList.remove('active');
-                    adminList.classList.remove('hidden');
-                    calamityList.classList.add('hidden');
-                });
-            }
-
-            // Load Notifications with Warning Levels and Badge Update
-            window.loadNotifications = function() {
-                if (!calamityList || !adminList || !notifDot || !notifBadge) {
-                    console.error("Notification elements not found");
-                    return;
-                }
-                if (notificationsListener) notificationsListener.off();
-
-                notificationsListener = database.ref("notifications").limitToLast(50);
-                notificationsListener.on("child_added", snapshot => {
-                    const notification = snapshot.val();
-                    const key = snapshot.key;
-
-                    if (document.querySelector(`li[data-key="${key}"]`)) return;
-
-                    // Handle admin notifications
-                    if (notification.type !== "calamity") {
-                        const li = document.createElement("li");
-                        li.innerHTML = `<strong>🔔 ${notification.message}</strong><span class="timestamp">${new Date(notification.timestamp).toLocaleTimeString()}</span>`;
-                        li.dataset.key = key;
-                        if (!notification.read) li.classList.add("unread");
-                        li.addEventListener("click", () => {
-                            li.classList.remove("unread");
-                            database.ref(`notifications/${key}`).update({ read: true }).then(() => {
-                                updateNotificationBadge();
-                            });
-                        });
-                        adminList.prepend(li);
-                    } else {
-                        // Handle calamity notifications with warning levels
-                        const rainfallMatch = notification.details.match(/Rainfall: (\d+\.?\d*) mm/);
-                        const rainfall = rainfallMatch ? parseFloat(rainfallMatch[1]) : 0;
-                        let warningLevel = "";
-                        if (rainfall >= 100) warningLevel = "Red Warning";
-                        else if (rainfall >= 50) warningLevel = "Orange Warning";
-                        else if (rainfall >= 20) warningLevel = "Yellow Warning";
-
-                        if (warningLevel) {
-                            let listItem = document.querySelector(`#calamityList li[data-warning="${warningLevel.toLowerCase().replace(" ", "-")}"]`);
-                            if (!listItem) {
-                                listItem = document.createElement("li");
-                                listItem.dataset.warning = warningLevel.toLowerCase().replace(" ", "-");
-                                listItem.innerHTML = `<strong>${warningLevel}: </strong><span class="province-list"></span>`;
-                                calamityList.prepend(listItem);
-                            }
-                            const provinceList = listItem.querySelector(".province-list");
-                            if (provinceList && notification.location) {
-                                const provinceExists = Array.from(provinceList.children).some(p => p.textContent === notification.location);
-                                if (!provinceExists) {
-                                    const provinceSpan = document.createElement("span");
-                                    provinceSpan.textContent = `${notification.location}, `;
-                                    provinceList.appendChild(provinceSpan);
-                                }
-                            }
-                        }
-                    }
-
-                    // Update notification dot and badge
-                    updateNotificationBadge();
-                }, error => {
-                    console.error("Fetch error:", error);
-                    Swal.fire({ icon: "error", title: "Error", text: "Failed to load notifications." });
-                });
-            };
-
-            // Update notification badge with unread count
-            function updateNotificationBadge() {
-                if (!notifBadge) return;
-                database.ref("notifications")
-                    .orderByChild("read")
-                    .equalTo(false)
-                    .once("value", snapshot => {
-                        const unreadCount = snapshot.numChildren();
-                        notifBadge.textContent = unreadCount > 0 ? unreadCount : '';
-                        notifBadge.style.display = unreadCount > 0 ? "inline-flex" : "none";
-                        notifDot.style.display = unreadCount > 0 ? "inline-block" : "none";
-                    });
-            }
-
-            // Ensure notifications load if initializeDashboard sets up userRole
-            if (typeof initializeDashboard === 'function') {
-                initializeDashboard().then(() => {
-                    if (window.userRole === "AB ADMIN" && typeof loadNotifications === 'function') {
-                        loadNotifications();
-                        markAllReadBtn.style.display = "block"; // Show mark all read button for AB ADMIN
-                        markAllReadBtn.addEventListener("click", () => {
-                            database.ref("notifications").once("value", snapshot => {
-                                const updates = {};
-                                snapshot.forEach(child => {
-                                    if (!child.val().read) {
-                                        updates[`${child.key}/read`] = true;
-                                    }
-                                });
-                                if (Object.keys(updates).length > 0) {
-                                    database.ref("notifications").update(updates).then(() => {
-                                        calamityList.querySelectorAll("li").forEach(li => li.classList.remove("unread"));
-                                        adminList.querySelectorAll("li").forEach(li => li.classList.remove("unread"));
-                                        updateNotificationBadge();
-                                    });
-                                }
-                            });
-                        });
-                    }
-                }).catch(error => console.error('Dashboard init error:', error));
+    if (bell && drawer) {
+        bell.addEventListener('click', () => {
+            console.log('Bell clicked');
+            drawer.classList.toggle('open');
+            if (drawer.classList.contains('open') && calamityList && adminList) {
+                adminList.classList.add('hidden');
+                calamityList.classList.remove('hidden');
             }
         });
+    }
+
+    if (closeDrawerBtn) {
+        closeDrawerBtn.addEventListener('click', () => {
+            drawer.classList.remove('open');
+            console.log('Drawer closed');
+        });
+    }
+
+    if (tabCalamity) {
+        tabCalamity.addEventListener('click', () => {
+            if (calamityList && adminList) {
+                tabCalamity.classList.add('active');
+                tabNonCalamity.classList.remove('active');
+                calamityList.classList.remove('hidden');
+                adminList.classList.add('hidden');
+            } else {
+                console.error('calamityList or adminList not found');
+            }
+        });
+    }
+
+    if (tabNonCalamity) {
+        tabNonCalamity.addEventListener('click', () => {
+            if (calamityList && adminList) {
+                tabNonCalamity.classList.add('active');
+                tabCalamity.classList.remove('active');
+                adminList.classList.remove('hidden');
+                calamityList.classList.add('hidden');
+            } else {
+                console.error('calamityList or adminList not found');
+            }
+        });
+    }
+
+    // Load Notifications with Warning Levels and Badge Update
+    window.loadNotifications = function() {
+        if (!calamityList || !adminList || !notifDot || !notifBadge) {
+            console.error("Notification elements not found");
+            return;
+        }
+        if (notificationsListener) notificationsListener.off();
+
+        notificationsListener = database.ref("notifications").limitToLast(50);
+        notificationsListener.on("child_added", snapshot => {
+            const notification = snapshot.val();
+            const key = snapshot.key;
+
+            if (document.querySelector(`li[data-key="${key}"]`)) return;
+
+            // Handle admin notifications
+            if (notification.type !== "calamity") {
+                const li = document.createElement("li");
+                li.innerHTML = `<strong>🔔 ${notification.message}</strong><span class="timestamp">${new Date(notification.timestamp).toLocaleTimeString()}</span>`;
+                li.dataset.key = key;
+                if (!notification.read) li.classList.add("unread");
+                li.addEventListener("click", () => {
+                    li.classList.remove("unread");
+                    database.ref(`notifications/${key}`).update({ read: true }).then(() => {
+                        updateNotificationBadge();
+                    });
+                });
+                adminList.prepend(li);
+            } else {
+                // Handle calamity notifications with warning levels
+                const rainfallMatch = notification.details.match(/Rainfall: (\d+\.?\d*) mm/);
+                const rainfall = rainfallMatch ? parseFloat(rainfallMatch[1]) : 0;
+                let warningLevel = "";
+                if (rainfall >= 100) warningLevel = "Red Warning";
+                else if (rainfall >= 50) warningLevel = "Orange Warning";
+                else if (rainfall >= 20) warningLevel = "Yellow Warning";
+
+                if (warningLevel) {
+                    let listItem = document.querySelector(`#calamityList li[data-warning="${warningLevel.toLowerCase().replace(" ", "-")}"]`);
+                    if (!listItem) {
+                        listItem = document.createElement("li");
+                        listItem.dataset.warning = warningLevel.toLowerCase().replace(" ", "-");
+                        listItem.innerHTML = `<strong>${warningLevel}: </strong><span class="province-list"></span>`;
+                        calamityList.prepend(listItem);
+                    }
+                    const provinceList = listItem.querySelector(".province-list");
+                    if (provinceList && notification.location) {
+                        const provinceExists = Array.from(provinceList.children).some(p => p.textContent === notification.location);
+                        if (!provinceExists) {
+                            const provinceSpan = document.createElement("span");
+                            provinceSpan.textContent = `${notification.location}, `;
+                            provinceList.appendChild(provinceSpan);
+                        }
+                    }
+                }
+            }
+
+            // Update notification dot and badge
+            updateNotificationBadge();
+        }, error => {
+            console.error("Fetch error:", error);
+            Swal.fire({ icon: "error", title: "Error", text: "Failed to load notifications." });
+        });
+    };
+
+    // Update notification badge with unread count
+    function updateNotificationBadge() {
+        if (!notifBadge) return;
+        database.ref("notifications")
+            .orderByChild("read")
+            .equalTo(false)
+            .once("value", snapshot => {
+                const unreadCount = snapshot.numChildren();
+                notifBadge.textContent = unreadCount > 0 ? unreadCount : '';
+                notifBadge.style.display = unreadCount > 0 ? "inline-flex" : "none";
+                notifDot.style.display = unreadCount > 0 ? "inline-block" : "none";
+            });
+    }
+
+    // Ensure notifications load if initializeDashboard sets up userRole
+    if (typeof initializeDashboard === 'function') {
+        initializeDashboard().then(() => {
+            if (window.userRole === "AB ADMIN" && typeof loadNotifications === 'function') {
+                loadNotifications();
+                markAllReadBtn.style.display = "block"; // Show mark all read button for AB ADMIN
+                markAllReadBtn.addEventListener("click", () => {
+                    database.ref("notifications").once("value", snapshot => {
+                        const updates = {};
+                        snapshot.forEach(child => {
+                            if (!child.val().read) {
+                                updates[`${child.key}/read`] = true;
+                            }
+                        });
+                        if (Object.keys(updates).length > 0) {
+                            database.ref("notifications").update(updates).then(() => {
+                                calamityList.querySelectorAll("li").forEach(li => li.classList.remove("unread"));
+                                adminList.querySelectorAll("li").forEach(li => li.classList.remove("unread"));
+                                updateNotificationBadge();
+                            });
+                        }
+                    });
+                });
+            }
+        }).catch(error => console.error('Dashboard init error:', error));
+    }
+});
     </script>
 
     <!-- <script src="../js/inactivity-detector.js"></script> -->
