@@ -1384,6 +1384,7 @@ function setupAdminNotifications() {
 }
 // Load and listen to notifications
 function loadNotifications() {
+    // Check if required DOM elements exist
     if (!calamityList || !adminList || !notifDot || !notifBadge) {
         console.error("Notification list or dot not found.");
         Swal.fire({
@@ -1393,48 +1394,91 @@ function loadNotifications() {
         });
         return;
     }
+
+    // Remove existing listener to prevent duplicate event handlers
     if (notificationsListener) {
         notificationsListener.off();
         console.log("Previous notifications listener removed.");
     }
+
+    // Set up Firebase listener for notifications (limit to last 50 for performance)
     notificationsListener = database.ref("notifications").limitToLast(50);
     notificationsListener.on("child_added", snapshot => {
         const notification = snapshot.val();
         const key = snapshot.key;
         console.log("New notification received:", notification);
+
+        // Skip duplicate notifications
         if (processedNotifications.has(notification.identifier) || document.querySelector(`li[data-key="${key}"]`)) {
             console.log(`Skipping duplicate notification - Key: ${key}, Identifier: ${notification.identifier}`);
             return;
         }
+
+        // Filter notifications based on user role and userUid
         if (notification.type === "admin" && userRole !== "AB ADMIN") {
             console.log(`Skipping admin notification for non-admin user: ${notification.message}`);
             return;
         }
+
+        // For approval notifications (donation_approved, rdana_approved), only show to the submitting user
+        if (["donation_approved", "rdana_approved"].includes(notification.type)) {
+            if (notification.userUid !== userUid) {
+                console.log(`Skipping approval notification for user ${notification.userUid}, current user is ${userUid}`);
+                return;
+            }
+        } else if (userRole !== "AB ADMIN" && notification.userUid && notification.userUid !== userUid) {
+            // For non-approval notifications, non-admin users only see their own or calamity notifications
+            console.log(`Skipping notification for user ${notification.userUid}, current user is ${userUid}`);
+            return;
+        }
+
+        // Add notification to processed set
         processedNotifications.add(notification.identifier);
         syncProcessedNotifications();
+
+        // Create notification list item
         const li = document.createElement("li");
-        let content = `<strong>${notification.calamityType ? "🚨 Calamity Alert:" : "🔔 Admin Notification:"}</strong> ${notification.message}`;
-        if (notification.reportId) {
-            content += ` <a href="#" class="view-report-link" data-report-id="${notification.reportId}">View Report</a>`;
+        let content = "";
+
+        // Customize notification content based on type
+        if (notification.type === "calamity") {
+            content = `<strong>🚨 Calamity Alert:</strong> ${notification.message}`;
+        } else if (notification.type === "admin") {
+            content = `<strong>🔔 Admin Notification:</strong> ${notification.message}`;
+        } else if (notification.type === "donation_approved") {
+            content = `<strong>✅ Donation Approved:</strong> ${notification.message}`;
+        } else if (notification.type === "rdana_approved") {
+            content = `<strong>✅ RDANA Report Approved:</strong> ${notification.message}`;
+        } else {
+            content = `<strong>🔔 Notification:</strong> ${notification.message}`;
         }
+
+        // Append timestamp
         content += `<span class="timestamp">${new Date(notification.timestamp).toLocaleString("en-US", {
             hour: "numeric",
             minute: "numeric",
             hour12: true,
         })}</span>`;
+
         li.innerHTML = content;
         li.dataset.key = key;
         li.style.cursor = "pointer";
+
+        // Style unread notifications
         if (!notification.read) {
             li.classList.add("unread");
             li.style.backgroundColor = "#ffeeee"; // Red tint for unread
         } else {
             li.style.backgroundColor = "#ffffff"; // Default color for read
         }
+
+        // Handle notification click (mark as read and handle calamity map interaction)
         li.addEventListener("click", () => {
             console.log(`Notification clicked: ${notification.message}`);
             li.classList.remove("unread");
             li.style.backgroundColor = "#ffffff"; // Reset to default on read
+
+            // Mark notification as read in Firebase
             database.ref(`notifications/${key}`).update({ read: true }).catch(error => {
                 console.error("Error marking notification as read:", error);
                 Swal.fire({
@@ -1443,6 +1487,8 @@ function loadNotifications() {
                     text: "Failed to mark notification as read.",
                 });
             });
+
+            // Update notification badge
             database.ref("notifications")
                 .orderByChild("read")
                 .equalTo(false)
@@ -1452,6 +1498,8 @@ function loadNotifications() {
                     notifBadge.style.display = unreadCount > 0 ? "inline-flex" : "none";
                     notifDot.style.display = unreadCount > 0 ? "block" : "none";
                 });
+
+            // Handle calamity notifications with map interaction
             if (notification.location && notification.type === "calamity") {
                 const coordinates = provinces.find(p => p.name === notification.location) || { lat: 14.5995, lng: 120.9842 };
                 if (currentInfoWindow) singleInfoWindow.close();
@@ -1468,30 +1516,26 @@ function loadNotifications() {
                 map.setZoom(12);
             }
         });
-        const viewReportLink = li.querySelector(".view-report-link");
-        if (viewReportLink) {
-            viewReportLink.addEventListener("click", async (e) => {
-                e.preventDefault();
-                const reportId = viewReportLink.getAttribute("data-report-id");
-                window.location.href = `../pages/reportsverification.html?reportId=${reportId}`;
-                await verifyReport(reportId);
-            });
-        }
+
+        // Append notification to appropriate list
         if (notification.type === "calamity") {
             calamityList.prepend(li);
         } else {
             adminList.prepend(li);
         }
+
+        // Update notification badge
         updateNotificationBadge();
     }, error => {
         console.error("Error fetching notifications:", error);
         Swal.fire({
             icon: "error",
             title: "Error",
-            text: "Failed to load notifications.",
+            text: "Failed to load notifications: " + error.message,
         });
     });
 }
+
 // Verify report in reportssubmission
 async function verifyReport(reportId) {
     try {
