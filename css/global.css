@@ -1840,55 +1840,6 @@ label:has(+ textarea[required])::after {
   font-weight: 600;
 }
 
-.swal-invalid-date-popup {
-  border-radius: 15px !important;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25) !important;
-  background-color: var(--white) !important;
-  padding: 30px !important;
-  border: 1px solid var(--accent-color) !important;
-}
-
-.swal-invalid-date-title {
-  color: #dc3545 !important;
-  font-size: 2em !important;
-  font-weight: 700 !important;
-  margin-bottom: 20px !important;
-  text-align: center !important;
-}
-
-.swal-invalid-date-text {
-  color: var(--black) !important;
-  font-size: 1.15em !important;
-  line-height: 1.6 !important;
-  margin-bottom: 30px !important;
-  text-align: center !important;
-}
-
-.swal-invalid-date-icon.swal2-icon.swal2-error {
-  border-color: #dc3545 !important;
-  color: #dc3545 !important;
-}
-
-.swal-invalid-date-confirm-button {
-  background-color: var(--primary-color) !important;
-  color: var(--white) !important;
-  border: none !important;
-  padding: 12px 20px !important;
-  border-radius: 8px !important;
-  font-size: 1.1em !important;
-  font-weight: 600 !important;
-  width: 200px !important;
-  cursor: pointer !important;
-  transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease !important;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15) !important;
-}
-
-.swal-invalid-date-confirm-button:hover {
-  background-color: var(--button-hover) !important;
-  transform: translateY(-2px) !important;
-  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.25) !important;
-}
-
 /* --- Media Queries (Responsive Design) --- */
 @media (max-width: 768px) {
   .swal2-popup {

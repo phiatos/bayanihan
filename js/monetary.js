@@ -145,12 +145,10 @@ document.addEventListener("DOMContentLoaded", () => {
             preConfirm: async (password) => {
                 try {
                     const user = auth.currentUser;
-                    console.log('Attempting to verify with email:', user.email);
                     const credential = firebase.auth.EmailAuthProvider.credential(user.email, password);
                     await auth.signInWithCredential(credential);
                     return true;
                 } catch (error) {
-                    console.log('Verification failed, error:', error.message);
                     Swal.showValidationMessage(`Verification failed: ${error.message}`);
                     return false;
                 }
@@ -165,11 +163,9 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
         if (!password) {
-            console.log('No password entered, searchInput value:', searchInput.value);
             searchInput.value = '';
             return false;
         }
-        console.log('Verification result, searchInput value:', searchInput.value);
         searchInput.value = ''; 
         return password; 
     }
@@ -185,12 +181,18 @@ document.addEventListener("DOMContentLoaded", () => {
             text: 'You\'ve been inactive for a while. Do you want to continue your session or log out?',
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#3085d6',
-            cancelButtonColor: '#d33',
             confirmButtonText: 'Stay Login',
             cancelButtonText: 'Log Out',
+            reverseButtons: true,
+            focusCancel: true,
             allowOutsideClick: false,
-            reverseButtons: true
+            customClass: {
+                popup: 'custom-swal-popup-small',
+                title: 'custom-swal-title',
+                htmlContainer: 'custom-swal-content',
+                confirmButton: 'custom-confirm-btn',
+                cancelButton: 'custom-cancel-btn'
+            },
         }).then((result) => {
             if (result.isConfirmed) {
                 resetInactivityTimer();
@@ -203,7 +205,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
     }
-
+    
     ['mousemove', 'keydown', 'scroll', 'click'].forEach(eventType => {
         document.addEventListener(eventType, resetInactivityTimer);
     });
@@ -424,7 +426,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-     excelFileInput.addEventListener("change", (event) => {
+    excelFileInput.addEventListener("change", (event) => {
         const file = event.target.files[0];
         if (!file) return;
 
@@ -941,8 +943,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 Object.keys(donations).forEach(key => {
                     const donation = donations[key];
                     allDonations.push({
-                        firebaseKey: key, // Ensure firebaseKey is explicitly set
-                        userUid: donation.userUid || userUid, // Fallback to current userUid if missing
+                        firebaseKey: key, 
+                        userUid: donation.userUid || userUid, 
                         encoder: donation.encoder || '',
                         name: donation.name || '',
                         address: donation.address || '',
@@ -954,7 +956,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         bank: donation.bank || '',
                         referenceNumber: donation.referenceNumber || '',
                         proof: donation.proof || '',
-                        id: donation.id || Date.now(), // Fallback for id if missing
+                        id: donation.id || Date.now(), 
                         createdAt: donation.createdAt || new Date().toISOString(),
                         updatedAt: donation.updatedAt || new Date().toISOString()
                     });
@@ -1153,39 +1155,39 @@ document.addEventListener("DOMContentLoaded", () => {
             };
 
             database.ref("donations/savedDonations/monetary").push(newDonation)
-                .then(() => {
-                    form.reset();
-                    document.getElementById("invoice").value = generateCashInvoiceNumber();
-                    formHasChanges = false;
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Donation Added!',
-                        text: 'Your donation has been successfully recorded.',
-                        timer: 2000,
-                        showConfirmButton: false,
-                        timerProgressBar: true,
-                        customClass: {
-                            popup: 'swal2-popup-success-clean',
-                            title: 'swal2-title-success-clean',
-                            htmlContainer: 'swal2-text-success-clean'
-                        }
-                    });
-                })
-                .catch(error => {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Failed to Add Donation',
-                        text: 'An error occurred: ' + error.message,
-                        showConfirmButton: true,
-                        confirmButtonText: 'OK',
-                        customClass: {
-                            popup: 'swal2-popup-error-clean',
-                            title: 'swal2-title-error-clean',
-                            htmlContainer: 'swal2-text-error-clean',
-                            confirmButton: 'my-error-button'
-                        }
-                    });
+            .then(() => {
+                form.reset();
+                document.getElementById("invoice").value = generateCashInvoiceNumber();
+                formHasChanges = false;
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Donation Added!',
+                    text: 'Your donation has been successfully recorded.',
+                    timer: 2000,
+                    showConfirmButton: false,
+                    timerProgressBar: true,
+                    customClass: {
+                        popup: 'swal2-popup-success-clean',
+                        title: 'swal2-title-success-clean',
+                        htmlContainer: 'swal2-text-success-clean'
+                    }
                 });
+            })
+            .catch(error => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Failed to Add Donation',
+                    text: 'An error occurred: ' + error.message,
+                    showConfirmButton: true,
+                    confirmButtonText: 'OK',
+                    customClass: {
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean',
+                        confirmButton: 'my-error-button'
+                    }
+                });
+            });
         }
     });
 
@@ -1214,19 +1216,18 @@ document.addEventListener("DOMContentLoaded", () => {
                 title: 'Discard Changes?',
                 text: 'You have unsaved changes. Are you sure you want to clear the form?',
                 icon: 'warning',
-                iconColor: '#f57c00',
                 showCancelButton: true,
-                confirmButtonColor: '#c62828',
-                cancelButtonColor: '#546e7a',
                 confirmButtonText: 'Yes, clear it!',
                 cancelButtonText: 'No, keep editing',
                 reverseButtons: true,
+                focusCancel: true,
+                allowOutsideClick: false,
                 customClass: {
-                    popup: 'swal2-popup-warning-clean',
-                    title: 'swal2-title-warning-clean',
-                    content: 'swal2-text-warning-clean',
-                    confirmButton: 'swal2-button-confirm-clean',
-                    cancelButton: 'swal2-button-cancel-clean'
+                    popup: 'custom-swal-popup-small',
+                    title: 'custom-swal-title',
+                    htmlContainer: 'custom-swal-content',
+                    confirmButton: 'custom-confirm-btn',
+                    cancelButton: 'custom-cancel-btn'
                 }
             }).then((result) => {
                 if (result.isConfirmed) {
@@ -1684,11 +1685,11 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
         Swal.fire({
-            title: 'Are you sure to reject this donation?',
+            title: 'Are you sure to archive this donation?',
             text: "This will move it to archived records.",
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonText: 'Reject',
+            confirmButtonText: 'Archive',
             cancelButtonText: 'Cancel',
             reverseButtons: true,
             focusCancel: true,
@@ -1763,87 +1764,87 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         editingKey = firebaseKey;
         const donationToEdit = allDonations.find(d => d.firebaseKey === firebaseKey);
-        if (donationToEdit) {
-            document.getElementById("edit-encoder").value = donationToEdit.encoder || '';
-            document.getElementById("edit-name").value = donationToEdit.name || '';
-            document.getElementById("edit-address").value = donationToEdit.address || '';
-            document.getElementById("edit-number").value = donationToEdit.number || '';
-            document.getElementById("edit-amount").value = donationToEdit.amountDonated;
-            document.getElementById("edit-invoice").value = donationToEdit.invoice || '';
-            document.getElementById("edit-dateReceived").value = donationToEdit.dateReceived || '';
-            document.getElementById("edit-email").value = donationToEdit.email || '';
-            document.getElementById("edit-bank").value = donationToEdit.bank || '';
-            document.getElementById("edit-referenceNumber").value = donationToEdit.referenceNumber || ''; 
-            document.getElementById("edit-proof").value = donationToEdit.proof || "";
-            editModal.style.display = "flex";
-            Array.from(editModal.querySelectorAll('input, select')).forEach(clearError);
-        }
-    }
-
-    document.getElementById("saveEditBtn").addEventListener("click", async () => {
-    if (editingKey !== null) {
-        const inputs = {
-            encoder: document.getElementById("edit-encoder"),
-            name: document.getElementById("edit-name"),
-            address: document.getElementById("edit-address"),
-            number: document.getElementById("edit-number"),
-            amount: document.getElementById("edit-amount"),
-            invoice: document.getElementById("edit-invoice"),
-            dateReceived: document.getElementById("edit-dateReceived"),
-            email: document.getElementById("edit-email"),
-            bank: document.getElementById("edit-bank"),
-            referenceNumber: document.getElementById("edit-referenceNumber"),
-            proof: document.getElementById("edit-proof")
-        };
-        const isValid = await validateDonationForm(inputs, editingKey);
-        if (isValid) {
-            const donation = allDonations.find(d => d.firebaseKey === editingKey);
-            if (!donation) {
-                Swal.fire("Error", "Donation not found!", "error");
-                return;
+            if (donationToEdit) {
+                document.getElementById("edit-encoder").value = donationToEdit.encoder || '';
+                document.getElementById("edit-name").value = donationToEdit.name || '';
+                document.getElementById("edit-address").value = donationToEdit.address || '';
+                document.getElementById("edit-number").value = donationToEdit.number || '';
+                document.getElementById("edit-amount").value = donationToEdit.amountDonated;
+                document.getElementById("edit-invoice").value = donationToEdit.invoice || '';
+                document.getElementById("edit-dateReceived").value = donationToEdit.dateReceived || '';
+                document.getElementById("edit-email").value = donationToEdit.email || '';
+                document.getElementById("edit-bank").value = donationToEdit.bank || '';
+                document.getElementById("edit-referenceNumber").value = donationToEdit.referenceNumber || ''; 
+                document.getElementById("edit-proof").value = donationToEdit.proof || "";
+                editModal.style.display = "flex";
+                Array.from(editModal.querySelectorAll('input, select')).forEach(clearError);
             }
-            const updatedDonation = {
-                encoder: inputs.encoder.value,
-                name: inputs.name.value,
-                address: inputs.address.value,
-                number: inputs.number.value,
-                amountDonated: parseFloat(inputs.amount.value),
-                invoice: inputs.invoice.value,
-                dateReceived: inputs.dateReceived.value,
-                email: inputs.email.value,
-                bank: inputs.bank.value,
-                referenceNumber: inputs.referenceNumber.value,
-                proof: inputs.proof.value,
-                id: donation.id,
-                userUid: donation.userUid,
-                createdAt: donation.createdAt,
-                updatedAt: new Date().toISOString(),
-            };
-
-            database.ref(`donations/savedDonations/monetary/${editingKey}`).update(updatedDonation)
-                .then(() => {
-                    closeEditModal();
-                    Swal.fire({
-                        title: 'Success!',
-                        text: 'Donation updated successfully!',
-                        icon: 'success',
-                        showConfirmButton: true,
-                        confirmButtonText: 'OK',
-                        customClass: {
-                            popup: 'swal2-popup-success-clean',
-                            title: 'swal2-title-success-clean',
-                            htmlContainer: 'swal2-text-success-clean',
-                            confirmButton: 'my-success-button'
-                        }
-                    });
-                    editingKey = null;
-                })
-                .catch(error => {
-                    Swal.fire("Error", "Failed to update donation: " + error.message, "error");
-                });
         }
-    }
-});
+
+        document.getElementById("saveEditBtn").addEventListener("click", async () => {
+        if (editingKey !== null) {
+            const inputs = {
+                encoder: document.getElementById("edit-encoder"),
+                name: document.getElementById("edit-name"),
+                address: document.getElementById("edit-address"),
+                number: document.getElementById("edit-number"),
+                amount: document.getElementById("edit-amount"),
+                invoice: document.getElementById("edit-invoice"),
+                dateReceived: document.getElementById("edit-dateReceived"),
+                email: document.getElementById("edit-email"),
+                bank: document.getElementById("edit-bank"),
+                referenceNumber: document.getElementById("edit-referenceNumber"),
+                proof: document.getElementById("edit-proof")
+            };
+            const isValid = await validateDonationForm(inputs, editingKey);
+            if (isValid) {
+                const donation = allDonations.find(d => d.firebaseKey === editingKey);
+                if (!donation) {
+                    Swal.fire("Error", "Donation not found!", "error");
+                    return;
+                }
+                const updatedDonation = {
+                    encoder: inputs.encoder.value,
+                    name: inputs.name.value,
+                    address: inputs.address.value,
+                    number: inputs.number.value,
+                    amountDonated: parseFloat(inputs.amount.value),
+                    invoice: inputs.invoice.value,
+                    dateReceived: inputs.dateReceived.value,
+                    email: inputs.email.value,
+                    bank: inputs.bank.value,
+                    referenceNumber: inputs.referenceNumber.value,
+                    proof: inputs.proof.value,
+                    id: donation.id,
+                    userUid: donation.userUid,
+                    createdAt: donation.createdAt,
+                    updatedAt: new Date().toISOString(),
+                };
+
+                database.ref(`donations/savedDonations/monetary/${editingKey}`).update(updatedDonation)
+                    .then(() => {
+                        closeEditModal();
+                        Swal.fire({
+                            title: 'Success!',
+                            text: 'Donation updated successfully!',
+                            icon: 'success',
+                            showConfirmButton: true,
+                            confirmButtonText: 'OK',
+                            customClass: {
+                                popup: 'swal2-popup-success-clean',
+                                title: 'swal2-title-success-clean',
+                                htmlContainer: 'swal2-text-success-clean',
+                                confirmButton: 'my-success-button'
+                            }
+                        });
+                        editingKey = null;
+                    })
+                    .catch(error => {
+                        Swal.fire("Error", "Failed to update donation: " + error.message, "error");
+                    });
+            }
+        }
+    });
 
     function closeEditModal() {
         editModal.style.display = "none";
