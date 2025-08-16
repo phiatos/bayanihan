@@ -112,33 +112,108 @@ document.addEventListener('DOMContentLoaded', () => {
         loadSubmittedReports(user.uid);
     });
 
-    function loadSubmittedReports(userUid) {
-        console.log("Loading submitted reports for user:", userUid);
-        database.ref("rdana/submitted").on("value", snapshot => {
-            let rdanaLogs = [];
-            const reports = snapshot.val();
-            console.log("Submitted reports snapshot:", reports);
-            if (reports) {
-                Object.keys(reports).forEach(key => {
-                    const report = reports[key];
-                    rdanaLogs.push({
-                        firebaseKey: key,
-                        ...report
-                    });
+// Load reports from Firebase
+function loadSubmittedReports(userUid) {
+    console.log("Loading submitted reports for user:", userUid);
+    database.ref("rdana/submitted").on("value", snapshot => {
+        let rdanaLogs = [];
+        const reports = snapshot.val();
+        console.log("Submitted reports snapshot:", reports);
+
+        if (reports) {
+            Object.keys(reports).forEach(key => {
+                rdanaLogs.push({
+                    firebaseKey: key,
+                    ...reports[key]
                 });
-            } else {
-                console.log("No submitted reports found in rdana/submitted");
-            }
-            applySearchAndSort(rdanaLogs);
-        }, error => {
-            console.error("Error fetching submitted RDANA reports:", error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Failed to load submitted RDANA reports: ' + error.message,
             });
+        }
+
+        // save original logs globally
+        allLogs = rdanaLogs;
+
+        // render unfiltered reports initially
+        renderReportsTable(allLogs);
+
+    }, error => {
+        console.error("Error fetching submitted RDANA reports:", error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Failed to load submitted RDANA reports: ' + error.message,
         });
+    });
+}
+
+// Search + Sort
+function applySearchAndSort() {
+    let filtered = [...allLogs]; // always start from original
+
+    const searchTerm = searchInput.value.toLowerCase().trim();
+    if (searchTerm) {
+        filtered = filtered.filter(log =>
+            log.rdanaId.toLowerCase().includes(searchTerm) ||
+            (log.siteLocation || "").toLowerCase().includes(searchTerm) ||
+            (log.disasterType || "").toLowerCase().includes(searchTerm) ||
+            (log.needs?.priority?.join(", ")?.toLowerCase().includes(searchTerm) || false)
+        );
     }
+
+    const sortBy = sortSelect.value;
+if (sortBy) {
+    const [key, order] = sortBy.split("-");
+
+    filtered.sort((a, b) => {
+        let valA, valB;
+
+        switch (key) {
+            case "DateTime":
+                valA = new Date(a.dateTime).getTime();
+                valB = new Date(b.dateTime).getTime();
+                break;
+            case "RDANAID":
+                valA = parseInt(a.rdanaId.split("-")[1], 10);
+                valB = parseInt(b.rdanaId.split("-")[1], 10);
+                break;
+            case "Location":
+                valA = (a.siteLocation || "").toLowerCase();
+                valB = (b.siteLocation || "").toLowerCase();
+                break;
+            case "DisasterType":
+                valA = (a.disasterType || "").toLowerCase();
+                valB = (b.disasterType || "").toLowerCase();
+                break;
+            case "AffectedPopulation":
+                valA = a.effects?.affectedPopulation || 0;
+                valB = b.effects?.affectedPopulation || 0;
+                break;
+            case "Needs":
+                valA = (a.needs?.priority?.join(", ") || "").toLowerCase();
+                valB = (b.needs?.priority?.join(", ") || "").toLowerCase();
+                break;
+            default:
+                valA = "";
+                valB = "";
+        }
+
+        if (typeof valA === "string" && typeof valB === "string") {
+            return order === "asc" ? valA.localeCompare(valB) : valB.localeCompare(valA);
+        }
+        return order === "asc" ? valA - valB : valB - valA;
+    });
+}
+
+
+    // Reset to first page when applying new filters
+    currentPage = 1;
+
+    renderReportsTable(filtered);
+}
+
+// Hook up events
+searchInput.addEventListener("input", applySearchAndSort);
+sortSelect.addEventListener("change", applySearchAndSort);
+
 
     function formatDate(dateStr) {
         const date = new Date(dateStr);
@@ -146,56 +221,7 @@ document.addEventListener('DOMContentLoaded', () => {
             year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit"
         });
     }
-
-    function getSortValue(log, key) {
-        switch (key) {
-            case 'DateTime':
-                return new Date(log.dateTime).getTime();
-            case 'RDANAID':
-                return parseInt(log.rdanaId.split('-')[1], 10);
-            case 'Location':
-                return log.siteLocation.toLowerCase();
-            case 'DisasterType':
-                return log.disasterType.toLowerCase();
-            case 'AffectedPopulation':
-                return log.effects?.affectedPopulation ?? 0;
-            case 'Needs':
-                return (log.needs?.priority?.join(", ") ?? "").toLowerCase();
-            default:
-                return '';
-        }
-    }
-
-    function applySearchAndSort(logs = allLogs) {
-        let filtered = [...logs];
-        const searchTerm = searchInput.value.toLowerCase();
-
-        if (searchTerm) {
-            filtered = filtered.filter(log =>
-                log.rdanaId.toLowerCase().includes(searchTerm) ||
-                log.siteLocation.toLowerCase().includes(searchTerm) ||
-                log.disasterType.toLowerCase().includes(searchTerm) ||
-                (log.needs?.priority?.join(", ").toLowerCase().includes(searchTerm) || false)
-            );
-        }
-
-        const sortBy = sortSelect.value;
-        if (sortBy) {
-            const [key, order] = sortBy.split("-");
-            filtered.sort((a, b) => {
-                const valA = getSortValue(a, key);
-                const valB = getSortValue(b, key);
-
-                if (typeof valA === 'string' && typeof valB === 'string') {
-                    return order === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
-                }
-                return order === 'asc' ? valA - valB : valB - valA;
-            });
-        }
-
-        renderReportsTable(filtered);
-    }
-
+    
     function renderReportsTable(reports) {
         submittedReportsContainer.innerHTML = "";
         const start = (currentPage - 1) * rowsPerPage;
@@ -203,7 +229,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Handle case when there are no reports to display
         if (paginated.length === 0) {
-            submittedReportsContainer.innerHTML = "<tr><td colspan='9'>No approved reports found on this page.</td></tr>";
+            submittedReportsContainer.innerHTML = "<tr><td colspan='9'>No submitted rdana report found on this page.</td></tr>";
             entriesInfo.textContent = "Showing 0 to 0 of 0 entries";
             return;
         }
@@ -217,7 +243,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${start + index + 1}</td>
                 <td>${report.rdanaId}</td>
                 <td>${report.rdanaGroup}</td>
-                <td>${report.dateTime}</td>
+                <td>${formatDate(report?.dateTime)}</td>
                 <td>${report.siteLocation || "N/A"}</td>
                 <td>${report.disasterType}</td>
                 <td>${report.effects?.affectedPopulation || "N/A"}</td>

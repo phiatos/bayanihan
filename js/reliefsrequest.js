@@ -298,18 +298,34 @@ document.getElementById('contactNumber').addEventListener('input', function () {
     this.value = this.value.replace(/\D/g, ''); // remove non-digits
 });
 
-document.getElementById('contactNumber').addEventListener('blur', function () {
+function validateContactNumber() {
     const phPattern = /^09\d{9}$/;
-    if (!phPattern.test(this.value)) {
+    const value = contactNumberInput.value.trim();
+
+    // Remove non-numeric characters while typing
+    contactNumberInput.value = value.replace(/[^0-9]/g, '');
+
+    if (value && !phPattern.test(value)) {
         Swal.fire({
             icon: 'error',
             title: 'Invalid Number',
             text: 'Please enter a valid Philippine mobile number (11 digits starting with 09).'
         }).then(() => {
-            this.focus();
+            contactNumberInput.focus();
         });
+        return false;
     }
+    return true;
+}
+
+// Validate on blur
+contactNumberInput.addEventListener('blur', validateContactNumber);
+
+// Optional: prevent invalid input early
+contactNumberInput.addEventListener('input', function () {
+    this.value = this.value.replace(/[^0-9]/g, '');
 });
+
 
 document.getElementById('email').addEventListener('input', function () {
     this.value = this.value.replace(/\s/g, '');
@@ -467,180 +483,128 @@ function renderItemsTable() {
 
 
     // Proceed button event listener
-    nextBtn.addEventListener('click', () => {
-        console.log('Proceed button clicked');
+nextBtn.addEventListener('click', () => {
+    console.log('Proceed button clicked');
 
-        const contactPerson = contactPersonInput.value.trim();
-        const contactNumber = contactNumberInput.value.trim();
-        const email = emailInput.value.trim();
-        const address = addressInput.value.trim();
-        const city = cityInput.value.trim();
-        const donationCategory = donationCategoryInput.value;
+    const contactPerson = contactPersonInput.value.trim();
+    const contactNumber = contactNumberInput.value.trim();
+    const email = emailInput.value.trim();
+    const address = addressInput.value.trim();
+    const city = cityInput.value.trim();
+    const donationCategory = donationCategoryInput.value;
 
-        console.log('Proceed inputs:', {
-            contactPerson,
-            contactNumber,
-            email,
-            address,
-            city,
-            donationCategory,
-            addedItemsLength: addedItems.length,
-            volunteerOrganization
-        });
-
-        if (!contactPerson) {
-            console.log('Validation failed: Contact person is empty');
-            Swal.fire({
-                icon: 'warning',
-                title: 'Missing Contact Person',
-                text: 'Please enter the contact person’s name.',
-                background: '#fefefe',
-                color: '#6c584c',
-                iconColor: '#d18f00',
-                confirmButtonColor: '#d18f00',
-                customClass: {
-                    popup: 'swal2-popup-warning-clean',
-                    title: 'swal2-title-warning-clean',
-                    htmlContainer: 'swal2-text-warning-clean'
-                }
-            });
-            return;
-        }
-
-        if (!contactNumber || !/^\d{10,}$/.test(contactNumber)) {
-            console.log('Validation failed: Invalid contact number', { contactNumber });
-            Swal.fire({
-                icon: 'warning',
-                title: 'Invalid Contact Number',
-                text: 'Please enter a valid contact number (at least 10 digits).',
-                background: '#fefefe',
-                color: '#6c584c',
-                iconColor: '#d18f00',
-                confirmButtonColor: '#d18f00',
-                customClass: {
-                    popup: 'swal2-popup-warning-clean',
-                    title: 'swal2-title-warning-clean',
-                    htmlContainer: 'swal2-text-warning-clean'
-                }
-            });
-            return;
-        }
-
-        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-            console.log('Validation failed: Invalid email', { email });
-            Swal.fire({
-                icon: 'warning',
-                title: 'Invalid Email',
-                text: 'Please enter a valid email address.',
-                background: '#fefefe',
-                color: '#6c584c',
-                iconColor: '#d18f00',
-                confirmButtonColor: '#d18f00',
-                customClass: {
-                    popup: 'swal2-popup-warning-clean',
-                    title: 'swal2-title-warning-clean',
-                    htmlContainer: 'swal2-text-warning-clean'
-                }
-            });
-            return;
-        }
-
-        if (!address) {
-            console.log('Validation failed: Address is empty');
-            Swal.fire({
-                icon: 'warning',
-                title: 'Missing Address',
-                text: 'Please enter the drop-off address.',
-                background: '#fefefe',
-                color: '#6c584c',
-                iconColor: '#d18f00',
-                confirmButtonColor: '#d18f00',
-                customClass: {
-                    popup: 'swal2-popup-warning-clean',
-                    title: 'swal2-title-warning-clean',
-                    htmlContainer: 'swal2-text-warning-clean'
-                }
-            });
-            return;
-        }
-
-        if (!city) {
-            console.log('Validation failed: City is empty');
-            Swal.fire({
-                icon: 'warning',
-                title: 'Missing City',
-                text: 'Please enter the city.',
-                background: '#fefefe',
-                color: '#6c584c',
-                iconColor: '#d18f00',
-                confirmButtonColor: '#d18f00',
-                customClass: {
-                    popup: 'swal2-popup-warning-clean',
-                    title: 'swal2-title-warning-clean',
-                    htmlContainer: 'swal2-text-warning-clean'
-                }
-            });
-            return;
-        }
-
-        if (!donationCategory) {
-            console.log('Validation failed: Donation category not selected');
-            Swal.fire({
-                icon: 'warning',
-                title: 'Missing Category',
-                text: 'Please select a donation category.',
-                background: '#fefefe',
-                color: '#6c584c',
-                iconColor: '#d18f00',
-                confirmButtonColor: '#d18f00',
-                customClass: {
-                    popup: 'swal2-popup-warning-clean',
-                    title: 'swal2-title-warning-clean',
-                    htmlContainer: 'swal2-text-warning-clean'
-                }
-            });
-            return;
-        }
-
-        if (addedItems.length === 0) {
-            console.log('Validation failed: No items added');
-            Swal.fire({
-                icon: 'warning',
-                title: 'No Items Added',
-                text: 'Please add at least one item before proceeding.',
-                background: '#fefefe',
-                color: '#6c584c',
-                iconColor: '#d18f00',
-                confirmButtonColor: '#d18f00',
-                customClass: {
-                    popup: 'swal2-popup-warning-clean',
-                    title: 'swal2-title-warning-clean',
-                    htmlContainer: 'swal2-text-warning-clean'
-                }
-            });
-            return;
-        }
-
-        formPage1.style.display = 'none';
-        formPage2.style.display = 'block';
-        console.log('Switched to form-page-2');
-
-        previewContact.innerHTML = `
-            <p><strong>Contact Person:</strong> ${contactPerson}</p>
-            <p><strong>Contact Number:</strong> ${contactNumber}</p>
-            <p><strong>Email:</strong> ${email}</p>
-            <p><strong>Address:</strong> ${address}, ${city}</p>
-            <p><strong>Donation Category:</strong> ${donationCategory}</p>
-            <p><strong>Volunteer Organization:</strong> ${volunteerOrganization}</p>
-        `;
-
-        previewItemsTable.innerHTML = '';
-        addedItems.forEach(item => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `<td>${item.name}</td><td>${item.quantity}</td><td>${item.notes}</td>`;
-            previewItemsTable.appendChild(tr);
-        });
+    console.log('Proceed inputs:', {
+        contactPerson,
+        contactNumber,
+        email,
+        address,
+        city,
+        donationCategory,
+        addedItemsLength: addedItems.length,
+        volunteerOrganization
     });
+
+    // ✅ Centralized alert function
+    function showValidationError(title, text) {
+        Swal.fire({
+            icon: 'warning',
+            title,
+            text,
+            background: '#fefefe',
+            color: '#6c584c',
+            iconColor: '#d18f00',
+            confirmButtonColor: '#d18f00',
+            customClass: {
+                popup: 'swal2-popup-warning-clean',
+                title: 'swal2-title-warning-clean',
+                htmlContainer: 'swal2-text-warning-clean'
+            }
+        });
+    }
+
+    // ✅ Check if absolutely everything is empty
+    if (
+        !contactPerson &&
+        !contactNumber &&
+        !email &&
+        !address &&
+        !city &&
+        !donationCategory &&
+        addedItems.length === 0
+    ) {
+        console.log('Validation failed: All fields empty');
+        showValidationError(
+            'No Information Provided',
+            'Please fill out the form and add at least one item before proceeding.'
+        );
+        return;
+    }
+
+    // ✅ Individual validations
+    if (!contactPerson) {
+        console.log('Validation failed: Contact person is empty');
+        showValidationError('Missing Contact Person', 'Please enter the contact person’s name.');
+        return;
+    }
+
+    if (!contactNumber || !/^\d{10,15}$/.test(contactNumber)) {
+        console.log('Validation failed: Invalid contact number', { contactNumber });
+        showValidationError('Invalid Contact Number', 'Please enter a valid contact number (10–15 digits).');
+        return;
+    }
+
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        console.log('Validation failed: Invalid email', { email });
+        showValidationError('Invalid Email', 'Please enter a valid email address.');
+        return;
+    }
+
+    if (!address) {
+        console.log('Validation failed: Address is empty');
+        showValidationError('Missing Address', 'Please enter the drop-off address.');
+        return;
+    }
+
+    if (!city) {
+        console.log('Validation failed: City is empty');
+        showValidationError('Missing City', 'Please enter the city.');
+        return;
+    }
+
+    if (!donationCategory) {
+        console.log('Validation failed: Donation category not selected');
+        showValidationError('Missing Category', 'Please select a donation category.');
+        return;
+    }
+
+    if (addedItems.length === 0) {
+        console.log('Validation failed: No items added');
+        showValidationError('No Items Added', 'Please add at least one item before proceeding.');
+        return;
+    }
+
+    // ✅ Passed all validations → move to next form page
+    formPage1.style.display = 'none';
+    formPage2.style.display = 'block';
+    console.log('Switched to form-page-2');
+
+    previewContact.innerHTML = `
+        <p><strong>Contact Person:</strong> ${contactPerson}</p>
+        <p><strong>Contact Number:</strong> ${contactNumber}</p>
+        <p><strong>Email:</strong> ${email}</p>
+        <p><strong>Address:</strong> ${address}, ${city}</p>
+        <p><strong>Donation Category:</strong> ${donationCategory}</p>
+        <p><strong>Volunteer Organization:</strong> ${volunteerOrganization}</p>
+    `;
+
+    previewItemsTable.innerHTML = '';
+    addedItems.forEach(item => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${item.name}</td><td>${item.quantity}</td><td>${item.notes}</td>`;
+        previewItemsTable.appendChild(tr);
+    });
+});
+
 
     // Back button event listener
     backBtn.addEventListener('click', () => {
