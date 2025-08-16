@@ -14,7 +14,10 @@
     <!-- Firebase Compat SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-    <script src="../js/pendinginkind.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+
+    <!-- Google Maps API for Geocoding -->
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=places"></script>
 
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -23,6 +26,10 @@
     <!-- PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    
+    <!-- Your Script -->
+    <script src="../js/pendinginkind.js"></script>
+    
     <title>Bayanihan | Angat Buhay Disaster Relief Portal</title>
 </head>
 <body>
@@ -30,7 +37,6 @@
         <div class="sidebar-placeholder"></div>
 
         <div id="main-content">
-            
             <section>
                 <div class="controls">
                     <div class="controls_left">
@@ -67,7 +73,6 @@
                 </div>
 
                 <div class="table-container">
-                
                     <table id="donationTable">
                         <thead>
                             <tr>
@@ -91,7 +96,6 @@
                         <tbody id="donationTableBody">
                         </tbody> 
                     </table>
-               
                 </div>
                 
                 <div class="pagination-info">
@@ -101,6 +105,14 @@
 
                 <br>
             </section>
+
+            <!-- Added Preview Modal -->
+            <div class="modal" id="previewModal" style="display:none;">
+                <div class="modal-content">
+                    <span class="close-button" id="closeModal">×</span>
+                    <div id="modalContent"></div>
+                </div>
+            </div>
 
             <div class="modal" id="editModal" style="display:none;">
                 <div class="modal-content">
