@@ -287,61 +287,81 @@ document.addEventListener('DOMContentLoaded', () => {
     // Hide items table initially
     itemsTable.style.display = 'none';
 
-    // Event listeners for real-time validation
-    document.getElementById('contactPerson').addEventListener('input', function(e) {
-        this.value = this.value.replace(/[^a-zA-Z\s]/g, '');
-    });
+// Event listeners for real-time validation
+document.getElementById('contactPerson').addEventListener('input', function () {
+    this.value = this.value.replace(/[^a-zA-Z\s]/g, '');
+    // Auto-capitalize the first letter of each word
+    this.value = this.value.replace(/\b\w/g, char => char.toUpperCase());
+});
 
-    document.getElementById('contactNumber').addEventListener('input', function(e) {
-        this.value = this.value.replace(/[^0-9+\-\s()]/g, '');
-    });
+document.getElementById('contactNumber').addEventListener('input', function () {
+    this.value = this.value.replace(/\D/g, ''); // remove non-digits
+});
 
-    document.getElementById('email').addEventListener('input', function(e) {
-        this.value = this.value.replace(/\s/g, '');
-    });
-
-    document.getElementById('address').addEventListener('input', function(e) {
-        this.value = this.value.replace(/[^a-zA-Z0-9\s,.'-]/g, '');
-    });
-
-    document.getElementById('city').addEventListener('input', function(e) {
-        this.value = this.value.replace(/[^a-zA-Z\sñÑ]/g, ''); // Added ñ and Ñ
-    });
-
-    document.getElementById("category").addEventListener("change", function() {
-        const selectedCategory = this.value;
-        const itemName = document.getElementById("itemName");
-        const quantity = document.getElementById("quantity");
-        const notes = document.getElementById("notes");
-
-        itemName.disabled = false;
-        quantity.disabled = false;
-        notes.disabled = false;
-
-        const itemNameList = document.getElementById("itemNameList");
-        while (itemNameList.firstChild) {
-            itemNameList.removeChild(itemNameList.firstChild);
-        }
-
-        let items = [];
-        if (selectedCategory === "Food") {
-            items = ["Rice", "Canned Goods", "Water Bottles"];
-        } else if (selectedCategory === "Clothing") {
-            items = ["Blankets"];
-        } else if (selectedCategory === "Medicine") {
-            items = ["Medicine Kits"];
-        } else if (selectedCategory === "Hygiene") {
-            items = ["Hygiene Packs"];
-        } else {
-            items = ["Others"];
-        }
-
-        items.forEach(item => {
-            const option = document.createElement("option");
-            option.value = item;
-            itemNameList.appendChild(option);
+document.getElementById('contactNumber').addEventListener('blur', function () {
+    const phPattern = /^09\d{9}$/;
+    if (!phPattern.test(this.value)) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Invalid Number',
+            text: 'Please enter a valid Philippine mobile number (11 digits starting with 09).'
+        }).then(() => {
+            this.focus();
         });
+    }
+});
+
+document.getElementById('email').addEventListener('input', function () {
+    this.value = this.value.replace(/\s/g, '');
+});
+
+document.getElementById('address').addEventListener('input', function () {
+    this.value = this.value.replace(/[^a-zA-Z0-9\s,.'-]/g, '');
+    this.value = this.value.replace(/\b\w/g, char => char.toUpperCase());
+
+});
+
+document.getElementById('city').addEventListener('input', function () {
+    this.value = this.value.replace(/[^a-zA-Z\sñÑ]/g, ''); // Added ñ and Ñ
+    this.value = this.value.replace(/\b\w/g, char => char.toUpperCase());
+
+});
+
+document.getElementById("category").addEventListener("change", function () {
+    const selectedCategory = this.value;
+    const itemName = document.getElementById("itemName");
+    const quantity = document.getElementById("quantity");
+    const notes = document.getElementById("notes");
+
+    itemName.disabled = false;
+    quantity.disabled = false;
+    notes.disabled = false;
+
+    const itemNameList = document.getElementById("itemNameList");
+    while (itemNameList.firstChild) {
+        itemNameList.removeChild(itemNameList.firstChild);
+    }
+
+    let items = [];
+    if (selectedCategory === "Food") {
+        items = ["Rice", "Canned Goods", "Water Bottles"];
+    } else if (selectedCategory === "Clothing") {
+        items = ["Blankets"];
+    } else if (selectedCategory === "Medicine") {
+        items = ["Medicine Kits"];
+    } else if (selectedCategory === "Hygiene") {
+        items = ["Hygiene Packs"];
+    } else {
+        items = ["Others"];
+    }
+
+    items.forEach(item => {
+        const option = document.createElement("option");
+        option.value = item;
+        itemNameList.appendChild(option);
     });
+});
+
 
     // Converts Big Quantities to Readable Ones
     function formatLargeNumber(numStr) {
@@ -363,101 +383,88 @@ document.addEventListener('DOMContentLoaded', () => {
         return num.toString();
     }
 
-    // Add Item button event listener
-    addItemBtn.addEventListener('click', () => {
-        console.log('Add Item button clicked');
-
-        const name = itemNameInput.value.trim();
-        const quantity = quantityInput.value.trim();
-        const notes = notesInput.value.trim();
-
-        console.log('Add Item inputs:', { name, quantity, notes });
-
-        if (!name) {
-            console.log('Validation failed: Item name is empty');
-            Swal.fire({
-                icon: 'warning',
-                title: 'Missing Item Name',
-                text: 'Please enter the item name.',
-                timer: 2200,
-                showConfirmButton: false,
-                timerProgressBar: true,
-                customClass: {
-                    popup: 'swal2-popup-warning-clean',
-                    title: 'swal2-title-warning-clean',
-                    content: 'swal2-text-warning-clean'
-                }
-            });
-            return;
+// Helper to show Swal warning modals with consistent styling
+function showWarning(title, text) {
+    Swal.fire({
+        icon: 'warning',
+        title,
+        text,
+        timer: 2200,
+        showConfirmButton: false,
+        timerProgressBar: true,
+        customClass: {
+            popup: 'swal2-popup-warning-clean',
+            title: 'swal2-title-warning-clean',
+            content: 'swal2-text-warning-clean',
         }
-
-        if (!quantity || parseInt(quantity) <= 0) {
-            console.log('Validation failed: Invalid quantity', { quantity });
-            Swal.fire({
-                icon: 'warning',
-                title: 'Invalid Quantity',
-                text: 'Please enter a quantity greater than 0.',
-                background: '#fefefe',
-                color: '#6c584c',
-                iconColor: '#d18f00',
-                confirmButtonColor: '#d18f00',
-                customClass: {
-                    popup: 'swal2-popup-warning-clean',
-                    title: 'swal2-title-warning-clean',
-                    htmlContainer: 'swal2-text-warning-clean'
-                }
-            });
-            return;
-        }
-
-        const itemIndex = addedItems.length;
-        const formattedQuantity = formatLargeNumber(quantity);
-        addedItems.push({ name, quantity, notes });
-        console.log('Item added:', { name, quantity, notes, itemIndex });
-
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td id="prevItmName">${name}</td>
-            <td id="prevQty">${formattedQuantity}</td>
-            <td id="prevNotes">${notes}</td>
-            <td><button type="button" class="deleteBtn" id="deleteItmBtn" data-index="${itemIndex}">Delete</button></td>
-        `;
-        itemsTableBody.appendChild(tr);
-
-        itemsTable.style.display = 'table';
-
-        itemNameInput.value = '';
-        quantityInput.value = '';
-        notesInput.value = '';
     });
+}
 
-    // Delete button event listener (Fixed class from 'delete-btn' to 'deleteBtn')
-    itemsTableBody.addEventListener('click', (e) => {
-        if (e.target.classList.contains('deleteBtn')) {
-            console.log('Delete button clicked');
-            const index = parseInt(e.target.getAttribute('data-index'));
+// Add Item button event listener
+addItemBtn.addEventListener('click', () => {
+    console.log('Add Item button clicked');
+
+    const name = itemNameInput.value.trim();
+    const quantityStr = quantityInput.value.trim();
+    const notes = notesInput.value.trim();
+
+    console.log('Add Item inputs:', { name, quantityStr, notes });
+
+    if (!name) {
+        console.log('Validation failed: Item name is empty');
+        showWarning('Missing Item Name', 'Please enter the item name.');
+        return;
+    }
+
+    const quantity = parseInt(quantityStr, 10);
+    if (!quantityStr || isNaN(quantity) || quantity <= 0) {
+        console.log('Validation failed: Invalid quantity', { quantityStr });
+        showWarning('Invalid Quantity', 'Please enter a quantity greater than 0.');
+        return;
+    }
+
+    addedItems.push({ name, quantity, notes });
+    console.log('Item added:', { name, quantity, notes, index: addedItems.length - 1 });
+
+    renderItemsTable();
+
+    // Reset inputs
+    itemNameInput.value = '';
+    quantityInput.value = '';
+    notesInput.value = '';
+});
+
+// Delete button event listener using event delegation
+itemsTableBody.addEventListener('click', (e) => {
+    if (e.target.classList.contains('deleteBtn')) {
+        console.log('Delete button clicked');
+        const index = Number(e.target.dataset.index);
+        if (!isNaN(index)) {
             addedItems.splice(index, 1);
             renderItemsTable();
         }
+    }
+});
+
+// Render items table dynamically
+function renderItemsTable() {
+    console.log('Rendering items table');
+    itemsTableBody.innerHTML = '';
+    addedItems.forEach(({ name, quantity, notes }, index) => {
+        const formattedQuantity = formatLargeNumber(quantity);
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${name}</td>
+            <td>${formattedQuantity}</td>
+            <td>${notes}</td>
+            <td><button type="button" class="deleteBtn" data-index="${index}"><i class="bx bx-x-circle"></i></button></td>
+        `;
+        itemsTableBody.appendChild(tr);
     });
 
-    // Updated renderItemsTable to use 'deleteBtn' consistently
-    function renderItemsTable() {
-        console.log('Rendering items table');
-        itemsTableBody.innerHTML = '';
-        addedItems.forEach((item, index) => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>${item.name}</td>
-                <td>${item.quantity}</td>
-                <td>${item.notes}</td>
-                <td><button type="button" class="deleteBtn" data-index="${index}">Delete</button></td>
-            `;
-            itemsTableBody.appendChild(tr);
-        });
+    itemsTable.style.display = addedItems.length > 0 ? 'table' : 'none';
+}
 
-        itemsTable.style.display = addedItems.length > 0 ? 'table' : 'none';
-    }
 
     // Proceed button event listener
     nextBtn.addEventListener('click', () => {

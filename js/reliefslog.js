@@ -315,10 +315,10 @@ function checkInactivity() {
                 </td>
 
                 <td>
-                    <button class="saveBtn" data-key="${item.firebaseKey}"><i class='bx bx-save'></i></button>
-                    <button class="viewBtn" data-index="${data.findIndex(d => d.firebaseKey === item.firebaseKey)}"><i class='bx bx-show-alt'></i></button>
-                    <button class="deleteBtn" data-key="${item.firebaseKey}"><i class="bx bx-x-circle"></i></button>
-                    <button class="savePDFBtn" data-index="${data.indexOf(item)}"><i class='bx bxs-file-pdf'></i></button>
+                    <button title="Save" class="saveBtn" data-key="${item.firebaseKey}"><i class='bx bx-save'></i></button>
+                    <button title="View" class="viewBtn" data-index="${data.findIndex(d => d.firebaseKey === item.firebaseKey)}"><i class='bx bx-show-alt'></i></button>
+                    <button title="Reject" class="deleteBtn" data-key="${item.firebaseKey}"><i class="bx bx-x-circle"></i></button>
+                    <button title="Save as PDF" class="savePDFBtn" data-index="${data.indexOf(item)}"><i class='bx bxs-file-pdf'></i></button>
                 </td>
             `;
 
