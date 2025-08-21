@@ -550,20 +550,24 @@ async function addMarkersForActiveActivations() {
                     }), {});
 
                     approvedReportsHtml = `
-                        <div>
-                            <div style="background: #f0f0f0; border: 1px solid #ccc; border-radius: 8px; padding: 15px 20px; margin-top: 12px; font-family: Arial, sans-serif;">
-                                <h3 style="color: #333; margin-bottom: 10px; font-weight: 700; font-size: 1rem;">Total for ${organization === "unknown" ? "Unknown Organization" : organization}</h3>
-                                <div style="line-height: 1.5; color: #333; font-size: 1rem;">
-                                    Evacuees: <strong style="color: #ff4081; font-weight: 600;">${totals.evacuees}</strong><br>
-                                    Food Packs: <strong style="color: #ff4081; font-weight: 600;">${totals.foodPacks}</strong><br>
-                                    Hot Meals: <strong style="color: #ff4081; font-weight: 600;">${totals.hotMeals}</strong><br>
-                                    Water (Liters): <strong style="color: #ff4081; font-weight: 600;">${totals.water}</strong><br>
-                                    Volunteers: <strong style="color: #ff4081; font-weight: 600;">${totals.volunteers}</strong><br>
-                                    Monetary Donations: <strong style="color: #ff4081; font-weight: 600;">₱${abbreviateNumber(totals.monetary)}</strong><br>
-                                    In-Kind Donations: <strong style="color: #ff4081; font-weight: 600;">₱${abbreviateNumber(totals.inKind)}</strong>
-                                </div>
-                            </div>
-                        </div>
+                        <div data-id="${totals.reportId}">
+ <div style="background: ${totals.status === 'pending' ? '#e0f7fa' : '#f0f0f0'}; border: ${totals.status === 'pending' ? '2px solid #00acc1' : '1px solid #ccc'}; border-radius: 8px; padding: 15px 20px; margin-top: 12px; font-family: Arial, sans-serif;">
+ <h3 style="color: #333; margin-bottom: 10px; font-weight: 700; font-size: 1rem;">
+ Total for ${organization === "unknown" ? "Unknown Organization" : organization}
+ ${totals.status === 'pending' ? '<span style="background-color: #ff4444; color: white; padding: 2px 6px; border-radius: 3px; font-size: 12px; margin-left: 5px;">New</span>' : ''}
+ </h3>
+ <div style="line-height: 1.5; color: #333; font-size: 1rem;">
+ As of: <strong style="color: #ff4081; font-weight: 600;">${totals.timestamp ? new Date(totals.timestamp).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }) : "August 21, 2025"}</strong><br>
+ Evacuees: <strong style="color: #ff4081; font-weight: 600;">${totals.evacuees}</strong><br>
+ Food Packs: <strong style="color: #ff4081; font-weight: 600;">${totals.foodPacks}</strong><br>
+ Hot Meals: <strong style="color: #ff4081; font-weight: 600;">${totals.hotMeals}</strong><br>
+ Water (Liters): <strong style="color: #ff4081; font-weight: 600;">${totals.water}</strong><br>
+ Volunteers: <strong style="color: #ff4081; font-weight: 600;">${totals.volunteers}</strong><br>
+ Monetary Donations: <strong style="color: #ff4081; font-weight: 600;">₱${abbreviateNumber(totals.monetary)}</strong><br>
+ In-Kind Donations: <strong style="color: #ff4081; font-weight: 600;">₱${abbreviateNumber(totals.inKind)}</strong>
+ </div>
+ </div>
+</div>
                     `;
                     hasApprovedReports = true;
                 } else {
