@@ -157,7 +157,7 @@ select:enabled {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   margin-top: 10px;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
   border-radius: 6px;
 }
 
