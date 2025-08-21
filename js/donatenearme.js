@@ -459,7 +459,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            const newDonationRef = database.ref('pendingInkind').push();
+            const newDonationRef = database.ref('donations/pending/inkind').push();
             const newDonationId = newDonationRef.key;
 
             const newInKindDonation = {
@@ -660,7 +660,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             console.log("Data to be written to Firebase:", newMonetaryDonation);
             try {
-                const newDonationRef = database.ref('pendingMonetary').push();
+                const newDonationRef = database.ref('donations/pending/monetary').push();
                 await newDonationRef.set(newMonetaryDonation);
 
                 console.log("Monetary donation successfully written to Realtime Database.");
@@ -695,6 +695,26 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     } else {
         console.error("ERROR: Monetary Donation Form element with ID 'monetaryDonationForm' not found!");
+    }
+
+    // Reference Number Validation (Numbers Only)
+    if (referenceNumberInput) {
+        referenceNumberInput.addEventListener('input', (event) => {
+            let value = event.target.value.replace(/\D/g, ''); // Remove non-numeric characters
+            event.target.value = value; // Update input value to only include numbers
+        });
+
+        referenceNumberInput.addEventListener('blur', () => {
+            const value = referenceNumberInput.value;
+            if (value.length > 0 && !/^\d+$/.test(value)) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Invalid Reference Number',
+                    text: 'Reference Number must contain only numbers.'
+                });
+                referenceNumberInput.value = ''; // Clear invalid input
+            }
+        });
     }
 
     // Button Active State for Donation Buttons

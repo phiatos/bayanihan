@@ -63,6 +63,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const userRole = localStorage.getItem('userRole');
     let currentOrganization = 'Unknown Group'; // Global variable to store organization
 
+    // archived
+    let archivedCurrentPage = 1;
+    let allArchivedDonations = [];
+    let filteredAndSortedArchivedDonations = [];
+
     // DOM elements
     const form = document.getElementById('form-container-1');
     const tableBody = document.querySelector('#donationTable tbody');
@@ -85,6 +90,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const provinceTextInput = document.getElementById('province-text');
     const cityTextInput = document.getElementById('city-text');
     const barangayTextInput = document.getElementById('barangay-text');
+
+    // archived
+    const viewArchivedBtn = document.getElementById("viewArchived");
+    const archivedTableBody = document.querySelector('#archivedTable tbody');
+    const archivedEntriesInfo = document.getElementById('archivedEntriesInfo');
+    const archivedPaginationContainer = document.getElementById("archivedPagination");
+    const closeArchivedModalBtn = document.getElementById("closeArchivedModalBtn");
 
     const rowsPerPage = 10;
     let currentPage = 1;
@@ -231,7 +243,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 // Load donations from Firebase
-                const dbRef = firebase.database().ref('callfordonation');
+                const dbRef = firebase.database().ref('callfordonation/approved');
                 dbRef.on('value', (snapshot) => {
                     const data = snapshot.val();
                     allDonations = [];
@@ -244,6 +256,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 }, (error) => {
                     console.error("Error fetching donations from Firebase:", error);
                     Swal.fire('Error', 'Failed to load donations from the database.', 'error');
+                });
+
+                // archived
+                const archivedDbRef = firebase.database().ref('callfordonation/archivedCallforDonation');
+                archivedDbRef.on('value', (snapshot) => {
+                    const data = snapshot.val();
+                    allArchivedDonations = [];
+                    if (data) {
+                        Object.entries(data).forEach(([key, value]) => {
+                            allArchivedDonations.push({ ...value, firebaseKey: key });
+                        });
+                    }
+                    applyArchivedChange();
+                }, (error) => {
+                    console.error("Error fetching archived donations:", error);
+                    Swal.fire('Error', 'Failed to load archived donations.', 'error');
                 });
 
                 // Apply UI toggles based on role
@@ -657,6 +685,14 @@ document.addEventListener('DOMContentLoaded', () => {
         renderTable();
     }
 
+    // archived
+     function applyArchivedChange() {
+        filteredAndSortedArchivedDonations = [...allArchivedDonations];
+        archivedCurrentPage = 1;
+        renderArchivedTable();
+    }
+
+
     function applyFilters() {
         let data = [...allDonations];
 
@@ -785,10 +821,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td>${r.address?.fullAddress || r.dropOff || 'N/A'}</td>
                     <td><a href="${r.facebookLink || '#'}" target="_blank" rel="noopener noreferrer">${r.facebookLink && r.facebookLink !== 'N/A' ? 'Visit The Page' : 'N/A'}</a></td>
                     <td>
-                        <button class="viewBtn">View Image</button>
-                        <button class="approveBtn">Approve</button>
-                        <button class="deleteBtn">Archive</button>
-                        <button class="savePDFBtn">Save PDF</button>
+                        <button class="viewBtn"><i class="bx bx-show-alt"></i></button>
+                        <button class="deleteBtn"><i class='bx bx-trash' ></i></button>
+                        <button class="savePDFBtn"><i class="bx bxs-file-pdf"></i></button>
                     </td>
                 `;
                 tr.querySelector(".viewBtn").addEventListener("click", () => {
@@ -798,88 +833,52 @@ document.addEventListener('DOMContentLoaded', () => {
                         confirmButtonText: 'Close'
                     });
                 });
-                tr.querySelector(".approveBtn").addEventListener("click", () => {
-                    if (!r.userUid) {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: 'User UID not found in donation. Cannot approve.',
-                        });
-                        return;
-                    }
-                    database.ref(`users/${r.userUid}`).once('value')
-                        .then(snapshot => {
-                            const userData = snapshot.val();
-                            let organization = currentOrganization;
-                            if (userData && userData.organization) {
-                                organization = userData.organization;
-                                console.log(`Fetched organization for user ${r.userUid}: ${organization}`);
-                            } else {
-                                console.warn(`No organization found for user ${r.userUid}. Using default: ${organization}`);
-                            }
-
-                            r.status = "Approved";
-
-                            // Prepare notification for the donation sender
-                            const notificationMessage = `Your donation call "${r.donationDrive}" (ID: ${r.donationId || r.firebaseKey}) has been approved.`;
-                            return Promise.all([
-                                database.ref(`callfordonation_approved`).push(r),
-                                database.ref(`users/${r.userUid}/callfordonation/${r.firebaseKey}`).set({ ...r, status: "Approved" }),
-                                database.ref(`callfordonation/${r.firebaseKey}`).remove(),
-                                notifySender(notificationMessage, r.userUid, r.donationId || r.firebaseKey)
-                            ]);
-                        })
-                        .then(() => {
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Donation Approved',
-                                text: 'The donation call has been approved and the sender has been notified.',
-                                background: '#f0fdf4',
-                                color: '#065f46',
-                                iconColor: '#059669',
-                                confirmButtonColor: '#059669',
-                                customClass: {
-                                    popup: 'swal2-popup-success-clean',
-                                    title: 'swal2-title-success-clean',
-                                    content: 'swal2-text-success-clean'
-                                }
-                            });
-                        })
-                        .catch(error => {
-                            console.error("Error during donation approval or notification:", error);
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Approval Failed',
-                                text: `Failed to approve donation or send notification: ${error.message}`,
-                                background: '#fef2f2',
-                                color: '#7f1d1d',
-                                iconColor: '#dc2626',
-                                confirmButtonColor: '#b91c1c',
-                                customClass: {
-                                    popup: 'swal2-popup-error-clean',
-                                    title: 'swal2-title-error-clean',
-                                    content: 'swal2-text-error-clean'
-                                }
-                            });
-                        });
-                });
+                // Inside renderTable, .deleteBtn event listener
                 tr.querySelector(".deleteBtn").addEventListener("click", () => {
                     Swal.fire({
                         title: 'Are you sure?',
-                        text: "This donation will be deleted.",
+                        text: "This donation will be archived.",
                         icon: 'warning',
                         showCancelButton: true,
-                        confirmButtonText: 'Yes, delete it!'
-                    }).then(result => {
+                        confirmButtonText: 'Yes, archive it!',
+                        cancelButtonText: 'Cancel'
+                    }).then(async (result) => {
                         if (result.isConfirmed) {
-                            firebase.database().ref(`callfordonation/${r.firebaseKey}`).remove()
-                                .then(() => {
-                                    Swal.fire('Deleted!', 'The donation has been removed.', 'success');
-                                })
-                                .catch(error => {
-                                    console.error("Error deleting donation:", error);
-                                    Swal.fire('Error', 'Failed to delete the donation.', 'error');
-                                });
+                            try {
+                                const donationRef = firebase.database().ref(`callfordonation/approved/${r.firebaseKey}`);
+                                const snapshot = await donationRef.once('value');
+                                const donationData = snapshot.val();
+
+                                if (!donationData) {
+                                    throw new Error("Donation data not found.");
+                                }
+
+                                const archivedDonation = {
+                                    ...donationData,
+                                    archivedTimestamp: Date.now(),
+                                    archivedBy: userRole || 'Unknown',
+                                    archiveReason: 'Archived by user'
+                                };
+
+                                await firebase.database().ref('callfordonation/archivedCallforDonation').push(archivedDonation);
+                                await donationRef.remove();
+
+                                const message = `Donation "${donationData.donationDrive}" archived by ${userRole} from ${currentOrganization} on ${new Date().toLocaleDateString('en-US')}.`;
+                                await notifyAdmin(
+                                    message,
+                                    null,
+                                    null,
+                                    null,
+                                    donationData.donationId,
+                                    donationData.contact?.person || 'Unknown',
+                                    currentOrganization
+                                );
+
+                                Swal.fire('Archived!', 'The donation has been archived.', 'success');
+                            } catch (error) {
+                                console.error("Error archiving donation:", error);
+                                Swal.fire('Error', 'Failed to archive the donation.', 'error');
+                            }
                         }
                     });
                 });
@@ -894,6 +893,83 @@ document.addEventListener('DOMContentLoaded', () => {
         updateRemoveButtonVisibility();
     }
 
+    function renderArchivedTable() {
+    const startIndex = (archivedCurrentPage - 1) * rowsPerPage;
+    const endIndex = startIndex + rowsPerPage;
+    const currentPageRows = filteredAndSortedArchivedDonations.slice(startIndex, endIndex);
+
+    archivedTableBody.innerHTML = "";
+    if (currentPageRows.length === 0) {
+        archivedTableBody.innerHTML = `<tr><td colspan="8" style="text-align: center;">No archived donations found.</td></tr>`;
+    } else {
+        currentPageRows.forEach((r, i) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${startIndex + i + 1}</td>
+                <td>${r.donationDrive || 'N/A'}</td>
+                <td>${r.contact?.person || 'N/A'}</td>
+                <td>${String(r.contact?.number || 'N/A')}</td>
+                <td>${String(r.account?.number || 'N/A')}</td>
+                <td>${r.account?.name || 'N/A'}</td>
+                <td>${r.address?.fullAddress || r.dropOff || 'N/A'}</td>
+                <td><a href="${r.facebookLink || '#'}" target="_blank" rel="noopener noreferrer">${r.facebookLink && r.facebookLink !== 'N/A' ? 'Visit The Page' : 'N/A'}</a></td>
+                <td>
+                    ${userRole === 'AB ADMIN' ? `<button class="retrieveBtn"><p>Retrieve</p></i></button>` : ''}
+                </td>
+            `;
+            if (userRole === 'AB ADMIN') {
+                tr.querySelector(".retrieveBtn").addEventListener("click", () => {
+                    Swal.fire({
+                        title: 'Retrieve Donation?',
+                        text: `Are you sure you want to retrieve "${r.donationDrive}"?`,
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonText: 'Yes, retrieve it!',
+                        cancelButtonText: 'Cancel'
+                    }).then(async (result) => {
+                        if (result.isConfirmed) {
+                            try {
+                                const archivedRef = firebase.database().ref(`callfordonation/archivedCallforDonation/${r.firebaseKey}`);
+                                const snapshot = await archivedRef.once('value');
+                                const donationData = snapshot.val();
+
+                                if (!donationData) {
+                                    throw new Error("Archived donation data not found.");
+                                }
+
+                                const { archivedTimestamp, archivedBy, archiveReason, ...restoredDonation } = donationData;
+                                await firebase.database().ref('callfordonation/approved').push(restoredDonation);
+                                await archivedRef.remove();
+
+                                const message = `Donation "${donationData.donationDrive}" retrieved by ${userRole} from ${currentOrganization} on ${new Date().toLocaleDateString('en-US')}.`;
+                                await notifyAdmin(
+                                    message,
+                                    null,
+                                    null,
+                                    null,
+                                    donationData.donationId,
+                                    donationData.contact?.person || 'Unknown',
+                                    currentOrganization
+                                );
+
+                                Swal.fire('Retrieved!', 'The donation has been restored.', 'success');
+                                document.getElementById('archivedModal').style.display = 'none';
+                            } catch (error) {
+                                console.error("Error retrieving donation:", error);
+                                Swal.fire('Error', 'Failed to retrieve the donation.', 'error');
+                            }
+                        }
+                    });
+                });
+            }
+            archivedTableBody.appendChild(tr);
+        });
+    }
+
+    updateArchivedPaginationInfo();
+    renderArchivedPagination();
+}
+
     function updatePaginationInfo() {
         const totalEntries = filteredAndSortedDonations.length;
         const startEntry = (currentPage - 1) * rowsPerPage + 1;
@@ -903,6 +979,67 @@ document.addEventListener('DOMContentLoaded', () => {
             entriesInfo.textContent = `Showing 0 to 0 of 0 entries`;
         }
     }
+
+    // archived
+    function updateArchivedPaginationInfo() {
+    const totalEntries = filteredAndSortedArchivedDonations.length;
+    const startEntry = (archivedCurrentPage - 1) * rowsPerPage + 1;
+    const endEntry = Math.min(archivedCurrentPage * rowsPerPage, totalEntries);
+    archivedEntriesInfo.textContent = `Showing ${startEntry} to ${endEntry} of ${totalEntries} entries`;
+        if (totalEntries === 0) {
+            archivedEntriesInfo.textContent = `Showing 0 to 0 of 0 entries`;
+        }
+    }
+
+    function createArchivedPaginationButton(label, page, disabled = false, isActive = false) {
+        const btn = document.createElement('button');
+        btn.textContent = label;
+        if (disabled) btn.disabled = true;
+        if (isActive) btn.classList.add('active-page');
+        btn.addEventListener('click', () => {
+            if (!disabled) {
+                archivedCurrentPage = page;
+                renderArchivedTable();
+            }
+        });
+        return btn;
+    }
+
+    function renderArchivedPagination() {
+        archivedPaginationContainer.innerHTML = '';
+        const totalPages = Math.ceil(filteredAndSortedArchivedDonations.length / rowsPerPage);
+
+        if (totalPages === 0) {
+            archivedPaginationContainer.innerHTML = '<span>No archived entries to display</span>';
+            return;
+        }
+
+        archivedPaginationContainer.appendChild(createArchivedPaginationButton('Prev', Math.max(1, archivedCurrentPage - 1), archivedCurrentPage === 1));
+
+        const maxVisible = 5;
+        let startPage = Math.max(1, archivedCurrentPage - Math.floor(maxVisible / 2));
+        let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+        if (endPage - startPage < maxVisible - 1) {
+            startPage = Math.max(1, endPage - maxVisible + 1);
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
+            archivedPaginationContainer.appendChild(createArchivedPaginationButton(i, i, false, i === archivedCurrentPage));
+        }
+
+        archivedPaginationContainer.appendChild(createArchivedPaginationButton('Next', Math.min(totalPages, archivedCurrentPage + 1), archivedCurrentPage === totalPages));
+    }
+
+    // Archived
+    viewArchivedBtn.addEventListener('click', () => {
+    const modal = document.getElementById('archivedModal');
+    modal.style.display = 'flex';
+    applyArchivedChange();
+    });
+
+    closeArchivedModalBtn.addEventListener('click', () => {
+        document.getElementById('archivedModal').style.display = 'none';
+    });
 
     const createPaginationButton = (label, page, disabled = false, isActive = false) => {
         const btn = document.createElement('button');
@@ -1010,7 +1147,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
 
                 // Save to Firebase under the 'callfordonation' node
-                firebase.database().ref('callfordonation').push(newDonation)
+                firebase.database().ref('callfordonation/approved').push(newDonation)
                     .then((snapshot) => {
                         const donationKey = snapshot.key;
                         // Notify admin after successful save
