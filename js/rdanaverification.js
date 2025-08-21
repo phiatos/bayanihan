@@ -393,6 +393,119 @@ sortSelect.addEventListener("change", applySearchAndSort);
         window.onclick = e => { if (e.target === modal) modal.style.display = "none"; };
     }
 
+    // Open archived modal
+document.getElementById("viewArchived").addEventListener("click", () => {
+  document.getElementById("archivedModal").style.display = "flex";
+  loadArchivedReports(); // fetch & render
+});
+
+// Close archived modal
+document.getElementById("closeArchivedModalBtn").addEventListener("click", () => {
+  document.getElementById("archivedModal").style.display = "none";
+});
+
+
+function loadArchivedReports() {
+  const archivedTableBody = document.getElementById("archivedTableBody");
+  const entriesInfo = document.getElementById("archivedEntriesInfo");
+  const paginationContainer = document.getElementById("archivedPagination");
+
+  archivedTableBody.innerHTML = `<tr><td colspan="6">Loading...</td></tr>`;
+
+  database.ref("rdana/rejected").once("value").then(snapshot => {
+    const data = snapshot.val();
+    archivedTableBody.innerHTML = "";
+    paginationContainer.innerHTML = "";
+
+    if (!data) {
+      archivedTableBody.innerHTML = `
+        <tr>
+          <td colspan="6" style="text-align:center; color:gray; font-style:italic; padding:20px;">
+            No rejected reports found.
+          </td>
+        </tr>`;
+      entriesInfo.textContent = "Showing 0 to 0 of 0 entries";
+      return;
+    }
+
+    const reports = Object.keys(data).map(key => ({
+      key,
+      ...data[key]
+    }));
+
+    // Pagination settings
+    let currentPage = 1;
+    const rowsPerPage = 5;
+
+    function renderPage(page) {
+      archivedTableBody.innerHTML = "";
+      const start = (page - 1) * rowsPerPage;
+      const paginated = reports.slice(start, start + rowsPerPage);
+
+      paginated.forEach(report => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${report.rdanaId || "N/A"}</td>
+          <td>${report.rdanaGroup || "N/A"}</td>
+          <td>${formatDate(report?.dateTime)}</td>
+          <td>${report.siteLocation || "N/A"}</td>
+          <td>${report.rejectedAt ? new Date(report.rejectedAt).toLocaleString() : "N/A"}</td>
+          <td><button class="restore-btn" data-key="${report.key}">Restore</button></td>
+        `;
+        archivedTableBody.appendChild(row);
+      });
+
+      // Update entries info
+      entriesInfo.textContent = `Showing ${start + 1} to ${start + paginated.length} of ${reports.length} entries`;
+
+      // Render pagination
+      paginationContainer.innerHTML = "";
+      const totalPages = Math.ceil(reports.length / rowsPerPage);
+
+      for (let i = 1; i <= totalPages; i++) {
+        const btn = document.createElement("button");
+        btn.textContent = i;
+        btn.className = i === page ? "active-page" : "";
+        btn.addEventListener("click", () => {
+          currentPage = i;
+          renderPage(currentPage);
+        });
+        paginationContainer.appendChild(btn);
+      }
+    }
+
+    renderPage(currentPage);
+  });
+}
+
+document.addEventListener("click", function(e) {
+  if (e.target.classList.contains("restore-btn")) {
+    const key = e.target.dataset.key;
+
+    database.ref(`rdana/rejected/${key}`).once("value").then(snapshot => {
+      const report = snapshot.val();
+      if (!report) return;
+
+      // Move back to submitted
+      return database.ref(`rdana/submitted/${key}`).set(report).then(() => {
+        return database.ref(`rdana/rejected/${key}`).remove();
+      });
+    }).then(() => {
+      Swal.fire({
+        icon: "success",
+        title: "Report Restored",
+        text: "The report has been moved back to submitted.",
+        timer: 2000,
+        showConfirmButton: false
+      });
+      loadArchivedReports(); // refresh list
+    }).catch(err => {
+      console.error("Restore failed:", err);
+    });
+  }
+});
+
+
     function approveReport(report) {
         auth.onAuthStateChanged(user => {
             if (!user) {
@@ -477,62 +590,68 @@ sortSelect.addEventListener("change", applySearchAndSort);
         });
     }
 
-    function rejectReport(report) {
-        Swal.fire({
-            title: 'Are you sure?',
-            text: `You are about to reject the report: ${report.rdanaId}. This action will archive the report.`,
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
-            confirmButtonText: 'Yes, reject it!',
-            cancelButtonText: 'Cancel'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                report.status = "Rejected";
+ function rejectReport(report) {
+    Swal.fire({
+        title: 'Are you sure?',
+        text: `You are about to reject the report: ${report.rdanaId}. This action will archive the report.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, reject it!',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            report.status = "Rejected";
+            report.rejectedAt = Date.now(); // ✅ add rejected date
 
-                database.ref(`rdana/rejected`).push(report)
-                    .then(() => {
-                        return database.ref(`rdana/submitted/${report.firebaseKey}`).remove();
-                    })
-                    .then(() => {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Report Rejected',
-                            text: `The report ${report.rdanaId} has been rejected and archived.`,
-                            background: '#f0fdf4',
-                            color: '#065f46',
-                            iconColor: '#059669',
-                            confirmButtonColor: '#059669',
-                            customClass: {
-                                popup: 'swal2-popup-success-clean',
-                                title: 'swal2-title-success-clean',
-                                content: 'swal2-text-success-clean'
-                            }
-                        });
-                    })
-                    .catch(error => {
-                        console.error("Error rejecting report:", error);
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Rejection Failed',
-                            text: `Failed to reject RDANA report: ${error.message}`,
-                            background: '#fef2f2',
-                            color: '#7f1d1d',
-                            iconColor: '#dc2626',
-                            confirmButtonColor: '#b91c1c',
-                            customClass: {
-                                popup: 'swal2-popup-error-clean',
-                                title: 'swal2-title-error-clean',
-                                content: 'swal2-text-error-clean'
-                            }
-                        });
+            database.ref(`rdana/rejected`).push(report)
+                .then(() => {
+                    return database.ref(`rdana/submitted/${report.firebaseKey}`).remove();
+                })
+                .then(() => {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Report Rejected',
+                        text: `The report ${report.rdanaId} has been rejected and archived.`,
+                        background: '#f0fdf4',
+                        color: '#065f46',
+                        iconColor: '#059669',
+                        confirmButtonColor: '#059669',
+                        customClass: {
+                            popup: 'swal2-popup-success-clean',
+                            title: 'swal2-title-success-clean',
+                            content: 'swal2-text-success-clean'
+                        }
                     });
-            }
-        });
-    }
+                })
+                .catch(error => {
+                    console.error("Error rejecting report:", error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Rejection Failed',
+                        text: `Failed to reject RDANA report: ${error.message}`,
+                        background: '#fef2f2',
+                        color: '#7f1d1d',
+                        iconColor: '#dc2626',
+                        confirmButtonColor: '#b91c1c',
+                        customClass: {
+                            popup: 'swal2-popup-error-clean',
+                            title: 'swal2-title-error-clean',
+                            content: 'swal2-text-error-clean'
+                        }
+                    });
+                });
+        }
+    });
+}
+
 
     // Event listeners for search and sort
     searchInput.addEventListener("input", () => applySearchAndSort());
     sortSelect.addEventListener("change", () => applySearchAndSort());
 });
+
+
+
+

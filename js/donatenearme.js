@@ -283,20 +283,29 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     if (inKindBtn && monetaryBtn && inKindDonationForm && monetaryDonationForm) {
-        inKindBtn.addEventListener('click', () => {
-            console.log("In Kind button clicked. Showing In Kind form.");
-            inKindDonationForm.style.display = 'block';
-            monetaryDonationForm.style.display = 'none';
-        });
 
-        monetaryBtn.addEventListener('click', () => {
-            console.log("Monetary button clicked. Showing Monetary form.");
-            monetaryDonationForm.style.display = 'block';
-            inKindDonationForm.style.display = 'none';
-        });
-    } else {
-        console.error("One or more required elements (buttons or forms) not found in the DOM. Check your HTML IDs.");
-    }
+    // Set default view: In-Kind open
+    inKindDonationForm.style.display = 'block';
+    monetaryDonationForm.style.display = 'none';
+    inKindBtn.classList.add('active'); // Set In-Kind button as active
+
+
+    inKindBtn.addEventListener('click', () => {
+        console.log("In-Kind button clicked. Showing In-Kind form.");
+        inKindDonationForm.style.display = 'block';
+        monetaryDonationForm.style.display = 'none';
+    });
+
+    monetaryBtn.addEventListener('click', () => {
+        console.log("Monetary button clicked. Showing Monetary form.");
+        monetaryDonationForm.style.display = 'block';
+        inKindDonationForm.style.display = 'none';
+    });
+
+} else {
+    console.error("One or more required elements (buttons or forms) not found in the DOM. Check your HTML IDs.");
+}
+
 
     // Phone Number Validation
     const validatePhoneNumber = (inputElement) => {
