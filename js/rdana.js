@@ -285,9 +285,24 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Input validation for text fields
-  document.querySelectorAll('input[type="text"]').forEach(input => {
-    input.addEventListener('input', function () {
+document.querySelectorAll('input[type="text"], input[type="number"]').forEach(input => {
+  input.addEventListener('input', function () {
+
+    if (this.classList.contains('number-input')) {
+      // Number-only validation here:
+      this.value = this.value
+        .replace(/-/g, '')           // Remove minus signs
+        .replace(/[^0-9.]/g, '')     // Allow digits and decimal point
+        .replace(/(\..*)\./g, '$1'); // Only one decimal point
+
+      // Remove leading zeros except for "0." pattern
+      if (/^0[0-9]/.test(this.value)) {
+        this.value = this.value.replace(/^0+/, '');
+      }
+    } else {
+      // Your existing text input validations
       this.value = this.value.charAt(0).toUpperCase() + this.value.slice(1);
+
       if (this.placeholder.includes('Name') || this.placeholder.includes('Organization')) {
         this.value = this.value.replace(/[^a-zA-Z\s,-]/g, '');
       }
@@ -295,16 +310,22 @@ document.addEventListener('DOMContentLoaded', () => {
         this.value = this.value.replace(/[^a-zA-Z0-9\s,-]/g, '');
       } else if (this.placeholder.includes('Name') || this.placeholder.includes('Organization') || (this.id === 'OthersInput')) {
         this.value = this.value.replace(/[^a-zA-Z\s,-]/g, '');
-      } else if (this.placeholder.includes('City/Municipality') || this.placeholder.includes('Province') || this.placeholder.includes('Relief Assistance') || this.placeholder.includes('Items') || this.placeholder.includes('Barangay')) {
+      } else if (
+        this.placeholder.includes('City/Municipality') ||
+        this.placeholder.includes('Province') ||
+        this.placeholder.includes('Relief Assistance') ||
+        this.placeholder.includes('Items') ||
+        this.placeholder.includes('Barangay')
+      ) {
         this.value = this.value.replace(/[^a-zA-Z\s,-]/g, '');
       } else {
         this.value = this.value.replace(/[^a-zA-Z\s]/g, '');
       }
-      if (this.type === 'number') {
-        if (this.value < 0) this.value = '';
-      }
-    });
+    }
   });
+});
+
+
 
   function formatDate(date) {
     return date.toISOString().split('T')[0];
@@ -354,13 +375,23 @@ document.addEventListener('DOMContentLoaded', () => {
       const minDateTime = new Date(occurrenceDateTime.getTime() + 24 * 60 * 60 * 1000);
       const maxDateTime = new Date(occurrenceDateTime.getTime() + 48 * 60 * 60 * 1000);
       if (infoDateTime < minDateTime) {
-        alert('Information gathered must be at least 24 hours after the occurrence.');
+        Swal.fire({
+          icon: 'warning',
+          title: 'Invalid Information',
+          text: 'Information gathered must be at least 24 hours after the occurrence.',
+          confirmButtonText: 'OK'
+        });
         infoTimeInput.value = '';
         infoTimeInput.focus();
         return;
       }
       if (infoDateTime > maxDateTime) {
-        alert('Information gathered must be no later than 48 hours after the occurrence.');
+        Swal.fire({
+          icon: 'warning',
+          title: 'Invalid Information',
+          text: 'Information gathered must be no later than 48 hours after the occurrence.',
+          confirmButtonText: 'OK'
+        });
         infoTimeInput.value = '';
         infoTimeInput.focus();
         return;
@@ -396,18 +427,21 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('infoGatheredTime')
   );
 
-  function formatLargeNumber(numStr) {
-    let num = BigInt(numStr || "0");
-    const trillion = 1_000_000_000_000n;
-    const billion = 1_000_000_000n;
-    const million = 1_000_000n;
-    const thousand = 1_000n;
-    if (num >= trillion) return (Number(num) / Number(trillion)).toFixed(2).replace(/\.?0+$/, '') + 'T';
-    if (num >= billion) return (Number(num) / Number(billion)).toFixed(2).replace(/\.?0+$/, '') + 'B';
-    if (num >= million) return (Number(num) / Number(million)).toFixed(2).replace(/\.?0+$/, '') + 'M';
-    if (num >= thousand) return (Number(num) / Number(thousand)).toFixed(2).replace(/\.?0+$/, '') + 'k';
-    return num.toString();
-  }
+function formatLargeNumber(value) {
+  if (value === null || value === undefined || value === "") return "0";
+
+  // Convert to number safely
+  let num = Number(value.toString().replace(/^0+/, "")); // Remove leading zeros
+  if (isNaN(num)) return "0";
+
+  // Handle large numbers
+  if (num >= 1_000_000_000) return (num / 1_000_000_000).toFixed(1).replace(/\.0$/, "") + "B";
+  if (num >= 1_000_000)     return (num / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
+  if (num >= 1_000)         return (num / 1_000).toFixed(1).replace(/\.0$/, "") + "k";
+
+  return num.toString();
+}
+
 
   // Add the submit functionality for the RDANA report
   const nextBtn4 = document.getElementById('nextBtn4');
@@ -457,20 +491,20 @@ document.addEventListener('DOMContentLoaded', () => {
         page2Table += "<tr>";
         const communityData = {
           community: cells[0]?.value || "",
-          totalPop: formatLargeNumber(cells[1]?.value) || "0",
-          affected: formatLargeNumber(cells[2]?.value) || "0",
-          deaths: formatLargeNumber(cells[3]?.value) || "0",
-          injured: formatLargeNumber(cells[4]?.value) || "0",
-          missing: formatLargeNumber(cells[5]?.value) || "0",
-          children: formatLargeNumber(cells[6]?.value) || "0",
-          women: formatLargeNumber(cells[7]?.value) || "0",
-          seniors: formatLargeNumber(cells[8]?.value) || "0",
-          pwd: formatLargeNumber(cells[9]?.value) || "0"
+          totalPop: formatLargeNumber(Number(cells[1]?.value)) || "0",
+          affected: formatLargeNumber(Number(cells[2]?.value)) || "0",
+          deaths: formatLargeNumber(Number(cells[3]?.value)) || "0",
+          injured: formatLargeNumber(Number(cells[4]?.value)) || "0",
+          missing: formatLargeNumber(Number(cells[5]?.value)) || "0",
+          children: formatLargeNumber(Number(cells[6]?.value)) || "0",
+          women: formatLargeNumber(Number(cells[7]?.value)) || "0",
+          seniors: formatLargeNumber(Number(cells[8]?.value)) || "0",
+          pwd: formatLargeNumber(Number(cells[9]?.value)) || "0"
         };
         affectedCommunities.push(communityData);
         cells.forEach((cell, i) => {
           if (i === 0) page2Table += `<td>${cell.value}</td>`;
-          else page2Table += `<td>${formatLargeNumber(cell.value)}</td>`;
+          else page2Table += `<td>${Number(cell.value)}</td>`;
         });
         page2Table += "</tr>";
       });
@@ -823,38 +857,56 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Add row functionality
-  document.getElementById("addRowBtn").addEventListener('click', function () {
-    const tableBody = document.getElementById("tableBody");
-    const newRow = document.createElement("tr");
-    newRow.innerHTML = `
-      <td><input type="text" placeholder="Enter Municipalities/Communities" /></td>
-      <td><input type="number" placeholder="Enter Total Population" /></td>
-      <td><input type="number" placeholder="Enter Affected Population" /></td>
-      <td><input type="number" placeholder="No. of Deaths" /></td>
-      <td><input type="number" placeholder="No. of Injured" /></td>
-      <td><input type="number" placeholder="No. of Missing" /></td>
-      <td><input type="number" placeholder="No. of Children" /></td>
-      <td><input type="number" placeholder="No. of Women" /></td>
-      <td><input type="number" placeholder="No. of Senior Citizens" /></td>
-      <td><input type="number" placeholder="No. of PWD" /></td>
-      <td><button type="button" class="deleteRowBtn">Delete</button></td>
-    `;
-    tableBody.appendChild(newRow);
-    const deleteBtns = document.querySelectorAll(".deleteRowBtn");
-    deleteBtns.forEach(button => {
-      button.addEventListener('click', function () {
-        this.closest('tr').remove();
-      });
-    });
-  });
+// ====== ADD ROW FUNCTIONALITY ======
+document.getElementById("addRowBtn").addEventListener("click", () => {
+  const tableBody = document.getElementById("tableBody");
+  const newRow = document.createElement("tr");
 
-  // Clear row functionality
-  const clearBtns = document.querySelectorAll(".removeRowBtn");
-  clearBtns.forEach(button => {
-    button.addEventListener('click', function () {
-      const row = this.closest('tr');
-      row.querySelectorAll('input').forEach(input => input.value = '');
-    });
-  });
+  newRow.innerHTML = `
+    <td><input type="text" placeholder="Enter Municipalities/Communities" maxlength="50" required/></td>
+    <td><input type="number" class="number-input" placeholder="Enter Total Population" required/></td>
+    <td><input type="number" class="number-input" placeholder="Enter Affected Population" required/></td>
+    <td><input type="number" class="number-input" placeholder="No. of Deaths" required/></td>
+    <td><input type="number" class="number-input" placeholder="No. of Injured" required/></td>
+    <td><input type="number" class="number-input" placeholder="No. of Missing" required/></td>
+    <td><input type="number" class="number-input" placeholder="No. of Children" required/></td>
+    <td><input type="number" class="number-input" placeholder="No. of Women" required/></td>
+    <td><input type="number" class="number-input" placeholder="No. of Senior Citizens" required/></td>
+    <td><input type="number" class="number-input" placeholder="No. of PWD" required/></td>
+    <td><button type="button" class="deleteRowBtn">Delete</button></td>
+  `;
+
+  tableBody.appendChild(newRow);
+});
+
+// ====== DELETE ROW FUNCTIONALITY (delegated) ======
+document.getElementById("tableBody").addEventListener("click", (e) => {
+  if (e.target.classList.contains("deleteRowBtn")) {
+    e.target.closest("tr").remove();
+  }
+});
+
+// ====== INPUT VALIDATION (delegated) ======
+document.getElementById("tableBody").addEventListener("input", (e) => {
+  const input = e.target;
+
+  if (input.classList.contains("number-input")) {
+    // Number-only validation
+    input.value = input.value
+      .replace(/-/g, '')           // Remove minus signs
+      .replace(/[^0-9.]/g, '')     // Allow only digits and decimal
+      .replace(/(\..*)\./g, '$1'); // Only one decimal point
+
+    // Remove leading zeros except "0."
+    if (/^0[0-9]/.test(input.value)) {
+      input.value = input.value.replace(/^0+/, '');
+    }
+
+  } else if (input.type === "text") {
+    // Example text validation: capitalize first letter
+    input.value = input.value.charAt(0).toUpperCase() + input.value.slice(1);
+    // Remove invalid characters (letters, spaces, commas, hyphens allowed)
+    input.value = input.value.replace(/[^a-zA-Z\s,-]/g, '');
+  }
+});
 });

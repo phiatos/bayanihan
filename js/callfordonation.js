@@ -23,6 +23,26 @@ const notifyAdmin = async (message, calamityType, location, details, donationId,
     }
 };
 
+// Notify sender function for donation approval
+const notifySender = async (message, userUid, donationId) => {
+    try {
+        const identifier = `donation_approved_${donationId}_${Date.now()}`;
+        const key = firebase.database().ref("notifications").push().key;
+        await firebase.database().ref("notifications").child(key).set({
+            message,
+            userUid,
+            donationId,
+            identifier,
+            timestamp: Date.now(),
+            read: false,
+            type: "donation_approved"
+        });
+        console.log(`Sender notified of donation approval - Donation ID: ${donationId}, Key: ${key}`);
+    } catch (error) {
+        console.error("Error notifying sender:", error);
+    }
+};
+
 document.addEventListener('DOMContentLoaded', () => {
     const firebaseConfig = {
         apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
@@ -73,7 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let formHasChanges = false;
     let canSubmit = false; // Flag to control submission eligibility
 
-    //  event listeners to the form inputs to track changes
+    // Event listeners to the form inputs to track changes
     if (form) {
         form.addEventListener('input', () => {
             formHasChanges = true;
@@ -217,7 +237,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     allDonations = [];
                     if (data) {
                         Object.entries(data).forEach(([key, value]) => {
-                            allDonations.push({ ...value, firebaseKey: key });
+                            allDonations.push({ ...value, firebaseKey: key, userUid: value.userUid || user.uid });
                         });
                     }
                     applyChange();
@@ -262,10 +282,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
-
-    // Remove redundant Firebase listener (already present in auth.onAuthStateChanged)
-    // const dbRef = firebase.database().ref('callfordonation');
-    // dbRef.on('value', ...); // Removed to avoid duplicate listeners
 
     var my_handlers = {
         fill_regions: function() {
@@ -770,6 +786,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td><a href="${r.facebookLink || '#'}" target="_blank" rel="noopener noreferrer">${r.facebookLink && r.facebookLink !== 'N/A' ? 'Visit The Page' : 'N/A'}</a></td>
                     <td>
                         <button class="viewBtn">View Image</button>
+                        <button class="approveBtn">Approve</button>
                         <button class="deleteBtn">Archive</button>
                         <button class="savePDFBtn">Save PDF</button>
                     </td>
@@ -780,6 +797,71 @@ document.addEventListener('DOMContentLoaded', () => {
                         icon: 'info',
                         confirmButtonText: 'Close'
                     });
+                });
+                tr.querySelector(".approveBtn").addEventListener("click", () => {
+                    if (!r.userUid) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'User UID not found in donation. Cannot approve.',
+                        });
+                        return;
+                    }
+                    database.ref(`users/${r.userUid}`).once('value')
+                        .then(snapshot => {
+                            const userData = snapshot.val();
+                            let organization = currentOrganization;
+                            if (userData && userData.organization) {
+                                organization = userData.organization;
+                                console.log(`Fetched organization for user ${r.userUid}: ${organization}`);
+                            } else {
+                                console.warn(`No organization found for user ${r.userUid}. Using default: ${organization}`);
+                            }
+
+                            r.status = "Approved";
+
+                            // Prepare notification for the donation sender
+                            const notificationMessage = `Your donation call "${r.donationDrive}" (ID: ${r.donationId || r.firebaseKey}) has been approved.`;
+                            return Promise.all([
+                                database.ref(`callfordonation_approved`).push(r),
+                                database.ref(`users/${r.userUid}/callfordonation/${r.firebaseKey}`).set({ ...r, status: "Approved" }),
+                                database.ref(`callfordonation/${r.firebaseKey}`).remove(),
+                                notifySender(notificationMessage, r.userUid, r.donationId || r.firebaseKey)
+                            ]);
+                        })
+                        .then(() => {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Donation Approved',
+                                text: 'The donation call has been approved and the sender has been notified.',
+                                background: '#f0fdf4',
+                                color: '#065f46',
+                                iconColor: '#059669',
+                                confirmButtonColor: '#059669',
+                                customClass: {
+                                    popup: 'swal2-popup-success-clean',
+                                    title: 'swal2-title-success-clean',
+                                    content: 'swal2-text-success-clean'
+                                }
+                            });
+                        })
+                        .catch(error => {
+                            console.error("Error during donation approval or notification:", error);
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Approval Failed',
+                                text: `Failed to approve donation or send notification: ${error.message}`,
+                                background: '#fef2f2',
+                                color: '#7f1d1d',
+                                iconColor: '#dc2626',
+                                confirmButtonColor: '#b91c1c',
+                                customClass: {
+                                    popup: 'swal2-popup-error-clean',
+                                    title: 'swal2-title-error-clean',
+                                    content: 'swal2-text-error-clean'
+                                }
+                            });
+                        });
                 });
                 tr.querySelector(".deleteBtn").addEventListener("click", () => {
                     Swal.fire({
@@ -923,6 +1005,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     image: base64Image || '',
                     status: "Pending",
                     userRole: userRole || 'default',
+                    userUid: auth.currentUser.uid,
                     timestamp: Date.now()
                 };
 
@@ -931,7 +1014,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     .then((snapshot) => {
                         const donationKey = snapshot.key;
                         // Notify admin after successful save
-                        const message = `New donation call "${donationDrive}" submitted by ${contactPerson} from ${currentOrganization} on ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} at ${new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })} PST.`; // Use currentOrganization
+                        const message = `New donation call "${donationDrive}" submitted by ${contactPerson} from ${currentOrganization} on ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} at ${new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })} PST.`;
                         notifyAdmin(message, null, null, null, donationKey, contactPerson, currentOrganization);
 
                         // Clear form fields after successful submission
@@ -1185,7 +1268,7 @@ document.addEventListener('DOMContentLoaded', () => {
             addDetail("Status", donation.status);
             addDetail("Submitted Date/Time", new Date(donation.dateTime).toLocaleString());
 
-                       if (donation.image) {
+            if (donation.image) {
                 y += 10;
                 const imgWidth = 80;
                 const imgHeight = (imgWidth / logo.naturalWidth) * logo.naturalHeight;

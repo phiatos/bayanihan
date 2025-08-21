@@ -26,7 +26,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const barangayTextInput = document.getElementById('barangay-text');
     const availabilityInputsDiv = document.getElementById('availability-inputs');
     const addAvailabilityButton = document.getElementById('addAvailability');
-    const volunteerAvailabilityHiddenInput = document.getElementById('volunteerAvailability');
     const submitButton = document.querySelector('.btn-primary');
     let isSubmitting = false;
     const agreeCheckbox = document.getElementById('agreeToTerms');
@@ -144,7 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
             'nameExtension': { label: 'Name Extension', lettersOnly: true, required: false },
             'email': { label: 'Email', isEmail: true },
             'mobileNumber': { label: 'Mobile Number', isMobile: true },
-            'socialMedia': { label: 'Social Media', isUrl: true, required: false },
+            'socialMedia': { label: 'Social Media', isUrl: true, required: true },
             'age': { label: 'Age', isAge: true },
             'streetAddress': { label: 'Street Address' },
             'otherSkillComments': { label: 'Other Skill Details', required: false },
@@ -172,22 +171,154 @@ document.addEventListener('DOMContentLoaded', () => {
             }));
         }
     });
+    
+    // Add real-time validation for availability inputs
+    document.querySelectorAll('.availability-item').forEach(item => {
+        const dateInput = item.querySelector('.availability-date');
+        const timeInput = item.querySelector('.availability-time');
+        if (dateInput) {
+            dateInput.addEventListener('input', () => {
+                clearError(dateInput);
+                const dateValue = dateInput.value.trim();
+                if (!dateValue) {
+                    showError(dateInput, 'Date is required.');
+                    return;
+                }
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const selectedDate = new Date(dateValue);
+                const sixMonthsFromNow = new Date();
+                sixMonthsFromNow.setMonth(sixMonthsFromNow.getMonth() + 6);
+                if (selectedDate < today) {
+                    showError(dateInput, 'Date cannot be in the past.');
+                }
+                if (selectedDate > sixMonthsFromNow) {
+                    showError(dateInput, 'Date must be within 6 months.');
+                }
+            });
+        }
+        if (timeInput) {
+            timeInput.addEventListener('input', () => {
+                clearError(timeInput);
+                const timeValue = timeInput.value.trim();
+                if (!timeValue) {
+                    showError(timeInput, 'Time is required.');
+                    return;
+                }
+                const [hours, minutes] = timeValue.split(':').map(Number);
+                const selectedDate = dateInput.value ? new Date(dateInput.value) : new Date();
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const isToday = selectedDate.toDateString() === today.toDateString();
+                const currentTime = new Date();
+                const oneHourLater = new Date(currentTime.getTime() + 60 * 60 * 1000);
+                const oneHourLaterHour = oneHourLater.getHours();
+                const oneHourLaterMinute = oneHourLater.getMinutes();
+                const formattedOneHourLater = `${oneHourLaterHour}:${oneHourLaterMinute < 10 ? '0' + oneHourLaterMinute : oneHourLaterMinute}`;
+                const isEmergencyResponse = document.getElementById('emergencyResponseCheckbox')?.checked || false;
+                if (!isEmergencyResponse && (hours < 8 || hours > 20)) {
+                    showError(timeInput, 'Time must be between 8 AM and 8 PM.');
+                    return;
+                }
+                if (isToday && (hours < oneHourLaterHour || (hours === oneHourLaterHour && minutes < oneHourLaterMinute))) {
+                    showError(timeInput, `Time must be at least one hour from now (${formattedOneHourLater}).`);
+                }
+            });
+        }
+    });
+
+    addAvailabilityButton.addEventListener('click', () => {
+    setTimeout(() => {
+        const newItem = availabilityInputsDiv.lastElementChild;
+        const dateInput = newItem.querySelector('.availability-date');
+        const timeInput = newItem.querySelector('.availability-time');
+            if (dateInput) {
+                dateInput.addEventListener('input', () => {
+                    clearError(dateInput);
+                    const dateValue = dateInput.value.trim();
+                    if (!dateValue) {
+                        showError(dateInput, 'Date is required.');
+                        return;
+                    }
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const selectedDate = new Date(dateValue);
+                    const sixMonthsFromNow = new Date();
+                    sixMonthsFromNow.setMonth(sixMonthsFromNow.getMonth() + 6);
+                    if (selectedDate < today) {
+                        showError(dateInput, 'Date cannot be in the past.');
+                    }
+                    if (selectedDate > sixMonthsFromNow) {
+                        showError(dateInput, 'Date must be within 6 months.');
+                    }
+                });
+            }
+            if (timeInput) {
+                timeInput.addEventListener('input', () => {
+                    clearError(timeInput);
+                    const timeValue = timeInput.value.trim();
+                    if (!timeValue) {
+                        showError(timeInput, 'Time is required.');
+                        return;
+                    }
+                    const [hours, minutes] = timeValue.split(':').map(Number);
+                    const selectedDate = dateInput.value ? new Date(dateInput.value) : new Date();
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const isToday = selectedDate.toDateString() === today.toDateString();
+                    const currentTime = new Date(); // Use fresh Date object for current time
+                    const oneHourLater = new Date(currentTime.getTime() + 60 * 60 * 1000);
+                    const oneHourLaterHour = oneHourLater.getHours();
+                    const oneHourLaterMinute = oneHourLater.getMinutes();
+                    const formattedOneHourLater = `${oneHourLaterHour}:${oneHourLaterMinute < 10 ? '0' + oneHourLaterMinute : oneHourLaterMinute}`;
+                    if (hours < 8 || hours > 20) {
+                        showError(timeInput, 'Time must be between 8 AM and 8 PM.');
+                        return;
+                    }
+                    if (isToday && (hours < oneHourLaterHour || (hours === oneHourLaterHour && minutes < oneHourLaterMinute))) {
+                        showError(timeInput, `Time must be at least one hour from now (${formattedOneHourLater}).`);
+                    }
+                });
+            }
+        }, 0);
+    });
 
     // Apply input restrictions
     restrictMobileNumberInput(document.getElementById('mobileNumber'));
     restrictAgeInput(document.getElementById('age'));
 
     // Set min date for availability inputs to tomorrow
+    // function setMinDateForAvailability() {
+    //     const today = new Date();
+    //     const minDate = today.toISOString().split('T')[0];
+    //     document.querySelectorAll('.availability-date').forEach(dateInput => {
+    //         dateInput.setAttribute('min', minDate);
+    //     });
+    //     document.querySelectorAll('.availability-time').forEach(timeInput => {
+    //         timeInput.setAttribute('min', '08:00');
+    //         timeInput.setAttribute('max', '20:00');
+    //     });
+    // }
     function setMinDateForAvailability() {
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        const minDate = tomorrow.toISOString().split('T')[0]; // Format as YYYY-MM-DD
-        document.querySelectorAll('.availability-date').forEach(dateInput => {
-            dateInput.setAttribute('min', minDate);
+        const today = new Date();
+        const minDate = today.toISOString().split('T')[0];
+        const isEmergencyResponse = document.getElementById('emergencyResponseCheckbox')?.checked || false;
+        document.querySelectorAll('.availability-item').forEach(item => {
+            const dateInput = item.querySelector('.availability-date');
+            const timeInput = item.querySelector('.availability-time');
+            if (dateInput) {
+                dateInput.setAttribute('min', minDate);
+            }
+            if (timeInput && !isEmergencyResponse) {
+                timeInput.setAttribute('min', '08:00');
+                timeInput.setAttribute('max', '20:00');
+            } else if (timeInput) {
+                timeInput.removeAttribute('min');
+                timeInput.removeAttribute('max');
+            }
         });
     }
 
-    // Validate all form inputs for submission
     async function validateFormForSubmission(inputs) {
         let isValid = true;
         const errors = [];
@@ -195,6 +326,10 @@ document.addEventListener('DOMContentLoaded', () => {
         sixMonthsFromNow.setMonth(sixMonthsFromNow.getMonth() + 6);
         sixMonthsFromNow.setHours(23, 59, 59, 999);
         const submittedDateTimes = new Set();
+        const specificDateTimeAvailability = [];
+        
+        const emergencyResponseCheckbox = document.getElementById('emergencyResponseCheckbox');
+        const isEmergencyResponse = emergencyResponseCheckbox ? emergencyResponseCheckbox.checked : false;
 
         const fieldsToCheck = [
             { id: 'firstName', label: 'First Name', lettersOnly: true },
@@ -266,8 +401,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Check availability
         const availabilityItems = document.querySelectorAll('.availability-item');
-        const specificDateTimeAvailability = [];
+        if (availabilityItems.length > 7) {
+            errors.push('You can only add up to 7 availability slots.');
+            isValid = false;
+            const firstDateInput = availabilityItems[0]?.querySelector('.availability-date');
+            if (firstDateInput) {
+                showError(firstDateInput, 'You can only add up to 7 availability slots.');
+            }
+        }
         let hasEmptySpecificDateTimeField = false;
+        let hasAtLeastOneValidSlot = false;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
 
         for (const item of availabilityItems) {
             const dateInput = item.querySelector('.availability-date');
@@ -275,35 +420,76 @@ document.addEventListener('DOMContentLoaded', () => {
             if (dateInput && timeInput) {
                 const date = dateInput.value.trim();
                 const time24h = timeInput.value.trim();
+                clearError(dateInput);
+                clearError(timeInput);
                 if (!date || !time24h) {
                     hasEmptySpecificDateTimeField = true;
+                    if (!date) showError(dateInput, 'Date is required.');
+                    if (!time24h) showError(timeInput, 'Time is required.');
                     errors.push('Please fill in all date and time fields for your specific availability.');
                     isValid = false;
                     continue;
                 }
                 const selectedDateTime = new Date(`${date}T${time24h}:00`);
                 const formattedTime12h = convertTo12HourFormat(time24h);
+                const [hours, minutes] = time24h.split(':').map(Number);
+                const isToday = new Date(date).toDateString() === today.toDateString();
+                const currentTime = new Date(); 
+                const oneHourLater = new Date(currentTime.getTime() + 60 * 60 * 1000);
+                const oneHourLaterHour = oneHourLater.getHours();
+                const oneHourLaterMinute = oneHourLater.getMinutes();
+                const formattedOneHourLater = `${oneHourLaterHour}:${oneHourLaterMinute < 10 ? '0' + oneHourLaterMinute : oneHourLaterMinute}`;
+
+                const selectedDate = new Date(date);
+                selectedDate.setHours(0, 0, 0, 0);
+                if (selectedDate < today) {
+                    showError(dateInput, 'Date cannot be in the past.');
+                    errors.push(`Availability slot on ${date} is in the past.`);
+                    isValid = false;
+                    continue;
+                }
+                
+                if (!isEmergencyResponse) {
+                    if (hours < 8 || hours > 20) {
+                        showError(timeInput, `Time must be between 8 AM and 8 PM.`);
+                        errors.push(`Availability slot on ${date} at ${formattedTime12h} must be between 8 AM and 8 PM.`);
+                        isValid = false;
+                        continue;
+                    }
+                }
+                if (isToday && (hours < oneHourLaterHour || (hours === oneHourLaterHour && minutes < oneHourLaterMinute))) {
+                    showError(timeInput, `Time must be at least one hour from now (${formattedOneHourLater}).`);
+                    errors.push(`Availability slot on ${date} at ${formattedTime12h} must be at least one hour from now.`);
+                    isValid = false;
+                    continue;
+                }
                 if (selectedDateTime > sixMonthsFromNow) {
+                    showError(dateInput, `Availability slot on ${date} at ${formattedTime12h} is beyond the 6-month scheduling window.`);
                     errors.push(`Availability slot on ${date} at ${formattedTime12h} is beyond the 6-month scheduling window.`);
                     isValid = false;
+                    continue;
                 }
                 const dateTimeString = `${date} ${time24h}`;
                 if (submittedDateTimes.has(dateTimeString)) {
+                    showError(dateInput, `Duplicate availability slot found: ${date} at ${formattedTime12h}.`);
+                    showError(timeInput, `Duplicate availability slot found: ${date} at ${formattedTime12h}.`);
                     errors.push(`Duplicate availability slot found: ${date} at ${formattedTime12h}.`);
                     isValid = false;
+                    continue;
                 }
                 submittedDateTimes.add(dateTimeString);
                 specificDateTimeAvailability.push({ date: date, time: formattedTime12h });
+                hasAtLeastOneValidSlot = true; 
             }
         }
 
-        if (hasEmptySpecificDateTimeField) {
+        if (!hasAtLeastOneValidSlot && availabilityItems.length > 0 && !hasEmptySpecificDateTimeField) {
+            errors.push('Please add at least one valid date and time for your availability.');
             isValid = false;
-        }
-
-        if (specificDateTimeAvailability.length === 0 && availabilityItems.length > 0) {
-            errors.push('Please add at least one specific date and time for your availability.');
-            isValid = false;
+            const firstDateInput = availabilityItems[0]?.querySelector('.availability-date');
+            if (firstDateInput) {
+                showError(firstDateInput, 'Please add at least one valid date and time for your availability.');
+            }
         }
 
         // Duplicate checks
@@ -351,8 +537,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        return { isValid, errors };
+        return { isValid, errors, specificDateTimeAvailability };
     }
+    
 
     if (otherCheckbox && otherComments) {
         otherCheckbox.addEventListener('change', (event) => {
@@ -436,14 +623,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const addAvailabilityItem = () => {
         const availabilityItemDiv = document.createElement('div');
         availabilityItemDiv.classList.add('availability-item', 'form-group');
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        const minDate = tomorrow.toISOString().split('T')[0];
+        const today = new Date();
+        const minDate = today.toISOString().split('T')[0]; 
         availabilityItemDiv.innerHTML = `
             <label>Date:</label>
             <input type="date" class="availability-date" min="${minDate}" required>
             <label>Time:</label>
-            <input type="time" class="availability-time" required>
+            <input type="time" class="availability-time" min="08:00" max="20:00" required>
             <button type="button" class="remove-availability-item">Remove</button>
         `;
         availabilityInputsDiv.appendChild(availabilityItemDiv);
@@ -469,8 +655,105 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    if (document.getElementById('emergencyResponseCheckbox')) {
+        document.getElementById('emergencyResponseCheckbox').addEventListener('change', (event) => {
+            setMinDateForAvailability();
+            document.querySelectorAll('.availability-item').forEach(item => {
+                const timeInput = item.querySelector('.availability-time');
+                if (timeInput) {
+                    clearError(timeInput);
+                    if (!event.target.checked) {
+                        const [hours] = timeInput.value.split(':').map(Number);
+                        if (hours < 8 || hours > 20) {
+                            showError(timeInput, 'Time must be between 8 AM and 8 PM when not available for emergency response.');
+                        }
+                    }
+                }
+            });
+        });
+    }
+    
     if (addAvailabilityButton) {
-        addAvailabilityButton.addEventListener('click', addAvailabilityItem);
+        addAvailabilityButton.addEventListener('click', () => {
+            if (availabilityInputsDiv.children.length >= 7) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Maximum Slots Reached',
+                    text: 'You can only add up to 7 availability slots.',
+                    confirmButtonText: 'OK',
+                    customClass: {
+                        popup: 'swal2-popup-warning-clean',
+                        title: 'swal2-title-warning-clean',
+                        htmlContainer: 'swal2-text-warning-clean',
+                        confirmButton: 'my-warning-button'
+                    }
+                });
+                return;
+            }
+            addAvailabilityItem();
+            setTimeout(() => {
+                const newItem = availabilityInputsDiv.lastElementChild;
+                const dateInput = newItem.querySelector('.availability-date');
+                const timeInput = newItem.querySelector('.availability-time');
+                const isEmergencyResponse = document.getElementById('emergencyResponseCheckbox')?.checked || false;
+                if (dateInput) {
+                    dateInput.addEventListener('input', () => {
+                        clearError(dateInput);
+                        const dateValue = dateInput.value.trim();
+                        if (!dateValue) {
+                            showError(dateInput, 'Date is required.');
+                            return;
+                        }
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        const selectedDate = new Date(dateValue);
+                        const sixMonthsFromNow = new Date();
+                        sixMonthsFromNow.setMonth(sixMonthsFromNow.getMonth() + 6);
+                        if (selectedDate < today) {
+                            showError(dateInput, 'Date cannot be in the past.');
+                        }
+                        if (selectedDate > sixMonthsFromNow) {
+                            showError(dateInput, 'Date must be within 6 months.');
+                        }
+                    });
+                }
+                if (timeInput) {
+                    timeInput.addEventListener('input', () => {
+                        clearError(timeInput);
+                        const timeValue = timeInput.value.trim();
+                        if (!timeValue) {
+                            showError(timeInput, 'Time is required.');
+                            return;
+                        }
+                        const [hours, minutes] = timeValue.split(':').map(Number);
+                        const selectedDate = dateInput.value ? new Date(dateInput.value) : new Date();
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        const isToday = selectedDate.toDateString() === today.toDateString();
+                        const currentTime = new Date();
+                        const oneHourLater = new Date(currentTime.getTime() + 60 * 60 * 1000);
+                        const oneHourLaterHour = oneHourLater.getHours();
+                        const oneHourLaterMinute = oneHourLater.getMinutes();
+                        const formattedOneHourLater = `${oneHourLaterHour}:${oneHourLaterMinute < 10 ? '0' + oneHourLaterMinute : oneHourLaterMinute}`;
+                        const isEmergencyResponse = document.getElementById('emergencyResponseCheckbox')?.checked || false;
+                        if (!isEmergencyResponse && (hours < 8 || hours > 20)) {
+                            showError(timeInput, 'Time must be between 8 AM and 8 PM.');
+                            return;
+                        }
+                        if (isToday && (hours < oneHourLaterHour || (hours === oneHourLaterHour && minutes < oneHourLaterMinute))) {
+                            showError(timeInput, `Time must be at least one hour from now (${formattedOneHourLater}).`);
+                        }
+                    });
+                }
+                if (timeInput && !isEmergencyResponse) {
+                    timeInput.setAttribute('min', '08:00');
+                    timeInput.setAttribute('max', '20:00');
+                } else if (timeInput) {
+                    timeInput.removeAttribute('min');
+                    timeInput.removeAttribute('max');
+                }
+            }, 0);
+        });
     }
 
     updateRemoveButtons();
@@ -830,7 +1113,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     barangay: document.getElementById('barangay')
                 };
 
-                const { isValid, errors } = await validateFormForSubmission(inputs);
+                const { isValid, errors, specificDateTimeAvailability } = await validateFormForSubmission(inputs);
                 if (!isValid) {
                     Swal.fire({
                         icon: 'error',
@@ -856,6 +1139,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 const selectedProvinceText = provinceSelect.options[provinceSelect.selectedIndex]?.textContent || '';
                 const selectedCityText = citySelect.options[citySelect.selectedIndex]?.textContent || '';
                 const selectedBarangayText = barangaySelect.options[barangaySelect.selectedIndex]?.textContent || '';
+                
+                const emergencyResponseCheckbox = document.getElementById('emergencyResponseCheckbox');
+                const isEmergencyResponse = emergencyResponseCheckbox ? emergencyResponseCheckbox.checked : false;
+
                 const volunteerData = {
                     firstName: inputs.firstName.value.trim(),
                     middleInitial: inputs.middleInitial.value.trim(),
@@ -875,8 +1162,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         streetAddress: inputs.streetAddress.value.trim()
                     },
                     availability: {
-                        specificDateTimeSlots: JSON.parse(volunteerAvailabilityHiddenInput.value || '[]')
+                        specificDateTimeSlots: specificDateTimeAvailability
                     },
+                    isEmergencyResponse: isEmergencyResponse,
                     applicationDateandTime: new Date().toISOString(),
                     recaptchaResponse: recaptchaResponse
                 };
@@ -884,7 +1172,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 await database.ref("volunteerApplications/pendingVolunteer").push(volunteerData);
 
                 console.log("Volunteer application saved to Realtime Database successfully!");
-                Swal.fire('Success', 'Your volunteer application has been submitted successfully! Thank you for your interest in helping.', 'success');
+                Swal.fire({
+                    title: 'Success!',
+                    text: 'Your volunteer application has been submitted successfully! Thank you for your interest in helping.',
+                    icon: 'success',
+                    showConfirmButton: true,
+                    confirmButtonText: 'OK',
+                    customClass: {
+                        popup: 'swal2-popup-success-clean',
+                        title: 'swal2-title-success-clean',
+                        htmlContainer: 'swal2-text-success-clean',
+                        confirmButton: 'my-success-button'
+                    }
+                });
 
                 volunteerForm.reset();
                 my_handlers.fill_regions();

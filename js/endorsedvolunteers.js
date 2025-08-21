@@ -21,12 +21,12 @@ const searchInput = document.getElementById('searchInput');
 const sortSelect = document.getElementById('sortSelect');
 const paginationElement = document.getElementById('pagination');
 const entriesInfoSpan = document.getElementById('entriesInfo');
-
 const previewModal = document.getElementById('previewModal');
 const closeModalBtn = document.getElementById('closeModal');
 const modalContentDiv = document.getElementById('modalContent');
+const viewApprovedBtn = document.getElementById('viewApprovedBtn');
 
-// Archived Modal Elements
+// Modals
 const viewArchivedButton = document.getElementById('viewArchived');
 const archivedModal = document.getElementById('archivedModal');
 const closeArchivedModalBtn = document.getElementById('closeArchivedModalBtn');
@@ -37,8 +37,8 @@ const exportBtn = document.getElementById('exportBtn');
 const savePdfBtn = document.getElementById('savePdfBtn');
 
 let allEndorsedVolunteers = []; 
-let filteredVolunteers = []; 		
-let paginatedVolunteers = []; 	
+let filteredVolunteers = [];        
+let paginatedVolunteers = [];     
 let currentPage = 1;
 const rowsPerPage = 10; 
 let allArchivedVolunteerData = [];
@@ -48,6 +48,7 @@ const archivedVolunteerRowsPerPage = 10;
 
 let currentUserRole = 'ABVN';
 let currentUserId = null;
+let permissions = { canView: false, canArchive: false, canRetrieve: false };
 
 // Variables for inactivity detection
 let inactivityTimeout;
@@ -67,12 +68,18 @@ function checkInactivity() {
         text: 'You\'ve been inactive for a while. Do you want to continue your session or log out?',
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33',
         confirmButtonText: 'Stay Login',
         cancelButtonText: 'Log Out',
+        reverseButtons: true,
+        focusCancel: true,
         allowOutsideClick: false,
-        reverseButtons: true
+        customClass: {
+            popup: 'custom-swal-popup-small',
+            title: 'custom-swal-title',
+            htmlContainer: 'custom-swal-content',
+            confirmButton: 'custom-confirm-btn',
+            cancelButton: 'custom-cancel-btn'
+        },
     }).then((result) => {
         if (result.isConfirmed) {
             resetInactivityTimer();
@@ -83,16 +90,104 @@ function checkInactivity() {
                 window.location.href = "../pages/login.html";
             }).catch((error) => {
                 console.error("Error logging out:", error);
-                Swal.fire('Error', 'Failed to log out. Please try again.', 'error');
+                Swal.fire({
+                    title: 'Error',
+                    text: 'Failed to log out. Please try again.',
+                    icon: 'error',
+                    customClass: {
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean',
+                        confirmButton: 'my-error-button'
+                    }
+                });
             });
         }
     });
 }
 
 // Attach event listeners to detect user activity
-['mousemove', 'keydown', 'scroll', 'click'].forEach(eventType => {
-    document.addEventListener(eventType, resetInactivityTimer);
+function setupInactivityListeners() {
+    ['mousemove', 'keydown', 'scroll', 'click'].forEach(eventType => {
+        document.addEventListener(eventType, resetInactivityTimer);
+    });
+}
+
+viewApprovedBtn.addEventListener('click', () => {
+    window.location.href = '../pages/approvedvolunteers.html';
 });
+
+// Permission check function
+async function checkAdminPermissions() {
+    const user = auth.currentUser;
+    if (!user) {
+        Swal.fire('Error', 'User not authenticated.', 'error');
+        return { canView: false, canArchive: false, canRetrieve: false };
+    }
+    const snapshot = await database.ref(`users/${user.uid}`).once('value');
+    const userData = snapshot.val();
+    const adminPosition = userData?.adminPosition || '';
+    return {
+        canView: ['Super Admin', 'position-one', 'position-two'].includes(adminPosition),
+        canArchive: ['Super Admin', 'position-one'].includes(adminPosition),
+        canRetrieve: ['Super Admin', 'position-one'].includes(adminPosition)
+    };
+}
+
+// Password verification function
+async function verifySuperAdminPassword() {
+    const { value: password } = await Swal.fire({
+        title: 'Enter Admin Password',
+        input: 'password',
+        inputPlaceholder: 'Enter password here',
+        inputAttributes: { 
+            autocapitalize: 'off', 
+            autocorrect: 'off', 
+            autocomplete: 'new-password' 
+        },
+        showCancelButton: true,
+        confirmButtonText: 'Verify',
+        showLoaderOnConfirm: true,
+        reverseButtons: true,
+        focusCancel: true,
+        preConfirm: async (password) => {
+            try {
+                const user = auth.currentUser;
+                const credential = firebase.auth.EmailAuthProvider.credential(user.email, password);
+                await auth.signInWithCredential(credential);
+                return true;
+            } catch (error) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Verification Failed',
+                    text: 'Invalid admin password.',
+                    timer: 1600,
+                    showConfirmButton: false,
+                    timerProgressBar: true,
+                    allowOutsideClick: false,
+                    customClass: {
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean'
+                    }
+                });
+                return false;
+            }
+        },
+        allowOutsideClick: () => !Swal.isLoading(),
+        customClass: {
+            popup: 'custom-swal-popup',
+            title: 'custom-swal-title',
+            input: 'custom-swal-input',
+            confirmButton: 'custom-confirm-btn',
+            cancelButton: 'custom-cancel-btn'
+        }
+    });
+    if (!password) {
+        return false;
+    }
+    return password; 
+}
 
 function getFullName(volunteer) {
     return `${volunteer.firstName} ${volunteer.lastName}`;
@@ -130,6 +225,14 @@ function exportToExcel() {
         if (endorsementDate === 'N/A') {
             console.warn(`Missing or invalid endorsementDate for volunteer ${volunteer.key}:`, volunteer.endorsementDate);
         }
+        const dateTimeAvailability = volunteer.availability?.specificDateTimeSlots && Array.isArray(volunteer.availability.specificDateTimeSlots)
+            ? volunteer.availability.specificDateTimeSlots
+                .map((slot) => `${slot.date || 'N/A'} at ${slot.time || 'N/A'}`)
+                .join("; ")
+            : "N/A";
+        const skillsList = Array.isArray(volunteer.skills)
+            ? volunteer.skills.join("; ")
+            : "None";
         return {
             "No.": i + 1,
             "Full Name": getFullName(volunteer) || 'N/A',
@@ -142,6 +245,9 @@ function exportToExcel() {
             "City": volunteer.address?.city || 'N/A',
             "Barangay": volunteer.address?.barangay || 'N/A',
             "Additional Info": volunteer.additionalInfo || 'N/A',
+            "Emergency Response": volunteer.emergencyResponse ? "Yes (24/7)" : "No",
+            "Date and Time Availability": dateTimeAvailability,
+            "Skills": skillsList,
             "Endorsed To ABVN": volunteer.endorsedToABVNName ? `${volunteer.endorsedToABVNName} (${volunteer.endorsedToABVNLocation})` : 'N/A',
             "Endorsement Date": endorsementDate
         };
@@ -215,13 +321,21 @@ function exportToPDF() {
         const head = [[
             "No.", "Full Name", "Email", "Mobile Number", "Age", "Social Media",
             "Region", "Province", "City", "Barangay", "Additional Info",
-            "Endorsed To ABVN", "Endorsement Date"
+            "Emergency Response", "Date and Time Availability", "Skills", "Endorsed To ABVN", "Endorsement Date"
         ]];
         const body = filteredVolunteers.map((volunteer, i) => {
             const endorsementDate = formatDate(volunteer.endorsementDate);
             if (endorsementDate === 'N/A') {
                 console.warn(`Missing or invalid endorsementDate for volunteer ${volunteer.key}:`, volunteer.endorsementDate);
             }
+            const dateTimeAvailability = volunteer.availability?.specificDateTimeSlots && Array.isArray(volunteer.availability.specificDateTimeSlots)
+                ? volunteer.availability.specificDateTimeSlots
+                    .map((slot) => `${slot.date || 'N/A'} at ${slot.time || 'N/A'}`)
+                    .join("; ")
+                : "N/A";
+            const skillsList = Array.isArray(volunteer.skills)
+                ? volunteer.skills.join("; ")
+                : "None";
             return [
                 i + 1,
                 getFullName(volunteer) || 'N/A',
@@ -234,6 +348,9 @@ function exportToPDF() {
                 volunteer.address?.city || 'N/A',
                 volunteer.address?.barangay || 'N/A',
                 volunteer.additionalInfo || 'N/A',
+                volunteer.emergencyResponse ? "Yes (24/7)" : "No",
+                dateTimeAvailability,
+                skillsList,
                 volunteer.endorsedToABVNName ? `${volunteer.endorsedToABVNName} (${volunteer.endorsedToABVNLocation})` : 'N/A',
                 endorsementDate
             ];
@@ -336,11 +453,22 @@ function saveSingleVolunteerPdf(volunteer) {
         y = addDetail("Mobile Number", String(volunteer.mobileNumber));
         y = addDetail("Age", volunteer.age);
         y = addDetail("Social Media Link", volunteer.socialMediaLink);
+        y = addDetail("Additional Info", volunteer.additionalInfo);
+        y = addDetail("Emergency Response", volunteer.emergencyResponse ? "Yes (24/7)" : "No");
+        const dateTimeAvailability = volunteer.availability?.specificDateTimeSlots && Array.isArray(volunteer.availability.specificDateTimeSlots)
+            ? volunteer.availability.specificDateTimeSlots
+                .map((slot) => `${slot.date || 'N/A'} at ${slot.time || 'N/A'}`)
+                .join("; ")
+            : "N/A";
+        y = addDetail("Availability", dateTimeAvailability);
+        const skillsList = Array.isArray(volunteer.skills)
+            ? volunteer.skills.join("; ")
+            : "None";
+        y = addDetail("Skills", skillsList);
         y = addDetail("Region", volunteer.address?.region);
         y = addDetail("Province", volunteer.address?.province);
         y = addDetail("City", volunteer.address?.city);
         y = addDetail("Barangay", volunteer.address?.barangay);
-        y = addDetail("Additional Info", volunteer.additionalInfo);
         y = addDetail("Endorsed To ABVN", volunteer.endorsedToABVNName ? `${volunteer.endorsedToABVNName} (${volunteer.endorsedToABVNLocation})` : 'N/A');
         const endorsementDate = formatDate(volunteer.endorsementDate);
         if (endorsementDate === 'N/A') {
@@ -375,7 +503,7 @@ function saveSingleVolunteerPdf(volunteer) {
     };
 }
 
-async function fetchEndorsedVolunteers(userUid, userRole) { 
+async function fetchEndorsedVolunteers(userUid) { 
     if (!userUid) {
         console.warn("No user UID provided. Cannot fetch endorsed volunteers.");
         allEndorsedVolunteers = [];
@@ -386,70 +514,29 @@ async function fetchEndorsedVolunteers(userUid, userRole) {
     try {
         const tempEndorsedVolunteers = [];
 
-        if (userRole === 'AB ADMIN') { 
-            const volunteerGroupsRef = database.ref('volunteerGroups');
-            const groupsSnapshot = await volunteerGroupsRef.once('value');
-            const groupsData = groupsSnapshot.val();
+        const volunteerGroupsRef = database.ref('volunteerGroups');
+        const groupsSnapshot = await volunteerGroupsRef.once('value');
+        const groupsData = groupsSnapshot.val();
 
-            if (groupsData) {
-                for (const abvnKey in groupsData) {
-                    const group = groupsData[abvnKey];
-                    const endorsedData = group.endorsedVolunteers;
+        if (groupsData) {
+            for (const abvnKey in groupsData) {
+                const group = groupsData[abvnKey];
+                const endorsedData = group.endorsedVolunteers;
 
-                    if (endorsedData) {
-                        for (const volunteerKey in endorsedData) {
-                            const volunteerData = endorsedData[volunteerKey];
-                            tempEndorsedVolunteers.push({
-                                key: volunteerKey,
-                                sourceAbvnKey: abvnKey,
-                                ...volunteerData
-                            });
-                        }
+                if (endorsedData) {
+                    for (const volunteerKey in endorsedData) {
+                        const volunteerData = endorsedData[volunteerKey];
+                        tempEndorsedVolunteers.push({
+                            key: volunteerKey,
+                            sourceAbvnKey: abvnKey,
+                            ...volunteerData
+                        });
                     }
                 }
             }
-            allEndorsedVolunteers = tempEndorsedVolunteers;
-            applyFiltersAndSort();
-        } else { 
-            const volunteerGroupsRef = database.ref('volunteerGroups');
-            const querySnapshot = await volunteerGroupsRef.orderByChild('userId').equalTo(userUid).once('value');
-
-            let foundAbvnKey = null;
-            querySnapshot.forEach(childSnapshot => {
-                foundAbvnKey = childSnapshot.key;
-                return true;
-            });
-
-            if (!foundAbvnKey) {
-                Swal.fire({
-                    title: 'Access Denied',
-                    text: 'Your account is not associated with an ABVN group to view endorsements, or the association is missing. Please contact support.',
-                    icon: 'error',
-                    showCancelButton: false,
-                    confirmButtonText: 'OK'
-                });
-                allEndorsedVolunteers = []; 
-                renderVolunteersTable();
-                return;
-            }
-
-            const endorsedVolunteersRef = database.ref(`volunteerGroups/${foundAbvnKey}/endorsedVolunteers`);
-            const snapshot = await endorsedVolunteersRef.once('value');
-            const endorsedData = snapshot.val();
-
-            if (endorsedData) {
-                for (const volunteerKey in endorsedData) {
-                    const volunteerData = endorsedData[volunteerKey];
-                    tempEndorsedVolunteers.push({
-                        key: volunteerKey,
-                        sourceAbvnKey: foundAbvnKey,
-                        ...volunteerData
-                    });
-                }
-            }
-            allEndorsedVolunteers = tempEndorsedVolunteers;
-            applyFiltersAndSort();
         }
+        allEndorsedVolunteers = tempEndorsedVolunteers;
+        applyFiltersAndSort();
     } catch (error) {
         console.error("Error fetching endorsed volunteers:", error);
         Swal.fire('Error', 'Failed to fetch endorsed volunteers.', 'error');
@@ -457,6 +544,29 @@ async function fetchEndorsedVolunteers(userUid, userRole) {
 }
 
 async function archiveVolunteer(volunteer) {
+    if (!permissions.canArchive) {
+        Swal.fire('Error', 'You do not have permission to archive volunteers.', 'error');
+        return;
+    }
+
+    const isVerified = await verifySuperAdminPassword();
+    if (!isVerified) {
+        Swal.fire({
+            title: 'Error',
+            text: 'Incorrect admin password.',
+            icon: 'error',
+            showConfirmButton: true,
+            confirmButtonText: 'OK',
+            customClass: {
+                popup: 'swal2-popup-error-clean',
+                title: 'swal2-title-error-clean',
+                htmlContainer: 'swal2-text-error-clean',
+                confirmButton: 'my-error-button'
+            }
+        });
+        return;
+    }
+
     Swal.fire({
         title: 'Are you sure?',
         text: "You are about to archive this volunteer application. It will be moved to the deleted applications.",
@@ -480,7 +590,7 @@ async function archiveVolunteer(volunteer) {
             }
 
             sourcePath = `volunteerGroups/${abvnKeyToOperateOn}/endorsedVolunteers/${volunteer.key}`;
-            const destinationPath = `deletedEndorsedVolunteerApplications/${volunteer.key}`;
+            const destinationPath = `volunteerApplications/archivedEndorsedVolunteer${volunteer.key}`;
 
             try {
                 const volunteerRef = database.ref(sourcePath);
@@ -516,8 +626,8 @@ async function archiveVolunteer(volunteer) {
 }
 
 async function retrieveVolunteer(volunteer) {
-    if (currentUserRole !== 'AB ADMIN') {
-        Swal.fire('Access Denied', 'Only Super Admins can retrieve archived volunteers.', 'error');
+    if (!permissions.canRetrieve) {
+        Swal.fire('Error', 'You do not have permission to retrieve volunteers.', 'error');
         return;
     }
 
@@ -560,11 +670,11 @@ async function retrieveVolunteer(volunteer) {
                 delete dataToRetrieve.archivedByRole;
 
                 await activeRef.set(dataToRetrieve); 
-                await archivedRef.remove(); 		
+                await archivedRef.remove();        
 
                 Swal.fire('Retrieved!', 'Volunteer application has been retrieved.', 'success');
 
-                fetchEndorsedVolunteers(currentUserId, currentUserRole);
+                fetchEndorsedVolunteers(currentUserId);
                 fetchArchivedVolunteers();
                 archivedModal.style.display = 'none';
             } catch (error) {
@@ -579,7 +689,7 @@ function renderVolunteersTable() {
     volunteersContainer.innerHTML = '';
 
     if (paginatedVolunteers.length === 0) {
-        volunteersContainer.innerHTML = '<tr><td colspan="14" style="text-align: center;">No endorsed volunteers found.</td></tr>';
+        volunteersContainer.innerHTML = '<tr><td colspan="16" style="text-align: center;">No endorsed volunteers found.</td></tr>';
         entriesInfoSpan.textContent = 'Showing 0 to 0 of 0 entries';
         paginationElement.innerHTML = '';
         return;
@@ -593,85 +703,176 @@ function renderVolunteersTable() {
         const row = volunteersContainer.insertRow();
         const rowNum = startEntry + index;
 
-        row.insertCell().textContent = rowNum;
-        row.insertCell().textContent = getFullName(volunteer);
-        row.insertCell().textContent = volunteer.email || 'N/A';
-        row.insertCell().textContent = volunteer.mobileNumber || 'N/A';
-        row.insertCell().textContent = volunteer.age || 'N/A';
-        row.insertCell().innerHTML = getSocialMediaLink(volunteer.socialMediaLink);
-        row.insertCell().textContent = volunteer.additionalInfo || 'N/A';
-        row.insertCell().textContent = volunteer.address?.region || 'N/A';
-        row.insertCell().textContent = volunteer.address?.province || 'N/A';
-        row.insertCell().textContent = volunteer.address?.city || 'N/A';
-        row.insertCell().textContent = volunteer.address?.barangay || 'N/A';
-        row.insertCell().textContent = volunteer.endorsedToABVNName ? `${volunteer.endorsedToABVNName} (${volunteer.endorsedToABVNLocation})` : 'N/A';
-        row.insertCell().textContent = formatDate(volunteer.endorsementDate);
+        // Handle the nested availability.specificDateTimeSlots structure
+        const dateTimeAvailability = volunteer.availability?.specificDateTimeSlots && Array.isArray(volunteer.availability.specificDateTimeSlots)
+            ? `<ol>${volunteer.availability.specificDateTimeSlots
+                .map((slot) => `<li>${slot.date || 'N/A'} at ${slot.time || 'N/A'}</li>`)
+                .join("")}</ol>`
+            : "N/A";
 
-        const actionsCell = row.insertCell();
-        const viewButton = document.createElement('button');
-        viewButton.innerHTML = "<i class='bx bx-show-alt'></i>";
-        viewButton.classList.add('viewBtn');
-        viewButton.onclick = () => showVolunteerDetails(volunteer);
-        actionsCell.appendChild(viewButton);
+        const skillsList = Array.isArray(volunteer.skills)
+            ? `<ol>${volunteer.skills
+                .map((skill) => `<li>${skill}</li>`)
+                .join("")}</ol>`
+            : "None";
 
-        const saveSinglePdfButton = document.createElement('button');
-        saveSinglePdfButton.innerHTML = "<i class='bx bxs-file-pdf'></i>";
-        saveSinglePdfButton.classList.add('saveSinglePdfBtn');
-        saveSinglePdfButton.onclick = () => saveSingleVolunteerPdf(volunteer);
-        actionsCell.appendChild(saveSinglePdfButton);
+        row.innerHTML = `
+            <td>${rowNum}</td>
+            <td>${getFullName(volunteer)}</td>
+            <td>${volunteer.email || 'N/A'}</td>
+            <td>${volunteer.mobileNumber || 'N/A'}</td>
+            <td>${volunteer.age || 'N/A'}</td>
+            <td>${getSocialMediaLink(volunteer.socialMediaLink)}</td>
+            <td>${volunteer.additionalInfo || 'N/A'}</td>
+            <td>${volunteer.emergencyResponse ? "Yes (24/7)" : "No"}</td>
+            <td>${dateTimeAvailability}</td>
+            <td>${volunteer.address?.region || 'N/A'}</td>
+            <td>${volunteer.address?.province || 'N/A'}</td>
+            <td>${volunteer.address?.city || 'N/A'}</td>
+            <td>${volunteer.address?.barangay || 'N/A'}</td>
+            <td>${skillsList}</td>
+            <td>${volunteer.endorsedToABVNName ? `${volunteer.endorsedToABVNName} (${volunteer.endorsedToABVNLocation})` : 'N/A'}</td>
+            <td>${formatDate(volunteer.endorsementDate)}</td>
+            <td>
+                <button class="viewBtn"><i class='bx bx-show-alt'></i></button>
+                ${permissions.canArchive ? `<button class="archiveBtn"><i class='bx bx-x-circle'></i></button>` : ''}
+                <button class="saveSinglePdfBtn"><i class='bx bxs-file-pdf'></i></button>
+            </td>
+        `;
 
-        const archiveButton = document.createElement('button');
-        archiveButton.innerHTML = "<i class='bx bx-x-circle'></i>";
-        archiveButton.classList.add('archiveBtn');
-        archiveButton.onclick = () => archiveVolunteer(volunteer);
-        actionsCell.appendChild(archiveButton);
+        row.querySelector('.viewBtn').onclick = () => showVolunteerDetails(volunteer);
+        if (permissions.canArchive) {
+            row.querySelector('.archiveBtn').onclick = () => archiveVolunteer(volunteer);
+        }
+        row.querySelector('.saveSinglePdfBtn').onclick = () => saveSingleVolunteerPdf(volunteer);
     });
 
     renderPagination();
 }
 
 function applyFiltersAndSort() {
-    let tempVolunteers = [...allEndorsedVolunteers];
-
+    console.log('Search Term:', searchInput.value);
+    console.log('Sort Value:', sortSelect.value);
+    let currentVolunteers = [...allEndorsedVolunteers];
     const searchTerm = searchInput.value.toLowerCase().trim();
+    const sortValue = sortSelect.value;
+
+    // Apply search filter
     if (searchTerm) {
-        tempVolunteers = tempVolunteers.filter(volunteer =>
-            getFullName(volunteer).toLowerCase().includes(searchTerm) ||
-            (volunteer.email && volunteer.email.toLowerCase().includes(searchTerm)) ||
-            (volunteer.mobileNumber && volunteer.mobileNumber.includes(searchTerm)) ||
-            (volunteer.address?.region && volunteer.address.region.toLowerCase().includes(searchTerm)) ||
-            (volunteer.address?.province && volunteer.address.province.toLowerCase().includes(searchTerm)) ||
-            (volunteer.address?.city && volunteer.address.city.toLowerCase().includes(searchTerm)) ||
-            (volunteer.address?.barangay && volunteer.address.barangay.toLowerCase().includes(searchTerm)) ||
-            (volunteer.endorsedToABVNName && volunteer.endorsedToABVNName.toLowerCase().includes(searchTerm)) ||
-            (volunteer.endorsedToABVNLocation && volunteer.endorsedToABVNLocation.toLowerCase().includes(searchTerm)) ||
-            (volunteer.socialMediaLink && volunteer.socialMediaLink.toLowerCase().includes(searchTerm))
-        );
+        if (sortValue && sortValue !== 'All-asc' && sortValue !== 'All-desc') {
+            const [sortBy] = sortValue.split('-');
+            currentVolunteers = currentVolunteers.filter(volunteer => {
+                let fieldValue;
+                switch (sortBy) {
+                    case 'Location':
+                        fieldValue = `${volunteer.address?.region || ''} ${volunteer.address?.province || ''} ${volunteer.address?.city || ''} ${volunteer.address?.barangay || ''}`.toLowerCase();
+                        break;
+                    case 'Name':
+                        fieldValue = getFullName(volunteer).toLowerCase();
+                        break;
+                    case 'Email':
+                        fieldValue = (volunteer.email || '').toLowerCase();
+                        break;
+                    case 'MobileNumber':
+                        fieldValue = (volunteer.mobileNumber || '').toLowerCase();
+                        break;
+                    case 'Age':
+                        fieldValue = (volunteer.age || '').toString().toLowerCase();
+                        break;
+                    case 'SocialMedia':
+                        fieldValue = (volunteer.socialMediaLink || '').toLowerCase();
+                        break;
+                    case 'AdditionalInfo':
+                        fieldValue = (volunteer.additionalInfo || '').toLowerCase();
+                        break;
+                    case 'EndorsedToABVN':
+                        fieldValue = `${volunteer.endorsedToABVNName || ''} ${volunteer.endorsedToABVNLocation || ''}`.toLowerCase();
+                        break;
+                    case 'EndorsementDate':
+                        fieldValue = formatDate(volunteer.endorsementDate).toLowerCase();
+                        break;
+                    default:
+                        return false;
+                }
+                return fieldValue.includes(searchTerm);
+            });
+        } else {
+            currentVolunteers = currentVolunteers.filter(volunteer => {
+                return (
+                    getFullName(volunteer).toLowerCase().includes(searchTerm) ||
+                    (volunteer.email || '').toLowerCase().includes(searchTerm) ||
+                    (volunteer.mobileNumber || '').toLowerCase().includes(searchTerm) ||
+                    (volunteer.address?.region || '').toLowerCase().includes(searchTerm) ||
+                    (volunteer.address?.province || '').toLowerCase().includes(searchTerm) ||
+                    (volunteer.address?.city || '').toLowerCase().includes(searchTerm) ||
+                    (volunteer.address?.barangay || '').toLowerCase().includes(searchTerm) ||
+                    (volunteer.socialMediaLink || '').toLowerCase().includes(searchTerm) ||
+                    (volunteer.additionalInfo || '').toLowerCase().includes(searchTerm) ||
+                    (volunteer.endorsedToABVNName || '').toLowerCase().includes(searchTerm) ||
+                    (volunteer.endorsedToABVNLocation || '').toLowerCase().includes(searchTerm)
+                );
+            });
+        }
     }
 
-    const sortValue = sortSelect.value;
+    // Apply sorting
     if (sortValue) {
-        const [sortBy, sortOrder] = sortValue.split('-');
-        tempVolunteers.sort((a, b) => {
+        const [sortBy, order] = sortValue.split('-');
+        currentVolunteers.sort((a, b) => {
             let valA, valB;
-            if (sortBy === 'Location') {
-                valA = `${a.endorsedToABVNName || ''} ${a.endorsedToABVNLocation || ''}`.toLowerCase();
-                valB = `${b.endorsedToABVNName || ''} ${b.endorsedToABVNLocation || ''}`.toLowerCase();
-            } else if (sortBy === 'region') {
-                valA = (a.address?.region || '').toLowerCase();
-                valB = (b.address?.region || '').toLowerCase();
-            } else {
-                valA = (a[sortBy] || '').toLowerCase();
-                valB = (b[sortBy] || '').toLowerCase();
+            switch (sortBy) {
+                case 'Location':
+                    valA = `${a.address?.region || ''} ${a.address?.province || ''} ${a.address?.city || ''} ${a.address?.barangay || ''}`.toLowerCase();
+                    valB = `${b.address?.region || ''} ${b.address?.province || ''} ${b.address?.city || ''} ${b.address?.barangay || ''}`.toLowerCase();
+                    break;
+                case 'Name':
+                    valA = getFullName(a).toLowerCase();
+                    valB = getFullName(b).toLowerCase();
+                    break;
+                case 'Email':
+                    valA = (a.email || '').toLowerCase();
+                    valB = (b.email || '').toLowerCase();
+                    break;
+                case 'MobileNumber':
+                    valA = (a.mobileNumber || '').toLowerCase();
+                    valB = (b.mobileNumber || '').toLowerCase();
+                    break;
+                case 'Age':
+                    valA = parseInt(a.age) || 0;
+                    valB = parseInt(b.age) || 0;
+                    break;
+                case 'SocialMedia':
+                    valA = (a.socialMediaLink || '').toLowerCase();
+                    valB = (b.socialMediaLink || '').toLowerCase();
+                    break;
+                case 'AdditionalInfo':
+                    valA = (a.additionalInfo || '').toLowerCase();
+                    valB = (b.additionalInfo || '').toLowerCase();
+                    break;
+                case 'EndorsedToABVN':
+                    valA = `${a.endorsedToABVNName || ''} ${a.endorsedToABVNLocation || ''}`.toLowerCase();
+                    valB = `${b.endorsedToABVNName || ''} ${b.endorsedToABVNLocation || ''}`.toLowerCase();
+                    break;
+                case 'EndorsementDate':
+                    valA = new Date(a.endorsementDate || 0).getTime();
+                    valB = new Date(b.endorsementDate || 0).getTime();
+                    break;
+                case 'All':
+                default:
+                    valA = getFullName(a).toLowerCase();
+                    valB = getFullName(b).toLowerCase();
+                    break;
             }
-
-            if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
-            if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
-            return 0;
+            if (typeof valA === 'number' && typeof valB === 'number') {
+                return order === 'asc' ? valA - valB : valB - valA;
+            } else {
+                return order === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+            }
         });
     }
 
-    filteredVolunteers = tempVolunteers;
+    filteredVolunteers = currentVolunteers;
+    console.log('Filtered and Sorted Volunteers:', filteredVolunteers);
     currentPage = 1;
     paginateVolunteers();
 }
@@ -711,12 +912,25 @@ function renderPagination() {
 }
 
 viewArchivedButton.addEventListener('click', () => {
-    if (currentUserRole === 'AB ADMIN') {
-        fetchArchivedVolunteers();
-        archivedModal.style.display = 'flex';
-    } else {
-        Swal.fire('Access Denied', 'Only Super Admins can view archived applications.', 'error');
+    if (!permissions.canRetrieve) {
+        Swal.fire({
+            title: 'Error',
+            text: 'You do not have permission to view archived volunteers.',
+            icon: 'error',
+            timer: 2000,
+            showConfirmButton: false,
+            timerProgressBar: true,
+            allowOutsideClick: false,
+            customClass: {
+                popup: 'swal2-popup-error-clean',
+                title: 'swal2-title-error-clean',
+                htmlContainer: 'swal2-text-error-clean'
+            }   
+        });
+        return;
     }
+    fetchArchivedVolunteers();
+    archivedModal.style.display = 'flex';
 });
 
 closeArchivedModalBtn.addEventListener('click', () => {
@@ -730,8 +944,8 @@ window.addEventListener('click', (event) => {
 });
 
 async function fetchArchivedVolunteers() {
-    if (currentUserRole !== 'AB ADMIN') {
-        console.warn("Non-admin user attempted to fetch archived volunteers.");
+    if (!permissions.canRetrieve) {
+        console.warn("User does not have permission to fetch archived volunteers.");
         allArchivedVolunteerData = [];
         renderArchivedVolunteerApplications();
         return;
@@ -794,20 +1008,22 @@ function renderArchivedVolunteerApplications() {
             <td>${formatDate(volunteer.endorsementDate)}</td>
             <td>${formatDate(volunteer.archivedAt)}</td>
             <td>
-                <button class="retrieveBtn" data-key="${volunteer.key}">Retrieve</button>
+                ${permissions.canRetrieve ? `<button class="retrieveBtn" data-key="${volunteer.key}">Retrieve</button>` : ''}
             </td>
         `;
     });
 
-    archivedTableBody.querySelectorAll('.retrieveBtn').forEach(button => {
-        button.addEventListener('click', (event) => {
-            const key = event.target.dataset.key;
-            const volunteerToRetrieve = allArchivedVolunteerData.find(v => v.key === key);
-            if (volunteerToRetrieve) {
-                retrieveVolunteer(volunteerToRetrieve);
-            }
+    if (permissions.canRetrieve) {
+        archivedTableBody.querySelectorAll('.retrieveBtn').forEach(button => {
+            button.addEventListener('click', (event) => {
+                const key = event.target.dataset.key;
+                const volunteerToRetrieve = allArchivedVolunteerData.find(v => v.key === key);
+                if (volunteerToRetrieve) {
+                    retrieveVolunteer(volunteerToRetrieve);
+                }
+            });
         });
-    });
+    }
 
     updateArchivedEntriesInfo();
     renderArchivedPagination();
@@ -889,10 +1105,38 @@ function hideArchivedModal() {
 
 function showVolunteerDetails(volunteer) {
     let socialMediaHtml = getSocialMediaLink(volunteer.socialMediaLink);
+    
+    let specificSlotsHtml = '';
+    if (volunteer.availability && volunteer.availability.specificDateTimeSlots && volunteer.availability.specificDateTimeSlots.length > 0) {
+        specificSlotsHtml = `<h5 style="margin-bottom: 10px; color: #14AEBB;">Date/Time Availability:</h5><div style="margin-left: 15px;"><ol style="padding-left: 20px; margin-top: 5px;">`;
+        volunteer.availability.specificDateTimeSlots.forEach(slot => {
+            if (slot.date && slot.time) {
+                specificSlotsHtml += `<li>${slot.date} at ${slot.time}</li>`;
+            }
+        });
+        specificSlotsHtml += `</ol></div>`;
+    } else {
+        specificSlotsHtml = `<p><strong>Date/Time Availability:</strong> N/A</p>`;
+    }
+
+    let skillsHtml = '';
+    if (volunteer.skills && Array.isArray(volunteer.skills) && volunteer.skills.length > 0) {
+        skillsHtml = `<h5 style="margin-bottom: 10px; color: #14AEBB;">Selected Skills:</h5><div style="margin-left: 15px;"><ol style="padding-left: 20px; margin-top: 5px;">`;
+        volunteer.skills.forEach(skill => {
+            if (skill === 'Other' && volunteer.otherSkillComments && volunteer.otherSkillComments.trim()) {
+                skillsHtml += `<li>${skill} (${volunteer.otherSkillComments})</li>`;
+            } else {
+                skillsHtml += `<li>${skill}</li>`;
+            }
+        });
+        skillsHtml += `</ol></div>`;
+    } else {
+        skillsHtml = `<p><strong>Skills:</strong> None selected</p>`;
+    }
 
     modalContentDiv.innerHTML = `
         <div class="modal-content-inner" style="padding: 20px;">
-            <h2>Volunteer Details:</h2>
+            <h2>Endorsed Volunteer Details:</h2>
             <p><strong>Full Name:</strong> ${getFullName(volunteer)}</p>
             <p><strong>Email:</strong> ${volunteer.email || 'N/A'}</p>
             <p><strong>Mobile Number:</strong> ${volunteer.mobileNumber || 'N/A'}</p>
@@ -907,6 +1151,13 @@ function showVolunteerDetails(volunteer) {
                 <p><strong>City:</strong> ${volunteer.address?.city || 'N/A'}</p>
                 <p><strong>Barangay:</strong> ${volunteer.address?.barangay || 'N/A'}</p>
             </div>
+            <hr>
+            <h2>Availability:</h2>
+            <p><strong>Emergency Response:</strong> ${volunteer.emergencyResponse ? "Yes (24/7)" : "No"}</p>
+            ${specificSlotsHtml}
+            <hr>
+            <h2>Skills:</h2>
+            ${skillsHtml}
             <hr>
             <h2>Endorsement Details:</h2>
             <p><strong>Endorsed To ABVN:</strong> ${volunteer.endorsedToABVNName ? `${volunteer.endorsedToABVNName} (${volunteer.endorsedToABVNLocation})` : 'N/A'}</p>
@@ -943,11 +1194,29 @@ document.addEventListener('DOMContentLoaded', () => {
                 currentUserId = user.uid;
                 currentUserRole = userDataFromDb ? (userDataFromDb.role || 'ABVN') : 'ABVN'; 
 
-                if (currentUserRole === 'AB ADMIN') {
-                    viewArchivedButton.style.display = 'block';
-                } else {
-                    viewArchivedButton.style.display = 'none';
+                // Check permissions
+                permissions = await checkAdminPermissions();
+                if (!permissions.canView) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Access Denied',
+                        text: 'You do not have permission to access this page.',
+                        showConfirmButton: true,
+                        confirmButtonText: 'OK',
+                        customClass: {
+                            popup: 'swal2-popup-error-clean',
+                            title: 'swal2-title-error-clean',
+                            htmlContainer: 'swal2-text-error-clean',
+                            confirmButton: 'my-error-button'
+                        }
+                    }).then(() => {
+                        window.location.href = "../pages/login.html";
+                    });
+                    return;
                 }
+
+                // Show/hide view archived button based on permissions
+                viewArchivedButton.style.display = permissions.canRetrieve ? 'block' : 'none';
 
                 if (passwordNeedsReset) {
                     console.log(`Password change required for user ${user.uid}. Redirecting to profile page.`);
@@ -965,9 +1234,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                     return;
                 }
-                fetchEndorsedVolunteers(user.uid, currentUserRole);
+                fetchEndorsedVolunteers(user.uid);
+                setupInactivityListeners();
                 resetInactivityTimer();
-
             } catch (error) {
                 console.error("Error checking password reset status or fetching user data:", error);
                 Swal.fire({

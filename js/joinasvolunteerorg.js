@@ -15,29 +15,150 @@ const auth = firebase.auth();
 
 document.addEventListener('DOMContentLoaded', () => {
     const volunteerOrgForm = document.getElementById('volunteer-org-form');
-
     const regionSelect = document.getElementById('region');
     const provinceSelect = document.getElementById('province');
     const citySelect = document.getElementById('city');
     const barangaySelect = document.getElementById('barangay');
     const streetAddressInput = document.getElementById('streetAddress');
-
     const regionTextInput = document.getElementById('region-text');
     const provinceTextInput = document.getElementById('province-text');
     const cityTextInput = document.getElementById('city-text');
     const barangayTextInput = document.getElementById('barangay-text');
-
     const submitButton = document.querySelector('.btn-primary');
     let isSubmitting = false;
-
     const agreeCheckbox = document.getElementById('agreeToTerms');
     const agreementMessage = document.getElementById('agreementMessage');
-    const openTermsLink = document.getElementById('openTerms'); 
-    const openPrivacyLink = document.getElementById('openPrivacy'); 
-    const termsContentDiv = document.getElementById('termsContent'); 
-    const privacyContentDiv = document.getElementById('privacyContent'); 
+    const openTermsLink = document.getElementById('openTerms');
+    const openPrivacyLink = document.getElementById('openPrivacy');
+    const termsContentDiv = document.getElementById('termsContent');
+    const privacyContentDiv = document.getElementById('privacyContent');
 
-    // --- Function to manage submit button state ---
+    // Email validation
+    function isValidEmail(email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const validDomains = ['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'icloud.com', 'protonmail.com'];
+        const domain = email.split('@')[1]?.toLowerCase();
+        return emailRegex.test(email) && validDomains.includes(domain);
+    }
+
+    // Mobile number validation
+    function isValidMobile(mobile) {
+        const mobileRegex = /^09\d{9}$/;
+        return mobileRegex.test(mobile);
+    }
+
+    // Check if input is empty
+    const isEmpty = (value) => value.trim() === "";
+
+    // Check if input contains only letters and spaces
+    const isLettersOnly = (value) => /^[a-zA-Z\s]+$/.test(value);
+
+    // Show error message below input field
+    function showError(inputField, message) {
+        const errorDiv = inputField.nextElementSibling;
+        if (!errorDiv || !errorDiv.classList.contains('error-message')) {
+            const newErrorDiv = document.createElement('div');
+            newErrorDiv.className = 'error-message';
+            inputField.parentNode.insertBefore(newErrorDiv, inputField.nextSibling);
+            newErrorDiv.textContent = message;
+        } else {
+            errorDiv.textContent = message;
+        }
+        inputField.classList.add('error');
+    }
+
+    // Clear error message from input field
+    function clearError(inputField) {
+        const errorDiv = inputField.nextElementSibling;
+        if (errorDiv && errorDiv.classList.contains('error-message')) {
+            errorDiv.textContent = '';
+        }
+        inputField.classList.remove('error');
+    }
+
+    // Real-time input restrictions for mobile number
+    function restrictMobileNumberInput(input) {
+        input.addEventListener("input", () => {
+            input.value = input.value.replace(/[^0-9]/g, '');
+            if (input.value.length > 11) {
+                input.value = input.value.slice(0, 11);
+            }
+            if (input.value && !input.value.startsWith('09')) {
+                input.value = '09' + input.value.replace(/^09/, '').slice(0, 9);
+            }
+        });
+    }
+
+    // Real-time validation for form inputs
+    function validateInputInRealTime(input, fieldConfig, inputs) {
+        clearError(input);
+        if (fieldConfig.required !== false && isEmpty(input.value)) {
+            showError(input, `${fieldConfig.label} is required.`);
+        } else if (!isEmpty(input.value)) {
+            if (fieldConfig.lettersOnly && !isLettersOnly(input.value)) {
+                showError(input, `${fieldConfig.label} should only contain letters and spaces.`);
+            }
+            if (fieldConfig.isEmail && !isValidEmail(input.value.trim())) {
+                showError(input, `Please enter a valid email address from an allowed domain.`);
+            }
+            if (fieldConfig.isMobile && !isValidMobile(input.value)) {
+                showError(input, `Mobile number must be 11 digits starting with "09".`);
+            }
+            if (fieldConfig.isUrl) {
+                try {
+                    new URL(input.value);
+                } catch (e) {
+                    showError(input, `${fieldConfig.label} must be a valid URL (e.g., https://facebook.com/yourpage).`);
+                }
+            }
+            if (fieldConfig.minLength && input.value.length < fieldConfig.minLength) {
+                showError(input, `${fieldConfig.label} must be at least ${fieldConfig.minLength} characters long.`);
+            }
+        }
+    }
+
+    // Apply real-time validation to form inputs
+    Array.from(volunteerOrgForm.querySelectorAll('input, textarea, select')).forEach(input => {
+        const fieldConfig = {
+            'organization': { label: 'Organization Name' },
+            'contact-person': { label: 'Contact Person', lettersOnly: true },
+            'email': { label: 'Email', isEmail: true },
+            'mobileNumber': { label: 'Mobile Number', isMobile: true },
+            'socialMedia': { label: 'Social Media', isUrl: true, required: false },
+            'streetAddress': { label: 'Street Address' },
+            'region': { label: 'Region' },
+            'province': { label: 'Province' },
+            'city': { label: 'City' },
+            'barangay': { label: 'Barangay' },
+            'organizationalBackgroundMission': { label: 'Organizational Background & Mission', minLength: 20 },
+            'areasOfExpertiseFocus': { label: 'Areas of Expertise/Focus', minLength: 20 },
+            'legalStatusRegistration': { label: 'Legal Status/Registration' },
+            'requiredDocumentsLink': { label: 'Required Documents Link', isUrl: true }
+        }[input.id];
+        if (fieldConfig) {
+            input.addEventListener('input', () => validateInputInRealTime(input, fieldConfig, {
+                organization: document.getElementById('organization'),
+                'contact-person': document.getElementById('contact-person'),
+                email: document.getElementById('email'),
+                mobileNumber: document.getElementById('mobileNumber'),
+                socialMedia: document.getElementById('socialMedia'),
+                streetAddress: document.getElementById('streetAddress'),
+                region: document.getElementById('region'),
+                province: document.getElementById('province'),
+                city: document.getElementById('city'),
+                barangay: document.getElementById('barangay'),
+                organizationalBackgroundMission: document.getElementById('organizationalBackgroundMission'),
+                areasOfExpertiseFocus: document.getElementById('areasOfExpertiseFocus'),
+                legalStatusRegistration: document.getElementById('legalStatusRegistration'),
+                requiredDocumentsLink: document.getElementById('requiredDocumentsLink')
+            }));
+        }
+    });
+
+    // Apply input restrictions
+    restrictMobileNumberInput(document.getElementById('mobileNumber'));
+
+    // Function to manage submit button state
     const updateSubmitButtonState = () => {
         if (submitButton && agreeCheckbox) {
             submitButton.disabled = !agreeCheckbox.checked;
@@ -47,28 +168,28 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // --- Add event listener for the terms and conditions checkbox ---
+    // Add event listener for the terms and conditions checkbox
     if (agreeCheckbox) {
         agreeCheckbox.addEventListener('change', updateSubmitButtonState);
     }
 
-    // --- Initial call to set the button state when the page loads ---
+    // Initial call to set the button state when the page loads
     updateSubmitButtonState();
 
-    // --- NEW: Event listeners for opening T&C and Privacy Policy pop-ups ---
+    // Event listeners for opening T&C and Privacy Policy pop-ups
     if (openTermsLink && termsContentDiv) {
         openTermsLink.addEventListener('click', (e) => {
-            e.preventDefault(); // Prevent navigating to a new page
+            e.preventDefault();
             Swal.fire({
                 title: 'Terms and Conditions',
-                html: termsContentDiv.innerHTML, // Get content from the hidden div
+                html: termsContentDiv.innerHTML,
                 icon: 'info',
-                width: '80%', // Make the modal wider
+                width: '80%',
                 showCloseButton: true,
                 focusConfirm: false,
                 confirmButtonText: 'Close',
                 customClass: {
-                    container: 'swal2-container-custom', // Custom class for additional styling if needed
+                    container: 'swal2-container-custom',
                     popup: 'swal2-popup-custom',
                     title: 'swal2-title-custom',
                     htmlContainer: 'swal2-html-container-custom',
@@ -79,12 +200,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (openPrivacyLink && privacyContentDiv) {
         openPrivacyLink.addEventListener('click', (e) => {
-            e.preventDefault(); // Prevent navigating to a new page
+            e.preventDefault();
             Swal.fire({
                 title: 'Privacy Policy',
-                html: privacyContentDiv.innerHTML, // Get content from the hidden div
+                html: privacyContentDiv.innerHTML,
                 icon: 'info',
-                width: '80%', // Make the modal wider
+                width: '80%',
                 showCloseButton: true,
                 focusConfirm: false,
                 confirmButtonText: 'Close',
@@ -389,7 +510,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Call the initial fill for regions directly on page load
     my_handlers.fill_regions();
 
-    // --- ABVN Form Submission Logic ---
+    // ABVN Form Submission Logic
     if (volunteerOrgForm) {
         volunteerOrgForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -403,14 +524,14 @@ document.addEventListener('DOMContentLoaded', () => {
             // Check if terms and conditions are agreed to BEFORE processing
             if (!agreeCheckbox || !agreeCheckbox.checked) {
                 if (agreementMessage) {
-                    agreementMessage.style.display = 'block'; 
+                    agreementMessage.style.display = 'block';
                 }
                 Swal.fire('Error', 'Please agree to the Terms and Conditions and Privacy Policy to proceed.', 'error');
-                agreeCheckbox.focus(); 
-                return; 
+                agreeCheckbox.focus();
+                return;
             } else {
                 if (agreementMessage) {
-                    agreementMessage.style.display = 'none'; 
+                    agreementMessage.style.display = 'none';
                 }
             }
 
@@ -423,7 +544,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 const recaptchaResponse = grecaptcha.getResponse();
 
                 if (!recaptchaResponse) {
-                    Swal.fire('Error', 'Please complete the reCAPTCHA to prove you are not a robot.', 'error');
+                    Swal.fire({
+                        title: 'Error',
+                        text: 'Please complete the reCAPTCHA to prove you are not a robot.',
+                        icon: 'error',
+                        showConfirmButton: true,
+                        confirmButtonText: 'OK',
+                        customClass: {
+                            popup: 'swal2-popup-error-clean',
+                            title: 'swal2-title-error-clean',
+                            htmlContainer: 'swal2-text-error-clean',
+                            confirmButton: 'my-error-button'
+                        }
+                    });
                     submitButton.disabled = false;
                     submitButton.textContent = 'Submit Application';
                     isSubmitting = false;
@@ -431,126 +564,147 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
-                const organization = document.getElementById('organization').value.trim();
-                const contactPerson = document.getElementById('contact-person').value.trim();
-                const email = document.getElementById('email').value.trim();
-                const mobileNumber = document.getElementById('mobileNumber').value.trim();
-                const socialMedia = document.getElementById('socialMedia').value.trim();
-                const streetAddress = streetAddressInput.value.trim();
+                const inputs = {
+                    organization: document.getElementById('organization'),
+                    'contact-person': document.getElementById('contact-person'),
+                    email: document.getElementById('email'),
+                    mobileNumber: document.getElementById('mobileNumber'),
+                    socialMedia: document.getElementById('socialMedia'),
+                    streetAddress: document.getElementById('streetAddress'),
+                    region: document.getElementById('region'),
+                    province: document.getElementById('province'),
+                    city: document.getElementById('city'),
+                    barangay: document.getElementById('barangay'),
+                    organizationalBackgroundMission: document.getElementById('organizationalBackgroundMission'),
+                    areasOfExpertiseFocus: document.getElementById('areasOfExpertiseFocus'),
+                    legalStatusRegistration: document.getElementById('legalStatusRegistration'),
+                    requiredDocumentsLink: document.getElementById('requiredDocumentsLink')
+                };
 
-                const selectedRegionText = regionSelect.options[regionSelect.selectedIndex]?.textContent || '';
-                const selectedProvinceText = provinceSelect.options[provinceSelect.selectedIndex]?.textContent || '';
-                const selectedCityText = citySelect.options[citySelect.selectedIndex]?.textContent || '';
-                const selectedBarangayText = barangaySelect.options[barangaySelect.selectedIndex]?.textContent || '';
+                // Validate all inputs before submission
+                let isValid = true;
+                const errors = [];
 
-                const organizationalBackgroundMission = document.getElementById('organizationalBackgroundMission')?.value.trim() || '';
-                const areasOfExpertiseFocus = document.getElementById('areasOfExpertiseFocus')?.value.trim() || '';
-                const legalStatusRegistration = document.getElementById('legalStatusRegistration')?.value.trim() || '';
-                const requiredDocumentsLink = document.getElementById('requiredDocumentsLink')?.value.trim() || '';
+                const fieldsToCheck = [
+                    { id: 'organization', label: 'Organization Name', lettersOnly: true },
+                    { id: 'contact-person', label: 'Contact Person', lettersOnly: true },
+                    { id: 'email', label: 'Email', isEmail: true },
+                    { id: 'mobileNumber', label: 'Mobile Number', isMobile: true },
+                    { id: 'socialMedia', label: 'Social Media', isUrl: true, required: false },
+                    { id: 'streetAddress', label: 'Street Address' },
+                    { id: 'region', label: 'Region' },
+                    { id: 'province', label: 'Province' },
+                    { id: 'city', label: 'City' },
+                    { id: 'barangay', label: 'Barangay' },
+                    { id: 'organizationalBackgroundMission', label: 'Organizational Background & Mission', minLength: 20 },
+                    { id: 'areasOfExpertiseFocus', label: 'Areas of Expertise/Focus', minLength: 20 },
+                    { id: 'legalStatusRegistration', label: 'Legal Status/Registration' },
+                    { id: 'requiredDocumentsLink', label: 'Required Documents Link', isUrl: true }
+                ];
 
-                if (!organization || !contactPerson || !email || !mobileNumber || !selectedRegionText || !selectedProvinceText || !selectedCityText || !selectedBarangayText || !streetAddress || !organizationalBackgroundMission || !areasOfExpertiseFocus || !legalStatusRegistration || !requiredDocumentsLink) {
-                    Swal.fire('Error', 'Please fill in all required fields.', 'error');
-                    submitButton.disabled = false;
-                    submitButton.textContent = 'Submit Application';
-                    isSubmitting = false;
-                    grecaptcha.reset();
-                    return;
-                }
-
-                // Email Format Validation
-                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                if (!emailRegex.test(email)) {
-                    Swal.fire('Error', 'Please enter a valid email address (e.g., example@domain.com).', 'error');
-                    submitButton.disabled = false;
-                    submitButton.textContent = 'Submit Application';
-                    isSubmitting = false;
-                    grecaptcha.reset();
-                    return;
-                }
-
-                // Mobile Number Format Validation (11 digits)
-                const mobileNumberRegex = /^09\d{9}$/;
-                if (!mobileNumberRegex.test(mobileNumber)) {
-                    Swal.fire('Error', 'Please enter a valid 11-digit mobile number starting with "09" (e.g., 09171234567).', 'error');
-                    submitButton.disabled = false;
-                    submitButton.textContent = 'Submit Application';
-                    isSubmitting = false;
-                    grecaptcha.reset();
-                    return;
-                }
-
-                // Social Media Link (URL) Validation
-                if (socialMedia) {
-                    try {
-                        new URL(socialMedia);
-                    } catch (e) {
-                        Swal.fire('Error', 'Please enter a valid URL for your social media link (e.g., https://facebook.com/yourpage).', 'error');
-                        submitButton.disabled = false;
-                        submitButton.textContent = 'Submit Application';
-                        isSubmitting = false;
-                        grecaptcha.reset();
-                        return;
-                    }
-                }
-
-                // Required Document (URL) Validation
-                if (requiredDocumentsLink) {
-                    try {
-                        new URL(requiredDocumentsLink);
-                    } catch (e) {
-                        Swal.fire('Error', 'Please enter a valid URL for your supporting documents link (e.g., https://drive.google.com/drive/folders/your-folder-id).', 'error');
-                        submitButton.disabled = false;
-                        submitButton.textContent = 'Submit Application';
-                        isSubmitting = false;
-                        grecaptcha.reset();
-                        return;
-                    }
-                }
-
-                // Text Area Minimum Length Validation
-                const MIN_TEXT_LENGTH = 20;
-                if (organizationalBackgroundMission.length < MIN_TEXT_LENGTH) {
-                    Swal.fire('Error', `Organizational Background & Mission must be at least ${MIN_TEXT_LENGTH} characters long.`, 'error');
-                    submitButton.disabled = false;
-                    submitButton.textContent = 'Submit Application';
-                    isSubmitting = false;
-                    grecaptcha.reset();
-                    return;
-                }
-
-                if (areasOfExpertiseFocus.length < MIN_TEXT_LENGTH) {
-                    Swal.fire('Error', `Areas of Expertise/Focus must be at least ${MIN_TEXT_LENGTH} characters long.`, 'error');
-                    submitButton.disabled = false;
-                    submitButton.textContent = 'Submit Application';
-                    isSubmitting = false;
-                    grecaptcha.reset();
-                    return;
-                }
-
-                // --- Check for Duplicates ---
-                const abvnApplicationsRef = database.ref("abvnApplications/pendingABVN");
-                const allAbvnApplicationsSnapshot = await abvnApplicationsRef.once('value');
-
-                let isDuplicate = false;
-                let duplicateReason = '';
-
-                allAbvnApplicationsSnapshot.forEach(childSnapshot => {
-                    const application = childSnapshot.val();
-                    if (application.email.toLowerCase() === email.toLowerCase()) {
-                        isDuplicate = true;
-                        duplicateReason = 'email';
-                        return true;
-                    }
-                    if (application.organizationName.toLowerCase() === organization.toLowerCase()) {
-                        isDuplicate = true;
-                        duplicateReason = 'organization name';
-                        return true;
+                fieldsToCheck.forEach(({ id, label, lettersOnly, isEmail, isMobile, isUrl, required, minLength }) => {
+                    const input = inputs[id];
+                    clearError(input);
+                    if (required !== false && isEmpty(input.value)) {
+                        showError(input, `${label} is required.`);
+                        errors.push(`${label} is required.`);
+                        isValid = false;
+                    } else if (!isEmpty(input.value)) {
+                        if (lettersOnly && !isLettersOnly(input.value)) {
+                            showError(input, `${label} should only contain letters and spaces.`);
+                            errors.push(`${label} should only contain letters and spaces.`);
+                            isValid = false;
+                        }
+                        if (isEmail && !isValidEmail(input.value.trim())) {
+                            showError(input, `Please enter a valid email address from an allowed domain.`);
+                            errors.push(`Please enter a valid email address from an allowed domain.`);
+                            isValid = false;
+                        }
+                        if (isMobile && !isValidMobile(input.value)) {
+                            showError(input, `Mobile number must be 11 digits starting with "09".`);
+                            errors.push(`Mobile number must be 11 digits starting with "09".`);
+                            isValid = false;
+                        }
+                        if (isUrl) {
+                            try {
+                                new URL(input.value);
+                            } catch (e) {
+                                showError(input, `${label} must be a valid URL (e.g., https://facebook.com/yourpage).`);
+                                errors.push(`${label} must be a valid URL.`);
+                                isValid = false;
+                            }
+                        }
+                        if (minLength && input.value.length < minLength) {
+                            showError(input, `${label} must be at least ${minLength} characters long.`);
+                            errors.push(`${label} must be at least ${minLength} characters long.`);
+                            isValid = false;
+                        }
                     }
                 });
 
-                if (isDuplicate) {
-                    let errorMessage = `It looks like an application with this ${duplicateReason} has already been submitted. Please check your details or contact support if you believe this is an error.`;
-                    Swal.fire('Warning', errorMessage, 'warning');
+                if (!isValid) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Invalid Input',
+                        html: errors.join('<br>'),
+                        showConfirmButton: true,
+                        confirmButtonText: 'OK',
+                        customClass: {
+                            popup: 'swal2-popup-error-clean',
+                            title: 'swal2-title-error-clean',
+                            htmlContainer: 'swal2-text-error-clean',
+                            confirmButton: 'my-error-button'
+                        }
+                    });
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Submit Application';
+                    isSubmitting = false;
+                    grecaptcha.reset();
+                    return;
+                }
+
+                // Check for duplicates
+                const abvnApplicationsRef = database.ref("abvnApplications/pendingABVN");
+                const allAbvnApplicationsSnapshot = await abvnApplicationsRef.once('value');
+
+                let emailAlreadyExists = false;
+                let orgNameAlreadyExists = false;
+
+                allAbvnApplicationsSnapshot.forEach(childSnapshot => {
+                    const application = childSnapshot.val();
+                    if (application.email.toLowerCase() === inputs.email.value.toLowerCase()) {
+                        emailAlreadyExists = true;
+                    }
+                    if (application.organizationName.toLowerCase() === inputs.organization.value.toLowerCase()) {
+                        orgNameAlreadyExists = true;
+                    }
+                });
+
+                if (emailAlreadyExists) {
+                    showError(inputs.email, 'This email address is already used.');
+                    errors.push('An application with this email address already exists.');
+                    isValid = false;
+                }
+                if (orgNameAlreadyExists) {
+                    showError(inputs.organization, 'This organization name is already used.');
+                    errors.push('An application with this organization name already exists.');
+                    isValid = false;
+                }
+
+                if (!isValid) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Duplicate Entry',
+                        html: errors.join('<br>'),
+                        showConfirmButton: true,
+                        confirmButtonText: 'OK',
+                        customClass: {
+                            popup: 'swal2-popup-error-clean',
+                            title: 'swal2-title-error-clean',
+                            htmlContainer: 'swal2-text-error-clean',
+                            confirmButton: 'my-error-button'
+                        }
+                    });
                     submitButton.disabled = false;
                     submitButton.textContent = 'Submit Application';
                     isSubmitting = false;
@@ -560,37 +714,51 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Create an object to store in Realtime Database
                 const applicationData = {
-                    organizationName: organization,
-                    contactPerson: contactPerson,
-                    email: email,
-                    mobileNumber: mobileNumber,
-                    socialMediaLink: socialMedia,
+                    organizationName: inputs.organization.value.trim(),
+                    contactPerson: inputs['contact-person'].value.trim(),
+                    email: inputs.email.value.trim(),
+                    mobileNumber: inputs.mobileNumber.value.trim(),
+                    socialMediaLink: inputs.socialMedia.value.trim(),
                     headquarters: {
-                        region: selectedRegionText,
-                        province: selectedProvinceText,
-                        city: selectedCityText,
-                        barangay: selectedBarangayText,
-                        streetAddress: streetAddress
+                        region: regionSelect.options[regionSelect.selectedIndex]?.textContent || '',
+                        province: provinceSelect.options[provinceSelect.selectedIndex]?.textContent || '',
+                        city: citySelect.options[citySelect.selectedIndex]?.textContent || '',
+                        barangay: barangaySelect.options[barangaySelect.selectedIndex]?.textContent || '',
+                        streetAddress: inputs.streetAddress.value.trim()
                     },
                     applicationDateandTime: new Date().toISOString(),
                     recaptchaResponse: recaptchaResponse,
-                    organizationalBackgroundMission: organizationalBackgroundMission,
-                    areasOfExpertiseFocus: areasOfExpertiseFocus,
-                    legalStatusRegistration: legalStatusRegistration,
-                    requiredDocumentsLink: requiredDocumentsLink
+                    organizationalBackgroundMission: inputs.organizationalBackgroundMission.value.trim(),
+                    areasOfExpertiseFocus: inputs.areasOfExpertiseFocus.value.trim(),
+                    legalStatusRegistration: inputs.legalStatusRegistration.value.trim(),
+                    requiredDocumentsLink: inputs.requiredDocumentsLink.value.trim()
                 };
 
                 const newApplicationRef = await database.ref("abvnApplications/pendingABVN").push(applicationData);
 
                 console.log("ABVN application saved to Realtime Database successfully!");
-                Swal.fire('Success', 'Application submitted successfully! Thank you for joining us.', 'success');
+                Swal.fire({
+                    title: 'Success!',
+                    text: 'Application submitted successfully! Thank you for joining us.',
+                    icon: 'success',
+                    showConfirmButton: true,
+                    confirmButtonText: 'OK',
+                    customClass: {
+                        popup: 'swal2-popup-success-clean',
+                        title: 'swal2-title-success-clean',
+                        htmlContainer: 'swal2-text-success-clean',
+                        confirmButton: 'my-success-button'
+                    }
+                });
 
                 // Reset form and reCAPTCHA after successful submission
                 volunteerOrgForm.reset();
                 my_handlers.fill_regions();
                 grecaptcha.reset();
-                agreeCheckbox.checked = false; // Uncheck the terms checkbox after successful submission
+                agreeCheckbox.checked = false;
                 updateSubmitButtonState();
+                Array.from(volunteerOrgForm.querySelectorAll('.error-message')).forEach(msg => msg.textContent = '');
+                Array.from(volunteerOrgForm.querySelectorAll('.error')).forEach(input => input.classList.remove('error'));
             } catch (error) {
                 console.error("Error adding ABVN application to Realtime Database: ", error);
                 Swal.fire('Error', 'There was an error submitting your application. Please try again.', 'error');
@@ -603,28 +771,28 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    // Firebase Authentication State Change Listener
+    auth.onAuthStateChanged(user => {
+        if (user) {
+            console.log(`User logged in: ${user.uid}`);
+        } else {
+            console.log('User logged out');
+        }
+    });
+
+    // Navbar Fix
+    window.addEventListener("scroll", function () {
+        const navbar = document.querySelector(".navbar");
+        const scrollThreshold = 600;
+
+        if (window.scrollY > scrollThreshold) {
+            navbar.style.opacity = "0";
+            navbar.style.pointerEvents = "none";
+            navbar.style.transition = "opacity 0.5s ease";
+        } else {
+            navbar.style.opacity = "1";
+            navbar.style.pointerEvents = "auto";
+        }
+    });
 });
-
-// --- Firebase Authentication State Change Listener ---
-auth.onAuthStateChanged(user => {
-    if (user) {
-        console.log(`User logged in: ${user.uid}`);
-    } else {
-        console.log('User logged out');
-    }
-});
-
-//Navbar Fix
-  window.addEventListener("scroll", function () {
-    const navbar = document.querySelector(".navbar");
-    const scrollThreshold = 600; // Adjust where you want it to disappear
-
-    if (window.scrollY > scrollThreshold) {
-      navbar.style.opacity = "0";
-      navbar.style.pointerEvents = "none"; // Prevent interaction when hidden
-      navbar.style.transition = "opacity 0.5s ease";
-    } else {
-      navbar.style.opacity = "1";
-      navbar.style.pointerEvents = "auto";
-    }
-  });

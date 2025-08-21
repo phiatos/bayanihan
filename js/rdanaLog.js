@@ -537,17 +537,24 @@ function restoreReport(reportKey) {
       .trim();
   }
   
-  document.getElementById("searchInput").addEventListener("input", function () {
-    const value = this.value.toLowerCase();
-    filteredLogs = rdanaLogs.filter(log =>
-      log.rdanaId.toLowerCase().includes(value) ||
-      (log.profile?.Site_Location_Address_Barangay || log.siteLocation || "").toLowerCase().includes(value) ||
-      log.disasterType.toLowerCase().includes(value) ||
-      (log.needs?.priority?.join(", ").toLowerCase().includes(value) || false)
-    );
-    currentPage = 1;
-    renderTable(filteredLogs);
+function valueToString(value) {
+  if (value === null || value === undefined) return "";
+  if (Array.isArray(value)) return value.join(", ").toLowerCase();
+  if (typeof value === "object") return Object.values(value).map(valueToString).join(" ");
+  return String(value).toLowerCase();
+}
+
+searchInput.addEventListener('input', function() {
+  const searchTerm = this.value.toLowerCase();
+
+  filteredLogs = rdanaLogs.filter(item => {
+    return Object.values(item).some(value => valueToString(value).includes(searchTerm));
   });
+
+  currentPage = 1;
+  renderTable(filteredLogs);
+});
+
 
   function getSortValue(log, key) {
     switch (key) {

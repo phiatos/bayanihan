@@ -17,7 +17,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
-<body>
+<body class="no-header-line">
 
   <header class="navbar">
     <div class="navbar-container">
@@ -77,13 +77,12 @@
 
           <div class="form-group">
             <label for="age">Age</label>
-            <input type="number" id="age" name="age" placeholder="e.g. Volunteers must be at least 18 years old" min="18" max="120" required/>
+            <input type="number" id="age" name="age" placeholder="e.g. Volunteers must be at least 18 years old" min="18" max="100" required/>
           </div>
 
           <div class="form-group">
             <label for="socialMedia">Social Media Link (e.g., Facebook Profile URL)</label>
             <input type="url" id="socialMedia" name="socialMedia" placeholder="e.g. https://facebook.com/yourprofile" required/>
-            <small>Optional, but helps us connect with you.</small>
           </div>
         </fieldset>
 
@@ -221,20 +220,23 @@
 
         <fieldset>
           <legend>Availability</legend>
+              
+          <div class="skills-group">
+            <div>
+              <input type="checkbox" id="emergencyResponseCheckbox" name="emergencyResponse">I am available for after-hours emergency response
+            </div>
+          </div>
 
           <div id="availability-inputs">
             <div class="availability-item form-group">
                 <label>Date:</label>
                 <input type="date" class="availability-date" required>
                 <label>Time:</label>
-                <input type="time" class="availability-time" required>
+                <input type="time" class="availability-time" min="08:00" max="20:00" required>
                 <button type="button" class="remove-availability-item">Remove</button>
             </div>
           </div>
           <button type="button" id="addAvailability">Add Another Date/Time</button>
-
-          <input type="hidden" id="volunteerAvailability" name="volunteerAvailability">
-
         </fieldset>
 
         <div class="form-group terms-conditions-container">

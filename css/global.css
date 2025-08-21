@@ -117,14 +117,14 @@
   background-color: #FFF9F0;
 }
 
-header {
+body:not(.no-header-line) header {
   position: relative;
   font-size: 28px;
   font-weight: 600;
   color: var(--accent-color);
 }
   
-header::before {
+body:not(.no-header-line) header::before {
   content: "";
   position: absolute;
   left: 0;
@@ -400,7 +400,7 @@ tr {
   box-sizing: border-box;
 }
 
-h2, h4, strong{
+h2, h3, h4, strong{
   color: var(--primary-color);
 }
 

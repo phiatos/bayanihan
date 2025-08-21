@@ -53,7 +53,7 @@
                 </div>
                 <div class="drawer-tabs">
                     <button id="tabCalamity" class="tab active">Calamity Alerts</button>
-                    <button id="tabAdmin" class="tab">Admin Notifications</button>
+                    <button id="tabNonCalamity" class="tab">Notifications</button>
                 </div>
                 <div class="drawer-content">
                     <ul class="notification-list" id="calamityList"></ul>
@@ -174,61 +174,60 @@
                     </div>
 
                     <!--Metrics -->
-                <div class="abvn-metrics">
-                    <div class="metrics-title"><h3>Volunteer Group Metrics Overview</h3></div>
-                    <table class="metrics-table">
-                    <thead>
-                        <tr>
-                        <th>ABVN</th>
-                        <th>No. of Food Packs</th>
-                        <th>No. of Hot Meals</th>
-                        <th>Liters of Water</th>
-                        <th>Volunteers Mobilized</th>
-                        <th>Monetary Donations</th>
-                        <th>In-kind Donations</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                        <td>ABVN-001</td>
-                        <td>350</td>
-                        <td>420</td>
-                        <td>1,000 L</td>
-                        <td>25</td>
-                        <td>₱35,000</td>
-                        <td>Clothes, Blankets</td>
-                        </tr>
-                        <tr>
-                        <td>ABVN-002</td>
-                        <td>500</td>
-                        <td>300</td>
-                        <td>1,500 L</td>
-                        <td>40</td>
-                        <td>₱50,000</td>
-                        <td>Medicines, Canned Goods</td>
-                        </tr>
-                        <tr>
-                        <td>ABVN-003</td>
-                        <td>280</td>
-                        <td>200</td>
-                        <td>750 L</td>
-                        <td>18</td>
-                        <td>₱22,500</td>
-                        <td>Diapers, Bottled Water</td>
-                        </tr>
-                        <tr>
-                        <td>ABVN-004</td>
-                        <td>610</td>
-                        <td>610</td>
-                        <td>2,200 L</td>
-                        <td>50</td>
-                        <td>₱65,000</td>
-                        <td>Hygiene Kits, Rice</td>
-                        </tr>
-                    </tbody>
-                    </table>
-                </div>
-                
+                    <div class="abvn-metrics">
+                        <div class="metrics-title"><h3>Volunteer Group Metrics Overview</h3></div>
+                        <table class="metrics-table">
+                            <thead>
+                                <tr>
+                                    <th>ABVN</th>
+                                    <th>No. of Food Packs</th>
+                                    <th>No. of Hot Meals</th>
+                                    <th>Liters of Water</th>
+                                    <th>Volunteers Mobilized</th>
+                                    <th>Monetary Donations</th>
+                                    <th>In-kind Donations</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>ABVN-001</td>
+                                    <td>350</td>
+                                    <td>420</td>
+                                    <td>1,000 L</td>
+                                    <td>25</td>
+                                    <td>₱35,000</td>
+                                    <td>Clothes, Blankets</td>
+                                </tr>
+                                <tr>
+                                    <td>ABVN-002</td>
+                                    <td>500</td>
+                                    <td>300</td>
+                                    <td>1,500 L</td>
+                                    <td>40</td>
+                                    <td>₱50,000</td>
+                                    <td>Medicines, Canned Goods</td>
+                                </tr>
+                                <tr>
+                                    <td>ABVN-003</td>
+                                    <td>280</td>
+                                    <td>200</td>
+                                    <td>750 L</td>
+                                    <td>18</td>
+                                    <td>₱22,500</td>
+                                    <td>Diapers, Bottled Water</td>
+                                </tr>
+                                <tr>
+                                    <td>ABVN-004</td>
+                                    <td>610</td>
+                                    <td>610</td>
+                                    <td>2,200 L</td>
+                                    <td>50</td>
+                                    <td>₱65,000</td>
+                                    <td>Hygiene Kits, Rice</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </section>
             </div>
         </div>
@@ -277,14 +276,14 @@
             const notifDot = document.getElementById('notifDot');
             const notifBadge = document.getElementById('notifBadge');
             const tabCalamity = document.getElementById('tabCalamity');
-            const tabAdmin = document.getElementById('tabAdmin');
+            const tabNonCalamity = document.getElementById('tabNonCalamity');
             const markAllReadBtn = document.getElementById('markAllRead');
 
             if (bell && drawer) {
                 bell.addEventListener('click', () => {
                     console.log('Bell clicked');
                     drawer.classList.toggle('open');
-                    if (drawer.classList.contains('open')) {
+                    if (drawer.classList.contains('open') && calamityList && adminList) {
                         adminList.classList.add('hidden');
                         calamityList.classList.remove('hidden');
                     }
@@ -300,19 +299,27 @@
 
             if (tabCalamity) {
                 tabCalamity.addEventListener('click', () => {
-                    tabCalamity.classList.add('active');
-                    tabAdmin.classList.remove('active');
-                    calamityList.classList.remove('hidden');
-                    adminList.classList.add('hidden');
+                    if (calamityList && adminList) {
+                        tabCalamity.classList.add('active');
+                        tabNonCalamity.classList.remove('active');
+                        calamityList.classList.remove('hidden');
+                        adminList.classList.add('hidden');
+                    } else {
+                        console.error('calamityList or adminList not found');
+                    }
                 });
             }
 
-            if (tabAdmin) {
-                tabAdmin.addEventListener('click', () => {
-                    tabAdmin.classList.add('active');
-                    tabCalamity.classList.remove('active');
-                    adminList.classList.remove('hidden');
-                    calamityList.classList.add('hidden');
+            if (tabNonCalamity) {
+                tabNonCalamity.addEventListener('click', () => {
+                    if (calamityList && adminList) {
+                        tabNonCalamity.classList.add('active');
+                        tabCalamity.classList.remove('active');
+                        adminList.classList.remove('hidden');
+                        calamityList.classList.add('hidden');
+                    } else {
+                        console.error('calamityList or adminList not found');
+                    }
                 });
             }
 
@@ -424,9 +431,8 @@
         });
     </script>
 
-    <!-- <script src="../js/inactivity-detector.js"></script> -->
     <script type="module" src="../js/dashboard.js"></script>
-    <!-- Load Google Maps API with marker library -->
-    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBDtlY28p-MvLHRtxnjiibSAadSETvM3VU&libraries=places,marker"></script>
+    <!-- Load Google Maps API with new key -->
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAAAu6BeQjIZ7H7beFbAsPWuKuORmh0wrk&libraries=places,marker"></script>
 </body>
 </html>

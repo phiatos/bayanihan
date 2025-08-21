@@ -83,6 +83,79 @@ function checkInactivity() {
     });
 }
 
+// Permission Checking Functions
+function checkAdminPermissions(requiredRoles, action) {
+    if (!requiredRoles.includes(currentUserAdminPosition)) {
+        showAccessDeniedAlert(action);
+        return false;
+    }
+    return true;
+}
+
+async function verifySuperAdminPassword() {
+    // Placeholder for password verification (actual implementation would involve backend validation)
+    const { value: password } = await Swal.fire({
+        title: 'Super Admin Verification',
+        text: 'Please enter the Super Admin password to proceed.',
+        input: 'password',
+        inputPlaceholder: 'Enter password',
+        showCancelButton: true,
+        confirmButtonText: 'Verify',
+        cancelButtonText: 'Cancel',
+        allowOutsideClick: false,
+        inputAttributes: {
+            autocapitalize: 'off',
+            autocorrect: 'off'
+        },
+        customClass: {
+            popup: 'custom-swal-popup-small',
+            title: 'custom-swal-title',
+            htmlContainer: 'custom-swal-content',
+            confirmButton: 'custom-confirm-btn',
+            cancelButton: 'custom-cancel-btn'
+        }
+    });
+
+    if (!password) {
+        Swal.fire({
+            title: 'Verification Cancelled',
+            text: 'Password verification was cancelled.',
+            icon: 'info',
+            timer: 1600,
+            showConfirmButton: false,
+            timerProgressBar: true,
+            allowOutsideClick: false,
+            customClass: {
+                popup: 'swal2-popup-info-clean',
+                title: 'swal2-title-info-clean',
+                htmlContainer: 'swal2-text-info-clean'
+            }
+        });
+        return false;
+    }
+
+    // Simulated password check (replace with actual backend validation)
+    const isValidPassword = password === "superadmin123"; // Placeholder password
+    if (!isValidPassword) {
+        Swal.fire({
+            title: 'Invalid Password',
+            text: 'The provided Super Admin password is incorrect.',
+            icon: 'error',
+            timer: 1600,
+            showConfirmButton: false,
+            timerProgressBar: true,
+            allowOutsideClick: false,
+            customClass: {
+                popup: 'swal2-popup-error-clean',
+                title: 'swal2-title-error-clean',
+                htmlContainer: 'swal2-text-error-clean'
+            }
+        });
+        return false;
+    }
+    return true;
+}
+
 // Authentication and Initialization
 document.addEventListener('DOMContentLoaded', () => {
     auth.onAuthStateChanged(user => {
@@ -157,10 +230,13 @@ function initializePageFunctions(userId) {
 
     // Event Listeners
     if (importExcelBtn) {
-        importExcelBtn.addEventListener('click', () => {
-            if (!hasImportPermission()) {
-                showAccessDeniedAlert('import volunteer group applications');
+        importExcelBtn.addEventListener('click', async () => {
+            if (!checkAdminPermissions(["Super Admin", "position-one"], 'import volunteer group applications')) {
                 return;
+            }
+            if (currentUserAdminPosition === "position-one") {
+                const isVerified = await verifySuperAdminPassword();
+                if (!isVerified) return;
             }
             excelFileInput.click();
         });
@@ -193,7 +269,14 @@ function initializePageFunctions(userId) {
     }
 
     if (viewArchivedButton) {
-        viewArchivedButton.addEventListener('click', () => {
+        viewArchivedButton.addEventListener('click', async () => {
+            if (!checkAdminPermissions(["Super Admin", "position-one"], 'access retrieve archive application')) {
+                return;
+            }
+            if (currentUserAdminPosition === "position-one") {
+                const isVerified = await verifySuperAdminPassword();
+                if (!isVerified) return;
+            }
             currentArchivedVGPage = 1;
             fetchAndRenderArchivedVGs();
         });
@@ -233,7 +316,7 @@ function initializePageFunctions(userId) {
 
 // Utility Functions
 function hasImportPermission() {
-    return currentUserAdminPosition === "Super Admin" || currentUserAdminPosition === "position-one";
+    return checkAdminPermissions(["Super Admin", "position-one"], 'import volunteer group applications');
 }
 
 function showAccessDeniedAlert(action) {
@@ -289,9 +372,12 @@ function fetchPendingApplications() {
 }
 
 async function fetchAndRenderArchivedVGs() {
-    if (!hasImportPermission()) {
-        showAccessDeniedAlert('access retrieve archive application');
+    if (!checkAdminPermissions(["Super Admin", "position-one"], 'access retrieve archive application')) {
         return;
+    }
+    if (currentUserAdminPosition === "position-one") {
+        const isVerified = await verifySuperAdminPassword();
+        if (!isVerified) return;
     }
 
     try {
@@ -502,6 +588,52 @@ function applySearchAndSort() {
     const sortSelect = document.getElementById('sortSelect');
     let currentApplications = [...allApplications];
 
+    // Set dynamic placeholder based on sort selection
+    let placeholderText = "Search Applications";
+    switch (sortSelect.value) {
+        case "organizationName-asc":
+        case "organizationName-desc":
+            placeholderText = "Search by Organization Name";
+            break;
+        case "contactPerson-asc":
+        case "contactPerson-desc":
+            placeholderText = "Search by Contact Person";
+            break;
+        case "email-asc":
+        case "email-desc":
+            placeholderText = "Search by Email";
+            break;
+        case "mobileNumber-asc":
+        case "mobileNumber-desc":
+            placeholderText = "Search by Mobile Number";
+            break;
+        case "region-asc":
+        case "region-desc":
+            placeholderText = "Search by Region";
+            break;
+        case "province-asc":
+        case "province-desc":
+            placeholderText = "Search by Province";
+            break;
+        case "city-asc":
+        case "city-desc":
+            placeholderText = "Search by City";
+            break;
+        case "barangay-asc":
+        case "barangay-desc":
+            placeholderText = "Search by Barangay";
+            break;
+        case "streetAddress-asc":
+        case "streetAddress-desc":
+            placeholderText = "Search by Street Address";
+            break;
+        case "applicationDateandTime-asc":
+        case "applicationDateandTime-desc":
+            placeholderText = "Search by Application Date/Time";
+            break;
+    }
+    searchInput.placeholder = placeholderText;
+
     // Apply search filter
     const searchTerm = searchInput.value.toLowerCase().trim();
     if (searchTerm) {
@@ -581,7 +713,7 @@ function applySearchAndSort() {
             if (typeof valA === 'number' && typeof valB === 'number') {
                 return order === 'asc' ? valA - valB : valB - valA;
             } else {
-                return order === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+                return order === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valB);
             }
         });
     }
@@ -737,9 +869,12 @@ async function handleTableActions(event) {
             }
         });
     } else if (target.classList.contains('rejectBtn')) {
-        if (!hasImportPermission()) {
-            showAccessDeniedAlert('reject this application');
+        if (!checkAdminPermissions(["Super Admin", "position-one"], 'reject this application')) {
             return;
+        }
+        if (currentUserAdminPosition === "position-one") {
+            const isVerified = await verifySuperAdminPassword();
+            if (!isVerified) return;
         }
 
         Swal.fire({
@@ -805,9 +940,12 @@ async function handleTableActions(event) {
 }
 
 async function retrieveVG(uid) {
-    if (!hasImportPermission()) {
-        showAccessDeniedAlert('retrieve volunteer group applications');
+    if (!checkAdminPermissions(["Super Admin", "position-one"], 'retrieve volunteer group applications')) {
         return;
+    }
+    if (currentUserAdminPosition === "position-one") {
+        const isVerified = await verifySuperAdminPassword();
+        if (!isVerified) return;
     }
 
     Swal.fire({
@@ -918,9 +1056,12 @@ async function handleExcelFileSelect(event) {
     const file = event.target.files[0];
     if (!file) return;
 
-    if (!hasImportPermission()) {
-        showAccessDeniedAlert('import volunteer group applications');
+    if (!checkAdminPermissions(["Super Admin", "position-one"], 'import volunteer group applications')) {
         return;
+    }
+    if (currentUserAdminPosition === "position-one") {
+        const isVerified = await verifySuperAdminPassword();
+        if (!isVerified) return;
     }
 
     importProgressBar.style.width = '0%';

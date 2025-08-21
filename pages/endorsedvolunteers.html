@@ -35,9 +35,45 @@
                     <div class="custom-select-wrapper">
                         <select id="sortSelect">
                             <option value="" disabled selected hidden>Sort by</option>
+                            <optgroup label="Name">
+                                <option value="Name-asc">Name (A–Z)</option>
+                                <option value="Name-desc">Name (Z–A)</option>
+                            </optgroup>
+                            <optgroup label="Email">
+                                <option value="Email-asc">Email (A–Z)</option>
+                                <option value="Email-desc">Email (Z–A)</option>
+                            </optgroup>
+                            <optgroup label="Mobile Number">
+                                <option value="MobileNumber-asc">Mobile Number (A–Z)</option>
+                                <option value="MobileNumber-desc">Mobile Number (Z–A)</option>
+                            </optgroup>
+                            <optgroup label="Age">
+                                <option value="Age-asc">Age (Low to High)</option>
+                                <option value="Age-desc">Age (High to Low)</option>
+                            </optgroup>
+                            <optgroup label="Social Media">
+                                <option value="SocialMedia-asc">Social Media (A–Z)</option>
+                                <option value="SocialMedia-desc">Social Media (Z–A)</option>
+                            </optgroup>
+                            <optgroup label="Additional Info">
+                                <option value="AdditionalInfo-asc">Additional Info (A–Z)</option>
+                                <option value="AdditionalInfo-desc">Additional Info (Z–A)</option>
+                            </optgroup>
                             <optgroup label="Location">
                                 <option value="Location-asc">Location (A–Z)</option>
                                 <option value="Location-desc">Location (Z–A)</option>
+                            </optgroup>
+                            <optgroup label="Endorsed To ABVN">
+                                <option value="EndorsedToABVN-asc">Endorsed To ABVN (A–Z)</option>
+                                <option value="EndorsedToABVN-desc">Endorsed To ABVN (Z–A)</option>
+                            </optgroup>
+                            <optgroup label="Endorsement Date">
+                                <option value="EndorsementDate-asc">Endorsement Date (Earliest to Latest)</option>
+                                <option value="EndorsementDate-desc">Endorsement Date (Latest to Earliest)</option>
+                            </optgroup>
+                            <optgroup label="All">
+                                <option value="All-asc">All (A–Z by Name)</option>
+                                <option value="All-desc">All (Z–A by Name)</option>
                             </optgroup>
                         </select>
                         <i class='bx bx-chevron-down'></i>
@@ -52,23 +88,6 @@
                 <button id="viewApprovedBtn" class="viewApprovedBtn">
                     <i class='bx bx-show' style="font-size: 1.2rem;"></i>View Approved Volunteer Applications
                 </button>
-
-                <div class="import-section">
-                    <input type="file" id="excelFileInput" accept=".xls,.xlsx" style="display: none;"/>
-                    <button id="importExcelBtn" class="importExcelBtn" type="button">
-                        <i class='bx bxs-file-import'  style="font-size: 1.2rem;"></i>Import from Excel
-                    </button>
-                </div>
-                
-                <div id="importStatusModal" class="modal" style="display: none;">
-                    <div class="modal-content custom-swal-popup-small">
-                        <span class="close-button" id="closeImportStatusModalBtn">&times;</span>
-                        <h2 class="custom-swal-title">Excel Import Status</h2>
-                        <div id="importProgressBar" style="width: 0%; background-color: #4CAF50; height: 20px; text-align: center; line-height: 20px; color: white;">0%</div>
-                        <p id="importStatusText" class="custom-swal-text">Processing data...</p>
-                        <ul id="importErrorList" class="custom-swal-text" style="color: red; list-style-type: none; padding: 0;"></ul>
-                    </div>
-                </div>
             </div>
 
             <div class="table-container">
@@ -81,11 +100,14 @@
                             <th>Mobile Number</th>
                             <th>Age</th>
                             <th>Social Media</th>
-                            <th>Additional Info</th>
+                            <th>Additional Skills Info</th>
+                            <th>Emergency Response</th>
+                            <th>Date/Time Availability</th>
                             <th>Region</th>
                             <th>Province</th>
                             <th>City</th>
                             <th>Barangay</th>
+                            <th>Skills</th>
                             <th>Endorsed To ABVN</th>
                             <th>Application Date</th>
                             <th>Actions</th>

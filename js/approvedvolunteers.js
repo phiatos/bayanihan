@@ -30,6 +30,7 @@ try {
 // Variables for inactivity detection
 let inactivityTimeout;
 const INACTIVITY_TIME = 1800000; // 30 minutes in milliseconds
+let permissions = { canView: false, canEdit: false, canArchive: false, canRetrieve: false };
 
 // Function to reset the inactivity timer
 function resetInactivityTimer() {
@@ -78,14 +79,115 @@ function checkInactivity() {
     document.addEventListener(eventType, resetInactivityTimer);
 });
 
-document.addEventListener('DOMContentLoaded', () => {
-    // Authentication Check
-    auth.onAuthStateChanged(user => {
-        if (!user) {
+async function checkAdminPermissions() {
+    const user = auth.currentUser;
+    if (!user) {
+        console.error("No authenticated user found.");
+        Swal.fire('Error', 'User not authenticated.', 'error');
+        return { canView: false, canEdit: false, canArchive: false, canRetrieve: false };
+    }
+    try {
+        const snapshot = await database.ref(`users/${user.uid}`).once('value');
+        const userData = snapshot.val();
+        const adminPosition = userData?.adminPosition || '';
+        console.log("User admin position:", adminPosition);
+        return {
+            canView: ['Super Admin', 'position-one', 'position-two'].includes(adminPosition),
+            canEdit: ['Super Admin', 'position-one', 'position-two'].includes(adminPosition),
+            canArchive: ['Super Admin', 'position-one'].includes(adminPosition),
+            canRetrieve: ['Super Admin', 'position-one'].includes(adminPosition)
+        };
+    } catch (error) {
+        console.error("Error fetching user permissions:", error);
+        Swal.fire('Error', `Failed to fetch user permissions: ${error.message}`, 'error');
+        return { canView: false, canEdit: false, canArchive: false, canRetrieve: false };
+    }
+}
+
+async function verifySuperAdminPassword() {
+    console.log('verifySuperAdminPassword called, current searchInput value:', searchInput.value);
+    const { value: password } = await Swal.fire({
+        title: 'Enter Admin Password',
+        input: 'password',
+        inputPlaceholder: 'Enter password here',
+        inputAttributes: { 
+            autocapitalize: 'off', 
+            autocorrect: 'off', 
+            autocomplete: 'new-password' 
+        },
+        showCancelButton: true,
+        confirmButtonText: 'Verify',
+        showLoaderOnConfirm: true,
+        reverseButtons: true,
+        focusCancel: true,
+        preConfirm: async (password) => {
+            try {
+                const user = auth.currentUser;
+                const credential = firebase.auth.EmailAuthProvider.credential(user.email, password);
+                await user.reauthenticateWithCredential(credential); // Use reauthenticateWithCredential
+                return true;
+            } catch (error) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Verification Failed',
+                    text: 'Invalid admin password.',
+                    timer: 1600,
+                    showConfirmButton: false,
+                    timerProgressBar: true,
+                    allowOutsideClick: false,
+                    customClass: {
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean'
+                    }
+                });
+                return false;
+            }
+        },
+        allowOutsideClick: () => !Swal.isLoading(),
+        customClass: {
+            popup: 'custom-swal-popup',
+            title: 'custom-swal-title',
+            input: 'custom-swal-input',
+            confirmButton: 'custom-confirm-btn',
+            cancelButton: 'custom-cancel-btn'
+        }
+    });
+    if (!password) {
+        searchInput.value = '';
+        return false;
+    }
+    searchInput.value = ''; 
+    return password; 
+}
+
+auth.onAuthStateChanged(async user => {
+    if (!user) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Authentication Required',
+            text: 'Please sign in to access approved volunteer applications.',
+        }).then(() => {
+            window.location.href = "../pages/login.html";
+        });
+        return;
+    }
+    try {
+        permissions = await checkAdminPermissions(); // Assign to global permissions
+        console.log("Permissions:", permissions);
+        if (!permissions.canView) {
             Swal.fire({
                 icon: 'error',
-                title: 'Authentication Required',
-                text: 'Please sign in to access approved volunteer applications.',
+                title: 'Access Denied',
+                text: 'You do not have permission to access this page.',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
+                }
             }).then(() => {
                 window.location.href = "../pages/login.html";
             });
@@ -94,7 +196,15 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log("User authenticated:", user.uid);
         initializePageFunctions(user.uid);
         resetInactivityTimer();
-    });
+    } catch (error) {
+        console.error("Error during auth state change:", error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: `Failed to initialize page: ${error.message}`,
+            confirmButtonText: 'OK'
+        });
+    }
 });
 
 function initializePageFunctions(userId) {
@@ -176,10 +286,39 @@ function initializePageFunctions(userId) {
 
     function showPreviewModal(volunteer) {
         const fullName = getFullName(volunteer);
+
+        let specificSlotsHtml = '';
+
+        if (volunteer.availability && volunteer.availability.specificDateTimeSlots && volunteer.availability.specificDateTimeSlots.length > 0) {
+            specificSlotsHtml = `<h5 style="margin-bottom: 10px; color: #14AEBB;">Date/Time Availability:</h5><div style="margin-left: 15px;"><ol style="padding-left: 20px; margin-top: 5px;">`;
+            volunteer.availability.specificDateTimeSlots.forEach(slot => {
+                if (slot.date && slot.time) {
+                    specificSlotsHtml += `<li>${slot.date} at ${slot.time}</li>`;
+                }
+            });
+            specificSlotsHtml += `</ol></div>`;
+        } else {
+            specificSlotsHtml = `<p><strong>Date/Time Availability:</strong> N/A</p>`;
+        }
+
+        let skillsHtml = '';
+        if (volunteer.skills && Array.isArray(volunteer.skills) && volunteer.skills.length > 0) {
+            skillsHtml = `<h5 style="margin-bottom: 10px; color: #14AEBB;">Selected Skills:</h5><div style="margin-left: 15px;"><ol style="padding-left: 20px; margin-top: 5px;">`;
+            volunteer.skills.forEach(skill => {
+                if (skill === 'Other' && volunteer.otherSkillComments && volunteer.otherSkillComments.trim()) {
+                    skillsHtml += `<li>${skill} (${volunteer.otherSkillComments})</li>`;
+                } else {
+                    skillsHtml += `<li>${skill}</li>`;
+                }
+            });
+            skillsHtml += `</ol></div>`;
+        } else {
+            skillsHtml = `<p><strong>Skills:</strong> None selected</p>`;
+        }
+
         modalContent.innerHTML = `
             <div class="modal-content-inner" style="padding: 20px;">
                 <h2>Approved Volunteer Details</h2>
-
                 <p><strong>Scheduled Date/Time:</strong> ${formatDate(volunteer.scheduledDateTime || volunteer.timestamp)}</p>
                 <p><strong>Full Name:</strong> ${fullName}</p>
                 <p><strong>Email:</strong> ${volunteer.email || 'N/A'}</p>
@@ -198,24 +337,43 @@ function initializePageFunctions(userId) {
                 </div>
                 <hr>
                 <h2>Availability:</h2>
-                <p><strong>General Availability:</strong> ${volunteer.availability?.general || 'N/A'}</p>
-                <p><strong>Available Days:</strong> ${volunteer.availability?.specificDays ? volunteer.availability.specificDays.join(', ') : 'N/A'}</p>
-                <p><strong>Time Availability:</strong> ${volunteer.availability?.timeAvailability || 'N/A'}</p>
+                <p><strong>Emergency Response:</strong> ${volunteer.isEmergencyResponse ? 'Yes (24/7)' : 'No'}</p>
+                ${specificSlotsHtml}
+                <hr>
+                <h2>Skills:</h2>
+                ${skillsHtml}
             </div>
         `;
         previewModal.style.display = 'flex';
     }
 
-    // Export Functions
+    // Export Excel
     function exportToExcel() {
         if (filteredApprovedApplications.length === 0) {
-            Swal.fire("Info", "No data to export!", "info");
+            Swal.fire({
+                title: 'Error',
+                text: 'No data to export!',
+                icon: 'error',
+                timer: 1600,
+                showConfirmButton: false,
+                timerProgressBar: true,
+                allowOutsideClick: false,
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
+                }
+            });
             return;
         }
         const dataForExport = filteredApprovedApplications.map((volunteer, i) => {
-            const applicationDateTime = formatDate(volunteer.applicationDateandTime);
-            if (applicationDateTime === 'N/A') {
-                console.warn(`Missing or invalid applicationDateandTime for volunteer ${volunteer.key}:`, volunteer.applicationDateandTime);
+            let skillsDisplay = 'None';
+            if (volunteer.skills && Array.isArray(volunteer.skills) && volunteer.skills.length > 0) {
+                skillsDisplay = volunteer.skills.map(skill => 
+                    skill === 'Other' && volunteer.otherSkillComments ? 
+                    `${skill} (${volunteer.otherSkillComments})` : skill
+                ).join('; ');
             }
             return {
                 "No.": i + 1,
@@ -224,16 +382,15 @@ function initializePageFunctions(userId) {
                 "Mobile Number": String(volunteer.mobileNumber || 'N/A'),
                 "Age": volunteer.age || 'N/A',
                 "Social Media": volunteer.socialMediaLink || 'N/A',
+                "Additional Info": volunteer.otherSkillComments || 'N/A',
+                "Emergency Response": volunteer.emergencyResponse || 'N/A',
+                "Date/Time Availability": volunteer.availability?.specificDateTimeSlots?.map(slot => `${slot.date} at ${slot.time}`).join('; ') || 'N/A',
                 "Region": volunteer.address?.region || 'N/A',
                 "Province": volunteer.address?.province || 'N/A',
                 "City": volunteer.address?.city || 'N/A',
                 "Barangay": volunteer.address?.barangay || 'N/A',
-                "Additional Info": volunteer.additionalInfo || 'N/A',
-                "General Availability": volunteer.availability?.general || 'N/A',
-                "Available Days": volunteer.availability?.specificDays ? volunteer.availability.specificDays.join(', ') : 'N/A',
-                "Time Availability": volunteer.availability?.timeAvailability || 'N/A',
-                "Scheduled Date/Time": formatDate(volunteer.scheduledDateTime || volunteer.applicationDateandTime),
-                "Application Date/Time": applicationDateTime
+                "Skills": skillsDisplay,
+                "Scheduled Date/Time": formatDate(volunteer.scheduledDateTime || volunteer.applicationDateandTime)
             };
         });
         const ws = XLSX.utils.json_to_sheet(dataForExport);
@@ -265,9 +422,24 @@ function initializePageFunctions(userId) {
         });
     }
 
+    // PDF all
     function exportToPDF() {
         if (filteredApprovedApplications.length === 0) {
-            Swal.fire("Info", "No data to export to PDF!", "info");
+            Swal.fire({
+                title: 'Error',
+                text: 'No data to PDF!',
+                icon: 'error',
+                timer: 1600,
+                showConfirmButton: false,
+                timerProgressBar: true,
+                allowOutsideClick: false,
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
+                }
+            });
             return;
         }
         Swal.fire({
@@ -304,13 +476,16 @@ function initializePageFunctions(userId) {
             const head = [[
                 "No.", "Full Name", "Email", "Mobile Number", "Age", "Social Media",
                 "Region", "Province", "City", "Barangay", "Additional Info",
-                "General Availability", "Available Days", "Time Availability",
-                "Scheduled Date/Time", "Application Date/Time"
+                "Skills", "Date/Time Availability",
+                "Scheduled Date/Time"
             ]];
             const body = filteredApprovedApplications.map((volunteer, i) => {
-                const applicationDateTime = formatDate(volunteer.applicationDateandTime);
-                if (applicationDateTime === 'N/A') {
-                    console.warn(`Missing or invalid applicationDateandTime for volunteer ${volunteer.key}:`, volunteer.applicationDateandTime);
+                let skillsDisplay = 'None';
+                if (volunteer.skills && Array.isArray(volunteer.skills) && volunteer.skills.length > 0) {
+                    skillsDisplay = volunteer.skills.map(skill => 
+                        skill === 'Other' && volunteer.otherSkillComments ? 
+                        `${skill} (${volunteer.otherSkillComments})` : skill
+                    ).join('; ');
                 }
                 return [
                     i + 1,
@@ -323,12 +498,8 @@ function initializePageFunctions(userId) {
                     volunteer.address?.province || 'N/A',
                     volunteer.address?.city || 'N/A',
                     volunteer.address?.barangay || 'N/A',
-                    volunteer.additionalInfo || 'N/A',
-                    volunteer.availability?.general || 'N/A',
-                    volunteer.availability?.specificDays ? volunteer.availability.specificDays.join(', ') : 'N/A',
-                    volunteer.availability?.timeAvailability || 'N/A',
+                    volunteer.otherSkillComments || 'N/A',
                     formatDate(volunteer.scheduledDateTime || volunteer.applicationDateandTime),
-                    applicationDateTime
                 ];
             });
             doc.autoTable({
@@ -521,7 +692,7 @@ function initializePageFunctions(userId) {
         const colCount = archivedTableBody.parentElement.querySelectorAll('thead tr th').length;
         archivedTableBody.innerHTML = `<tr><td colspan="${colCount}" style="text-align: center;">Loading archived volunteer applications...</td></tr>`;
 
-        database.ref('volunteerApplications/rejectedVolunteer').once('value', (snapshot) => {
+        database.ref('volunteerApplications/archivedApprovedVolunteer').once('value', (snapshot) => {
             allArchivedVolunteerData = [];
             if (snapshot.exists()) {
                 snapshot.forEach((childSnapshot) => {
@@ -563,12 +734,65 @@ function initializePageFunctions(userId) {
 
         let i = startIndex + 1;
 
+        // paginatedApplications.forEach(volunteer => {
+        //     const row = archivedTableBody.insertRow();
+        //     row.setAttribute('data-key', volunteer.key);
+        //     const fullName = getFullName(volunteer);
+        //     const socialMediaDisplay = volunteer.socialMediaLink ? `<a href="${volunteer.socialMediaLink}" target="_blank" rel="noopener noreferrer">Link</a>` : 'N/A';
+        //     const scheduledDateTimeDisplay = volunteer.scheduledDateTime ? formatDate(volunteer.scheduledDateTime) : 'N/A';
+        //     row.innerHTML = `
+        //         <td>${i++}</td>
+        //         <td>${fullName}</td>
+        //         <td>${volunteer.email || 'N/A'}</td>
+        //         <td>${volunteer.mobileNumber || 'N/A'}</td>
+        //         <td>${volunteer.age || 'N/A'}</td>
+        //         <td>${socialMediaDisplay}</td>
+        //         <td>${volunteer.otherSkillComments || 'N/A'}</td>
+        //         <td>${volunteer.isEmergencyResponse ? 'Yes (24/7)' : 'No'}</td>
+        //         <td>${specificSlotsHtml}</td>
+        //         <td>${volunteer.address?.region || 'N/A'}</td>
+        //         <td>${volunteer.address?.province || 'N/A'}</td>
+        //         <td>${volunteer.address?.city || 'N/A'}</td>
+        //         <td>${volunteer.address?.barangay || 'N/A'}</td>
+        //         <td>${skillsHtml}</td>
+        //         <td>${scheduledDateTimeDisplay}</td>
+        //         <td>${formatDate(volunteer.archivedAt)}</td>
+        //         <td>
+        //             ${permissions.canRetrieve ? `<button class="retrieveBtn" data-key="${volunteer.key}">Retrieve</button>` : ''}
+        //         </td>
+        //     `;
+        // });
         paginatedApplications.forEach(volunteer => {
             const row = archivedTableBody.insertRow();
             row.setAttribute('data-key', volunteer.key);
             const fullName = getFullName(volunteer);
             const socialMediaDisplay = volunteer.socialMediaLink ? `<a href="${volunteer.socialMediaLink}" target="_blank" rel="noopener noreferrer">Link</a>` : 'N/A';
             const scheduledDateTimeDisplay = volunteer.scheduledDateTime ? formatDate(volunteer.scheduledDateTime) : 'N/A';
+            
+            // Define specificSlotsHtml and skillsHtml locally
+            let specificSlotsHtml = 'N/A';
+            if (volunteer.availability && volunteer.availability.specificDateTimeSlots && volunteer.availability.specificDateTimeSlots.length > 0) {
+                specificSlotsHtml = '<ol>';
+                volunteer.availability.specificDateTimeSlots.forEach(slot => {
+                    if (slot.date && slot.time) {
+                        specificSlotsHtml += `<li>${slot.date} at ${slot.time}</li>`;
+                    }
+                });
+                specificSlotsHtml += '</ol>';
+            }
+            let skillsHtml = 'None';
+            if (volunteer.skills && Array.isArray(volunteer.skills) && volunteer.skills.length > 0) {
+                skillsHtml = '<ol>';
+                volunteer.skills.forEach(skill => {
+                    if (skill === 'Other' && volunteer.otherSkillComments && volunteer.otherSkillComments.trim()) {
+                        skillsHtml += `<li>${skill} (${volunteer.otherSkillComments})</li>`;
+                    } else {
+                        skillsHtml += `<li>${skill}</li>`;
+                    }
+                });
+                skillsHtml += '</ol>';
+            }
+
             row.innerHTML = `
                 <td>${i++}</td>
                 <td>${fullName}</td>
@@ -576,22 +800,17 @@ function initializePageFunctions(userId) {
                 <td>${volunteer.mobileNumber || 'N/A'}</td>
                 <td>${volunteer.age || 'N/A'}</td>
                 <td>${socialMediaDisplay}</td>
-                <td>${volunteer.additionalInfo || 'N/A'}</td>
-                <td>${
-                    volunteer.availability && volunteer.availability.general === 'Specific days'
-                    ? `Specific Days: ${volunteer.availability.specificDays ? volunteer.availability.specificDays.join(', ') : 'N/A'}`
-                    : (volunteer.availability?.general || 'N/A')
-                }</td>
-                <td>${volunteer.availability?.timeAvailability || 'N/A'}</td>
+                <td>${volunteer.otherSkillComments || 'N/A'}</td>
+                <td>${volunteer.isEmergencyResponse ? 'Yes (24/7)' : 'No'}</td>
+                <td>${specificSlotsHtml}</td>
                 <td>${volunteer.address?.region || 'N/A'}</td>
                 <td>${volunteer.address?.province || 'N/A'}</td>
                 <td>${volunteer.address?.city || 'N/A'}</td>
                 <td>${volunteer.address?.barangay || 'N/A'}</td>
+                <td>${skillsHtml}</td>
                 <td>${scheduledDateTimeDisplay}</td>
                 <td>${formatDate(volunteer.archivedAt)}</td>
-                <td>
-                    <button class="retrieveBtn" data-key="${volunteer.key}">Retrieve</button>
-                </td>
+                <td>${permissions.canRetrieve ? `<button class="retrieveBtn" data-key="${volunteer.key}">Retrieve</button>` : ''}</td>
             `;
         });
 
@@ -717,6 +936,29 @@ function initializePageFunctions(userId) {
             const socialMediaDisplay = volunteer.socialMediaLink ? `<a href="${volunteer.socialMediaLink}" target="_blank" rel="noopener noreferrer">Link</a>` : 'N/A';
             const scheduledDateTimeDisplay = volunteer.scheduledDateTime ? formatDate(volunteer.scheduledDateTime) : 'N/A';
 
+            let specificSlotsHtml = 'N/A';
+            if (volunteer.availability && volunteer.availability.specificDateTimeSlots && volunteer.availability.specificDateTimeSlots.length > 0) {
+                specificSlotsHtml = '<ol>';
+                volunteer.availability.specificDateTimeSlots.forEach(slot => {
+                    if (slot.date && slot.time) {
+                        specificSlotsHtml += `<li>${slot.date} at ${slot.time}</li>`;
+                    }
+                });
+                specificSlotsHtml += '</ol>';
+            }
+            let skillsHtml = 'None';
+            if (volunteer.skills && Array.isArray(volunteer.skills) && volunteer.skills.length > 0) {
+                skillsHtml = '<ol>';
+                volunteer.skills.forEach(skill => {
+                    if (skill === 'Other' && volunteer.otherSkillComments && volunteer.otherSkillComments.trim()) {
+                        skillsHtml += `<li>${skill} (${volunteer.otherSkillComments})</li>`;
+                    } else {
+                        skillsHtml += `<li>${skill}</li>`;
+                    }
+                });
+                skillsHtml += '</ol>';
+            }
+
             row.innerHTML = `
                 <td>${i++}</td>
                 <td>${fullName}</td>
@@ -724,22 +966,19 @@ function initializePageFunctions(userId) {
                 <td>${volunteer.mobileNumber || 'N/A'}</td>
                 <td>${volunteer.age || 'N/A'}</td>
                 <td>${socialMediaDisplay}</td>
-                <td>${volunteer.additionalInfo || 'N/A'}</td>
-                <td>${
-                    volunteer.availability && volunteer.availability.general === 'Specific days'
-                    ? `Specific Days: ${volunteer.availability.specificDays ? volunteer.availability.specificDays.join(', ') : 'N/A'}`
-                    : (volunteer.availability?.general || 'N/A')
-                }</td>
-                <td>${volunteer.availability?.timeAvailability || 'N/A'}</td>
+                <td>${volunteer.otherSkillComments || 'N/A'}</td>
+                <td>${volunteer.isEmergencyResponse ? 'Yes (24/7)' : 'No'}</td>
+                <td>${specificSlotsHtml}</td>
                 <td>${volunteer.address?.region || 'N/A'}</td>
                 <td>${volunteer.address?.province || 'N/A'}</td>
                 <td>${volunteer.address?.city || 'N/A'}</td>
                 <td>${volunteer.address?.barangay || 'N/A'}</td>
+                <td>${skillsHtml}</td>
                 <td>${scheduledDateTimeDisplay}</td>
                 <td>
                     <button class="viewBtn" data-key="${volunteer.key}"><i class='bx bx-show-alt'></i></button>
-                    <button class="rescheduleBtn" data-key="${volunteer.key}"><i class='bx bx-calendar-edit'></i></button>
-                    <button class="archiveBtn" data-key="${volunteer.key}"><i class="bx bx-x-circle"></i></button>
+                    ${permissions.canEdit ? `<button class="rescheduleBtn" data-key="${volunteer.key}"><i class='bx bx-calendar-edit'></i></button>` : ''}
+                    ${permissions.canArchive ? `<button class="archiveBtn" data-key="${volunteer.key}"><i class="bx bx-x-circle"></i></button>` : ''}
                     <button class="saveSinglePdfBtn" data-key="${volunteer.key}"><i class='bx bxs-file-pdf'></i></button>
                 </td>
             `;
@@ -749,47 +988,81 @@ function initializePageFunctions(userId) {
         renderPagination(applicationsToRender.length);
     }
 
-    // Search and Sort Logic
+    // --- Search and Sort Logic ---
     function applySearchAndSort() {
+        console.log('Search Term:', searchInput.value);
+        console.log('Sort Value:', sortSelect.value);
         let currentApplications = [...allApprovedApplications];
-
         const searchTerm = searchInput.value.toLowerCase().trim();
-        if (searchTerm) {
-            currentApplications = currentApplications.filter(volunteer => {
-                const fullName = getFullName(volunteer).toLowerCase();
-                const email = (volunteer.email || '').toLowerCase();
-                const mobileNumber = (volunteer.mobileNumber || '').toLowerCase();
-                const region = (volunteer.address?.region || '').toLowerCase();
-                const province = (volunteer.address?.province || '').toLowerCase();
-                const city = (volunteer.address?.city || '').toLowerCase();
-                const barangay = (volunteer.address?.barangay || '').toLowerCase();
-                const additionalInfo = (volunteer.additionalInfo || '').toLowerCase();
-                const generalAvailability = (volunteer.availability?.general || '').toLowerCase();
-                const specificDays = (volunteer.availability?.specificDays ? volunteer.availability.specificDays.join(', ') : '').toLowerCase();
-                const timeAvailability = (volunteer.availability?.timeAvailability || '').toLowerCase();
-                const scheduledDateTime = (volunteer.scheduledDateTime ? formatDate(volunteer.scheduledDateTime) : '').toLowerCase();
+        const sortValue = sortSelect.value;
 
-                return fullName.includes(searchTerm) ||
-                    email.includes(searchTerm) ||
-                    mobileNumber.includes(searchTerm) ||
-                    region.includes(searchTerm) ||
-                    province.includes(searchTerm) ||
-                    city.includes(searchTerm) ||
-                    barangay.includes(searchTerm) ||
-                    additionalInfo.includes(searchTerm) ||
-                    generalAvailability.includes(searchTerm) ||
-                    specificDays.includes(searchTerm) ||
-                    timeAvailability.includes(searchTerm) ||
-                    scheduledDateTime.includes(searchTerm);
-            });
+        // Apply search filter
+        if (searchTerm) {
+            if (sortValue && sortValue !== 'All-asc' && sortValue !== 'All-desc') {
+                const [sortBy] = sortValue.split('-');
+                currentApplications = currentApplications.filter(volunteer => {
+                    let fieldValue;
+                    switch (sortBy) {
+                        case 'DateTime':
+                            fieldValue = formatDate(volunteer.scheduledDateTime || volunteer.timestamp || '').toLowerCase();
+                            break;
+                        case 'Location':
+                            fieldValue = `${volunteer.address?.region || ''} ${volunteer.address?.province || ''} ${volunteer.address?.city || ''} ${volunteer.address?.barangay || ''}`.toLowerCase();
+                            break;
+                        case 'Name':
+                            fieldValue = getFullName(volunteer).toLowerCase();
+                            break;
+                        case 'Email':
+                            fieldValue = (volunteer.email || '').toLowerCase();
+                            break;
+                        case 'MobileNumber':
+                            fieldValue = (volunteer.mobileNumber || '').toLowerCase();
+                            break;
+                        case 'Age':
+                            fieldValue = (volunteer.age || '').toString().toLowerCase();
+                            break;
+                        case 'SocialMedia':
+                            fieldValue = (volunteer.socialMediaLink || '').toLowerCase();
+                            break;
+                        case 'AdditionalInfo':
+                            fieldValue = (volunteer.otherSkillComments || '').toLowerCase();
+                            break;
+                        case 'DateTimeAvailability':
+                            fieldValue = (volunteer.availability?.specificDateTimeSlots || [])
+                                .map(slot => `${slot.date} ${slot.time}`).join(' ').toLowerCase();
+                            break;
+                        case 'Skills':
+                            fieldValue = (volunteer.skills || []).join(' ').toLowerCase();
+                            break;
+                        default:
+                            return false;
+                    }
+                    return fieldValue.includes(searchTerm);
+                });
+            } else {
+                currentApplications = currentApplications.filter(volunteer => {
+                    return (
+                        getFullName(volunteer).toLowerCase().includes(searchTerm) ||
+                        (volunteer.email || '').toLowerCase().includes(searchTerm) ||
+                        (volunteer.mobileNumber || '').toLowerCase().includes(searchTerm) ||
+                        (volunteer.address?.region || '').toLowerCase().includes(searchTerm) ||
+                        (volunteer.address?.province || '').toLowerCase().includes(searchTerm) ||
+                        (volunteer.address?.city || '').toLowerCase().includes(searchTerm) ||
+                        (volunteer.address?.barangay || '').toLowerCase().includes(searchTerm) ||
+                        (volunteer.otherSkillComments || '').toLowerCase().includes(searchTerm) ||
+                        (volunteer.availability?.specificDateTimeSlots || [])
+                            .map(slot => `${slot.date} at ${slot.time}`).join(' ').toLowerCase().includes(searchTerm) ||
+                        (volunteer.skills || []).join(' ').toLowerCase().includes(searchTerm)
+                    );
+                });
+            }
         }
 
-        const sortValue = sortSelect.value;
+        // Apply sorting
         if (sortValue) {
             const [sortBy, order] = sortValue.split('-');
             currentApplications.sort((a, b) => {
                 let valA, valB;
-
                 switch (sortBy) {
                     case 'DateTime':
                         valA = new Date(a.scheduledDateTime || a.timestamp || 0).getTime();
@@ -803,16 +1076,44 @@ function initializePageFunctions(userId) {
                         valA = getFullName(a).toLowerCase();
                         valB = getFullName(b).toLowerCase();
                         break;
+                    case 'Email':
+                        valA = (a.email || '').toLowerCase();
+                        valB = (b.email || '').toLowerCase();
+                        break;
+                    case 'MobileNumber':
+                        valA = (a.mobileNumber || '').toLowerCase();
+                        valB = (b.mobileNumber || '').toLowerCase();
+                        break;
                     case 'Age':
                         valA = parseInt(a.age) || 0;
                         valB = parseInt(b.age) || 0;
                         break;
+                    case 'SocialMedia':
+                        valA = (a.socialMediaLink || '').toLowerCase();
+                        valB = (b.socialMediaLink || '').toLowerCase();
+                        break;
+                    case 'AdditionalInfo':
+                        valA = (a.otherSkillComments || '').toLowerCase();
+                        valB = (b.otherSkillComments || '').toLowerCase();
+                        break;
+                    case 'DateTimeAvailability':
+                        const slotsA = a.availability?.specificDateTimeSlots || [];
+                        const slotsB = b.availability?.specificDateTimeSlots || [];
+                        const earliestA = slotsA[0] ? new Date(`${slotsA[0].date} ${slotsA[0].time.replace(' AM', ':00 AM').replace(' PM', ':00 PM')}`) : new Date(0);
+                        const earliestB = slotsB[0] ? new Date(`${slotsB[0].date} ${slotsB[0].time.replace(' AM', ':00 AM').replace(' PM', ':00 PM')}`) : new Date(0);
+                        valA = earliestA.getTime();
+                        valB = earliestB.getTime();
+                        break;
+                    case 'Skills':
+                        valA = (a.skills || []).join(' ').toLowerCase();
+                        valB = (b.skills || []).join(' ').toLowerCase();
+                        break;
+                    case 'All':
                     default:
                         valA = getFullName(a).toLowerCase();
                         valB = getFullName(b).toLowerCase();
                         break;
                 }
-
                 if (typeof valA === 'number' && typeof valB === 'number') {
                     return order === 'asc' ? valA - valB : valB - valA;
                 } else {
@@ -822,6 +1123,7 @@ function initializePageFunctions(userId) {
         }
 
         filteredApprovedApplications = currentApplications;
+        console.log('Filtered and Sorted Applications:', filteredApprovedApplications);
         currentPage = 1;
         renderCurrentView();
     }
@@ -1010,9 +1312,27 @@ function initializePageFunctions(userId) {
         if (target.classList.contains('viewBtn') || target.closest('.viewBtn')) {
             showPreviewModal(volunteer);
         } else if (target.classList.contains('retrieveBtn') || target.closest('.retrieveBtn')) {
+            if (!permissions.canRetrieve) {
+                Swal.fire({
+                    title: 'Error',
+                    text: 'You do not have permission to retrieve volunteers.',
+                    icon: 'error',
+                    showConfirmButton: true,
+                    confirmButtonText: 'OK',
+                    customClass: {
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean',
+                        confirmButton: 'my-error-button'
+                    }
+                });
+                return;
+            }
+
+            // Removed verifySuperAdminPassword check
             Swal.fire({
                 title: 'Retrieve Application?',
-                text: `${getFullName(volunteer)} will move the volunteer group application from archived records back to pending applications.`,
+                text: `${getFullName(volunteer)} will move the volunteer group application from archived records back to approved applications.`,
                 icon: 'question',
                 showCancelButton: true,
                 confirmButtonText: 'Retrieve',
@@ -1030,7 +1350,7 @@ function initializePageFunctions(userId) {
             }).then(async (result) => {
                 if (result.isConfirmed) {
                     try {
-                        const archivedRef = database.ref(`volunteerApplications/rejectedVolunteer/${volunteerKey}`);
+                        const archivedRef = database.ref(`volunteerApplications/archivedApprovedVolunteer/${volunteerKey}`);
                         const snapshot = await archivedRef.once('value');
                         const volunteerData = snapshot.val();
 
@@ -1078,7 +1398,148 @@ function initializePageFunctions(userId) {
         }
     }
 
+    // async function handleRescheduleClick(button) {
+    //     if (!permissions.canEdit) {
+    //         Swal.fire('Error', 'You do not have permission to reschedule volunteers.', 'error');
+    //         return;
+    //     }
+    //     const isVerified = await verifySuperAdminPassword();
+    //     if (!isVerified) {
+    //         Swal.fire({
+    //             title: 'Error',
+    //             text: 'Incorrect admin password.',
+    //             icon: 'error',
+    //             showConfirmButton: true,
+    //             confirmButtonText: 'OK',
+    //             customClass: {
+    //                 popup: 'swal2-popup-error-clean',
+    //                 title: 'swal2-title-error-clean',
+    //                 htmlContainer: 'swal2-text-error-clean',
+    //                 confirmButton: 'my-error-button'
+    //             }
+    //         });
+    //         return;
+    //     }
+
+    //     const volunteerKey = button.dataset.key;
+    //     const volunteer = allApprovedApplications.find(v => v.key === volunteerKey);
+
+    //     if (!volunteer) {
+    //         console.warn("Volunteer data not found for rescheduling:", volunteerKey);
+    //         Swal.fire('Error', 'Volunteer data not found for rescheduling.', 'error');
+    //         return;
+    //     }
+
+    //     const currentScheduledDateTime = volunteer.scheduledDateTime ? formatToDatetimeLocal(volunteer.scheduledDateTime) : '';
+
+    //     Swal.fire({
+    //         title: `Reschedule ${getFullName(volunteer)}`,
+    //         html: `
+    //             <label for="swal-input-datetime" style="display:block; margin-bottom: 5px; font-weight: bold;">New Scheduled Date & Time:</label>
+    //             <input type="datetime-local" id="swal-input-datetime" class="swal2-input" value="${currentScheduledDateTime}">
+    //         `,
+    //         showCancelButton: true,
+    //         confirmButtonText: 'Reschedule',
+    //         cancelButtonText: 'Cancel',
+    //         reverseButtons: true,
+    //         focusCancel: true,
+    //         customClass: {
+    //             popup: 'custom-swal-popup-large',
+    //             title: 'custom-swal-title',
+    //             htmlContainer: 'custom-swal-content',
+    //             confirmButton: 'custom-confirm-btn',
+    //             cancelButton: 'custom-cancel-btn'
+    //         },
+    //         preConfirm: () => {
+    //             const newDateTimeString = document.getElementById('swal-input-datetime').value;
+    //             if (!newDateTimeString) {
+    //                 Swal.showValidationMessage('Please select a date and time.');
+    //                 return false;
+    //             }
+
+    //             // Validate input format
+    //             const datetimeRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
+    //             if (!datetimeRegex.test(newDateTimeString)) {
+    //                 Swal.showValidationMessage('Invalid date and time format. Please use the datetime picker.');
+    //                 return false;
+    //             }
+
+    //             const newTimestamp = new Date(newDateTimeString).getTime();
+    //             if (isNaN(newTimestamp)) {
+    //                 Swal.showValidationMessage('Invalid date and time format.');
+    //                 return false;
+    //             }
+
+    //             const currentDateTime = Date.now();
+    //             // Prevent past date/time and current time
+    //             if (newTimestamp <= currentDateTime) {
+    //                 Swal.showValidationMessage('Scheduled date and time cannot be in the past or the current time.');
+    //                 return false;
+    //             }
+
+    //             // Minimum future time buffer
+    //             const MINIMUM_FUTURE_TIME = 60 * 60 * 1000; // 1 hour
+    //             if (newTimestamp < currentDateTime + MINIMUM_FUTURE_TIME) {
+    //                 Swal.showValidationMessage('Scheduled date and time must be at least 1 hour in the future.');
+    //                 return false;
+    //             }
+
+    //             // Maximum scheduling window
+    //             const MAXIMUM_FUTURE_TIME = 6 * 30 * 24 * 60 * 60 * 1000; // 6 months
+    //             if (newTimestamp > currentDateTime + MAXIMUM_FUTURE_TIME) {
+    //                 Swal.showValidationMessage('Scheduled date and time cannot be more than 6 months in the future.');
+    //                 return false;
+    //             }
+
+    //             // Prevent same as original schedule
+    //             if (volunteer.scheduledDateTime && newTimestamp === volunteer.scheduledDateTime) {
+    //                 Swal.showValidationMessage('The new schedule is the same as the current schedule.');
+    //                 return false;
+    //             }
+
+    //             return newTimestamp;
+    //         }
+    //     }).then(async (result) => {
+    //         if (result.isConfirmed) {
+    //             const newTimestamp = result.value;
+    //             try {
+    //                 const volunteerRef = database.ref(`volunteerApplications/approvedVolunteer/${volunteerKey}`);
+    //                 await volunteerRef.update({ scheduledDateTime: newTimestamp });
+    //                 await sendApprovalEmail(volunteer, formatDate(newTimestamp));
+    //                 Swal.fire({
+    //                     icon: 'success',
+    //                     title: 'Rescheduled',
+    //                     text: `${getFullName(volunteer)}'s schedule has been updated to ${formatDate(newTimestamp)}.`,
+    //                     timer: 2000,
+    //                     showConfirmButton: false,
+    //                     timerProgressBar: true,
+    //                     customClass: {
+    //                         popup: 'swal2-popup-success-clean',
+    //                         title: 'swal2-title-success-clean',
+    //                         htmlContainer: 'swal2-text-success-clean'
+    //                     }
+    //                 });
+    //             } catch (error) {
+    //                 console.error("Error rescheduling volunteer or sending email: ", error);
+    //                 let errorMessage = `Failed to reschedule volunteer: ${error.message}`;
+    //                 if (error.status === 422) {
+    //                     errorMessage = 'Failed to send reschedule email. Please check EmailJS template parameters and IDs. (Error 422)';
+    //                 } else if (error.text) {
+    //                     errorMessage = `Failed to send reschedule email: ${error.text}. Please check EmailJS setup.`;
+    //                 }
+    //                 Swal.fire('Error', errorMessage, 'error');
+    //             }
+    //         }
+    //     });
+    // }
+    // Replace the handleRescheduleClick function in approvedvolunteers.js with this:
+
     async function handleRescheduleClick(button) {
+        if (!permissions.canEdit) {
+            Swal.fire('Error', 'You do not have permission to reschedule volunteers.', 'error');
+            return;
+        }
+        
         const volunteerKey = button.dataset.key;
         const volunteer = allApprovedApplications.find(v => v.key === volunteerKey);
 
@@ -1096,13 +1557,17 @@ function initializePageFunctions(userId) {
                 <label for="swal-input-datetime" style="display:block; margin-bottom: 5px; font-weight: bold;">New Scheduled Date & Time:</label>
                 <input type="datetime-local" id="swal-input-datetime" class="swal2-input" value="${currentScheduledDateTime}">
             `,
-            focusConfirm: false,
             showCancelButton: true,
-            confirmButtonText: 'Save Reschedule',
+            confirmButtonText: 'Reschedule',
             cancelButtonText: 'Cancel',
+            reverseButtons: true,
+            focusCancel: true,
             customClass: {
-                confirmButton: 'swal2-confirm-large',
-                cancelButton: 'swal2-cancel-large'
+                popup: 'custom-swal-popup-large',
+                title: 'custom-swal-title',
+                htmlContainer: 'custom-swal-content',
+                confirmButton: 'custom-confirm-btn',
+                cancelButton: 'custom-cancel-btn'
             },
             preConfirm: () => {
                 const newDateTimeString = document.getElementById('swal-input-datetime').value;
@@ -1131,12 +1596,6 @@ function initializePageFunctions(userId) {
                     return false;
                 }
 
-                // Prevent scheduling the same time as the original
-                if (volunteer.scheduledDateTime && newTimestamp === volunteer.scheduledDateTime) {
-                    Swal.showValidationMessage('The new schedule is the same as the current schedule.');
-                    return false;
-                }
-
                 // Minimum future time buffer
                 const MINIMUM_FUTURE_TIME = 60 * 60 * 1000; // 1 hour
                 if (newTimestamp < currentDateTime + MINIMUM_FUTURE_TIME) {
@@ -1157,33 +1616,15 @@ function initializePageFunctions(userId) {
                     return false;
                 }
 
-                // Check volunteer availability
-                const newDate = new Date(newDateTimeString);
-                const dayOfWeek = newDate.toLocaleString('en-US', { weekday: 'long' });
-                if (volunteer.availability?.specificDays && !volunteer.availability.specificDays.includes(dayOfWeek)) {
-                    Swal.showValidationMessage(`The selected day (${dayOfWeek}) is not in the volunteer's availability.`);
-                    return false;
-                }
-                if (volunteer.availability?.timeAvailability) {
-                    const timeParts = volunteer.availability.timeAvailability.split(' - ');
-                    if (timeParts.length === 2) {
-                        const startTime = formatTimeTo24Hr(timeParts[0]);
-                        const endTime = formatTimeTo24Hr(timeParts[1]);
-                        const selectedTime = `${newDate.getHours().toString().padStart(2, '0')}:${newDate.getMinutes().toString().padStart(2, '0')}:00`;
-                        if (selectedTime < startTime || selectedTime > endTime) {
-                            Swal.showValidationMessage(`The selected time is outside the volunteer's availability (${timeParts[0]} - ${timeParts[1]}).`);
-                            return false;
-                        }
+                // Check if volunteer is available for 24-hour emergency response
+                if (!volunteer.isEmergencyResponse) {
+                    const selectedDateTime = new Date(newDateTimeString);
+                    const hours = selectedDateTime.getHours();
+                    // Operational hours: 8 AM (8) to 8 PM (20)
+                    if (hours < 8 || hours >= 20) {
+                        Swal.showValidationMessage('Non-emergency volunteers can only be scheduled between 8 AM and 8 PM.');
+                        return false;
                     }
-                }
-
-                // Check for duplicate schedule conflicts
-                const conflictingVolunteer = allApprovedApplications.find(v => 
-                    v.key !== volunteerKey && v.scheduledDateTime === newTimestamp
-                );
-                if (conflictingVolunteer) {
-                    Swal.showValidationMessage(`Another volunteer (${getFullName(conflictingVolunteer)}) is already scheduled at this time.`);
-                    return false;
                 }
 
                 return newTimestamp;
@@ -1195,11 +1636,19 @@ function initializePageFunctions(userId) {
                     const volunteerRef = database.ref(`volunteerApplications/approvedVolunteer/${volunteerKey}`);
                     await volunteerRef.update({ scheduledDateTime: newTimestamp });
                     await sendApprovalEmail(volunteer, formatDate(newTimestamp));
-                    Swal.fire(
-                        'Rescheduled!',
-                        `${getFullName(volunteer)}'s schedule has been updated to ${formatDate(newTimestamp)}.`,
-                        'success'
-                    );
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Rescheduled',
+                        text: `${getFullName(volunteer)}'s schedule has been updated to ${formatDate(newTimestamp)}.`,
+                        timer: 2000,
+                        showConfirmButton: false,
+                        timerProgressBar: true,
+                        customClass: {
+                            popup: 'swal2-popup-success-clean',
+                            title: 'swal2-title-success-clean',
+                            htmlContainer: 'swal2-text-success-clean'
+                        }
+                    });
                 } catch (error) {
                     console.error("Error rescheduling volunteer or sending email: ", error);
                     let errorMessage = `Failed to reschedule volunteer: ${error.message}`;
@@ -1215,6 +1664,28 @@ function initializePageFunctions(userId) {
     }
 
     async function handleArchiveClick(button) {
+        if (!permissions.canArchive) {
+            Swal.fire('Error', 'You do not have permission to archive volunteers.', 'error');
+            return;
+        }
+        const isVerified = await verifySuperAdminPassword();
+        if (!isVerified) {
+            Swal.fire({
+                title: 'Error',
+                text: 'Incorrect admin password.',
+                icon: 'error',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
+                }
+            });
+            return;
+        }
+
         const volunteerKey = button.dataset.key;
         const volunteer = allApprovedApplications.find(v => v.key === volunteerKey);
 
@@ -1225,60 +1696,60 @@ function initializePageFunctions(userId) {
         }
 
         Swal.fire({
-            title: 'Are you sure to archive this application?',
-            text: "This will move it to archived records.",
+            title: 'Archive Volunteer?',
+            text: `Archive ${getFullName(volunteer)}?`,
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonText: 'Reject',
+            confirmButtonText: 'Archive',
             cancelButtonText: 'Cancel',
             reverseButtons: true,
             focusCancel: true,
             allowOutsideClick: false,
             customClass: {
-                popup: 'custom-swal-popup-small',
-                title: 'custom-swal-title',
-                htmlContainer: 'custom-swal-content',
-                confirmButton: 'custom-confirm-btn',
-                cancelButton: 'custom-cancel-btn'
+            popup: 'custom-swal-popup-small',
+            title: 'custom-swal-title',
+            htmlContainer: 'custom-swal-content',
+            confirmButton: 'custom-confirm-btn',
+            cancelButton: 'custom-cancel-btn'
             }
         }).then(async (result) => {
             if (result.isConfirmed) {
-                try {
-                    const approvedVolunteerRef = database.ref(`volunteerApplications/approvedVolunteer/${volunteerKey}`);
-                    const snapshot = await approvedVolunteerRef.once('value');
-                    const volunteerToArchive = snapshot.val();
+            try {
+                const approvedVolunteerRef = database.ref(`volunteerApplications/approvedVolunteer/${volunteerKey}`);
+                const snapshot = await approvedVolunteerRef.once('value');
+                const volunteerToArchive = snapshot.val();
 
-                    if (!volunteerToArchive) {
-                        Swal.fire('Error', 'Volunteer data not found in approved applications.', 'error');
-                        return;
-                    }
-
-                    volunteerToArchive.archivedAt = firebase.database.ServerValue.TIMESTAMP;
-                    await database.ref(`volunteerApplications/rejectedVolunteer/${volunteerKey}`).set(volunteerToArchive);
-                    await approvedVolunteerRef.remove();
-                    Swal.fire({
-                        title: 'Archived!',
-                        text: `${getFullName(volunteer)}'s application has been archived.`,
-                        icon: 'success',
-                        timer: 1600,
-                        showConfirmButton: false,
-                        timerProgressBar: true,
-                        allowOutsideClick: false,
-                        customClass: {
-                            popup: 'swal2-popup-success-clean',
-                            title: 'swal2-title-success-clean',
-                            htmlContainer: 'swal2-text-success-clean',
-                        }
-                    });
-                    fetchApprovedVolunteers();
-                } catch (error) {
-                    console.error("Error archiving volunteer application: ", error);
-                    Swal.fire(
-                        'Error',
-                        `Failed to archive application: ${error.message}`,
-                        'error'
-                    );
+                if (!volunteerToArchive) {
+                Swal.fire('Error', 'Volunteer data not found in approved applications.', 'error');
+                return;
                 }
+
+                volunteerToArchive.archivedAt = firebase.database.ServerValue.TIMESTAMP;
+                await database.ref(`volunteerApplications/archivedApprovedVolunteer/${volunteerKey}`).set(volunteerToArchive);
+                await approvedVolunteerRef.remove();
+                Swal.fire({
+                title: 'Archived!',
+                text: `${getFullName(volunteer)}'s application has been archived.`,
+                icon: 'success',
+                timer: 1600,
+                showConfirmButton: false,
+                timerProgressBar: true,
+                allowOutsideClick: false,
+                customClass: {
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    htmlContainer: 'swal2-text-success-clean',
+                }
+                });
+                fetchApprovedVolunteers();
+            } catch (error) {
+                console.error("Error archiving volunteer application: ", error);
+                Swal.fire(
+                'Error',
+                `Failed to archive application: ${error.message}`,
+                'error'
+                );
+            }
             }
         });
     }
@@ -1289,13 +1760,26 @@ function initializePageFunctions(userId) {
         window.location.href = '../pages/pendingvolunteers.html';
     });
 
-    if (viewArchivedButton) {
-        viewArchivedButton.addEventListener('click', () => {
-            showArchivedModal();
-        });
-    } else {
-        console.warn("View Archived button not found in the DOM.");
-    }
+    viewArchivedButton.addEventListener('click', () => {
+        if (!permissions.canRetrieve) {
+            Swal.fire({
+                title: 'Error',
+                text: 'You do not have permission to view archived donations.',
+                icon: 'error',
+                timer: 2000,
+                showConfirmButton: false,
+                timerProgressBar: true,
+                allowOutsideClick: false,
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean'
+                }   
+            });
+            return;
+        }
+        showArchivedModal();
+    });
 
     searchInput.addEventListener('keyup', applySearchAndSort);
     sortSelect.addEventListener('change', applySearchAndSort);
