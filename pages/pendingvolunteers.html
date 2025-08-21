@@ -37,26 +37,58 @@
                     <div class="custom-select-wrapper">
                         <select id="sortSelect">
                             <option value="" disabled selected hidden>Sort by</option>
+                            <optgroup label="All Fields">
+                                <option value="All-asc">All (A–Z)</option>
+                                <option value="All-desc">All (Z–A)</option>
+                            </optgroup>
                             <optgroup label="Assessment Info">
-                                <option value="DateTime-asc">Date & Time (Oldest First)</option>
-                                <option value="DateTime-desc">Date & Time (Newest First)</option>
-                                </optgroup>
+                                <option value="ApplicationDateTime-asc">Application Date & Time (Oldest First)</option>
+                                <option value="ApplicationDateTime-desc">Application Date & Time (Newest First)</option>
+                            </optgroup>
                             <optgroup label="Location">
-                                <option value="Location-asc">Location (A–Z)</option>
-                                <option value="Location-desc">Location (Z–A)</option>
+                                <option value="Region-asc">Region (A–Z)</option>
+                                <option value="Region-desc">Region (Z–A)</option>
+                                <option value="Province-asc">Province (A–Z)</option>
+                                <option value="Province-desc">Province (Z–A)</option>
+                                <option value="City-asc">City (A–Z)</option>
+                                <option value="City-desc">City (Z–A)</option>
+                                <option value="Barangay-asc">Barangay (A–Z)</option>
+                                <option value="Barangay-desc">Barangay (Z–A)</option>
                             </optgroup>
                             <optgroup label="Volunteer Details">
-                                <option value="Name-asc">Name (A-Z)</option>
-                                <option value="Name-desc">Name (Z-A)</option>
+                                <option value="Name-asc">Full Name (A–Z)</option>
+                                <option value="Name-desc">Full Name (Z–A)</option>
+                                <option value="Email-asc">Email (A–Z)</option>
+                                <option value="Email-desc">Email (Z–A)</option>
+                                <option value="MobileNumber-asc">Mobile Number (A–Z)</option>
+                                <option value="MobileNumber-desc">Mobile Number (Z–A)</option>
                                 <option value="Age-asc">Age (Low to High)</option>
                                 <option value="Age-desc">Age (High to Low)</option>
+                                <option value="SocialMedia-asc">Social Media (A–Z)</option>
+                                <option value="SocialMedia-desc">Social Media (Z–A)</option>
+                                <option value="AdditionalInfo-asc">Additional Info (A–Z)</option>
+                                <option value="AdditionalInfo-desc">Additional Info (Z–A)</option>
+                            </optgroup>
+                            <optgroup label="Availability">
+                                <option value="DateTimeAvailability-asc">Date/Time Availability (A–Z)</option>
+                                <option value="DateTimeAvailability-desc">Date/Time Availability (Z–A)</option>
+                            </optgroup>
+                            <optgroup label="Skills and Status">
+                                <option value="Skills-asc">Skills (A–Z)</option>
+                                <option value="Skills-desc">Skills (Z–A)</option>
+                                <option value="StatusNotes-asc">Status Notes (A–Z)</option>
+                                <option value="StatusNotes-desc">Status Notes (Z–A)</option>
                             </optgroup>
                         </select>
                         <i class='bx bx-chevron-down'></i>
                     </div>
-                    <button id="viewArchived" aria-label="View Archived Admins">
-                        <i class='bx bx-archive' style="color: white; font-size: 20px;"></i>
-                    </button>
+
+                    <div class="button-group">
+                        <button id="viewArchived" aria-label="View Archived Admins">
+                            <i class='bx bx-archive' style="color: white; font-size: 20px;"></i>
+                        </button>
+                        <button id="downloadTemplateBtn"><i class='bx bx-file-blank'></i></button>
+                    </div>
                 </div>
             </div>
 
@@ -68,7 +100,7 @@
                 <div class="import-section">
                     <input type="file" id="excelFileInput" accept=".xls,.xlsx" style="display: none;"/>
                     <button id="importExcelBtn" class="importExcelBtn" type="button">
-                        <i class='bx bxs-file-import'  style="font-size: 1.2rem;"></i>Import from Excel
+                        <i class='bx bxs-file-import' style="font-size: 1.2rem;"></i>Import from Excel
                     </button>
                 </div>
                 
@@ -81,6 +113,7 @@
                         <ul id="importErrorList" class="custom-swal-text" style="color: red; list-style-type: none; padding: 0;"></ul>
                     </div>
                 </div>
+                
             </div>
 
             <div class="table-container">
@@ -93,12 +126,14 @@
                             <th>Mobile Number</th>
                             <th>Age</th>
                             <th>Social Media</th>
-                            <th>Additional Info</th>
+                            <th>Additional Skills Info</th>
+                            <th>Emergency Response</th>
                             <th>Date/Time Availability</th>
                             <th>Region</th>
                             <th>Province</th>
                             <th>City</th>
                             <th>Barangay</th>
+                            <th>Skills</th>
                             <th>Status Notes</th> 
                             <th>Actions</th>
                         </tr>
@@ -132,7 +167,7 @@
             <h3>Schedule Volunteer Briefing</h3>
             <form id="scheduleForm">
                 <label for="scheduleDateTime">Date and Time:</label>
-                <input type="datetime-local" id="scheduleDateTime" required>
+                <input type="datetime-local" id="scheduleDateTime" min="" required>
                 
                 <button type="submit">Confirm Schedule & Send Email</button>
             </form>
@@ -182,6 +217,7 @@
                             <th>Full Name</th>
                             <th>Email</th>
                             <th>Status</th>
+                            <th>Emergency Response</th>
                             <th>Archived Date</th>
                             <th>Actions</th>
                         </tr>

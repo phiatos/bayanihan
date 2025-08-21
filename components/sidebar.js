@@ -98,7 +98,16 @@ if (menuBtn && sidebar) {
         confirmButtonText: "Yes, log out",
         cancelButtonText: "Cancel",
         reverseButtons: true,
-      }).then((result) => {
+        focusCancel: true,
+        customClass: {
+          popup: 'custom-swal-popup-small',
+          title: 'custom-swal-title',
+          htmlContainer: 'custom-swal-content',
+          confirmButton: 'custom-confirm-btn',
+          cancelButton: 'custom-cancel-btn'
+        },
+      })
+      .then((result) => {
         if (result.isConfirmed) {
           ["userMobile", "userRole", "userData", "userUID"].forEach(key => localStorage.removeItem(key));
           Swal.fire({
@@ -107,6 +116,11 @@ if (menuBtn && sidebar) {
             timer: 1600,
             showConfirmButton: false,
             timerProgressBar: true,
+            customClass: {
+              popup: 'swal2-popup-success-clean',
+              title: 'swal2-title-success-clean',
+              htmlContainer: 'swal2-text-success-clean'
+            },
             didClose: () => window.location.replace("../pages/login.html"),
           });
         }

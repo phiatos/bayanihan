@@ -200,7 +200,20 @@ document.addEventListener("DOMContentLoaded", () => {
                     await auth.signInWithCredential(credential);
                     return true;
                 } catch (error) {
-                    Swal.showValidationMessage(`Verification failed: ${error.message}`);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Verification Failed',
+                        text: 'Invalid admin password.',
+                        timer: 1600,
+                        showConfirmButton: false,
+                        timerProgressBar: true,
+                        allowOutsideClick: false,
+                        customClass: {
+                            popup: 'swal2-popup-error-clean',
+                            title: 'swal2-title-error-clean',
+                            htmlContainer: 'swal2-text-error-clean'
+                        }
+                    });
                     return false;
                 }
             },
@@ -298,11 +311,11 @@ document.addEventListener("DOMContentLoaded", () => {
     Array.from(form.querySelectorAll('input, select')).forEach(input => {
         const fieldConfig = {
             encoder: { label: 'Encoder', lettersOnly: true },
-            name: { label: 'Name', lettersOnly: true },
-            type: { label: 'Type', lettersOnly: true },
+            name: { label: 'Donor Name', lettersOnly: true },
+            type: { label: 'Donor Type', lettersOnly: true },
             contactPerson: { label: 'Contact Person', lettersOnly: true },
             assistance: { label: 'Type of Assistance', lettersOnly: true },
-            number: { label: 'Number', numberOnly: true, checkMobile: true },
+            number: { label: 'Mobile Number', numberOnly: true, checkMobile: true },
             valuation: { label: 'Valuation', numberOnly: true, checkValuation: true },
             address: { label: 'Address' },
             email: { label: 'Email', checkEmail: true },
@@ -374,14 +387,15 @@ document.addEventListener("DOMContentLoaded", () => {
                 title: 'Error',
                 text: 'You do not have permission to view archived donations.',
                 icon: 'error',
-                showConfirmButton: true,
-                confirmButtonText: 'OK',
+                timer: 2000,
+                showConfirmButton: false,
+                timerProgressBar: true,
+                allowOutsideClick: false,
                 customClass: {
                     popup: 'swal2-popup-error-clean',
                     title: 'swal2-title-error-clean',
-                    htmlContainer: 'swal2-text-error-clean',
-                    confirmButton: 'my-error-button'
-                }
+                    htmlContainer: 'swal2-text-error-clean'
+                }   
             });
             return;
         }
@@ -699,7 +713,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         updateImportStatus(100, `Import complete! ${donationsToImport.length} records added.`);
                         Swal.fire({
                             icon: 'success',
-                            title: 'Success!',
+                            title: 'Export Successful!',
                             text: `${donationsToImport.length} in-kind donation records imported successfully.`,
                             showConfirmButton: true,
                             confirmButtonText: 'OK',
@@ -877,7 +891,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         Swal.fire({
             title: 'Retrieve Donation?',
-            text: 'This will retrieve the donation from archived records and make it active again.',
+            text: 'This will retrieve the donation from archived records.',
             icon: 'question',
             showCancelButton: true,
             confirmButtonText: 'Retrieve',
@@ -917,7 +931,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     Swal.fire({
                         icon: 'success',
                         title: 'Retrieved!',
-                        text: 'The donation has been retrieved and is now active.',
+                        text: 'The donation has been retrieved.',
                         timer: 2000,
                         showConfirmButton: false,
                         timerProgressBar: true,
@@ -1047,14 +1061,15 @@ document.addEventListener("DOMContentLoaded", () => {
                     title: 'Error',
                     text: 'You do not have permission to view archived donations.',
                     icon: 'error',
-                    showConfirmButton: true,
-                    confirmButtonText: 'OK',
+                    timer: 2000,
+                    showConfirmButton: false,
+                    timerProgressBar: true,
+                    allowOutsideClick: false,
                     customClass: {
                         popup: 'swal2-popup-error-clean',
                         title: 'swal2-title-error-clean',
-                        htmlContainer: 'swal2-text-error-clean',
-                        confirmButton: 'my-error-button'
-                    }
+                        htmlContainer: 'swal2-text-error-clean'
+                    }   
                 });
                 return;
             }
@@ -1241,17 +1256,17 @@ document.addEventListener("DOMContentLoaded", () => {
             const verified = await verifySuperAdminPassword();
             if (!verified) {
                 Swal.fire({
-                    title: 'Verification Failed',
-                    text: 'Admin password verification failed. Cannot proceed.',
                     icon: 'error',
-                    timer: 2500,
+                    title: 'Verification Failed',
+                    text: 'Invalid admin password.',
+                    timer: 1600,
                     showConfirmButton: false,
                     timerProgressBar: true,
                     allowOutsideClick: false,
                     customClass: {
-                        popup: 'swal2-popup-warning-clean',
-                        title: 'swal2-title-warning-clean',
-                        htmlContainer: 'swal2-text-warning-clean',
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean'
                     }
                 });
                 return false;
@@ -1439,7 +1454,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 focusCancel: true,
                 allowOutsideClick: false,
                 customClass: {
-                    popup: 'custom-swal-popup-small',
+                    popup: 'custom-swal-popup-large',
                     title: 'custom-swal-title',
                     htmlContainer: 'custom-swal-content',
                     confirmButton: 'custom-confirm-btn',
@@ -1730,7 +1745,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const month = String(today.getMonth() + 1).padStart(2, '0');
         const day = String(today.getDate()).padStart(2, '0');
         const formattedDate = `${year}-${month}-${day}`;
-        const filename = `inkind-donations_${formattedDate}.xlsx`;
+        const filename = `excel-inkind-donations_${formattedDate}.xlsx`;
         XLSX.writeFile(wb, filename);
         Swal.fire({
             title: 'Export Successful!',
@@ -1818,11 +1833,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
             });
 
-            const filename = `inkind-donations-report_${new Date().toISOString().slice(0, 10)}.pdf`;
+            const filename = `pdf-inkind-donations_${new Date().toISOString().slice(0, 10)}.pdf`;
             doc.save(filename);
             
             Swal.fire({
-                title: 'Success!',
+                title: 'Export Successful!',
                 text: `In-Kind Donations Report exported to "${filename}"!`,
                 icon: 'success',
                 showConfirmButton: true,
@@ -1893,7 +1908,11 @@ document.addEventListener("DOMContentLoaded", () => {
             doc.text(`Page 1 of 1`, margin, footerY);
             doc.text(poweredByText, pageWidth - margin, footerY, { align: 'right' });
 
-            const filename = `inkind_donation_${donation.firebaseKey || 'unknown'}_${new Date().toISOString().slice(0, 10)}.pdf`;
+            const safeName = (donation.name || 'unknown')
+            .replace(/[^a-z0-9]/gi, '-')
+            .toLowerCase();
+
+            const filename = `pdf-inkind-donation_${safeName}_${new Date().toISOString().slice(0, 10)}.pdf`;
             doc.save(filename);
 
             Swal.fire({

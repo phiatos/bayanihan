@@ -149,7 +149,20 @@ document.addEventListener("DOMContentLoaded", () => {
                     await auth.signInWithCredential(credential);
                     return true;
                 } catch (error) {
-                    Swal.showValidationMessage(`Verification failed: ${error.message}`);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Verification Failed',
+                        text: 'Invalid admin password.',
+                        timer: 1600,
+                        showConfirmButton: false,
+                        timerProgressBar: true,
+                        allowOutsideClick: false,
+                        customClass: {
+                            popup: 'swal2-popup-error-clean',
+                            title: 'swal2-title-error-clean',
+                            htmlContainer: 'swal2-text-error-clean'
+                        }
+                    });
                     return false;
                 }
             },
@@ -210,6 +223,17 @@ document.addEventListener("DOMContentLoaded", () => {
         document.addEventListener(eventType, resetInactivityTimer);
     });
 
+    const isValidUrl = (url) => {
+        try {
+            new URL(url);
+            return true;
+        } catch {
+            return false;
+        }
+    };
+
+    const isValidReferenceNumber = (value) => /^[a-zA-Z0-9]{1,20}$/.test(value);
+
     function validateInputInRealTime(input, fieldConfig, inputs, excludeKey = null) {
         clearError(input);
         if (fieldConfig.required !== false && isEmpty(input.value)) {
@@ -231,6 +255,12 @@ document.addEventListener("DOMContentLoaded", () => {
             if (fieldConfig.isEmail && !isValidEmail(input.value.trim())) {
                 showError(input, `Please enter a valid email address from an allowed domain.`);
             }
+            if (fieldConfig.label === "Amount Donated" && parseFloat(input.value) < 100) {
+                showError(input, `${fieldConfig.label} must be at least PHP 100.`);
+            }
+            if (fieldConfig.isUrl && input.value && !isValidUrl(input.value.trim())) {
+                showError(input, `${fieldConfig.label} must be a valid URL.`);
+            }
             if (fieldConfig.isDate) {
                 const receivedDate = new Date(input.value);
                 if (isNaN(receivedDate.getTime())) {
@@ -238,6 +268,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 } else if (receivedDate.setHours(0, 0, 0, 0) > new Date().setHours(0, 0, 0, 0)) {
                     showError(input, `${fieldConfig.label} cannot be a future date.`);
                 }
+            }
+            if (fieldConfig.isReferenceNumber && input.value && !isValidReferenceNumber(input.value)) {
+                showError(input, `${fieldConfig.label} must be alphanumeric and up to 20 characters.`);
             }
         }
     }
@@ -254,8 +287,8 @@ document.addEventListener("DOMContentLoaded", () => {
             dateReceived: { label: 'Date Received', isDate: true },
             email: { label: 'Email', isEmail: true },
             bank: { label: 'Bank' },
-            referenceNumber: { label: 'Reference Number', required: false },
-            proof: { label: 'Proof of Transaction', required: false }
+            referenceNumber: { label: 'Reference Number', required: false, isReferenceNumber: true },
+            proof: { label: 'Proof of Transaction', required: false, isUrl: true }
         }[input.id];
         if (fieldConfig) {
             input.addEventListener('input', () => validateInputInRealTime(input, fieldConfig, {
@@ -286,8 +319,8 @@ document.addEventListener("DOMContentLoaded", () => {
             'edit-dateReceived': { label: 'Date Received', isDate: true },
             'edit-email': { label: 'Email', isEmail: true },
             'edit-bank': { label: 'Bank' },
-            'edit-referenceNumber': { label: 'Reference Number', required: false },
-            'edit-proof': { label: 'Proof of Transaction', required: false }
+            'edit-referenceNumber': { label: 'Reference Number', required: false, isReferenceNumber: true },
+            'edit-proof': { label: 'Proof of Transaction', required: false, isUrl: true}
         }[input.id];
         if (fieldConfig) {
             input.addEventListener('input', () => validateInputInRealTime(input, fieldConfig, {
@@ -312,14 +345,15 @@ document.addEventListener("DOMContentLoaded", () => {
                 title: 'Error',
                 text: 'You do not have permission to view archived donations.',
                 icon: 'error',
-                showConfirmButton: true,
-                confirmButtonText: 'OK',
+                timer: 2000,
+                showConfirmButton: false,
+                timerProgressBar: true,
+                allowOutsideClick: false,
                 customClass: {
                     popup: 'swal2-popup-error-clean',
                     title: 'swal2-title-error-clean',
-                    htmlContainer: 'swal2-text-error-clean',
-                    confirmButton: 'my-error-button'
-                }
+                    htmlContainer: 'swal2-text-error-clean'
+                }   
             });
             return;
         }
@@ -772,7 +806,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         Swal.fire({
             title: 'Retrieve Donation?',
-            text: 'This will retrieve the donation from archived records and make it active again.',
+            text: 'This will retrieve the donation from archived records.',
             icon: 'question',
             showCancelButton: true,
             confirmButtonText: 'Retrieve',
@@ -812,7 +846,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     Swal.fire({
                         icon: 'success',
                         title: 'Retrieved!',
-                        text: 'The donation has been retrieved and is now active.',
+                        text: 'The donation has been retrieved.',
                         timer: 2000,
                         showConfirmButton: false,
                         timerProgressBar: true,
@@ -1021,8 +1055,8 @@ document.addEventListener("DOMContentLoaded", () => {
             { id: "dateReceived", label: "Date Received", isDate: true },
             { id: "email", label: "Email", isEmail: true },
             { id: "bank", label: "Bank" },
-            { id: "referenceNumber", label: "Reference Number", required: false },
-            { id: "proof", label: "Proof of Transaction", required: false },
+            { id: "referenceNumber", label: "Reference Number", required: false, isReferenceNumber: true },
+            { id: "proof", label: "Proof of Transaction", required: false, isUrl: true },
         ];
 
         // Validate each field
@@ -1048,6 +1082,9 @@ document.addEventListener("DOMContentLoaded", () => {
                     } else if (positiveNumber && parseFloat(input.value) <= 0) {
                         showError(input, `${label} must be a positive number.`);
                         isValid = false;
+                    } else if (label === "Amount Donated" && parseFloat(input.value) < 100) {
+                        showError(input, `${label} must be at least PHP 100.`);
+                        isValid = false;
                     }
                 }
                 if (isEmail) {
@@ -1065,6 +1102,14 @@ document.addEventListener("DOMContentLoaded", () => {
                         showError(input, `${label} cannot be a future date.`);
                         isValid = false;
                     }
+                }
+                if (isReferenceNumber && input.value && !isValidReferenceNumber(input.value)) {
+                    showError(input, `${label} must be alphanumeric and up to 20 characters.`);
+                    isValid = false;
+                }
+                if (isUrl && input.value && !isValidUrl(input.value.trim())) {
+                    showError(input, `${label} must be a valid URL.`);
+                    isValid = false;
                 }
             }
         });

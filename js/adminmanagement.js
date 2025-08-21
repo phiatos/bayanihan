@@ -194,16 +194,22 @@ async function verifySuperAdminPassword() {
     const { value: password } = await Swal.fire({
         title: 'Enter Admin Password',
         input: 'password',
-        inputLabel: 'Please provide your password to confirm changes.',
         inputPlaceholder: 'Enter your password',
+        inputAttributes: {
+            autocapitalize: 'off',
+            autocorrect: 'off',
+            autocomplete: 'new-password'
+        },
         showCancelButton: true,
         confirmButtonText: 'Verify',
-        cancelButtonText: 'Cancel',
+        showLoaderOnConfirm: true,
+        reverseButtons: true,
+        focusCancel: true,
         allowOutsideClick: false,
         customClass: {
-            popup: 'swal2-popup-success-clean',
-            title: 'swal2-title-success-clean',
-            htmlContainer: 'swal2-text-success-clean',
+            popup: 'custom-swal-popup',
+            title: 'custom-swal-title',
+            input: 'custom-swal-input',
             confirmButton: 'custom-confirm-btn',
             cancelButton: 'custom-cancel-btn'
         },
@@ -227,18 +233,18 @@ async function verifySuperAdminPassword() {
         await user.reauthenticateWithCredential(credential);
         return true;
     } catch (error) {
-        console.error("Error verifying Super Admin password:", error);
         Swal.fire({
+            title: 'Verification Failed',
+            text: 'Invalid admin password.',
             icon: 'error',
-            title: 'Invalid Password',
-            text: 'The provided password is incorrect. Please try again.',
-            showConfirmButton: true,
-            confirmButtonText: 'OK',
+            timer: 1600,
+            showConfirmButton: false,
+            timerProgressBar: true,
+            allowOutsideClick: false,
             customClass: {
-                popup: 'swal2-popup-success-clean',
-                title: 'swal2-title-success-clean',
-                htmlContainer: 'swal2-text-success-clean',
-                confirmButton: 'custom-confirm-btn'
+                popup: 'swal2-popup-error-clean',
+                title: 'swal2-title-error-clean',
+                htmlContainer: 'swal2-text-error-clean'
             }
         });
         return false;
@@ -275,9 +281,9 @@ auth.onAuthStateChanged(user => {
                     allowOutsideClick: false,
                     timerProgressBar: true,
                     customClass: {
-                        popup: 'swal2-popup-success-clean',
-                        title: 'swal2-title-success-clean',
-                        htmlContainer: 'swal2-text-success-clean'
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean'
                     }
                 }).then(() => {
                     window.location.href = '../pages/login.html'; 
@@ -450,7 +456,6 @@ function applySearchAndSortAdmins() {
                     valB = (b.adminPosition || '').toLowerCase();
                     break;
                 default:
-                    // Default sort if sortValue doesn't match
                     valA = (a.lastName || '').toLowerCase(); 
                     valB = (b.lastName || '').toLowerCase();
                     break;
@@ -480,10 +485,10 @@ if (addNewAdminButton) {
                 showConfirmButton: true,
                 confirmButtonText: 'OK',
                 customClass: {
-                    popup: 'swal2-popup-success-clean',
-                    title: 'swal2-title-success-clean',
-                    htmlContainer: 'swal2-text-success-clean',
-                    confirmButton: 'custom-confirm-btn'
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
                 }
             });
             return;
@@ -527,10 +532,10 @@ if (addAdminForm) {
                 showConfirmButton: true,
                 confirmButtonText: 'OK',
                 customClass: {
-                    popup: 'swal2-popup-success-clean',
-                    title: 'swal2-title-success-clean',
-                    htmlContainer: 'swal2-text-success-clean',
-                    confirmButton: 'custom-confirm-btn'
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
                 }
             });
             return;
@@ -560,10 +565,10 @@ if (addAdminForm) {
                 confirmButtonText: 'OK',
                 allowOutsideClick: false,
                 customClass: {
-                    popup: 'swal2-popup-success-clean',
-                    title: 'swal2-title-success-clean',
-                    htmlContainer: 'swal2-text-success-clean',
-                    confirmButton: 'custom-confirm-btn'
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
                 }
             });
             return;
@@ -577,10 +582,10 @@ if (addAdminForm) {
                 confirmButtonText: 'OK',
                 allowOutsideClick: false,
                 customClass: {
-                    popup: 'swal2-popup-success-clean',
-                    title: 'swal2-title-success-clean',
-                    htmlContainer: 'swal2-text-success-clean',
-                    confirmButton: 'custom-confirm-btn'
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
                 }
             });
             return;
@@ -704,10 +709,10 @@ if (confirmSaveBtn) {
                 showConfirmButton: true,
                 confirmButtonText: 'OK',
                 customClass: {
-                    popup: 'swal2-popup-success-clean',
-                    title: 'swal2-title-success-clean',
-                    htmlContainer: 'swal2-text-success-clean',
-                    confirmButton: 'custom-confirm-btn'
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
                 }
             });
         }
@@ -768,10 +773,10 @@ function editAdmin(uid) {
             showConfirmButton: true,
             confirmButtonText: 'OK',
             customClass: {
-                popup: 'swal2-popup-success-clean',
-                title: 'swal2-title-success-clean',
-                htmlContainer: 'swal2-text-success-clean',
-                confirmButton: 'custom-confirm-btn'
+                popup: 'swal2-popup-error-clean',
+                title: 'swal2-title-error-clean',
+                htmlContainer: 'swal2-text-error-clean',
+                confirmButton: 'my-error-button'
             }
         });
         return;
@@ -792,10 +797,10 @@ if (editAdminForm) {
                 showConfirmButton: true,
                 confirmButtonText: 'OK',
                 customClass: {
-                    popup: 'swal2-popup-success-clean',
-                    title: 'swal2-title-success-clean',
-                    htmlContainer: 'swal2-text-success-clean',
-                    confirmButton: 'custom-confirm-btn'
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
                 }
             });
             return;
@@ -833,10 +838,10 @@ if (editAdminForm) {
                 confirmButtonText: 'OK',
                 allowOutsideClick: false,
                 customClass: {
-                    popup: 'swal2-popup-success-clean',
-                    title: 'swal2-title-success-clean',
-                    htmlContainer: 'swal2-text-success-clean',
-                    confirmButton: 'custom-confirm-btn'
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
                 }
             });
             return;
@@ -850,10 +855,10 @@ if (editAdminForm) {
                 confirmButtonText: 'OK',
                 allowOutsideClick: false,
                 customClass: {
-                    popup: 'swal2-popup-success-clean',
-                    title: 'swal2-title-success-clean',
-                    htmlContainer: 'swal2-text-success-clean',
-                    confirmButton: 'custom-confirm-btn'
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
                 }
             });
             return;
@@ -870,10 +875,10 @@ if (editAdminForm) {
                 confirmButtonText: 'OK',
                 allowOutsideClick: false,
                 customClass: {
-                    popup: 'swal2-popup-success-clean',
-                    title: 'swal2-title-success-clean',
-                    htmlContainer: 'swal2-text-success-clean',
-                    confirmButton: 'custom-confirm-btn'
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
                 }
             });
             return;
@@ -890,10 +895,10 @@ if (editAdminForm) {
                 confirmButtonText: 'OK',
                 allowOutsideClick: false,
                 customClass: {
-                    popup: 'swal2-popup-success-clean',
-                    title: 'swal2-title-success-clean',
-                    htmlContainer: 'swal2-text-success-clean',
-                    confirmButton: 'custom-confirm-btn'
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
                 }
             });
             return;
@@ -912,7 +917,7 @@ if (editAdminForm) {
                     popup: 'swal2-popup-success-clean',
                     title: 'swal2-title-success-clean',
                     htmlContainer: 'swal2-text-success-clean',
-                    confirmButton: 'custom-confirm-btn'
+                    confirmButton: 'my-success-button'
                 }
             });
             editAdminModal.style.display = 'none';
@@ -950,7 +955,7 @@ if (editAdminForm) {
                     popup: 'swal2-popup-success-clean',
                     title: 'swal2-title-success-clean',
                     htmlContainer: 'swal2-text-success-clean',
-                    confirmButton: 'custom-confirm-btn'
+                    confirmButton: 'my-success-button'
                 }
             }).then(() => {
                 editAdminModal.style.display = 'none';
@@ -964,10 +969,10 @@ if (editAdminForm) {
                 showConfirmButton: true,
                 confirmButtonText: 'OK',
                 customClass: {
-                    popup: 'swal2-popup-success-clean',
-                    title: 'swal2-title-success-clean',
-                    htmlContainer: 'swal2-text-success-clean',
-                    confirmButton: 'custom-confirm-btn'
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
                 }
             });
         }
@@ -991,10 +996,10 @@ function deleteAdmin(uid) {
             showConfirmButton: true,
             confirmButtonText: 'OK',
             customClass: {
-                popup: 'swal2-popup-success-clean',
-                title: 'swal2-title-success-clean',
-                htmlContainer: 'swal2-text-success-clean',
-                confirmButton: 'custom-confirm-btn'
+                popup: 'swal2-popup-error-clean',
+                title: 'swal2-title-error-clean',
+                htmlContainer: 'swal2-text-error-clean',
+                confirmButton: 'my-error-button'
             }
         });
         return;
@@ -1054,14 +1059,12 @@ function deleteAdmin(uid) {
                         text: 'The admin account has been moved to archived records.',
                         timer: 3000,
                         timerProgressBar: true,
-                        showConfirmButton: true,
-                        confirmButtonText: 'OK',
                         allowOutsideClick: false,
+                        showConfirmButton: false,
                         customClass: {
                             popup: 'swal2-popup-success-clean',
                             title: 'swal2-title-success-clean',
-                            htmlContainer: 'swal2-text-success-clean',
-                            confirmButton: 'custom-confirm-btn'
+                            htmlContainer: 'swal2-text-success-clean'
                         }
                     }).then(() => {
                         fetchAndRenderAdmins(); 
@@ -1162,10 +1165,10 @@ async function retrieveAdmin(uid) {
             showConfirmButton: true,
             confirmButtonText: 'OK',
             customClass: {
-                popup: 'swal2-popup-success-clean',
-                title: 'swal2-title-success-clean',
-                htmlContainer: 'swal2-text-success-clean',
-                confirmButton: 'custom-confirm-btn'
+                popup: 'swal2-popup-error-clean',
+                title: 'swal2-title-error-clean',
+                htmlContainer: 'swal2-text-error-clean',
+                confirmButton: 'my-error-button'
             }
         });
         return;
@@ -1224,14 +1227,12 @@ async function retrieveAdmin(uid) {
                     text: 'The admin account has been retrieved and is now active.',
                     timer: 3000,
                     timerProgressBar: true,
-                    showConfirmButton: true,
+                    showConfirmButton: false,
                     confirmButtonText: 'OK',
-                    allowOutsideClick: false,
                     customClass: {
                         popup: 'swal2-popup-success-clean',
                         title: 'swal2-title-success-clean',
                         htmlContainer: 'swal2-text-success-clean',
-                        confirmButton: 'custom-confirm-btn'
                     }
                 }).then(() => {
                     fetchAndRenderAdmins();
@@ -1257,10 +1258,10 @@ if (viewArchivedButton) {
                 showConfirmButton: true,
                 confirmButtonText: 'OK',
                 customClass: {
-                    popup: 'swal2-popup-success-clean',
-                    title: 'swal2-title-success-clean',
-                    htmlContainer: 'swal2-text-success-clean',
-                    confirmButton: 'custom-confirm-btn'
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
                 }
             });
             return;

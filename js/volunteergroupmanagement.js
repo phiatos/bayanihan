@@ -128,51 +128,51 @@ async function verifySuperAdminPassword() {
     const { value: password } = await Swal.fire({
         title: 'Enter Admin Password',
         input: 'password',
-        inputLabel: 'Please provide your password to confirm changes.',
-        inputPlaceholder: 'Enter your password',
+        inputPlaceholder: 'Enter password here',
+        inputAttributes: {
+            autocapitalize: 'off',
+            autocorrect: 'off',
+            autocomplete: 'new-password'
+        },
         showCancelButton: true,
         confirmButtonText: 'Verify',
-        cancelButtonText: 'Cancel',
+        showLoaderOnConfirm: true,
+        reverseButtons: true,
+        focusCancel: true,
         allowOutsideClick: false,
         customClass: {
-            popup: 'swal2-popup-success-clean',
-            title: 'swal2-title-success-clean',
-            htmlContainer: 'swal2-text-success-clean',
+            popup: 'custom-swal-popup',
+            title: 'custom-swal-title',
+            input: 'custom-swal-input',
             confirmButton: 'custom-confirm-btn',
             cancelButton: 'custom-cancel-btn'
         },
         inputValidator: (value) => {
             if (!value) {
-                return 'You need to enter your password!';
+                return 'Password is required!';
             }
         }
     });
-
-    if (!password) {
-        return false; // User canceled or didn't provide a password
-    }
-
+    if (!password) return false;
     try {
         const user = auth.currentUser;
-        if (!user) {
-            throw new Error('No user is currently signed in.');
-        }
+        if (!user) throw new Error('No authenticated user found.');
         const credential = firebase.auth.EmailAuthProvider.credential(user.email, password);
         await user.reauthenticateWithCredential(credential);
         return true;
     } catch (error) {
-        console.error("Error verifying Super Admin password:", error);
         Swal.fire({
+            title: 'Verification Failed',
+            text: 'Invalid admin password.',
             icon: 'error',
-            title: 'Invalid Password',
-            text: 'The provided password is incorrect. Please try again.',
-            showConfirmButton: true,
-            confirmButtonText: 'OK',
+            timer: 1600,
+            showConfirmButton: false,
+            timerProgressBar: true,
+            allowOutsideClick: false,
             customClass: {
-                popup: 'swal2-popup-success-clean',
-                title: 'swal2-title-success-clean',
-                htmlContainer: 'swal2-text-success-clean',
-                confirmButton: 'custom-confirm-btn'
+                popup: 'swal2-popup-error-clean',
+                title: 'swal2-title-error-clean',
+                htmlContainer: 'swal2-text-error-clean'
             }
         });
         return false;
@@ -337,7 +337,7 @@ function renderTable(dataToRender = filteredData) {
     const pageData = dataToRender.slice(start, end);
 
     if (pageData.length === 0 && searchInput.value.trim() !== "") {
-        tableBody.innerHTML = `<tr><td colspan="12" class="text-center">No results found for your search.</td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="12" class="text-center">No volunteer group found.</td></tr>`;
     } else if (pageData.length === 0) {
         tableBody.innerHTML = `<tr><td colspan="12" class="text-center">No volunteer groups to display.</td></tr>`;
     }
@@ -1601,23 +1601,21 @@ function attachRowHandlers() {
 
                             Swal.close();
                             Swal.fire({
-                                icon: 'success',
                                 title: 'Archived!',
-                                text: `Volunteer group "${orgName}" has been moved to archived records.`,
-                                timer: 3000,
+                                text: `Volunteer application group "${orgName}" has been archived.`,
+                                icon: 'success',
+                                timer: 1600,
+                                showConfirmButton: false,
                                 timerProgressBar: true,
-                                showConfirmButton: true,
-                                confirmButtonText: 'OK',
                                 allowOutsideClick: false,
                                 customClass: {
                                     popup: 'swal2-popup-success-clean',
                                     title: 'swal2-title-success-clean',
-                                    htmlContainer: 'swal2-text-success-clean',
-                                    confirmButton: 'custom-confirm-btn'
+                                    htmlContainer: 'swal2-text-success-clean'
                                 }
                             }).then(() => {
-                                fetchAndRenderTable();
-                                fetchAndRenderArchivedTable();
+                            fetchAndRenderTable();
+                            fetchAndRenderArchivedTable();
                             });
                         } catch (error) {
                             console.error("Volunteer group archiving error:", error);
@@ -1669,21 +1667,17 @@ function attachArchivedRowHandlers() {
             const orgName = orgToRestore ? orgToRestore.organization : 'N/A';
 
             Swal.fire({
-                title: `Retrieve "${orgName}"?`,
-                text: 'This will retrieve the admin account from archived records and make it active again.',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: 'Retrieve',
-                cancelButtonText: 'Cancel',
-                reverseButtons: true,
-                focusCancel: true,
+                title: `Retrieved!`,
+                text: 'The volunteer group has been retrieved.',
+                icon: 'success',
+                timer: 1600,
+                showConfirmButton: false,
+                timerProgressBar: true,
                 allowOutsideClick: false,
                 customClass: {
                     popup: 'swal2-popup-success-clean',
                     title: 'swal2-title-success-clean',
                     htmlContainer: 'swal2-text-success-clean',
-                    confirmButton: 'custom-confirm-btn',
-                    cancelButton: 'custom-cancel-btn'
                 }
             }).then(async (result) => {
                 if (result.isConfirmed) {
