@@ -510,34 +510,56 @@ function addWeatherDataForProvinces() {
             const forecastData = await forecastResponse.json();
             const condition = weatherData.weather[0].main.toLowerCase();
             const cloudCover = weatherData.clouds.all || 0;
-            const pop = (forecastData.list[0].pop || 0) * 100;
+            const pop = (forecastData.list[0].pop || 0) * 100; // For alerts only
             const rainfall = forecastData.list[0].rain ? forecastData.list[0].rain["3h"] || 0 : 0;
+
+            // Log data to debug rainy bias
+            console.log({ province: province.name, condition, cloudCover, pop, rainfall });
+
+            // Percentage calculations
             let sunnyPercent = 0, rainyPercent = 0, cloudyPercent = cloudCover;
             if (condition.includes("clear")) {
                 sunnyPercent = 100 - cloudCover;
             } else if (condition.includes("rain") || condition.includes("drizzle") || condition.includes("thunderstorm")) {
-                rainyPercent = pop;
+                rainyPercent = rainfall > 0 ? Math.min(100, rainfall * 10) : 50;
+                cloudyPercent = Math.min(cloudCover, 100 - rainyPercent);
                 sunnyPercent = Math.max(0, 100 - rainyPercent - cloudyPercent);
-                const eventId = `rain_${province.name}_${Date.now()}`;
-                const details = `Rainfall: ${rainfall} mm in last 3 hours, Chance of Rain: ${pop.toFixed(1)}%, Time: ${new Date().toISOString()}`;
-                if (rainfall >= 100 && userRole === "AB ADMIN") {
-                    generateLenlenAlert("Flood Risk", province.name, details, eventId, "Red Warning: Heavy Rain");
-                } else if (rainfall >= 50 && userRole === "AB ADMIN") {
-                    generateLenlenAlert("Flood Risk", province.name, details, eventId, "Orange Warning: Moderate Rain");
-                } else if (rainfall >= 20 && userRole === "AB ADMIN") {
-                    generateLenlenAlert("Flood Risk", province.name, details, eventId, "Yellow Warning: Light Rain");
-                }
+            } else if (rainfall >= 2) { // Only significant rainfall for clouds
+                rainyPercent = Math.min(100, rainfall * 10);
+                cloudyPercent = Math.min(cloudCover, 100 - rainyPercent);
+                sunnyPercent = Math.max(0, 100 - rainyPercent - cloudyPercent);
             } else {
                 sunnyPercent = Math.max(0, 100 - cloudCover);
             }
+
+            // Generate alerts for high rainfall
+            if (userRole === "AB ADMIN" && rainfall > 0) {
+                const eventId = `rain_${province.name}_${Date.now()}`;
+                const details = `Rainfall: ${rainfall} mm in last 3 hours, Time: ${new Date().toISOString()}`;
+                if (rainfall >= 100) {
+                    generateLenlenAlert("Flood Risk", province.name, details, eventId, "Red Warning: Heavy Rain");
+                } else if (rainfall >= 50) {
+                    generateLenlenAlert("Flood Risk", province.name, details, eventId, "Orange Warning: Moderate Rain");
+                } else if (rainfall >= 20) {
+                    generateLenlenAlert("Flood Risk", province.name, details, eventId, "Yellow Warning: Light Rain");
+                }
+            }
+
+            // Icon selection (stricter for rain)
             let icon = "☁️";
-            if (condition.includes("clear")) icon = "☀️";
-            if (condition.includes("rain") || condition.includes("drizzle") || condition.includes("thunderstorm")) icon = "🌧️";
+            if (condition.includes("clear")) {
+                icon = "☀️";
+            } else if (condition.includes("rain") || condition.includes("drizzle") || condition.includes("thunderstorm") || rainfall >= 2) {
+                icon = "🌧️";
+            } else if (condition.includes("clouds") && cloudCover < 50) {
+                icon = "⛅";
+            }
+
             const markerSvg = `
-    <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
-        <text x="20" y="22" font-size="20" text-anchor="middle" fill="#FFFFFF">${icon}</text>
-    </svg>
-`;
+                <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+                    <text x="20" y="22" font-size="20" text-anchor="middle" fill="#FFFFFF">${icon}</text>
+                </svg>
+            `;
             const marker = new google.maps.Marker({
                 position: { lat: province.lat, lng: province.lng },
                 map: map,
@@ -548,11 +570,13 @@ function addWeatherDataForProvinces() {
                 title: province.name,
             });
             markers.push(marker);
+
+            // Original weather info display (no Chance of Rain)
             const weatherInfo = `
                 <div style="font-size: 14px;">
                     <b>${province.name} Weather</b><br>
                     Sunny: ${sunnyPercent.toFixed(1)}%<br>
-                    Rainy: ${rainyPercent.toFixed(1)}% (Chance of Rain: ${pop.toFixed(1)}%)<br>
+                    Rainy: ${rainyPercent.toFixed(1)}%<br>
                     Cloudy: ${cloudyPercent.toFixed(1)}%<br>
                     Condition: ${weatherData.weather[0].description}<br>
                     Temperature: ${weatherData.main.temp}°C<br>
@@ -1053,83 +1077,115 @@ async function addCalamityMarker(type, location, coordinates, details, eventId) 
         "Landslide Risk": "⛰️",
         "Tsunami": "🌊",
     };
-    const currentTime = Date.now();
+    const currentTime = Date.now(); // 06:52 PM PST, August 21, 2025 = 1724286320000 ms
     const timeMatch = details.match(/Time: (.+)/);
     const eventTime = timeMatch ? new Date(timeMatch[1]).getTime() : currentTime;
-    const twelveHoursInMs = 12 * 60 * 60 * 1000;
-    if (type === "Earthquake" && (currentTime - eventTime > twelveHoursInMs)) {
-        console.log(`Skipping earthquake marker for ${location} - older than 12 hours`);
-        return;
-    }
-    const markerDiv = document.createElement("div");
-    markerDiv.innerHTML = `
-        <div style="
-            font-size: 24px;
-            cursor: pointer;
-            animation: pulse 2s infinite;
-            transition: transform 0.2s ease;
-        ">
-            ${icons[type] || "⚠️"}
-        </div>
-    `;
-    const style = document.createElement("style");
-    style.textContent = `
-        @keyframes pulse {
-            0% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.2); opacity: 0.7; }
-            100% { transform: scale(1); opacity: 1; }
-        }
-    `;
-    document.head.appendChild(style);
-    const marker = new google.maps.Marker({
-        position: { lat: coordinates.lat, lng: coordinates.lng },
-        map: map,
-        title: `${type} in ${location}`,
-        icon: {
-            url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
-                <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
-                    <text x="20" y="22" font-size="20" text-anchor="middle" fill="#000000">${icons[type] || "⚠️"}</text>
-                </svg>
-            `)}`,
-            scaledSize: new google.maps.Size(40, 40),
-        },
-    });
-    calamityMarkers.push(marker);
-    const realLocation = await getLocationName(coordinates.lat, coordinates.lng);
-    const infoWindowContent = `
-        <div>
-            <b>${type} in ${realLocation}</b><br>
-            ${details}
-        </div>
-    `;
-    const infoWindow = new google.maps.InfoWindow({
-        content: infoWindowContent,
-    });
-    markerDiv.addEventListener("mouseover", () => {
-        markerDiv.style.transform = "scale(1.3)";
-    });
-    markerDiv.addEventListener("mouseout", () => {
-        markerDiv.style.transform = "scale(1)";
-    });
-    marker.addListener("click", () => {
-        console.log(`Clicked marker for ${type} at ${location}`);
-        markerDiv.style.animation = "none";
-        markerDiv.style.animation = "bounce 0.5s ease";
-        const bounceStyle = document.createElement("style");
-        bounceStyle.textContent = `
-            @keyframes bounce {
-                0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-                40% { transform: translateY(-10px); }
-                60% { transform: translateY(-5px); }
+    const twelveHoursInMs = 12 * 60 * 60 * 1000; // 43200000 ms
+
+    // Remove all existing markers temporarily
+    calamityMarkers.forEach(({ marker }) => marker.setMap(null));
+    calamityMarkers = [];
+
+    // Add new marker only if recent (within 12 hours)
+    if (currentTime - eventTime <= twelveHoursInMs) {
+        const offsetLat = coordinates.lat + 0.01;
+        const markerDiv = document.createElement("div");
+        markerDiv.innerHTML = `
+            <div style="
+                font-size: 24px;
+                cursor: pointer;
+                animation: pulse 2s infinite;
+                transition: transform 0.2s ease;
+                background-color: rgba(255, 255, 255, 0.7);
+                border: 2px solid #000;
+                border-radius: 50%;
+                padding: 2px;
+                width: 32px;
+                height: 32px;
+                text-align: center;
+                line-height: 32px;
+            ">
+                ${icons[type] || "⚠️"}
+            </div>
+        `;
+        const style = document.createElement("style");
+        style.textContent = `
+            @keyframes pulse {
+                0% { transform: scale(1); opacity: 1; }
+                50% { transform: scale(1.2); opacity: 0.7; }
+                100% { transform: scale(1); opacity: 1; }
             }
         `;
-        document.head.appendChild(bounceStyle);
-        if (currentInfoWindow) singleInfoWindow.close();
-        singleInfoWindow.setContent(infoWindowContent);
-        singleInfoWindow.open(map, marker);
-        currentInfoWindow = marker;
-        isInfoWindowClicked = true;
-        showWeatherInfoWindow(coordinates.lat, coordinates.lng);
+        document.head.appendChild(style);
+        const marker = new google.maps.Marker({
+            position: { lat: offsetLat, lng: coordinates.lng },
+            map: map,
+            title: `${type} in ${location}`,
+            icon: {
+                url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+                    <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="20" cy="20" r="18" fill="rgba(255, 255, 255, 0.7)" stroke="#000" stroke-width="2"/>
+                        <text x="20" y="22" font-size="20" text-anchor="middle" fill="#000000">${icons[type] || "⚠️"}</text>
+                    </svg>
+                `)}`,
+                scaledSize: new google.maps.Size(40, 40),
+            },
+            zIndex: 1000,
+        });
+        calamityMarkers.push({ marker, eventTime });
+        const realLocation = await getLocationName(coordinates.lat, coordinates.lng);
+        const infoWindowContent = `
+            <div>
+                <b>${type} in ${realLocation}</b><br>
+                ${details}
+            </div>
+        `;
+        const infoWindow = new google.maps.InfoWindow({
+            content: infoWindowContent,
+        });
+        markerDiv.addEventListener("mouseover", () => {
+            markerDiv.style.transform = "scale(1.3)";
+        });
+        markerDiv.addEventListener("mouseout", () => {
+            markerDiv.style.transform = "scale(1)";
+        });
+        marker.addListener("click", () => {
+            console.log(`Clicked marker for ${type} at ${location}`);
+            markerDiv.style.animation = "none";
+            markerDiv.style.animation = "bounce 0.5s ease";
+            const bounceStyle = document.createElement("style");
+            bounceStyle.textContent = `
+                @keyframes bounce {
+                    0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+                    40% { transform: translateY(-10px); }
+                    60% { transform: translateY(-5px); }
+                }
+            `;
+            document.head.appendChild(bounceStyle);
+            if (currentInfoWindow) singleInfoWindow.close();
+            singleInfoWindow.setContent(infoWindowContent);
+            singleInfoWindow.open(map, marker);
+            currentInfoWindow = marker;
+            isInfoWindowClicked = true;
+            showWeatherInfoWindow(coordinates.lat, coordinates.lng);
+            if (userRole === "AB ADMIN") {
+                const magnitudeMatch = details.match(/Magnitude: (\d+\.\d+)/);
+                const rainfallMatch = details.match(/Rainfall: (\d+\.?\d*) mm/);
+                const timeMatch = details.match(/Time: (.+)/);
+                const magnitude = magnitudeMatch ? magnitudeMatch[1] : '';
+                const rainfall = rainfallMatch ? rainfallMatch[1] : '';
+                const time = timeMatch ? timeMatch[1] : null;
+                const warningLevel = rainfall >= 100 ? "Red Warning: Heavy Rain" :
+                                  rainfall >= 50 ? "Orange Warning: Moderate Rain" :
+                                  rainfall >= 20 ? "Yellow Warning: Light Rain" : "";
+                generateLenlenAlert(type, location, details, eventId, warningLevel);
+            }
+        });
+        singleInfoWindow?.addListener("closeclick", () => {
+            isInfoWindowClicked = false;
+            currentInfoWindow = null;
+            markerDiv.style.animation = "pulse 2s infinite";
+        });
         if (userRole === "AB ADMIN") {
             const magnitudeMatch = details.match(/Magnitude: (\d+\.\d+)/);
             const rainfallMatch = details.match(/Rainfall: (\d+\.?\d*) mm/);
@@ -1137,31 +1193,16 @@ async function addCalamityMarker(type, location, coordinates, details, eventId) 
             const magnitude = magnitudeMatch ? magnitudeMatch[1] : '';
             const rainfall = rainfallMatch ? rainfallMatch[1] : '';
             const time = timeMatch ? timeMatch[1] : null;
-            const warningLevel = rainfall >= 100 ? "Red Warning: Heavy Rain" :
-                              rainfall >= 50 ? "Orange Warning: Moderate Rain" :
-                              rainfall >= 20 ? "Yellow Warning: Light Rain" : "";
-            generateLenlenAlert(type, location, details, eventId, warningLevel);
+            const hasDuplicate = await hasRecentNotification(eventId, type, location, time, magnitude, rainfall);
+            if (!hasDuplicate) {
+                const warningLevel = rainfall >= 100 ? "Red Warning: Heavy Rain" :
+                                  rainfall >= 50 ? "Orange Warning: Moderate Rain" :
+                                  rainfall >= 20 ? "Yellow Warning: Light Rain" : "";
+                generateLenlenAlert(type, location, details, eventId, warningLevel);
+            }
         }
-    });
-    singleInfoWindow?.addListener("closeclick", () => {
-        isInfoWindowClicked = false;
-        currentInfoWindow = null;
-        markerDiv.style.animation = "pulse 2s infinite";
-    });
-    if (userRole === "AB ADMIN") {
-        const magnitudeMatch = details.match(/Magnitude: (\d+\.\d+)/);
-        const rainfallMatch = details.match(/Rainfall: (\d+\.?\d*) mm/);
-        const timeMatch = details.match(/Time: (.+)/);
-        const magnitude = magnitudeMatch ? magnitudeMatch[1] : '';
-        const rainfall = rainfallMatch ? rainfallMatch[1] : '';
-        const time = timeMatch ? timeMatch[1] : null;
-        const hasDuplicate = await hasRecentNotification(eventId, type, location, time, magnitude, rainfall);
-        if (!hasDuplicate) {
-            const warningLevel = rainfall >= 100 ? "Red Warning: Heavy Rain" :
-                              rainfall >= 50 ? "Orange Warning: Moderate Rain" :
-                              rainfall >= 20 ? "Yellow Warning: Light Rain" : "";
-            generateLenlenAlert(type, location, details, eventId, warningLevel);
-        }
+    } else {
+        console.log(`Skipping ${type} marker for ${location} - older than 12 hours`);
     }
 }
 // Show weather info window at clicked location
@@ -1348,192 +1389,287 @@ function updateNotificationBadge() {
             notifDot.style.display = unreadCount > 0 ? "block" : "none";
         });
 }
-// Setup admin notifications
+// Setup admin notifications (unchanged)
 function setupAdminNotifications() {
-    if (!calamityList || !adminList || !notifDot || !notifBadge) return;
-    loadNotifications();
-    const markAllReadBtn = document.getElementById("markAllRead");
-    if (markAllReadBtn && userRole === "AB ADMIN") {
-        markAllReadBtn.addEventListener("click", async () => {
-            try {
-                if (notificationsListener) notificationsListener.off();
-                const snapshot = await database.ref("notifications").once("value");
-                const updates = {};
-                snapshot.forEach(child => {
-                    if (!child.val().read) {
-                        updates[`${child.key}/read`] = true;
-                    }
-                });
-                if (Object.keys(updates).length > 0) {
-                    await database.ref("notifications").update(updates);
-                    console.log("Marked all notifications as read.");
-                }
-                calamityList.querySelectorAll("li").forEach(li => li.classList.remove("unread"));
-                adminList.querySelectorAll("li").forEach(li => li.classList.remove("unread"));
-                notifDot.style.display = "none";
-                notifBadge.textContent = '';
-                notifBadge.style.display = "none";
-                await initializeProcessedSets();
-                loadNotifications();
-            } catch (error) {
-                console.error("Error marking read:", error);
-                Swal.fire({ icon: "error", title: "Error", text: "Failed to mark all as read." });
-            }
-        });
-    }
+ if (!calamityList || !adminList || !notifDot || !notifBadge) return;
+ loadNotifications();
+ const markAllReadBtn = document.getElementById("markAllRead");
+ if (markAllReadBtn && userRole === "AB ADMIN") {
+ markAllReadBtn.addEventListener("click", async () => {
+ try {
+ if (notificationsListener) notificationsListener.off();
+ const snapshot = await database.ref("notifications").once("value");
+ const updates = {};
+ snapshot.forEach(child => {
+ if (!child.val().read) {
+ updates[`${child.key}/read`] = true;
+ }
+ });
+ if (Object.keys(updates).length > 0) {
+ await database.ref("notifications").update(updates);
+ console.log("Marked all notifications as read.");
+ }
+ calamityList.querySelectorAll("li").forEach(li => li.classList.remove("unread"));
+ adminList.querySelectorAll("li").forEach(li => li.classList.remove("unread"));
+ notifDot.style.display = "none";
+ notifBadge.textContent = '';
+ notifBadge.style.display = "none";
+ await initializeProcessedSets();
+ loadNotifications();
+ } catch (error) {
+ console.error("Error marking read:", error);
+ Swal.fire({ icon: "error", title: "Error", text: "Failed to mark all as read." });
+ }
+ });
+ }
 }
+
 // Load and listen to notifications
 function loadNotifications() {
-    // Check if required DOM elements exist
-    if (!calamityList || !adminList || !notifDot || !notifBadge) {
-        console.error("Notification list or dot not found.");
-        Swal.fire({
-            icon: "error",
-            title: "Error",
-            text: "Notification elements not found. Please check the dashboard setup.",
-        });
-        return;
-    }
+ // Check if required DOM elements exist
+ if (!calamityList || !adminList || !notifDot || !notifBadge) {
+ console.error("Notification list or dot not found.");
+ Swal.fire({
+ icon: "error",
+ title: "Error",
+ text: "Notification elements not found. Please check the dashboard setup.",
+ });
+ return;
+ }
 
-    // Remove existing listener to prevent duplicate event handlers
-    if (notificationsListener) {
-        notificationsListener.off();
-        console.log("Previous notifications listener removed.");
-    }
+ // Remove existing listener to prevent duplicate event handlers
+ if (notificationsListener) {
+ notificationsListener.off();
+ console.log("Previous notifications listener removed.");
+ }
 
-    // Set up Firebase listener for notifications (limit to last 50 for performance)
-    notificationsListener = database.ref("notifications").limitToLast(50);
-    notificationsListener.on("child_added", snapshot => {
-        const notification = snapshot.val();
-        const key = snapshot.key;
-        console.log("New notification received:", notification);
+ // Set up Firebase listener for notifications (limit to last 50 for performance)
+ notificationsListener = database.ref("notifications").limitToLast(50);
+ notificationsListener.on("child_added", snapshot => {
+ const notification = snapshot.val();
+ const key = snapshot.key;
+ console.log("New notification received:", notification);
 
-        // Skip duplicate notifications
-        if (processedNotifications.has(notification.identifier) || document.querySelector(`li[data-key="${key}"]`)) {
-            console.log(`Skipping duplicate notification - Key: ${key}, Identifier: ${notification.identifier}`);
-            return;
-        }
+ // Skip duplicate notifications
+ if (processedNotifications.has(notification.identifier) || document.querySelector(`li[data-key="${key}"]`)) {
+ console.log(`Skipping duplicate notification - Key: ${key}, Identifier: ${notification.identifier}`);
+ return;
+ }
 
-        // Filter notifications based on user role and userUid
-        if (notification.type === "admin" && userRole !== "AB ADMIN") {
-            console.log(`Skipping admin notification for non-admin user: ${notification.message}`);
-            return;
-        }
+ // Filter notifications based on user role and userUid
+ if (notification.type === "admin" && userRole !== "AB ADMIN") {
+ console.log(`Skipping admin notification for non-admin user: ${notification.message}`);
+ return;
+ }
 
-        // For approval notifications (donation_approved, rdana_approved), only show to the submitting user
-        if (["donation_approved", "rdana_approved"].includes(notification.type)) {
-            if (notification.userUid !== userUid) {
-                console.log(`Skipping approval notification for user ${notification.userUid}, current user is ${userUid}`);
-                return;
-            }
-        } else if (userRole !== "AB ADMIN" && notification.userUid && notification.userUid !== userUid) {
-            // For non-approval notifications, non-admin users only see their own or calamity notifications
-            console.log(`Skipping notification for user ${notification.userUid}, current user is ${userUid}`);
-            return;
-        }
+ // For approval notifications (donation_approved, rdana_approved), only show to the submitting user
+ if (["donation_approved", "rdana_approved"].includes(notification.type)) {
+ if (notification.userUid !== userUid) {
+ console.log(`Skipping approval notification for user ${notification.userUid}, current user is ${userUid}`);
+ return;
+ }
+ } else if (userRole !== "AB ADMIN" && notification.userUid && notification.userUid !== userUid) {
+ // For non-approval notifications, non-admin users only see their own or calamity notifications
+ console.log(`Skipping notification for user ${notification.userUid}, current user is ${userUid}`);
+ return;
+ }
 
-        // Add notification to processed set
-        processedNotifications.add(notification.identifier);
-        syncProcessedNotifications();
+ // Add notification to processed set
+ processedNotifications.add(notification.identifier);
+ syncProcessedNotifications();
 
-        // Create notification list item
-        const li = document.createElement("li");
-        let content = "";
+ // Create notification list item
+ const li = document.createElement("li");
+ let content = "";
 
-        // Customize notification content based on type
-        if (notification.type === "calamity") {
-            content = `<strong>🚨 Calamity Alert:</strong> ${notification.message}`;
-        } else if (notification.type === "admin") {
-            content = `<strong>🔔 Admin Notification:</strong> ${notification.message}`;
-        } else if (notification.type === "donation_approved") {
-            content = `<strong>✅ Donation Approved:</strong> ${notification.message}`;
-        } else if (notification.type === "rdana_approved") {
-            content = `<strong>✅ RDANA Report Approved:</strong> ${notification.message}`;
-        } else {
-            content = `<strong>🔔 Notification:</strong> ${notification.message}`;
-        }
+ // Customize notification content based on type
+ if (notification.type === "calamity") {
+ content = `<strong>🚨 Calamity Alert:</strong> ${notification.message}`;
+ } else if (notification.type === "admin") {
+ content = `<strong>🔔 Admin Notification:</strong> ${notification.message}`;
+ } else if (notification.type === "donation_approved") {
+ content = `<strong>✅ Donation Approved:</strong> ${notification.message}`;
+ } else if (notification.type === "rdana_approved") {
+ content = `<strong>✅ RDANA Report Approved:</strong> ${notification.message}`;
+ } else {
+ content = `<strong>🔔 Notification:</strong> ${notification.message}`;
+ }
 
-        // Append timestamp
-        content += `<span class="timestamp">${new Date(notification.timestamp).toLocaleString("en-US", {
-            hour: "numeric",
-            minute: "numeric",
-            hour12: true,
-        })}</span>`;
+ // Append timestamp
+ content += `<span class="timestamp">${new Date(notification.timestamp).toLocaleString("en-US", {
+ hour: "numeric",
+ minute: "numeric",
+ hour12: true,
+ })}</span>`;
 
-        li.innerHTML = content;
-        li.dataset.key = key;
-        li.style.cursor = "pointer";
+ li.innerHTML = content;
+ li.dataset.key = key;
+ li.style.cursor = "pointer";
 
-        // Style unread notifications
-        if (!notification.read) {
-            li.classList.add("unread");
-            li.style.backgroundColor = "#ffeeee"; // Red tint for unread
-        } else {
-            li.style.backgroundColor = "#ffffff"; // Default color for read
-        }
+ // Style unread notifications
+ if (!notification.read) {
+ li.classList.add("unread");
+ li.style.backgroundColor = "#ffeeee"; // Red tint for unread
+ } else {
+ li.style.backgroundColor = "#ffffff"; // Default color for read
+ }
 
-        // Handle notification click (mark as read and handle calamity map interaction)
-        li.addEventListener("click", () => {
-            console.log(`Notification clicked: ${notification.message}`);
-            li.classList.remove("unread");
-            li.style.backgroundColor = "#ffffff"; // Reset to default on read
+ // Handle notification click (mark as read and handle navigation/highlighting)
+ li.addEventListener("click", () => {
+ console.log(`Notification clicked: ${notification.message}`);
+ li.classList.remove("unread");
+ li.style.backgroundColor = "#ffffff"; // Reset to default on read
 
-            // Mark notification as read in Firebase
-            database.ref(`notifications/${key}`).update({ read: true }).catch(error => {
-                console.error("Error marking notification as read:", error);
-                Swal.fire({
-                    icon: "error",
-                    title: "Error",
-                    text: "Failed to mark notification as read.",
-                });
-            });
+ // Mark notification as read in Firebase
+ database.ref(`notifications/${key}`).update({ read: true }).catch(error => {
+ console.error("Error marking notification as read:", error);
+ Swal.fire({
+ icon: "error",
+ title: "Error",
+ text: "Failed to mark notification as read.",
+ });
+ });
 
-            // Update notification badge
-            database.ref("notifications")
-                .orderByChild("read")
-                .equalTo(false)
-                .once("value", snapshot => {
-                    const unreadCount = snapshot.numChildren();
-                    notifBadge.textContent = unreadCount > 0 ? unreadCount : '';
-                    notifBadge.style.display = unreadCount > 0 ? "inline-flex" : "none";
-                    notifDot.style.display = unreadCount > 0 ? "block" : "none";
-                });
+ // Update notification badge
+ database.ref("notifications")
+ .orderByChild("read")
+ .equalTo(false)
+ .once("value", snapshot => {
+ const unreadCount = snapshot.numChildren();
+ notifBadge.textContent = unreadCount > 0 ? unreadCount : '';
+ notifBadge.style.display = unreadCount > 0 ? "inline-flex" : "none";
+ notifDot.style.display = unreadCount > 0 ? "block" : "none";
+ });
 
-            // Handle calamity notifications with map interaction
-            if (notification.location && notification.type === "calamity") {
-                const coordinates = provinces.find(p => p.name === notification.location) || { lat: 14.5995, lng: 120.9842 };
-                if (currentInfoWindow) singleInfoWindow.close();
-                singleInfoWindow.setContent(`
-                    <div>
-                        <b>${notification.calamityType || ''} in ${notification.location}</b><br>
-                        ${notification.details || ''}
-                    </div>
-                `);
-                singleInfoWindow.setPosition(coordinates);
-                singleInfoWindow.open(map);
-                currentInfoWindow = { getPosition: () => coordinates };
-                map.setCenter(coordinates);
-                map.setZoom(12);
-            }
-        });
+ // Handle navigation and highlighting for admin notifications
+ if (notification.type === "admin" && userRole === "AB ADMIN" && notification.reportId) {
+ let targetPage = "";
+ let reportType = "";
+ let idField = "data-id"; // Default ID attribute for tables
 
-        // Append notification to appropriate list
-        if (notification.type === "calamity") {
-            calamityList.prepend(li);
-        } else {
-            adminList.prepend(li);
-        }
+ // Determine the target page and report type based on notification message
+ if (notification.message.toLowerCase().includes("rdana report")) {
+ targetPage = "/bayanihan/pages/rdanaVerification.html";
+ reportType = "rdana";
+ idField = "data-id";
+ } else if (notification.message.toLowerCase().includes("relief report")) {
+ targetPage = "/bayanihan/pages/reliefsLog.html";
+ reportType = "relief";
+ idField = "data-id";
+ } else if (notification.message.toLowerCase().includes("donation")) {
+ targetPage = "/bayanihan/pages/callfordonation.html";
+ reportType = "donation";
+ idField = "data-id";
+ } else if (notification.message.toLowerCase().includes("report")) {
+ targetPage = "/bayanihan/pages/reportsVerification.html";
+ reportType = "report";
+ idField = "data-id";
+ }
 
-        // Update notification badge
-        updateNotificationBadge();
-    }, error => {
-        console.error("Error fetching notifications:", error);
-        Swal.fire({
-            icon: "error",
-            title: "Error",
-            text: "Failed to load notifications: " + error.message,
-        });
-    });
+ if (targetPage) {
+ // Navigate to the target page
+ try {
+ console.log("Navigating to:", targetPage);
+ window.location.href = targetPage;
+ } catch (error) {
+ console.error(`Failed to navigate to ${targetPage}:`, error);
+ Swal.fire({
+ icon: "error",
+ title: "Navigation Error",
+ text: `Could not navigate to ${targetPage}. Please check if the page exists.`,
+ });
+ return;
+ }
+
+ // Highlight the specific report after page load
+ const highlightReport = () => {
+ const reportRow = document.querySelector(`tr[${idField}="${notification.reportId}"]`);
+ if (reportRow) {
+ // Highlight with background and badge
+ reportRow.style.backgroundColor = "#e0f7fa"; // Light cyan highlight
+ reportRow.scrollIntoView({ behavior: "smooth", block: "center" });
+
+ // Add "New" badge if report is unread
+ if (!notification.read) {
+ const badgeCell = reportRow.querySelector("td:first-child") || reportRow;
+ const badge = document.createElement("span");
+ badge.textContent = "New";
+ badge.style.cssText = `
+ background-color: #ff4444;
+ color: white;
+ padding: 2px 6px;
+ border-radius: 3px;
+ font-size: 12px;
+ margin-left: 5px;
+ `;
+ badgeCell.prepend(badge);
+ }
+
+ // Remove highlight after 5 seconds
+ setTimeout(() => {
+ reportRow.style.backgroundColor = "";
+ }, 5000);
+ } else {
+ console.log(`Report with ID ${notification.reportId} not found on page ${targetPage}.`);
+ Swal.fire({
+ icon: "warning",
+ title: "Report Not Found",
+ text: `The report with ID ${notification.reportId} was not found on the page.`,
+ });
+ }
+ };
+
+ // Wait for table to load (increased delay to 2 seconds)
+ setTimeout(highlightReport, 2000);
+
+ // Fallback: Use MutationObserver to detect table changes
+ const tableObserver = new MutationObserver((mutations, observer) => {
+ if (document.querySelector(`tr[${idField}="${notification.reportId}"]`)) {
+ highlightReport();
+ observer.disconnect();
+ }
+ });
+ tableObserver.observe(document.body, { childList: true, subtree: true });
+ } else {
+ console.log("No target page determined for notification:", notification.message);
+ }
+ }
+
+ // Handle calamity notifications with map interaction
+ if (notification.location && notification.type === "calamity") {
+ const coordinates = provinces.find(p => p.name === notification.location) || { lat: 14.5995, lng: 120.9842 };
+ if (currentInfoWindow) singleInfoWindow.close();
+ singleInfoWindow.setContent(`
+ <div>
+ ${notification.calamityType || ''} in ${notification.location}<br>
+ ${notification.details || ''}
+ </div>
+ `);
+ singleInfoWindow.setPosition(coordinates);
+ singleInfoWindow.open(map);
+ currentInfoWindow = { getPosition: () => coordinates };
+ map.setCenter(coordinates);
+ map.setZoom(12);
+ }
+ });
+
+ // Append notification to appropriate list
+ if (notification.type === "calamity") {
+ calamityList.prepend(li);
+ } else {
+ adminList.prepend(li);
+ }
+
+ // Update notification badge
+ updateNotificationBadge();
+ }, error => {
+ console.error("Error fetching notifications:", error);
+ Swal.fire({
+ icon: "error",
+ title: "Error",
+ text: "Failed to load notifications: " + error.message,
+ });
+ });
 }
 
 // Verify report in reportssubmission
@@ -1903,7 +2039,7 @@ async function cleanDuplicateNotifications() {
 // Clean old calamities (older than 30 days)
 async function cleanOldCalamities() {
     try {
-        const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
+        const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000); // 30 days in milliseconds
         const snapshot = await database.ref("calamities").once("value");
         const calamities = snapshot.val();
         if (!calamities) return;
@@ -1921,6 +2057,7 @@ async function cleanOldCalamities() {
         console.error("Error cleaning old calamities:", error);
     }
 }
+
 // Migrate legacy calamities (add missing eventId and identifier)
 async function migrateLegacyCalamities() {
     try {
@@ -1947,5 +2084,24 @@ async function migrateLegacyCalamities() {
         console.error("Error migrating legacy calamities:", error);
     }
 }
+// Function to clean up expired calamity markers
+function cleanupExpiredMarkers() {
+    const currentTime = Date.now();
+    const twelveHoursInMs = 12 * 60 * 60 * 1000;
+    calamityMarkers = calamityMarkers.filter(({ marker, eventTime }) => {
+        if (currentTime - eventTime > twelveHoursInMs) {
+            marker.setMap(null); // Remove from map
+            console.log(`Removed expired marker for event at ${marker.getPosition()}`);
+            return false; // Filter out expired marker
+        }
+        return true; // Keep active marker
+    });
+}
+
+// Start periodic cleanup (e.g., every hour)
+setInterval(cleanupExpiredMarkers, 60 * 60 * 1000); // Runs every hour
+
+// Initial cleanup on load
+cleanupExpiredMarkers();
 // Initialize dashboard when the page loads
 window.addEventListener("load", initializeDashboard);
