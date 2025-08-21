@@ -394,6 +394,49 @@ async function loadApprovedReports() {
     }
 }
 
+async function loadApprovedReports() {
+    try {
+        const snapshot = await database.ref("reports/approved").once("value");
+        const reports = snapshot.val();
+        approvedReports = [];
+        if (reports) {
+            Object.keys(reports).forEach(key => {
+                const report = reports[key];
+                console.log(`Loading report ${key}:`, report); // Debug log
+                const transformedReport = {
+                    firebaseKey: key,
+                    ReportID: report.reportID || report.ReportID || "-",
+                    VolunteerGroupName: report.organization || report.VolunteerGroupName || "[Unknown Org]",
+                    AreaOfOperation: report.AreaOfOperation || "-",
+                    TimeOfIntervention: report.timeOfIntervention || report.TimeOfIntervention || "-",
+                    DateOfReport: report.dateOfReport || report.DateOfReport || "-",
+                    Status: report.status || report.Status || "Approved",
+                    StartDate: report.operationDate || report.StartDate || "-",
+                    EndDate: report.operationDate || report.EndDate || "-",
+                    NoOfIndividualsOrFamilies: report.families || report.NoOfIndividualsOrFamilies || "-",
+                    NoOfFoodPacks: report.foodPacks || report.NoOfFoodPacks || "-",
+                    NoOfHotMeals: report.hotMeals || report.NoOfHotMeals || "-",
+                    LitersOfWater: report.water || report.LitersOfWater || "-",
+                    NoOfVolunteersMobilized: report.volunteers || report.NoOfVolunteersMobilized || "-",
+                    NoOfOrganizationsActivated: report.NoOfOrganizationsActivated || "-",
+                    TotalValueOfInKindDonations: report.inKindValue || report.TotalValueOfInKindDonations || "-",
+                    TotalMonetaryDonations: report.amountRaised || report.TotalMonetaryDonations || "-",
+                    NotesAdditionalInformation: report.remarks || report.urgentNeeds || report.NotesAdditionalInformation || "-",
+                    userUid: report.userUid || "-",
+                    submittedBy: report.submittedBy || "-",
+                };
+                approvedReports.push(transformedReport);
+            });
+            console.log("Approved reports loaded:", approvedReports);
+        } else {
+            console.log("No approved reports found in Firebase");
+        }
+    } catch (error) {
+        console.error("Error loading approved reports:", error);
+        throw error; // Re-throw to catch in initializeMap
+    }
+}
+
 async function addMarkersForActiveActivations() {
     if (!map) {
         console.error("Map not initialized before adding markers");
@@ -444,7 +487,6 @@ async function addMarkersForActiveActivations() {
                 title: activation.organization || "Organization Unknown",
             });
 
-            // Fetch needs assessment and approved reports
             let needsAssessmentHtml = "<p>No needs assessment available for this activation.</p>";
             let approvedReportsHtml = "<p>No approved reports available for this ABVN.</p>";
             let hasRdanaData = false;
@@ -457,101 +499,85 @@ async function addMarkersForActiveActivations() {
                 console.log(`All RDANA logs:`, rdanaLogs);
 
                 if (rdanaLogs) {
-    for (let rdanaKey in rdanaLogs) {
-        const log = rdanaLogs[rdanaKey];
-        console.log(`Checking RDANA ${rdanaKey}: rdanaGroup=${log.rdanaGroup}, activation organization=${organization}`);
-        if (log.rdanaGroup && organization && log.rdanaGroup.toLowerCase() === organization.toLowerCase()) {
-            const needsChecklist = log.needsChecklist || [];
-            console.log(`Needs checklist for RDANA ${rdanaKey}:`, needsChecklist);
+                    for (let rdanaKey in rdanaLogs) {
+                        const log = rdanaLogs[rdanaKey];
+                        console.log(`Checking RDANA ${rdanaKey}: rdanaGroup=${log.rdanaGroup}, activation organization=${organization}`);
+                        if (log.rdanaGroup && organization && log.rdanaGroup.toLowerCase() === organization.toLowerCase()) {
+                            const needsChecklist = log.needsChecklist || [];
+                            console.log(`Needs checklist for RDANA ${rdanaKey}:`, needsChecklist);
 
-            if (needsChecklist.length > 0) {
-                // Filter for items where needed is true and map to HTML
-                const neededItems = needsChecklist.filter(item => item.needed);
-                if (neededItems.length > 0) {
-                    needsAssessmentHtml = `
-                        <div style="background: #fff5f8; border: 1px solid #ff85b3; border-radius: 10px; padding: 16px 22px; margin-bottom: 14px; font-family: Arial, sans-serif; box-shadow: 0 3px 7px rgba(255, 105, 180, 0.15); max-width: 600px;">
-                        <h3 style="color: #c2185b; margin-bottom: 12px; font-weight: 600; font-size: 1.1rem;">
-                        Critical Needs
-                        </h3>
-                        <ul style="color: #444; font-size: 1rem; line-height: 1.6; padding-left: 24px; margin: 0; font-weight: 600;">
-                        ${neededItems.map(item => `<li style="color: #e91e63; margin-bottom: 8px;">${item.item}</li>`).join('')}
-                        </ul>
-                        </div>
-                        `;
-                    hasRdanaData = true;
+                            if (needsChecklist.length > 0) {
+                                const neededItems = needsChecklist.filter(item => item.needed);
+                                if (neededItems.length > 0) {
+                                    needsAssessmentHtml = `
+                                        <div style="background: #fff5f8; border: 1px solid #ff85b3; border-radius: 10px; padding: 16px 22px; margin-bottom: 14px; font-family: Arial, sans-serif; box-shadow: 0 3px 7px rgba(255, 105, 180, 0.15); max-width: 600px;">
+                                        <h3 style="color: #c2185b; margin-bottom: 12px; font-weight: 600; font-size: 1.1rem;">Critical Needs</h3>
+                                        <ul style="color: #444; font-size: 1rem; line-height: 1.6; padding-left: 24px; margin: 0; font-weight: 600;">
+                                        ${neededItems.map(item => `<li style="color: #e91e63; margin-bottom: 8px;">${item.item}</li>`).join('')}
+                                        </ul>
+                                        </div>
+                                    `;
+                                    hasRdanaData = true;
+                                } else {
+                                    needsAssessmentHtml = "<p>No specific needs identified in the RDANA report.</p>";
+                                }
+                            } else {
+                                needsAssessmentHtml = "<p>No specific needs identified in the RDANA report.</p>";
+                            }
+                            break;
+                        }
+                    }
                 } else {
-                    needsAssessmentHtml = "<p>No specific needs identified in the RDANA report.</p>";
+                    console.log("No RDANA logs found in rdana/approved.");
                 }
-            } else {
-                needsAssessmentHtml = "<p>No specific needs identified in the RDANA report.</p>";
-            }
-            break;
-        }
-    }
-} else {
-    console.log("No RDANA logs found in rdana/approved.");
-}
 
-                // Fetch approved reports submitted by this specific ABVN (organization)
+                // Fetch all approved reports for this organization
                 console.log(`Approved reports array:`, approvedReports);
+                const relevantReports = approvedReports.filter(report => 
+                    report.VolunteerGroupName && organization && report.VolunteerGroupName.toLowerCase() === organization.toLowerCase()
+                ).sort((a, b) => new Date(b.DateOfReport) - new Date(a.DateOfReport)); // Sort by date descending
 
-                const relevantReports = approvedReports.filter(report => {
-                    const matchesVolunteerGroup = report.VolunteerGroupName && organization && 
-                        report.VolunteerGroupName.toLowerCase() === organization.toLowerCase();
-                    console.log(`Checking report: VolunteerGroupName=${report.VolunteerGroupName}, organization=${organization}, matches=${matchesVolunteerGroup}`);
-                    return matchesVolunteerGroup;
-                });
+                if (relevantReports.length > 0) {
+                    // Calculate totals for this ABVN group only
+                    const totals = relevantReports.reduce((acc, report) => ({
+                        evacuees: (acc.evacuees || 0) + (parseInt(report.NoOfIndividualsOrFamilies) || 0),
+                        foodPacks: (acc.foodPacks || 0) + (parseInt(report.NoOfFoodPacks) || 0),
+                        hotMeals: (acc.hotMeals || 0) + (parseInt(report.NoOfHotMeals) || 0),
+                        water: (acc.water || 0) + (parseInt(report.LitersOfWater) || 0),
+                        volunteers: (acc.volunteers || 0) + (parseInt(report.NoOfVolunteersMobilized) || 0),
+                        monetary: (acc.monetary || 0) + (parseFloat(report.TotalMonetaryDonations) || 0),
+                        inKind: (acc.inKind || 0) + (parseFloat(report.TotalValueOfInKindDonations) || 0)
+                    }), {});
 
-                console.log(`Relevant reports for ${organization}:`, relevantReports);
-
-              if (relevantReports.length > 0) {
-    approvedReportsHtml = `
-        <ul>
-            ${relevantReports.map(report => `
-                <li style="background: #fff0f6; border: 1px solid #ff69b4; border-radius: 8px; padding: 15px 20px; margin-bottom: 12px; font-family: Arial, sans-serif; box-shadow: 0 2px 5px rgba(255, 105, 180, 0.2);">
-                <h3 style="color: #d81b60; margin-bottom: 10px; font-weight: 700; font-size: 1rem;">
-                    Relief Operation Report (${formatDate(report.DateOfReport) || 'No date'})
-                </h3>
-                <div style="line-height: 1.5; color: #333; font-size: 1rem;">
-                    Evacuees: <strong style="color: #ff4081; font-weight: 600;">${report.NoOfIndividualsOrFamilies || 0}</strong><br>
-                    Food Packs: <strong style="color: #ff4081; font-weight: 600;">${report.NoOfFoodPacks || 0}</strong><br>
-                    Hot Meals: <strong style="color: #ff4081; font-weight: 600;">${report.NoOfHotMeals || 0}</strong><br>
-                    Water (Liters): <strong style="color: #ff4081; font-weight: 600;">${report.LitersOfWater || 0}</strong><br>
-                    Volunteers: <strong style="color: #ff4081; font-weight: 600;">${report.NoOfVolunteersMobilized || 0}</strong><br>
-                    Monetary Donations: <strong style="color: #ff4081; font-weight: 600;">₱${abbreviateNumber(parseFloat(report.TotalMonetaryDonations || 0))}</strong><br>
-                    In-Kind Donations: <strong style="color: #ff4081; font-weight: 600;">₱${abbreviateNumber(parseFloat(report.TotalValueOfInKindDonations || 0))}</strong>
-                </div>
-                </li>
-
-            `).join("")}
-        </ul>
-    `;
-    hasApprovedReports = true;
-} else {
-    // Fallback to show raw report data for debugging
-    approvedReportsHtml = `
-        <h3>Relief Operation Reports</h3>
-        <p>No matching reports found. Raw approved reports data:</p>
-        <pre>${JSON.stringify(approvedReports.filter(r => r.VolunteerGroupName && organization && r.VolunteerGroupName.toLowerCase() === organization.toLowerCase()), null, 2)}</pre>
-    `;
-}
+                    approvedReportsHtml = `
+                        <div>
+                            <div style="background: #f0f0f0; border: 1px solid #ccc; border-radius: 8px; padding: 15px 20px; margin-top: 12px; font-family: Arial, sans-serif;">
+                                <h3 style="color: #333; margin-bottom: 10px; font-weight: 700; font-size: 1rem;">Total for ${organization === "unknown" ? "Unknown Organization" : organization}</h3>
+                                <div style="line-height: 1.5; color: #333; font-size: 1rem;">
+                                    Evacuees: <strong style="color: #ff4081; font-weight: 600;">${totals.evacuees}</strong><br>
+                                    Food Packs: <strong style="color: #ff4081; font-weight: 600;">${totals.foodPacks}</strong><br>
+                                    Hot Meals: <strong style="color: #ff4081; font-weight: 600;">${totals.hotMeals}</strong><br>
+                                    Water (Liters): <strong style="color: #ff4081; font-weight: 600;">${totals.water}</strong><br>
+                                    Volunteers: <strong style="color: #ff4081; font-weight: 600;">${totals.volunteers}</strong><br>
+                                    Monetary Donations: <strong style="color: #ff4081; font-weight: 600;">₱${abbreviateNumber(totals.monetary)}</strong><br>
+                                    In-Kind Donations: <strong style="color: #ff4081; font-weight: 600;">₱${abbreviateNumber(totals.inKind)}</strong>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    hasApprovedReports = true;
+                } else {
+                    approvedReportsHtml = "<p>No approved reports available for this ABVN.</p>";
+                }
             } catch (error) {
                 console.error(`Error fetching RDANA or reports for organization ${organization}:`, error);
                 needsAssessmentHtml = "<p>Error loading needs assessment.</p>";
                 approvedReportsHtml = "<p>Error loading approved reports for this ABVN.</p>";
             }
 
-            // Initialize as empty strings to hide sections if no data exists
-            let finalNeedsAssessmentHtml = needsAssessmentHtml;
-            let finalApprovedReportsHtml = approvedReportsHtml;
-            if (needsAssessmentHtml.includes("No needs assessment") || needsAssessmentHtml.includes("Error loading")) {
-                finalNeedsAssessmentHtml = "";
-            }
-            if (approvedReportsHtml.includes("No approved reports") || approvedReportsHtml.includes("Error loading")) {
-                finalApprovedReportsHtml = "";
-            }
+            let finalNeedsAssessmentHtml = needsAssessmentHtml.includes("No needs assessment") || needsAssessmentHtml.includes("Error loading") ? "" : needsAssessmentHtml;
+            let finalApprovedReportsHtml = approvedReportsHtml.includes("No approved reports") || approvedReportsHtml.includes("Error loading") ? "" : approvedReportsHtml;
 
-            // Base info sections that are always displayed
             let infoSectionContent = `
                 <div class="info-item">
                     <i class='bx bx-map'></i>
@@ -576,7 +602,6 @@ async function addMarkersForActiveActivations() {
                 </div>
             `;
 
-            // If there’s RDANA or approved reports data, append those sections
             if (hasRdanaData || hasApprovedReports) {
                 infoSectionContent += `
                     ${finalNeedsAssessmentHtml}
@@ -763,14 +788,15 @@ window.addEventListener('beforeunload', () => {
     markers = [];
 });
 
-// Helper function to format date (from reports.js)
+// Helper function to format date
 function formatDate(dateStr) {
     const date = new Date(dateStr);
     if (isNaN(date)) return dateStr || "-";
     return date.toLocaleDateString("en-US", {
         year: "numeric",
         month: "long",
-        day: "numeric"
+        day: "numeric",
+        timeZone: 'Asia/Manila'
     });
 }
 

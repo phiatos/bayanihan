@@ -1348,192 +1348,287 @@ function updateNotificationBadge() {
             notifDot.style.display = unreadCount > 0 ? "block" : "none";
         });
 }
-// Setup admin notifications
+// Setup admin notifications (unchanged)
 function setupAdminNotifications() {
-    if (!calamityList || !adminList || !notifDot || !notifBadge) return;
-    loadNotifications();
-    const markAllReadBtn = document.getElementById("markAllRead");
-    if (markAllReadBtn && userRole === "AB ADMIN") {
-        markAllReadBtn.addEventListener("click", async () => {
-            try {
-                if (notificationsListener) notificationsListener.off();
-                const snapshot = await database.ref("notifications").once("value");
-                const updates = {};
-                snapshot.forEach(child => {
-                    if (!child.val().read) {
-                        updates[`${child.key}/read`] = true;
-                    }
-                });
-                if (Object.keys(updates).length > 0) {
-                    await database.ref("notifications").update(updates);
-                    console.log("Marked all notifications as read.");
-                }
-                calamityList.querySelectorAll("li").forEach(li => li.classList.remove("unread"));
-                adminList.querySelectorAll("li").forEach(li => li.classList.remove("unread"));
-                notifDot.style.display = "none";
-                notifBadge.textContent = '';
-                notifBadge.style.display = "none";
-                await initializeProcessedSets();
-                loadNotifications();
-            } catch (error) {
-                console.error("Error marking read:", error);
-                Swal.fire({ icon: "error", title: "Error", text: "Failed to mark all as read." });
-            }
-        });
-    }
+ if (!calamityList || !adminList || !notifDot || !notifBadge) return;
+ loadNotifications();
+ const markAllReadBtn = document.getElementById("markAllRead");
+ if (markAllReadBtn && userRole === "AB ADMIN") {
+ markAllReadBtn.addEventListener("click", async () => {
+ try {
+ if (notificationsListener) notificationsListener.off();
+ const snapshot = await database.ref("notifications").once("value");
+ const updates = {};
+ snapshot.forEach(child => {
+ if (!child.val().read) {
+ updates[`${child.key}/read`] = true;
+ }
+ });
+ if (Object.keys(updates).length > 0) {
+ await database.ref("notifications").update(updates);
+ console.log("Marked all notifications as read.");
+ }
+ calamityList.querySelectorAll("li").forEach(li => li.classList.remove("unread"));
+ adminList.querySelectorAll("li").forEach(li => li.classList.remove("unread"));
+ notifDot.style.display = "none";
+ notifBadge.textContent = '';
+ notifBadge.style.display = "none";
+ await initializeProcessedSets();
+ loadNotifications();
+ } catch (error) {
+ console.error("Error marking read:", error);
+ Swal.fire({ icon: "error", title: "Error", text: "Failed to mark all as read." });
+ }
+ });
+ }
 }
+
 // Load and listen to notifications
 function loadNotifications() {
-    // Check if required DOM elements exist
-    if (!calamityList || !adminList || !notifDot || !notifBadge) {
-        console.error("Notification list or dot not found.");
-        Swal.fire({
-            icon: "error",
-            title: "Error",
-            text: "Notification elements not found. Please check the dashboard setup.",
-        });
-        return;
-    }
+ // Check if required DOM elements exist
+ if (!calamityList || !adminList || !notifDot || !notifBadge) {
+ console.error("Notification list or dot not found.");
+ Swal.fire({
+ icon: "error",
+ title: "Error",
+ text: "Notification elements not found. Please check the dashboard setup.",
+ });
+ return;
+ }
 
-    // Remove existing listener to prevent duplicate event handlers
-    if (notificationsListener) {
-        notificationsListener.off();
-        console.log("Previous notifications listener removed.");
-    }
+ // Remove existing listener to prevent duplicate event handlers
+ if (notificationsListener) {
+ notificationsListener.off();
+ console.log("Previous notifications listener removed.");
+ }
 
-    // Set up Firebase listener for notifications (limit to last 50 for performance)
-    notificationsListener = database.ref("notifications").limitToLast(50);
-    notificationsListener.on("child_added", snapshot => {
-        const notification = snapshot.val();
-        const key = snapshot.key;
-        console.log("New notification received:", notification);
+ // Set up Firebase listener for notifications (limit to last 50 for performance)
+ notificationsListener = database.ref("notifications").limitToLast(50);
+ notificationsListener.on("child_added", snapshot => {
+ const notification = snapshot.val();
+ const key = snapshot.key;
+ console.log("New notification received:", notification);
 
-        // Skip duplicate notifications
-        if (processedNotifications.has(notification.identifier) || document.querySelector(`li[data-key="${key}"]`)) {
-            console.log(`Skipping duplicate notification - Key: ${key}, Identifier: ${notification.identifier}`);
-            return;
-        }
+ // Skip duplicate notifications
+ if (processedNotifications.has(notification.identifier) || document.querySelector(`li[data-key="${key}"]`)) {
+ console.log(`Skipping duplicate notification - Key: ${key}, Identifier: ${notification.identifier}`);
+ return;
+ }
 
-        // Filter notifications based on user role and userUid
-        if (notification.type === "admin" && userRole !== "AB ADMIN") {
-            console.log(`Skipping admin notification for non-admin user: ${notification.message}`);
-            return;
-        }
+ // Filter notifications based on user role and userUid
+ if (notification.type === "admin" && userRole !== "AB ADMIN") {
+ console.log(`Skipping admin notification for non-admin user: ${notification.message}`);
+ return;
+ }
 
-        // For approval notifications (donation_approved, rdana_approved), only show to the submitting user
-        if (["donation_approved", "rdana_approved"].includes(notification.type)) {
-            if (notification.userUid !== userUid) {
-                console.log(`Skipping approval notification for user ${notification.userUid}, current user is ${userUid}`);
-                return;
-            }
-        } else if (userRole !== "AB ADMIN" && notification.userUid && notification.userUid !== userUid) {
-            // For non-approval notifications, non-admin users only see their own or calamity notifications
-            console.log(`Skipping notification for user ${notification.userUid}, current user is ${userUid}`);
-            return;
-        }
+ // For approval notifications (donation_approved, rdana_approved), only show to the submitting user
+ if (["donation_approved", "rdana_approved"].includes(notification.type)) {
+ if (notification.userUid !== userUid) {
+ console.log(`Skipping approval notification for user ${notification.userUid}, current user is ${userUid}`);
+ return;
+ }
+ } else if (userRole !== "AB ADMIN" && notification.userUid && notification.userUid !== userUid) {
+ // For non-approval notifications, non-admin users only see their own or calamity notifications
+ console.log(`Skipping notification for user ${notification.userUid}, current user is ${userUid}`);
+ return;
+ }
 
-        // Add notification to processed set
-        processedNotifications.add(notification.identifier);
-        syncProcessedNotifications();
+ // Add notification to processed set
+ processedNotifications.add(notification.identifier);
+ syncProcessedNotifications();
 
-        // Create notification list item
-        const li = document.createElement("li");
-        let content = "";
+ // Create notification list item
+ const li = document.createElement("li");
+ let content = "";
 
-        // Customize notification content based on type
-        if (notification.type === "calamity") {
-            content = `<strong>🚨 Calamity Alert:</strong> ${notification.message}`;
-        } else if (notification.type === "admin") {
-            content = `<strong>🔔 Admin Notification:</strong> ${notification.message}`;
-        } else if (notification.type === "donation_approved") {
-            content = `<strong>✅ Donation Approved:</strong> ${notification.message}`;
-        } else if (notification.type === "rdana_approved") {
-            content = `<strong>✅ RDANA Report Approved:</strong> ${notification.message}`;
-        } else {
-            content = `<strong>🔔 Notification:</strong> ${notification.message}`;
-        }
+ // Customize notification content based on type
+ if (notification.type === "calamity") {
+ content = `<strong>🚨 Calamity Alert:</strong> ${notification.message}`;
+ } else if (notification.type === "admin") {
+ content = `<strong>🔔 Admin Notification:</strong> ${notification.message}`;
+ } else if (notification.type === "donation_approved") {
+ content = `<strong>✅ Donation Approved:</strong> ${notification.message}`;
+ } else if (notification.type === "rdana_approved") {
+ content = `<strong>✅ RDANA Report Approved:</strong> ${notification.message}`;
+ } else {
+ content = `<strong>🔔 Notification:</strong> ${notification.message}`;
+ }
 
-        // Append timestamp
-        content += `<span class="timestamp">${new Date(notification.timestamp).toLocaleString("en-US", {
-            hour: "numeric",
-            minute: "numeric",
-            hour12: true,
-        })}</span>`;
+ // Append timestamp
+ content += `<span class="timestamp">${new Date(notification.timestamp).toLocaleString("en-US", {
+ hour: "numeric",
+ minute: "numeric",
+ hour12: true,
+ })}</span>`;
 
-        li.innerHTML = content;
-        li.dataset.key = key;
-        li.style.cursor = "pointer";
+ li.innerHTML = content;
+ li.dataset.key = key;
+ li.style.cursor = "pointer";
 
-        // Style unread notifications
-        if (!notification.read) {
-            li.classList.add("unread");
-            li.style.backgroundColor = "#ffeeee"; // Red tint for unread
-        } else {
-            li.style.backgroundColor = "#ffffff"; // Default color for read
-        }
+ // Style unread notifications
+ if (!notification.read) {
+ li.classList.add("unread");
+ li.style.backgroundColor = "#ffeeee"; // Red tint for unread
+ } else {
+ li.style.backgroundColor = "#ffffff"; // Default color for read
+ }
 
-        // Handle notification click (mark as read and handle calamity map interaction)
-        li.addEventListener("click", () => {
-            console.log(`Notification clicked: ${notification.message}`);
-            li.classList.remove("unread");
-            li.style.backgroundColor = "#ffffff"; // Reset to default on read
+ // Handle notification click (mark as read and handle navigation/highlighting)
+ li.addEventListener("click", () => {
+ console.log(`Notification clicked: ${notification.message}`);
+ li.classList.remove("unread");
+ li.style.backgroundColor = "#ffffff"; // Reset to default on read
 
-            // Mark notification as read in Firebase
-            database.ref(`notifications/${key}`).update({ read: true }).catch(error => {
-                console.error("Error marking notification as read:", error);
-                Swal.fire({
-                    icon: "error",
-                    title: "Error",
-                    text: "Failed to mark notification as read.",
-                });
-            });
+ // Mark notification as read in Firebase
+ database.ref(`notifications/${key}`).update({ read: true }).catch(error => {
+ console.error("Error marking notification as read:", error);
+ Swal.fire({
+ icon: "error",
+ title: "Error",
+ text: "Failed to mark notification as read.",
+ });
+ });
 
-            // Update notification badge
-            database.ref("notifications")
-                .orderByChild("read")
-                .equalTo(false)
-                .once("value", snapshot => {
-                    const unreadCount = snapshot.numChildren();
-                    notifBadge.textContent = unreadCount > 0 ? unreadCount : '';
-                    notifBadge.style.display = unreadCount > 0 ? "inline-flex" : "none";
-                    notifDot.style.display = unreadCount > 0 ? "block" : "none";
-                });
+ // Update notification badge
+ database.ref("notifications")
+ .orderByChild("read")
+ .equalTo(false)
+ .once("value", snapshot => {
+ const unreadCount = snapshot.numChildren();
+ notifBadge.textContent = unreadCount > 0 ? unreadCount : '';
+ notifBadge.style.display = unreadCount > 0 ? "inline-flex" : "none";
+ notifDot.style.display = unreadCount > 0 ? "block" : "none";
+ });
 
-            // Handle calamity notifications with map interaction
-            if (notification.location && notification.type === "calamity") {
-                const coordinates = provinces.find(p => p.name === notification.location) || { lat: 14.5995, lng: 120.9842 };
-                if (currentInfoWindow) singleInfoWindow.close();
-                singleInfoWindow.setContent(`
-                    <div>
-                        <b>${notification.calamityType || ''} in ${notification.location}</b><br>
-                        ${notification.details || ''}
-                    </div>
-                `);
-                singleInfoWindow.setPosition(coordinates);
-                singleInfoWindow.open(map);
-                currentInfoWindow = { getPosition: () => coordinates };
-                map.setCenter(coordinates);
-                map.setZoom(12);
-            }
-        });
+ // Handle navigation and highlighting for admin notifications
+ if (notification.type === "admin" && userRole === "AB ADMIN" && notification.reportId) {
+ let targetPage = "";
+ let reportType = "";
+ let idField = "data-id"; // Default ID attribute for tables
 
-        // Append notification to appropriate list
-        if (notification.type === "calamity") {
-            calamityList.prepend(li);
-        } else {
-            adminList.prepend(li);
-        }
+ // Determine the target page and report type based on notification message
+ if (notification.message.toLowerCase().includes("rdana report")) {
+ targetPage = "/bayanihan/pages/rdanaVerification.html";
+ reportType = "rdana";
+ idField = "data-id";
+ } else if (notification.message.toLowerCase().includes("relief report")) {
+ targetPage = "/bayanihan/pages/reliefsLog.html";
+ reportType = "relief";
+ idField = "data-id";
+ } else if (notification.message.toLowerCase().includes("donation")) {
+ targetPage = "/bayanihan/pages/callfordonation.html";
+ reportType = "donation";
+ idField = "data-id";
+ } else if (notification.message.toLowerCase().includes("report")) {
+ targetPage = "/bayanihan/pages/reportsVerification.html";
+ reportType = "report";
+ idField = "data-id";
+ }
 
-        // Update notification badge
-        updateNotificationBadge();
-    }, error => {
-        console.error("Error fetching notifications:", error);
-        Swal.fire({
-            icon: "error",
-            title: "Error",
-            text: "Failed to load notifications: " + error.message,
-        });
-    });
+ if (targetPage) {
+ // Navigate to the target page
+ try {
+ console.log("Navigating to:", targetPage);
+ window.location.href = targetPage;
+ } catch (error) {
+ console.error(`Failed to navigate to ${targetPage}:`, error);
+ Swal.fire({
+ icon: "error",
+ title: "Navigation Error",
+ text: `Could not navigate to ${targetPage}. Please check if the page exists.`,
+ });
+ return;
+ }
+
+ // Highlight the specific report after page load
+ const highlightReport = () => {
+ const reportRow = document.querySelector(`tr[${idField}="${notification.reportId}"]`);
+ if (reportRow) {
+ // Highlight with background and badge
+ reportRow.style.backgroundColor = "#e0f7fa"; // Light cyan highlight
+ reportRow.scrollIntoView({ behavior: "smooth", block: "center" });
+
+ // Add "New" badge if report is unread
+ if (!notification.read) {
+ const badgeCell = reportRow.querySelector("td:first-child") || reportRow;
+ const badge = document.createElement("span");
+ badge.textContent = "New";
+ badge.style.cssText = `
+ background-color: #ff4444;
+ color: white;
+ padding: 2px 6px;
+ border-radius: 3px;
+ font-size: 12px;
+ margin-left: 5px;
+ `;
+ badgeCell.prepend(badge);
+ }
+
+ // Remove highlight after 5 seconds
+ setTimeout(() => {
+ reportRow.style.backgroundColor = "";
+ }, 5000);
+ } else {
+ console.log(`Report with ID ${notification.reportId} not found on page ${targetPage}.`);
+ Swal.fire({
+ icon: "warning",
+ title: "Report Not Found",
+ text: `The report with ID ${notification.reportId} was not found on the page.`,
+ });
+ }
+ };
+
+ // Wait for table to load (increased delay to 2 seconds)
+ setTimeout(highlightReport, 2000);
+
+ // Fallback: Use MutationObserver to detect table changes
+ const tableObserver = new MutationObserver((mutations, observer) => {
+ if (document.querySelector(`tr[${idField}="${notification.reportId}"]`)) {
+ highlightReport();
+ observer.disconnect();
+ }
+ });
+ tableObserver.observe(document.body, { childList: true, subtree: true });
+ } else {
+ console.log("No target page determined for notification:", notification.message);
+ }
+ }
+
+ // Handle calamity notifications with map interaction
+ if (notification.location && notification.type === "calamity") {
+ const coordinates = provinces.find(p => p.name === notification.location) || { lat: 14.5995, lng: 120.9842 };
+ if (currentInfoWindow) singleInfoWindow.close();
+ singleInfoWindow.setContent(`
+ <div>
+ ${notification.calamityType || ''} in ${notification.location}<br>
+ ${notification.details || ''}
+ </div>
+ `);
+ singleInfoWindow.setPosition(coordinates);
+ singleInfoWindow.open(map);
+ currentInfoWindow = { getPosition: () => coordinates };
+ map.setCenter(coordinates);
+ map.setZoom(12);
+ }
+ });
+
+ // Append notification to appropriate list
+ if (notification.type === "calamity") {
+ calamityList.prepend(li);
+ } else {
+ adminList.prepend(li);
+ }
+
+ // Update notification badge
+ updateNotificationBadge();
+ }, error => {
+ console.error("Error fetching notifications:", error);
+ Swal.fire({
+ icon: "error",
+ title: "Error",
+ text: "Failed to load notifications: " + error.message,
+ });
+ });
 }
 
 // Verify report in reportssubmission
