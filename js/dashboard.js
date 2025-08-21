@@ -510,34 +510,56 @@ function addWeatherDataForProvinces() {
             const forecastData = await forecastResponse.json();
             const condition = weatherData.weather[0].main.toLowerCase();
             const cloudCover = weatherData.clouds.all || 0;
-            const pop = (forecastData.list[0].pop || 0) * 100;
+            const pop = (forecastData.list[0].pop || 0) * 100; // For alerts only
             const rainfall = forecastData.list[0].rain ? forecastData.list[0].rain["3h"] || 0 : 0;
+
+            // Log data to debug rainy bias
+            console.log({ province: province.name, condition, cloudCover, pop, rainfall });
+
+            // Percentage calculations
             let sunnyPercent = 0, rainyPercent = 0, cloudyPercent = cloudCover;
             if (condition.includes("clear")) {
                 sunnyPercent = 100 - cloudCover;
             } else if (condition.includes("rain") || condition.includes("drizzle") || condition.includes("thunderstorm")) {
-                rainyPercent = pop;
+                rainyPercent = rainfall > 0 ? Math.min(100, rainfall * 10) : 50;
+                cloudyPercent = Math.min(cloudCover, 100 - rainyPercent);
                 sunnyPercent = Math.max(0, 100 - rainyPercent - cloudyPercent);
-                const eventId = `rain_${province.name}_${Date.now()}`;
-                const details = `Rainfall: ${rainfall} mm in last 3 hours, Chance of Rain: ${pop.toFixed(1)}%, Time: ${new Date().toISOString()}`;
-                if (rainfall >= 100 && userRole === "AB ADMIN") {
-                    generateLenlenAlert("Flood Risk", province.name, details, eventId, "Red Warning: Heavy Rain");
-                } else if (rainfall >= 50 && userRole === "AB ADMIN") {
-                    generateLenlenAlert("Flood Risk", province.name, details, eventId, "Orange Warning: Moderate Rain");
-                } else if (rainfall >= 20 && userRole === "AB ADMIN") {
-                    generateLenlenAlert("Flood Risk", province.name, details, eventId, "Yellow Warning: Light Rain");
-                }
+            } else if (rainfall >= 2) { // Only significant rainfall for clouds
+                rainyPercent = Math.min(100, rainfall * 10);
+                cloudyPercent = Math.min(cloudCover, 100 - rainyPercent);
+                sunnyPercent = Math.max(0, 100 - rainyPercent - cloudyPercent);
             } else {
                 sunnyPercent = Math.max(0, 100 - cloudCover);
             }
+
+            // Generate alerts for high rainfall
+            if (userRole === "AB ADMIN" && rainfall > 0) {
+                const eventId = `rain_${province.name}_${Date.now()}`;
+                const details = `Rainfall: ${rainfall} mm in last 3 hours, Time: ${new Date().toISOString()}`;
+                if (rainfall >= 100) {
+                    generateLenlenAlert("Flood Risk", province.name, details, eventId, "Red Warning: Heavy Rain");
+                } else if (rainfall >= 50) {
+                    generateLenlenAlert("Flood Risk", province.name, details, eventId, "Orange Warning: Moderate Rain");
+                } else if (rainfall >= 20) {
+                    generateLenlenAlert("Flood Risk", province.name, details, eventId, "Yellow Warning: Light Rain");
+                }
+            }
+
+            // Icon selection (stricter for rain)
             let icon = "☁️";
-            if (condition.includes("clear")) icon = "☀️";
-            if (condition.includes("rain") || condition.includes("drizzle") || condition.includes("thunderstorm")) icon = "🌧️";
+            if (condition.includes("clear")) {
+                icon = "☀️";
+            } else if (condition.includes("rain") || condition.includes("drizzle") || condition.includes("thunderstorm") || rainfall >= 2) {
+                icon = "🌧️";
+            } else if (condition.includes("clouds") && cloudCover < 50) {
+                icon = "⛅";
+            }
+
             const markerSvg = `
-    <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
-        <text x="20" y="22" font-size="20" text-anchor="middle" fill="#FFFFFF">${icon}</text>
-    </svg>
-`;
+                <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+                    <text x="20" y="22" font-size="20" text-anchor="middle" fill="#FFFFFF">${icon}</text>
+                </svg>
+            `;
             const marker = new google.maps.Marker({
                 position: { lat: province.lat, lng: province.lng },
                 map: map,
@@ -548,11 +570,13 @@ function addWeatherDataForProvinces() {
                 title: province.name,
             });
             markers.push(marker);
+
+            // Original weather info display (no Chance of Rain)
             const weatherInfo = `
                 <div style="font-size: 14px;">
                     <b>${province.name} Weather</b><br>
                     Sunny: ${sunnyPercent.toFixed(1)}%<br>
-                    Rainy: ${rainyPercent.toFixed(1)}% (Chance of Rain: ${pop.toFixed(1)}%)<br>
+                    Rainy: ${rainyPercent.toFixed(1)}%<br>
                     Cloudy: ${cloudyPercent.toFixed(1)}%<br>
                     Condition: ${weatherData.weather[0].description}<br>
                     Temperature: ${weatherData.main.temp}°C<br>
@@ -1053,83 +1077,115 @@ async function addCalamityMarker(type, location, coordinates, details, eventId) 
         "Landslide Risk": "⛰️",
         "Tsunami": "🌊",
     };
-    const currentTime = Date.now();
+    const currentTime = Date.now(); // 06:52 PM PST, August 21, 2025 = 1724286320000 ms
     const timeMatch = details.match(/Time: (.+)/);
     const eventTime = timeMatch ? new Date(timeMatch[1]).getTime() : currentTime;
-    const twelveHoursInMs = 12 * 60 * 60 * 1000;
-    if (type === "Earthquake" && (currentTime - eventTime > twelveHoursInMs)) {
-        console.log(`Skipping earthquake marker for ${location} - older than 12 hours`);
-        return;
-    }
-    const markerDiv = document.createElement("div");
-    markerDiv.innerHTML = `
-        <div style="
-            font-size: 24px;
-            cursor: pointer;
-            animation: pulse 2s infinite;
-            transition: transform 0.2s ease;
-        ">
-            ${icons[type] || "⚠️"}
-        </div>
-    `;
-    const style = document.createElement("style");
-    style.textContent = `
-        @keyframes pulse {
-            0% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.2); opacity: 0.7; }
-            100% { transform: scale(1); opacity: 1; }
-        }
-    `;
-    document.head.appendChild(style);
-    const marker = new google.maps.Marker({
-        position: { lat: coordinates.lat, lng: coordinates.lng },
-        map: map,
-        title: `${type} in ${location}`,
-        icon: {
-            url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
-                <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
-                    <text x="20" y="22" font-size="20" text-anchor="middle" fill="#000000">${icons[type] || "⚠️"}</text>
-                </svg>
-            `)}`,
-            scaledSize: new google.maps.Size(40, 40),
-        },
-    });
-    calamityMarkers.push(marker);
-    const realLocation = await getLocationName(coordinates.lat, coordinates.lng);
-    const infoWindowContent = `
-        <div>
-            <b>${type} in ${realLocation}</b><br>
-            ${details}
-        </div>
-    `;
-    const infoWindow = new google.maps.InfoWindow({
-        content: infoWindowContent,
-    });
-    markerDiv.addEventListener("mouseover", () => {
-        markerDiv.style.transform = "scale(1.3)";
-    });
-    markerDiv.addEventListener("mouseout", () => {
-        markerDiv.style.transform = "scale(1)";
-    });
-    marker.addListener("click", () => {
-        console.log(`Clicked marker for ${type} at ${location}`);
-        markerDiv.style.animation = "none";
-        markerDiv.style.animation = "bounce 0.5s ease";
-        const bounceStyle = document.createElement("style");
-        bounceStyle.textContent = `
-            @keyframes bounce {
-                0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-                40% { transform: translateY(-10px); }
-                60% { transform: translateY(-5px); }
+    const twelveHoursInMs = 12 * 60 * 60 * 1000; // 43200000 ms
+
+    // Remove all existing markers temporarily
+    calamityMarkers.forEach(({ marker }) => marker.setMap(null));
+    calamityMarkers = [];
+
+    // Add new marker only if recent (within 12 hours)
+    if (currentTime - eventTime <= twelveHoursInMs) {
+        const offsetLat = coordinates.lat + 0.01;
+        const markerDiv = document.createElement("div");
+        markerDiv.innerHTML = `
+            <div style="
+                font-size: 24px;
+                cursor: pointer;
+                animation: pulse 2s infinite;
+                transition: transform 0.2s ease;
+                background-color: rgba(255, 255, 255, 0.7);
+                border: 2px solid #000;
+                border-radius: 50%;
+                padding: 2px;
+                width: 32px;
+                height: 32px;
+                text-align: center;
+                line-height: 32px;
+            ">
+                ${icons[type] || "⚠️"}
+            </div>
+        `;
+        const style = document.createElement("style");
+        style.textContent = `
+            @keyframes pulse {
+                0% { transform: scale(1); opacity: 1; }
+                50% { transform: scale(1.2); opacity: 0.7; }
+                100% { transform: scale(1); opacity: 1; }
             }
         `;
-        document.head.appendChild(bounceStyle);
-        if (currentInfoWindow) singleInfoWindow.close();
-        singleInfoWindow.setContent(infoWindowContent);
-        singleInfoWindow.open(map, marker);
-        currentInfoWindow = marker;
-        isInfoWindowClicked = true;
-        showWeatherInfoWindow(coordinates.lat, coordinates.lng);
+        document.head.appendChild(style);
+        const marker = new google.maps.Marker({
+            position: { lat: offsetLat, lng: coordinates.lng },
+            map: map,
+            title: `${type} in ${location}`,
+            icon: {
+                url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+                    <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="20" cy="20" r="18" fill="rgba(255, 255, 255, 0.7)" stroke="#000" stroke-width="2"/>
+                        <text x="20" y="22" font-size="20" text-anchor="middle" fill="#000000">${icons[type] || "⚠️"}</text>
+                    </svg>
+                `)}`,
+                scaledSize: new google.maps.Size(40, 40),
+            },
+            zIndex: 1000,
+        });
+        calamityMarkers.push({ marker, eventTime });
+        const realLocation = await getLocationName(coordinates.lat, coordinates.lng);
+        const infoWindowContent = `
+            <div>
+                <b>${type} in ${realLocation}</b><br>
+                ${details}
+            </div>
+        `;
+        const infoWindow = new google.maps.InfoWindow({
+            content: infoWindowContent,
+        });
+        markerDiv.addEventListener("mouseover", () => {
+            markerDiv.style.transform = "scale(1.3)";
+        });
+        markerDiv.addEventListener("mouseout", () => {
+            markerDiv.style.transform = "scale(1)";
+        });
+        marker.addListener("click", () => {
+            console.log(`Clicked marker for ${type} at ${location}`);
+            markerDiv.style.animation = "none";
+            markerDiv.style.animation = "bounce 0.5s ease";
+            const bounceStyle = document.createElement("style");
+            bounceStyle.textContent = `
+                @keyframes bounce {
+                    0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+                    40% { transform: translateY(-10px); }
+                    60% { transform: translateY(-5px); }
+                }
+            `;
+            document.head.appendChild(bounceStyle);
+            if (currentInfoWindow) singleInfoWindow.close();
+            singleInfoWindow.setContent(infoWindowContent);
+            singleInfoWindow.open(map, marker);
+            currentInfoWindow = marker;
+            isInfoWindowClicked = true;
+            showWeatherInfoWindow(coordinates.lat, coordinates.lng);
+            if (userRole === "AB ADMIN") {
+                const magnitudeMatch = details.match(/Magnitude: (\d+\.\d+)/);
+                const rainfallMatch = details.match(/Rainfall: (\d+\.?\d*) mm/);
+                const timeMatch = details.match(/Time: (.+)/);
+                const magnitude = magnitudeMatch ? magnitudeMatch[1] : '';
+                const rainfall = rainfallMatch ? rainfallMatch[1] : '';
+                const time = timeMatch ? timeMatch[1] : null;
+                const warningLevel = rainfall >= 100 ? "Red Warning: Heavy Rain" :
+                                  rainfall >= 50 ? "Orange Warning: Moderate Rain" :
+                                  rainfall >= 20 ? "Yellow Warning: Light Rain" : "";
+                generateLenlenAlert(type, location, details, eventId, warningLevel);
+            }
+        });
+        singleInfoWindow?.addListener("closeclick", () => {
+            isInfoWindowClicked = false;
+            currentInfoWindow = null;
+            markerDiv.style.animation = "pulse 2s infinite";
+        });
         if (userRole === "AB ADMIN") {
             const magnitudeMatch = details.match(/Magnitude: (\d+\.\d+)/);
             const rainfallMatch = details.match(/Rainfall: (\d+\.?\d*) mm/);
@@ -1137,31 +1193,16 @@ async function addCalamityMarker(type, location, coordinates, details, eventId) 
             const magnitude = magnitudeMatch ? magnitudeMatch[1] : '';
             const rainfall = rainfallMatch ? rainfallMatch[1] : '';
             const time = timeMatch ? timeMatch[1] : null;
-            const warningLevel = rainfall >= 100 ? "Red Warning: Heavy Rain" :
-                              rainfall >= 50 ? "Orange Warning: Moderate Rain" :
-                              rainfall >= 20 ? "Yellow Warning: Light Rain" : "";
-            generateLenlenAlert(type, location, details, eventId, warningLevel);
+            const hasDuplicate = await hasRecentNotification(eventId, type, location, time, magnitude, rainfall);
+            if (!hasDuplicate) {
+                const warningLevel = rainfall >= 100 ? "Red Warning: Heavy Rain" :
+                                  rainfall >= 50 ? "Orange Warning: Moderate Rain" :
+                                  rainfall >= 20 ? "Yellow Warning: Light Rain" : "";
+                generateLenlenAlert(type, location, details, eventId, warningLevel);
+            }
         }
-    });
-    singleInfoWindow?.addListener("closeclick", () => {
-        isInfoWindowClicked = false;
-        currentInfoWindow = null;
-        markerDiv.style.animation = "pulse 2s infinite";
-    });
-    if (userRole === "AB ADMIN") {
-        const magnitudeMatch = details.match(/Magnitude: (\d+\.\d+)/);
-        const rainfallMatch = details.match(/Rainfall: (\d+\.?\d*) mm/);
-        const timeMatch = details.match(/Time: (.+)/);
-        const magnitude = magnitudeMatch ? magnitudeMatch[1] : '';
-        const rainfall = rainfallMatch ? rainfallMatch[1] : '';
-        const time = timeMatch ? timeMatch[1] : null;
-        const hasDuplicate = await hasRecentNotification(eventId, type, location, time, magnitude, rainfall);
-        if (!hasDuplicate) {
-            const warningLevel = rainfall >= 100 ? "Red Warning: Heavy Rain" :
-                              rainfall >= 50 ? "Orange Warning: Moderate Rain" :
-                              rainfall >= 20 ? "Yellow Warning: Light Rain" : "";
-            generateLenlenAlert(type, location, details, eventId, warningLevel);
-        }
+    } else {
+        console.log(`Skipping ${type} marker for ${location} - older than 12 hours`);
     }
 }
 // Show weather info window at clicked location
@@ -1998,7 +2039,7 @@ async function cleanDuplicateNotifications() {
 // Clean old calamities (older than 30 days)
 async function cleanOldCalamities() {
     try {
-        const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
+        const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000); // 30 days in milliseconds
         const snapshot = await database.ref("calamities").once("value");
         const calamities = snapshot.val();
         if (!calamities) return;
@@ -2016,6 +2057,7 @@ async function cleanOldCalamities() {
         console.error("Error cleaning old calamities:", error);
     }
 }
+
 // Migrate legacy calamities (add missing eventId and identifier)
 async function migrateLegacyCalamities() {
     try {
@@ -2042,5 +2084,24 @@ async function migrateLegacyCalamities() {
         console.error("Error migrating legacy calamities:", error);
     }
 }
+// Function to clean up expired calamity markers
+function cleanupExpiredMarkers() {
+    const currentTime = Date.now();
+    const twelveHoursInMs = 12 * 60 * 60 * 1000;
+    calamityMarkers = calamityMarkers.filter(({ marker, eventTime }) => {
+        if (currentTime - eventTime > twelveHoursInMs) {
+            marker.setMap(null); // Remove from map
+            console.log(`Removed expired marker for event at ${marker.getPosition()}`);
+            return false; // Filter out expired marker
+        }
+        return true; // Keep active marker
+    });
+}
+
+// Start periodic cleanup (e.g., every hour)
+setInterval(cleanupExpiredMarkers, 60 * 60 * 1000); // Runs every hour
+
+// Initial cleanup on load
+cleanupExpiredMarkers();
 // Initialize dashboard when the page loads
 window.addEventListener("load", initializeDashboard);
