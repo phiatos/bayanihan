@@ -436,9 +436,21 @@ function initializeMap() {
             map = new google.maps.Map(mapDiv, {
                 center: defaultLocation,
                 zoom: 6,
+                minZoom: 5, // prevent zooming out too far
+                maxZoom: 18, // optional: prevents excessive zoom-in
                 mapTypeId: "roadmap",
+                restriction: {
+                    latLngBounds: {
+                        north: 21.1209,  // Batanes (North)
+                        south: 4.225,    // Tawi-Tawi (South)
+                        west: 116.93,    // Palawan (West)
+                        east: 126.60     // Philippine Sea (East)
+                    },
+                    strictBounds: true
+                }
             });
-            console.log("Map initialized successfully with Google Maps");
+
+            console.log("Map initialized successfully with Google Maps and locked to the Philippines");
         }
         geocoder = new google.maps.Geocoder();
         if (!searchInput) {
