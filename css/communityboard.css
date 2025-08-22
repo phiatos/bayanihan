@@ -165,8 +165,8 @@ display: flex;
 
   #modal-post-category {
   position: absolute;
-  right: 55px;
-  margin-top: 15%;
+  right: 45px;
+  margin-top: 60px;
   padding: 8px;
   border: 2px solid var(--primary-color);
   border-radius: 8px;
@@ -177,6 +177,15 @@ display: flex;
   width: 40%;
   font-size: 12px;
   transition: border-color 0.3s;
+}
+
+#modal-post-title{
+  margin-top: 5px;
+  margin-bottom: 5px;
+}
+
+#modal-post-title input::placeholder{
+  font-size: 50px;
 }
 
 .modal-header select:focus {
@@ -213,15 +222,20 @@ display: flex;
   right: 15px;
   cursor: pointer;
   color: #333;
+  background: transparent;
+  border: none;
+  padding: 0; /* remove extra padding */
 }
 
 .close-button i {
   font-size: 40px;
+  display: block;       /* ensures the icon itself is the clickable area */
 }
 
-.close-button i:hover {
+.close-button:hover i {
   color: var(--primary-color);
 }
+
 
 .full-width-hr {
   position: absolute;
