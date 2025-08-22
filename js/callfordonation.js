@@ -43,6 +43,104 @@ const notifySender = async (message, userUid, donationId) => {
     }
 };
 
+// Highlight donation from URL
+function highlightReportFromURL() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const donationId = urlParams.get('reportId');
+    console.log(`Attempting to display donation with donationId: ${donationId} at ${new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' })}`);
+
+    if (!donationId) {
+        console.log("No donationId found in URL");
+        return;
+    }
+
+    // Query Firebase for the donation
+    firebase.database().ref('callfordonation')
+        .orderByChild('donationId')
+        .equalTo(donationId)
+        .once('value')
+        .then((snapshot) => {
+            if (snapshot.exists()) {
+                // Get the first (and only) matching donation
+                let donation = null;
+                snapshot.forEach((childSnapshot) => {
+                    donation = { ...childSnapshot.val(), firebaseKey: childSnapshot.key };
+                });
+
+                console.log(`Found donation in Firebase:`, donation);
+
+                // Format donation details for display
+                const fullAddress = donation.address?.fullAddress || donation.dropOff || 'N/A';
+                const donationDetails = `
+                    <div style="text-align: left; font-size: 14px; line-height: 1.5;">
+                        <h3 style="margin-bottom: 15px;">Donation Details</h3>
+                        <p><strong>Donation ID:</strong> ${donation.donationId || 'N/A'}</p>
+                        <p><strong>Donation Drive:</strong> ${donation.donationDrive || 'N/A'}</p>
+                        <p><strong>Contact Person:</strong> ${donation.contact?.person || 'N/A'}</p>
+                        <p><strong>Contact Number:</strong> ${donation.contact?.number || 'N/A'}</p>
+                        <p><strong>Account Name:</strong> ${donation.account?.name || 'N/A'}</p>
+                        <p><strong>Account Number:</strong> ${donation.account?.number || 'N/A'}</p>
+                        <p><strong>Full Address:</strong> ${fullAddress}</p>
+                        <p><strong>Facebook Link:</strong> 
+                            ${donation.facebookLink && donation.facebookLink !== 'N/A' 
+                                ? `<a href="${donation.facebookLink}" target="_blank" rel="noopener noreferrer" style="color: #1e88e5; text-decoration: underline;">Visit Page</a>` 
+                                : 'N/A'}
+                        </p>
+                        <p><strong>Status:</strong> ${donation.status || 'N/A'}</p>
+                        <p><strong>Submitted:</strong> ${donation.dateTime ? new Date(donation.dateTime).toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }) : 'N/A'}</p>
+                        ${donation.image ? `<p style="margin-top: 15px;"><strong>Image:</strong></p><img src="${donation.image}" alt="Donation Image" style="max-width: 100%; max-height: 250px; border-radius: 5px; margin-top: 10px;" />` : ''}
+                    </div>
+                `;
+
+                // Display donation details in a Swal popup
+                Swal.fire({
+                    title: `Donation ${donationId}`,
+                    html: donationDetails,
+                    icon: 'info',
+                    confirmButtonText: 'Close',
+                    customClass: {
+                        popup: 'swal2-popup-info',
+                        title: 'swal2-title-info',
+                        htmlContainer: 'swal2-html-container'
+                    },
+                    width: '600px',
+                    padding: '20px',
+                    background: '#fff',
+                    confirmButtonColor: '#3085d6'
+                });
+            } else {
+                console.error(`Donation with donationId ${donationId} not found in Firebase database`);
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Donation Not Found',
+                    text: `The donation with ID ${donationId} was not found in the database.`,
+                    confirmButtonText: 'OK',
+                    customClass: {
+                        popup: 'swal2-popup-warning',
+                        title: 'swal2-title-warning',
+                        content: 'swal2-text-warning'
+                    },
+                    confirmButtonColor: '#3085d6'
+                });
+            }
+        })
+        .catch((error) => {
+            console.error(`Error querying Firebase for donationId ${donationId}:`, error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Database Error',
+                text: `Failed to retrieve donation details: ${error.message}`,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-error',
+                    title: 'swal2-title-error',
+                    content: 'swal2-text-error'
+                },
+                confirmButtonColor: '#d33'
+            });
+        });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const firebaseConfig = {
         apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
@@ -653,13 +751,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function applyChange() {
         filteredAndSortedDonations = [...allDonations];
-        currentPage = 1;
         renderTable();
     }
 
     function applyFilters() {
         let data = [...allDonations];
-
         const searchTerm = searchInput.value.trim().toLowerCase();
         if (searchTerm) {
             data = data.filter(d =>
@@ -775,6 +871,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             currentPageRows.forEach((r, i) => {
                 const tr = document.createElement('tr');
+                tr.setAttribute('data-id', r.donationId); // Add data-id attribute for highlighting
                 tr.innerHTML = `
                     <td>${startIndex + i + 1}</td>
                     <td>${r.donationDrive || 'N/A'}</td>
@@ -823,7 +920,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             // Prepare notification for the donation sender
                             const notificationMessage = `Your donation call "${r.donationDrive}" (ID: ${r.donationId || r.firebaseKey}) has been approved.`;
                             return Promise.all([
-                                database.ref(`callfordonation_approved`).push(r),
+                                database.ref(`callfordonation_approved`).push(r), // Fixed typo
                                 database.ref(`users/${r.userUid}/callfordonation/${r.firebaseKey}`).set({ ...r, status: "Approved" }),
                                 database.ref(`callfordonation/${r.firebaseKey}`).remove(),
                                 notifySender(notificationMessage, r.userUid, r.donationId || r.firebaseKey)
@@ -956,7 +1053,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     background: '#fdecea',
                     color: '#b91c1c',
                     iconColor: '#dc2626',
-                    confirmButtonColor: '#b91c1b',
+                    confirmButtonColor: '#b91c1c',
                     timer: 3000,
                 });
                 return;
@@ -980,69 +1077,99 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            function saveDonation(base64Image) {
-                const newDonation = {
-                    donationId: `DONATION-${Math.floor(100 + Math.random() * 900)}`,
-                    dateTime: new Date().toISOString(),
-                    donationDrive,
-                    contact: {
-                        person: contactPerson,
-                        number: contactNumber
-                    },
-                    account: {
-                        number: accountNumber,
-                        name: accountName
-                    },
-                    address: {
-                        region: region,
-                        province: province,
-                        city: city,
-                        barangay: barangay,
-                        street: address,
-                        fullAddress: `${address}, ${barangay}, ${city}, ${province}, ${region}`
-                    },
-                    facebookLink: facebookLink || "N/A",
-                    image: base64Image || '',
-                    status: "Pending",
-                    userRole: userRole || 'default',
-                    userUid: auth.currentUser.uid,
-                    timestamp: Date.now()
-                };
+            async function saveDonation(base64Image) {
+                // Function to generate a unique donation ID
+                async function generateUniqueDonationId() {
+                    let attempts = 0;
+                    const maxAttempts = 3;
 
-                // Save to Firebase under the 'callfordonation' node
-                firebase.database().ref('callfordonation').push(newDonation)
-                    .then((snapshot) => {
-                        const donationKey = snapshot.key;
-                        // Notify admin after successful save
-                        const message = `New donation call "${donationDrive}" submitted by ${contactPerson} from ${currentOrganization} on ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} at ${new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })} PST.`;
-                        notifyAdmin(message, null, null, null, donationKey, contactPerson, currentOrganization);
+                    while (attempts < maxAttempts) {
+                        const randomNum = Math.floor(100 + Math.random() * 900); // Generate 100–999
+                        const donationId = `DONATION-${randomNum}`;
 
-                        // Clear form fields after successful submission
-                        document.getElementById('donationDrive').value = '';
-                        document.getElementById('contactPerson').value = '';
-                        document.getElementById('contactNumber').value = '';
-                        document.getElementById('accountNumber').value = '';
-                        document.getElementById('accountName').value = '';
+                        // Check if ID exists in callfordonation
+                        const snapshot = await firebase.database().ref("callfordonation")
+                            .orderByChild("donationId")
+                            .equalTo(donationId)
+                            .once("value");
 
-                        my_handlers.fill_regions(); // Reset location dropdowns
+                        if (!snapshot.exists()) {
+                            return donationId; // ID is unique
+                        }
 
-                        document.getElementById('address').value = '';
-                        document.getElementById('facebookLink').value = '';
-                        document.getElementById('donationImage').value = '';
+                        attempts++;
+                        console.log(`Donation ID ${donationId} already exists, retrying (${attempts}/${maxAttempts})`);
+                    }
 
-                        if (regionTextInput) regionTextInput.value = '';
-                        if (provinceTextInput) provinceTextInput.value = '';
-                        if (cityTextInput) cityTextInput.value = '';
-                        if (barangayTextInput) barangayTextInput.value = '';
+                    throw new Error("Unable to generate a unique donation ID after multiple attempts.");
+                }
 
-                        formHasChanges = false;
+                try {
+                    // Generate unique donation ID
+                    const donationId = await generateUniqueDonationId();
 
-                        Swal.fire('Success', 'Donation added successfully!', 'success');
-                    })
-                    .catch(error => {
-                        console.error("Error saving donation to Firebase:", error);
-                        Swal.fire('Error', 'Failed to save the donation.', 'error');
-                    });
+                    const newDonation = {
+                        donationId: donationId, // e.g., DONATION-914
+                        dateTime: new Date().toISOString(),
+                        donationDrive,
+                        contact: {
+                            person: contactPerson,
+                            number: contactNumber
+                        },
+                        account: {
+                            number: accountNumber,
+                            name: accountName
+                        },
+                        address: {
+                            region: region,
+                            province: province,
+                            city: city,
+                            barangay: barangay,
+                            street: address,
+                            fullAddress: `${address}, ${barangay}, ${city}, ${province}, ${region}`
+                        },
+                        facebookLink: facebookLink || "N/A",
+                        image: base64Image || '',
+                        status: "Pending",
+                        userRole: userRole || 'default',
+                        userUid: auth.currentUser.uid,
+                        timestamp: Date.now()
+                    };
+
+                    // Save to Firebase under the 'callfordonation' node
+                    const snapshot = await firebase.database().ref('callfordonation').push(newDonation);
+                    const donationKey = snapshot.key;
+
+                    // Notify admin after successful save
+                    const timestamp = Date.now();
+                    const message = `New donation call "${donationDrive}" submitted by ${contactPerson} from ${currentOrganization} on ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} at ${new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })} PST.`;
+                    await notifyAdmin(message, null, null, null, donationId, contactPerson, currentOrganization, `donation_${donationId}_${timestamp}`);
+
+                    // Clear form fields after successful submission
+                    document.getElementById('donationDrive').value = '';
+                    document.getElementById('contactPerson').value = '';
+                    document.getElementById('contactNumber').value = '';
+                    document.getElementById('accountNumber').value = '';
+                    document.getElementById('accountName').value = '';
+
+                    my_handlers.fill_regions(); // Reset location dropdowns
+
+                    document.getElementById('address').value = '';
+                    document.getElementById('facebookLink').value = '';
+                    document.getElementById('donationImage').value = '';
+
+                    if (regionTextInput) regionTextInput.value = '';
+                    if (provinceTextInput) provinceTextInput.value = '';
+                    if (cityTextInput) cityTextInput.value = '';
+                    if (barangayTextInput) barangayTextInput.value = '';
+
+                    formHasChanges = false;
+
+                    Swal.fire('Success', 'Donation added successfully!', 'success');
+                } catch (error) {
+                    console.error("Error saving donation to Firebase:", error);
+                    Swal.fire('Error', 'Failed to save the donation: ' + error.message, 'error');
+                }
             }
 
             if (imageFile) {

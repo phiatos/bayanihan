@@ -163,6 +163,85 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function highlightReportFromURL() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const reportId = urlParams.get('reportId');
+        console.log(`Attempting to highlight report with ReportID: ${reportId}`);
+
+        if (!reportId) {
+            console.log("No reportId found in URL");
+            return;
+        }
+
+        const attemptHighlight = () => {
+            const reportRow = document.querySelector(`tr[data-id="${reportId}"]`);
+            if (reportRow) {
+                console.log(`Found report row with data-id: ${reportId}`);
+                reportRow.style.backgroundColor = "#e0f7fa"; // Light cyan highlight
+                reportRow.scrollIntoView({ behavior: "smooth", block: "center" });
+
+                // Add "New" badge if not already present
+                const badgeCell = reportRow.querySelector("td:first-child") || reportRow;
+                if (!badgeCell.querySelector(".new-badge")) {
+                    const badge = document.createElement("span");
+                    badge.className = "new-badge";
+                    badge.textContent = "New";
+                    badge.style.cssText = `
+                        background-color: #ff4444;
+                        color: white;
+                        padding: 2px 6px;
+                        border-radius: 3px;
+                        font-size: 12px;
+                        margin-left: 5px;
+                    `;
+                    badgeCell.prepend(badge);
+                }
+
+                // Remove highlight after 5 seconds
+                setTimeout(() => {
+                    reportRow.style.backgroundColor = "";
+                }, 5000);
+            } else {
+                console.error(`Report with ReportID ${reportId} not found in DOM`);
+                Swal.fire({
+                    icon: "warning",
+                    title: "Report Not Found",
+                    text: `The report with ReportID ${reportId} was not found on the page.`,
+                });
+            }
+        };
+
+        // Try immediately
+        attemptHighlight();
+
+        // Use MutationObserver to detect table updates
+        const observer = new MutationObserver(() => {
+            const reportRow = document.querySelector(`tr[data-id="${reportId}"]`);
+            if (reportRow) {
+                console.log(`MutationObserver: Found report row with data-id: ${reportId}`);
+                attemptHighlight();
+                observer.disconnect();
+            }
+        });
+
+        observer.observe(submittedReportsContainer, {
+            childList: true,
+            subtree: true
+        });
+
+        // Fallback: Retry after 2 seconds
+        setTimeout(() => {
+            const reportRow = document.querySelector(`tr[data-id="${reportId}"]`);
+            if (reportRow) {
+                console.log(`Fallback: Found report row with data-id: ${reportId}`);
+                attemptHighlight();
+            } else {
+                console.error(`Fallback: Report with ReportID ${reportId} still not found in DOM`);
+            }
+            observer.disconnect();
+        }, 2000);
+    }
+
     function renderReportsTable(reports, filteredReports) {
         submittedReportsContainer.innerHTML = '';
         const totalEntries = filteredReports.length;
@@ -172,12 +251,14 @@ document.addEventListener('DOMContentLoaded', () => {
             submittedReportsContainer.innerHTML = "<tr><td colspan='9'>No approved reports found on this page.</td></tr>";
             entriesInfo.textContent = "Showing 0 to 0 of 0 entries";
             renderPaginationControlsForReports(totalPages, filteredReports);
+            highlightReportFromURL();
             return;
         }
 
         reports.forEach((report, index) => {
             const tr = document.createElement('tr');
             const displayIndex = (currentPage - 1) * rowsPerPage + index + 1;
+            tr.setAttribute('data-id', report.ReportID || report.firebaseKey); // Use ReportID, fallback to firebaseKey
 
             tr.innerHTML = `
                 <td>${displayIndex}</td>
@@ -284,10 +365,12 @@ document.addEventListener('DOMContentLoaded', () => {
                             timestamp: new Date().toISOString(),
                             type: "report_approved",
                             userUid: userUid,
-                            read: false
+                            read: false,
+                            reportId: report.firebaseKey,
+                            ReportID: report.ReportID || report.firebaseKey
                         };
 
-                        // Perform all database operations (approve report and send notification)
+                        // Perform all database operations
                         return Promise.all([
                             database.ref(`reports/approved`).push(report),
                             database.ref(`users/${userUid}/reports/${report.firebaseKey}`).set({ ...report, Status: "Approved" }),
@@ -378,6 +461,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const lastEntry = Math.min(currentPage * rowsPerPage, totalEntries);
         entriesInfo.textContent = `Showing ${firstEntry} to ${lastEntry} of ${totalEntries} entries`;
         renderPaginationControlsForReports(totalPages, filteredReports);
+        highlightReportFromURL();
     }
 
     function renderPaginationControlsForReports(totalPages, filteredReports) {
@@ -460,6 +544,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     ? valA.toString().localeCompare(valB.toString())
                     : valB.toString().localeCompare(valA.toString());
             });
+        }
+
+        // Check for reportId in URL and navigate to the correct page
+        const urlParams = new URLSearchParams(window.location.search);
+        const reportId = urlParams.get('reportId');
+        if (reportId) {
+            const reportIndex = filteredReports.findIndex(report => report.ReportID === reportId || report.firebaseKey === reportId);
+            if (reportIndex !== -1) {
+                currentPage = Math.ceil((reportIndex + 1) / rowsPerPage);
+                console.log(`Navigated to page ${currentPage} for ReportID: ${reportId}`);
+            } else {
+                console.log(`Report with ReportID ${reportId} not found in filtered reports.`);
+            }
         }
 
         const startIndex = (currentPage - 1) * rowsPerPage;
