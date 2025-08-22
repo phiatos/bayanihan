@@ -69,6 +69,11 @@
                             </select>
                             <i class='bx bx-chevron-down'></i>
                         </div>
+                        <div class="button-group">
+                            <button id="viewArchived" aria-label="View Archived Admins">
+                                <i class='bx bx-archive' style="color: white; font-size: 20px;"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -141,6 +146,42 @@
                     <button type="button" id="cancelEditBtn">Cancel</button>
                 </div>
             </div>
+
+             <!-- Archived Modal -->
+            <div class="modal" id="archivedModal" style="display: none;">
+                <div class="modal-content">
+                    <span class="close-button" id="closeArchivedModalBtn">×</span>
+                    <h2>Archived In-Kind Donations</h2>
+                    <div class="table-container" style="max-height: 400px; overflow-y: auto;">
+                        <table id="archivedTable">
+                            <thead>
+                                <tr>
+                                    <th>No.</th>
+                                    <th>Encoder</th>
+                                    <th>Names</th>
+                                    <th>Type</th>
+                                    <th>Address</th>
+                                    <th>Contact Person</th>
+                                    <th>Number</th>
+                                    <th>Email</th>
+                                    <td>Type of Assistance</td>
+                                    <td>Valuation</td>
+                                    <td>Additional Notes</td>
+                                    <td>Staff-In Charge</td>
+                                    <td>Donation Date</td>
+                                    <td>Status</td>
+                                    <th>Action</th>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <div class="pagination-info" style="margin-top: 15px;">
+                        <span id="archivedEntriesInfo">Showing 0 to 0 of 0 entries</span>
+                        <div id="archivedPagination" class="pagination"></div>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 
