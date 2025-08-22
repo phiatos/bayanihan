@@ -8,9 +8,14 @@
     <link rel="stylesheet" href="../css/global.css" />
     <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" />
 
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js"></script>
+
     <!-- Firebase Compat SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
     <script src="../js/pendingmonetary.js"></script>
 
     <!-- SweetAlert2 -->
@@ -60,6 +65,11 @@
                             </select>
                             <i class='bx bx-chevron-down'></i>
                         </div>
+                        <div class="button-group">
+                            <button id="viewArchived" aria-label="View Archived Admins">
+                                <i class='bx bx-archive' style="color: white; font-size: 20px;"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -96,6 +106,41 @@
 
                 <br>
             </section>
+
+            <!-- Archived Modal -->
+            <div class="modal" id="archivedModal" style="display: none;">
+                <div class="modal-content">
+                    <span class="close-button" id="closeArchivedModalBtn">×</span>
+                    <h2>Archived Monetary Donations</h2>
+                    <div class="table-container" style="max-height: 400px; overflow-y: auto;">
+                        <table id="archivedTable">
+                            <thead>
+                                <tr>
+                                    <th>No.</th>
+                                    <th>Encoder</th>
+                                    <th>Names/Company</th>
+                                    <th>Location (At least City)</th>
+                                    <th>Number</th>
+                                    <th>Amount Donated</th>
+                                    <th>Cash Invoice #</th>
+                                    <th>Date Received</th>
+                                    <th>Email</th>
+                                    <th>Bank</th>
+                                    <th>Reference No.</th>
+                                    <th>Proof of Transaction</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <div class="pagination-info" style="margin-top: 15px;">
+                        <span id="archivedEntriesInfo">Showing 0 to 0 of 0 entries</span>
+                        <div id="archivedPagination" class="pagination"></div>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 

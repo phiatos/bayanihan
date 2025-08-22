@@ -636,7 +636,7 @@ function renderArchivedTable() {
             <td>${item.category || 'N/A'}</td>
             <td>${archivedAtFormatted}</td>
             <td>
-              <button class="restoreBtn" data-key="${item.firebaseKey}">Restore</button>
+              <button class="restoreBtn" data-key="${item.firebaseKey}">Retrieve</button>
             </td>
           </tr>`;
       });

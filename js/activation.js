@@ -69,7 +69,7 @@ let selectedGroupForActivation = null;
 let map, markers = [], autocomplete, geocoder; // Map for pinning location in modal
 let activationMap, activationMarkers = [], activationsListener, singleInfoWindow, currentInfoWindow, isInfoWindowClicked = false; // Map for displaying active activations
 
-// Variables for inactivity detection --------------------------------------------------------------------
+// Variables for inactivity detection
 let inactivityTimeout;
 const INACTIVITY_TIME = 1800000; // 30 minutes in milliseconds
 
@@ -114,8 +114,9 @@ function checkInactivity() {
 ['mousemove', 'keydown', 'scroll', 'click'].forEach(eventType => {
     document.addEventListener(eventType, resetInactivityTimer);
 });
-//-------------------------------------------------------------------------------------
 
+// Commented out Google Maps-related functions to avoid potential conflicts with AI or database
+/*
 // Initialize Google Maps for Map Modal (used for pinning location during activation creation)
 function initMap() {
     const defaultLocation = { lat: 14.5995, lng: 120.9842 }; // Manila, Philippines
@@ -301,7 +302,7 @@ function initActivationMap() {
         google.maps.event.trigger(activationMap, "resize");
         console.log("Activation map resize event triggered.");
 
-        // ✅ Load GeoJSON for provinces
+        // Load GeoJSON for provinces
         fetch('../json/ph_admin1.geojson')
             .then(res => {
                 if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
@@ -343,7 +344,7 @@ function initActivationMap() {
                 console.error("Error loading GeoJSON:", error);
             });
 
-        // ✅ Load active activations (your markers)
+        // Load active activations (your markers)
         addMarkersForActiveActivations();
 
     } catch (error) {
@@ -355,7 +356,6 @@ function initActivationMap() {
         });
     }
 }
-
 
 // Add markers for active activations (Updated with Logo Support)
 function addMarkersForActiveActivations() {
@@ -605,11 +605,13 @@ function createInfoWindow(marker, activation, logoUrl) {
     });
 }
 
+// Clear markers
 function clearMarkers() {
     markers.forEach(marker => marker.setMap(null));
     markers = [];
 }
 
+// Return to user location
 function returnToUserLocation() {
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
@@ -655,6 +657,7 @@ function returnToUserLocation() {
     }
 }
 
+// Get geolocation error message
 function getGeolocationErrorMessage(error) {
     switch (error.code) {
         case error.PERMISSION_DENIED:
@@ -667,6 +670,34 @@ function getGeolocationErrorMessage(error) {
             return "Unable to retrieve your location.";
     }
 }
+*/
+
+// New function to generate calamity names for non-typhoon events
+function generateCalamityName(calamityType, areaOfOperation, activationDate) {
+    if (calamityType === "Typhoon") {
+        return modalTyphoonNameInput.value.trim(); // Use user-provided typhoon name
+    }
+    
+    // Extract key location (e.g., city or province) from areaOfOperation
+    let location = areaOfOperation.split(',').map(part => part.trim())[0] || "Unknown";
+    // Replace spaces with underscores for consistency
+    location = location.replace(/\s+/g, '_');
+    
+    // Get year from activationDate
+    const year = new Date(activationDate).getFullYear();
+    
+    // Map calamity types to short codes
+    const calamityCodes = {
+        Earthquake: "EQ",
+        Flood: "FLD",
+        "Volcanic Eruption": "VOLC",
+        Landslide: "LS",
+        Tsunami: "TSU"
+    };
+    
+    const code = calamityCodes[calamityType] || "UNK";
+    return `${location}_${year}_${code}`;
+}
 
 // Authentication and Data Listeners
 firebase.auth().onAuthStateChanged(user => {
@@ -674,15 +705,15 @@ firebase.auth().onAuthStateChanged(user => {
         console.log("User is authenticated:", user.uid);
         console.log("Anonymous user:", user.isAnonymous);
         listenForDataUpdates();
-        // Initialize the activation map after authentication
-        initActivationMap();
+        // Initialize the activation map after authentication (commented out)
+        // initActivationMap();
         resetInactivityTimer();
     } else {
         console.log("No user is authenticated. Attempting anonymous sign-in...");
         firebase.auth().signInAnonymously()
             .then(() => {
                 console.log("Signed in anonymously successfully.");
-                initActivationMap(); // Initialize map after anonymous sign-in
+                // initActivationMap(); // Initialize map after anonymous sign-in (commented out)
                 resetInactivityTimer();
             })
             .catch(error => {
@@ -695,7 +726,7 @@ firebase.auth().onAuthStateChanged(user => {
             });
     }
 });
-//end 
+
 function listenForDataUpdates() {
     console.log("Setting up real-time listener for volunteerGroups...");
     database.ref("volunteerGroups").on("value", snapshot => {
@@ -705,16 +736,14 @@ function listenForDataUpdates() {
         allVolunteerGroups = [];
         if (fetchedGroups) {
             for (let key in fetchedGroups) {
-                const groupData = fetchedGroups[key]; // Get the specific group's data
-                const addressData = groupData.address; // Get the address object from the group
+                const groupData = fetchedGroups[key];
+                const addressData = groupData.address;
 
-                let combinedAddress = "Not specified"; // Default value for hq
+                let combinedAddress = "Not specified";
 
                 if (addressData) {
                     const addressParts = [];
 
-                    // Add parts in the desired order (e.g., Region, Province, City)
-                    // Check for existence and trim whitespace
                     if (addressData.region && addressData.region.trim() !== '') {
                         addressParts.push(addressData.region.trim());
                     }
@@ -724,12 +753,10 @@ function listenForDataUpdates() {
                     if (addressData.city && addressData.city.trim() !== '') {
                         addressParts.push(addressData.city.trim());
                     }
-                    // If you also have a 'street' or 'barangay' and want it in HQ:
                     if (addressData.streetAddress && addressData.streetAddress.trim() !== '') {
                         addressParts.push(addressData.streetAddress.trim());
                     }
 
-                    // Combine the parts if any exist
                     if (addressParts.length > 0) {
                         combinedAddress = addressParts.join(', ');
                     }
@@ -738,8 +765,8 @@ function listenForDataUpdates() {
                 allVolunteerGroups.push({
                     no: parseInt(key),
                     organization: groupData.organization || "Unknown",
-                    hq: combinedAddress, // THIS IS WHERE THE COMBINED ADDRESS IS ASSIGNED
-                    address: groupData.address || "N/A", // Keep the full address object if needed elsewhere
+                    hq: combinedAddress,
+                    address: groupData.address || "N/A",
                     contactPerson: groupData.contactPerson || "Unknown",
                     email: groupData.email || "Not specified",
                     mobileNumber: groupData.mobileNumber || "Not specified",
@@ -757,7 +784,6 @@ function listenForDataUpdates() {
         });
     });
 
-    // The second listener for 'activations'
     console.log("Setting up real-time listener for activations...");
     database.ref("activations").orderByChild("activationDate").on("value", snapshot => {
         const fetchedActivations = snapshot.val();
@@ -768,10 +794,6 @@ function listenForDataUpdates() {
             for (let key in fetchedActivations) {
                 const activation = fetchedActivations[key];
                 if (activation.status === 'active') {
-                    // Important: This assumes allVolunteerGroups has already been populated
-                    // This is generally true with Firebase's real-time listeners,
-                    // but for more complex scenarios, you might need to ensure data
-                    // dependencies are met (e.g., by chaining promises or using async/await).
                     const volunteerGroup = allVolunteerGroups.find(group => group.no === activation.groupId);
 
                     currentActiveActivations.push({
@@ -779,12 +801,10 @@ function listenForDataUpdates() {
                         no: activation.no || 0,
                         groupId: activation.groupId,
                         organization: activation.organization || "Unknown",
-                        // The 'hq' here will come directly from the activation node,
-                        // if you want it to be the *combined* address from volunteerGroups,
-                        // you should use volunteerGroup.hq here.
-                        hq: volunteerGroup ? volunteerGroup.hq : "Not specified", // Use combined HQ from volunteerGroup
+                        hq: volunteerGroup ? volunteerGroup.hq : "Not specified",
                         areaOfOperation: activation.areaOfOperation || "Not specified",
-                        calamity: activation.calamityType || "Typhoon",
+                        calamityType: activation.calamityType || "Typhoon", // Updated to calamityType
+                        calamityName: activation.calamityName || "", // New field
                         typhoonName: activation.typhoonName || "",
                         status: activation.status,
                         activationDate: activation.activationDate,
@@ -797,7 +817,6 @@ function listenForDataUpdates() {
                 }
             }
             console.log("Filtered active activations:", currentActiveActivations);
-            // Sort by activationDate (newest first)
             currentActiveActivations.sort((a, b) => {
                 const dateA = new Date(a.activationDate);
                 const dateB = new Date(b.activationDate);
@@ -823,17 +842,14 @@ function populateGroupDropdown() {
         const option = document.createElement("option");
         option.value = group.no;
 
-         // Determine the location to display
-        let locationToDisplay = 'N/A'; // Default fallback
+        let locationToDisplay = 'N/A';
 
-        // Check if group.address and group.address.city exist and are not empty
         if (group.address && group.address.city && group.address.city.trim() !== '') {
             locationToDisplay = group.address.city;
-        } else if (group.hq && group.hq.trim() !== '') { // Fallback to hq if city is not available
+        } else if (group.hq && group.hq.trim() !== '') {
             locationToDisplay = group.hq;
         }
 
-        // option.textContent = `${group.organization} (${group.address.city}) || (${group.hq}) `;
         option.textContent = `${group.organization} (${locationToDisplay})`;
         selectGroupDropdown.appendChild(option);
     });
@@ -859,9 +875,9 @@ function renderTable(filteredData = currentActiveActivations) {
     pageData.forEach((row, index) => {
         const displayNumber = start + index + 1;
         const tr = document.createElement("tr");
-        let calamityDisplay = row.calamity;
-        if (row.calamity === "Typhoon" && row.typhoonName) {
-            calamityDisplay += ` (${row.typhoonName})`;
+        let calamityDisplay = row.calamityType;
+        if (row.calamityName) {
+            calamityDisplay += ` (${row.calamityName})`;
         }
 
         tr.innerHTML = `
@@ -885,7 +901,6 @@ function renderTable(filteredData = currentActiveActivations) {
     entriesInfo.textContent = `Showing ${start + 1} to ${Math.min(end, filteredData.length)} of ${filteredData.length} entries`;
     renderPagination(filteredData.length);
 }
-
 
 function handleSearch() {
     const query = searchInput.value.trim().toLowerCase();
@@ -971,37 +986,17 @@ function closeActivationModal() {
 }
 
 function openMapModal() {
-    mapModal.style.display = "flex";
-    setTimeout(() => {
-        if (!map) {
-            initMap();
-        } else {
-            google.maps.event.trigger(map, 'resize');
-            const currentArea = modalAreaInput.value;
-            if (currentArea) {
-                geocoder.geocode({ 'address': currentArea }, (results, status) => {
-                    if (status === 'OK' && results[0]) {
-                        map.setCenter(results[0].geometry.location);
-                        clearMarkers();
-                        const marker = new google.maps.Marker({
-                            map: map,
-                            position: results[0].geometry.location,
-                            title: currentArea,
-                        });
-                        markers.push(marker);
-                    }
-                });
-            } else {
-                map.setCenter({ lat: 14.5995, lng: 120.9842 });
-                map.setZoom(10);
-            }
-        }
-    }, 100);
+    // Disabled due to commented-out map functionality
+    Swal.fire({
+        icon: 'info',
+        title: 'Map Disabled',
+        text: 'Map functionality is currently disabled.'
+    });
 }
 
 function closeMapModal() {
     mapModal.style.display = "none";
-    clearMarkers();
+    // clearMarkers(); // Commented out due to map disablement
 }
 
 // Event Listeners
@@ -1041,15 +1036,12 @@ modalCalamitySelect.addEventListener("change", () => {
 pinLocationBtn.addEventListener("click", openMapModal);
 
 saveLocationBtn.addEventListener("click", () => {
-    if (!modalAreaInput.value || !modalLatitudeInput.value || !modalLongitudeInput.value) {
-        Swal.fire({
-            icon: 'warning',
-            title: 'No Location Selected',
-            text: 'Please select a location by searching or clicking on the map.'
-        });
-        return;
-    }
-    closeMapModal();
+    // Disabled due to commented-out map functionality
+    Swal.fire({
+        icon: 'info',
+        title: 'Map Disabled',
+        text: 'Map functionality is currently disabled. Please enter the area of operation manually.'
+    });
 });
 
 async function getNextActivationNumber() {
@@ -1082,6 +1074,8 @@ modalActivateSubmitBtn.addEventListener("click", async () => {
     const typhoonName = (calamityType === "Typhoon") ? modalTyphoonNameInput.value.trim() : "";
     const latitude = modalLatitudeInput.value;
     const longitude = modalLongitudeInput.value;
+    const activationDate = new Date().toISOString();
+    const calamityName = generateCalamityName(calamityType, areaOfOperation, activationDate);
 
     if (!areaOfOperation && !calamityType) {
         Swal.fire({ icon: 'warning', title: 'Missing Fields', text: 'Please supply missing fields.' });
@@ -1099,10 +1093,13 @@ modalActivateSubmitBtn.addEventListener("click", async () => {
         Swal.fire({ icon: 'warning', title: 'Missing Field', text: 'Please enter the Typhoon Name.' });
         return;
     }
+    // Removed latitude/longitude check since map is commented out
+    /*
     if (!latitude || !longitude) {
         Swal.fire({ icon: 'warning', title: 'Missing Location', text: 'Please pin a location on the map.' });
         return;
     }
+    */
 
     const user = firebase.auth().currentUser;
     if (!user) {
@@ -1146,11 +1143,12 @@ modalActivateSubmitBtn.addEventListener("click", async () => {
             hq: selectedGroupForActivation.hq,
             areaOfOperation: areaOfOperation,
             calamityType: calamityType,
+            calamityName: calamityName,
             typhoonName: typhoonName,
             status: "active",
-            activationDate: new Date().toISOString(),
-            latitude: parseFloat(latitude),
-            longitude: parseFloat(longitude)
+            activationDate: activationDate,
+            latitude: parseFloat(latitude) || null,
+            longitude: parseFloat(longitude) || null
         };
 
         console.log("Adding new activation record:", newActivationRecord);
@@ -1158,10 +1156,9 @@ modalActivateSubmitBtn.addEventListener("click", async () => {
         Swal.fire({
             icon: 'success',
             title: 'Activated!',
-            text: `${selectedGroupForActivation.organization} has been activated for ${calamityType} in ${areaOfOperation}.`
+            text: `${selectedGroupForActivation.organization} has been activated for ${calamityType}${calamityName ? ` (${calamityName})` : ''} in ${areaOfOperation}.`
         });
         closeActivationModal();
-        // Force table refresh
         currentPage = 1;
         renderTable();
     } catch (error) {
@@ -1213,11 +1210,9 @@ tableBody.addEventListener("click", e => {
                 }
                 console.log("User authenticated:", user.uid);
 
-                // Reference to the activation in the database
                 const activationRef = database.ref(`activations/${activationId}`);
                 console.log(`Fetching activation data from path: activations/${activationId}`);
 
-                // Get the activation data before deleting
                 activationRef.once('value')
                     .then(snapshot => {
                         const activationData = snapshot.val();
@@ -1227,7 +1222,6 @@ tableBody.addEventListener("click", e => {
                         }
                         console.log("Activation data retrieved:", activationData);
 
-                        // Add deactivation date and status to the data
                         const deactivatedActivation = {
                             ...activationData,
                             status: "inactive",
@@ -1235,11 +1229,9 @@ tableBody.addEventListener("click", e => {
                         };
                         console.log("Prepared deactivated activation data:", deactivatedActivation);
 
-                        // Reference to the deletedactivations node
                         const deletedActivationRef = database.ref('deletedactivations').push();
                         console.log("Generated new key for deletedactivations:", deletedActivationRef.key);
 
-                        // Move the activation to deletedactivations
                         console.log("Performing copy to deletedactivations and remove from activations...");
                         return Promise.all([
                             deletedActivationRef.set(deactivatedActivation).then(() => {
@@ -1253,7 +1245,7 @@ tableBody.addEventListener("click", e => {
                     .then(() => {
                         console.log("Deactivation process completed successfully.");
                         Swal.fire('Deactivated!', `The activation has been moved to deleted activations.`, 'success');
-                        renderTable(); // Force table refresh
+                        renderTable();
                     })
                     .catch(error => {
                         console.error("Error during deactivation process:", error);
@@ -1326,12 +1318,11 @@ function filterAndSort() {
                 const statusOrder = { 'active': 1, 'inactive': 2 };
                 return statusOrder[a.status] - statusOrder[b.status];
             } else if (sortSelect.value === 'calamity') {
-                return a.calamity.localeCompare(b.calamity);
+                return a.calamityType.localeCompare(b.calamityType); // Updated to calamityType
             }
             return 0;
         });
     } else {
-        // Default sort by activationDate (newest first)
         filtered.sort((a, b) => {
             const dateA = new Date(a.activationDate);
             const dateB = new Date(b.activationDate);
@@ -1357,6 +1348,8 @@ function cleanupActivationPage() {
         console.log("Removed activations listener for map.");
     }
 
+    // Commented out map-related cleanup due to disabled map functionality
+    /*
     activationMarkers.forEach(marker => marker.setMap(null));
     activationMarkers = [];
 
@@ -1369,6 +1362,7 @@ function cleanupActivationPage() {
 
     markers.forEach(marker => marker.setMap(null));
     markers = [];
+    */
 }
 
 window.addEventListener('beforeunload', cleanupActivationPage);

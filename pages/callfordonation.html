@@ -136,6 +136,12 @@
                             </select>
                             <i class='bx bx-chevron-down'></i>
                         </div>
+                        <div class="button-group">
+                            <button id="viewArchived" aria-label="View Archived Admins">
+                                <i class='bx bx-archive' style="color: white; font-size: 20px;"></i>
+                            </button>
+                            <button id="downloadTemplateBtn"><i class='bx bx-file-blank'></i></button>
+                        </div>
                     </div>
                 </div>
 
@@ -199,6 +205,37 @@
                     <button type="button" id="cancelEditBtn">Cancel</button>
                 </div>
             </div>
+
+             <!-- Archived Modal -->
+            <div class="modal" id="archivedModal" style="display: none;">
+                <div class="modal-content">
+                    <span class="close-button" id="closeArchivedModalBtn">×</span>
+                    <h2>Archived In-Kind Donations</h2>
+                    <div class="table-container" style="max-height: 400px; overflow-y: auto;">
+                        <table id="archivedTable">
+                            <thead>
+                                <tr>
+                                    <th>No.</th>
+                                    <th>Donation Drive</th>
+                                    <th>Contact Name</th>
+                                    <th>Contact Number</th>
+                                    <th>Account Number</th>
+                                    <th>Account Name</th>
+                                    <th>Exact Drop Off Address</th>
+                                    <th>Facebook Link</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <div class="pagination-info" style="margin-top: 15px;">
+                        <span id="archivedEntriesInfo">Showing 0 to 0 of 0 entries</span>
+                        <div id="archivedPagination" class="pagination"></div>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 
