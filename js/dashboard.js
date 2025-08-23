@@ -345,7 +345,7 @@ window.initializeDashboard = function () {
             userRole = userData.role;
             userEmail = user.email;
             console.log(`Role: ${userRole}, Email: ${userEmail}`);
-            headerEl.textContent = userRole === "AB ADMIN" ? "Admin Dashboard" : "Volunteer Dashboard";
+            headerEl.textContent = userRole === "AB ADMIN" ? "Admin Dashboard" : "ABVN Dashboard";
             initializeMap();
             if (!map) {
                 console.error("Map initialization failed.");

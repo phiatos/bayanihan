@@ -169,26 +169,36 @@ async function compressMedia(file) {
 
 async function fetchUserData(uid) {
   if (userOrgCache.has(uid)) {
-    console.log(`[${new Date().toISOString()}] Using cached user data for user: ${uid}`);
     return userOrgCache.get(uid);
   }
 
   try {
-    console.log(`[${new Date().toISOString()}] Fetching user data for user: ${uid}`);
     const snapshot = await database.ref(`users/${uid}`).once('value');
     const userData = snapshot.val() || {};
+
+    // If firstName and lastName exist, use them; otherwise fallback
+    let contactPersonName = 'Anonymous';
+    if ('firstName' in userData && 'lastName' in userData) {
+      contactPersonName = `${userData.firstName} ${userData.lastName}`.trim();
+    } else if (userData.contactPerson) {
+      contactPersonName = userData.contactPerson;
+    } else if (userData.displayName) {
+      contactPersonName = userData.displayName;
+    }
+
     const data = {
-      contactPerson: userData.contactPerson || userData.displayName || 'Anonymous',
+      contactPerson: contactPersonName,
       organization: userData.organization || ''
     };
+
     userOrgCache.set(uid, data);
-    console.log(`[${new Date().toISOString()}] User data fetched:`, data);
     return data;
   } catch (error) {
-    console.error(`[${new Date().toISOString()}] Error fetching user data:`, error);
+    console.error('Error fetching user data:', error);
     return { contactPerson: 'Anonymous', organization: '' };
   }
 }
+
 
 // auth.onAuthStateChanged(async (currentUser) => {
 //   user = currentUser;
@@ -386,12 +396,21 @@ async function createPost() {
       console.log(`[${new Date().toISOString()}] Media processed successfully: ${mediaUrl.length} chars`);
     }
 
-    const { contactPerson, organization } = await fetchUserData(user.uid);
+    const { contactPerson, organization, adminPosition } = await fetchUserData(user.uid);
+
+    // Check if adminPosition exists and combine firstName + lastName if so
+    let userName = '';
+    if (adminPosition) {
+      userName = `${contactPerson.firstName || ''} ${contactPerson.lastName || ''}`.trim();
+    } else {
+      userName = contactPerson || '';
+    }
+
     const post = {
       title: title || '',
       content: content,
       userId: user.uid,
-      userName: contactPerson,
+      userName: userName,
       organization: organization,
       timestamp: firebase.database.ServerValue.TIMESTAMP,
       mediaUrl: mediaUrl,
@@ -399,6 +418,7 @@ async function createPost() {
       thumbnailUrl: thumbnailUrl,
       category: category
     };
+
 
     console.log(`[${new Date().toISOString()}] Writing post to database:`, { ...post, mediaUrl: mediaUrl ? `${mediaUrl.slice(0, 50)}...` : '' });
     await database.ref('posts').push(post);
@@ -1075,6 +1095,7 @@ function setupModal() {
     postCloseButton.addEventListener('click', () => {
       modal.style.display = 'none';
       modalPostContent.value = '';
+      postButtons.forEach(btn => btn.classList.remove('active'));
       document.getElementById('modal-post-title').value = '';
       modalPostCategory.value = '';
       modalPostContent.placeholder = "What's on your mind?";
