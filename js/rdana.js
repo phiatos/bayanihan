@@ -444,193 +444,224 @@ function formatLargeNumber(value) {
 
 
   // Add the submit functionality for the RDANA report
-  const nextBtn4 = document.getElementById('nextBtn4');
-  if (nextBtn4) {
-    nextBtn4.addEventListener('click', () => {
-      if (!validatePageInputs('#form-page-4')) {
-        Swal.fire({
-          icon: 'warning',
-          title: 'Incomplete Data',
-          text: 'Please fill in all required fields on this page.',
-          background: '#fffaf0',
-          color: '#92400e',
-          iconColor: '#f59e0b',
-          confirmButtonColor: '#d97706',
-          customClass: {
-            popup: 'swal2-popup-warning-clean',
-            title: 'swal2-title-warning-clean',
-            content: 'swal2-text-warning-clean'
-          }
-        });
-        return;
-      }
-
-      const previewDiv = document.getElementById("preview-data");
-      previewDiv.innerHTML = "";
-
-      // Page 1 data
-      const page1Inputs = document.querySelectorAll("#form-page-1 input, #form-page-1 select");
-      let page1Table = `<h3>Profile of the Disaster</h3><div class='table-scroll'><table class='preview-table' id='page1preview'>`;
-      profileData = {};
-      page1Inputs.forEach(input => {
-        const label = input.previousElementSibling ? input.previousElementSibling.innerText : "Field";
-        const sanitizedLabel = sanitizeKey(label);
-        page1Table += `<tr><td id='page1-tdlabel'>${label}</td><td id='page1-tdinput'>${input.value}</td></tr>`;
-        profileData[sanitizedLabel] = input.value;
-      });
-      page1Table += `</table></div>`;
-
-      // Page 2 data
-      summary = document.querySelector("#form-page-2 textarea")?.value || "";
-      let page2Table = `<h3>Summary of Disaster/Incident</h3><p>${summary}</p>`;
-      const tableRows = document.querySelectorAll("#disasterprofile-table tbody tr");
-      page2Table += `<div class='table-scroll'><table class='preview-table' id='page2preview'><tr><th>Community</th><th>Total Pop.</th><th>Affected Pop.</th><th>Deaths</th><th>Injured</th><th>Missing</th><th>Children</th><th>Women</th><th>Seniors</th><th>PWD</th></tr>`;
-      affectedCommunities = [];
-      tableRows.forEach(row => {
-        const cells = row.querySelectorAll("input") || [];
-        page2Table += "<tr>";
-        const communityData = {
-          community: cells[0]?.value || "",
-          totalPop: formatLargeNumber(Number(cells[1]?.value)) || "0",
-          affected: formatLargeNumber(Number(cells[2]?.value)) || "0",
-          deaths: formatLargeNumber(Number(cells[3]?.value)) || "0",
-          injured: formatLargeNumber(Number(cells[4]?.value)) || "0",
-          missing: formatLargeNumber(Number(cells[5]?.value)) || "0",
-          children: formatLargeNumber(Number(cells[6]?.value)) || "0",
-          women: formatLargeNumber(Number(cells[7]?.value)) || "0",
-          seniors: formatLargeNumber(Number(cells[8]?.value)) || "0",
-          pwd: formatLargeNumber(Number(cells[9]?.value)) || "0"
-        };
-        affectedCommunities.push(communityData);
-        cells.forEach((cell, i) => {
-          if (i === 0) page2Table += `<td>${cell.value}</td>`;
-          else page2Table += `<td>${Number(cell.value)}</td>`;
-        });
-        page2Table += "</tr>";
-      });
-      page2Table += "</table></div>";
-
-      // Page 3 data
-      const statusRows = document.querySelectorAll("#status-table tbody tr");
-      let page3Table = `<h3>Status of Structures</h3><div class='table-scroll'><table class='preview-table' id='page3preview'><tr><th>Structure</th><th>Status</th></tr>`;
-      structureStatus = [];
-      statusRows.forEach(row => {
-        const structure = row.querySelector("td")?.innerText || "";
-        let status = "N/A";
-        const select = row.querySelector("select");
-        const input = row.querySelector("input");
-        if (select) {
-          const selectedOption = select.selectedOptions[0];
-          status = selectedOption && selectedOption.value ? selectedOption.text : "N/A";
-        } else if (input) {
-          status = input.value.trim() || "N/A";
+const nextBtn4 = document.getElementById('nextBtn4');
+if (nextBtn4) {
+  nextBtn4.addEventListener('click', () => {
+    if (!validatePageInputs('#form-page-4')) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Incomplete Data',
+        text: 'Please fill in all required fields on this page.',
+        background: '#fffaf0',
+        color: '#92400e',
+        iconColor: '#f59e0b',
+        confirmButtonColor: '#d97706',
+        customClass: {
+          popup: 'swal2-popup-warning-clean',
+          title: 'swal2-title-warning-clean',
+          content: 'swal2-text-warning-clean'
         }
-        page3Table += `<tr><td>${structure}</td><td>${status}</td></tr>`;
-        structureStatus.push({ structure, status });
       });
-      page3Table += `</table></div>`;
+      return;
+    }
 
-      // Page 4 checklist
-      const checklistItems = document.querySelectorAll("#checklist-table input[type='checkbox']");
-      let page4Table = `<h3>Initial Needs Assessment</h3><div class='table-scroll'><table class='preview-table' id='page4preview'><tr><th>Item</th><th>Needed</th></tr>`;
-      needsChecklist = [];
-      checklistItems.forEach(item => {
-        const label = item.closest("tr").querySelector("td")?.innerText || "";
-        page4Table += `<tr><td>${label}</td><td>${item.checked ? "Yes" : "No"}</td></tr>`;
-        needsChecklist.push({ item: label, needed: item.checked });
+    const previewDiv = document.getElementById("preview-data");
+    previewDiv.innerHTML = "";
+
+    // Page 1 data
+    const page1Inputs = document.querySelectorAll("#form-page-1 input, #form-page-1 select");
+    let page1Table = `<h3>Profile of the Disaster</h3><div class='table-scroll'><table class='preview-table' id='page1preview'>`;
+    profileData = {};
+    page1Inputs.forEach(input => {
+      const label = input.previousElementSibling ? input.previousElementSibling.innerText : "Field";
+      const sanitizedLabel = sanitizeKey(label);
+      page1Table += `<tr><td id='page1-tdlabel'>${label}</td><td id='page1-tdinput'>${input.value}</td></tr>`;
+      profileData[sanitizedLabel] = input.value;
+    });
+    page1Table += `</table></div>`;
+
+    // Page 2 data
+    summary = document.querySelector("#form-page-2 textarea")?.value || "";
+    let page2Table = `<h3>Summary of Disaster/Incident</h3><p>${summary}</p>`;
+    const tableRows = document.querySelectorAll("#disasterprofile-table tbody tr");
+    page2Table += `<div class='table-scroll'><table class='preview-table' id='page2preview'><tr><th>Community</th><th>Total Pop.</th><th>Affected Pop.</th><th>Deaths</th><th>Injured</th><th>Missing</th><th>Children</th><th>Women</th><th>Seniors</th><th>PWD</th></tr>`;
+    affectedCommunities = [];
+    tableRows.forEach(row => {
+      const cells = row.querySelectorAll("input") || [];
+      page2Table += "<tr>";
+      const communityData = {
+        community: cells[0]?.value || "",
+        totalPop: formatLargeNumber(Number(cells[1]?.value)) || "0",
+        affected: formatLargeNumber(Number(cells[2]?.value)) || "0",
+        deaths: formatLargeNumber(Number(cells[3]?.value)) || "0",
+        injured: formatLargeNumber(Number(cells[4]?.value)) || "0",
+        missing: formatLargeNumber(Number(cells[5]?.value)) || "0",
+        children: formatLargeNumber(Number(cells[6]?.value)) || "0",
+        women: formatLargeNumber(Number(cells[7]?.value)) || "0",
+        seniors: formatLargeNumber(Number(cells[8]?.value)) || "0",
+        pwd: formatLargeNumber(Number(cells[9]?.value)) || "0"
+      };
+      affectedCommunities.push(communityData);
+      cells.forEach((cell, i) => {
+        if (i === 0) page2Table += `<td>${cell.value}</td>`;
+        else page2Table += `<td>${Number(cell.value)}</td>`;
       });
-      page4Table += `</table></div>`;
+      page2Table += "</tr>";
+    });
+    page2Table += "</table></div>";
 
-      // Page 4 additional needs
-      otherNeeds = document.querySelector("#form-page-4 input[placeholder='Enter items']")?.value || "N/A";
-      estQty = document.querySelector("#form-page-4 input[placeholder='Estimated No. of Families to Benefit']")?.value || "N/A";
-      responseGroup = document.querySelector("#form-page-4 input[placeholder='Enter Name of Organization/s']")?.value || "N/A";
-      reliefDeployed = document.querySelector("#form-page-4 input[placeholder='Enter Relief Assistance']")?.value || "N/A";
-      familiesServed = document.querySelector("#form-page-4 input[placeholder='Enter number of families']")?.value || "N/A";
-      page4Table += `
-        <p><strong>Other Immediate Needs:</strong> ${otherNeeds}</p>
-        <p><strong>Estimated Quantity:</strong> ${estQty}</p>
-        <h3 style="margin-top: 15px; margin-bottom: 10px;">Initial Response Actions</h3>
-        <p><strong>Response Groups Involved:</strong> ${responseGroup}</p>
-        <p><strong>Relief Assistance Deployed:</strong> ${reliefDeployed}</p>
-        <p><strong>Number of Families Served:</strong> ${familiesServed}</p>
-      `;
+    // Page 3 data
+    const statusRows = document.querySelectorAll("#status-table tbody tr");
+    let page3Table = `<h3>Status of Structures</h3><div class='table-scroll'><table class='preview-table' id='page3preview'><tr><th>Structure</th><th>Status</th></tr>`;
+    structureStatus = [];
+    statusRows.forEach(row => {
+      const structure = row.querySelector("td")?.innerText || "";
+      let status = "N/A";
+      const select = row.querySelector("select");
+      const input = row.querySelector("input");
+      if (select) {
+        const selectedOption = select.selectedOptions[0];
+        status = selectedOption && selectedOption.value ? selectedOption.text : "N/A";
+      } else if (input) {
+        status = input.value.trim() || "N/A";
+      }
+      page3Table += `<tr><td>${structure}</td><td>${status}</td></tr>`;
+      structureStatus.push({ structure, status });
+    });
+    page3Table += `</table></div>`;
 
-      previewDiv.innerHTML = page1Table + page2Table + page3Table + page4Table;
-      document.getElementById("form-page-4").style.display = "none";
-      document.getElementById("form-page-5").style.display = "block";
+    // Page 4 checklist
+    const checklistItems = document.querySelectorAll("#checklist-table input[type='checkbox']");
+    let page4Table = `<h3>Initial Needs Assessment</h3><div class='table-scroll'><table class='preview-table' id='page4preview'><tr><th>Item</th><th>Needed</th></tr>`;
+    needsChecklist = [];
+    checklistItems.forEach(item => {
+      const label = item.closest("tr").querySelector("td")?.innerText || "";
+      page4Table += `<tr><td>${label}</td><td>${item.checked ? "Yes" : "No"}</td></tr>`;
+      needsChecklist.push({ item: label, needed: item.checked });
+    });
+    page4Table += `</table></div>`;
 
-      // Submit button logic
-      const submitBtn = document.getElementById("submitReportBtn");
-      if (submitBtn) {
-        const newSubmitBtn = submitBtn.cloneNode(true);
-        submitBtn.parentNode.replaceChild(newSubmitBtn, submitBtn);
-        newSubmitBtn.addEventListener("click", (e) => {
-          e.preventDefault();
-          newSubmitBtn.disabled = true;
-          newSubmitBtn.textContent = "Submitting...";
+    // Page 4 additional needs
+    otherNeeds = document.querySelector("#form-page-4 input[placeholder='Enter items']")?.value || "N/A";
+    estQty = document.querySelector("#form-page-4 input[placeholder='Estimated No. of Families to Benefit']")?.value || "N/A";
+    responseGroup = document.querySelector("#form-page-4 input[placeholder='Enter Name of Organization/s']")?.value || "N/A";
+    reliefDeployed = document.querySelector("#form-page-4 input[placeholder='Enter Relief Assistance']")?.value || "N/A";
+    familiesServed = document.querySelector("#form-page-4 input[placeholder='Enter number of families']")?.value || "N/A";
+    page4Table += `
+      <p><strong>Other Immediate Needs:</strong> ${otherNeeds}</p>
+      <p><strong>Estimated Quantity:</strong> ${estQty}</p>
+      <h3 style="margin-top: 15px; margin-bottom: 10px;">Initial Response Actions</h3>
+      <p><strong>Response Groups Involved:</strong> ${responseGroup}</p>
+      <p><strong>Relief Assistance Deployed:</strong> ${reliefDeployed}</p>
+      <p><strong>Number of Families Served:</strong> ${familiesServed}</p>
+    `;
 
-          // Check if submission is allowed
-          if (!canSubmit) {
+    previewDiv.innerHTML = page1Table + page2Table + page3Table + page4Table;
+    document.getElementById("form-page-4").style.display = "none";
+    document.getElementById("form-page-5").style.display = "block";
+
+    // Submit button logic
+    const submitBtn = document.getElementById("submitReportBtn");
+    if (submitBtn) {
+      const newSubmitBtn = submitBtn.cloneNode(true);
+      submitBtn.parentNode.replaceChild(newSubmitBtn, submitBtn);
+      newSubmitBtn.addEventListener("click", async (e) => {
+        e.preventDefault();
+        newSubmitBtn.disabled = true;
+        newSubmitBtn.textContent = "Submitting...";
+
+        // Check if submission is allowed
+        if (!canSubmit) {
+          Swal.fire({
+            icon: 'error',
+            title: 'Submission Not Allowed',
+            text: 'Your organization is inactive or you lack permission to submit reports.',
+            background: '#fdecea',
+            color: '#b91c1c',
+            iconColor: '#dc2626',
+            confirmButtonColor: '#b91c1b',
+            timer: 3000,
+          });
+          newSubmitBtn.disabled = false;
+          newSubmitBtn.textContent = "Submit Report";
+          return;
+        }
+
+        auth.onAuthStateChanged(async user => {
+          if (!user) {
             Swal.fire({
               icon: 'error',
-              title: 'Submission Not Allowed',
-              text: 'Your organization is inactive or you lack permission to submit reports.',
-              background: '#fdecea',
-              color: '#b91c1c',
-              iconColor: '#dc2626',
-              confirmButtonColor: '#b91c1b',
-              timer: 3000,
+              title: 'Authentication Required',
+              text: 'Please sign in to submit a report.',
+            }).then(() => {
+              window.location.href = "../pages/login.html";
             });
             newSubmitBtn.disabled = false;
             newSubmitBtn.textContent = "Submit Report";
             return;
           }
 
-          auth.onAuthStateChanged(user => {
-            if (!user) {
-              Swal.fire({
-                icon: 'error',
-                title: 'Authentication Required',
-                text: 'Please sign in to submit a report.',
-              }).then(() => {
-                window.location.href = "../pages/login.html";
-              });
-              newSubmitBtn.disabled = false;
-              newSubmitBtn.textContent = "Submit Report";
-              return;
+          if (!profileData || Object.keys(profileData).length === 0 ||
+              !affectedCommunities || affectedCommunities.length === 0 ||
+              !needsChecklist || needsChecklist.length === 0) {
+            console.error("Form data is incomplete:", { profileData, affectedCommunities, needsChecklist });
+            Swal.fire({
+              icon: 'error',
+              title: 'Submission Failed',
+              text: 'Form data is incomplete. Please ensure all fields are filled correctly.',
+              background: '#fef2f2',
+              color: '#7f1d1d',
+              iconColor: '#b91c1c',
+              confirmButtonColor: '#991b1b',
+              customClass: {
+                popup: 'swal2-popup-error-clean',
+                title: 'swal2-title-error-clean',
+                content: 'swal2-text-error-clean'
+              }
+            });
+            newSubmitBtn.disabled = false;
+            newSubmitBtn.textContent = "Submit Report";
+            return;
+          }
+
+          // Function to generate a unique RDANA ID
+          async function generateUniqueRdanaId() {
+            let attempts = 0;
+            const maxAttempts = 3;
+
+            while (attempts < maxAttempts) {
+              const randomNum = Math.floor(100 + Math.random() * 900); // Generate 100–999
+              const customRdanaId = `RDANA-${randomNum}`;
+
+              // Check if ID exists in rdana/submitted, rdana/approved, or rdana/rejected
+              const [submittedSnapshot, approvedSnapshot, rejectedSnapshot] = await Promise.all([
+                database.ref("rdana/submitted").orderByChild("rdanaId").equalTo(customRdanaId).once("value"),
+                database.ref("rdana/approved").orderByChild("rdanaId").equalTo(customRdanaId).once("value"),
+                database.ref("rdana/rejected").orderByChild("rdanaId").equalTo(customRdanaId).once("value")
+              ]);
+
+              if (!submittedSnapshot.exists() && !approvedSnapshot.exists() && !rejectedSnapshot.exists()) {
+                return customRdanaId; // ID is unique
+              }
+
+              attempts++;
+              console.log(`RDANA ID ${customRdanaId} already exists, retrying (${attempts}/${maxAttempts})`);
             }
 
-            if (!profileData || Object.keys(profileData).length === 0 ||
-                !affectedCommunities || affectedCommunities.length === 0 ||
-                !needsChecklist || needsChecklist.length === 0) {
-              console.error("Form data is incomplete:", { profileData, affectedCommunities, needsChecklist });
-              Swal.fire({
-                icon: 'error',
-                title: 'Submission Failed',
-                text: 'Form data is incomplete. Please ensure all fields are filled correctly.',
-                background: '#fef2f2',
-                color: '#7f1d1d',
-                iconColor: '#b91c1c',
-                confirmButtonColor: '#991b1b',
-                customClass: {
-                  popup: 'swal2-popup-error-clean',
-                  title: 'swal2-title-error-clean',
-                  content: 'swal2-text-error-clean'
-                }
-              });
-              newSubmitBtn.disabled = false;
-              newSubmitBtn.textContent = "Submit Report";
-              return;
-            }
+            throw new Error("Unable to generate a unique RDANA ID after multiple attempts.");
+          }
+
+          try {
+            // Generate unique RDANA ID
+            const customRdanaId = await generateUniqueRdanaId();
 
             const reportData = {
-              rdanaId: `RDANA-${Math.floor(100 + Math.random() * 900)}`,
+              rdanaId: customRdanaId, // Use custom RDANA-XXX format (e.g., RDANA-435)
               dateTime: new Date().toISOString(),
               rdanaGroup: currentUserGroupName,
               siteLocation: profileData[sanitizeKey("Site Location/Address (Barangay)")] || "N/A",
               disasterType: profileData[sanitizeKey("Type of Disaster")] || "N/A",
-              effects: { affectedPopulation: affectedCommunities.reduce((sum, c) => sum + c.affected, 0) },
+              effects: { affectedPopulation: affectedCommunities.reduce((sum, c) => sum + Number(c.affected.replace(/[^0-9]/g, '')), 0) || 0 },
               needs: { priority: needsChecklist.filter(n => n.needed).map(n => n.item) },
               profile: profileData,
               modality: {
@@ -653,94 +684,93 @@ function formatLargeNumber(value) {
             };
 
             const ref = database.ref("rdana/submitted");
-            ref.push(reportData)
-              .then((snapshot) => {
-                const rdanaId = snapshot.key;
-                // Notify admin after successful save
-                const message = `New RDANA report "${profileData[sanitizeKey('Type of Disaster')] || 'N/A'}" submitted by ${profileData[sanitizeKey('Prepared By')] || 'Unknown'} from ${currentUserGroupName} on ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} at ${new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })} PST.`;
-                notifyAdmin(message, profileData[sanitizeKey('Type of Disaster')], profileData[sanitizeKey('Site Location/Address (Barangay)')], summary, rdanaId, profileData[sanitizeKey('Prepared By')] || 'Unknown', currentUserGroupName);
+            const snapshot = await ref.push(reportData);
+            const firebaseKey = snapshot.key;
 
-                console.log("RDANA report saved successfully to rdana/submitted");
-                Swal.fire({
-                  icon: 'success',
-                  title: 'Report Submitted',
-                  text: 'Your RDANA report has been submitted for verification!',
-                  background: '#e6ffed',
-                  color: '#065f46',
-                  iconColor: '#10b981',
-                  confirmButtonColor: '#059669',
-                  timer: 2000,
-                  showConfirmButton: false,
-                  customClass: {
-                    popup: 'swal2-popup-success-clean',
-                    title: 'swal2-title-success-clean',
-                    content: 'swal2-text-success-clean'
-                  }
-                }).then(() => {
-                  profileData = {};
-                  affectedCommunities = [];
-                  needsChecklist = [];
-                  summary = "";
-                  structureStatus = [];
-                  otherNeeds = "";
-                  estQty = "";
-                  responseGroup = "";
-                  reliefDeployed = "";
-                  familiesServed = "";
-                  document.querySelectorAll('input, textarea, select').forEach(input => {
-                    if (input.type === 'checkbox') input.checked = false;
-                    else input.value = '';
-                  });
-                  const tableBody = document.getElementById("tableBody");
-                  if (tableBody) {
-                    tableBody.innerHTML = `
-                      <tr>
-                        <td><input type="text" placeholder="Enter Municipalities/Communities" required/></td>
-                        <td><input type="number" placeholder="Enter Total Population" min="0" required/></td>
-                        <td><input type="number" placeholder="Enter Affected Population" min="0" required/></td>
-                        <td><input type="number" placeholder="No. of Deaths" min="0" required/></td>
-                        <td><input type="number" placeholder="No. of Injured" min="0" required/></td>
-                        <td><input type="number" placeholder="No. of Missing" min="0" required/></td>
-                        <td><input type="number" placeholder="No. of Children" min="0" required/></td>
-                        <td><input type="number" placeholder="No. of Women" min="0" required/></td>
-                        <td><input type="number" placeholder="No. of Senior Citizens" min="0" required/></td>
-                        <td><input type="number" placeholder="No. of PWD" min="0" required/></td>
-                        <td><button type="reset" class="removeRowBtn">Clear</button></td>
-                      </tr>
-                    `;
-                  }
-                  document.getElementById("form-page-5").style.display = "none";
-                  document.getElementById("form-page-1").style.display = "block";
-                });
-              })
-              .catch(error => {
-                console.error("Error saving RDANA report to Firebase:", error);
-                Swal.fire({
-                  icon: 'error',
-                  title: 'Submission Failed',
-                  text: 'Failed to submit RDANA report: ' + error.message,
-                  background: '#fdecea',
-                  color: '#b91c1c',
-                  iconColor: '#dc2626',
-                  confirmButtonColor: '#b91c1b',
-                  timer: 3000,
-                  showConfirmButton: true,
-                  customClass: {
-                    popup: 'swal2-popup-error-clean',
-                    title: 'swal2-title-error-clean',
-                    content: 'swal2-text-error-clean'
-                  }
-                });
-              })
-              .finally(() => {
-                newSubmitBtn.disabled = false;
-                newSubmitBtn.textContent = "Submit Report";
+            // Use the custom RDANA ID for notification
+            const preparedBy = profileData[sanitizeKey("Prepared By")] || currentUserGroupName || "Unknown";
+            const message = `New RDANA report "${profileData[sanitizeKey('Type of Disaster')] || 'N/A'}" submitted by ${preparedBy} from ${currentUserGroupName} on ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} at ${new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })} PST.`;
+            await notifyAdmin(message, profileData[sanitizeKey('Type of Disaster')], profileData[sanitizeKey('Site Location/Address (Barangay)')], summary, customRdanaId, preparedBy, currentUserGroupName);
+
+            console.log("RDANA report saved successfully to rdana/submitted with custom RDANA ID:", customRdanaId);
+            Swal.fire({
+              icon: 'success',
+              title: 'Report Submitted',
+              text: 'Your RDANA report has been submitted for verification!',
+              background: '#e6ffed',
+              color: '#065f46',
+              iconColor: '#10b981',
+              confirmButtonColor: '#059669',
+              timer: 2000,
+              showConfirmButton: false,
+              customClass: {
+                popup: 'swal2-popup-success-clean',
+                title: 'swal2-title-success-clean',
+                content: 'swal2-text-success-clean'
+              }
+            }).then(() => {
+              profileData = {};
+              affectedCommunities = [];
+              needsChecklist = [];
+              summary = "";
+              structureStatus = [];
+              otherNeeds = "";
+              estQty = "";
+              responseGroup = "";
+              reliefDeployed = "";
+              familiesServed = "";
+              document.querySelectorAll('input, textarea, select').forEach(input => {
+                if (input.type === 'checkbox') input.checked = false;
+                else input.value = '';
               });
-          });
-        });
-      }
-    });
-  }
+              const tableBody = document.getElementById("tableBody");
+              if (tableBody) {
+                tableBody.innerHTML = `
+                  <tr>
+                    <td><input type="text" placeholder="Enter Municipalities/Communities" required/></td>
+                    <td><input type="number" class="number-input" placeholder="Enter Total Population" min="0" required/></td>
+                    <td><input type="number" class="number-input" placeholder="Enter Affected Population" min="0" required/></td>
+                    <td><input type="number" class="number-input" placeholder="No. of Deaths" min="0" required/></td>
+                    <td><input type="number" class="number-input" placeholder="No. of Injured" min="0" required/></td>
+                    <td><input type="number" class="number-input" placeholder="No. of Missing" min="0" required/></td>
+                    <td><input type="number" class="number-input" placeholder="No. of Children" min="0" required/></td>
+                    <td><input type="number" class="number-input" placeholder="No. of Women" min="0" required/></td>
+                    <td><input type="number" class="number-input" placeholder="No. of Senior Citizens" min="0" required/></td>
+                    <td><input type="number" class="number-input" placeholder="No. of PWD" min="0" required/></td>
+                    <td><button type="reset" class="removeRowBtn">Clear</button></td>
+                  </tr>
+                `;
+              }
+              document.getElementById("form-page-5").style.display = "none";
+              document.getElementById("form-page-1").style.display = "block";
+            });
+          } catch (error) {
+            console.error("Error saving RDANA report to Firebase:", error);
+            Swal.fire({
+              icon: 'error',
+              title: 'Submission Failed',
+              text: 'Failed to submit RDANA report: ' + error.message,
+              background: '#fdecea',
+              color: '#b91c1c',
+              iconColor: '#dc2626',
+              confirmButtonColor: '#b91c1b',
+              timer: 3000,
+              showConfirmButton: true,
+              customClass: {
+                popup: 'swal2-popup-error-clean',
+                title: 'swal2-title-error-clean',
+                content: 'swal2-text-error-clean'
+              }
+            });
+          } finally {
+            newSubmitBtn.disabled = false;
+            newSubmitBtn.textContent = "Submit Report";
+          }
+        }); // Close auth.onAuthStateChanged
+      }); // Close newSubmitBtn.addEventListener
+    } // Close if (submitBtn)
+  }); // Close nextBtn4.addEventListener
+} // Close if (nextBtn4)
 
   // Only add event listeners for search and sort if the elements exist
   if (searchInput && sortSelect) {
