@@ -48,12 +48,10 @@ function highlightReportFromURL() {
     const urlParams = new URLSearchParams(window.location.search);
     const donationId = urlParams.get('reportId');
     console.log(`Attempting to display donation with donationId: ${donationId} at ${new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' })}`);
-
     if (!donationId) {
         console.log("No donationId found in URL");
         return;
     }
-
     // Query Firebase for the donation
     firebase.database().ref('callfordonation')
         .orderByChild('donationId')
@@ -66,9 +64,7 @@ function highlightReportFromURL() {
                 snapshot.forEach((childSnapshot) => {
                     donation = { ...childSnapshot.val(), firebaseKey: childSnapshot.key };
                 });
-
                 console.log(`Found donation in Firebase:`, donation);
-
                 // Format donation details for display
                 const fullAddress = donation.address?.fullAddress || donation.dropOff || 'N/A';
                 const donationDetails = `
@@ -81,9 +77,9 @@ function highlightReportFromURL() {
                         <p><strong>Account Name:</strong> ${donation.account?.name || 'N/A'}</p>
                         <p><strong>Account Number:</strong> ${donation.account?.number || 'N/A'}</p>
                         <p><strong>Full Address:</strong> ${fullAddress}</p>
-                        <p><strong>Facebook Link:</strong> 
-                            ${donation.facebookLink && donation.facebookLink !== 'N/A' 
-                                ? `<a href="${donation.facebookLink}" target="_blank" rel="noopener noreferrer" style="color: #1e88e5; text-decoration: underline;">Visit Page</a>` 
+                        <p><strong>Facebook Link:</strong>
+                            ${donation.facebookLink && donation.facebookLink !== 'N/A'
+                                ? `<a href="${donation.facebookLink}" target="_blank" rel="noopener noreferrer" style="color: #1e88e5; text-decoration: underline;">Visit Page</a>`
                                 : 'N/A'}
                         </p>
                         <p><strong>Status:</strong> ${donation.status || 'N/A'}</p>
@@ -91,7 +87,6 @@ function highlightReportFromURL() {
                         ${donation.image ? `<p style="margin-top: 15px;"><strong>Image:</strong></p><img src="${donation.image}" alt="Donation Image" style="max-width: 100%; max-height: 250px; border-radius: 5px; margin-top: 10px;" />` : ''}
                     </div>
                 `;
-
                 // Display donation details in a Swal popup
                 Swal.fire({
                     title: `Donation ${donationId}`,
@@ -152,15 +147,16 @@ document.addEventListener('DOMContentLoaded', () => {
         appId: "1:593123849917:web:eb85a63a536eeff78ce9d4",
         measurementId: "G-ZTQ9VXXVV0"
     };
-
     // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const database = firebase.database();
-
     const userRole = localStorage.getItem('userRole');
     let currentOrganization = 'Unknown Group'; // Global variable to store organization
-
+    // archived
+    let archivedCurrentPage = 1;
+    let allArchivedDonations = [];
+    let filteredAndSortedArchivedDonations = [];
     // DOM elements
     const form = document.getElementById('form-container-1');
     const tableBody = document.querySelector('#donationTable tbody');
@@ -173,24 +169,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const paginationContainer = document.getElementById("pagination");
     const clearFormBtn = document.getElementById("clearFormBtn");
     const submitButton = document.getElementById('nextBtn');
-
     const regionSelect = document.getElementById('region');
     const provinceSelect = document.getElementById('province');
     const citySelect = document.getElementById('city');
     const barangaySelect = document.getElementById('barangay');
-
     const regionTextInput = document.getElementById('region-text');
     const provinceTextInput = document.getElementById('province-text');
     const cityTextInput = document.getElementById('city-text');
     const barangayTextInput = document.getElementById('barangay-text');
-
+    // archived
+    const viewArchivedBtn = document.getElementById("viewArchived");
+    const archivedTableBody = document.querySelector('#archivedTable tbody');
+    const archivedEntriesInfo = document.getElementById('archivedEntriesInfo');
+    const archivedPaginationContainer = document.getElementById("archivedPagination");
+    const closeArchivedModalBtn = document.getElementById("closeArchivedModalBtn");
     const rowsPerPage = 10;
     let currentPage = 1;
     let allDonations = [];
     let filteredAndSortedDonations = [];
     let formHasChanges = false;
     let canSubmit = false; // Flag to control submission eligibility
-
     // Event listeners to the form inputs to track changes
     if (form) {
         form.addEventListener('input', () => {
@@ -200,10 +198,8 @@ document.addEventListener('DOMContentLoaded', () => {
             formHasChanges = true;
         });
     }
-
     // Base path for JSON files
     const baseJsonPath = '../json/';
-
     // --- Authentication and Role-Based Submission ---
     auth.onAuthStateChanged(async (user) => {
         if (user) {
@@ -223,7 +219,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                     return;
                 }
-
                 // Password reset check
                 const passwordNeedsReset = userDataFromDb.password_needs_reset || false;
                 if (passwordNeedsReset) {
@@ -242,12 +237,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                     return;
                 }
-
                 // Role-based submission eligibility check
                 const currentUserRole = userDataFromDb.role;
                 currentOrganization = userDataFromDb.organization || 'Unknown Group'; // Store organization globally
                 console.log('User Role:', currentUserRole, 'Organization:', currentOrganization);
-
                 if (currentUserRole === 'AB ADMIN') {
                     console.log('AB ADMIN role detected. Submission allowed.');
                     canSubmit = true;
@@ -271,13 +264,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         });
                         return;
                     }
-
                     // Check for active activations
                     const organizationActivationsSnapshot = await database.ref("activations")
                         .orderByChild("organization")
                         .equalTo(currentOrganization)
                         .once('value');
-
                     let organizationHasActiveActivations = false;
                     organizationActivationsSnapshot.forEach(childSnapshot => {
                         if (childSnapshot.val().status === "active") {
@@ -285,7 +276,6 @@ document.addEventListener('DOMContentLoaded', () => {
                             return true;
                         }
                     });
-
                     if (organizationHasActiveActivations) {
                         console.log(`Organization "${currentOrganization}" has active operations. Submission allowed.`);
                         canSubmit = true;
@@ -327,9 +317,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                     return;
                 }
-
                 // Load donations from Firebase
-                const dbRef = firebase.database().ref('callfordonation');
+                const dbRef = firebase.database().ref('callfordonation/approved');
                 dbRef.on('value', (snapshot) => {
                     const data = snapshot.val();
                     allDonations = [];
@@ -343,11 +332,24 @@ document.addEventListener('DOMContentLoaded', () => {
                     console.error("Error fetching donations from Firebase:", error);
                     Swal.fire('Error', 'Failed to load donations from the database.', 'error');
                 });
-
+                // archived
+                const archivedDbRef = firebase.database().ref('callfordonation/archivedCallforDonation');
+                archivedDbRef.on('value', (snapshot) => {
+                    const data = snapshot.val();
+                    allArchivedDonations = [];
+                    if (data) {
+                        Object.entries(data).forEach(([key, value]) => {
+                            allArchivedDonations.push({ ...value, firebaseKey: key });
+                        });
+                    }
+                    applyArchivedChange();
+                }, (error) => {
+                    console.error("Error fetching archived donations:", error);
+                    Swal.fire('Error', 'Failed to load archived donations.', 'error');
+                });
                 // Apply UI toggles based on role
                 toggleExportCsvButton();
                 updateRemoveButtonVisibility();
-
             } catch (error) {
                 console.error("Error checking user data or activations:", error);
                 Swal.fire({
@@ -380,29 +382,22 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
-
     var my_handlers = {
         fill_regions: function() {
             if (regionTextInput) regionTextInput.value = '';
             if (provinceTextInput) provinceTextInput.value = '';
             if (cityTextInput) cityTextInput.value = '';
             if (barangayTextInput) barangayTextInput.value = '';
-
             regionSelect.innerHTML = '<option value="" selected="true" disabled>Choose Region</option>';
             regionSelect.selectedIndex = 0;
-
             provinceSelect.innerHTML = '<option value="" selected="true" disabled>Choose Region First</option>';
             provinceSelect.selectedIndex = 0;
-
             citySelect.innerHTML = '<option value="" selected="true" disabled>Choose Region First</option>';
             citySelect.selectedIndex = 0;
-
             barangaySelect.innerHTML = '<option value="" selected="true" disabled>Choose Region First</option>';
             barangaySelect.selectedIndex = 0;
-
             const url = `${baseJsonPath}region.json`;
             console.log(`Fetching regions from: ${url}`);
-
             fetch(url)
                 .then(response => {
                     if (!response.ok) {
@@ -415,11 +410,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (!Array.isArray(data) || !data.every(item => item.region_code && item.region_name)) {
                         throw new Error("Invalid region data structure");
                     }
-
                     data.sort(function(a, b) {
                         return a.region_name.localeCompare(b.region_name);
                     });
-
                     data.forEach(entry => {
                         const opt = document.createElement('option');
                         opt.value = entry.region_code;
@@ -440,7 +433,6 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         fill_provinces: function() {
             var region_code = regionSelect.value;
-
             if (!region_code) {
                 Swal.fire({
                     icon: 'warning',
@@ -459,26 +451,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (barangayTextInput) barangayTextInput.value = '';
                 return;
             }
-
             var region_text = regionSelect.options[regionSelect.selectedIndex].textContent;
             if (regionTextInput) regionTextInput.value = region_text;
-
             if (provinceTextInput) provinceTextInput.value = '';
             if (cityTextInput) cityTextInput.value = '';
             if (barangayTextInput) barangayTextInput.value = '';
-
             provinceSelect.innerHTML = '<option value="" selected="true" disabled>Choose Province</option>';
             provinceSelect.selectedIndex = 0;
-
             citySelect.innerHTML = '<option value="" selected="true" disabled>Choose Province First</option>';
             citySelect.selectedIndex = 0;
-
             barangaySelect.innerHTML = '<option value="" selected="true" disabled>Choose Province First</option>';
             barangaySelect.selectedIndex = 0;
-
             const url = `${baseJsonPath}province.json`;
             console.log(`Fetching provinces from: ${url}`);
-
             fetch(url)
                 .then(response => {
                     if (!response.ok) {
@@ -491,15 +476,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (!Array.isArray(data) || !data.every(item => item.region_code && item.province_code && item.province_name)) {
                         throw new Error("Invalid province data structure");
                     }
-
                     var result = data.filter(function(value) {
                         return value.region_code == region_code;
                     });
-
                     result.sort(function(a, b) {
                         return a.province_name.localeCompare(b.province_name);
                     });
-
                     result.forEach(entry => {
                         const opt = document.createElement('option');
                         opt.value = entry.province_code;
@@ -520,7 +502,6 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         fill_cities: function() {
             var province_code = provinceSelect.value;
-
             if (!province_code) {
                 Swal.fire({
                     icon: 'warning',
@@ -536,22 +517,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (barangayTextInput) barangayTextInput.value = '';
                 return;
             }
-
             var province_text = provinceSelect.options[provinceSelect.selectedIndex].textContent;
             if (provinceTextInput) provinceTextInput.value = province_text;
-
             if (cityTextInput) cityTextInput.value = '';
             if (barangayTextInput) barangayTextInput.value = '';
-
             citySelect.innerHTML = '<option value="" selected="true" disabled>Choose City / Municipality</option>';
             citySelect.selectedIndex = 0;
-
             barangaySelect.innerHTML = '<option value="" selected="true" disabled>Choose City First</option>';
             barangaySelect.selectedIndex = 0;
-
             const url = `${baseJsonPath}city.json`;
             console.log(`Fetching cities from: ${url}`);
-
             fetch(url)
                 .then(response => {
                     if (!response.ok) {
@@ -564,15 +539,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (!Array.isArray(data) || !data.every(item => item.province_code && item.city_code && item.city_name)) {
                         throw new Error("Invalid city data structure");
                     }
-
                     var result = data.filter(function(value) {
                         return value.province_code == province_code;
                     });
-
                     result.sort(function(a, b) {
                         return a.city_name.localeCompare(b.city_name);
                     });
-
                     result.forEach(entry => {
                         const opt = document.createElement('option');
                         opt.value = entry.city_code;
@@ -593,7 +565,6 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         fill_barangays: function() {
             var city_code = citySelect.value;
-
             if (!city_code) {
                 Swal.fire({
                     icon: 'warning',
@@ -606,18 +577,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (barangayTextInput) barangayTextInput.value = '';
                 return;
             }
-
             var city_text = citySelect.options[citySelect.selectedIndex].textContent;
             if (cityTextInput) cityTextInput.value = city_text;
-
             if (barangayTextInput) barangayTextInput.value = '';
-
             barangaySelect.innerHTML = '<option value="" selected="true" disabled>Choose barangay</option>';
             barangaySelect.selectedIndex = 0;
-
             const url = `${baseJsonPath}barangay.json`;
             console.log(`Fetching barangays from: ${url}`);
-
             fetch(url)
                 .then(response => {
                     if (!response.ok) {
@@ -630,15 +596,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (!Array.isArray(data) || !data.every(item => item.city_code && item.brgy_code && item.brgy_name)) {
                         throw new Error("Invalid barangay data structure");
                     }
-
                     var result = data.filter(function(value) {
                         return value.city_code == city_code;
                     });
-
                     result.sort(function(a, b) {
                         return a.brgy_name.localeCompare(b.brgy_name);
                     });
-
                     result.forEach(entry => {
                         const opt = document.createElement('option');
                         opt.value = entry.brgy_code;
@@ -662,7 +625,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (barangayTextInput) barangayTextInput.value = barangay_text;
         },
     };
-
     // Function to control the visibility of the Export CSV button
     function toggleExportCsvButton() {
         if (exportCsvButton) {
@@ -673,7 +635,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     }
-
     // Function to enable/disable form elements
     function toggleFormElements(enable) {
         const formContainer = document.getElementById('form-container-1');
@@ -692,14 +653,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const donationImage = document.getElementById('donationImage');
         const address = document.getElementById('address');
         const facebookLink = document.getElementById('facebookLink');
-
         if (submitButton) {
             submitButton.disabled = !enable;
             console.log(`Submit button ${enable ? 'enabled' : 'disabled'} via toggleFormElements.`);
         } else {
             console.error('Submit button element not found (ID: nextBtn) in toggleFormElements.');
         }
-
         if (donationDrive) donationDrive.disabled = !enable;
         if (contactPerson) contactPerson.disabled = !enable;
         if (contactNumber) contactNumber.disabled = !enable;
@@ -709,7 +668,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (address) address.disabled = !enable;
         if (facebookLink) facebookLink.disabled = !enable;
     }
-
     // Function to handle the visibility of the "Remove" button only
     function updateRemoveButtonVisibility() {
         const deleteButtons = document.querySelectorAll('.deleteBtn');
@@ -723,16 +681,13 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
     }
-
     // Attach event listeners for the location dropdowns
     if (regionSelect) regionSelect.addEventListener('change', my_handlers.fill_provinces);
     if (provinceSelect) provinceSelect.addEventListener('change', my_handlers.fill_cities);
     if (citySelect) citySelect.addEventListener('change', my_handlers.fill_barangays);
     if (barangaySelect) barangaySelect.addEventListener('change', my_handlers.onchange_barangay);
-
     // Call the initial fill for regions directly on page load
     my_handlers.fill_regions();
-
     // Event listeners for search and sort
     searchInput?.addEventListener('input', applyFilters);
     sortSelect?.addEventListener('change', () => {
@@ -748,12 +703,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         applyFilters();
     });
-
     function applyChange() {
         filteredAndSortedDonations = [...allDonations];
         renderTable();
     }
-
+    // archived
+    function applyArchivedChange() {
+        filteredAndSortedArchivedDonations = [...allArchivedDonations];
+        archivedCurrentPage = 1;
+        renderArchivedTable();
+    }
     function applyFilters() {
         let data = [...allDonations];
         const searchTerm = searchInput.value.trim().toLowerCase();
@@ -768,7 +727,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 (d.facebookLink || '').toLowerCase().includes(searchTerm)
             );
         }
-
         const sortValue = sortSelect.value;
         if (sortValue) {
             const [field, direction] = sortValue.split('-');
@@ -790,12 +748,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 return direction === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
             });
         }
-
         filteredAndSortedDonations = data;
         currentPage = 1;
         renderTable();
     }
-
     // Clear form button event listener
     clearFormBtn.addEventListener("click", () => {
         if (formHasChanges) {
@@ -857,12 +813,10 @@ document.addEventListener('DOMContentLoaded', () => {
             errorInputs.forEach(input => input.classList.remove('error'));
         }
     });
-
     function renderTable() {
         const startIndex = (currentPage - 1) * rowsPerPage;
         const endIndex = startIndex + rowsPerPage;
         const currentPageRows = filteredAndSortedDonations.slice(startIndex, endIndex);
-
         tableBody.innerHTML = "";
         if (currentPageRows.length === 0) {
             const noDataRow = document.createElement("tr");
@@ -882,10 +836,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td>${r.address?.fullAddress || r.dropOff || 'N/A'}</td>
                     <td><a href="${r.facebookLink || '#'}" target="_blank" rel="noopener noreferrer">${r.facebookLink && r.facebookLink !== 'N/A' ? 'Visit The Page' : 'N/A'}</a></td>
                     <td>
-                        <button class="viewBtn">View Image</button>
-                        <button class="approveBtn">Approve</button>
-                        <button class="deleteBtn">Archive</button>
-                        <button class="savePDFBtn">Save PDF</button>
+                        <button class="viewBtn"><i class="bx bx-show-alt"></i></button>
+                        ${userRole === 'AB ADMIN' ? `<button class="approveBtn"><i class="bx bx-check"></i></button>` : ''}
+                        <button class="deleteBtn"><i class='bx bx-trash'></i></button>
+                        <button class="savePDFBtn"><i class="bx bxs-file-pdf"></i></button>
                     </td>
                 `;
                 tr.querySelector(".viewBtn").addEventListener("click", () => {
@@ -895,102 +849,194 @@ document.addEventListener('DOMContentLoaded', () => {
                         confirmButtonText: 'Close'
                     });
                 });
-                tr.querySelector(".approveBtn").addEventListener("click", () => {
-                    if (!r.userUid) {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: 'User UID not found in donation. Cannot approve.',
-                        });
-                        return;
-                    }
-                    database.ref(`users/${r.userUid}`).once('value')
-                        .then(snapshot => {
-                            const userData = snapshot.val();
-                            let organization = currentOrganization;
-                            if (userData && userData.organization) {
-                                organization = userData.organization;
-                                console.log(`Fetched organization for user ${r.userUid}: ${organization}`);
-                            } else {
-                                console.warn(`No organization found for user ${r.userUid}. Using default: ${organization}`);
+                if (userRole === 'AB ADMIN') {
+                    const approveBtn = tr.querySelector(".approveBtn");
+                    if (approveBtn) {
+                        approveBtn.addEventListener("click", () => {
+                            if (!r.userUid) {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error',
+                                    text: 'User UID not found in donation. Cannot approve.',
+                                });
+                                return;
                             }
-
-                            r.status = "Approved";
-
-                            // Prepare notification for the donation sender
-                            const notificationMessage = `Your donation call "${r.donationDrive}" (ID: ${r.donationId || r.firebaseKey}) has been approved.`;
-                            return Promise.all([
-                                database.ref(`callfordonation_approved`).push(r), // Fixed typo
-                                database.ref(`users/${r.userUid}/callfordonation/${r.firebaseKey}`).set({ ...r, status: "Approved" }),
-                                database.ref(`callfordonation/${r.firebaseKey}`).remove(),
-                                notifySender(notificationMessage, r.userUid, r.donationId || r.firebaseKey)
-                            ]);
-                        })
-                        .then(() => {
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Donation Approved',
-                                text: 'The donation call has been approved and the sender has been notified.',
-                                background: '#f0fdf4',
-                                color: '#065f46',
-                                iconColor: '#059669',
-                                confirmButtonColor: '#059669',
-                                customClass: {
-                                    popup: 'swal2-popup-success-clean',
-                                    title: 'swal2-title-success-clean',
-                                    content: 'swal2-text-success-clean'
-                                }
-                            });
-                        })
-                        .catch(error => {
-                            console.error("Error during donation approval or notification:", error);
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Approval Failed',
-                                text: `Failed to approve donation or send notification: ${error.message}`,
-                                background: '#fef2f2',
-                                color: '#7f1d1d',
-                                iconColor: '#dc2626',
-                                confirmButtonColor: '#b91c1c',
-                                customClass: {
-                                    popup: 'swal2-popup-error-clean',
-                                    title: 'swal2-title-error-clean',
-                                    content: 'swal2-text-error-clean'
-                                }
-                            });
+                            database.ref(`users/${r.userUid}`).once('value')
+                                .then(snapshot => {
+                                    const userData = snapshot.val();
+                                    let organization = currentOrganization;
+                                    if (userData && userData.organization) {
+                                        organization = userData.organization;
+                                        console.log(`Fetched organization for user ${r.userUid}: ${organization}`);
+                                    } else {
+                                        console.warn(`No organization found for user ${r.userUid}. Using default: ${organization}`);
+                                    }
+                                    r.status = "Approved";
+                                    const notificationMessage = `Your donation call "${r.donationDrive}" (ID: ${r.donationId || r.firebaseKey}) has been approved.`;
+                                    return Promise.all([
+                                        database.ref(`callfordonation/approved`).push(r),
+                                        database.ref(`users/${r.userUid}/callfordonation/${r.firebaseKey}`).set({ ...r, status: "Approved" }),
+                                        database.ref(`callfordonation/${r.firebaseKey}`).remove(),
+                                        notifySender(notificationMessage, r.userUid, r.donationId || r.firebaseKey)
+                                    ]);
+                                })
+                                .then(() => {
+                                    Swal.fire({
+                                        icon: 'success',
+                                        title: 'Donation Approved',
+                                        text: 'The donation call has been approved and the sender has been notified.',
+                                        background: '#f0fdf4',
+                                        color: '#065f46',
+                                        iconColor: '#059669',
+                                        confirmButtonColor: '#059669',
+                                        customClass: {
+                                            popup: 'swal2-popup-success-clean',
+                                            title: 'swal2-title-success-clean',
+                                            content: 'swal2-text-success-clean'
+                                        }
+                                    });
+                                })
+                                .catch(error => {
+                                    console.error("Error during donation approval or notification:", error);
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: 'Approval Failed',
+                                        text: `Failed to approve donation or send notification: ${error.message}`,
+                                        background: '#fef2f2',
+                                        color: '#7f1d1d',
+                                        iconColor: '#dc2626',
+                                        confirmButtonColor: '#b91c1c',
+                                        customClass: {
+                                            popup: 'swal2-popup-error-clean',
+                                            title: 'swal2-title-error-clean',
+                                            content: 'swal2-text-error-clean'
+                                        }
+                                    });
+                                });
                         });
-                });
+                    }
+                }
                 tr.querySelector(".deleteBtn").addEventListener("click", () => {
                     Swal.fire({
                         title: 'Are you sure?',
-                        text: "This donation will be deleted.",
+                        text: "This donation will be archived.",
                         icon: 'warning',
                         showCancelButton: true,
-                        confirmButtonText: 'Yes, delete it!'
-                    }).then(result => {
+                        confirmButtonText: 'Yes, archive it!',
+                        cancelButtonText: 'Cancel'
+                    }).then(async (result) => {
                         if (result.isConfirmed) {
-                            firebase.database().ref(`callfordonation/${r.firebaseKey}`).remove()
-                                .then(() => {
-                                    Swal.fire('Deleted!', 'The donation has been removed.', 'success');
-                                })
-                                .catch(error => {
-                                    console.error("Error deleting donation:", error);
-                                    Swal.fire('Error', 'Failed to delete the donation.', 'error');
-                                });
+                            try {
+                                const donationRef = firebase.database().ref(`callfordonation/approved/${r.firebaseKey}`);
+                                const snapshot = await donationRef.once('value');
+                                const donationData = snapshot.val();
+                                if (!donationData) {
+                                    throw new Error("Donation data not found.");
+                                }
+                                const archivedDonation = {
+                                    ...donationData,
+                                    archivedTimestamp: Date.now(),
+                                    archivedBy: userRole || 'Unknown',
+                                    archiveReason: 'Archived by user'
+                                };
+                                await firebase.database().ref('callfordonation/archivedCallforDonation').push(archivedDonation);
+                                await donationRef.remove();
+                                const message = `Donation "${donationData.donationDrive}" archived by ${userRole} from ${currentOrganization} on ${new Date().toLocaleDateString('en-US')}.`;
+                                await notifyAdmin(
+                                    message,
+                                    null,
+                                    null,
+                                    null,
+                                    donationData.donationId,
+                                    donationData.contact?.person || 'Unknown',
+                                    currentOrganization
+                                );
+                                Swal.fire('Archived!', 'The donation has been archived.', 'success');
+                            } catch (error) {
+                                console.error("Error archiving donation:", error);
+                                Swal.fire('Error', 'Failed to archive the donation.', 'error');
+                            }
                         }
                     });
                 });
                 tr.querySelector(".savePDFBtn").addEventListener("click", () => saveSingleCfdDonationPdf(r));
-
                 tableBody.appendChild(tr);
             });
         }
-
         updatePaginationInfo();
         renderPagination();
         updateRemoveButtonVisibility();
     }
-
+    function renderArchivedTable() {
+        const startIndex = (archivedCurrentPage - 1) * rowsPerPage;
+        const endIndex = startIndex + rowsPerPage;
+        const currentPageRows = filteredAndSortedArchivedDonations.slice(startIndex, endIndex);
+        archivedTableBody.innerHTML = "";
+        if (currentPageRows.length === 0) {
+            archivedTableBody.innerHTML = `<tr><td colspan="8" style="text-align: center;">No archived donations found.</td></tr>`;
+        } else {
+            currentPageRows.forEach((r, i) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${startIndex + i + 1}</td>
+                    <td>${r.donationDrive || 'N/A'}</td>
+                    <td>${r.contact?.person || 'N/A'}</td>
+                    <td>${String(r.contact?.number || 'N/A')}</td>
+                    <td>${String(r.account?.number || 'N/A')}</td>
+                    <td>${r.account?.name || 'N/A'}</td>
+                    <td>${r.address?.fullAddress || r.dropOff || 'N/A'}</td>
+                    <td><a href="${r.facebookLink || '#'}" target="_blank" rel="noopener noreferrer">${r.facebookLink && r.facebookLink !== 'N/A' ? 'Visit The Page' : 'N/A'}</a></td>
+                    <td>
+                        ${userRole === 'AB ADMIN' ? `<button class="retrieveBtn"><p>Retrieve</p></i></button>` : ''}
+                    </td>
+                `;
+                if (userRole === 'AB ADMIN') {
+                    tr.querySelector(".retrieveBtn").addEventListener("click", () => {
+                        Swal.fire({
+                            title: 'Retrieve Donation?',
+                            text: `Are you sure you want to retrieve "${r.donationDrive}"?`,
+                            icon: 'question',
+                            showCancelButton: true,
+                            confirmButtonText: 'Yes, retrieve it!',
+                            cancelButtonText: 'Cancel'
+                        }).then(async (result) => {
+                            if (result.isConfirmed) {
+                                try {
+                                    const archivedRef = firebase.database().ref(`callfordonation/archivedCallforDonation/${r.firebaseKey}`);
+                                    const snapshot = await archivedRef.once('value');
+                                    const donationData = snapshot.val();
+                                    if (!donationData) {
+                                        throw new Error("Archived donation data not found.");
+                                    }
+                                    const { archivedTimestamp, archivedBy, archiveReason, ...restoredDonation } = donationData;
+                                    await firebase.database().ref('callfordonation/approved').push(restoredDonation);
+                                    await archivedRef.remove();
+                                    const message = `Donation "${donationData.donationDrive}" retrieved by ${userRole} from ${currentOrganization} on ${new Date().toLocaleDateString('en-US')}.`;
+                                    await notifyAdmin(
+                                        message,
+                                        null,
+                                        null,
+                                        null,
+                                        donationData.donationId,
+                                        donationData.contact?.person || 'Unknown',
+                                        currentOrganization
+                                    );
+                                    Swal.fire('Retrieved!', 'The donation has been restored.', 'success');
+                                    document.getElementById('archivedModal').style.display = 'none';
+                                } catch (error) {
+                                    console.error("Error retrieving donation:", error);
+                                    Swal.fire('Error', 'Failed to retrieve the donation.', 'error');
+                                }
+                            }
+                        });
+                    });
+                }
+                archivedTableBody.appendChild(tr);
+            });
+        }
+        updateArchivedPaginationInfo();
+        renderArchivedPagination();
+    }
     function updatePaginationInfo() {
         const totalEntries = filteredAndSortedDonations.length;
         const startEntry = (currentPage - 1) * rowsPerPage + 1;
@@ -1000,7 +1046,57 @@ document.addEventListener('DOMContentLoaded', () => {
             entriesInfo.textContent = `Showing 0 to 0 of 0 entries`;
         }
     }
-
+    // archived
+    function updateArchivedPaginationInfo() {
+        const totalEntries = filteredAndSortedArchivedDonations.length;
+        const startEntry = (archivedCurrentPage - 1) * rowsPerPage + 1;
+        const endEntry = Math.min(archivedCurrentPage * rowsPerPage, totalEntries);
+        archivedEntriesInfo.textContent = `Showing ${startEntry} to ${endEntry} of ${totalEntries} entries`;
+        if (totalEntries === 0) {
+            archivedEntriesInfo.textContent = `Showing 0 to 0 of 0 entries`;
+        }
+    }
+    function createArchivedPaginationButton(label, page, disabled = false, isActive = false) {
+        const btn = document.createElement('button');
+        btn.textContent = label;
+        if (disabled) btn.disabled = true;
+        if (isActive) btn.classList.add('active-page');
+        btn.addEventListener('click', () => {
+            if (!disabled) {
+                archivedCurrentPage = page;
+                renderArchivedTable();
+            }
+        });
+        return btn;
+    }
+    function renderArchivedPagination() {
+        archivedPaginationContainer.innerHTML = '';
+        const totalPages = Math.ceil(filteredAndSortedArchivedDonations.length / rowsPerPage);
+        if (totalPages === 0) {
+            archivedPaginationContainer.innerHTML = '<span>No archived entries to display</span>';
+            return;
+        }
+        archivedPaginationContainer.appendChild(createArchivedPaginationButton('Prev', Math.max(1, archivedCurrentPage - 1), archivedCurrentPage === 1));
+        const maxVisible = 5;
+        let startPage = Math.max(1, archivedCurrentPage - Math.floor(maxVisible / 2));
+        let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+        if (endPage - startPage < maxVisible - 1) {
+            startPage = Math.max(1, endPage - maxVisible + 1);
+        }
+        for (let i = startPage; i <= endPage; i++) {
+            archivedPaginationContainer.appendChild(createArchivedPaginationButton(i, i, false, i === archivedCurrentPage));
+        }
+        archivedPaginationContainer.appendChild(createArchivedPaginationButton('Next', Math.min(totalPages, archivedCurrentPage + 1), archivedCurrentPage === totalPages));
+    }
+    // Archived
+    viewArchivedBtn.addEventListener('click', () => {
+        const modal = document.getElementById('archivedModal');
+        modal.style.display = 'flex';
+        applyArchivedChange();
+    });
+    closeArchivedModalBtn.addEventListener('click', () => {
+        document.getElementById('archivedModal').style.display = 'none';
+    });
     const createPaginationButton = (label, page, disabled = false, isActive = false) => {
         const btn = document.createElement('button');
         btn.textContent = label;
@@ -1014,36 +1110,28 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         return btn;
     };
-
     function renderPagination() {
         paginationContainer.innerHTML = '';
         const totalPages = Math.ceil(filteredAndSortedDonations.length / rowsPerPage);
-
         if (totalPages === 0) {
             paginationContainer.innerHTML = '<span>No entries to display</span>';
             return;
         }
-
         paginationContainer.appendChild(createPaginationButton('Prev', Math.max(1, currentPage - 1), currentPage === 1));
-
         const maxVisible = 5;
         let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
         let endPage = Math.min(totalPages, startPage + maxVisible - 1);
         if (endPage - startPage < maxVisible - 1) {
             startPage = Math.max(1, endPage - maxVisible + 1);
         }
-
         for (let i = startPage; i <= endPage; i++) {
             paginationContainer.appendChild(createPaginationButton(i, i, false, i === currentPage));
         }
-
         paginationContainer.appendChild(createPaginationButton('Next', Math.min(totalPages, currentPage + 1), currentPage === totalPages));
     }
-
     if (submitButton) {
         submitButton.addEventListener('click', (e) => {
             e.preventDefault();
-
             // Check if submission is allowed
             if (!canSubmit) {
                 Swal.fire({
@@ -1058,7 +1146,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 return;
             }
-
             const donationDrive = document.getElementById('donationDrive')?.value.trim();
             const contactPerson = document.getElementById('contactPerson')?.value.trim();
             const contactNumber = document.getElementById('contactNumber')?.value.trim();
@@ -1071,43 +1158,34 @@ document.addEventListener('DOMContentLoaded', () => {
             const address = document.getElementById('address')?.value.trim();
             const facebookLink = document.getElementById('facebookLink')?.value.trim();
             const imageFile = document.getElementById('donationImage')?.files[0];
-
             if (!donationDrive || !contactPerson || !contactNumber || !accountNumber || !accountName || !region || !province || !city || !barangay || !address) {
                 Swal.fire('Error', "Please fill in all required fields, including the full address (Region, Province, City, Barangay, and Address).", 'error');
                 return;
             }
-
             async function saveDonation(base64Image) {
                 // Function to generate a unique donation ID
                 async function generateUniqueDonationId() {
                     let attempts = 0;
                     const maxAttempts = 3;
-
                     while (attempts < maxAttempts) {
                         const randomNum = Math.floor(100 + Math.random() * 900); // Generate 100–999
                         const donationId = `DONATION-${randomNum}`;
-
                         // Check if ID exists in callfordonation
                         const snapshot = await firebase.database().ref("callfordonation")
                             .orderByChild("donationId")
                             .equalTo(donationId)
                             .once("value");
-
                         if (!snapshot.exists()) {
                             return donationId; // ID is unique
                         }
-
                         attempts++;
                         console.log(`Donation ID ${donationId} already exists, retrying (${attempts}/${maxAttempts})`);
                     }
-
                     throw new Error("Unable to generate a unique donation ID after multiple attempts.");
                 }
-
                 try {
                     // Generate unique donation ID
                     const donationId = await generateUniqueDonationId();
-
                     const newDonation = {
                         donationId: donationId, // e.g., DONATION-914
                         dateTime: new Date().toISOString(),
@@ -1135,43 +1213,34 @@ document.addEventListener('DOMContentLoaded', () => {
                         userUid: auth.currentUser.uid,
                         timestamp: Date.now()
                     };
-
                     // Save to Firebase under the 'callfordonation' node
                     const snapshot = await firebase.database().ref('callfordonation').push(newDonation);
                     const donationKey = snapshot.key;
-
                     // Notify admin after successful save
                     const timestamp = Date.now();
                     const message = `New donation call "${donationDrive}" submitted by ${contactPerson} from ${currentOrganization} on ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} at ${new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })} PST.`;
-                    await notifyAdmin(message, null, null, null, donationId, contactPerson, currentOrganization, `donation_${donationId}_${timestamp}`);
-
+                    await notifyAdmin(message, null, null, null, donationId, contactPerson, currentOrganization);
                     // Clear form fields after successful submission
                     document.getElementById('donationDrive').value = '';
                     document.getElementById('contactPerson').value = '';
                     document.getElementById('contactNumber').value = '';
                     document.getElementById('accountNumber').value = '';
                     document.getElementById('accountName').value = '';
-
                     my_handlers.fill_regions(); // Reset location dropdowns
-
                     document.getElementById('address').value = '';
                     document.getElementById('facebookLink').value = '';
                     document.getElementById('donationImage').value = '';
-
                     if (regionTextInput) regionTextInput.value = '';
                     if (provinceTextInput) provinceTextInput.value = '';
                     if (cityTextInput) cityTextInput.value = '';
                     if (barangayTextInput) barangayTextInput.value = '';
-
                     formHasChanges = false;
-
                     Swal.fire('Success', 'Donation added successfully!', 'success');
                 } catch (error) {
                     console.error("Error saving donation to Firebase:", error);
                     Swal.fire('Error', 'Failed to save the donation: ' + error.message, 'error');
                 }
             }
-
             if (imageFile) {
                 const reader = new FileReader();
                 reader.onload = function(event) {
@@ -1185,14 +1254,12 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
         console.error('Submit button not found in DOM (ID: nextBtn). Please verify the HTML.');
     }
-
     // --- Excel Export Functionality ---
     exportBtn.addEventListener("click", () => {
         if (filteredAndSortedDonations.length === 0) {
             Swal.fire("Info", "No data to export!", "info");
             return;
         }
-
         const dataForExport = filteredAndSortedDonations.map((d, i) => ({
             "No.": i + 1,
             "Donation Drive": d.donationDrive || '',
@@ -1210,18 +1277,15 @@ document.addEventListener('DOMContentLoaded', () => {
             "Status": d.status || '',
             "Submitted Date/Time": new Date(d.dateTime).toLocaleString() || ''
         }));
-
         // Check if XLSX library is loaded
         if (typeof XLSX === 'undefined') {
             Swal.fire("Error", "XLSX library not loaded. Please ensure `xlsx.full.min.js` is included in your HTML.", "error");
             console.error("XLSX library is not loaded.");
             return;
         }
-
         const ws = XLSX.utils.json_to_sheet(dataForExport);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Call for Donations");
-
         // Get current date and format it for the filename
         const today = new Date();
         const year = today.getFullYear();
@@ -1233,27 +1297,22 @@ document.addEventListener('DOMContentLoaded', () => {
         XLSX.writeFile(wb, filename);
         Swal.fire("Success", `Call for Donations data exported to ${filename}!`, "success");
     });
-
     // --- PDF Export Functionality ---
     savePdfBtn.addEventListener("click", () => {
         if (filteredAndSortedDonations.length === 0) {
             Swal.fire("Info", "No data to export to PDF!", "info");
             return;
         }
-
         if (typeof window.jspdf === 'undefined' || typeof window.jspdf.jsPDF === 'undefined') {
             Swal.fire("Error", "jsPDF library not loaded. Please ensure `jspdf.umd.min.js` and `jspdf.autotable.min.js` are included in your HTML.", "error");
             console.error("jsPDF library is not loaded.");
             return;
         }
-
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF('landscape');
-
         let yOffset = 20;
         const logo = new Image();
         logo.src = '../assets/images/AB_logo.png';
-
         // Show a loading indicator while the PDF is being generated
         Swal.fire({
             title: 'Generating PDF...',
@@ -1263,28 +1322,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 Swal.showLoading();
             }
         });
-
         logo.onload = function() {
             const pageWidth = doc.internal.pageSize.width;
             const logoWidth = 30;
             const logoHeight = (logo.naturalHeight / logo.naturalWidth) * logoWidth;
             const margin = 14;
-
             doc.addImage(logo, 'PNG', pageWidth - logoWidth - margin, margin, logoWidth, logoHeight);
-
             doc.setFontSize(18);
             doc.text("Call for Donations Report", 14, yOffset);
             yOffset += 10;
             doc.setFontSize(10);
             doc.text(`Report Generated: ${new Date().toLocaleString()}`, 14, yOffset);
             yOffset += 15;
-
             const head = [[
                 "No.", "Donation Drive", "Contact Person", "Contact Number",
                 "Account Number", "Account Name", "Full Address", "Facebook Link",
                 "Status", "Submission Date/Time"
             ]];
-
             const body = filteredAndSortedDonations.map((d, i) => [
                 i + 1,
                 d.donationDrive || 'N/A',
@@ -1297,7 +1351,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 d.status || 'N/A',
                 new Date(d.dateTime).toLocaleString() || 'N/A'
             ]);
-
             doc.autoTable({
                 head: head,
                 body: body,
@@ -1319,35 +1372,29 @@ document.addEventListener('DOMContentLoaded', () => {
                     const pageWidth = doc.internal.pageSize.width;
                     const margin = data.settings.margin.left;
                     const footerY = doc.internal.pageSize.height - 10;
-
                     doc.text(pageNumberText, margin, footerY);
                     doc.text(poweredByText, pageWidth - margin, footerY, { align: 'right' });
                 }
             });
-
             const today = new Date();
             const year = today.getFullYear();
             const month = String(today.getMonth() + 1).padStart(2, '0');
             const day = String(today.getDate()).padStart(2, '0');
             const formattedDate = `${year}-${month}-${day}`;
-
             const filename = `call-for-donations_${formattedDate}.pdf`;
             doc.save(filename);
             Swal.close();
             Swal.fire("Success", `Call for Donations data exported to "${filename}"`, "success");
         };
-
         logo.onerror = function() {
             Swal.close(); // Close loading Swal
             Swal.fire("Error", "Failed to load logo image. Please check the path.", "error");
         };
     });
-
     // --- Save Single CFD Donation to PDF ---
     function saveSingleCfdDonationPdf(donation) {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
-
         Swal.fire({
             title: 'Generating PDF...',
             text: 'Please wait while your PDF is being created.',
@@ -1356,30 +1403,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 Swal.showLoading();
             }
         });
-
         const logo = new Image();
         logo.src = '../assets/images/AB_logo.png';
-
         logo.onload = function() {
             const pageWidth = doc.internal.pageSize.width;
             const logoWidth = 30;
             const logoHeight = (logo.naturalHeight / logo.naturalWidth) * logoWidth;
             const margin = 14;
-
             doc.addImage(logo, 'PNG', pageWidth - logoWidth - margin, margin, logoWidth, logoHeight);
-
             doc.setFontSize(18);
             doc.text("Call for Donation Details", margin, 22);
             doc.setFontSize(10);
             doc.text(`Report Generated: ${new Date().toLocaleString()}`, margin, 30);
-
             let y = 45;
-
             const addDetail = (label, value) => {
                 doc.text(`${label}: ${value || 'N/A'}`, margin, y);
                 y += 7;
             };
-
             addDetail("Donation Drive", donation.donationDrive);
             addDetail("Contact Person", donation.contact?.person);
             addDetail("Contact Number", String(donation.contact?.number || 'N/A'));
@@ -1394,7 +1434,6 @@ document.addEventListener('DOMContentLoaded', () => {
             addDetail("Facebook Link", donation.facebookLink && donation.facebookLink !== 'N/A' ? donation.facebookLink : 'N/A');
             addDetail("Status", donation.status);
             addDetail("Submitted Date/Time", new Date(donation.dateTime).toLocaleString());
-
             if (donation.image) {
                 y += 10;
                 const imgWidth = 80;
@@ -1408,18 +1447,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 y += 5;
                 doc.addImage(donation.image, 'JPEG', imgX, y, imgWidth, imgHeight);
             }
-
             // Footer
             doc.setFontSize(8);
             const footerY = doc.internal.pageSize.height - 10;
             const pageNumberText = `Page 1 of 1`;
             const poweredByText = "Powered by: Appvance";
-
             doc.text(pageNumberText, margin, footerY);
             doc.text(poweredByText, pageWidth - margin, footerY, { align: 'right' });
-
             doc.save(`cfd_donation_${new Date().toISOString().slice(0, 10)}.pdf`);
-
             Swal.close();
             Swal.fire({
                 title: 'Export Successful!',
@@ -1437,13 +1472,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         };
-
         logo.onerror = function() {
             Swal.close(); // Close loading Swal
             Swal.fire("Error", "Failed to load logo image. Please check the path.", "error");
         };
     }
-
     // Initial calls when the DOM content is loaded
     toggleExportCsvButton();
     updateRemoveButtonVisibility();
