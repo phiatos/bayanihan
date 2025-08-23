@@ -9,7 +9,6 @@ document.addEventListener('DOMContentLoaded', () => {
         appId: "1:593123849917:web:eb85a63a536eeff78ce9d4",
         measurementId: "G-ZTQ9VXXVV0",
     };
-
     let database, auth;
     try {
         firebase.initializeApp(firebaseConfig);
@@ -24,8 +23,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         return;
     }
-
     let submittedReports = [];
+    let archivedReports = [];
     const submittedReportsContainer = document.getElementById("submittedReportsContainer");
     const paginationContainer = document.getElementById("pagination");
     const entriesInfo = document.getElementById("entriesInfo");
@@ -33,8 +32,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const sortSelect = document.getElementById("sortSelect");
     let currentPage = 1;
     const rowsPerPage = 5;
-
-    if (!submittedReportsContainer || !paginationContainer || !entriesInfo || !searchInput || !sortSelect) {
+    // Archived reports elements
+    const archivedModal = document.getElementById("archivedModal");
+    const archivedTableBody = document.querySelector("#archivedTable tbody");
+    const archivedPagination = document.getElementById("archivedPagination");
+    const archivedEntriesInfo = document.getElementById("archivedEntriesInfo");
+    const closeArchivedModalBtn = document.getElementById("closeArchivedModalBtn");
+    const viewArchivedBtn = document.getElementById("viewArchived");
+    let currentArchivedPage = 1;
+    const archivedRowsPerPage = 5;
+    if (!submittedReportsContainer || !paginationContainer || !entriesInfo || !searchInput || !sortSelect || !archivedTableBody || !archivedPagination || !archivedEntriesInfo || !closeArchivedModalBtn || !viewArchivedBtn) {
         console.error("Required DOM elements not found");
         Swal.fire({
             icon: 'error',
@@ -43,7 +50,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         return;
     }
-
     auth.onAuthStateChanged(user => {
         if (!user) {
             Swal.fire({
@@ -55,10 +61,8 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             return;
         }
-
         loadReportsFromFirebase();
     });
-
     function formatDate(dateStr) {
         const date = new Date(dateStr);
         if (isNaN(date)) return dateStr || "-";
@@ -68,7 +72,6 @@ document.addEventListener('DOMContentLoaded', () => {
             day: "numeric"
         });
     }
-
     function formatTime(timeStr) {
         if (!timeStr) return "-";
         let date;
@@ -84,11 +87,9 @@ document.addEventListener('DOMContentLoaded', () => {
             hour12: true
         });
     }
-
     function formatWithCommas(value) {
         return value != null ? Number(value).toLocaleString() : "-";
     }
-
     function formatCompact(value) {
         return value != null
             ? new Intl.NumberFormat('en', {
@@ -97,7 +98,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }).format(value)
             : "-";
     }
-
     function formatCurrency(value) {
         return value != null
             ? new Intl.NumberFormat('en-PH', {
@@ -107,9 +107,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }).format(value)
             : "-";
     }
-
+    function isValidReport(report) {
+        return report.firebaseKey &&
+               (report.ReportID && report.ReportID !== "-") &&
+               (report.VolunteerGroupName && report.VolunteerGroupName !== "[Unknown Org]") &&
+               (report.AreaOfOperation && report.AreaOfOperation !== "-");
+    }
     function transformReportData(report) {
-        return {
+        const transformed = {
             firebaseKey: report.firebaseKey,
             ReportID: report.reportID || report.ReportID || "-",
             VolunteerGroupName: report.organization || report.VolunteerGroupName || "[Unknown Org]",
@@ -131,10 +136,13 @@ document.addEventListener('DOMContentLoaded', () => {
             userUid: report.userUid || "-",
             submittedBy: report.submittedBy || "-",
         };
+        if (!isValidReport(transformed)) {
+            console.warn(`Invalid report data for key ${report.firebaseKey}:`, transformed);
+        }
+        return transformed;
     }
-
     function loadReportsFromFirebase() {
-        database.ref("reports/submitted").on("value", snapshot => {
+        database.ref("reports/pending").on("value", snapshot => {
             submittedReports = [];
             const reports = snapshot.val();
             if (reports) {
@@ -147,11 +155,16 @@ document.addEventListener('DOMContentLoaded', () => {
                         firebaseKey: key,
                         ...report
                     });
-                    submittedReports.push(transformedReport);
+                    if (isValidReport(transformedReport)) {
+                        submittedReports.push(transformedReport);
+                    } else {
+                        console.warn(`Skipping invalid report ${key} from submittedReports`);
+                    }
                 });
             } else {
                 console.log("No submitted reports found in Firebase");
             }
+            console.log("Submitted Reports:", submittedReports);
             applySearchAndSort();
         }, error => {
             console.error("Error fetching reports from Firebase:", error);
@@ -162,24 +175,20 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
     }
-
     function highlightReportFromURL() {
         const urlParams = new URLSearchParams(window.location.search);
         const reportId = urlParams.get('reportId');
         console.log(`Attempting to highlight report with ReportID: ${reportId}`);
-
         if (!reportId) {
             console.log("No reportId found in URL");
             return;
         }
-
         const attemptHighlight = () => {
             const reportRow = document.querySelector(`tr[data-id="${reportId}"]`);
             if (reportRow) {
                 console.log(`Found report row with data-id: ${reportId}`);
                 reportRow.style.backgroundColor = "#e0f7fa"; // Light cyan highlight
                 reportRow.scrollIntoView({ behavior: "smooth", block: "center" });
-
                 // Add "New" badge if not already present
                 const badgeCell = reportRow.querySelector("td:first-child") || reportRow;
                 if (!badgeCell.querySelector(".new-badge")) {
@@ -196,7 +205,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     `;
                     badgeCell.prepend(badge);
                 }
-
                 // Remove highlight after 5 seconds
                 setTimeout(() => {
                     reportRow.style.backgroundColor = "";
@@ -210,10 +218,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
         };
-
         // Try immediately
         attemptHighlight();
-
         // Use MutationObserver to detect table updates
         const observer = new MutationObserver(() => {
             const reportRow = document.querySelector(`tr[data-id="${reportId}"]`);
@@ -223,12 +229,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 observer.disconnect();
             }
         });
-
         observer.observe(submittedReportsContainer, {
             childList: true,
             subtree: true
         });
-
         // Fallback: Retry after 2 seconds
         setTimeout(() => {
             const reportRow = document.querySelector(`tr[data-id="${reportId}"]`);
@@ -241,25 +245,25 @@ document.addEventListener('DOMContentLoaded', () => {
             observer.disconnect();
         }, 2000);
     }
-
     function renderReportsTable(reports, filteredReports) {
         submittedReportsContainer.innerHTML = '';
         const totalEntries = filteredReports.length;
         const totalPages = Math.ceil(totalEntries / rowsPerPage);
-
         if (reports.length === 0) {
-            submittedReportsContainer.innerHTML = "<tr><td colspan='9'>No approved reports found on this page.</td></tr>";
+            submittedReportsContainer.innerHTML = "<tr><td colspan='8'>No reports found on this page.</td></tr>";
             entriesInfo.textContent = "Showing 0 to 0 of 0 entries";
             renderPaginationControlsForReports(totalPages, filteredReports);
             highlightReportFromURL();
             return;
         }
-
         reports.forEach((report, index) => {
+            if (!isValidReport(report)) {
+                console.warn(`Skipping rendering invalid report ${report.firebaseKey}`);
+                return;
+            }
             const tr = document.createElement('tr');
             const displayIndex = (currentPage - 1) * rowsPerPage + index + 1;
             tr.setAttribute('data-id', report.ReportID || report.firebaseKey); // Use ReportID, fallback to firebaseKey
-
             tr.innerHTML = `
                 <td>${displayIndex}</td>
                 <td>${report["ReportID"] || "-"}</td>
@@ -274,13 +278,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     <button class="rejectBtn"><i class="bx bx-x-circle"></i></button>
                 </td>
             `;
-
             const viewBtn = tr.querySelector('.viewBtn');
             viewBtn.addEventListener('click', () => {
                 const modal = document.getElementById("reportModal");
                 const modalDetails = document.getElementById("modalReportDetails");
                 const closeModal = document.getElementById("closeModal");
-
                 if (!modal || !modalDetails || !closeModal) {
                     console.error("Modal elements not found");
                     Swal.fire({
@@ -290,13 +292,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                     return;
                 }
-
                 modalDetails.innerHTML = `
                     <div class="report-section">
                         <div class="form-1">
                             <h2>Basic Information</h2>
                             <p><strong>Report ID:</strong> ${report.ReportID || "-"}</p>
-                            <p><strong>Volunteer Group:</strong> ${report.VolunteerGroupName || "[Unknown Org]"}</p> 
+                            <p><strong>Volunteer Group:</strong> ${report.VolunteerGroupName || "[Unknown Org]"}</p>
                             <p><strong>Date of Report Submitted:</strong> ${formatDate(report.DateOfReport)}</p>
                             <p class="cell"><strong>Location of Operation:</strong> ${report.AreaOfOperation || "-"}</p>
                         </div>
@@ -320,20 +321,16 @@ document.addEventListener('DOMContentLoaded', () => {
                         <p><strong>Notes/Additional Information:</strong> ${report.NotesAdditionalInformation || "-"}</p>
                     </div>
                 `;
-
                 modal.classList.remove("hidden");
-
                 closeModal.addEventListener("click", () => {
                     modal.classList.add("hidden");
                 });
-
                 window.addEventListener("click", function (event) {
                     if (event.target === modal) {
                         modal.classList.add("hidden");
                     }
                 });
             });
-
             tr.querySelector('.approveBtn').addEventListener('click', () => {
                 const userUid = report.userUid;
                 if (!userUid) {
@@ -344,21 +341,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                     return;
                 }
-
                 database.ref(`users/${userUid}`).once('value')
                     .then(snapshot => {
                         const userData = snapshot.val();
                         let volunteerGroupName = "[Unknown Org]";
                         if (userData && userData.organization) {
                             volunteerGroupName = userData.organization;
-                            console.log(`Workspaceed VolunteerGroupName for user ${userUid}: ${volunteerGroupName}`);
+                            console.log(`Fetched VolunteerGroupName for user ${userUid}: ${volunteerGroupName}`);
                         } else {
                             console.warn(`No group found for user ${userUid}. Using default: [Unknown Org]`);
                         }
-
                         report["VolunteerGroupName"] = volunteerGroupName;
                         report["Status"] = "Approved";
-
                         // Prepare notification for the report sender
                         const notification = {
                             message: `Your report (ID: ${report.ReportID || report.firebaseKey}) has been approved.`,
@@ -369,16 +363,17 @@ document.addEventListener('DOMContentLoaded', () => {
                             reportId: report.firebaseKey,
                             ReportID: report.ReportID || report.firebaseKey
                         };
-
                         // Perform all database operations
                         return Promise.all([
-                            database.ref(`reports/approved`).push(report),
+                            database.ref(`reports/approved/${report.firebaseKey}`).set(report),
                             database.ref(`users/${userUid}/reports/${report.firebaseKey}`).set({ ...report, Status: "Approved" }),
-                            database.ref(`reports/submitted/${report.firebaseKey}`).remove(),
+                            database.ref(`reports/pending/${report.firebaseKey}`).remove(),
                             database.ref(`notifications`).push(notification)
                         ]);
                     })
                     .then(() => {
+                        submittedReports = submittedReports.filter(r => r.firebaseKey !== report.firebaseKey);
+                        applySearchAndSort();
                         Swal.fire({
                             icon: 'success',
                             title: 'Report Approved',
@@ -412,7 +407,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         });
                     });
             });
-
             tr.querySelector('.rejectBtn').addEventListener('click', () => {
                 const userUid = report.userUid;
                 if (!userUid) {
@@ -423,55 +417,76 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                     return;
                 }
-
-                Promise.all([
-                    database.ref(`reports/submitted/${report.firebaseKey}`).remove(),
-                    database.ref(`users/${userUid}/reports/${report.firebaseKey}`).remove()
-                ])
-                    .then(() => {
-                        Swal.fire({
-                            icon: 'info',
-                            title: 'Report Rejected',
-                            text: 'The report has been rejected and removed.',
-                            background: '#fef2f2',
-                            color: '#7f1d1d',
-                            iconColor: '#dc2626',
-                            confirmButtonColor: '#b91c1c',
-                            customClass: {
-                                popup: 'swal2-popup-rejected-clean',
-                                title: 'swal2-title-rejected-clean',
-                                content: 'swal2-text-rejected-clean'
-                            }
-                        });
-                    })
-                    .catch(error => {
-                        console.error("Error during report rejection:", error);
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: 'Failed to reject report: ' + error.message,
-                        });
-                    });
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Confirm Rejection',
+                    text: 'Are you sure you want to reject this report? It will be moved to archived reports.',
+                    showCancelButton: true,
+                    confirmButtonColor: '#b91c1c',
+                    cancelButtonColor: '#6b7280',
+                    confirmButtonText: 'Yes, reject it',
+                    cancelButtonText: 'Cancel',
+                    background: '#fef2f2',
+                    color: '#7f1d1d',
+                    iconColor: '#dc2626',
+                    customClass: {
+                        popup: 'swal2-popup-rejected-clean',
+                        title: 'swal2-title-rejected-clean',
+                        content: 'swal2-text-rejected-clean'
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        report["Status"] = "Rejected";
+                        Promise.all([
+                            database.ref(`reports/archived/${report.firebaseKey}`).set(report),
+                            database.ref(`users/${userUid}/reports/${report.firebaseKey}`).set({ ...report, Status: "Rejected" }),
+                            database.ref(`reports/pending/${report.firebaseKey}`).remove()
+                        ])
+                            .then(() => {
+                                console.log(`Report ${report.firebaseKey} rejected and moved to archived`);
+                                submittedReports = submittedReports.filter(r => r.firebaseKey !== report.firebaseKey);
+                                archivedReports.push(report);
+                                applySearchAndSort();
+                                Swal.fire({
+                                    icon: 'info',
+                                    title: 'Report Rejected',
+                                    text: 'The report has been rejected and moved to archived reports.',
+                                    background: '#fef2f2',
+                                    color: '#7f1d1d',
+                                    iconColor: '#dc2626',
+                                    confirmButtonColor: '#b91c1c',
+                                    customClass: {
+                                        popup: 'swal2-popup-rejected-clean',
+                                        title: 'swal2-title-rejected-clean',
+                                        content: 'swal2-text-rejected-clean'
+                                    }
+                                });
+                            })
+                            .catch(error => {
+                                console.error("Error during report rejection:", error);
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error',
+                                    text: 'Failed to reject report: ' + error.message,
+                                });
+                            });
+                    }
+                });
             });
-
             submittedReportsContainer.appendChild(tr);
         });
-
         const firstEntry = (currentPage - 1) * rowsPerPage + 1;
         const lastEntry = Math.min(currentPage * rowsPerPage, totalEntries);
         entriesInfo.textContent = `Showing ${firstEntry} to ${lastEntry} of ${totalEntries} entries`;
         renderPaginationControlsForReports(totalPages, filteredReports);
         highlightReportFromURL();
     }
-
     function renderPaginationControlsForReports(totalPages, filteredReports) {
         paginationContainer.innerHTML = '';
-
         if (totalPages === 0) {
             paginationContainer.innerHTML = '<span>No entries to display</span>';
             return;
         }
-
         const createButton = (label, page, disabled = false, isActive = false) => {
             const btn = document.createElement('button');
             btn.textContent = label;
@@ -488,30 +503,24 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             return btn;
         };
-
         paginationContainer.appendChild(createButton('Prev', currentPage - 1, currentPage === 1));
-
         const maxVisible = 5;
         let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
         let endPage = Math.min(totalPages, startPage + maxVisible - 1);
         if (endPage - startPage < maxVisible - 1) {
             startPage = Math.max(1, endPage - maxVisible + 1);
         }
-
         for (let i = startPage; i <= endPage; i++) {
             paginationContainer.appendChild(createButton(i, i, false, i === currentPage));
         }
-
         paginationContainer.appendChild(createButton('Next', currentPage + 1, currentPage === totalPages));
     }
-
     function applySearchAndSort() {
         const searchQuery = searchInput.value.toLowerCase();
         const sortValue = sortSelect.value;
         const [sortBy, direction] = sortValue.split("-");
-
         let filteredReports = submittedReports.filter(report => {
-            return Object.entries(report).some(([key, value]) => {
+            return isValidReport(report) && Object.entries(report).some(([key, value]) => {
                 if (key === "DateOfReport") {
                     const formattedDate = formatDate(value).toLowerCase();
                     return formattedDate.includes(searchQuery);
@@ -523,12 +532,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 return value?.toString().toLowerCase().includes(searchQuery);
             });
         });
-
         if (sortBy) {
             filteredReports.sort((a, b) => {
                 const valA = a[sortBy] || "";
                 const valB = b[sortBy] || "";
-
                 if (sortBy === "DateOfReport") {
                     const dateA = new Date(valA);
                     const dateB = new Date(valB);
@@ -545,8 +552,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     : valB.toString().localeCompare(valA.toString());
             });
         }
-
-        // Check for reportId in URL and navigate to the correct page
         const urlParams = new URLSearchParams(window.location.search);
         const reportId = urlParams.get('reportId');
         if (reportId) {
@@ -558,30 +563,35 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log(`Report with ReportID ${reportId} not found in filtered reports.`);
             }
         }
-
         const startIndex = (currentPage - 1) * rowsPerPage;
         const endIndex = startIndex + rowsPerPage;
         const currentPageReports = filteredReports.slice(startIndex, endIndex);
-
         renderReportsTable(currentPageReports, filteredReports);
     }
-
     searchInput.addEventListener('input', () => {
         currentPage = 1;
         applySearchAndSort();
     });
-
     sortSelect.addEventListener('change', () => {
         currentPage = 1;
         applySearchAndSort();
     });
-
+    viewArchivedBtn.addEventListener('click', () => {
+        archivedModal.style.display = 'block';
+    });
+    closeArchivedModalBtn.addEventListener('click', () => {
+        archivedModal.style.display = 'none';
+    });
+    window.addEventListener('click', (event) => {
+        if (event.target === archivedModal) {
+            archivedModal.style.display = 'none';
+        }
+    });
     window.clearDInputs = () => {
         searchInput.value = '';
         currentPage = 1;
         applySearchAndSort();
     };
-
     const viewApprovedBtn = document.getElementById("viewApprovedBtn");
     if (viewApprovedBtn) {
         viewApprovedBtn.addEventListener("click", () => {

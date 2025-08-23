@@ -1,146 +1,3 @@
-// Notify admin function
-const notifyAdmin = async (message, calamityType, location, details, donationId, senderName, organization) => {
-    try {
-        const identifier = `donation_${donationId}_${Date.now()}`;
-        const key = firebase.database().ref("notifications").push().key;
-        await firebase.database().ref("notifications").child(key).set({
-            message,
-            calamityType: calamityType || null,
-            location: location || null,
-            details: details || null,
-            eventId: null,
-            donationId,
-            senderName,
-            organization,
-            identifier,
-            timestamp: Date.now(),
-            read: false,
-            type: "admin"
-        });
-        console.log(`Admin notified of new donation - Donation ID: ${donationId}, Key: ${key}`);
-    } catch (error) {
-        console.error("Error notifying admin:", error);
-    }
-};
-
-// Notify sender function for donation approval
-const notifySender = async (message, userUid, donationId) => {
-    try {
-        const identifier = `donation_approved_${donationId}_${Date.now()}`;
-        const key = firebase.database().ref("notifications").push().key;
-        await firebase.database().ref("notifications").child(key).set({
-            message,
-            userUid,
-            donationId,
-            identifier,
-            timestamp: Date.now(),
-            read: false,
-            type: "donation_approved"
-        });
-        console.log(`Sender notified of donation approval - Donation ID: ${donationId}, Key: ${key}`);
-    } catch (error) {
-        console.error("Error notifying sender:", error);
-    }
-};
-
-// Highlight donation from URL
-function highlightReportFromURL() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const donationId = urlParams.get('reportId');
-    console.log(`Attempting to display donation with donationId: ${donationId} at ${new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' })}`);
-
-    if (!donationId) {
-        console.log("No donationId found in URL");
-        return;
-    }
-
-    // Query Firebase for the donation
-    firebase.database().ref('callfordonation')
-        .orderByChild('donationId')
-        .equalTo(donationId)
-        .once('value')
-        .then((snapshot) => {
-            if (snapshot.exists()) {
-                // Get the first (and only) matching donation
-                let donation = null;
-                snapshot.forEach((childSnapshot) => {
-                    donation = { ...childSnapshot.val(), firebaseKey: childSnapshot.key };
-                });
-
-                console.log(`Found donation in Firebase:`, donation);
-
-                // Format donation details for display
-                const fullAddress = donation.address?.fullAddress || donation.dropOff || 'N/A';
-                const donationDetails = `
-                    <div style="text-align: left; font-size: 14px; line-height: 1.5;">
-                        <h3 style="margin-bottom: 15px;">Donation Details</h3>
-                        <p><strong>Donation ID:</strong> ${donation.donationId || 'N/A'}</p>
-                        <p><strong>Donation Drive:</strong> ${donation.donationDrive || 'N/A'}</p>
-                        <p><strong>Contact Person:</strong> ${donation.contact?.person || 'N/A'}</p>
-                        <p><strong>Contact Number:</strong> ${donation.contact?.number || 'N/A'}</p>
-                        <p><strong>Account Name:</strong> ${donation.account?.name || 'N/A'}</p>
-                        <p><strong>Account Number:</strong> ${donation.account?.number || 'N/A'}</p>
-                        <p><strong>Full Address:</strong> ${fullAddress}</p>
-                        <p><strong>Facebook Link:</strong> 
-                            ${donation.facebookLink && donation.facebookLink !== 'N/A' 
-                                ? `<a href="${donation.facebookLink}" target="_blank" rel="noopener noreferrer" style="color: #1e88e5; text-decoration: underline;">Visit Page</a>` 
-                                : 'N/A'}
-                        </p>
-                        <p><strong>Status:</strong> ${donation.status || 'N/A'}</p>
-                        <p><strong>Submitted:</strong> ${donation.dateTime ? new Date(donation.dateTime).toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }) : 'N/A'}</p>
-                        ${donation.image ? `<p style="margin-top: 15px;"><strong>Image:</strong></p><img src="${donation.image}" alt="Donation Image" style="max-width: 100%; max-height: 250px; border-radius: 5px; margin-top: 10px;" />` : ''}
-                    </div>
-                `;
-
-                // Display donation details in a Swal popup
-                Swal.fire({
-                    title: `Donation ${donationId}`,
-                    html: donationDetails,
-                    icon: 'info',
-                    confirmButtonText: 'Close',
-                    customClass: {
-                        popup: 'swal2-popup-info',
-                        title: 'swal2-title-info',
-                        htmlContainer: 'swal2-html-container'
-                    },
-                    width: '600px',
-                    padding: '20px',
-                    background: '#fff',
-                    confirmButtonColor: '#3085d6'
-                });
-            } else {
-                console.error(`Donation with donationId ${donationId} not found in Firebase database`);
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Donation Not Found',
-                    text: `The donation with ID ${donationId} was not found in the database.`,
-                    confirmButtonText: 'OK',
-                    customClass: {
-                        popup: 'swal2-popup-warning',
-                        title: 'swal2-title-warning',
-                        content: 'swal2-text-warning'
-                    },
-                    confirmButtonColor: '#3085d6'
-                });
-            }
-        })
-        .catch((error) => {
-            console.error(`Error querying Firebase for donationId ${donationId}:`, error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Database Error',
-                text: `Failed to retrieve donation details: ${error.message}`,
-                confirmButtonText: 'OK',
-                customClass: {
-                    popup: 'swal2-popup-error',
-                    title: 'swal2-title-error',
-                    content: 'swal2-text-error'
-                },
-                confirmButtonColor: '#d33'
-            });
-        });
-}
-
 document.addEventListener('DOMContentLoaded', () => {
     const firebaseConfig = {
         apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
@@ -150,1302 +7,787 @@ document.addEventListener('DOMContentLoaded', () => {
         storageBucket: "bayanihan-5ce7e.appspot.com",
         messagingSenderId: "593123849917",
         appId: "1:593123849917:web:eb85a63a536eeff78ce9d4",
-        measurementId: "G-ZTQ9VXXVV0"
+        measurementId: "G-ZTQ9VXXVV0",
     };
-
-    // Initialize Firebase
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const database = firebase.database();
-
-    const userRole = localStorage.getItem('userRole');
-    let currentOrganization = 'Unknown Group'; // Global variable to store organization
-
-    // DOM elements
-    const form = document.getElementById('form-container-1');
-    const tableBody = document.querySelector('#donationTable tbody');
-    const searchInput = document.getElementById('searchInput');
-    const sortSelect = document.getElementById('sortSelect');
-    const exportBtn = document.getElementById("exportBtn");
-    const savePdfBtn = document.getElementById("savePdfBtn");
-    const exportCsvButton = document.getElementById("exportCsvButton");
-    const entriesInfo = document.getElementById('entriesInfo');
+    let database, auth;
+    try {
+        firebase.initializeApp(firebaseConfig);
+        database = firebase.database();
+        auth = firebase.auth();
+    } catch (error) {
+        console.error("Firebase initialization failed:", error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Initialization Error',
+            text: 'Failed to initialize Firebase. Please try again later.',
+        });
+        return;
+    }
+    let submittedReports = [];
+    let archivedReports = [];
+    const submittedReportsContainer = document.getElementById("submittedReportsContainer");
     const paginationContainer = document.getElementById("pagination");
-    const clearFormBtn = document.getElementById("clearFormBtn");
-    const submitButton = document.getElementById('nextBtn');
-
-    const regionSelect = document.getElementById('region');
-    const provinceSelect = document.getElementById('province');
-    const citySelect = document.getElementById('city');
-    const barangaySelect = document.getElementById('barangay');
-
-    const regionTextInput = document.getElementById('region-text');
-    const provinceTextInput = document.getElementById('province-text');
-    const cityTextInput = document.getElementById('city-text');
-    const barangayTextInput = document.getElementById('barangay-text');
-
-    const rowsPerPage = 10;
+    const entriesInfo = document.getElementById("entriesInfo");
+    const searchInput = document.getElementById("searchInput");
+    const sortSelect = document.getElementById("sortSelect");
     let currentPage = 1;
-    let allDonations = [];
-    let filteredAndSortedDonations = [];
-    let formHasChanges = false;
-    let canSubmit = false; // Flag to control submission eligibility
-
-    // Event listeners to the form inputs to track changes
-    if (form) {
-        form.addEventListener('input', () => {
-            formHasChanges = true;
+    const rowsPerPage = 5;
+    // Archived reports elements
+    const archivedModal = document.getElementById("archivedModal");
+    const archivedTableBody = document.querySelector("#archivedTable tbody");
+    const archivedPagination = document.getElementById("archivedPagination");
+    const archivedEntriesInfo = document.getElementById("archivedEntriesInfo");
+    const closeArchivedModalBtn = document.getElementById("closeArchivedModalBtn");
+    const viewArchivedBtn = document.getElementById("viewArchived");
+    let currentArchivedPage = 1;
+    const archivedRowsPerPage = 5;
+    if (!submittedReportsContainer || !paginationContainer || !entriesInfo || !searchInput || !sortSelect || !archivedTableBody || !archivedPagination || !archivedEntriesInfo || !closeArchivedModalBtn || !viewArchivedBtn) {
+        console.error("Required DOM elements not found");
+        Swal.fire({
+            icon: 'error',
+            title: 'Page Error',
+            text: 'Required elements are missing on the page. Please contact support.',
         });
-        form.addEventListener('change', () => {
-            formHasChanges = true;
-        });
+        return;
     }
-
-    // Base path for JSON files
-    const baseJsonPath = '../json/';
-
-    // --- Authentication and Role-Based Submission ---
-    auth.onAuthStateChanged(async (user) => {
-        if (user) {
-            const profilePage = 'profile.html';
-            try {
-                // Fetch user data from the database
-                const userSnapshot = await database.ref(`users/${user.uid}`).once("value");
-                const userDataFromDb = userSnapshot.val();
-                if (!userDataFromDb) {
-                    console.error('User data not found for UID:', user.uid);
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'User Data Missing',
-                        text: 'Your user profile is incomplete. Please contact support.',
-                    }).then(() => {
-                        window.location.replace('../pages/login.html');
-                    });
-                    return;
-                }
-
-                // Password reset check
-                const passwordNeedsReset = userDataFromDb.password_needs_reset || false;
-                if (passwordNeedsReset) {
-                    console.log(`Password change required for user ${user.uid}. Redirecting to profile page.`);
-                    Swal.fire({
-                        icon: 'info',
-                        title: 'Password Change Required',
-                        text: 'For security reasons, please change your password. You will be redirected to your profile.',
-                        allowOutsideClick: false,
-                        allowEscapeKey: false,
-                        showConfirmButton: false,
-                        timer: 2000,
-                        timerProgressBar: true
-                    }).then(() => {
-                        window.location.replace(`../pages/${profilePage}`);
-                    });
-                    return;
-                }
-
-                // Role-based submission eligibility check
-                const currentUserRole = userDataFromDb.role;
-                currentOrganization = userDataFromDb.organization || 'Unknown Group'; // Store organization globally
-                console.log('User Role:', currentUserRole, 'Organization:', currentOrganization);
-
-                if (currentUserRole === 'AB ADMIN') {
-                    console.log('AB ADMIN role detected. Submission allowed.');
-                    canSubmit = true;
-                    if (submitButton) {
-                        submitButton.disabled = false;
-                        console.log('Submit button enabled for AB ADMIN.');
-                    } else {
-                        console.error('Submit button element not found (ID: nextBtn).');
-                    }
-                    toggleFormElements(true); // Enable form
-                } else if (currentUserRole === 'ABVN') {
-                    console.log('ABVN role detected. Checking organization activations.');
-                    if (currentOrganization === 'Unknown Group') {
-                        console.warn('ABVN user has no organization assigned.');
-                        Swal.fire({
-                            icon: 'warning',
-                            title: 'Organization Not Assigned',
-                            text: 'Your account is not associated with an organization. Redirecting to dashboard.',
-                        }).then(() => {
-                            window.location.replace('../pages/dashboard.html');
-                        });
-                        return;
-                    }
-
-                    // Check for active activations
-                    const organizationActivationsSnapshot = await database.ref("activations")
-                        .orderByChild("organization")
-                        .equalTo(currentOrganization)
-                        .once('value');
-
-                    let organizationHasActiveActivations = false;
-                    organizationActivationsSnapshot.forEach(childSnapshot => {
-                        if (childSnapshot.val().status === "active") {
-                            organizationHasActiveActivations = true;
-                            return true;
-                        }
-                    });
-
-                    if (organizationHasActiveActivations) {
-                        console.log(`Organization "${currentOrganization}" has active operations. Submission allowed.`);
-                        canSubmit = true;
-                        if (submitButton) {
-                            submitButton.disabled = false;
-                            console.log('Submit button enabled for ABVN with active activations.');
-                        } else {
-                            console.error('Submit button element not found (ID: nextBtn).');
-                        }
-                        toggleFormElements(true); // Enable form
-                    } else {
-                        console.warn(`Organization "${currentOrganization}" has no active operations. Redirecting to dashboard.`);
-                        Swal.fire({
-                            icon: 'warning',
-                            title: 'Inactive Organization',
-                            text: 'Your organization has no active operations. Redirecting to dashboard.',
-                            timer: 3000,
-                        }).then(() => {
-                            window.location.replace('../pages/dashboard.html');
-                        });
-                        return;
-                    }
-                } else {
-                    console.warn(`Unsupported role: ${currentUserRole}. Redirecting to dashboard.`);
-                    canSubmit = false;
-                    if (submitButton) {
-                        submitButton.disabled = true;
-                        console.log('Submit button disabled for unsupported role.');
-                    } else {
-                        console.error('Submit button element not found (ID: nextBtn).');
-                    }
-                    toggleFormElements(false);
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Unauthorized Access',
-                        text: 'Your role does not permit access. Redirecting to dashboard.',
-                    }).then(() => {
-                        window.location.replace('../pages/dashboard.html');
-                    });
-                    return;
-                }
-
-                // Load donations from Firebase
-                const dbRef = firebase.database().ref('callfordonation');
-                dbRef.on('value', (snapshot) => {
-                    const data = snapshot.val();
-                    allDonations = [];
-                    if (data) {
-                        Object.entries(data).forEach(([key, value]) => {
-                            allDonations.push({ ...value, firebaseKey: key, userUid: value.userUid || user.uid });
-                        });
-                    }
-                    applyChange();
-                }, (error) => {
-                    console.error("Error fetching donations from Firebase:", error);
-                    Swal.fire('Error', 'Failed to load donations from the database.', 'error');
-                });
-
-                // Apply UI toggles based on role
-                toggleExportCsvButton();
-                updateRemoveButtonVisibility();
-
-            } catch (error) {
-                console.error("Error checking user data or activations:", error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Authentication Error',
-                    text: 'Failed to verify account status. Please try logging in again.',
-                }).then(() => {
-                    window.location.replace('../pages/login.html');
-                });
-            }
-        } else {
+    auth.onAuthStateChanged(user => {
+        if (!user) {
             Swal.fire({
-                title: 'Not Logged In',
-                text: 'Please log in to view donation calls.',
-                icon: 'warning',
-                showCancelButton: false,
-                confirmButtonText: 'Go to Login'
+                icon: 'error',
+                title: 'Authentication Required',
+                text: 'Please sign in to access report verification.',
             }).then(() => {
-                window.location.replace('../pages/login.html');
-            });
-            allDonations = [];
-            applyChange();
-            toggleFormElements(false);
-            if (exportCsvButton) exportCsvButton.style.display = 'none';
-            if (submitButton) {
-                submitButton.disabled = true;
-                console.log('Submit button disabled: User not logged in.');
-            } else {
-                console.error('Submit button element not found (ID: nextBtn).');
-            }
-        }
-    });
-
-    var my_handlers = {
-        fill_regions: function() {
-            if (regionTextInput) regionTextInput.value = '';
-            if (provinceTextInput) provinceTextInput.value = '';
-            if (cityTextInput) cityTextInput.value = '';
-            if (barangayTextInput) barangayTextInput.value = '';
-
-            regionSelect.innerHTML = '<option value="" selected="true" disabled>Choose Region</option>';
-            regionSelect.selectedIndex = 0;
-
-            provinceSelect.innerHTML = '<option value="" selected="true" disabled>Choose Region First</option>';
-            provinceSelect.selectedIndex = 0;
-
-            citySelect.innerHTML = '<option value="" selected="true" disabled>Choose Region First</option>';
-            citySelect.selectedIndex = 0;
-
-            barangaySelect.innerHTML = '<option value="" selected="true" disabled>Choose Region First</option>';
-            barangaySelect.selectedIndex = 0;
-
-            const url = `${baseJsonPath}region.json`;
-            console.log(`Fetching regions from: ${url}`);
-
-            fetch(url)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! Status: ${response.status} - ${response.statusText}`);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    console.log("Region data loaded (Vanilla JS):", data);
-                    if (!Array.isArray(data) || !data.every(item => item.region_code && item.region_name)) {
-                        throw new Error("Invalid region data structure");
-                    }
-
-                    data.sort(function(a, b) {
-                        return a.region_name.localeCompare(b.region_name);
-                    });
-
-                    data.forEach(entry => {
-                        const opt = document.createElement('option');
-                        opt.value = entry.region_code;
-                        opt.textContent = entry.region_name;
-                        regionSelect.appendChild(opt);
-                    });
-                })
-                .catch(error => {
-                    console.error("Request for region.json Failed (Vanilla JS): " + error.message);
-                    console.error("Fetch error object: ", error);
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Failed to Load Regions',
-                        text: `Unable to load region data: ${error.message}. Check if ${url} is accessible.`,
-                        confirmButtonText: 'OK'
-                    });
-                });
-        },
-        fill_provinces: function() {
-            var region_code = regionSelect.value;
-
-            if (!region_code) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Select Region First',
-                    text: 'Please select a region before choosing a province.',
-                    confirmButtonText: 'OK'
-                });
-                provinceSelect.innerHTML = '<option value="" selected="true" disabled>Choose Province</option>';
-                provinceSelect.selectedIndex = 0;
-                citySelect.innerHTML = '<option value="" selected="true" disabled>Choose Province First</option>';
-                citySelect.selectedIndex = 0;
-                barangaySelect.innerHTML = '<option value="" selected="true" disabled>Choose Barangay</option>';
-                barangaySelect.selectedIndex = 0;
-                if (provinceTextInput) provinceTextInput.value = '';
-                if (cityTextInput) cityTextInput.value = '';
-                if (barangayTextInput) barangayTextInput.value = '';
-                return;
-            }
-
-            var region_text = regionSelect.options[regionSelect.selectedIndex].textContent;
-            if (regionTextInput) regionTextInput.value = region_text;
-
-            if (provinceTextInput) provinceTextInput.value = '';
-            if (cityTextInput) cityTextInput.value = '';
-            if (barangayTextInput) barangayTextInput.value = '';
-
-            provinceSelect.innerHTML = '<option value="" selected="true" disabled>Choose Province</option>';
-            provinceSelect.selectedIndex = 0;
-
-            citySelect.innerHTML = '<option value="" selected="true" disabled>Choose Province First</option>';
-            citySelect.selectedIndex = 0;
-
-            barangaySelect.innerHTML = '<option value="" selected="true" disabled>Choose Province First</option>';
-            barangaySelect.selectedIndex = 0;
-
-            const url = `${baseJsonPath}province.json`;
-            console.log(`Fetching provinces from: ${url}`);
-
-            fetch(url)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! Status: ${response.status} - ${response.statusText}`);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    console.log("Province data loaded (Vanilla JS):", data);
-                    if (!Array.isArray(data) || !data.every(item => item.region_code && item.province_code && item.province_name)) {
-                        throw new Error("Invalid province data structure");
-                    }
-
-                    var result = data.filter(function(value) {
-                        return value.region_code == region_code;
-                    });
-
-                    result.sort(function(a, b) {
-                        return a.province_name.localeCompare(b.province_name);
-                    });
-
-                    result.forEach(entry => {
-                        const opt = document.createElement('option');
-                        opt.value = entry.province_code;
-                        opt.textContent = entry.province_name;
-                        provinceSelect.appendChild(opt);
-                    });
-                })
-                .catch(error => {
-                    console.error("Request for province.json Failed (Vanilla JS): " + error.message);
-                    console.error("Fetch error object: ", error);
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Failed to Load Provinces',
-                        text: `Unable to load province data: ${error.message}. Check if ${url} is accessible.`,
-                        confirmButtonText: 'OK'
-                    });
-                });
-        },
-        fill_cities: function() {
-            var province_code = provinceSelect.value;
-
-            if (!province_code) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Select Province First',
-                    text: 'Please select a province before choosing a city/municipality.',
-                    confirmButtonText: 'OK'
-                });
-                citySelect.innerHTML = '<option value="" selected="true" disabled>Choose City / Municipality</option>';
-                citySelect.selectedIndex = 0;
-                barangaySelect.innerHTML = '<option value="" selected="true" disabled>Choose Barangay</option>';
-                barangaySelect.selectedIndex = 0;
-                if (cityTextInput) cityTextInput.value = '';
-                if (barangayTextInput) barangayTextInput.value = '';
-                return;
-            }
-
-            var province_text = provinceSelect.options[provinceSelect.selectedIndex].textContent;
-            if (provinceTextInput) provinceTextInput.value = province_text;
-
-            if (cityTextInput) cityTextInput.value = '';
-            if (barangayTextInput) barangayTextInput.value = '';
-
-            citySelect.innerHTML = '<option value="" selected="true" disabled>Choose City / Municipality</option>';
-            citySelect.selectedIndex = 0;
-
-            barangaySelect.innerHTML = '<option value="" selected="true" disabled>Choose City First</option>';
-            barangaySelect.selectedIndex = 0;
-
-            const url = `${baseJsonPath}city.json`;
-            console.log(`Fetching cities from: ${url}`);
-
-            fetch(url)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! Status: ${response.status} - ${response.statusText}`);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    console.log("City data loaded (Vanilla JS):", data);
-                    if (!Array.isArray(data) || !data.every(item => item.province_code && item.city_code && item.city_name)) {
-                        throw new Error("Invalid city data structure");
-                    }
-
-                    var result = data.filter(function(value) {
-                        return value.province_code == province_code;
-                    });
-
-                    result.sort(function(a, b) {
-                        return a.city_name.localeCompare(b.city_name);
-                    });
-
-                    result.forEach(entry => {
-                        const opt = document.createElement('option');
-                        opt.value = entry.city_code;
-                        opt.textContent = entry.city_name;
-                        citySelect.appendChild(opt);
-                    });
-                })
-                .catch(error => {
-                    console.error("Request for city.json Failed (Vanilla JS): " + error.message);
-                    console.error("Fetch error object: ", error);
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Failed to Load Cities',
-                        text: `Unable to load city data: ${error.message}. Check if ${url} is accessible.`,
-                        confirmButtonText: 'OK'
-                    });
-                });
-        },
-        fill_barangays: function() {
-            var city_code = citySelect.value;
-
-            if (!city_code) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Select City/Municipality First',
-                    text: 'Please select a city/municipality before choosing a barangay.',
-                    confirmButtonText: 'OK'
-                });
-                barangaySelect.innerHTML = '<option value="" selected="true" disabled>Choose barangay</option>';
-                barangaySelect.selectedIndex = 0;
-                if (barangayTextInput) barangayTextInput.value = '';
-                return;
-            }
-
-            var city_text = citySelect.options[citySelect.selectedIndex].textContent;
-            if (cityTextInput) cityTextInput.value = city_text;
-
-            if (barangayTextInput) barangayTextInput.value = '';
-
-            barangaySelect.innerHTML = '<option value="" selected="true" disabled>Choose barangay</option>';
-            barangaySelect.selectedIndex = 0;
-
-            const url = `${baseJsonPath}barangay.json`;
-            console.log(`Fetching barangays from: ${url}`);
-
-            fetch(url)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! Status: ${response.status} - ${response.statusText}`);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    console.log("Barangay data loaded (Vanilla JS):", data);
-                    if (!Array.isArray(data) || !data.every(item => item.city_code && item.brgy_code && item.brgy_name)) {
-                        throw new Error("Invalid barangay data structure");
-                    }
-
-                    var result = data.filter(function(value) {
-                        return value.city_code == city_code;
-                    });
-
-                    result.sort(function(a, b) {
-                        return a.brgy_name.localeCompare(b.brgy_name);
-                    });
-
-                    result.forEach(entry => {
-                        const opt = document.createElement('option');
-                        opt.value = entry.brgy_code;
-                        opt.textContent = entry.brgy_name;
-                        barangaySelect.appendChild(opt);
-                    });
-                })
-                .catch(error => {
-                    console.error("Request for barangay.json Failed (Vanilla JS): " + error.message);
-                    console.error("Fetch error object: ", error);
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Failed to Load Barangays',
-                        text: `Unable to load barangay data: ${error.message}. Check if ${url} is accessible.`,
-                        confirmButtonText: 'OK'
-                    });
-                });
-        },
-        onchange_barangay: function() {
-            var barangay_text = barangaySelect.options[barangaySelect.selectedIndex].textContent;
-            if (barangayTextInput) barangayTextInput.value = barangay_text;
-        },
-    };
-
-    // Function to control the visibility of the Export CSV button
-    function toggleExportCsvButton() {
-        if (exportCsvButton) {
-            if (userRole === 'ABVN') {
-                exportCsvButton.style.display = 'none';
-            } else {
-                exportCsvButton.style.display = 'block';
-            }
-        }
-    }
-
-    // Function to enable/disable form elements
-    function toggleFormElements(enable) {
-        const formContainer = document.getElementById('form-container-1');
-        if (formContainer) {
-            Array.from(formContainer.elements).forEach(element => {
-                if (element.id !== 'region' && element.id !== 'province' && element.id !== 'city' && element.id !== 'barangay') {
-                    element.disabled = !enable;
-                }
-            });
-        }
-        const donationDrive = document.getElementById('donationDrive');
-        const contactPerson = document.getElementById('contactPerson');
-        const contactNumber = document.getElementById('contactNumber');
-        const accountNumber = document.getElementById('accountNumber');
-        const accountName = document.getElementById('accountName');
-        const donationImage = document.getElementById('donationImage');
-        const address = document.getElementById('address');
-        const facebookLink = document.getElementById('facebookLink');
-
-        if (submitButton) {
-            submitButton.disabled = !enable;
-            console.log(`Submit button ${enable ? 'enabled' : 'disabled'} via toggleFormElements.`);
-        } else {
-            console.error('Submit button element not found (ID: nextBtn) in toggleFormElements.');
-        }
-
-        if (donationDrive) donationDrive.disabled = !enable;
-        if (contactPerson) contactPerson.disabled = !enable;
-        if (contactNumber) contactNumber.disabled = !enable;
-        if (accountNumber) accountNumber.disabled = !enable;
-        if (accountName) accountName.disabled = !enable;
-        if (donationImage) donationImage.disabled = !enable;
-        if (address) address.disabled = !enable;
-        if (facebookLink) facebookLink.disabled = !enable;
-    }
-
-    // Function to handle the visibility of the "Remove" button only
-    function updateRemoveButtonVisibility() {
-        const deleteButtons = document.querySelectorAll('.deleteBtn');
-        if (userRole === 'ABVN') {
-            deleteButtons.forEach(button => {
-                button.style.display = 'none';
-            });
-        } else {
-            deleteButtons.forEach(button => {
-                button.style.display = 'inline-block';
-            });
-        }
-    }
-
-    // Attach event listeners for the location dropdowns
-    if (regionSelect) regionSelect.addEventListener('change', my_handlers.fill_provinces);
-    if (provinceSelect) provinceSelect.addEventListener('change', my_handlers.fill_cities);
-    if (citySelect) citySelect.addEventListener('change', my_handlers.fill_barangays);
-    if (barangaySelect) barangaySelect.addEventListener('change', my_handlers.onchange_barangay);
-
-    // Call the initial fill for regions directly on page load
-    my_handlers.fill_regions();
-
-    // Event listeners for search and sort
-    searchInput?.addEventListener('input', applyFilters);
-    sortSelect?.addEventListener('change', () => {
-        const selectedSortOption = sortSelect.value;
-        if (selectedSortOption === "") {
-            Swal.fire({
-                icon: 'warning',
-                title: 'No Sort Option Selected',
-                text: 'Please select a specific sort option from the dropdown.',
-                confirmButtonText: 'OK'
+                window.location.href = "../pages/login.html";
             });
             return;
         }
-        applyFilters();
+        loadReportsFromFirebase();
+        loadArchivedReportsFromFirebase();
     });
-
-    function applyChange() {
-        filteredAndSortedDonations = [...allDonations];
-        renderTable();
+    function formatDate(dateStr) {
+        const date = new Date(dateStr);
+        if (isNaN(date)) return dateStr || "-";
+        return date.toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "long",
+            day: "numeric"
+        });
     }
-
-    function applyFilters() {
-        let data = [...allDonations];
-        const searchTerm = searchInput.value.trim().toLowerCase();
-        if (searchTerm) {
-            data = data.filter(d =>
-                (d.donationDrive || '').toLowerCase().includes(searchTerm) ||
-                (d.contact?.person || '').toLowerCase().includes(searchTerm) ||
-                (d.contact?.number || '').toLowerCase().includes(searchTerm) ||
-                (d.account?.number || '').toLowerCase().includes(searchTerm) ||
-                (d.account?.name || '').toLowerCase().includes(searchTerm) ||
-                (d.address?.fullAddress || d.dropOff || '').toLowerCase().includes(searchTerm) ||
-                (d.facebookLink || '').toLowerCase().includes(searchTerm)
-            );
+    function formatTime(timeStr) {
+        if (!timeStr) return "-";
+        let date;
+        if (timeStr.includes('T')) {
+            date = new Date(timeStr);
+        } else {
+            date = new Date(`1970-01-01T${timeStr}`);
         }
-
-        const sortValue = sortSelect.value;
-        if (sortValue) {
-            const [field, direction] = sortValue.split('-');
-            data.sort((a, b) => {
-                let valA, valB;
-                if (field === 'dropOff') {
-                    valA = (a.address?.fullAddress || a.dropOff || '').toLowerCase();
-                    valB = (b.address?.fullAddress || b.dropOff || '').toLowerCase();
-                } else if (field === 'contactPerson') {
-                    valA = (a.contact?.person || a[field] || '').toString().toLowerCase();
-                    valB = (b.contact?.person || b[field] || '').toString().toLowerCase();
-                } else if (field === 'accountName') {
-                    valA = (a.account?.name || a[field] || '').toString().toLowerCase();
-                    valB = (b.account?.name || b[field] || '').toString().toLowerCase();
-                } else {
-                    valA = (a[field] || '').toString().toLowerCase();
-                    valB = (b[field] || '').toString().toLowerCase();
-                }
-                return direction === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
-            });
-        }
-
-        filteredAndSortedDonations = data;
-        currentPage = 1;
-        renderTable();
+        if (isNaN(date)) return timeStr;
+        return date.toLocaleTimeString("en-US", {
+            hour: "numeric",
+            minute: "2-digit",
+            hour12: true
+        });
     }
-
-    // Clear form button event listener
-    clearFormBtn.addEventListener("click", () => {
-        if (formHasChanges) {
-            Swal.fire({
-                title: 'Discard Changes?',
-                text: 'You have unsaved changes. Are you sure you want to clear the form?',
-                icon: 'warning',
-                iconColor: '#f57c00',
-                showCancelButton: true,
-                confirmButtonColor: '#c62828',
-                cancelButtonColor: '#546e7a',
-                confirmButtonText: 'Yes, clear it!',
-                cancelButtonText: 'No, keep editing',
-                reverseButtons: true,
-                customClass: {
-                    popup: 'swal2-popup-warning-clean',
-                    title: 'swal2-title-warning-clean',
-                    content: 'swal2-text-warning-clean',
-                    confirmButton: 'swal2-button-confirm-clean',
-                    cancelButton: 'swal2-button-cancel-clean'
-                }
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    if (form) {
-                        Array.from(form.querySelectorAll('input, select, textarea')).forEach(element => {
-                            if (element.type === 'file') {
-                                element.value = '';
-                            } else if (element.tagName === 'SELECT') {
-                                element.selectedIndex = 0;
-                            } else {
-                                element.value = '';
-                            }
-                        });
-                        my_handlers.fill_regions();
-                    }
-                    formHasChanges = false;
-                    const errorMessages = form ? form.querySelectorAll('.error-message') : [];
-                    errorMessages.forEach(msg => msg.textContent = '');
-                    const errorInputs = form ? form.querySelectorAll('.error') : [];
-                    errorInputs.forEach(input => input.classList.remove('error'));
-                }
-            });
-        } else {
-            if (form) {
-                Array.from(form.querySelectorAll('input, select, textarea')).forEach(element => {
-                    if (element.type === 'file') {
-                        element.value = '';
-                    } else if (element.tagName === 'SELECT') {
-                        element.selectedIndex = 0;
-                    } else {
-                        element.value = '';
-                    }
-                });
-                my_handlers.fill_regions();
-            }
-            const errorMessages = form ? form.querySelectorAll('.error-message') : [];
-            errorMessages.forEach(msg => msg.textContent = '');
-            const errorInputs = form ? form.querySelectorAll('.error') : [];
-            errorInputs.forEach(input => input.classList.remove('error'));
+    function formatWithCommas(value) {
+        return value != null ? Number(value).toLocaleString() : "-";
+    }
+    function formatCompact(value) {
+        return value != null
+            ? new Intl.NumberFormat('en', {
+                notation: 'compact',
+                compactDisplay: 'short',
+            }).format(value)
+            : "-";
+    }
+    function formatCurrency(value) {
+        return value != null
+            ? new Intl.NumberFormat('en-PH', {
+                style: 'currency',
+                currency: 'PHP',
+                minimumFractionDigits: 0,
+            }).format(value)
+            : "-";
+    }
+    function isValidReport(report) {
+        return report.firebaseKey &&
+               (report.ReportID && report.ReportID !== "-") &&
+               (report.VolunteerGroupName && report.VolunteerGroupName !== "[Unknown Org]") &&
+               (report.AreaOfOperation && report.AreaOfOperation !== "-");
+    }
+    function transformReportData(report) {
+        const transformed = {
+            firebaseKey: report.firebaseKey,
+            ReportID: report.reportID || report.ReportID || "-",
+            VolunteerGroupName: report.organization || report.VolunteerGroupName || "[Unknown Org]",
+            AreaOfOperation: report.AreaOfOperation || "-",
+            TimeOfIntervention: report.timeOfIntervention || report.TimeOfIntervention || "-",
+            DateOfReport: report.dateOfReport || report.DateOfReport || "-",
+            Status: report.status || report.Status || "Pending",
+            StartDate: report.operationDate || report.StartDate || "-",
+            EndDate: report.operationDate || report.EndDate || "-",
+            NoOfIndividualsOrFamilies: report.families || report.NoOfIndividualsOrFamilies || "-",
+            NoOfFoodPacks: report.foodPacks || report.NoOfFoodPacks || "-",
+            NoOfHotMeals: report.hotMeals || report.NoOfHotMeals || "-",
+            LitersOfWater: report.water || report.LitersOfWater || "-",
+            NoOfVolunteersMobilized: report.volunteers || report.NoOfVolunteersMobilized || "-",
+            NoOfOrganizationsActivated: report.NoOfOrganizationsActivated || "-",
+            TotalValueOfInKindDonations: report.inKindValue || report.TotalValueOfInKindDonations || "-",
+            TotalMonetaryDonations: report.amountRaised || report.TotalMonetaryDonations || "-",
+            NotesAdditionalInformation: report.remarks || report.urgentNeeds || report.NotesAdditionalInformation || "-",
+            userUid: report.userUid || "-",
+            submittedBy: report.submittedBy || "-",
+        };
+        if (!isValidReport(transformed)) {
+            console.warn(`Invalid report data for key ${report.firebaseKey}:`, transformed);
         }
-    });
-
-    function renderTable() {
-        const startIndex = (currentPage - 1) * rowsPerPage;
-        const endIndex = startIndex + rowsPerPage;
-        const currentPageRows = filteredAndSortedDonations.slice(startIndex, endIndex);
-
-        tableBody.innerHTML = "";
-        if (currentPageRows.length === 0) {
-            const noDataRow = document.createElement("tr");
-            noDataRow.innerHTML = `<td colspan="9" style="text-align: center;">No donations found.</td>`;
-            tableBody.appendChild(noDataRow);
-        } else {
-            currentPageRows.forEach((r, i) => {
-                const tr = document.createElement('tr');
-                tr.setAttribute('data-id', r.donationId); // Add data-id attribute for highlighting
-                tr.innerHTML = `
-                    <td>${startIndex + i + 1}</td>
-                    <td>${r.donationDrive || 'N/A'}</td>
-                    <td>${r.contact?.person || 'N/A'}</td>
-                    <td>${String(r.contact?.number || 'N/A')}</td>
-                    <td>${String(r.account?.number || 'N/A')}</td>
-                    <td>${r.account?.name || 'N/A'}</td>
-                    <td>${r.address?.fullAddress || r.dropOff || 'N/A'}</td>
-                    <td><a href="${r.facebookLink || '#'}" target="_blank" rel="noopener noreferrer">${r.facebookLink && r.facebookLink !== 'N/A' ? 'Visit The Page' : 'N/A'}</a></td>
-                    <td>
-                        <button class="viewBtn">View Image</button>
-                        <button class="approveBtn">Approve</button>
-                        <button class="deleteBtn">Archive</button>
-                        <button class="savePDFBtn">Save PDF</button>
-                    </td>
-                `;
-                tr.querySelector(".viewBtn").addEventListener("click", () => {
-                    Swal.fire({
-                        html: r?.image ? `<img src="${r.image}" alt="Donation Image" style="max-width: 100%; margin-top: 10px;" />` : 'No image available.',
-                        icon: 'info',
-                        confirmButtonText: 'Close'
+        return transformed;
+    }
+    function loadReportsFromFirebase() {
+        database.ref("reports/pending").on("value", snapshot => {
+            submittedReports = [];
+            const reports = snapshot.val();
+            if (reports) {
+                Object.keys(reports).forEach(key => {
+                    const report = reports[key];
+                    if (!report.VolunteerGroupName && !report.organization) {
+                        console.warn(`Report ${key} is missing VolunteerGroupName/organization field. Will fetch dynamically on approval.`);
+                    }
+                    const transformedReport = transformReportData({
+                        firebaseKey: key,
+                        ...report
                     });
+                    if (isValidReport(transformedReport)) {
+                        submittedReports.push(transformedReport);
+                    } else {
+                        console.warn(`Skipping invalid report ${key} from submittedReports`);
+                    }
                 });
-                tr.querySelector(".approveBtn").addEventListener("click", () => {
-                    if (!r.userUid) {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: 'User UID not found in donation. Cannot approve.',
-                        });
+            } else {
+                console.log("No submitted reports found in Firebase");
+            }
+            console.log("Submitted Reports:", submittedReports);
+            applySearchAndSort();
+        }, error => {
+            console.error("Error fetching reports from Firebase:", error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Failed to load reports: ' + error.message,
+            });
+        });
+    }
+    function loadArchivedReportsFromFirebase() {
+        database.ref("reports/archived").on("value", snapshot => {
+            archivedReports = [];
+            const reports = snapshot.val();
+            if (reports) {
+                Object.keys(reports).forEach(key => {
+                    if (archivedReports.some(r => r.firebaseKey === key)) {
+                        console.warn(`Duplicate report key ${key} detected in archivedReports, skipping`);
                         return;
                     }
-                    database.ref(`users/${r.userUid}`).once('value')
-                        .then(snapshot => {
-                            const userData = snapshot.val();
-                            let organization = currentOrganization;
-                            if (userData && userData.organization) {
-                                organization = userData.organization;
-                                console.log(`Fetched organization for user ${r.userUid}: ${organization}`);
-                            } else {
-                                console.warn(`No organization found for user ${r.userUid}. Using default: ${organization}`);
-                            }
-
-                            r.status = "Approved";
-
-                            // Prepare notification for the donation sender
-                            const notificationMessage = `Your donation call "${r.donationDrive}" (ID: ${r.donationId || r.firebaseKey}) has been approved.`;
-                            return Promise.all([
-                                database.ref(`callfordonation_approved`).push(r), // Fixed typo
-                                database.ref(`users/${r.userUid}/callfordonation/${r.firebaseKey}`).set({ ...r, status: "Approved" }),
-                                database.ref(`callfordonation/${r.firebaseKey}`).remove(),
-                                notifySender(notificationMessage, r.userUid, r.donationId || r.firebaseKey)
-                            ]);
-                        })
-                        .then(() => {
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Donation Approved',
-                                text: 'The donation call has been approved and the sender has been notified.',
-                                background: '#f0fdf4',
-                                color: '#065f46',
-                                iconColor: '#059669',
-                                confirmButtonColor: '#059669',
-                                customClass: {
-                                    popup: 'swal2-popup-success-clean',
-                                    title: 'swal2-title-success-clean',
-                                    content: 'swal2-text-success-clean'
-                                }
-                            });
-                        })
-                        .catch(error => {
-                            console.error("Error during donation approval or notification:", error);
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Approval Failed',
-                                text: `Failed to approve donation or send notification: ${error.message}`,
-                                background: '#fef2f2',
-                                color: '#7f1d1d',
-                                iconColor: '#dc2626',
-                                confirmButtonColor: '#b91c1c',
-                                customClass: {
-                                    popup: 'swal2-popup-error-clean',
-                                    title: 'swal2-title-error-clean',
-                                    content: 'swal2-text-error-clean'
-                                }
-                            });
-                        });
-                });
-                tr.querySelector(".deleteBtn").addEventListener("click", () => {
-                    Swal.fire({
-                        title: 'Are you sure?',
-                        text: "This donation will be deleted.",
-                        icon: 'warning',
-                        showCancelButton: true,
-                        confirmButtonText: 'Yes, delete it!'
-                    }).then(result => {
-                        if (result.isConfirmed) {
-                            firebase.database().ref(`callfordonation/${r.firebaseKey}`).remove()
-                                .then(() => {
-                                    Swal.fire('Deleted!', 'The donation has been removed.', 'success');
-                                })
-                                .catch(error => {
-                                    console.error("Error deleting donation:", error);
-                                    Swal.fire('Error', 'Failed to delete the donation.', 'error');
-                                });
-                        }
+                    const report = reports[key];
+                    const transformedReport = transformReportData({
+                        firebaseKey: key,
+                        ...report,
+                        Status: "Rejected"
                     });
+                    archivedReports.push(transformedReport);
                 });
-                tr.querySelector(".savePDFBtn").addEventListener("click", () => saveSingleCfdDonationPdf(r));
-
-                tableBody.appendChild(tr);
+            } else {
+                console.log("No archived reports found in Firebase");
+            }
+            console.log("Archived Reports:", archivedReports);
+            renderArchivedReportsTable();
+        }, error => {
+            console.error("Error fetching archived reports from Firebase:", error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Failed to load archived reports: ' + error.message,
             });
-        }
-
-        updatePaginationInfo();
-        renderPagination();
-        updateRemoveButtonVisibility();
+        });
     }
-
-    function updatePaginationInfo() {
-        const totalEntries = filteredAndSortedDonations.length;
-        const startEntry = (currentPage - 1) * rowsPerPage + 1;
-        const endEntry = Math.min(currentPage * rowsPerPage, totalEntries);
-        entriesInfo.textContent = `Showing ${startEntry} to ${endEntry} of ${totalEntries} entries`;
-        if (totalEntries === 0) {
-            entriesInfo.textContent = `Showing 0 to 0 of 0 entries`;
+    function highlightReportFromURL() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const reportId = urlParams.get('reportId');
+        console.log(`Attempting to highlight report with ReportID: ${reportId}`);
+        if (!reportId) {
+            console.log("No reportId found in URL");
+            return;
         }
-    }
-
-    const createPaginationButton = (label, page, disabled = false, isActive = false) => {
-        const btn = document.createElement('button');
-        btn.textContent = label;
-        if (disabled) btn.disabled = true;
-        if (isActive) btn.classList.add('active-page');
-        btn.addEventListener('click', () => {
-            if (!disabled) {
-                currentPage = page;
-                renderTable();
+        const attemptHighlight = () => {
+            const reportRow = document.querySelector(`tr[data-id="${reportId}"]`);
+            if (reportRow) {
+                console.log(`Found report row with data-id: ${reportId}`);
+                reportRow.style.backgroundColor = "#e0f7fa"; // Light cyan highlight
+                reportRow.scrollIntoView({ behavior: "smooth", block: "center" });
+                // Add "New" badge if not already present
+                const badgeCell = reportRow.querySelector("td:first-child") || reportRow;
+                if (!badgeCell.querySelector(".new-badge")) {
+                    const badge = document.createElement("span");
+                    badge.className = "new-badge";
+                    badge.textContent = "New";
+                    badge.style.cssText = `
+                        background-color: #ff4444;
+                        color: white;
+                        padding: 2px 6px;
+                        border-radius: 3px;
+                        font-size: 12px;
+                        margin-left: 5px;
+                    `;
+                    badgeCell.prepend(badge);
+                }
+                // Remove highlight after 5 seconds
+                setTimeout(() => {
+                    reportRow.style.backgroundColor = "";
+                }, 5000);
+            } else {
+                console.error(`Report with ReportID ${reportId} not found in DOM`);
+                Swal.fire({
+                    icon: "warning",
+                    title: "Report Not Found",
+                    text: `The report with ReportID ${reportId} was not found on the page.`,
+                });
+            }
+        };
+        // Try immediately
+        attemptHighlight();
+        // Use MutationObserver to detect table updates
+        const observer = new MutationObserver(() => {
+            const reportRow = document.querySelector(`tr[data-id="${reportId}"]`);
+            if (reportRow) {
+                console.log(`MutationObserver: Found report row with data-id: ${reportId}`);
+                attemptHighlight();
+                observer.disconnect();
             }
         });
-        return btn;
-    };
-
-    function renderPagination() {
+        observer.observe(submittedReportsContainer, {
+            childList: true,
+            subtree: true
+        });
+        // Fallback: Retry after 2 seconds
+        setTimeout(() => {
+            const reportRow = document.querySelector(`tr[data-id="${reportId}"]`);
+            if (reportRow) {
+                console.log(`Fallback: Found report row with data-id: ${reportId}`);
+                attemptHighlight();
+            } else {
+                console.error(`Fallback: Report with ReportID ${reportId} still not found in DOM`);
+            }
+            observer.disconnect();
+        }, 2000);
+    }
+    function renderReportsTable(reports, filteredReports) {
+        submittedReportsContainer.innerHTML = '';
+        const totalEntries = filteredReports.length;
+        const totalPages = Math.ceil(totalEntries / rowsPerPage);
+        if (reports.length === 0) {
+            submittedReportsContainer.innerHTML = "<tr><td colspan='8'>No reports found on this page.</td></tr>";
+            entriesInfo.textContent = "Showing 0 to 0 of 0 entries";
+            renderPaginationControlsForReports(totalPages, filteredReports);
+            highlightReportFromURL();
+            return;
+        }
+        reports.forEach((report, index) => {
+            if (!isValidReport(report)) {
+                console.warn(`Skipping rendering invalid report ${report.firebaseKey}`);
+                return;
+            }
+            const tr = document.createElement('tr');
+            const displayIndex = (currentPage - 1) * rowsPerPage + index + 1;
+            tr.setAttribute('data-id', report.ReportID || report.firebaseKey); // Use ReportID, fallback to firebaseKey
+            tr.innerHTML = `
+                <td>${displayIndex}</td>
+                <td>${report["ReportID"] || "-"}</td>
+                <td>${report["VolunteerGroupName"] || "[Unknown Org]"}</td>
+                <td>${report["AreaOfOperation"] || "-"}</td>
+                <td>${formatTime(report["TimeOfIntervention"])}</td>
+                <td>${formatDate(report["DateOfReport"])}</td>
+                <td>${report["Status"] || "Pending"}</td>
+                <td>
+                    <button class="viewBtn"><i class="bx bx-show-alt"></i></button>
+                    <button class="approveBtn"><i class="bx bx-check-circle"></i></button>
+                    <button class="rejectBtn"><i class="bx bx-x-circle"></i></button>
+                </td>
+            `;
+            const viewBtn = tr.querySelector('.viewBtn');
+            viewBtn.addEventListener('click', () => {
+                const modal = document.getElementById("reportModal");
+                const modalDetails = document.getElementById("modalReportDetails");
+                const closeModal = document.getElementById("closeModal");
+                if (!modal || !modalDetails || !closeModal) {
+                    console.error("Modal elements not found");
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Modal elements are missing. Please contact support.',
+                    });
+                    return;
+                }
+                modalDetails.innerHTML = `
+                    <div class="report-section">
+                        <div class="form-1">
+                            <h2>Basic Information</h2>
+                            <p><strong>Report ID:</strong> ${report.ReportID || "-"}</p>
+                            <p><strong>Volunteer Group:</strong> ${report.VolunteerGroupName || "[Unknown Org]"}</p>
+                            <p><strong>Date of Report Submitted:</strong> ${formatDate(report.DateOfReport)}</p>
+                            <p class="cell"><strong>Location of Operation:</strong> ${report.AreaOfOperation || "-"}</p>
+                        </div>
+                        <div class="form-2">
+                            <h2>Relief Operations</h2>
+                            <p class="cell"><strong>Completion Time of Intervention:</strong> ${formatTime(report.TimeOfIntervention)}</p>
+                            <p><strong>Start Date of Operation:</strong> ${formatDate(report.StartDate) || "-"}</p>
+                            <p><strong>End Date of Operation:</strong> ${formatDate(report.EndDate) || "-"}</p>
+                            <p><strong>No. of Individuals or Families:</strong> ${formatWithCommas(report.NoOfIndividualsOrFamilies)}</p>
+                            <p><strong>No. of Food Packs:</strong> ${formatCompact(report.NoOfFoodPacks)}</p>
+                            <p><strong>No. of Hot Meals/Ready-to-eat food:</strong> ${formatCompact(report.NoOfHotMeals)}</p>
+                            <p><strong>Liters of Water:</strong> ${formatWithCommas(report.LitersOfWater)}</p>
+                            <p><strong>No. of Volunteers Mobilized:</strong> ${formatWithCommas(report.NoOfVolunteersMobilized)}</p>
+                            <p><strong>No. of Organizations Activated:</strong> ${formatCompact(report.NoOfOrganizationsActivated)}</p>
+                            <p><strong>Total Value of In-Kind Donations:</strong> ${formatCurrency(report.TotalValueOfInKindDonations)}</p>
+                            <p><strong>Total Monetary Donations:</strong> ${formatCurrency(report.TotalMonetaryDonations)}</p>
+                        </div>
+                    </div>
+                    <div class="form-3">
+                        <h2>Additional Updates</h2>
+                        <p><strong>Notes/Additional Information:</strong> ${report.NotesAdditionalInformation || "-"}</p>
+                    </div>
+                `;
+                modal.classList.remove("hidden");
+                closeModal.addEventListener("click", () => {
+                    modal.classList.add("hidden");
+                });
+                window.addEventListener("click", function (event) {
+                    if (event.target === modal) {
+                        modal.classList.add("hidden");
+                    }
+                });
+            });
+            tr.querySelector('.approveBtn').addEventListener('click', () => {
+                const userUid = report.userUid;
+                if (!userUid) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'User UID not found in report. Cannot approve.',
+                    });
+                    return;
+                }
+                database.ref(`users/${userUid}`).once('value')
+                    .then(snapshot => {
+                        const userData = snapshot.val();
+                        let volunteerGroupName = "[Unknown Org]";
+                        if (userData && userData.organization) {
+                            volunteerGroupName = userData.organization;
+                            console.log(`Fetched VolunteerGroupName for user ${userUid}: ${volunteerGroupName}`);
+                        } else {
+                            console.warn(`No group found for user ${userUid}. Using default: [Unknown Org]`);
+                        }
+                        report["VolunteerGroupName"] = volunteerGroupName;
+                        report["Status"] = "Approved";
+                        // Prepare notification for the report sender
+                        const notification = {
+                            message: `Your report (ID: ${report.ReportID || report.firebaseKey}) has been approved.`,
+                            timestamp: new Date().toISOString(),
+                            type: "report_approved",
+                            userUid: userUid,
+                            read: false,
+                            reportId: report.firebaseKey,
+                            ReportID: report.ReportID || report.firebaseKey
+                        };
+                        // Perform all database operations
+                        return Promise.all([
+                            database.ref(`reports/approved/${report.firebaseKey}`).set(report),
+                            database.ref(`users/${userUid}/reports/${report.firebaseKey}`).set({ ...report, Status: "Approved" }),
+                            database.ref(`reports/pending/${report.firebaseKey}`).remove(),
+                            database.ref(`notifications`).push(notification)
+                        ]);
+                    })
+                    .then(() => {
+                        submittedReports = submittedReports.filter(r => r.firebaseKey !== report.firebaseKey);
+                        applySearchAndSort();
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Report Approved',
+                            text: 'The report has been approved and the sender has been notified.',
+                            background: '#f0fdf4',
+                            color: '#065f46',
+                            iconColor: '#059669',
+                            confirmButtonColor: '#059669',
+                            customClass: {
+                                popup: 'swal2-popup-success-clean',
+                                title: 'swal2-title-success-clean',
+                                content: 'swal2-text-success-clean'
+                            }
+                        });
+                    })
+                    .catch(error => {
+                        console.error("Error during report approval or notification:", error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Approval Failed',
+                            text: `Failed to approve report or send notification: ${error.message}`,
+                            background: '#fef2f2',
+                            color: '#7f1d1d',
+                            iconColor: '#dc2626',
+                            confirmButtonColor: '#b91c1c',
+                            customClass: {
+                                popup: 'swal2-popup-error-clean',
+                                title: 'swal2-title-error-clean',
+                                content: 'swal2-text-error-clean'
+                            }
+                        });
+                    });
+            });
+            tr.querySelector('.rejectBtn').addEventListener('click', () => {
+                const userUid = report.userUid;
+                if (!userUid) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'User UID not found in report. Cannot reject.',
+                    });
+                    return;
+                }
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Confirm Rejection',
+                    text: 'Are you sure you want to reject this report? It will be moved to archived reports.',
+                    showCancelButton: true,
+                    confirmButtonColor: '#b91c1c',
+                    cancelButtonColor: '#6b7280',
+                    confirmButtonText: 'Yes, reject it',
+                    cancelButtonText: 'Cancel',
+                    background: '#fef2f2',
+                    color: '#7f1d1d',
+                    iconColor: '#dc2626',
+                    customClass: {
+                        popup: 'swal2-popup-rejected-clean',
+                        title: 'swal2-title-rejected-clean',
+                        content: 'swal2-text-rejected-clean'
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        report["Status"] = "Rejected";
+                        Promise.all([
+                            database.ref(`reports/archived/${report.firebaseKey}`).set(report),
+                            database.ref(`users/${userUid}/reports/${report.firebaseKey}`).set({ ...report, Status: "Rejected" }),
+                            database.ref(`reports/pending/${report.firebaseKey}`).remove()
+                        ])
+                            .then(() => {
+                                console.log(`Report ${report.firebaseKey} rejected and moved to archived`);
+                                // Update local arrays
+                                submittedReports = submittedReports.filter(r => r.firebaseKey !== report.firebaseKey);
+                                if (!archivedReports.some(r => r.firebaseKey === report.firebaseKey)) {
+                                    archivedReports.push(report);
+                                } else {
+                                    console.warn(`Report ${report.firebaseKey} already exists in archivedReports, skipping push`);
+                                }
+                                // Refresh tables with delay to ensure Firebase sync
+                                setTimeout(() => {
+                                    applySearchAndSort();
+                                    renderArchivedReportsTable();
+                                    console.log("After rejection - Submitted Reports:", submittedReports);
+                                    console.log("After rejection - Archived Reports:", archivedReports);
+                                }, 100);
+                                Swal.fire({
+                                    icon: 'info',
+                                    title: 'Report Rejected',
+                                    text: 'The report has been rejected and moved to archived reports.',
+                                    background: '#fef2f2',
+                                    color: '#7f1d1d',
+                                    iconColor: '#dc2626',
+                                    confirmButtonColor: '#b91c1c',
+                                    customClass: {
+                                        popup: 'swal2-popup-rejected-clean',
+                                        title: 'swal2-title-rejected-clean',
+                                        content: 'swal2-text-rejected-clean'
+                                    }
+                                });
+                            })
+                            .catch(error => {
+                                console.error("Error during report rejection:", error);
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error',
+                                    text: 'Failed to reject report: ' + error.message,
+                                });
+                            });
+                    }
+                });
+            });
+            submittedReportsContainer.appendChild(tr);
+        });
+        const firstEntry = (currentPage - 1) * rowsPerPage + 1;
+        const lastEntry = Math.min(currentPage * rowsPerPage, totalEntries);
+        entriesInfo.textContent = `Showing ${firstEntry} to ${lastEntry} of ${totalEntries} entries`;
+        renderPaginationControlsForReports(totalPages, filteredReports);
+        highlightReportFromURL();
+    }
+    function renderArchivedReportsTable() {
+        archivedTableBody.innerHTML = '';
+        const totalEntries = archivedReports.length;
+        const totalPages = Math.ceil(totalEntries / archivedRowsPerPage);
+        if (archivedReports.length === 0) {
+            archivedTableBody.innerHTML = "<tr><td colspan='9'>No archived reports found.</td></tr>";
+            archivedEntriesInfo.textContent = "Showing 0 to 0 of 0 entries";
+            renderPaginationControlsForArchived(totalPages);
+            return;
+        }
+        const startIndex = (currentArchivedPage - 1) * archivedRowsPerPage;
+        const endIndex = startIndex + archivedRowsPerPage;
+        const currentPageReports = archivedReports.slice(startIndex, endIndex);
+        currentPageReports.forEach((report, index) => {
+            const tr = document.createElement('tr');
+            const displayIndex = (currentArchivedPage - 1) * archivedRowsPerPage + index + 1;
+            tr.innerHTML = `
+                <td>${displayIndex}</td>
+                <td>${report["ReportID"] || "-"}</td>
+                <td>${report["VolunteerGroupName"] || "[Unknown Org]"}</td>
+                <td>${report["AreaOfOperation"] || "-"}</td>
+                <td>${formatDate(report["StartDate"])}</td>
+                <td>${formatDate(report["EndDate"])}</td>
+                <td>${formatCurrency(report["TotalValueOfInKindDonations"])}</td>
+                <td>${formatCurrency(report["TotalMonetaryDonations"])}</td>
+                <td>
+                    <button class="restoreBtn"><i class="bx bx-undo"></i></button>
+                </td>
+            `;
+            tr.querySelector('.restoreBtn').addEventListener('click', () => {
+                const userUid = report.userUid;
+                if (!userUid) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'User UID not found in report. Cannot restore.',
+                    });
+                    return;
+                }
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Confirm Restoration',
+                    text: 'Are you sure you want to restore this report? It will be moved back to submitted reports.',
+                    showCancelButton: true,
+                    confirmButtonColor: '#059669',
+                    cancelButtonColor: '#6b7280',
+                    confirmButtonText: 'Yes, restore it',
+                    cancelButtonText: 'Cancel',
+                    background: '#f0fdf4',
+                    color: '#065f46',
+                    iconColor: '#059669',
+                    customClass: {
+                        popup: 'swal2-popup-success-clean',
+                        title: 'swal2-title-success-clean',
+                        content: 'swal2-text-success-clean'
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        report["Status"] = "Pending";
+                        Promise.all([
+                            database.ref(`reports/pending/${report.firebaseKey}`).set(report),
+                            database.ref(`users/${userUid}/reports/${report.firebaseKey}`).set({ ...report, Status: "Pending" }),
+                            database.ref(`reports/archived/${report.firebaseKey}`).remove()
+                        ])
+                            .then(() => {
+                                console.log(`Report ${report.firebaseKey} restored to submitted reports`);
+                                // Update local arrays
+                                archivedReports = archivedReports.filter(r => r.firebaseKey !== report.firebaseKey);
+                                if (!submittedReports.some(r => r.firebaseKey === report.firebaseKey)) {
+                                    submittedReports.push(report);
+                                } else {
+                                    console.warn(`Report ${report.firebaseKey} already exists in submittedReports, skipping push`);
+                                }
+                                // Refresh tables with delay to ensure Firebase sync
+                                setTimeout(() => {
+                                    currentPage = 1; // Reset to first page to show restored report
+                                    applySearchAndSort();
+                                    renderArchivedReportsTable();
+                                    console.log("After restoration - Submitted Reports:", submittedReports);
+                                    console.log("After restoration - Archived Reports:", archivedReports);
+                                }, 100);
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Report Restored',
+                                    text: 'The report has been restored to submitted reports.',
+                                    background: '#f0fdf4',
+                                    color: '#065f46',
+                                    iconColor: '#059669',
+                                    confirmButtonColor: '#059669',
+                                    customClass: {
+                                        popup: 'swal2-popup-success-clean',
+                                        title: 'swal2-title-success-clean',
+                                        content: 'swal2-text-success-clean'
+                                    }
+                                });
+                                archivedModal.style.display = 'none';
+                            })
+                            .catch(error => {
+                                console.error("Error during report restoration:", error);
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error',
+                                    text: 'Failed to restore report: ' + error.message,
+                                });
+                            });
+                    }
+                });
+            });
+            archivedTableBody.appendChild(tr);
+        });
+        const firstEntry = (currentArchivedPage - 1) * archivedRowsPerPage + 1;
+        const lastEntry = Math.min(currentArchivedPage * archivedRowsPerPage, totalEntries);
+        archivedEntriesInfo.textContent = `Showing ${firstEntry} to ${lastEntry} of ${totalEntries} entries`;
+        renderPaginationControlsForArchived(totalPages);
+    }
+    function renderPaginationControlsForReports(totalPages, filteredReports) {
         paginationContainer.innerHTML = '';
-        const totalPages = Math.ceil(filteredAndSortedDonations.length / rowsPerPage);
-
         if (totalPages === 0) {
             paginationContainer.innerHTML = '<span>No entries to display</span>';
             return;
         }
-
-        paginationContainer.appendChild(createPaginationButton('Prev', Math.max(1, currentPage - 1), currentPage === 1));
-
+        const createButton = (label, page, disabled = false, isActive = false) => {
+            const btn = document.createElement('button');
+            btn.textContent = label;
+            if (disabled) btn.disabled = true;
+            if (isActive) btn.classList.add('active-page');
+            btn.addEventListener('click', () => {
+                if (!disabled) {
+                    currentPage = page;
+                    const startIndex = (currentPage - 1) * rowsPerPage;
+                    const endIndex = startIndex + rowsPerPage;
+                    const currentPageReports = filteredReports.slice(startIndex, endIndex);
+                    renderReportsTable(currentPageReports, filteredReports);
+                }
+            });
+            return btn;
+        };
+        paginationContainer.appendChild(createButton('Prev', currentPage - 1, currentPage === 1));
         const maxVisible = 5;
         let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
         let endPage = Math.min(totalPages, startPage + maxVisible - 1);
         if (endPage - startPage < maxVisible - 1) {
             startPage = Math.max(1, endPage - maxVisible + 1);
         }
-
         for (let i = startPage; i <= endPage; i++) {
-            paginationContainer.appendChild(createPaginationButton(i, i, false, i === currentPage));
+            paginationContainer.appendChild(createButton(i, i, false, i === currentPage));
         }
-
-        paginationContainer.appendChild(createPaginationButton('Next', Math.min(totalPages, currentPage + 1), currentPage === totalPages));
+        paginationContainer.appendChild(createButton('Next', currentPage + 1, currentPage === totalPages));
     }
-
-    if (submitButton) {
-        submitButton.addEventListener('click', (e) => {
-            e.preventDefault();
-
-            // Check if submission is allowed
-            if (!canSubmit) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Submission Not Allowed',
-                    text: 'You lack permission to submit donations.',
-                    background: '#fdecea',
-                    color: '#b91c1c',
-                    iconColor: '#dc2626',
-                    confirmButtonColor: '#b91c1c',
-                    timer: 3000,
-                });
-                return;
-            }
-
-            const donationDrive = document.getElementById('donationDrive')?.value.trim();
-            const contactPerson = document.getElementById('contactPerson')?.value.trim();
-            const contactNumber = document.getElementById('contactNumber')?.value.trim();
-            const accountNumber = document.getElementById('accountNumber')?.value.trim();
-            const accountName = document.getElementById('accountName')?.value.trim();
-            const region = regionSelect?.options[regionSelect.selectedIndex]?.textContent || '';
-            const province = provinceSelect?.options[provinceSelect.selectedIndex]?.textContent || '';
-            const city = citySelect?.options[citySelect.selectedIndex]?.textContent || '';
-            const barangay = barangaySelect?.options[barangaySelect.selectedIndex]?.textContent || '';
-            const address = document.getElementById('address')?.value.trim();
-            const facebookLink = document.getElementById('facebookLink')?.value.trim();
-            const imageFile = document.getElementById('donationImage')?.files[0];
-
-            if (!donationDrive || !contactPerson || !contactNumber || !accountNumber || !accountName || !region || !province || !city || !barangay || !address) {
-                Swal.fire('Error', "Please fill in all required fields, including the full address (Region, Province, City, Barangay, and Address).", 'error');
-                return;
-            }
-
-            async function saveDonation(base64Image) {
-                // Function to generate a unique donation ID
-                async function generateUniqueDonationId() {
-                    let attempts = 0;
-                    const maxAttempts = 3;
-
-                    while (attempts < maxAttempts) {
-                        const randomNum = Math.floor(100 + Math.random() * 900); // Generate 100–999
-                        const donationId = `DONATION-${randomNum}`;
-
-                        // Check if ID exists in callfordonation
-                        const snapshot = await firebase.database().ref("callfordonation")
-                            .orderByChild("donationId")
-                            .equalTo(donationId)
-                            .once("value");
-
-                        if (!snapshot.exists()) {
-                            return donationId; // ID is unique
-                        }
-
-                        attempts++;
-                        console.log(`Donation ID ${donationId} already exists, retrying (${attempts}/${maxAttempts})`);
-                    }
-
-                    throw new Error("Unable to generate a unique donation ID after multiple attempts.");
+    function renderPaginationControlsForArchived(totalPages) {
+        archivedPagination.innerHTML = '';
+        if (totalPages === 0) {
+            archivedPagination.innerHTML = '<span>No entries to display</span>';
+            return;
+        }
+        const createButton = (label, page, disabled = false, isActive = false) => {
+            const btn = document.createElement('button');
+            btn.textContent = label;
+            if (disabled) btn.disabled = true;
+            if (isActive) btn.classList.add('active-page');
+            btn.addEventListener('click', () => {
+                if (!disabled) {
+                    currentArchivedPage = page;
+                    renderArchivedReportsTable();
                 }
-
-                try {
-                    // Generate unique donation ID
-                    const donationId = await generateUniqueDonationId();
-
-                    const newDonation = {
-                        donationId: donationId, // e.g., DONATION-914
-                        dateTime: new Date().toISOString(),
-                        donationDrive,
-                        contact: {
-                            person: contactPerson,
-                            number: contactNumber
-                        },
-                        account: {
-                            number: accountNumber,
-                            name: accountName
-                        },
-                        address: {
-                            region: region,
-                            province: province,
-                            city: city,
-                            barangay: barangay,
-                            street: address,
-                            fullAddress: `${address}, ${barangay}, ${city}, ${province}, ${region}`
-                        },
-                        facebookLink: facebookLink || "N/A",
-                        image: base64Image || '',
-                        status: "Pending",
-                        userRole: userRole || 'default',
-                        userUid: auth.currentUser.uid,
-                        timestamp: Date.now()
-                    };
-
-                    // Save to Firebase under the 'callfordonation' node
-                    const snapshot = await firebase.database().ref('callfordonation').push(newDonation);
-                    const donationKey = snapshot.key;
-
-                    // Notify admin after successful save
-                    const timestamp = Date.now();
-                    const message = `New donation call "${donationDrive}" submitted by ${contactPerson} from ${currentOrganization} on ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} at ${new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })} PST.`;
-                    await notifyAdmin(message, null, null, null, donationId, contactPerson, currentOrganization, `donation_${donationId}_${timestamp}`);
-
-                    // Clear form fields after successful submission
-                    document.getElementById('donationDrive').value = '';
-                    document.getElementById('contactPerson').value = '';
-                    document.getElementById('contactNumber').value = '';
-                    document.getElementById('accountNumber').value = '';
-                    document.getElementById('accountName').value = '';
-
-                    my_handlers.fill_regions(); // Reset location dropdowns
-
-                    document.getElementById('address').value = '';
-                    document.getElementById('facebookLink').value = '';
-                    document.getElementById('donationImage').value = '';
-
-                    if (regionTextInput) regionTextInput.value = '';
-                    if (provinceTextInput) provinceTextInput.value = '';
-                    if (cityTextInput) cityTextInput.value = '';
-                    if (barangayTextInput) barangayTextInput.value = '';
-
-                    formHasChanges = false;
-
-                    Swal.fire('Success', 'Donation added successfully!', 'success');
-                } catch (error) {
-                    console.error("Error saving donation to Firebase:", error);
-                    Swal.fire('Error', 'Failed to save the donation: ' + error.message, 'error');
+            });
+            return btn;
+        };
+        archivedPagination.appendChild(createButton('Prev', currentArchivedPage - 1, currentArchivedPage === 1));
+        const maxVisible = 5;
+        let startPage = Math.max(1, currentArchivedPage - Math.floor(maxVisible / 2));
+        let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+        if (endPage - startPage < maxVisible - 1) {
+            startPage = Math.max(1, endPage - maxVisible + 1);
+        }
+        for (let i = startPage; i <= endPage; i++) {
+            archivedPagination.appendChild(createButton(i, i, false, i === currentArchivedPage));
+        }
+        archivedPagination.appendChild(createButton('Next', currentArchivedPage + 1, currentArchivedPage === totalPages));
+    }
+    function applySearchAndSort() {
+        const searchQuery = searchInput.value.toLowerCase();
+        const sortValue = sortSelect.value;
+        const [sortBy, direction] = sortValue.split("-");
+        let filteredReports = submittedReports.filter(report => {
+            return isValidReport(report) && Object.entries(report).some(([key, value]) => {
+                if (key === "DateOfReport") {
+                    const formattedDate = formatDate(value).toLowerCase();
+                    return formattedDate.includes(searchQuery);
                 }
-            }
-
-            if (imageFile) {
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    saveDonation(event.target.result);
-                };
-                reader.readAsDataURL(imageFile);
+                if (key === "TimeOfIntervention") {
+                    const formattedTime = formatTime(value).toLowerCase();
+                    return formattedTime.includes(searchQuery);
+                }
+                return value?.toString().toLowerCase().includes(searchQuery);
+            });
+        });
+        if (sortBy) {
+            filteredReports.sort((a, b) => {
+                const valA = a[sortBy] || "";
+                const valB = b[sortBy] || "";
+                if (sortBy === "DateOfReport") {
+                    const dateA = new Date(valA);
+                    const dateB = new Date(valB);
+                    if (isNaN(dateA) || isNaN(dateB)) return 0;
+                    return direction === "asc" ? dateA - dateB : dateB - dateA;
+                } else if (sortBy === "TimeOfIntervention") {
+                    const timeA = new Date(valA.includes('T') ? valA : `1970-01-01T${valA}`).getTime();
+                    const timeB = new Date(valB.includes('T') ? valB : `1970-01-01T${valB}`).getTime();
+                    if (isNaN(timeA) || isNaN(timeB)) return 0;
+                    return direction === "asc" ? timeA - timeB : timeB - timeA;
+                }
+                return direction === "asc"
+                    ? valA.toString().localeCompare(valB.toString())
+                    : valB.toString().localeCompare(valA.toString());
+            });
+        }
+        // Check for reportId in URL and navigate to the correct page
+        const urlParams = new URLSearchParams(window.location.search);
+        const reportId = urlParams.get('reportId');
+        if (reportId) {
+            const reportIndex = filteredReports.findIndex(report => report.ReportID === reportId || report.firebaseKey === reportId);
+            if (reportIndex !== -1) {
+                currentPage = Math.ceil((reportIndex + 1) / rowsPerPage);
+                console.log(`Navigated to page ${currentPage} for ReportID: ${reportId}`);
             } else {
-                saveDonation('');
+                console.log(`Report with ReportID ${reportId} not found in filtered reports.`);
             }
-        });
-    } else {
-        console.error('Submit button not found in DOM (ID: nextBtn). Please verify the HTML.');
+        }
+        const startIndex = (currentPage - 1) * rowsPerPage;
+        const endIndex = startIndex + rowsPerPage;
+        const currentPageReports = filteredReports.slice(startIndex, endIndex);
+        renderReportsTable(currentPageReports, filteredReports);
     }
-
-    // --- Excel Export Functionality ---
-    exportBtn.addEventListener("click", () => {
-        if (filteredAndSortedDonations.length === 0) {
-            Swal.fire("Info", "No data to export!", "info");
-            return;
-        }
-
-        const dataForExport = filteredAndSortedDonations.map((d, i) => ({
-            "No.": i + 1,
-            "Donation Drive": d.donationDrive || '',
-            "Contact Person": d.contact?.person || '',
-            "Contact Number": String(d.contact?.number || ''),
-            "Account Number": String(d.account?.number || ''),
-            "Account Name": d.account?.name || '',
-            "Region": d.address?.region || '',
-            "Province": d.address?.province || '',
-            "City/Municipality": d.address?.city || '',
-            "Barangay": d.address?.barangay || '',
-            "Street Address": d.address?.street || '',
-            "Full Address": d.address?.fullAddress || d.dropOff || '',
-            "Facebook Link": d.facebookLink && d.facebookLink !== 'N/A' ? d.facebookLink : 'N/A',
-            "Status": d.status || '',
-            "Submitted Date/Time": new Date(d.dateTime).toLocaleString() || ''
-        }));
-
-        // Check if XLSX library is loaded
-        if (typeof XLSX === 'undefined') {
-            Swal.fire("Error", "XLSX library not loaded. Please ensure `xlsx.full.min.js` is included in your HTML.", "error");
-            console.error("XLSX library is not loaded.");
-            return;
-        }
-
-        const ws = XLSX.utils.json_to_sheet(dataForExport);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Call for Donations");
-
-        // Get current date and format it for the filename
-        const today = new Date();
-        const year = today.getFullYear();
-        const month = String(today.getMonth() + 1).padStart(2, '0');
-        const day = String(today.getDate()).padStart(2, '0');
-        const formattedDate = `${year}-${month}-${day}`;
-        // Construct the filename with the date
-        const filename = `call-for-donations_${formattedDate}.xlsx`;
-        XLSX.writeFile(wb, filename);
-        Swal.fire("Success", `Call for Donations data exported to ${filename}!`, "success");
+    searchInput.addEventListener('input', () => {
+        currentPage = 1;
+        applySearchAndSort();
     });
-
-    // --- PDF Export Functionality ---
-    savePdfBtn.addEventListener("click", () => {
-        if (filteredAndSortedDonations.length === 0) {
-            Swal.fire("Info", "No data to export to PDF!", "info");
-            return;
-        }
-
-        if (typeof window.jspdf === 'undefined' || typeof window.jspdf.jsPDF === 'undefined') {
-            Swal.fire("Error", "jsPDF library not loaded. Please ensure `jspdf.umd.min.js` and `jspdf.autotable.min.js` are included in your HTML.", "error");
-            console.error("jsPDF library is not loaded.");
-            return;
-        }
-
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF('landscape');
-
-        let yOffset = 20;
-        const logo = new Image();
-        logo.src = '../assets/images/AB_logo.png';
-
-        // Show a loading indicator while the PDF is being generated
-        Swal.fire({
-            title: 'Generating PDF...',
-            text: 'Please wait while your PDF is being created.',
-            allowOutsideClick: false,
-            didOpen: () => {
-                Swal.showLoading();
-            }
-        });
-
-        logo.onload = function() {
-            const pageWidth = doc.internal.pageSize.width;
-            const logoWidth = 30;
-            const logoHeight = (logo.naturalHeight / logo.naturalWidth) * logoWidth;
-            const margin = 14;
-
-            doc.addImage(logo, 'PNG', pageWidth - logoWidth - margin, margin, logoWidth, logoHeight);
-
-            doc.setFontSize(18);
-            doc.text("Call for Donations Report", 14, yOffset);
-            yOffset += 10;
-            doc.setFontSize(10);
-            doc.text(`Report Generated: ${new Date().toLocaleString()}`, 14, yOffset);
-            yOffset += 15;
-
-            const head = [[
-                "No.", "Donation Drive", "Contact Person", "Contact Number",
-                "Account Number", "Account Name", "Full Address", "Facebook Link",
-                "Status", "Submission Date/Time"
-            ]];
-
-            const body = filteredAndSortedDonations.map((d, i) => [
-                i + 1,
-                d.donationDrive || 'N/A',
-                d.contact?.person || 'N/A',
-                String(d.contact?.number || 'N/A'),
-                String(d.account?.number || 'N/A'),
-                d.account?.name || 'N/A',
-                d.address?.fullAddress || d.dropOff || 'N/A',
-                d.facebookLink && d.facebookLink !== 'N/A' ? d.facebookLink : 'N/A',
-                d.status || 'N/A',
-                new Date(d.dateTime).toLocaleString() || 'N/A'
-            ]);
-
-            doc.autoTable({
-                head: head,
-                body: body,
-                startY: yOffset,
-                theme: 'grid',
-                headStyles: {
-                    fillColor: [20, 174, 187],
-                    textColor: [255, 255, 255],
-                    halign: 'center'
-                },
-                styles: {
-                    fontSize: 8,
-                    cellPadding: 2
-                },
-                didDrawPage: function (data) {
-                    doc.setFontSize(8);
-                    const pageNumberText = `Page ${data.pageNumber} of ${doc.internal.getNumberOfPages()}`;
-                    const poweredByText = "Powered by: Appvance";
-                    const pageWidth = doc.internal.pageSize.width;
-                    const margin = data.settings.margin.left;
-                    const footerY = doc.internal.pageSize.height - 10;
-
-                    doc.text(pageNumberText, margin, footerY);
-                    doc.text(poweredByText, pageWidth - margin, footerY, { align: 'right' });
-                }
-            });
-
-            const today = new Date();
-            const year = today.getFullYear();
-            const month = String(today.getMonth() + 1).padStart(2, '0');
-            const day = String(today.getDate()).padStart(2, '0');
-            const formattedDate = `${year}-${month}-${day}`;
-
-            const filename = `call-for-donations_${formattedDate}.pdf`;
-            doc.save(filename);
-            Swal.close();
-            Swal.fire("Success", `Call for Donations data exported to "${filename}"`, "success");
-        };
-
-        logo.onerror = function() {
-            Swal.close(); // Close loading Swal
-            Swal.fire("Error", "Failed to load logo image. Please check the path.", "error");
-        };
+    sortSelect.addEventListener('change', () => {
+        currentPage = 1;
+        applySearchAndSort();
     });
-
-    // --- Save Single CFD Donation to PDF ---
-    function saveSingleCfdDonationPdf(donation) {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-
-        Swal.fire({
-            title: 'Generating PDF...',
-            text: 'Please wait while your PDF is being created.',
-            allowOutsideClick: false,
-            didOpen: () => {
-                Swal.showLoading();
-            }
+    viewArchivedBtn.addEventListener('click', () => {
+        archivedModal.style.display = 'block';
+        renderArchivedReportsTable();
+    });
+    closeArchivedModalBtn.addEventListener('click', () => {
+        archivedModal.style.display = 'none';
+    });
+    window.addEventListener('click', (event) => {
+        if (event.target === archivedModal) {
+            archivedModal.style.display = 'none';
+        }
+    });
+    window.clearDInputs = () => {
+        searchInput.value = '';
+        currentPage = 1;
+        applySearchAndSort();
+    };
+    const viewApprovedBtn = document.getElementById("viewApprovedBtn");
+    if (viewApprovedBtn) {
+        viewApprovedBtn.addEventListener("click", () => {
+            window.location.href = "../pages/reportsLog.html";
         });
-
-        const logo = new Image();
-        logo.src = '../assets/images/AB_logo.png';
-
-        logo.onload = function() {
-            const pageWidth = doc.internal.pageSize.width;
-            const logoWidth = 30;
-            const logoHeight = (logo.naturalHeight / logo.naturalWidth) * logoWidth;
-            const margin = 14;
-
-            doc.addImage(logo, 'PNG', pageWidth - logoWidth - margin, margin, logoWidth, logoHeight);
-
-            doc.setFontSize(18);
-            doc.text("Call for Donation Details", margin, 22);
-            doc.setFontSize(10);
-            doc.text(`Report Generated: ${new Date().toLocaleString()}`, margin, 30);
-
-            let y = 45;
-
-            const addDetail = (label, value) => {
-                doc.text(`${label}: ${value || 'N/A'}`, margin, y);
-                y += 7;
-            };
-
-            addDetail("Donation Drive", donation.donationDrive);
-            addDetail("Contact Person", donation.contact?.person);
-            addDetail("Contact Number", String(donation.contact?.number || 'N/A'));
-            addDetail("Account Number", String(donation.account?.number || 'N/A'));
-            addDetail("Account Name", donation.account?.name);
-            addDetail("Region", donation.address?.region);
-            addDetail("Province", donation.address?.province);
-            addDetail("City/Municipality", donation.address?.city);
-            addDetail("Barangay", donation.address?.barangay);
-            addDetail("Street Address", donation.address?.street);
-            addDetail("Full Address", donation.address?.fullAddress || donation.dropOff);
-            addDetail("Facebook Link", donation.facebookLink && donation.facebookLink !== 'N/A' ? donation.facebookLink : 'N/A');
-            addDetail("Status", donation.status);
-            addDetail("Submitted Date/Time", new Date(donation.dateTime).toLocaleString());
-
-            if (donation.image) {
-                y += 10;
-                const imgWidth = 80;
-                const imgHeight = (imgWidth / logo.naturalWidth) * logo.naturalHeight;
-                const imgX = margin;
-                if (y + imgHeight > doc.internal.pageSize.height - margin) {
-                    doc.addPage();
-                    y = margin;
-                }
-                doc.text("Attached Image:", margin, y);
-                y += 5;
-                doc.addImage(donation.image, 'JPEG', imgX, y, imgWidth, imgHeight);
-            }
-
-            // Footer
-            doc.setFontSize(8);
-            const footerY = doc.internal.pageSize.height - 10;
-            const pageNumberText = `Page 1 of 1`;
-            const poweredByText = "Powered by: Appvance";
-
-            doc.text(pageNumberText, margin, footerY);
-            doc.text(poweredByText, pageWidth - margin, footerY, { align: 'right' });
-
-            doc.save(`cfd_donation_${new Date().toISOString().slice(0, 10)}.pdf`);
-
-            Swal.close();
-            Swal.fire({
-                title: 'Export Successful!',
-                text: `Donation details for "${donation.donationDrive}" have been exported to PDF.`,
-                icon: 'success',
-                color: '#1b5e20',
-                iconColor: '#43a047',
-                confirmButtonColor: '#388e3c',
-                confirmButtonText: 'Great!',
-                customClass: {
-                    popup: 'swal2-popup-success-export',
-                    title: 'swal2-title-success-export',
-                    content: 'swal2-text-success-export',
-                    confirmButton: 'swal2-button-success-export'
-                }
-            });
-        };
-
-        logo.onerror = function() {
-            Swal.close(); // Close loading Swal
-            Swal.fire("Error", "Failed to load logo image. Please check the path.", "error");
-        };
     }
-
-    // Initial calls when the DOM content is loaded
-    toggleExportCsvButton();
-    updateRemoveButtonVisibility();
-    applyChange();
 });
