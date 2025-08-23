@@ -700,13 +700,14 @@ if (addNew) {
                 title: 'Access Denied',
                 text: 'You do not have permission to add volunteer groups.',
                 icon: 'error',
-                showConfirmButton: true,
-                confirmButtonText: 'OK',
+                timer: 2000,
+                showConfirmButton: false,
+                timerProgressBar: true,
+                allowOutsideClick: false,
                 customClass: {
-                    popup: 'swal2-popup-success-clean',
-                    title: 'swal2-title-success-clean',
-                    htmlContainer: 'swal2-text-success-clean',
-                    confirmButton: 'custom-confirm-btn'
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean'
                 }
             });
             return;
@@ -754,13 +755,14 @@ if (addOrgForm) {
                 title: 'Access Denied',
                 text: 'You do not have permission to add volunteer groups.',
                 icon: 'error',
-                showConfirmButton: true,
-                confirmButtonText: 'OK',
+                timer: 2000,
+                showConfirmButton: false,
+                timerProgressBar: true,
+                allowOutsideClick: false,
                 customClass: {
-                    popup: 'swal2-popup-success-clean',
-                    title: 'swal2-title-success-clean',
-                    htmlContainer: 'swal2-text-success-clean',
-                    confirmButton: 'custom-confirm-btn'
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean'
                 }
             });
             return;
@@ -1257,13 +1259,14 @@ if (editOrgForm) {
                 title: 'Access Denied',
                 text: 'You do not have permission to edit volunteer groups.',
                 icon: 'error',
-                showConfirmButton: true,
-                confirmButtonText: 'OK',
+                timer: 2000,
+                showConfirmButton: false,
+                timerProgressBar: true,
+                allowOutsideClick: false,
                 customClass: {
-                    popup: 'swal2-popup-success-clean',
-                    title: 'swal2-title-success-clean',
-                    htmlContainer: 'swal2-text-success-clean',
-                    confirmButton: 'custom-confirm-btn'
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean'
                 }
             });
             return;
@@ -1526,13 +1529,14 @@ function attachRowHandlers() {
                     title: 'Access Denied',
                     text: 'You do not have permission to archive volunteer groups.',
                     icon: 'error',
-                    showConfirmButton: true,
-                    confirmButtonText: 'OK',
+                    timer: 2000,
+                    showConfirmButton: false,
+                    timerProgressBar: true,
+                    allowOutsideClick: false,
                     customClass: {
-                        popup: 'swal2-popup-success-clean',
-                        title: 'swal2-title-success-clean',
-                        htmlContainer: 'swal2-text-success-clean',
-                        confirmButton: 'custom-confirm-btn'
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean'
                     }
                 });
                 return;
@@ -1558,7 +1562,7 @@ function attachRowHandlers() {
                     focusCancel: true,
                     allowOutsideClick: false,
                     customClass: {
-                        popup: 'custom-swal-popup-small',
+                        popup: 'custom-swal-popup-large',
                         title: 'custom-swal-title',
                         htmlContainer: 'custom-swal-content',
                         confirmButton: 'custom-confirm-btn',
@@ -1650,13 +1654,14 @@ function attachArchivedRowHandlers() {
                     title: 'Access Denied',
                     text: 'Only Super Admins can restore archived groups.',
                     icon: 'error',
-                    showConfirmButton: true,
-                    confirmButtonText: 'OK',
+                    timer: 2000,
+                    showConfirmButton: false,
+                    timerProgressBar: true,
+                    allowOutsideClick: false,
                     customClass: {
-                        popup: 'swal2-popup-success-clean',
-                        title: 'swal2-title-success-clean',
-                        htmlContainer: 'swal2-text-success-clean',
-                        confirmButton: 'custom-confirm-btn'
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean'
                     }
                 });
                 return;

@@ -386,10 +386,10 @@ document.addEventListener("DOMContentLoaded", () => {
     viewArchivedBtn.addEventListener('click', async () => {
         if (!permissions.canRetrieve) {
             Swal.fire({
-                title: 'Error',
+                title: 'Access Denied',
                 text: 'You do not have permission to view archived donations.',
                 icon: 'error',
-                timer: 2000,
+                timer: 1600,
                 showConfirmButton: false,
                 timerProgressBar: true,
                 allowOutsideClick: false,
@@ -1060,10 +1060,10 @@ document.addEventListener("DOMContentLoaded", () => {
         viewArchivedBtn.addEventListener('click', async () => {
             if (!permissions.canRetrieve) {
                 Swal.fire({
-                    title: 'Error',
+                    title: 'Access Denied',
                     text: 'You do not have permission to view archived donations.',
                     icon: 'error',
-                    timer: 2000,
+                    timer: 1600,
                     showConfirmButton: false,
                     timerProgressBar: true,
                     allowOutsideClick: false,
@@ -1241,7 +1241,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 title: 'Access Denied',
                 text: 'You do not have permission to add or edit this donation.',
                 icon: 'error',
-                timer: 2500,
+                timer: 1600,
                 showConfirmButton: false,
                 timerProgressBar: true,
                 allowOutsideClick: false,

@@ -9,10 +9,10 @@ const firebaseConfig = {
     measurementId: "G-ZTQ9VXXVV0"
 };
 
-    // Initialize Firebase
-    firebase.initializeApp(firebaseConfig);
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
 } else {
-    firebase.app();
+  firebase.app(); // if already initialized, use that one
 }
 
 const database = firebase.database();

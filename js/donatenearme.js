@@ -285,20 +285,20 @@ document.addEventListener('DOMContentLoaded', () => {
     if (inKindBtn && monetaryBtn && inKindDonationForm && monetaryDonationForm) {
 
     // Set default view: In-Kind open
-    inKindDonationForm.style.display = 'block';
+    inKindDonationForm.style.display = 'flex';
     monetaryDonationForm.style.display = 'none';
     inKindBtn.classList.add('active'); // Set In-Kind button as active
 
 
     inKindBtn.addEventListener('click', () => {
         console.log("In-Kind button clicked. Showing In-Kind form.");
-        inKindDonationForm.style.display = 'block';
+        inKindDonationForm.style.display = 'flex';
         monetaryDonationForm.style.display = 'none';
     });
 
     monetaryBtn.addEventListener('click', () => {
         console.log("Monetary button clicked. Showing Monetary form.");
-        monetaryDonationForm.style.display = 'block';
+        monetaryDonationForm.style.display = 'flex';
         inKindDonationForm.style.display = 'none';
     });
 

@@ -39,6 +39,7 @@ body::before {
   font-size: 0.8em;
   margin-top: 5px;
 }
+
 .error {
   border: 1px solid red;
 }
