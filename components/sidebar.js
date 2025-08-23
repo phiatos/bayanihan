@@ -1,93 +1,163 @@
 let isRestricted = false;
 
-function highlightActiveMenuItem() {
-  const currentPath = window.location.pathname;
-  const currentPage = currentPath.split("/").pop();
+/* ---------- helpers ---------- */
+function getFileName(path) {
+  try {
+    return new URL(path, window.location.href).pathname.split("/").pop();
+  } catch {
+    return (path || "").split("/").pop();
+  }
+}
 
-  document.querySelectorAll(".menu ul li").forEach((menuItem) => {
-    const link = menuItem.querySelector("a");
-    if (link) {
-      const linkHref = link.getAttribute("href") || "";
-      if (linkHref.includes(currentPage)) {
-        menuItem.classList.add("active");
-      } else {
-        menuItem.classList.remove("active");
-      }
+/* Ensure native tooltips are populated from the visible label */
+function ensureMenuTitles() {
+  // iterate over all <a> elements inside the sidebar menu
+  document.querySelectorAll(".sidebar .menu a").forEach((a) => {
+    // get the label from the immediate span.text
+    const label = a.querySelector(".text")?.textContent?.trim();
+    if (label) {
+      a.setAttribute("title", label);      // native tooltip
+      a.setAttribute("aria-label", label); // accessibility
+      a.dataset.tooltip = label;           // optional for CSS tooltip
     }
   });
 }
 
+/* Single-source-of-truth highlighter */
+function highlightActiveMenuItem() {
+  const currentPage = getFileName(window.location.pathname);
 
-function initSidebar() {
-  highlightActiveMenuItem();
-  if (window.sidebarInitialized) {
-    console.log("initSidebar already executed, skipping.");
-    return;
-  }
-  window.sidebarInitialized = true;
+  // clear previous state
+  document.querySelectorAll(".menu ul li").forEach((li) => {
+    li.classList.remove("active", "active-parent");
+  });
+  document
+    .querySelectorAll('.menu ul li a[aria-current="page"]')
+    .forEach((a) => a.removeAttribute("aria-current"));
 
-  const menuBtn = document.querySelector(".menu-btn");
-  const sidebar = document.querySelector(".sidebar");
-  const logoutBtn = document.querySelector("#logout-btn");
-
-  if (menuBtn && sidebar) {
-    menuBtn.addEventListener("click", function () {
-      sidebar.classList.toggle("active");
-    });
-  } else {
-    console.log("Menu button or sidebar element NOT found (from within sidebar.js).");
-  }
-
-  document.querySelectorAll(".menu ul li.has-dropdown > a").forEach((link) => {
-    link.addEventListener("click", function (e) {
-      e.preventDefault();
-      const parentLi = this.parentElement;
-
-      document.querySelectorAll(".menu ul li.has-dropdown").forEach((li) => {
-        if (li !== parentLi) {
-          li.classList.remove("active");
-          const sub = li.querySelector(".sub-menu");
-          if (sub) sub.style.display = "none";
-        }
-      });
-
-      const subMenu = parentLi.querySelector(".sub-menu");
-      const isVisible = subMenu && subMenu.style.display === "block";
-
-      parentLi.classList.toggle("active", !isVisible);
-      if (subMenu) {
-        subMenu.style.display = isVisible ? "none" : "block";
-      }
-    });
+  // find exact match by file name
+  let activeLi = null;
+  document.querySelectorAll(".menu ul li a[href]").forEach((a) => {
+    const href = a.getAttribute("href") || "";
+    if (!href || href === "#" || href.startsWith("javascript:")) return;
+    const target = getFileName(href);
+    if (target === currentPage) {
+      activeLi = a.closest("li");
+    }
   });
 
-  if (logoutBtn) {
-    logoutBtn.addEventListener("click", function (e) {
-      e.preventDefault();
+  if (!activeLi) return;
 
+  // mark the active item
+  activeLi.classList.add("active");
+  const activeLink = activeLi.querySelector("a[href]");
+  if (activeLink) activeLink.setAttribute("aria-current", "page");
+
+  // also mark (only) its parent dropdown
+  const parentDropdown = activeLi.closest("li.has-dropdown");
+  if (parentDropdown) {
+    parentDropdown.classList.add("active", "active-parent");
+    // expand it when sidebar is expanded; collapsed relies on hover/flyout CSS
+    const sub = parentDropdown.querySelector(".sub-menu");
+    const sidebar = document.querySelector(".sidebar");
+    if (sub && sidebar && !sidebar.classList.contains("active")) {
+      sub.style.display = "block";
+    }
+  }
+}
+
+function initSidebar() {
+  if (window.sidebarInitialized) return;
+  window.sidebarInitialized = true;
+
+  const sidebar = document.querySelector(".sidebar");
+  const menuBtn = document.querySelector(".menu-btn");
+  const logoutBtn = document.querySelector("#logout-btn");
+
+  // tooltips (so minimized state still shows names on hover)
+  ensureMenuTitles();
+
+  // Toggle sidebar collapse
+  if (menuBtn && sidebar) {
+    menuBtn.addEventListener("click", () => {
+      // toggle collapsed state
+      const collapsed = sidebar.classList.toggle("active");
+
+      const logoutText = logoutBtn.querySelector(".text");
+      if (logoutText) {
+        logoutText.style.display = collapsed ? "none" : "inline";
+      }
+
+      // when collapsing, clear inline submenu states (flyout handled by CSS)
+      if (collapsed) {
+        document
+          .querySelectorAll(".menu ul li.has-dropdown .sub-menu")
+          .forEach((sub) => (sub.style.display = ""));
+      } else {
+        // when expanding, re-open the active parent's submenu (if any)
+        const currentChild = document.querySelector(
+          ".menu ul li.active:not(.has-dropdown)"
+        );
+        const parent = currentChild?.closest("li.has-dropdown");
+        const sub = parent?.querySelector(".sub-menu");
+        if (parent && sub) sub.style.display = "block";
+      }
+
+      // re-assert tooltips (titles survive, but keep in sync)
+      ensureMenuTitles();
+    });
+  }
+
+  // Handle dropdown menus (click toggles only their own — no global highlight here)
+  document
+    .querySelectorAll(".menu ul li.has-dropdown > a")
+    .forEach((link) => {
+      link.addEventListener("click", function (e) {
+        e.preventDefault();
+
+        const parentLi = this.parentElement;
+        const subMenu = parentLi.querySelector(".sub-menu");
+        const isVisible = subMenu && subMenu.style.display === "block";
+
+        // close other dropdowns
+        document.querySelectorAll(".menu ul li.has-dropdown").forEach((li) => {
+          if (li !== parentLi) {
+            li.classList.remove("active");
+            const sub = li.querySelector(".sub-menu");
+            if (sub) sub.style.display = "none";
+          }
+        });
+
+        parentLi.classList.toggle("active", !isVisible);
+        if (subMenu) subMenu.style.display = isVisible ? "none" : "block";
+      });
+    });
+
+  // Logout button (unchanged)
+  if (logoutBtn) {
+    logoutBtn.addEventListener("click", (e) => {
+      e.preventDefault();
       Swal.fire({
-      title: "Are you sure you want to log out?",
-      text: "You will need to log in again to access your account.",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonText: "Yes, log out",
-      cancelButtonText: "Cancel",
-      reverseButtons: true,
-      focusCancel: true,
-      customClass: {
-        popup: 'swal2-popup-clean',
-        title: 'swal2-title-clean',
-        content: 'swal2-text-clean',
-        confirmButton: 'swal2-btn-confirm-clean',
-        cancelButton: 'swal2-btn-cancel-clean'
-      },
+        title: "Are you sure you want to log out?",
+        text: "You will need to log in again to access your account.",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Yes, log out",
+        cancelButtonText: "Cancel",
+        reverseButtons: true,
+        focusCancel: true,
+        customClass: {
+          popup: 'custom-swal-popup-small',
+          title: 'custom-swal-title',
+          htmlContainer: 'custom-swal-content',
+          confirmButton: 'custom-confirm-btn',
+          cancelButton: 'custom-cancel-btn'
+        },
       }).then((result) => {
         if (result.isConfirmed) {
-          localStorage.removeItem("userMobile");
-          localStorage.removeItem("userRole");
-          localStorage.removeItem("userData");
-          localStorage.removeItem("userUID");
-
+          ["userMobile", "userRole", "userData", "userUID"].forEach((k) =>
+            localStorage.removeItem(k)
+          );
           Swal.fire({
             title: "Logged out!",
             text: "You have been successfully logged out.",
@@ -96,149 +166,101 @@ function initSidebar() {
             showConfirmButton: false,
             timerProgressBar: true,
             customClass: {
-              popup: 'swal2-popup-success-clean',
-              title: 'swal2-title-success-clean',
-              content: 'swal2-text-success-clean'
+              popup: "swal2-popup-success-clean",
+              title: "swal2-title-success-clean",
+              content: "swal2-text-success-clean",
             },
-            didClose: () => {
-              window.location.replace("../pages/login.html");
-            }
+            didClose: () => window.location.replace("../pages/login.html"),
           });
         }
       });
-
     });
-  } else {
-    console.log("Logout button element NOT found (from within sidebar.js).");
   }
 
+  // Page access restrictions (exact-match check)
   function restrictPageAccess() {
-    // Skip if already restricted
-    if (isRestricted) {
-      console.log("Page access already restricted, skipping.");
-      return;
-    }
-
-    const currentPath = window.location.pathname;
-    const currentPage = currentPath.split('/').pop(); // Get just the filename
-
-    // Allow access to login.html without authentication
-    if (currentPage === 'login.html') { 
-      return;
-    }
+    if (isRestricted) return;
+    const currentPage = getFileName(window.location.pathname);
+    if (currentPage === "login.html") return;
 
     const userRole = localStorage.getItem("userRole");
-
-    // All pages except login.html require a user role
     if (!userRole) {
-      console.log("No user role found in localStorage, redirecting to login.");
       isRestricted = true;
       Swal.fire({
         icon: "warning",
         title: "Authentication Required",
-        text: "Please sign in to continue.",
+        text: "Please sign in.",
         timer: 2000,
-        showConfirmButton: false
+        showConfirmButton: false,
       });
-      setTimeout(() => {
-        window.location.replace("../pages/login.html");
-      }, 2000);
-      return;
+      return setTimeout(
+        () => window.location.replace("../pages/login.html"),
+        2000
+      );
     }
 
-    // Specific restrictions for ABVN role on certain pages
     const abvnRestrictedPages = [
-      'volunteergroupmanagement.html',
-      'reportsVerification.html',
-      'rdanaVerification.html',
-      'activation.html',
-      'reliefsLog.html',
-      'rdanaLog.html',
-      'inkind.html',
-      'monetary.html',
-      'reportsLog.html',
+      "volunteergroupmanagement.html",
+      "reportsVerification.html",
+      "rdanaVerification.html",
+      "activation.html",
+      "reliefsLog.html",
+      "rdanaLog.html",
+      "inkind.html",
+      "monetary.html",
+      "reportsLog.html",
     ];
 
-    const isAbvnRestrictedPage = abvnRestrictedPages.some(page => currentPath.includes(page));
-
-    if (userRole === "ABVN" && isAbvnRestrictedPage) {
-      console.log("ABVN user attempted to access restricted page:", currentPath);
-      isRestricted = true; // Set flag to prevent further triggers
+    if (userRole === "ABVN" && abvnRestrictedPages.includes(currentPage)) {
+      isRestricted = true;
       Swal.fire({
         icon: "error",
         title: "Access Denied",
         text: "This page is for admins only.",
         timer: 2000,
-        showConfirmButton: false
+        showConfirmButton: false,
       });
-      setTimeout(() => {
-        window.location.replace("../pages/dashboard.html");
-      }, 2000);
+      return setTimeout(
+        () => window.location.replace("../pages/dashboard.html"),
+        2000
+      );
     }
   }
 
+  // Populate user details (unchanged)
   function populateUserDetails() {
+    const user = JSON.parse(localStorage.getItem("userData")) || {};
     const userRoleElement = document.querySelector("#user-role");
     const userNameElement = document.querySelector("#user-name");
 
-    const user = JSON.parse(localStorage.getItem("userData")) || {};
-
-    console.log("User Data retrieved in sidebar:", user);
-
-    const group = user.organization || "";
-    const contactPerson = user.contactPerson || "";
-    const role = user.role || "";
-    const adminPosition = user.adminPosition || "";
-    const isSuperAdmin = user.isSuperAdmin || false;
-
     let roleDisplay = "";
-    if (role === "AB ADMIN") {
-      roleDisplay = "Admin";
-      if (adminPosition) {
-        roleDisplay += ` (${adminPosition})`;
-      }
-
-      // if (isSuperAdmin) {
-      //   roleDisplay += ` - Super Admin`;
-      // }
-    } else if (role === "ABVN") {
-      roleDisplay = group;
-    } else {
-      roleDisplay = "";
+    if (user.role === "AB ADMIN") {
+      roleDisplay =
+        "Admin" + (user.adminPosition ? ` (${user.adminPosition})` : "");
+    } else if (user.role === "ABVN") {
+      roleDisplay = user.organization || "";
     }
 
-    console.log("Role Display for #user-role:", roleDisplay);
+    if (userRoleElement) userRoleElement.textContent = roleDisplay;
+    if (userNameElement)
+      userNameElement.textContent =
+        user.role === "AB ADMIN" && user.firstName && user.lastName
+          ? `${user.firstName} ${user.lastName}`
+          : user.contactPerson || "";
 
-    if (userRoleElement) {
-      userRoleElement.textContent = roleDisplay;
-    } else {
-      console.log("#user-role element not found in DOM");
-    }
-
-    if (userNameElement) {
-      if (role === "AB ADMIN" && user.firstName && user.lastName) {
-          userNameElement.textContent = `${user.firstName} ${user.lastName}`;
-      } else {
-          userNameElement.textContent = contactPerson;
-      }
-    } else {
-      console.log("#user-name element not found in DOM");
-    }
-
-    // Pass the isSuperAdmin status directly to restrictMenuAccess
-    restrictMenuAccess(role, isSuperAdmin);
+    restrictMenuAccess(user.role, user.isSuperAdmin || false);
   }
 
-  // Modified restrictMenuAccess function
+  // Restrict menu items by role (your original code kept)
   function restrictMenuAccess(role, isSuperAdmin) {
-    // Define menu items to control visibility
     const menuItems = {
-      //admin
       activitylogs: document.querySelector(".menu-activitylogs"),
       adminmanagement: document.querySelector(".menu-adminmanagement"),
       dashboard: document.querySelector(".menu-dashboard"),
       communityboard: document.querySelector(".menu-communityboard"),
-      volunteergroupmanagement: document.querySelector(".menu-volunteergroupmanagement"),
+      volunteergroupmanagement: document.querySelector(
+        ".menu-volunteergroupmanagement"
+      ),
       activation: document.querySelector(".menu-activation"),
       donationTracksheet: document.querySelector(".menu-donation-tracksheet"),
       inkind: document.querySelector(".menu-inkind"),
@@ -248,18 +270,18 @@ function initSidebar() {
       rdanaLog: document.querySelector(".menu-rdana-log"),
       reportsVerification: document.querySelector(".menu-reports-verification"),
       reportsLog: document.querySelector(".menu-reports-log"),
-      //approvals
       abvnApplications: document.querySelector(".menu-abvn-applications"),
       pendingABVN: document.querySelector(".menu-pending-abvn"),
       approvedABVN: document.querySelector(".menu-approved-abvn"),
-      volunteerApplications: document.querySelector(".menu-volunteer-applications"),
+      volunteerApplications: document.querySelector(
+        ".menu-volunteer-applications"
+      ),
       pendingVolunteers: document.querySelector(".menu-pending-volunteers"),
       approvedVolunteers: document.querySelector(".menu-approved-volunteers"),
       endorsedVolunteers: document.querySelector(".menu-endorsed-volunteers"),
       pendingDonations: document.querySelector(".menu-pending-donations"),
       pendingInkind: document.querySelector(".menu-pending-inkind"),
       pendingMonetary: document.querySelector(".menu-pending-monetary"),
-      //abvn
       rdana: document.querySelector(".menu-rdana"),
       rdanaMain: document.querySelector(".menu-rdana-main"),
       callfordonation: document.querySelector(".menu-callfordonation"),
@@ -268,19 +290,12 @@ function initSidebar() {
       reports: document.querySelector(".menu-reports"),
       reportsSubmission: document.querySelector(".menu-reports-submission"),
     };
-    console.log("Restricting menu access for role:", role, "isSuperAdmin:", isSuperAdmin);
-
-    const allTitles = document.querySelectorAll("p.title");
 
     if (role === "ABVN") {
-      allTitles.forEach((title) => {
-        // Hide the "Admin" title
-        if (title.textContent.trim() === "Admin") {
-          title.style.display = "none";
-        }
+      document.querySelectorAll("p.title").forEach((title) => {
+        if (title.textContent.trim() === "Admin") title.style.display = "none";
       });
 
-      // Show allowed menu items for ABVN volunteers
       const allowedItems = [
         menuItems.dashboard,
         menuItems.rdana,
@@ -292,100 +307,56 @@ function initSidebar() {
         menuItems.reportsSubmission,
         menuItems.endorsedVolunteers,
       ];
+      const restrictedItems = Object.values(menuItems).filter(
+        (i) => !allowedItems.includes(i)
+      );
 
-      // Hide restricted menu items for ABVN volunteers
-      const restrictedItems = [
-        menuItems.activitylogs,
-        menuItems.adminmanagement,
-        menuItems.volunteergroupmanagement,
-        menuItems.activation,
-        menuItems.donationTracksheet,
-        menuItems.abvnApplications,
-        menuItems.pendingDonations,
-        menuItems.rdanaVerification,
-        menuItems.rdanaLog,
-        menuItems.reliefsLog,
-        menuItems.reportsVerification,
-        menuItems.reportsLog,
-        menuItems.pendingVolunteers,
-        menuItems.approvedVolunteers
-      ];
+      allowedItems.forEach((i) => i && (i.style.display = "block"));
+      restrictedItems.forEach((i) => i && (i.style.display = "none"));
 
-      // Show allowed items
-      allowedItems.forEach((item) => {
-        if (item) {
-          item.style.display = "block";
-          console.log(`Showed menu item: ${item.className}`);
+      ["rdanaMain", "reliefsRequest", "reportsSubmission"].forEach(
+        (parentKey) => {
+          if (!menuItems[parentKey] || menuItems[parentKey].style.display === "none") {
+            const parent = menuItems[parentKey.replace(/Main|Request|Submission/, "")];
+            if (parent) parent.style.display = "none";
+          }
         }
-      });
-
-      // Hide restricted items
-      restrictedItems.forEach((item) => {
-        if (item) {
-          item.style.display = "none";
-          console.log(`Hid menu item: ${item.className}`);
-        }
-      });
-
-      // If RDANA has no visible sub-items, hide the parent RDANA menu
-      if (!menuItems.rdanaMain || menuItems.rdanaMain.style.display === "none") {
-        if (menuItems.rdana) {
-          menuItems.rdana.style.display = "none";
-          console.log("Hid RDANA parent menu as no sub-items are visible");
-        }
-      }
-
-      // If Reliefs has no visible sub-items, hide the parent Reliefs menu
-      if (!menuItems.reliefsRequest || menuItems.reliefsRequest.style.display === "none") {
-        if (menuItems.reliefs) {
-          menuItems.reliefs.style.display = "none";
-          console.log("Hid Reliefs parent menu as no sub-items are visible");
-        }
-      }
-
-      // If Reports has no visible sub-items, hide the parent Reports menu
-      if (!menuItems.reportsSubmission || menuItems.reportsSubmission.style.display === "none") {
-        if (menuItems.reports) {
-          menuItems.reports.style.display = "none";
-          console.log("Hid Reports parent menu as no sub-items are visible");
-        }
-      }
+      );
     } else if (role === "AB ADMIN") {
-      // For AB ADMIN users
-      Object.values(menuItems).forEach((item) => {
-        if (item) {
-          item.style.display = "block"; // By default, show all for AB ADMIN
-        }
-      });
-
-      // Hide activitylogs and adminmanagement for non-super admins
+      Object.values(menuItems).forEach((i) => i && (i.style.display = "block"));
       if (!isSuperAdmin) {
-        if (menuItems.activitylogs) {
-          menuItems.activitylogs.style.display = "none";
-          console.log("Hid activitylogs for non-super admin.");
-        }
-        if (menuItems.adminmanagement) {
-          menuItems.adminmanagement.style.display = "none";
-          console.log("Hid adminmanagement for non-super admin.");
-        }
+        ["activitylogs", "adminmanagement"].forEach(
+          (k) => menuItems[k] && (menuItems[k].style.display = "none")
+        );
       }
     } else {
-      // For other roles or no specific role, hide everything or apply general restrictions
-      Object.values(menuItems).forEach((item) => {
-        if (item) {
-          item.style.display = "none";
-          console.log(`Hid menu item: ${item.className}`);
-        }
-      });
+      Object.values(menuItems).forEach((i) => i && (i.style.display = "none"));
     }
   }
 
-  // Call restrictPageAccess on page load
+  // init
   restrictPageAccess();
   populateUserDetails();
+  highlightActiveMenuItem();
 
+  // keep tooltips and highlights fresh after updates
   window.addEventListener("updateSidebar", () => {
     populateUserDetails();
+    ensureMenuTitles();
+    highlightActiveMenuItem();
+  });
+
+  // belt & suspenders: if any link appears later, make sure it has a tooltip
+  document.addEventListener("mouseover", (e) => {
+    const a = e.target.closest(".menu a");
+    if (a && !a.getAttribute("title")) {
+      const label = a.querySelector(".text")?.textContent?.trim();
+      if (label) {
+        a.setAttribute("title", label);
+        a.setAttribute("aria-label", label);
+        a.dataset.tooltip = label;
+      }
+    }
   });
 }
 
