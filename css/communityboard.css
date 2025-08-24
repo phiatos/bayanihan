@@ -471,10 +471,10 @@ display: flex;
 }
 
 .media-preview {
-  max-width: 350px;
-  max-height: 350px;
-  margin-top: 10px;
-  height: auto;
+  width: 100%;
+  max-height: 300px;
+  object-fit: contain;
+  border-radius: 8px;
 }
 
 /* Post Styles */
@@ -611,8 +611,10 @@ display: flex;
 }
 
 .post-media {
-  max-width: 100%;
-  max-height: 300px;
+  width: 100%;
+  max-height: 600px;
+  object-fit: contain;
+  border-radius: 8px;
   margin-top: 10px;
 }
 
