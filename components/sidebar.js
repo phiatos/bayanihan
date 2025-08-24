@@ -360,4 +360,41 @@ function initSidebar() {
   });
 }
 
+function handleResponsiveSidebar() {
+  const sidebar = document.querySelector(".sidebar");
+  const logoutBtn = document.querySelector("#logout-btn");
+  if (!sidebar) return;
+
+  const mobileWidth = 768; // define breakpoint for mobile
+
+  function updateSidebar() {
+    if (window.innerWidth <= mobileWidth) {
+      // auto-collapse for mobile
+      sidebar.classList.add("active");
+      if (logoutBtn) {
+        const logoutText = logoutBtn.querySelector(".text");
+        if (logoutText) logoutText.style.display = "none";
+      }
+      // hide all submenus
+      document
+        .querySelectorAll(".menu ul li.has-dropdown .sub-menu")
+        .forEach((sub) => (sub.style.display = "none"));
+    } else {
+      // expand for larger screens
+      sidebar.classList.remove("active");
+      if (logoutBtn) {
+        const logoutText = logoutBtn.querySelector(".text");
+        if (logoutText) logoutText.style.display = "inline";
+      }
+    }
+  }
+
+  // initial check
+  updateSidebar();
+
+  // update on resize
+  window.addEventListener("resize", updateSidebar);
+}
+
 initSidebar();
+handleResponsiveSidebar();
