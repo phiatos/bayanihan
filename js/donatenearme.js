@@ -268,6 +268,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (monetaryDonationDateInput) {
         monetaryDonationDateInput.value = today;
+        monetaryDonationDateInput.setAttribute('min', today); // Restrict past dates
+        monetaryDonationDateInput.setAttribute('max', today); // Restrict future dates
     }
 
     // Footer visibility on scroll
@@ -284,29 +286,29 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     if (inKindBtn && monetaryBtn && inKindDonationForm && monetaryDonationForm) {
-
-    // Set default view: In-Kind open
-    inKindDonationForm.style.display = 'flex';
-    monetaryDonationForm.style.display = 'none';
-    inKindBtn.classList.add('active'); // Set In-Kind button as active
-
-
-    inKindBtn.addEventListener('click', () => {
-        console.log("In-Kind button clicked. Showing In-Kind form.");
+        // Set default view: In-Kind open
         inKindDonationForm.style.display = 'flex';
         monetaryDonationForm.style.display = 'none';
-    });
+        inKindBtn.classList.add('active'); // Set In-Kind button as active
 
-    monetaryBtn.addEventListener('click', () => {
-        console.log("Monetary button clicked. Showing Monetary form.");
-        monetaryDonationForm.style.display = 'flex';
-        inKindDonationForm.style.display = 'none';
-    });
+        inKindBtn.addEventListener('click', () => {
+            console.log("In-Kind button clicked. Showing In-Kind form.");
+            inKindDonationForm.style.display = 'flex';
+            monetaryDonationForm.style.display = 'none';
+            inKindBtn.classList.add('active');
+            monetaryBtn.classList.remove('active');
+        });
 
-} else {
-    console.error("One or more required elements (buttons or forms) not found in the DOM. Check your HTML IDs.");
-}
-
+        monetaryBtn.addEventListener('click', () => {
+            console.log("Monetary button clicked. Showing Monetary form.");
+            monetaryDonationForm.style.display = 'flex';
+            inKindDonationForm.style.display = 'none';
+            monetaryBtn.classList.add('active');
+            inKindBtn.classList.remove('active');
+        });
+    } else {
+        console.error("One or more required elements (buttons or forms) not found in the DOM. Check your HTML IDs.");
+    }
 
     // Phone Number Validation
     const validatePhoneNumber = (inputElement) => {
@@ -404,7 +406,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return `CINV-${randomNumber}`;
         };
         cashInvoiceInput.value = generateCashInvoice();
-        // Removed readonly attribute to make cashInvoice editable
     }
 
     // In-Kind Donation Form Submission
@@ -419,10 +420,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const inKindContactNumber = document.getElementById('inKindContactNumber').value;
             const inKindDonorEmail = document.getElementById('inKindDonorEmail').value;
             const itemType = document.getElementById('itemType').value;
-            const value = document.getElementById('valuation').value.replace(/,/g, ''); // Remove commas for submission
+            const value = document.getElementById('valuation').value.replace(/,/g, '');
             const description = document.getElementById('description').value;
             const status = document.getElementById('status').value;
-            const staffIncharge = document.getElementById('staffIncharge').value;
             const donationDate = document.getElementById('donationDate').value;
 
             if (!inKindDonorName || !itemType || !value || !donationDate) {
@@ -538,7 +538,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 valuation: parsedValue,
                 additionalnotes: description,
                 status: status || 'pending',
-                staffIncharge: staffIncharge,
+                staffIncharge: document.getElementById('staffIncharge').value,
                 donationDate: donationDate,
                 createdAt: new Date().toISOString()
             };
@@ -559,7 +559,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 });
                 inKindDonationForm.reset();
-                // Reset donation date to current date after form reset
                 if (inKindDonationDateInput) {
                     inKindDonationDateInput.value = today;
                 }
@@ -808,7 +807,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 email: monetaryEmail,
                 bank: bank,
                 proof: proofOfTransferUrl,
-                referenceNumber: referenceNumber || '', // Save reference number
+                referenceNumber: referenceNumber || '',
                 createdAt: new Date().toISOString()
             };
 
@@ -842,7 +841,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     };
                     cashInvoiceInput.value = generateCashInvoice();
                 }
-                // Reset donation date to current date after form reset
                 if (monetaryDonationDateInput) {
                     monetaryDonationDateInput.value = today;
                 }
@@ -871,8 +869,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Reference Number Validation (Numbers Only)
     if (referenceNumberInput) {
         referenceNumberInput.addEventListener('input', (event) => {
-            let value = event.target.value.replace(/\D/g, ''); // Remove non-numeric characters
-            event.target.value = value; // Update input value to only include numbers
+            let value = event.target.value.replace(/\D/g, '');
+            event.target.value = value;
         });
 
         referenceNumberInput.addEventListener('blur', () => {
@@ -892,7 +890,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         htmlContainer: 'swal2-text-error-clean'
                     }
                 });
-                referenceNumberInput.value = ''; // Clear invalid input
+                referenceNumberInput.value = '';
             }
         });
     }
@@ -916,17 +914,17 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-//Navbar Fix
-  window.addEventListener("scroll", function () {
+// Navbar Fix
+window.addEventListener("scroll", function () {
     const navbar = document.querySelector(".navbar");
     const scrollThreshold = 600; // Adjust where you want it to disappear
 
     if (window.scrollY > scrollThreshold) {
-      navbar.style.opacity = "0";
-      navbar.style.pointerEvents = "none"; // Prevent interaction when hidden
-      navbar.style.transition = "opacity 0.5s ease";
+        navbar.style.opacity = "0";
+        navbar.style.pointerEvents = "none";
+        navbar.style.transition = "opacity 0.5s ease";
     } else {
-      navbar.style.opacity = "1";
-      navbar.style.pointerEvents = "auto";
+        navbar.style.opacity = "1";
+        navbar.style.pointerEvents = "auto";
     }
-  });
+});

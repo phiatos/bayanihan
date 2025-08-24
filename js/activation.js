@@ -48,6 +48,10 @@ const cancelMapModalBtn = document.getElementById("cancelMapModalBtn");
 const saveLocationBtn = document.getElementById("saveLocationBtn");
 const mapSearchInput = document.getElementById("mapSearchInput");
 
+const submitReliefBtn = document.getElementById("submitReliefBtn");
+const reliefAmountInput = document.getElementById("reliefAmountInput");
+const reliefPurposeInput = document.getElementById("reliefPurposeInput");
+
 // Step 1 Elements
 const modalStep1 = document.getElementById("modalStep1");
 const selectGroupDropdown = document.getElementById("selectGroupDropdown");
@@ -60,7 +64,7 @@ const modalAreaInput = document.getElementById("modalAreaInput");
 const modalLatitudeInput = document.getElementById("modalLatitudeInput");
 const modalLongitudeInput = document.getElementById("modalLongitudeInput");
 const modalCalamitySelect = document.getElementById("modalCalamitySelect");
-const modalTyphoonNameInput = document.getElementById("modalTyphoonNameInput");
+const modalCalamityNameInput = document.getElementById("modalCalamityNameInput");
 const modalActivateSubmitBtn = document.getElementById("modalActivateSubmitBtn");
 const modalPrevStepBtn = document.getElementById("modalPrevStepBtn");
 const pinLocationBtn = document.getElementById("pinLocationBtn");
@@ -470,7 +474,7 @@ function createInfoWindow(marker, activation, logoUrl) {
                     <i class='bx bx-cloud-lightning'></i>
                     <div class="info-text">
                         <span class="label">Calamity</span>
-                        <span class="value">${activation.calamityType}${activation.typhoonName ? ` (${activation.typhoonName})` : ''}</span>
+                        <span class="value">${activation.calamityType}${activation.calamityName ? ` (${activation.calamityName})` : ''}</span>
                     </div>
                 </div>
             </div>
@@ -674,20 +678,17 @@ function getGeolocationErrorMessage(error) {
 
 // New function to generate calamity names for non-typhoon events
 function generateCalamityName(calamityType, areaOfOperation, activationDate) {
-    if (calamityType === "Typhoon") {
-        return modalTyphoonNameInput.value.trim(); // Use user-provided typhoon name
+    const userProvidedName = modalCalamityNameInput.value.trim();
+    if (userProvidedName) {
+        return userProvidedName;
     }
     
-    // Extract key location (e.g., city or province) from areaOfOperation
     let location = areaOfOperation.split(',').map(part => part.trim())[0] || "Unknown";
-    // Replace spaces with underscores for consistency
     location = location.replace(/\s+/g, '_');
-    
-    // Get year from activationDate
     const year = new Date(activationDate).getFullYear();
     
-    // Map calamity types to short codes
     const calamityCodes = {
+        Typhoon: "TYP",
         Earthquake: "EQ",
         Flood: "FLD",
         "Volcanic Eruption": "VOLC",
@@ -697,6 +698,13 @@ function generateCalamityName(calamityType, areaOfOperation, activationDate) {
     
     const code = calamityCodes[calamityType] || "UNK";
     return `${location}_${year}_${code}`;
+}
+
+function clearDInputs() {
+    searchInput.value = "";
+    clearBtn.style.display = 'none';
+    currentPage = 1;
+    renderTable(filterAndSort());
 }
 
 // Authentication and Data Listeners
@@ -803,9 +811,8 @@ function listenForDataUpdates() {
                         organization: activation.organization || "Unknown",
                         hq: volunteerGroup ? volunteerGroup.hq : "Not specified",
                         areaOfOperation: activation.areaOfOperation || "Not specified",
-                        calamityType: activation.calamityType || "Typhoon", // Updated to calamityType
-                        calamityName: activation.calamityName || "", // New field
-                        typhoonName: activation.typhoonName || "",
+                        calamityType: activation.calamityType || "Unknown",
+                        calamityName: activation.calamityName || activation.typhoonName || "",
                         status: activation.status,
                         activationDate: activation.activationDate,
                         contactPerson: volunteerGroup ? volunteerGroup.contactPerson : "N/A",
@@ -904,11 +911,12 @@ function renderTable(filteredData = currentActiveActivations) {
 
 function handleSearch() {
     const query = searchInput.value.trim().toLowerCase();
+    clearBtn.style.display = query ? 'inline-block' : 'none';
     currentPage = 1;
     renderTable(filterAndSort());
 }
 
-clearBtn.style.display = 'none';
+clearBtn.addEventListener('click', clearDInputs);
 searchInput.addEventListener('input', handleSearch);
 
 function openAddActivationModal() {
@@ -936,8 +944,7 @@ function resetModalStep2Fields() {
             return `<option value="${opt}">${opt}</option>`;
         })
         .join("");
-    modalTyphoonNameInput.style.display = "none";
-    modalTyphoonNameInput.value = "";
+    modalCalamityNameInput.value = "";
 }
 
 function showStep1() {
@@ -963,7 +970,6 @@ function showStep2() {
     modalStep1.classList.remove('active');
     modalStep2.classList.add('active');
     selectedOrgName.textContent = selectedGroupForActivation.organization;
-
     modalCalamitySelect.innerHTML = calamityOptions
         .map((opt, index) => {
             if (index === 0) {
@@ -972,8 +978,7 @@ function showStep2() {
             return `<option value="${opt}">${opt}</option>`;
         })
         .join("");
-    modalTyphoonNameInput.style.display = "none";
-    modalTyphoonNameInput.value = "";
+    modalCalamityNameInput.value = "";
     modalAreaInput.value = "";
     modalLatitudeInput.value = "";
     modalLongitudeInput.value = "";
@@ -1024,14 +1029,14 @@ selectGroupDropdown.addEventListener("change", (e) => {
 modalNextStepBtn.addEventListener("click", showStep2);
 modalPrevStepBtn.addEventListener("click", showStep1);
 
-modalCalamitySelect.addEventListener("change", () => {
-    if (modalCalamitySelect.value === "Typhoon") {
-        modalTyphoonNameInput.style.display = "inline-block";
-    } else {
-        modalTyphoonNameInput.style.display = "none";
-        modalTyphoonNameInput.value = "";
-    }
-});
+// modalCalamitySelect.addEventListener("change", () => {
+//     if (modalCalamitySelect.value === "Typhoon") {
+//         modalTyphoonNameInput.style.display = "inline-block";
+//     } else {
+//         modalTyphoonNameInput.style.display = "none";
+//         modalTyphoonNameInput.value = "";
+//     }
+// });
 
 pinLocationBtn.addEventListener("click", openMapModal);
 
@@ -1071,11 +1076,10 @@ modalActivateSubmitBtn.addEventListener("click", async () => {
 
     const areaOfOperation = modalAreaInput.value.trim();
     const calamityType = modalCalamitySelect.value;
-    const typhoonName = (calamityType === "Typhoon") ? modalTyphoonNameInput.value.trim() : "";
+    const calamityName = generateCalamityName(calamityType, areaOfOperation, new Date().toISOString());
     const latitude = modalLatitudeInput.value;
     const longitude = modalLongitudeInput.value;
     const activationDate = new Date().toISOString();
-    const calamityName = generateCalamityName(calamityType, areaOfOperation, activationDate);
 
     if (!areaOfOperation && !calamityType) {
         Swal.fire({ icon: 'warning', title: 'Missing Fields', text: 'Please supply missing fields.' });
@@ -1089,17 +1093,6 @@ modalActivateSubmitBtn.addEventListener("click", async () => {
         Swal.fire({ icon: 'warning', title: 'Missing Field', text: 'Please select a Calamity Type.' });
         return;
     }
-    if (calamityType === "Typhoon" && !typhoonName) {
-        Swal.fire({ icon: 'warning', title: 'Missing Field', text: 'Please enter the Typhoon Name.' });
-        return;
-    }
-    // Removed latitude/longitude check since map is commented out
-    /*
-    if (!latitude || !longitude) {
-        Swal.fire({ icon: 'warning', title: 'Missing Location', text: 'Please pin a location on the map.' });
-        return;
-    }
-    */
 
     const user = firebase.auth().currentUser;
     if (!user) {
@@ -1144,7 +1137,6 @@ modalActivateSubmitBtn.addEventListener("click", async () => {
             areaOfOperation: areaOfOperation,
             calamityType: calamityType,
             calamityName: calamityName,
-            typhoonName: typhoonName,
             status: "active",
             activationDate: activationDate,
             latitude: parseFloat(latitude) || null,
@@ -1171,15 +1163,82 @@ modalActivateSubmitBtn.addEventListener("click", async () => {
     }
 });
 
-function openEndorseModal() {
+function openEndorseModal(activationId, groupId) {
+    submitReliefBtn.dataset.activationId = activationId;
+    submitReliefBtn.dataset.groupId = groupId;
     endorseModal.style.display = "flex";
 }
 
 function closeEndorseModal() {
     endorseModal.style.display = "none";
+    reliefAmountInput.value = "";
+    reliefPurposeInput.value = "";
+    delete submitReliefBtn.dataset.activationId;
+    delete submitReliefBtn.dataset.groupId;
 }
 
 closeEndorseModalBtn.addEventListener("click", closeEndorseModal);
+
+// Add after the above
+submitReliefBtn.addEventListener("click", async () => {
+    const amount = reliefAmountInput.value.trim();
+    const purpose = reliefPurposeInput.value.trim();
+
+    if (!amount || !purpose) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Missing Fields',
+            text: 'Please provide both relief amount and purpose.'
+        });
+        return;
+    }
+
+    if (isNaN(amount) || parseFloat(amount) <= 0) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Invalid Amount',
+            text: 'Please enter a valid relief amount greater than zero.'
+        });
+        return;
+    }
+
+    try {
+        const user = firebase.auth().currentUser;
+        if (!user) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Authentication Error',
+                text: 'User not authenticated. Please refresh the page and try again.'
+            });
+            return;
+        }
+
+        const reliefRecord = {
+            activationId: submitReliefBtn.dataset.activationId || "unknown",
+            groupId: submitReliefBtn.dataset.groupId || "unknown",
+            amount: parseFloat(amount),
+            purpose: purpose,
+            submissionDate: new Date().toISOString(),
+            submittedBy: user.uid
+        };
+
+        console.log("Submitting relief record:", reliefRecord);
+        await database.ref("reliefAssistance").push(reliefRecord);
+        Swal.fire({
+            icon: 'success',
+            title: 'Relief Submitted!',
+            text: `Relief assistance of ${amount} for ${purpose} has been submitted.`
+        });
+        closeEndorseModal();
+    } catch (error) {
+        console.error("Error submitting relief assistance:", error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: `Failed to submit relief assistance: ${error.message}`
+        });
+    }
+});
 
 tableBody.addEventListener("click", e => {
     const btn = e.target;
@@ -1188,7 +1247,7 @@ tableBody.addEventListener("click", e => {
 
     if (btn.classList.contains("action-button-endorse-button")) {
         console.log(`Endorse button clicked for activation ID: ${activationId}, Group ID: ${groupId}`);
-        openEndorseModal();
+        openEndorseModal(activationId, groupId);
     } else if (btn.classList.contains("action-button")) {
         console.log(`Deactivate button clicked for activation ID: ${activationId}, Group ID: ${groupId}`);
         Swal.fire({
@@ -1341,7 +1400,6 @@ sortSelect.addEventListener("change", () => {
 // Cleanup function to remove listeners and clear markers when the page unloads
 function cleanupActivationPage() {
     console.log("Cleaning up activation page state.");
-
     if (activationsListener) {
         activationsListener.off();
         activationsListener = null;
