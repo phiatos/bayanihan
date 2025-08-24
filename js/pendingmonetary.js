@@ -179,6 +179,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const sortSelect = document.getElementById('sortSelect');
     const entriesInfo = document.getElementById('entriesInfo');
     const paginationDiv = document.getElementById('pagination');
+    const viewApprovedBtn = document.getElementById('viewApprovedBtn');
 
     // Get references to archived modal DOM elements
     const archivedModal = document.getElementById('archivedModal');
@@ -188,6 +189,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const archivedEntriesInfo = document.getElementById('archivedEntriesInfo');
     const archivedPaginationDiv = document.getElementById('archivedPagination');
 
+    viewApprovedBtn.addEventListener('click', () => {
+        window.location.href = '../pages/pendinginkind.html';
+    });
+    
     // Function to load pending monetary donations from Firebase
     function loadMonetaryDonationsFromFirebase() {
         if (!database) {
@@ -324,14 +329,14 @@ document.addEventListener('DOMContentLoaded', function() {
             actionCell.classList.add('action-buttons');
 
             const approveButton = document.createElement('button');
-            approveButton.className = 'action-button approve-button';
-            approveButton.innerHTML = '<i class="bx bx-check"></i> Approve';
+            approveButton.className = 'approveBtn';
+            approveButton.innerHTML = '<i class="bx bx-check-circle"></i>';
             approveButton.addEventListener('click', () => updateDonationStatus(donation.id, donation, 'Approved'));
             actionCell.appendChild(approveButton);
 
             const rejectButton = document.createElement('button');
-            rejectButton.className = 'action-button reject-button';
-            rejectButton.innerHTML = '<i class="bx bx-x"></i> Reject';
+            rejectButton.className = 'rejectBtn';
+            rejectButton.innerHTML = '<i class="bx bx-x-circle"></i>';
             rejectButton.addEventListener('click', () => updateDonationStatus(donation.id, donation, 'Rejected'));
             actionCell.appendChild(rejectButton);
         });
@@ -404,13 +409,18 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         Swal.fire({
-            title: `Are you sure you want to ${newStatus.toLowerCase()} this donation?`,
-            text: newStatus === 'Approved' ? 'This will move the donation to the approved monetary donations list.' : 'This will move the donation to the archived monetary donations list.',
+            title: `Are you sure to reject this application?`,
+            text: 'This will move it to archived records.',
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#3085d6',
-            cancelButtonColor: '#d33',
-            confirmButtonText: `Yes, ${newStatus.toLowerCase()} it!`,
+            confirmButtonText: 'Reject',
+            customClass: {
+                popup: 'custom-swal-popup-small',
+                title: 'custom-swal-title',
+                htmlContainer: 'custom-swal-content',
+                confirmButton: 'custom-confirm-btn',
+                cancelButton: 'custom-cancel-btn',
+            }
         }).then(async (result) => {
             if (result.isConfirmed) {
                 try {
@@ -437,7 +447,19 @@ document.addEventListener('DOMContentLoaded', function() {
                         debugLog('Verified saved data in donations/pending/monetary/archivedMonetary', savedSnapshot.val());
                         await database.ref('donations/pending/monetary/' + id).remove();
                         debugLog('Removal from donations/pending/monetary successful', { id });
-                        Swal.fire('Rejected!', 'The monetary donation has been moved to donations/pending/monetary/archivedMonetary.', 'success');
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Archived!',
+                            text: 'The application has been archived.',
+                            timer: 1600,
+                            showConfirmButton: false,
+                            timerProgressBar: true,
+                            customClass: {
+                                popup: 'swal2-popup-success-clean',
+                                title: 'swal2-title-success-clean',
+                                htmlContainer: 'swal2-text-success-clean'
+                            }
+                        });
                     }
                     // Refresh tables
                     loadMonetaryDonationsFromFirebase();
@@ -590,13 +612,22 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         Swal.fire({
-            title: 'Restore this donation?',
-            text: 'This will move the donation back to the pending monetary donations list.',
-            icon: 'warning',
+            title: 'Retrieve Donation?',
+            text: 'This will move the monetary donation from archived donations back to approved donations.',
+            icon: 'question',
             showCancelButton: true,
-            confirmButtonColor: '#3085d6',
-            cancelButtonColor: '#d33',
-            confirmButtonText: 'Yes, restore it!',
+            confirmButtonText: 'Retrieve',
+            cancelButtonText: 'Cancel',
+            reverseButtons: true,
+            focusCancel: true,
+            allowOutsideClick: false,
+            customClass: {
+                popup: 'custom-swal-popup-small',
+                title: 'custom-swal-title',
+                htmlContainer: 'custom-swal-content',
+                confirmButton: 'custom-confirm-btn',
+                cancelButton: 'custom-cancel-btn',
+            },
         }).then(async (result) => {
             if (result.isConfirmed) {
                 try {
@@ -607,7 +638,20 @@ document.addEventListener('DOMContentLoaded', function() {
                     await database.ref('donations/pending/monetary/' + id).set(donationToRestore);
                     await database.ref('donations/pending/monetary/archivedMonetary/' + id).remove();
                     debugLog('Removal from donations/pending/monetary/archivedMonetary successful', { id });
-                    Swal.fire('Restored!', 'Monetary donation has been restored to pending.', 'success');
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Retrieved!',
+                        text: 'The donation has been restored to pending in-kind donations with status reset to pending.',
+                        timer: 1600,
+                        showConfirmButton: false,
+                        timerProgressBar: true,
+                        allowOutsideClick: false,
+                        customClass: {
+                            popup: 'swal2-popup-success-clean',
+                            title: 'swal2-title-success-clean',
+                            htmlContainer: 'swal2-text-success-clean',
+                        },
+                    });
                     loadMonetaryDonationsFromFirebase();
                     loadArchivedDonationsFromFirebase();
                 } catch (error) {
@@ -674,7 +718,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (viewArchivedBtn) {
         viewArchivedBtn.addEventListener('click', () => {
             console.log('View Archived button clicked.');
-            archivedModal.style.display = 'block';
+            archivedModal.style.display = 'flex';
             loadArchivedDonationsFromFirebase();
         });
     }

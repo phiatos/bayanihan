@@ -260,10 +260,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const monetaryDonationDateInput = document.getElementById('monetaryDonationDate');
     const referenceNumberInput = document.getElementById('referenceNumber');
 
-    // Set default donation date to current date
+    // Set default donation date to current date and disable past dates for in-kind
     const today = new Date().toISOString().split('T')[0]; // Format: YYYY-MM-DD
     if (inKindDonationDateInput) {
         inKindDonationDateInput.value = today;
+        inKindDonationDateInput.min = today; 
     }
     if (monetaryDonationDateInput) {
         monetaryDonationDateInput.value = today;
@@ -334,7 +335,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 Swal.fire({
                     icon: 'error',
                     title: 'Invalid Number Format',
-                    text: 'Please enter an 11-digit mobile number starting with 09 (e.g., 09171234567).'
+                    text: 'Please enter an 11-digit mobile number starting with 09 (e.g., 09171234567).',
+                    timer: 1600,
+                    showConfirmButton: false,
+                    timerProgressBar: true,
+                    allowOutsideClick: false,
+                    customClass: {
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean'
+                    }
                 });
             }
         });
@@ -419,7 +429,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
-                    text: 'Please fill in all required fields for In Kind Donation (Donor Name, Type of Assistance, Valuation, and Donation Date).'
+                    text: 'Please fill in all required fields for In Kind Donation (Donor Name, Type of Assistance, Valuation, and Donation Date).',
+                    timer: 1600,
+                    showConfirmButton: false,
+                    timerProgressBar: true,
+                    allowOutsideClick: false,
+                    customClass: {
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean'
+                    }
                 });
                 return;
             }
@@ -430,21 +449,55 @@ document.addEventListener('DOMContentLoaded', () => {
                 Swal.fire({
                     icon: 'error',
                     title: 'Invalid Valuation',
-                    text: 'Please enter a valid positive number for Valuation.'
+                    text: 'Please enter a valid positive number for Valuation.',
+                    timer: 1600,
+                    showConfirmButton: false,
+                    timerProgressBar: true,
+                    allowOutsideClick: false,
+                    customClass: {
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean'
+                    }
                 });
                 return;
             }
 
-            // Date Validation: Donation Date cannot be a past date
+            // Date Validation
             const today = new Date();
             today.setHours(0, 0, 0, 0);
             const selectedInKindDate = new Date(donationDate);
             selectedInKindDate.setHours(0, 0, 0, 0);
-            if (selectedInKindDate < today) {
+            if (isNaN(selectedInKindDate.getTime())) {
                 Swal.fire({
                     icon: 'error',
                     title: 'Invalid Date',
-                    text: 'Donation Date cannot be a past date. It must be today or a future date.'
+                    text: 'Please provide a valid Donation Date.',
+                    timer: 1600,
+                    showConfirmButton: false,
+                    timerProgressBar: true,
+                    allowOutsideClick: false,
+                    customClass: {
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean'
+                    }
+                });
+                return;
+            } else if (selectedInKindDate < today) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Invalid Date',
+                    text: 'Donation Date cannot be a past date. It must be today or a future date.',
+                    timer: 1600,
+                    showConfirmButton: false,
+                    timerProgressBar: true,
+                    allowOutsideClick: false,
+                    customClass: {
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean'
+                    }
                 });
                 return;
             }
@@ -454,7 +507,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 Swal.fire({
                     icon: 'error',
                     title: 'Invalid Contact Number',
-                    text: 'Please ensure the In-Kind Contact Number is an 11-digit mobile number starting with 09.'
+                    text: 'Please ensure the In-Kind Contact Number is an 11-digit mobile number starting with 09.',
+                    timer: 1600,
+                    showConfirmButton: false,
+                    timerProgressBar: true,
+                    allowOutsideClick: false,
+                    customClass: {
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean'
+                    }
                 });
                 return;
             }
@@ -486,7 +548,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 Swal.fire({
                     icon: 'success',
                     title: 'Success!',
-                    text: 'In Kind Donation submitted successfully.'
+                    text: 'In Kind Donation submitted successfully.',
+                    showConfirmButton: true,
+                    confirmButtonText: 'OK',
+                    customClass: {
+                        popup: 'swal2-popup-success-clean',
+                        title: 'swal2-title-success-clean',
+                        htmlContainer: 'swal2-text-success-clean',
+                        confirmButton: 'my-success-button'
+                    }
                 });
                 inKindDonationForm.reset();
                 // Reset donation date to current date after form reset
@@ -498,7 +568,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
-                    text: `Failed to submit In Kind Donation. Please try again.<br>Error: ${error.message}`
+                    text: `Failed to submit In Kind Donation. Please try again.<br>Error: ${error.message}`,
+                    timer: 1600,
+                    showConfirmButton: false,
+                    timerProgressBar: true,
+                    allowOutsideClick: false,
+                    customClass: {
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean'
+                    }
                 });
             }
         });
@@ -599,7 +678,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 Swal.fire({
                     icon: 'error',
                     title: 'Missing Information',
-                    text: 'Please fill in all required fields for Monetary Donation (Name/Company, Amount Donated, and Date Received).'
+                    text: 'Please fill in all required fields for Monetary Donation (Name/Company, Amount Donated, and Date Received).',
+                    timer: 1600,
+                    showConfirmButton: false,
+                    timerProgressBar: true,
+                    allowOutsideClick: false,
+                    customClass: {
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean'
+                    }
                 });
                 return;
             }
@@ -610,23 +698,80 @@ document.addEventListener('DOMContentLoaded', () => {
                 Swal.fire({
                     icon: 'error',
                     title: 'Invalid Amount Donated',
-                    text: 'Please enter a valid positive number for Amount Donated.'
+                    text: 'Please enter a valid positive number for Amount Donated.',
+                    timer: 1600,
+                    showConfirmButton: false,
+                    timerProgressBar: true,
+                    allowOutsideClick: false,
+                    customClass: {
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean'
+                    }
                 });
                 return;
             }
 
-            // Date Validation: Date Received cannot be a past date
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const selectedMonetaryDate = new Date(monetaryDonationDate);
-            selectedMonetaryDate.setHours(0, 0, 0, 0);
-            if (selectedMonetaryDate < today) {
+            // Date Validation: Ensure the date is valid (not empty)
+            if (!monetaryDonationDate) {
                 Swal.fire({
                     icon: 'error',
                     title: 'Invalid Date',
-                    text: 'Date Received cannot be a past date. It must be today or a future date.'
+                    text: 'Please provide a valid Date Received.',
+                    timer: 1600,
+                    showConfirmButton: false,
+                    timerProgressBar: true,
+                    allowOutsideClick: false,
+                    customClass: {
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean'
+                    }
                 });
                 return;
+            } else {
+                const selectedMonetaryDate = new Date(monetaryDonationDate);
+                selectedMonetaryDate.setHours(0, 0, 0, 0);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                if (isNaN(selectedMonetaryDate.getTime())) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Invalid Date',
+                        text: 'Please provide a valid Date Received.',
+                        timer: 1600,
+                        showConfirmButton: false,
+                        timerProgressBar: true,
+                        allowOutsideClick: false,
+                        customClass: {
+                            popup: 'swal2-popup-error-clean',
+                            title: 'swal2-title-error-clean',
+                            htmlContainer: 'swal2-text-error-clean'
+                        }
+                    });
+                    return;
+                } else if (selectedMonetaryDate > today) {
+                    const result = await Swal.fire({
+                        title: 'Future Date Detected',
+                        text: 'The Date Received is in the future. Is this a pledged or scheduled donation?',
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonText: 'Yes, Proceed',
+                        cancelButtonText: 'No, Change Date',
+                        reverseButtons: true,
+                        customClass: {
+                            popup: 'custom-swal-popup-large',
+                            title: 'custom-swal-title',
+                            htmlContainer: 'custom-swal-content',
+                            confirmButton: 'custom-confirm-btn',
+                            cancelButton: 'custom-cancel-btn'
+                        }
+                    });
+                    if (!result.isConfirmed) {
+                        monetaryDonationDateInput.value = today.toISOString().split('T')[0];
+                        return;
+                    }
+                }
             }
 
             // Phone Number Validation (optional)
@@ -634,7 +779,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 Swal.fire({
                     icon: 'error',
                     title: 'Invalid Contact Number',
-                    text: 'Please ensure the Monetary Contact Number is an 11-digit mobile number starting with 09.'
+                    text: 'Please ensure the Monetary Contact Number is an 11-digit mobile number starting with 09.',
+                    timer: 1600,
+                    showConfirmButton: false,
+                    timerProgressBar: true,
+                    allowOutsideClick: false,
+                    customClass: {
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean'
+                    }
                 });
                 return;
             }
@@ -667,7 +821,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 Swal.fire({
                     icon: 'success',
                     title: 'Donation Submitted!',
-                    text: 'Your monetary donation has been successfully recorded. Thank you for your generosity!'
+                    text: 'Your monetary donation has been successfully recorded. Thank you for your generosity!',
+                    showConfirmButton: true,
+                    confirmButtonText: 'OK',
+                    customClass: {
+                        popup: 'swal2-popup-success-clean',
+                        title: 'swal2-title-success-clean',
+                        htmlContainer: 'swal2-text-success-clean',
+                        confirmButton: 'my-success-button'
+                    }
                 });
 
                 monetaryDonationForm.reset();
@@ -689,7 +851,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 Swal.fire({
                     icon: 'error',
                     title: 'Submission Failed',
-                    text: `There was an error submitting your donation. Please try again.<br>Error: ${error.message}`
+                    text: `There was an error submitting your donation. Please try again.<br>Error: ${error.message}`,
+                    timer: 1600,
+                    showConfirmButton: false,
+                    timerProgressBar: true,
+                    allowOutsideClick: false,
+                    customClass: {
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean'
+                    }
                 });
             }
         });
@@ -710,7 +881,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 Swal.fire({
                     icon: 'error',
                     title: 'Invalid Reference Number',
-                    text: 'Reference Number must contain only numbers.'
+                    text: 'Reference Number must contain only numbers.',
+                    timer: 1600,
+                    showConfirmButton: false,
+                    timerProgressBar: true,
+                    allowOutsideClick: false,
+                    customClass: {
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean'
+                    }
                 });
                 referenceNumberInput.value = ''; // Clear invalid input
             }

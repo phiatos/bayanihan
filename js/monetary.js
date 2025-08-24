@@ -261,12 +261,49 @@ document.addEventListener("DOMContentLoaded", () => {
             if (fieldConfig.isUrl && input.value && !isValidUrl(input.value.trim())) {
                 showError(input, `${fieldConfig.label} must be a valid URL.`);
             }
+            // bawal future date
+            // if (fieldConfig.isDate) {
+            //     const receivedDate = new Date(input.value);
+            //     if (isNaN(receivedDate.getTime())) {
+            //         showError(input, `${fieldConfig.label} is not a valid date.`);
+            //     } else if (receivedDate.setHours(0, 0, 0, 0) > new Date().setHours(0, 0, 0, 0)) {
+            //         showError(input, `${fieldConfig.label} cannot be a future date.`);
+            //     }
+            // }
+
+            // pede past, present, and future
+            // if (fieldConfig.isDate) {
+            //     const receivedDate = new Date(input.value);
+            //     if (isNaN(receivedDate.getTime())) {
+            //         showError(input, `${fieldConfig.label} is not a valid date.`);
+            //     }
+            // }
             if (fieldConfig.isDate) {
                 const receivedDate = new Date(input.value);
                 if (isNaN(receivedDate.getTime())) {
                     showError(input, `${fieldConfig.label} is not a valid date.`);
                 } else if (receivedDate.setHours(0, 0, 0, 0) > new Date().setHours(0, 0, 0, 0)) {
-                    showError(input, `${fieldConfig.label} cannot be a future date.`);
+                    Swal.fire({
+                        title: 'Future Date Detected',
+                        text: 'The Date Received is in the future. Is this a pledged or scheduled donation?',
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonText: 'Yes, Proceed',
+                        cancelButtonText: 'No, Change Date',
+                        reverseButtons: true,
+                        customClass: {
+                            popup: 'custom-swal-popup-large',
+                            title: 'custom-swal-title',
+                            htmlContainer: 'custom-swal-content',
+                            confirmButton: 'custom-confirm-btn',
+                            cancelButton: 'custom-cancel-btn'
+                        }
+                    }).then((result) => {
+                        if (!result.isConfirmed) {
+                            input.value = '';
+                            showError(input, 'Please select a valid date.');
+                        }
+                    });
                 }
             }
             if (fieldConfig.isValidReferenceNumber && input.value &&    !isValidReferenceNumber(input.value)) {
@@ -573,10 +610,52 @@ document.addEventListener("DOMContentLoaded", () => {
                         continue;
                     }
 
+                    // if (donation.dateReceived) {
+                    //     const parsedDate = new Date(donation.dateReceived);
+                    //     if (!isNaN(parsedDate.getTime())) {
+                    //         donation.dateReceived = parsedDate.toISOString().slice(0, 10);
+                    //     }
+                    // }
+
+                    // if (donation.dateReceived) {
+                    //     const parsedDate = new Date(donation.dateReceived);
+                    //     if (!isNaN(parsedDate.getTime())) {
+                    //         donation.dateReceived = parsedDate.toISOString().slice(0, 10);
+                    //     } else {
+                    //         importErrors.push(`Row ${i + 2}: Invalid Date Received.`);
+                    //         continue;
+                    //     }
+                    // }
+
                     if (donation.dateReceived) {
                         const parsedDate = new Date(donation.dateReceived);
                         if (!isNaN(parsedDate.getTime())) {
                             donation.dateReceived = parsedDate.toISOString().slice(0, 10);
+                            if (parsedDate.setHours(0, 0, 0, 0) > new Date().setHours(0, 0, 0, 0)) {
+                                const result = await Swal.fire({
+                                    title: 'Future Date Detected in Row ' + (i + 2),
+                                    text: 'The Date Received is in the future. Is this a pledged or scheduled donation?',
+                                    icon: 'question',
+                                    showCancelButton: true,
+                                    confirmButtonText: 'Yes, Proceed',
+                                    cancelButtonText: 'No, Skip Row',
+                                    reverseButtons: true,
+                                    customClass: {
+                                        popup: 'custom-swal-popup-large',
+                                        title: 'custom-swal-title',
+                                        htmlContainer: 'custom-swal-content',
+                                        confirmButton: 'custom-confirm-btn',
+                                        cancelButton: 'custom-cancel-btn'
+                                    }
+                                });
+                                if (!result.isConfirmed) {
+                                    importErrors.push(`Row ${i + 2}: Future date not confirmed as pledged/scheduled.`);
+                                    continue;
+                                }
+                            }
+                        } else {
+                            importErrors.push(`Row ${i + 2}: Invalid Date Received.`);
+                            continue;
                         }
                     }
 
@@ -1088,14 +1167,56 @@ async function validateDonationForm(inputs, excludeKey = null) {
                 showError(input, `Please enter a valid email address from an allowed domain.`);
                 isValid = false;
             }
+            // bawal future date
+            // if (isDate) {
+            //     const receivedDate = new Date(input.value);
+            //     if (isNaN(receivedDate.getTime())) {
+            //         showError(input, `${label} is not a valid date.`);
+            //         isValid = false;
+            //     } else if (receivedDate.setHours(0, 0, 0, 0) > today.setHours(0, 0, 0, 0)) {
+            //         showError(input, `${label} cannot be a future date.`);
+            //         isValid = false;
+            //     }
+            // }
+
+            // pede past, present, and future
+            // if (isDate) {
+            //     const receivedDate = new Date(input.value);
+            //     if (isNaN(receivedDate.getTime())) {
+            //         showError(input, `${label} is not a valid date.`);
+            //         isValid = false;
+            //     }
+            // }
             if (isDate) {
                 const receivedDate = new Date(input.value);
                 if (isNaN(receivedDate.getTime())) {
                     showError(input, `${label} is not a valid date.`);
                     isValid = false;
                 } else if (receivedDate.setHours(0, 0, 0, 0) > today.setHours(0, 0, 0, 0)) {
-                    showError(input, `${label} cannot be a future date.`);
-                    isValid = false;
+                    return new Promise((resolve) => {
+                        Swal.fire({
+                            title: 'Future Date Detected',
+                            text: 'The Date Received is in the future. Is this a pledged or scheduled donation?',
+                            icon: 'question',
+                            showCancelButton: true,
+                            confirmButtonText: 'Yes, Proceed',
+                            cancelButtonText: 'No, Change Date',
+                            reverseButtons: true,
+                            customClass: {
+                                popup: 'custom-swal-popup-large',
+                                title: 'custom-swal-title',
+                                htmlContainer: 'custom-swal-content',
+                                confirmButton: 'custom-confirm-btn',
+                                cancelButton: 'custom-cancel-btn'
+                            }
+                        }).then((result) => {
+                            if (!result.isConfirmed) {
+                                showError(input, 'Please select a valid date.');
+                                isValid = false;
+                            }
+                            resolve(isValid);
+                        });
+                    });
                 }
             }
             if (hasValidReferenceNumber && input.value && !isValidReferenceNumber(input.value)) {

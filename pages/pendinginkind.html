@@ -38,7 +38,7 @@
             <section>
                 <div class="controls">
                     <div class="controls_left">
-                        <header>Pending In Kind Donation</header>
+                        <header>Pending In-Kind Donation</header>
                     </div>
                     <div class="controls_right">
                         <div class="search-wrapper">
@@ -75,6 +75,12 @@
                     </div>
                 </div>
 
+                <div class="table-controls">
+                    <button id="viewApprovedBtn" class="viewApprovedBtn">
+                        <i class='bx bx-show' style="font-size: 1.2rem;"></i>View Monetary Donation
+                    </button>
+                </div>
+                
                 <div class="table-container">
                     <table id="donationTable">
                         <thead>
@@ -170,7 +176,7 @@
                                     <td>Status</td>
                                     <th>Action</th>
                             </thead>
-                            <tbody></tbody>
+                            <tbody id="archivedTableBody"></tbody>
                         </table>
                     </div>
                     <div class="pagination-info" style="margin-top: 15px;">

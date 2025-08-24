@@ -134,19 +134,15 @@ document.addEventListener('DOMContentLoaded', () => {
             icon: 'success',
             title: 'Reset Link Sent',
             text: `A password reset link has been sent to ${email}. Please check your email (including spam/junk folder).`,
-            background: '#f0fdf4',             
-            color: '#065f46',                   
-            iconColor: '#16a34a',               
-            confirmButtonColor: '#16a34a',      
-            confirmButtonText: 'Got it!',
+            showConfirmButton: true,
+            confirmButtonText: 'OK',
             customClass: {
-                popup: 'my-success-popup',
-                title: 'my-success-title',
+                popup: 'swal2-popup-success-clean',
+                title: 'swal2-title-success-clean',
+                htmlContainer: 'swal2-text-success-clean',
                 confirmButton: 'my-success-button'
             }
         });
-
-
             current = 1;
             showStep(current);
         } catch (error) {
