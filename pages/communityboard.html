@@ -15,6 +15,10 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage.js"></script>
 
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <title>Bayanihan | Angat Buhay Disaster Relief Portal</title>
@@ -64,7 +68,7 @@
               <strong id="modal-user-name">Loading...</strong>
               <small id="modal-user-org" style="color: black;"></small>
             </div>
-            <span class="close-button" id="closeActivationModal">×</span>
+            <span class="close-button" id="post-modal-close">×</span>
           </div>
         </div>
         <div class="modal-input-area">
@@ -78,31 +82,31 @@
             </select>
           </div>
           <input type="text" id="modal-post-title" placeholder="Title" maxlength="100">
-          <textarea id="modal-post-content" class="modal-post-content" placeholder="What's on your mind?" style="resize: none; "></textarea>
-        <div class="media-upload">
+          <textarea id="modal-post-content" class="modal-post-content" placeholder="What's on your mind?" style="resize: none;"></textarea>
+          <div class="media-upload">
             <div class="media-buttons" style="display: flex; width: 100%; gap: 10px;">
-              
-              <button id="tap-to-upload" style="display: none; flex: 1;">
-                    <i class='bx bx-image-add' class="material-icons"></i>
-                    Tap to Upload Image</button>
-              <button id="add-web-url" style="display: none; flex: 1;">Add Image from Web</button>
+              <button id="tap-to-upload" style="flex: 1;">
+                <i class='bx bx-image-add' style="margin-right: 6px; font-size: 30px;"></i>
+                <span>Tap to Upload</span>
+              </button>
+              <button id="add-web-url" style="flex: 1;">Add Image from Web</button>
             </div>
             <input type="file" id="modal-media-upload" accept="image/jpeg,image/png,video/mp4,video/webm" style="display: none;" multiple>
             <textarea id="modal-web-url-input" placeholder="Paste image URLs (one per line)" style="display: none; width: 100%; resize: none;"></textarea>
             <p id="media-caption" style="font-size: 0.9em; color: #666;">Psst, heads up: You can upload up to 30 image files, or add 30 web URLs!</p>
             <div id="modal-media-preview"></div>
           </div>
-           </div>
-        <div  class="modal-footer-container">
-        <div class="modal-footer">
-          <button id="modal-post-button" class="cancel-btn">Post</button>
-          <div class="modal-post-buttons">
-            <button class="post-option" data-type="text"><i class='bx bx-text'></i></button>
-            <button class="post-option" data-type="image"><i class='bx bx-image'></i></button>
-            <button class="post-option" data-type="video"><i class='bx bx-video'></i></button>
-            <button class="post-option" data-type="link"><i class='bx bx-link'></i></button>
-          </div>
         </div>
+        <div class="modal-footer-container">
+          <div class="modal-footer">
+            <button id="modal-post-button" class="action-btn">Post</button>
+            <div class="modal-post-buttons">
+              <button class="post-option" data-type="text"><i class='bx bx-text'></i></button>
+              <button class="post-option" data-type="image"><i class='bx bx-image'></i></button>
+              <button class="post-option" data-type="video"><i class='bx bx-video'></i></button>
+              <button class="post-option" data-type="link"><i class='bx bx-link'></i></button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -110,7 +114,7 @@
     <!-- Share Modal -->
     <div id="share-post-modal" class="modal" style="display: none;">
       <div class="modal-content">
-        <span class="close-button" id="closeActivationModal">×</span>
+        <span class="close-button" id="share-modal-close">×</span>
         <div class="modal-header-container">
           <div class="modal-header">
             <div class="modal-user-info">
@@ -121,7 +125,7 @@
         </div>
         <div class="modal-input-area">
           <div class="category-container">
-            <select id="modal-post-category">
+            <select id="share-modal-post-category">
               <option value="">No Category</option>
               <option value="announcement">Announcement</option>
               <option value="event">Event</option>
@@ -134,7 +138,7 @@
         </div>
         <div class="modal-footer">
           <button id="share-cancel-button" class="cancel-btn">Cancel</button>
-          <button id="share-submit-button" class="cancel-btn">Share</button>
+          <button id="share-submit-button" class="action-btn">Share</button>
         </div>
       </div>
     </div>
@@ -144,14 +148,14 @@
     fetch('../components/sidebar.html')
       .then(response => response.text())
       .then(data => {
-          document.querySelector('.sidebar-placeholder').innerHTML = data;
-          const sidebarScript = document.createElement('script');
-          sidebarScript.src = '../components/sidebar.js';
-          sidebarScript.onload = function() {};
-          document.querySelector('.sidebar-placeholder').appendChild(sidebarScript);
+        document.querySelector('.sidebar-placeholder').innerHTML = data;
+        const sidebarScript = document.createElement('script');
+        sidebarScript.src = '../components/sidebar.js';
+        sidebarScript.onload = function() {};
+        document.querySelector('.sidebar-placeholder').appendChild(sidebarScript);
       })
       .catch(error => {
-          console.error('Error loading sidebar:', error);
+        console.error('Error loading sidebar:', error);
       });
   </script>
 

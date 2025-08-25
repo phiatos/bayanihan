@@ -33,51 +33,56 @@ let user = null;
 const userOrgCache = new Map();
 let sortOrder = 'newest';
 let selectedCategoryFilter = 'all';
-
-// Variables for inactivity detection
 let inactivityTimeout;
 const INACTIVITY_TIME = 1800000;
 
+// Reset inactivity timer
 function resetInactivityTimer() {
-    clearTimeout(inactivityTimeout);
-    inactivityTimeout = setTimeout(checkInactivity, INACTIVITY_TIME);
-    console.log(`[${new Date().toISOString()}] Inactivity timer reset.`);
+  clearTimeout(inactivityTimeout);
+  inactivityTimeout = setTimeout(checkInactivity, INACTIVITY_TIME);
+  // console.log(`[${new Date().toISOString()}] Inactivity timer reset.`);
 }
 
+// Check for user inactivity
 function checkInactivity() {
-    Swal.fire({
-        title: 'Are you still there?',
-        text: 'You\'ve been inactive for a while. Do you want to continue your session or log out?',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33',
-        confirmButtonText: 'Stay Logged In',
-        cancelButtonText: 'Log Out',
-        allowOutsideClick: false,
-        reverseButtons: true
-    }).then((result) => {
-        if (result.isConfirmed) {
-            resetInactivityTimer();
-            console.log(`[${new Date().toISOString()}] User chose to continue session.`);
-        } else if (result.dismiss === Swal.DismissReason.cancel) {
-            auth.signOut().then(() => {
-                console.log(`[${new Date().toISOString()}] User logged out due to inactivity.`);
-                window.location.href = "../pages/login.html";
-            }).catch((error) => {
-                console.error(`[${new Date().toISOString()}] Error logging out:`, error);
-                Swal.fire('Error', 'Failed to log out. Please try again.', 'error');
-            });
-        }
-    });
+  Swal.fire({
+    title: 'Are you still there?',
+    text: 'You\'ve been inactive for a while. Do you want to continue your session or log out?',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#3085d6',
+    cancelButtonColor: '#d33',
+    confirmButtonText: 'Stay Logged In',
+    cancelButtonText: 'Log Out',
+    allowOutsideClick: false,
+    reverseButtons: true
+  }).then((result) => {
+    if (result.isConfirmed) {
+      resetInactivityTimer();
+      console.log(`[${new Date().toISOString()}] User chose to continue session.`);
+    } else if (result.dismiss === Swal.DismissReason.cancel) {
+      auth.signOut().then(() => {
+        console.log(`[${new Date().toISOString()}] User logged out due to inactivity.`);
+        window.location.href = "../pages/login.html";
+      }).catch((error) => {
+        console.error(`[${new Date().toISOString()}] Error logging out:`, error);
+        Swal.fire('Error', 'Failed to log out. Please try again.', 'error');
+      });
+    }
+  });
 }
 
 ['mousemove', 'keydown', 'scroll', 'click'].forEach(eventType => {
-    document.addEventListener(eventType, resetInactivityTimer);
+  document.addEventListener(eventType, resetInactivityTimer);
 });
 
-// Compress media (unchanged)
+// Compress media
 async function compressMedia(file) {
+  const storage = firebase.storage();
+  const storageRef = storage.ref();
+  const fileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
+  const fileRef = storageRef.child(`media/${fileName}`);
+
   if (file.type.startsWith('image/')) {
     return new Promise((resolve, reject) => {
       const img = new Image();
@@ -101,13 +106,20 @@ async function compressMedia(file) {
         canvas.height = height;
         ctx.drawImage(img, 0, 0, width, height);
 
-        canvas.toBlob((blob) => {
-          console.log(`[${new Date().toISOString()}] Image compressed: ${file.size} bytes -> ${blob.size} bytes`);
-          resolve(blob);
-        }, file.type, 0.7);
+        canvas.toBlob(async (blob) => {
+          try {
+            const uploadTask = await fileRef.put(blob, { contentType: file.type });
+            const downloadUrl = await uploadTask.ref.getDownloadURL();
+            console.log(`[${new Date().toISOString()}] Image uploaded to Storage: ${downloadUrl}`);
+            resolve({ mediaUrl: downloadUrl, mediaType: 'image' });
+          } catch (error) {
+            console.error(`[${new Date().toISOString()}] Image upload failed:`, error);
+            reject(error);
+          }
+        }, file.type, 0.5);
       };
       img.onerror = (error) => {
-        console.error(`[${new Date().toISOString()}] Image compression failed:`, error);
+        console.error(`[${new Date().toISOString()}] Image processing failed:`, error);
         reject(error);
       };
     });
@@ -133,14 +145,24 @@ async function compressMedia(file) {
 
         canvas.width = width;
         canvas.height = height;
-        video.currentTime = 1;
+        video.currentTime = 0;
 
-        const generateThumbnail = () => {
+        const generateThumbnail = async () => {
           ctx.drawImage(video, 0, 0, width, height);
-          canvas.toBlob((thumbnailBlob) => {
-            console.log(`[${new Date().toISOString()}] Video thumbnail generated: ${thumbnailBlob.size} bytes`);
-            resolve({ video: file, thumbnail: thumbnailBlob });
-          }, 'image/jpeg', 0.7);
+          canvas.toBlob(async (thumbnailBlob) => {
+            try {
+              const thumbnailRef = storageRef.child(`thumbnails/${fileName}.jpg`);
+              const thumbnailUpload = await thumbnailRef.put(thumbnailBlob, { contentType: 'image/jpeg' });
+              const thumbnailUrl = await thumbnailUpload.ref.getDownloadURL();
+              const videoUpload = await fileRef.put(file, { contentType: file.type });
+              const videoUrl = await videoUpload.ref.getDownloadURL();
+              console.log(`[${new Date().toISOString()}] Video uploaded: ${videoUrl}, Thumbnail: ${thumbnailUrl}`);
+              resolve({ mediaUrl: videoUrl, thumbnailUrl, mediaType: 'video' });
+            } catch (error) {
+              console.error(`[${new Date().toISOString()}] Video/thumbnail upload failed:`, error);
+              reject(error);
+            }
+          }, 'image/jpeg', 0.5);
         };
 
         video.onseeked = generateThumbnail;
@@ -150,7 +172,7 @@ async function compressMedia(file) {
         };
 
         video.play().catch(() => {
-          video.currentTime = 1;
+          video.currentTime = 0;
         });
       };
       video.onerror = (error) => {
@@ -163,7 +185,7 @@ async function compressMedia(file) {
   }
 }
 
-// Upload media to Storage (unchanged)
+// Upload media to Storage
 async function uploadMediaToStorage(file, path, mimeType) {
   try {
     console.log(`[${new Date().toISOString()}] Uploading to Firebase Storage at path: ${path}`);
@@ -202,8 +224,13 @@ async function uploadMediaToStorage(file, path, mimeType) {
   }
 }
 
-// Fetch user data (unchanged)
+// Fetch user data with fallback
 async function fetchUserData(uid) {
+  if (!uid) {
+    console.error(`[${new Date().toISOString()}] fetchUserData: No UID provided`);
+    return { contactPerson: 'Anonymous', organization: '' };
+  }
+
   if (userOrgCache.has(uid)) {
     console.log(`[${new Date().toISOString()}] Using cached user data for user: ${uid}`);
     return userOrgCache.get(uid);
@@ -213,94 +240,162 @@ async function fetchUserData(uid) {
     console.log(`[${new Date().toISOString()}] Fetching user data for user: ${uid}`);
     const snapshot = await database.ref(`users/${uid}`).once('value');
     const userData = snapshot.val() || {};
+    let contactPerson = userData.contactPerson ||
+      (userData.firstName && userData.lastName ? `${userData.firstName} ${userData.lastName}` : null) ||
+      userData.displayName ||
+      (auth.currentUser?.displayName) ||
+      (auth.currentUser?.email?.split('@')[0]) ||
+      'Anonymous';
+    
     const data = {
-      contactPerson: userData.contactPerson || (userData.firstName && userData.lastName ? `${userData.firstName} ${userData.lastName}` : userData.displayName || 'Anonymous'),
-      organization: userData.organization || 'No Organization'
+      contactPerson,
+      organization: userData.organization || ''
     };
     userOrgCache.set(uid, data);
     console.log(`[${new Date().toISOString()}] User data fetched:`, data);
     return data;
   } catch (error) {
     console.error(`[${new Date().toISOString()}] Error fetching user data:`, error);
-    return { contactPerson: 'Anonymous', organization: 'No Organization' };
+    return {
+      contactPerson: auth.currentUser?.displayName || auth.currentUser?.email?.split('@')[0] || 'Anonymous',
+      organization: ''
+    };
   }
 }
 
+// Display images in preview
+function displayImages(imageUrls, containerId = 'modal-media-preview') {
+  const container = document.getElementById(containerId);
+  if (!container) {
+    console.error(`[${new Date().toISOString()}] Image container not found: ${containerId}`);
+    Swal.fire({
+      icon: 'error',
+      title: 'Preview Error',
+      text: 'Media preview container not found. Please try reloading the page.',
+      confirmButtonText: 'Reload'
+    }).then(() => {
+      window.location.reload();
+    });
+    return;
+  }
+
+  container.innerHTML = '';
+  if (imageUrls.length === 0) {
+    container.innerHTML = '<p style="text-align: center; color: #666;">No media in preview.</p>';
+    return;
+  }
+
+  imageUrls.forEach(({ name, url }) => {
+    const itemDiv = document.createElement('div');
+    itemDiv.className = 'preview-item';
+    const img = document.createElement('img');
+    img.src = url;
+    img.className = 'media-preview';
+    img.alt = name;
+    img.onerror = () => {
+      console.error(`[${new Date().toISOString()}] Image load failed: ${url}`);
+      img.style.display = 'none';
+      img.nextElementSibling.style.display = 'block';
+    };
+    const errorDiv = document.createElement('div');
+    errorDiv.style.display = 'none';
+    errorDiv.style.color = 'red';
+    errorDiv.style.textAlign = 'center';
+    errorDiv.style.fontSize = '14px';
+    const dimensionsDiv = document.createElement('div');
+    dimensionsDiv.className = 'media-dimensions';
+    const imgForDimensions = new Image();
+    imgForDimensions.src = url;
+    imgForDimensions.onload = () => {
+      dimensionsDiv.textContent = `${imgForDimensions.naturalWidth} × ${imgForDimensions.naturalHeight}`;
+    };
+    imgForDimensions.onerror = () => {
+      dimensionsDiv.textContent = 'Error loading dimensions';
+    };
+    itemDiv.appendChild(img);
+    itemDiv.appendChild(errorDiv);
+    itemDiv.appendChild(dimensionsDiv);
+    container.appendChild(itemDiv);
+  });
+}
+
+// Auth state listener
 auth.onAuthStateChanged(async (currentUser) => {
-    user = currentUser;
-    console.log(`[${new Date().toISOString()}] Auth state changed:`, currentUser ? { uid: currentUser.uid, displayName: currentUser.displayName } : 'No user');
+  user = currentUser;
+  console.log(`[${new Date().toISOString()}] Auth state changed:`, currentUser ? { uid: currentUser.uid, displayName: currentUser.displayName, email: currentUser.email } : 'No user');
 
-    if (user) {
-        const profilePage = 'profile.html';
-        try {
-            const userSnapshot = await database.ref(`users/${user.uid}`).once("value");
-            const userDataFromDb = userSnapshot.val();
-            const passwordNeedsReset = userDataFromDb ? (userDataFromDb.password_needs_reset || false) : false;
+  if (user) {
+    const profilePage = 'profile.html';
+    try {
+      const userSnapshot = await database.ref(`users/${user.uid}`).once("value");
+      const userDataFromDb = userSnapshot.val();
+      const passwordNeedsReset = userDataFromDb ? (userDataFromDb.password_needs_reset || false) : false;
 
-            if (passwordNeedsReset) {
-                console.log(`[${new Date().toISOString()}] Password change required for user ${user.uid}. Redirecting to profile page.`);
-                Swal.fire({
-                    icon: 'info',
-                    title: 'Password Change Required',
-                    text: 'For security reasons, please change your password. You will be redirected to your profile.',
-                    allowOutsideClick: false,
-                    allowEscapeKey: false,
-                    showConfirmButton: false,
-                    timer: 2000,
-                    timerProgressBar: true
-                }).then(() => {
-                    window.location.replace(`../pages/${profilePage}`);
-                });
-                return;
-            }
-
-            loadPosts();
-            loadActivityLog();
-            const userData = await fetchUserData(user.uid);
-            updateModalUserInfo(userData);
-            resetInactivityTimer();
-        } catch (error) {
-            console.error(`[${new Date().toISOString()}] Error checking password reset status or fetching user data:`, error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Authentication Error',
-                text: 'Failed to verify account status. Please try logging in again.',
-            }).then(() => {
-                window.location.replace('../pages/login.html');
-            });
-            return;
-        }
-    } else {
+      if (passwordNeedsReset) {
+        console.log(`[${new Date().toISOString()}] Password change required for user ${user.uid}. Redirecting to profile page.`);
         Swal.fire({
-            title: 'Authentication Required',
-            text: 'Please log in to post or view posts.',
-            icon: 'warning',
-            confirmButtonText: 'OK'
+          icon: 'info',
+          title: 'Password Change Required',
+          text: 'For security reasons, please change your password. You will be redirected to your profile.',
+          allowOutsideClick: false,
+          allowEscapeKey: false,
+          showConfirmButton: false,
+          timer: 2000,
+          timerProgressBar: true
         }).then(() => {
-            window.location.replace('../pages/login.html');
+          window.location.replace(`../pages/${profilePage}`);
         });
-        const postsContainer = document.getElementById('posts');
-        if (postsContainer) {
-            postsContainer.innerHTML = '<p style="text-align: center; color: #666;">Please log in to view posts.</p>';
-        }
+        return;
+      }
+
+      loadPosts();
+      loadActivityLog();
+      const userData = await fetchUserData(user.uid);
+      updateModalUserInfo(userData);
+      resetInactivityTimer();
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] Error checking password reset status or fetching user data:`, error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Authentication Error',
+        text: 'Failed to verify account status. Please try logging in again.',
+      }).then(() => {
+        window.location.replace('../pages/login.html');
+      });
+      return;
     }
+  } else {
+    Swal.fire({
+      title: 'Authentication Required',
+      text: 'Please log in to post or view posts.',
+      icon: 'warning',
+      confirmButtonText: 'OK'
+    }).then(() => {
+      window.location.replace('../pages/login.html');
+    });
+    const postsContainer = document.getElementById('posts');
+    if (postsContainer) {
+      postsContainer.innerHTML = '<p style="text-align: center; color: #666;">Please log in to view posts.</p>';
+    }
+  }
 });
 
-// Update modal user info (unchanged)
+// Update modal user info
 function updateModalUserInfo(userData) {
   const userName = document.getElementById('modal-user-name');
   const userOrg = document.getElementById('modal-user-org');
   const shareUserName = document.getElementById('share-modal-user-name');
   if (userName && userOrg) {
-    userName.textContent = userData.contactPerson;
-    userOrg.textContent = userData.organization === 'No Organization' ? '' : userData.organization;
+    userName.textContent = userData.contactPerson || 'Anonymous';
+    userOrg.textContent = userData.organization || '';
+    console.log(`[${new Date().toISOString()}] Updated modal user info: ${userData.contactPerson}, ${userData.organization}`);
   }
   if (shareUserName) {
-    shareUserName.textContent = userData.contactPerson;
+    shareUserName.textContent = userData.contactPerson || 'Anonymous';
   }
 }
 
-// Create post (updated)
+// Create post
 async function createPost() {
   console.log(`[${new Date().toISOString()}] createPost called`);
   if (!user) {
@@ -309,170 +404,111 @@ async function createPost() {
     return;
   }
 
+  await new Promise(resolve => setTimeout(resolve, 0));
+
   const modalPostTitle = document.getElementById('modal-post-title');
   const modalPostContent = document.getElementById('modal-post-content');
   const modalPostCategory = document.getElementById('modal-post-category');
   const mediaInput = document.getElementById('modal-media-upload');
-  const webUrlInput = document.getElementById('modal-web-url-input');
   const postButton = document.getElementById('modal-post-button');
   const modal = document.getElementById('post-modal');
   const mediaPreview = document.getElementById('modal-media-preview');
-  const mediaButtons = document.querySelector('.media-buttons');
 
-  // Check if all required elements exist
-  if (!modalPostTitle || !modalPostContent || !modalPostCategory || !mediaInput || !webUrlInput || !postButton || !modal || !mediaPreview || !mediaButtons) {
-    console.error(`[${new Date().toISOString()}] DOM elements missing`);
-    Swal.fire({
-      icon: 'error',
-      title: 'Page Error',
-      text: 'Some page elements are missing. Please try reloading the page.',
-      confirmButtonText: 'Reload'
-    }).then(() => {
-      window.location.reload();
-    });
+  if (!modalPostTitle || !modalPostContent || !modalPostCategory || !mediaInput || !postButton || !modal || !mediaPreview) {
+    console.error(`[${new Date().toISOString()}] DOM elements missing:`, { modalPostTitle, modalPostContent, modalPostCategory, mediaInput, postButton, modal, mediaPreview });
+    Swal.fire('Error', 'Page elements not found. Please try refreshing the page.', 'error');
     return;
   }
 
   const title = modalPostTitle.value.trim();
   const content = modalPostContent.value.trim();
   const category = modalPostCategory.value;
-  const files = Array.from(mediaInput.files);
-  const webUrls = webUrlInput.value.trim().split('\n').filter(url => url.trim());
-
-  // Validation
+  const files = Array.from(mediaInput.files); // Support multiple files
+  if (!title && !category && !content && !files.length) {
+    console.log(`[${new Date().toISOString()}] Fields are blank`);
+    Swal.fire('Missing Fields', 'Please fill all the fields', 'warning');
+    return;
+  }
+  if (!content && !files.length) {
+    console.log(`[${new Date().toISOString()}] No content or media provided`);
+    Swal.fire('Missing Field', 'Please add content or media to post', 'warning');
+    return;
+  }
   if (!category) {
     console.log(`[${new Date().toISOString()}] No category selected`);
     Swal.fire('Please select a category', '', 'warning');
     return;
   }
-  if (!content && !files.length && !webUrls.length) {
-    console.log(`[${new Date().toISOString()}] No content or media provided`);
-    Swal.fire('Missing Field', 'Please add content or media to post', 'warning');
-    return;
-  }
-  if (files.length > 30 || webUrls.length > 30) {
-    console.log(`[${new Date().toISOString()}] Too many files or URLs`);
-    Swal.fire('Limit Exceeded', 'You can upload up to 30 images or add 30 web URLs', 'warning');
-    return;
-  }
 
-  console.log(`[${new Date().toISOString()}] Posting with title: ${title}, content: ${content}, category: ${category}, files: ${files.length}, urls: ${webUrls.length}`);
+  console.log(`[${new Date().toISOString()}] Posting with title: ${title}, content: ${content}, category: ${category}, files: ${files.map(f => f.name).join(', ')}`);
   postButton.classList.add('loading');
   modal.classList.add('disabled');
 
   try {
-    const mediaItems = [];
-
-    // Process uploaded files as Base64
-    for (const file of files) {
-      console.log(`[${new Date().toISOString()}] Processing file: ${file.name}, type: ${file.type}, size: ${file.size}`);
-      if (!['image/jpeg', 'image/png', 'video/mp4', 'video/webm'].includes(file.type)) {
-        console.log(`[${new Date().toISOString()}] Invalid file type: ${file.type}`);
-        Swal.fire('Unsupported file type', 'Please upload JPEG, PNG, MP4, or WebM files', 'error');
-        throw new Error(`Unsupported file type: ${file.type}`);
-      }
-      if (file.size > 5 * 1024 * 1024) {
-        console.log(`[${new Date().toISOString()}] File size exceeds 5MB limit: ${file.size}`);
-        Swal.fire('File too large', 'Maximum file size is 5MB', 'error');
-        throw new Error('File size exceeds 5MB');
-      }
-
-      let result;
-      try {
-        result = await compressMedia(file);
-        console.log(`[${new Date().toISOString()}] Compression successful for ${file.name}`);
-      } catch (error) {
-        console.error(`[${new Date().toISOString()}] Compression failed for ${file.name}:`, error);
-        Swal.fire('Error', `Failed to compress ${file.name}: ${error.message}`, 'error');
-        throw error;
-      }
-
-      try {
-        if (file.type.startsWith('image/')) {
-          // Convert compressed image to Base64
-          const base64Image = await new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result);
-            reader.onerror = error => reject(error);
-            reader.readAsDataURL(result);
-          });
-          console.log(`[${new Date().toISOString()}] Image converted to Base64: ${file.name}`);
-          mediaItems.push({ data: base64Image, type: 'image' });
-        } else {
-          // Convert video to Base64
-          const base64Video = await new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result);
-            reader.onerror = error => reject(error);
-            reader.readAsDataURL(result.video);
-          });
-          // Convert thumbnail to Base64
-          const base64Thumbnail = await new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result);
-            reader.onerror = error => reject(error);
-            reader.readAsDataURL(result.thumbnail);
-          });
-          console.log(`[${new Date().toISOString()}] Video and thumbnail converted to Base64: ${file.name}`);
-          mediaItems.push({ data: base64Video, type: 'video', thumbnail: base64Thumbnail });
+    const mediaUrls = [];
+    let mediaType = '';
+    if (files.length) {
+      for (const file of files) {
+        if (!['image/jpeg', 'image/png', 'video/mp4', 'video/webm'].includes(file.type)) {
+          console.log(`[${new Date().toISOString()}] Invalid file type: ${file.type}`);
+          Swal.fire('Unsupported file type', 'Please upload JPEG, PNG, MP4, or WebM files', 'error');
+          mediaInput.value = null;
+          mediaPreview.innerHTML = '';
+          throw new Error('Unsupported file type');
         }
-      } catch (error) {
-        console.error(`[${new Date().toISOString()}] Base64 conversion failed for ${file.name}:`, error);
-        Swal.fire('Error', `Failed to convert ${file.name} to Base64: ${error.message}`, 'error');
-        throw error;
+        if (file.size > 5 * 1024 * 1024) {
+          console.log(`[${new Date().toISOString()}] File size exceeds 5MB limit`);
+          Swal.fire('File too large', 'Maximum file size is 5MB', 'error');
+          mediaInput.value = null;
+          mediaPreview.innerHTML = '';
+          throw new Error('File size exceeds 5MB');
+        }
+
+        const result = await compressMedia(file);
+        mediaUrls.push({
+          url: result.mediaUrl,
+          type: result.mediaType,
+          thumbnail: result.thumbnailUrl || ''
+        });
+        mediaType = result.mediaType; // Use the last file's type (assumes single type per post)
       }
     }
 
-    // Process web URLs (unchanged, as they are already URLs)
-    for (const url of webUrls) {
-      console.log(`[${new Date().toISOString()}] Processing URL: ${url}`);
-      if (!url.match(/^https?:\/\/.*\.(?:png|jpg|jpeg)$/i)) {
-        console.log(`[${new Date().toISOString()}] Invalid image URL: ${url}`);
-        Swal.fire('Invalid URL', 'Please provide valid image URLs (PNG, JPG, JPEG)', 'warning');
-        throw new Error(`Invalid image URL: ${url}`);
-      }
-      mediaItems.push({ url, type: 'image' });
-    }
-
-    // Create post object
     const { contactPerson, organization } = await fetchUserData(user.uid);
+    let userName = contactPerson;
+    if (organization && contactPerson.firstName && contactPerson.lastName) {
+      userName = `${contactPerson.firstName} ${contactPerson.lastName}`.trim();
+    }
+
     const post = {
       title: title || '',
-      content: content || '',
+      content: content,
       userId: user.uid,
-      userName: contactPerson || 'Anonymous',
-      organization: organization === 'No Organization' ? '' : organization,
+      userName: userName,
+      organization: organization,
       timestamp: firebase.database.ServerValue.TIMESTAMP,
-      media: mediaItems,
+      mediaUrls: mediaUrls.length ? mediaUrls : [], // Store as array
+      mediaType: mediaType,
       category: category
     };
-    console.log(`[${new Date().toISOString()}] Post data:`, JSON.stringify(post));
 
-    // Save post to database
-    const newPostRef = await database.ref('posts').push(post);
-    console.log(`[${new Date().toISOString()}] Post written to database with ID: ${newPostRef.key}`);
-    await logActivity(`${contactPerson}${organization === 'No Organization' ? '' : ` from ${organization}`} created a new post in ${category}`);
-
-    // Reset form
+    console.log(`[${new Date().toISOString()}] Writing post to database:`, { ...post, mediaUrls: mediaUrls.map(m => m.url.slice(0, 50) + '...') });
+    await database.ref('posts').push(post);
+    await logActivity(`${userName}${organization ? ` from ${organization}` : ''} created a new post in ${category}`);
     modalPostTitle.value = '';
     modalPostContent.value = '';
     modalPostCategory.value = '';
     mediaInput.value = '';
-    webUrlInput.value = '';
     mediaPreview.innerHTML = '';
     modal.style.display = 'none';
     modalPostContent.style.height = '80px';
-    mediaButtons.style.display = 'flex';
-    document.getElementById('url-error').textContent = '';
-    document.getElementById('modal-web-url-input').style.display = 'none';
-    document.getElementById('insert-web-url').style.display = 'none';
     console.log(`[${new Date().toISOString()}] Post created successfully`);
     Swal.fire('Success', 'Post created successfully!', 'success');
 
     const modalButtons = modal.querySelectorAll('.modal-buttons .post-option');
     modalButtons.forEach(btn => btn.style.display = 'inline-block');
   } catch (error) {
-    console.error(`[${new Date().toISOString()}] Error creating post:`, error);
+    console.error(`[${new Date().toISOString()}] Error creating post:`, error.message);
     Swal.fire('Error', `Failed to create post: ${error.message}`, 'error');
   } finally {
     postButton.classList.remove('loading');
@@ -480,7 +516,7 @@ async function createPost() {
   }
 }
 
-// Share post (unchanged)
+// Share post
 async function sharePost(id) {
   console.log(`[${new Date().toISOString()}] sharePost called for post: ${id}`);
   if (!user) {
@@ -499,48 +535,79 @@ async function sharePost(id) {
   }
 
   try {
-    const postSnapshot = await database.ref(`posts/${id}`).once('value');
+    const postSnapshot = await database.ref(`posts/submitted/${id}`).once('value');
     const originalPost = postSnapshot.val();
     if (!originalPost) {
+      console.error(`[${new Date().toISOString()}] Post not found: ${id}`);
       Swal.fire('Error', 'Post not found', 'error');
       return;
     }
 
     const { contactPerson } = await fetchUserData(user.uid);
     modal.dataset.postId = id;
-    originalCreator.textContent = originalPost.userName;
+    originalCreator.textContent = originalPost.userName || 'Anonymous';
     let mediaHtml = '';
-    if (post.media && post.media.length) {
-      mediaHtml = post.media.map(item => {
+    if (originalPost.media && Array.isArray(originalPost.media)) {
+      mediaHtml = originalPost.media.map((item, index) => {
         if (item.type === 'image') {
-          const src = item.data || item.url; // Use data for Base64, url for web URLs
-          return `<img src="${src}" class="post-media" alt="Post media" onerror="this.style.display='none'">`;
+          return `<img src="${item.url}" class="post-media" alt="Post media ${index}" onerror="this.style.display='none';this.nextElementSibling.style.display='block';console.error('Image load failed for post ${id}, index ${index}: ${item.url}')">`;
         } else if (item.type === 'video') {
-          return `<video src="${item.data}" class="post-media" poster="${item.thumbnail || ''}" controls></video>`;
+          return `
+            <video id="video-${id}-${index}" src="${item.url}" class="post-media" poster="${item.thumbnail || ''}" controls></video>
+          `;
         }
       }).join('');
-    }
-    if (originalPost.mediaUrls && Array.isArray(originalPost.mediaUrls)) {
-      mediaHtml += originalPost.mediaUrls.map((url, index) =>(`
-        <img src="${url}" class="post-media" alt="Post media ${index}" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><div style="display:none;color:red;text-align:center;font-size:14px;">Failed to load image ${index}.</div>
-      `)).join('');
     }
 
     shareContent.innerHTML = `
       ${originalPost.title ? `<h4 class="post-title">${originalPost.title}</h4>` : ''}
-      <p class="post-content">${originalPost.content}</p>
+      ${originalPost.content ? `<p class="post-content">${originalPost.content}</p>` : '<p class="post-content">No content</p>'}
       ${mediaHtml}
     `;
     shareCaptionInput.value = '';
     modal.style.display = 'block';
     shareCaptionInput.focus();
+
+    // Video playback with retry logic
+    if (originalPost.media && Array.isArray(originalPost.media)) {
+      originalPost.media.forEach((item, index) => {
+        if (item.type === 'video') {
+          const videoElement = document.getElementById(`video-${id}-${index}`);
+          let retries = 0;
+          const maxRetries = 3;
+
+          const attemptPlay = () => {
+            if (!videoElement) return;
+            videoElement.play().catch((error) => {
+              console.error(`[${new Date().toISOString()}] Video playback failed for post ${id}, attempt ${retries + 1}:`, error);
+              if (retries < maxRetries) {
+                retries++;
+                console.log(`[${new Date().toISOString()}] Retrying video playback for post ${id}, attempt ${retries}`);
+                setTimeout(attemptPlay, 1000 * retries);
+              } else {
+                console.error(`[${new Date().toISOString()}] Max retries reached for video in post ${id}`);
+                videoElement.nextElementSibling.style.display = 'block';
+                videoElement.style.display = 'none';
+              }
+            });
+          };
+
+          videoElement.addEventListener('loadeddata', () => {
+            console.log(`[${new Date().toISOString()}] Video loaded successfully for post ${id}`);
+            retries = 0;
+          });
+
+          attemptPlay();
+        }
+      });
+    }
   } catch (error) {
     console.error(`[${new Date().toISOString()}] Error preparing share modal:`, error);
     Swal.fire('Error', 'Failed to load post for sharing.', 'error');
   }
 }
 
-// Submit shared post (unchanged)
+// Submit shared post
 async function submitSharePost() {
   console.log(`[${new Date().toISOString()}] submitSharePost called`);
   if (!user) {
@@ -550,7 +617,7 @@ async function submitSharePost() {
 
   const modal = document.getElementById('share-post-modal');
   const shareCaptionInput = document.getElementById('share-caption-input');
-  const modalPostCategory = document.getElementById('modal-post-category');
+  const modalPostCategory = document.getElementById('share-modal-post-category');
   if (!modal || !shareCaptionInput || !modalPostCategory) {
     console.error(`[${new Date().toISOString()}] Share modal elements missing`);
     Swal.fire('Error', 'Share modal elements not found.', 'error');
@@ -567,53 +634,34 @@ async function submitSharePost() {
 
   const caption = shareCaptionInput.value.trim();
   try {
-    const postSnapshot = await database.ref(`posts/${postId}`).once('value');
+    const postSnapshot = await database.ref(`posts/submitted/${postId}`).once('value');
     const originalPost = postSnapshot.val();
     if (!originalPost) {
-      console.error(`[${new Date().toISOString()}] Original post not found for ID: ${postId}`);
       Swal.fire('Error', 'Post not found', 'error');
       return;
     }
-    console.log(`[${new Date().toISOString()}] Original post data:`, JSON.stringify(originalPost));
 
     const { contactPerson, organization } = await fetchUserData(user.uid);
     const sanitizedMedia = Array.isArray(originalPost.media)
-      ? originalPost.media.filter(item => {
-          if (!item || typeof item !== 'object') {
-            console.warn(`[${new Date().toISOString()}] Invalid media item:`, item);
-            return false;
-          }
-          if (!item.url || !item.type || typeof item.url !== 'string' || typeof item.type !== 'string') {
-            console.warn(`[${new Date().toISOString()}] Media item missing url or type:`, item);
-            return false;
-          }
-          if (item.type === 'video' && (!item.thumbnail || typeof item.thumbnail !== 'string')) {
-            console.warn(`[${new Date().toISOString()}] Video missing valid thumbnail:`, item);
-            return false;
-          }
-          return true;
-        })
+      ? originalPost.media.filter(item => item && item.url && item.type)
       : [];
-    console.log(`[${new Date().toISOString()}] Sanitized media:`, sanitizedMedia);
-
     const sharedPost = {
       title: originalPost.title || '',
       content: originalPost.content || '',
       userId: user.uid,
-      userName: contactPerson || 'Anonymous',
-      organization: organization === 'No Organization' ? '' : organization,
+      userName: contactPerson,
+      organization: organization,
       timestamp: firebase.database.ServerValue.TIMESTAMP,
-      media: sanitizedMedia,
+      media: sanitizedMedia.length > 0 ? sanitizedMedia : null,
       originalPostId: postId,
       originalUserName: originalPost.userName || 'Anonymous',
       isShared: true,
       shareCaption: caption || '',
       category: category
     };
-    console.log(`[${new Date().toISOString()}] Shared post data:`, JSON.stringify(sharedPost));
 
-    await database.ref('posts').push(sharedPost);
-    await logActivity(`${contactPerson}${organization === 'No Organization' ? '' : ` from ${organization}`} shared a post in ${category}`);
+    await database.ref('posts/submitted').push(sharedPost);
+    await logActivity(`${contactPerson}${organization ? ` from ${organization}` : ''} shared a post in ${category}`);
     modal.style.display = 'none';
     shareCaptionInput.value = '';
     modalPostCategory.value = '';
@@ -625,7 +673,7 @@ async function submitSharePost() {
   }
 }
 
-// Comment functions (unchanged)
+// Comment functions
 async function addComment(postId, parentCommentId = null) {
   console.log(`[${new Date().toISOString()}] addComment called for post: ${postId}, parent: ${parentCommentId}`);
   if (!user) {
@@ -664,9 +712,9 @@ async function addComment(postId, parentCommentId = null) {
       };
 
       try {
-        await database.ref(`posts/${postId}/comments`).push(comment);
+        await database.ref(`posts/submitted/${postId}/comments`).push(comment);
         commentInput.value = '';
-        await logActivity(`${contactPerson}${organization === 'No Organization' ? '' : ` from ${organization}`} ${parentCommentId ? 'replied to' : 'commented on'} a post`);
+        await logActivity(`${contactPerson}${organization ? ` from ${organization}` : ''} ${parentCommentId ? 'replied to' : 'commented on'} a post`);
         Swal.fire('Success', 'Comment posted successfully!', 'success');
       } catch (error) {
         console.error(`[${new Date().toISOString()}] Error adding comment:`, error);
@@ -683,7 +731,7 @@ async function deleteComment(postId, commentId) {
     return;
   }
 
-  const commentRef = database.ref(`posts/${postId}/comments/${commentId}`);
+  const commentRef = database.ref(`posts/submitted/${postId}/comments/${commentId}`);
   const comment = (await commentRef.once('value')).val();
   if (!comment || user.uid !== comment.userId) {
     Swal.fire('Error', 'You are not authorized to delete this comment.', 'error');
@@ -700,16 +748,16 @@ async function deleteComment(postId, commentId) {
   }).then(async (result) => {
     if (result.isConfirmed) {
       try {
-        const subCommentsSnapshot = await database.ref(`posts/${postId}/comments`).orderByChild('parentCommentId').equalTo(commentId).once('value');
+        const subCommentsSnapshot = await database.ref(`posts/submitted/${postId}/comments`).orderByChild('parentCommentId').equalTo(commentId).once('value');
         const subComments = subCommentsSnapshot.val();
         if (subComments) {
           for (const subCommentId of Object.keys(subComments)) {
-            await database.ref(`posts/${postId}/comments/${subCommentId}`).remove();
+            await database.ref(`posts/submitted/${postId}/comments/${subCommentId}`).remove();
           }
         }
         await commentRef.remove();
         const { contactPerson, organization } = await fetchUserData(user.uid);
-        await logActivity(`${contactPerson}${organization === 'No Organization' ? '' : ` from ${organization}`} deleted a comment`);
+        await logActivity(`${contactPerson}${organization ? ` from ${organization}` : ''} deleted a comment`);
         Swal.fire('Success', 'Comment deleted successfully!', 'success');
       } catch (error) {
         console.error(`[${new Date().toISOString()}] Error deleting comment:`, error);
@@ -732,7 +780,7 @@ function toggleComments(postId) {
     } else {
       commentsSection.style.display = 'none';
       commentButton.classList.remove('active');
-      database.ref(`posts/${postId}/comments`).once('value').then(snap => {
+      database.ref(`posts/submitted${postId}/comments`).once('value').then(snap => {
         const commentCount = snap.numChildren();
         commentCounter.innerHTML = `<i class='bx bx-comment'></i> ${commentCount} ${commentCount === 1 ? 'Comment' : 'Comments'}`;
       });
@@ -747,7 +795,7 @@ async function loadComments(postId) {
     return;
   }
 
-  database.ref(`posts/${postId}/comments`).orderByChild('timestamp').on('value', async (snapshot) => {
+  database.ref(`posts/submitted/${postId}/comments`).orderByChild('timestamp').on('value', async (snapshot) => {
     commentsContainer.innerHTML = '';
     const comments = snapshot.val();
     if (comments) {
@@ -799,7 +847,7 @@ function renderComments(comments, container, postId, level) {
     commentElem.innerHTML = `
       <div class="comment-header">
         <div class="comment-user-info">
-          <strong>${comment.userName}</strong>
+          <strong>${comment.userName || 'Anonymous'}</strong>
           <small>${new Date(comment.timestamp).toLocaleDateString()}</small>
         </div>
         ${canDelete ? `<button class="delete-comment" onclick="deleteComment('${postId}', '${commentId}')"><i class='bx bx-trash'></i></button>` : ''}
@@ -838,17 +886,47 @@ function toggleReplyInput(postId, commentId) {
   }
 }
 
-// Enhanced loadPosts with fallback image fetching
+async function validateMediaUrl(url, type) {
+  console.log(`[${new Date().toISOString()}] Validating media URL: ${url} (${type})`);
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      mode: 'cors',
+      headers: { 'Cache-Control': 'no-cache' }
+    });
+    if (!response.ok) {
+      console.warn(`[${new Date().toISOString()}] Media URL inaccessible: ${url}, status: ${response.status} ${response.statusText}`);
+      return false;
+    }
+    const contentType = response.headers.get('content-type');
+    if (type === 'image' && !contentType?.startsWith('image/')) {
+      console.warn(`[${new Date().toISOString()}] Invalid content type for image: ${contentType}, URL: ${url}`);
+      return false;
+    }
+    if (type === 'video' && !contentType?.startsWith('video/')) {
+      console.warn(`[${new Date().toISOString()}] Invalid content type for video: ${contentType}, URL: ${url}`);
+      return false;
+    }
+    console.log(`[${new Date().toISOString()}] Media URL validated successfully: ${url}`);
+    return true;
+  } catch (error) {
+    console.error(`[${new Date().toISOString()}] Error validating media URL ${url}:`, error.message);
+    return false;
+  }
+}
+
+
+// Load posts with enhanced rendering
 async function loadPosts() {
   console.log(`[${new Date().toISOString()}] Loading posts with filter: ${selectedCategoryFilter}`);
   const postsContainer = document.getElementById('posts');
   if (!postsContainer) {
     console.error(`[${new Date().toISOString()}] Posts container not found`);
-    Swal.fire('Error', 'Posts container not found.', 'error');
+    Swal.fire('Error', 'Posts container not found. Please try refreshing the page.', 'error');
     return;
   }
 
-  database.ref('posts').orderByChild('timestamp').on('value', async (snapshot) => {
+  database.ref('posts/submitted').orderByChild('timestamp').on('value', async (snapshot) => {
     postsContainer.innerHTML = '';
     const posts = snapshot.val();
     if (posts) {
@@ -865,30 +943,38 @@ async function loadPosts() {
         postElem.id = `post-${id}`;
 
         let mediaHtml = '';
-        if (post.media && post.media.length) {
-          mediaHtml = post.media.map(item => {
-            if (item.type === 'image') {
-              const src = item.data || item.url; // Use data for Base64, url for web URLs
-              return `<img src="${item.url}" class="post-media" alt="Post media" onerror="this.style.display='none'">`;
-            } else if (item.type === 'video') {
-              return `<video src="${item.url}" class="post-media" poster="${item.thumbnail || ''}" controls></video>`;
-            }
-          }).join('');
+        // Handle both mediaUrls (array) and mediaUrl (string)
+        if (post.mediaUrls && Array.isArray(post.mediaUrls) && post.mediaUrls.length > 0) {
+          // Image posts with mediaUrls array
+          mediaHtml = post.mediaUrls.map(url => `
+            <img src="${url}" class="post-media" alt="Post media" this.style.display='none'; this.nextElementSibling.style.display='block'">
+          `).join('');
+        } else if (post.mediaUrl) {
+          // Video posts with mediaUrl string
+          if (post.mediaType === 'image') {
+            mediaHtml = `
+              <img src="${post.mediaUrl}" class="post-media" alt="Post media" this.style.display='none'; this.nextElementSibling.style.display='block'">
+            `;
+          } else if (post.mediaType === 'video') {
+            mediaHtml = `
+              <video src="${post.mediaUrl}" class="post-media" poster="${post.thumbnailUrl || ''}" controls onerror="console.error('Failed to load video: ${post.mediaUrl}'); this.style.display='none'; this.nextElementSibling.style.display='block'">
+            `;
+          }
         }
 
         const canEdit = user && user.uid === post.userId;
         const isShared = post.isShared || false;
-        const sharedInfo = isShared ? `<small class="shared-info">Shared from ${post.originalUserName || 'Anonymous'}'s post</small>` : '';
+        const sharedInfo = isShared ? `<small class="shared-info">Shared from ${post.originalUserName}'s post</small>` : '';
         const contentWrapperStyle = isShared ? `style="border-color: transparent;"` : '';
         const contentHr = isShared ? `<hr>` : '';
         const captionHtml = isShared && post.shareCaption ? `<p class="share-caption">${post.shareCaption}</p>` : '';
 
-        const commentCount = await database.ref(`posts/${id}/comments`).once('value').then(snap => snap.numChildren());
+        const commentCount = await database.ref(`posts/submitted/${id}/comments`).once('value').then(snap => snap.numChildren());
 
         postElem.innerHTML = `
           <div class="post-header">
             <div class="post-user-info">
-              <strong style="color: #121212">${post.userName || 'Anonymous'}</strong>
+              <strong style="color: #121212">${post.userName}</strong>
               <div class="post-meta">
                 <small style="color: var(--primary-color, #14AEBB); font-size: 0.9em;">${post.organization || ''}</small>
                 <small>${new Date(post.timestamp).toLocaleString()}</small>
@@ -950,14 +1036,165 @@ async function loadPosts() {
         }
       }
     } else {
-      postsContainer.innerHTML = '<p style="text-align: center; color: #666;">No posts available.</p>';
+      postsContainer.innerHTML = '<p>No posts available.</p>';
     }
   }, (error) => {
     console.error(`[${new Date().toISOString()}] Error loading posts:`, error);
     Swal.fire('Error', `Failed to load posts: ${error.message}`, 'error');
-    postsContainer.innerHTML = '<p style="text-align: center; color: #666;">Error loading posts.</p>';
+    postsContainer.innerHTML = '<p>Error loading posts.</p>';
   });
 }
+
+async function sharePost(id) {
+  console.log(`[${new Date().toISOString()}] sharePost called for post: ${id}`);
+  if (!user) {
+    Swal.fire('Please log in to share posts', '', 'warning');
+    return;
+  }
+
+  const modal = document.getElementById('share-post-modal');
+  const shareContent = document.getElementById('share-post-content');
+  const shareCaptionInput = document.getElementById('share-caption-input');
+  const originalCreator = document.getElementById('share-original-creator');
+  if (!modal || !shareContent || !shareCaptionInput || !originalCreator) {
+    console.error(`[${new Date().toISOString()}] Share modal elements missing`);
+    Swal.fire('Error', 'Share modal elements not found. Please try refreshing the page.', 'error');
+    return;
+  }
+
+  try {
+    const postSnapshot = await database.ref(`posts/submitted/${id}`).once('value');
+    const originalPost = postSnapshot.val();
+    if (!originalPost) {
+      Swal.fire('Error', 'Post not found', 'error');
+      return;
+    }
+
+    const { contactPerson } = await fetchUserData(user.uid);
+    modal.dataset.postId = id;
+    originalCreator.textContent = originalPost.userName;
+    let mediaHtml = '';
+    if (originalPost.mediaUrls && Array.isArray(originalPost.mediaUrls) && originalPost.mediaUrls.length > 0) {
+      mediaHtml = originalPost.mediaUrls.map(url => `
+        <img src="${url}" class="post-media" alt="Post media" this.style.display='none'; this.nextElementSibling.style.display='block'">
+      `).join('');
+    } else if (originalPost.mediaUrl) {
+      if (originalPost.mediaType === 'image') {
+        mediaHtml = `
+          <img src="${originalPost.mediaUrl}" class="post-media" alt="Post media" this.style.display='none'; this.nextElementSibling.style.display='block'">
+        `;
+      } else if (originalPost.mediaType === 'video') {
+        mediaHtml = `
+          <video src="${originalPost.mediaUrl}" class="post-media" poster="${originalPost.thumbnailUrl || ''}" controls onerror="console.error('Failed to load video: ${originalPost.mediaUrl}'); this.style.display='none'; this.nextElementSibling.style.display='block'">
+        `;
+      }
+    }
+
+    shareContent.innerHTML = `
+      ${originalPost.title ? `<h4 class="post-title">${originalPost.title}</h4>` : ''}
+      <p class="post-content">${originalPost.content}</p>
+      ${mediaHtml}
+    `;
+    shareCaptionInput.value = '';
+    modal.style.display = 'block';
+    shareCaptionInput.focus();
+  } catch (error) {
+    console.error(`[${new Date().toISOString()}] Error preparing share modal:`, error);
+    Swal.fire('Error', 'Failed to load post for sharing.', 'error');
+  }
+}
+
+
+async function editMedia(postId, existingMedia, newFiles, newUrls) {
+  console.log(`[${new Date().toISOString()}] Editing media for post: ${postId}`);
+  const mediaItems = [...(existingMedia || [])];
+  const deletedMedia = [];
+
+  // Handle deleted media (move to deleted folder)
+  const currentMediaUrls = mediaItems.map(item => item.url);
+  const updatedMediaUrls = newUrls.filter(url => url.trim());
+  const removedMedia = mediaItems.filter(item => item.filePath && !updatedMediaUrls.includes(item.url));
+  for (const item of removedMedia) {
+    if (item.filePath) {
+      const deletedPath = `deleted/${user.uid}/${item.filePath.split('/').pop()}`;
+      console.log(`[${new Date().toISOString()}] Moving media to ${deletedPath}`);
+      try {
+        await storage.ref(item.filePath).getDownloadURL().then(async (url) => {
+          const response = await fetch(url);
+          const blob = await response.blob();
+          await storage.ref(deletedPath).put(blob, { contentType: item.type === 'image' ? 'image/jpeg' : item.type });
+          await storage.ref(item.filePath).delete();
+          console.log(`[${new Date().toISOString()}] Media moved to deleted folder: ${item.filePath}`);
+        });
+        deletedMedia.push(item);
+      } catch (error) {
+        console.error(`[${new Date().toISOString()}] Error moving media to deleted folder:`, error);
+      }
+    }
+  }
+
+  // Remove deleted media from mediaItems
+  mediaItems.splice(0, mediaItems.length, ...mediaItems.filter(item => !deletedMedia.includes(item)));
+
+  // Process new files
+  for (const file of Array.from(newFiles)) {
+    if (!['image/jpeg', 'image/png', 'video/mp4', 'video/webm'].includes(file.type)) {
+      console.log(`[${new Date().toISOString()}] Invalid file type: ${file.type}`);
+      Swal.fire('Unsupported file type', 'Please upload JPEG, PNG, MP4, or WebM files', 'error');
+      throw new Error(`Unsupported file type: ${file.type}`);
+    }
+    if (file.size > 25 * 1024 * 1024) {
+      console.log(`[${new Date().toISOString()}] File size exceeds 25MB limit: ${file.size}`);
+      Swal.fire('File too large', 'Maximum file size is 25MB', 'error');
+      throw new Error('File size exceeds 25MB');
+    }
+
+    const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    let result;
+    try {
+      result = await compressMedia(file);
+      console.log(`[${new Date().toISOString()}] Compression successful for ${file.name}`);
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] Compression failed for ${file.name}:`, error);
+      Swal.fire('Error', `Failed to compress ${file.name}: ${error.message}`, 'error');
+      throw error;
+    }
+
+    if (file.type.startsWith('image/')) {
+      const imagePath = `image_posts/${user.uid}/${Date.now()}_${sanitizedFileName}`;
+      const url = await uploadMediaToStorage(result.blob, imagePath, result.mimeType);
+      mediaItems.push({ url, type: 'image', filePath: imagePath });
+      console.log(`[${new Date().toISOString()}] Image uploaded successfully: ${url}`);
+    } else if (file.type.startsWith('video/')) {
+      const videoPath = `video_posts/${user.uid}/${Date.now()}_${sanitizedFileName}`;
+      const videoUrl = await uploadMediaToStorage(result.videoBlob, videoPath, result.mimeType);
+      let thumbnailUrl = '';
+      if (result.thumbnailBlob) {
+        const thumbnailPath = `video_posts/${user.uid}/thumbnails/${Date.now()}_thumbnail.jpg`;
+        thumbnailUrl = await uploadMediaToStorage(result.thumbnailBlob, thumbnailPath, 'image/jpeg');
+        console.log(`[${new Date().toISOString()}] Thumbnail uploaded successfully: ${thumbnailUrl}`);
+      }
+      mediaItems.push({ url: videoUrl, type: 'video', thumbnail: thumbnailUrl, filePath: videoPath });
+      console.log(`[${new Date().toISOString()}] Video uploaded successfully: ${videoUrl}`);
+    }
+  }
+
+  // Process new URLs
+  for (const url of newUrls) {
+    if (!url.match(/^https?:\/\/.*\.(?:png|jpg|jpeg)$/i)) {
+      console.log(`[${new Date().toISOString()}] Invalid image URL: ${url}`);
+      Swal.fire('Invalid URL', 'Please provide valid image URLs (PNG, JPG, JPEG)', 'warning');
+      throw new Error(`Invalid image URL: ${url}`);
+    }
+    if (!mediaItems.some(item => item.url === url)) {
+      mediaItems.push({ url, type: 'image' });
+      console.log(`[${new Date().toISOString()}] Added URL to media: ${url}`);
+    }
+  }
+
+  return mediaItems.length > 0 ? mediaItems : null;
+}
+
 
 // Edit and delete posts
 async function toggleEdit(id, postUserId) {
@@ -978,44 +1215,108 @@ async function toggleEdit(id, postUserId) {
   const titleElem = postElem.querySelector('.post-title');
   const contentElem = postElem.querySelector('.post-content');
   const menuDropdown = postElem.querySelector('.menu-dropdown');
-  if (!titleElem || !contentElem || !menuDropdown) {
-    console.error(`[${new Date().toISOString()}] Post title, content, or menu dropdown not found for post: ${id}`);
+  const mediaContainer = postElem.querySelector('.post-content-wrapper');
+  if (!titleElem || !contentElem || !menuDropdown || !mediaContainer) {
+    console.error(`[${new Date().toISOString()}] Post title, content, menu dropdown, or media container not found for post: ${id}`);
     Swal.fire('Error', 'Post elements not found. Please try refreshing the page.', 'error');
     return;
   }
 
   if (contentElem.getAttribute('contenteditable') === 'true') {
+    // Save changes
     titleElem.setAttribute('contenteditable', 'false');
     contentElem.setAttribute('contenteditable', 'false');
     if (!titleElem.textContent.trim()) titleElem.style.display = 'none';
-    menuDropdown.querySelector('button[onclick*="toggleEdit"]').textContent = 'Edit';
+
+    const mediaInput = document.createElement('input');
+    mediaInput.type = 'file';
+    mediaInput.accept = 'image/jpeg,image/png,video/mp4,video/webm';
+    mediaInput.multiple = true;
+    mediaInput.style.display = 'none';
+    mediaContainer.appendChild(mediaInput);
+
+    const webUrlInput = document.createElement('textarea');
+    webUrlInput.placeholder = 'Enter image URLs (one per line)';
+    webUrlInput.style.display = 'none';
+    mediaContainer.appendChild(webUrlInput);
+
+    const mediaPreview = document.createElement('div');
+    mediaPreview.id = `edit-media-preview-${id}`;
+    mediaContainer.appendChild(mediaPreview);
+
     try {
-      console.log(`[${new Date().toISOString()}] Updating post: ${id}`);
-      await database.ref(`posts/${id}`).update({
+      const postSnapshot = await database.ref(`posts/submitted/${id}`).once('value');
+      const post = postSnapshot.val();
+      if (!post) throw new Error('Post not found');
+
+      const newFiles = mediaInput.files;
+      const newUrls = webUrlInput.value.trim().split('\n').filter(url => url.trim());
+      const updatedMedia = await editMedia(id, post.media, newFiles, newUrls);
+
+      await database.ref(`posts/submitted/${id}`).update({
         title: titleElem.textContent.trim(),
         content: contentElem.textContent.trim(),
+        media: updatedMedia,
         editedTimestamp: firebase.database.ServerValue.TIMESTAMP
       });
+
       const { contactPerson, organization } = await fetchUserData(user.uid);
-      await logActivity(`${contactPerson}${organization === 'No Organization' ? '' : ` from ${organization}`} edited a post`);
+      await logActivity(`${contactPerson}${organization ? ` from ${organization}` : ''} edited a post`);
       console.log(`[${new Date().toISOString()}] Post updated successfully: ${id}`);
       Swal.fire('Success', 'Post updated successfully!', 'success');
+
+      // Clean up temporary elements
+      mediaInput.remove();
+      webUrlInput.remove();
+      mediaPreview.remove();
+      menuDropdown.querySelector('button[onclick*="toggleEdit"]').textContent = 'Edit';
     } catch (error) {
       console.error(`[${new Date().toISOString()}] Error updating post:`, error);
       Swal.fire('Error', `Failed to update post: ${error.message}`, 'error');
     }
   } else {
+    // Enter edit mode
     titleElem.setAttribute('contenteditable', 'true');
     titleElem.style.display = 'block';
     contentElem.setAttribute('contenteditable', 'true');
     contentElem.focus();
+
+    const mediaInput = document.createElement('input');
+    mediaInput.type = 'file';
+    mediaInput.accept = 'image/jpeg,image/png,video/mp4,video/webm';
+    mediaInput.multiple = true;
+    mediaContainer.appendChild(mediaInput);
+
+    const webUrlInput = document.createElement('textarea');
+    webUrlInput.placeholder = 'Enter image URLs (one per line)';
+    webUrlInput.style.marginTop = '10px';
+    mediaContainer.appendChild(webUrlInput);
+
+    const mediaPreview = document.createElement('div');
+    mediaPreview.id = `edit-media-preview-${id}`;
+    mediaContainer.appendChild(mediaPreview);
+
+    const postSnapshot = await database.ref(`posts/submitted/${id}`).once('value');
+    const post = postSnapshot.val();
+    if (post.media) {
+      displayImages(post.media.filter(item => item.type === 'image'), `edit-media-preview-${id}`);
+    }
+
+    mediaInput.addEventListener('change', () => {
+      removePreviewItem(0, 'file', mediaInput, webUrlInput, mediaPreview, null, null);
+    });
+
+    webUrlInput.addEventListener('input', () => {
+      removePreviewItem(0, 'url', mediaInput, webUrlInput, mediaPreview, null, null);
+    });
+
     menuDropdown.querySelector('button[onclick*="toggleEdit"]').textContent = 'Save';
   }
 }
 
 async function deletePost(id) {
   console.log(`[${new Date().toISOString()}] deletePost called for post: ${id}`);
-  const postRef = database.ref(`posts/${id}`);
+  const postRef = database.ref(`posts/submitted/${id}`);
   const post = (await postRef.once('value')).val();
   if (!user || user.uid !== post.userId) {
     console.error(`[${new Date().toISOString()}] Unauthorized delete attempt for post: ${id}, by user: ${user?.uid}`);
@@ -1023,17 +1324,53 @@ async function deletePost(id) {
     return;
   }
 
-  try {
-    console.log(`[${new Date().toISOString()}] Deleting post from database: ${id}`);
-    await database.ref(`posts/${id}`).remove();
-    const { contactPerson, organization } = await fetchUserData(user.uid);
-    await logActivity(`${contactPerson}${organization === 'No Organization' ? '' : ` from ${organization}`} deleted a post`);
-    console.log(`[${new Date().toISOString()}] Post deleted successfully: ${id}`);
-    Swal.fire('Success', 'Post deleted successfully!', 'success');
-  } catch (error) {
-    console.error(`[${new Date().toISOString()}] Error deleting post:`, error);
-    Swal.fire('Error', `Failed to delete post: ${error.message}`, 'error');
-  }
+  Swal.fire({
+    title: 'Delete Post',
+    text: 'Are you sure you want to delete this post? It will be moved to a deleted posts archive.',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'Yes',
+    cancelButtonText: 'No'
+  }).then(async (result) => {
+    if (result.isConfirmed) {
+      try {
+        console.log(`[${new Date().toISOString()}] Moving post ${id} to posts/deleted/${user.uid}`);
+        // Move associated media to deleted folder
+        if (post.media && Array.isArray(post.media)) {
+          for (const item of post.media) {
+            if (item.filePath) {
+              const deletedPath = `deleted/${user.uid}/${item.filePath.split('/').pop()}`;
+              console.log(`[${new Date().toISOString()}] Moving media to ${deletedPath}`);
+              try {
+                const url = await storage.ref(item.filePath).getDownloadURL();
+                const response = await fetch(url);
+                const blob = await response.blob();
+                await storage.ref(deletedPath).put(blob, { contentType: item.type === 'image' ? 'image/jpeg' : item.type });
+                await storage.ref(item.filePath).delete();
+                console.log(`[${new Date().toISOString()}] Media moved to deleted folder: ${item.filePath}`);
+              } catch (error) {
+                console.error(`[${new Date().toISOString()}] Error moving media to deleted folder:`, error);
+              }
+            }
+          }
+        }
+
+        // Move post to deleted folder
+        await database.ref(`posts/deleted/${user.uid}/${id}`).set({
+          ...post,
+          deletedTimestamp: firebase.database.ServerValue.TIMESTAMP
+        });
+        await postRef.remove();
+        const { contactPerson, organization } = await fetchUserData(user.uid);
+        await logActivity(`${contactPerson}${organization ? ` from ${organization}` : ''} deleted a post (moved to archive)`);
+        console.log(`[${new Date().toISOString()}] Post deleted successfully: ${id}`);
+        Swal.fire('Success', 'Post moved to archive successfully!', 'success');
+      } catch (error) {
+        console.error(`[${new Date().toISOString()}] Error deleting post:`, error);
+        Swal.fire('Error', `Failed to delete post: ${error.message}`, 'error');
+      }
+    }
+  });
 }
 
 async function logActivity(message) {
@@ -1070,7 +1407,7 @@ async function loadActivityLog() {
     const activities = snapshot.val();
     if (activities) {
       const activityArray = Object.entries(activities).map(([id, activity]) => ({ id, ...activity }));
-      activityArray.sort((a, b) => b.timestamp - a.timestamp);
+      activityArray.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
       for (const activity of activityArray) {
         const item = document.createElement('li');
         item.textContent = `${new Date(activity.timestamp).toLocaleTimeString()}: ${activity.message}`;
@@ -1099,7 +1436,6 @@ function removePreviewItem(index, type, mediaInput, webUrlInput, mediaPreview, t
     webUrlInput.value = urls.join('\n');
   }
 
-  // Re-render preview
   mediaPreview.innerHTML = '';
   const currentFiles = Array.from(mediaInput.files);
   const currentUrls = webUrlInput.value.trim().split('\n').filter(url => url.trim());
@@ -1111,8 +1447,35 @@ function removePreviewItem(index, type, mediaInput, webUrlInput, mediaPreview, t
     const media = file.type.startsWith('image/') ? document.createElement('img') : document.createElement('video');
     media.src = URL.createObjectURL(file);
     media.className = 'media-preview';
-    if (file.type.startsWith('video/')) media.controls = true;
-
+    if (file.type.startsWith('video/')) {
+      media.controls = true;
+      media.id = `preview-video-${i}`;
+      let retries = 0;
+      const maxRetries = 3;
+      const attemptPlay = () => {
+        media.play().catch((error) => {
+          console.error(`[${new Date().toISOString()}] Video preview playback failed for file ${file.name}, attempt ${retries + 1}:`, error);
+          if (retries < maxRetries) {
+            retries++;
+            console.log(`[${new Date().toISOString()}] Retrying video preview playback for file ${file.name}, attempt ${retries}`);
+            setTimeout(attemptPlay, 1000 * retries);
+          } else {
+            console.error(`[${new Date().toISOString()}] Max retries reached for video preview ${file.name}`);
+            const errorDiv = document.createElement('div');
+            errorDiv.style.color = 'red';
+            errorDiv.style.textAlign = 'center';
+            errorDiv.style.fontSize = '14px';
+            errorDiv.textContent = `Failed to load video preview`;
+            itemDiv.appendChild(errorDiv);
+          }
+        });
+      };
+      media.addEventListener('loadeddata', () => {
+        console.log(`[${new Date().toISOString()}] Video preview loaded successfully for file ${file.name}`);
+        retries = 0;
+      });
+      attemptPlay();
+    }
     const dimensionsDiv = document.createElement('div');
     dimensionsDiv.className = 'media-dimensions';
     if (file.type.startsWith('image/')) {
@@ -1134,7 +1497,6 @@ function removePreviewItem(index, type, mediaInput, webUrlInput, mediaPreview, t
         dimensionsDiv.textContent = 'Error loading dimensions';
       };
     }
-
     const deleteBtn = document.createElement('span');
     deleteBtn.className = 'delete-preview';
     deleteBtn.innerHTML = '×';
@@ -1174,7 +1536,7 @@ function removePreviewItem(index, type, mediaInput, webUrlInput, mediaPreview, t
   tapToUploadButton.innerHTML = currentFiles.length ? `
     <span>Image/Video Selected</span>
   ` : `
-    <i class='bx bx-image-add' class="material-icons"></i>
+    <i class='bx bx-image-add' style="margin-right: 6px; font-size: 30px;"></i>
     <span>Tap to Upload</span>
   `;
   tapToUploadButton.classList.toggle('image-selected', currentFiles.length > 0);
@@ -1190,7 +1552,7 @@ function setupModal() {
     return;
   }
 
-  const postCloseButton = document.querySelector('#post-modal .close-button');
+  const postCloseButton = document.getElementById('post-modal-close');
   const postButtons = document.querySelectorAll('.post-option');
   const modalPostContent = document.getElementById('modal-post-content');
   const modalPostCategory = document.getElementById('modal-post-category');
@@ -1202,13 +1564,18 @@ function setupModal() {
   const mediaCaption = document.getElementById('media-caption');
   const mediaButtons = document.querySelector('.media-buttons');
   const shareModal = document.getElementById('share-post-modal');
-  const shareCloseButton = document.querySelector('#share-post-modal .close-button');
+  const shareCloseButton = document.getElementById('share-modal-close');
   const shareCancelButton = document.getElementById('share-cancel-button');
   const shareSubmitButton = document.getElementById('share-submit-button');
   const sortButton = document.getElementById('sort-posts-button');
   const categoryFilter = document.getElementById('category-filter');
 
-  // Create URL error message element
+  if (!postCloseButton || !modalPostContent || !modalPostCategory || !mediaInput || !webUrlInput || !mediaPreview || !tapToUploadButton || !addWebUrlButton || !mediaCaption || !mediaButtons || !shareModal || !shareCloseButton || !shareCancelButton || !shareSubmitButton || !sortButton || !categoryFilter) {
+    console.error(`[${new Date().toISOString()}] Missing modal elements`);
+    Swal.fire('Error', 'Some modal elements are missing. Please reload the page.', 'error');
+    return;
+  }
+
   const urlError = document.createElement('p');
   urlError.id = 'url-error';
   urlError.style.color = '#d33';
@@ -1216,14 +1583,13 @@ function setupModal() {
   urlError.style.marginTop = '5px';
   webUrlInput.insertAdjacentElement('afterend', urlError);
 
-  // Create Insert button for URLs
   const insertUrlButton = document.createElement('button');
   insertUrlButton.id = 'insert-web-url';
   insertUrlButton.textContent = 'Insert';
   insertUrlButton.style.display = 'none';
   insertUrlButton.style.padding = '8px';
   insertUrlButton.style.borderRadius = '4px';
-  insertUrlButton.style.backgroundColor = 'var(--primary-color)';
+  insertUrlButton.style.backgroundColor = 'var(--primary-color, #14AEBB)';
   insertUrlButton.style.color = '#fff';
   insertUrlButton.style.border = 'none';
   insertUrlButton.style.cursor = 'pointer';
@@ -1231,379 +1597,235 @@ function setupModal() {
   webUrlInput.insertAdjacentElement('afterend', insertUrlButton);
 
   function resizeTextarea() {
-    const scrollTop = modalPostContent.scrollTop;
-    const selectionStart = modalPostContent.selectionStart;
-    const selectionEnd = modalPostContent.selectionEnd;
-    
     modalPostContent.style.height = 'auto';
     const newHeight = Math.max(modalPostContent.scrollHeight, 80);
     modalPostContent.style.height = `${newHeight}px`;
-    
-    modalPostContent.scrollTop = scrollTop;
-    modalPostContent.setSelectionRange(selectionStart, selectionEnd);
-    
-    console.log(`[${new Date().toISOString()}] Textarea resized to: ${newHeight}px`);
   }
 
-  let resizeTimeout;
-  function debouncedResize() {
-    clearTimeout(resizeTimeout);
-    resizeTimeout = setTimeout(resizeTextarea, 50);
-  }
+  modalPostContent.addEventListener('input', resizeTextarea);
 
-  function validateUrls(urls) {
-    const urlPattern = /^https?:\/\/.*\.(?:png|jpg|jpeg)$/i;
-    return urls.every(url => url.match(urlPattern));
-  }
+  postButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      const type = button.dataset.type;
+      console.log(`[${new Date().toISOString()}] Post option clicked: ${type}`);
+      postButtons.forEach(btn => btn.classList.remove('active'));
+      button.classList.add('active');
 
-  if (postButtons && modalPostContent && modalPostCategory && mediaInput && webUrlInput && modal && postCloseButton && tapToUploadButton && addWebUrlButton && mediaCaption && mediaButtons) {
-    // Update tap-to-upload button content
-    tapToUploadButton.innerHTML = `
-    <i class='bx bx-image-add' style="margin-right: 6px; font-size: 30;"></i>
-    <span>Tap to Upload</span>
-    `;
-
-    postButtons.forEach(button => {
-      button.addEventListener('click', () => {
-        postButtons.forEach(btn => btn.classList.remove('active'));
-        button.classList.add('active');
-
-        const type = button.dataset.type;
-        modal.style.display = 'block';
-
-        tapToUploadButton.style.display = 'inline-block';
-        addWebUrlButton.style.display = 'inline-block';
-        insertUrlButton.style.display = 'none';
+      if (type === 'text') {
+        mediaInput.style.display = 'none';
         webUrlInput.style.display = 'none';
-        urlError.textContent = '';
-        mediaCaption.style.display = mediaInput.files.length || webUrlInput.value.trim() ? 'none' : 'block';
-        mediaButtons.style.display = mediaInput.files.length || webUrlInput.value.trim() ? 'none' : 'flex';
-
-        if (type === 'image') {
-          mediaButtons.style.display = 'flex';
-          mediaInput.accept = 'image/jpeg,image/png';
-        } else if (type === 'video') {
-          mediaButtons.style.display = 'flex';
-          mediaInput.accept = 'video/mp4,video/webm';
-          mediaInput.removeAttribute('multiple');
-          mediaInput.click();
-        } else if (type === 'link') {
-          mediaButtons.style.display = 'flex';
-          addWebUrlButton.click();
-        } else if (type === 'category') {
-          modalPostCategory.focus();
-        } else {
-          modalPostContent.placeholder = "What's on your mind?";
-          modalPostContent.focus();
-          resizeTextarea();
-        }
-      });
-    });
-
-    tapToUploadButton.addEventListener('click', () => {
-      console.log(`[${new Date().toISOString()}] Tap to Upload button clicked`);
-      mediaInput.click();
-    });
-
-    addWebUrlButton.addEventListener('click', () => {
-      console.log(`[${new Date().toISOString()}] Add Web URL button clicked`);
-      webUrlInput.style.display = 'block';
-      insertUrlButton.style.display = 'block';
-      mediaButtons.style.display = 'none';
-      webUrlInput.focus();
-      urlError.textContent = '';
-      mediaCaption.style.display = mediaInput.files.length || webUrlInput.value.trim() ? 'none' : 'block';
-    });
-
-    postCloseButton.addEventListener('click', () => {
-      modal.style.display = 'none';
-      modalPostContent.value = '';
-      document.getElementById('modal-post-title').value = '';
-      modalPostCategory.value = '';
-      modalPostContent.placeholder = "What's on your mind?";
-      modalPostContent.style.height = '80px';
-      mediaInput.value = '';
-      webUrlInput.value = '';
-      webUrlInput.style.display = 'none';
-      insertUrlButton.style.display = 'none';
-      urlError.textContent = '';
-      mediaPreview.innerHTML = '';
-      tapToUploadButton.innerHTML = `
-        <i class='bx bx-image-add' class="material-icons"></i>
-        <span>Tap to Upload</span>
-      `;
-      tapToUploadButton.classList.remove('image-selected');
-      mediaButtons.style.display = 'flex';
-      mediaCaption.style.display = 'block';
-      const modalButtons = modal.querySelectorAll('.modal-buttons .post-option');
-      modalButtons.forEach(btn => btn.style.display = 'inline-block');
-    });
-
-    mediaInput.addEventListener('change', (event) => {
-      console.log(`[${new Date().toISOString()}] Media input changed`);
-      const files = Array.from(event.target.files);
-      mediaPreview.innerHTML = '';
-      if (files.length) {
-        mediaCaption.style.display = 'none';
-        mediaButtons.style.display = 'none';
-        files.forEach((file, index) => {
-          if (!['image/jpeg', 'image/png', 'video/mp4', 'video/webm'].includes(file.type)) {
-            console.log(`[${new Date().toISOString()}] Invalid file type selected: ${file.type}`);
-            Swal.fire('Unsupported file type', 'Please upload JPEG, PNG, MP4, or WebM files', 'error');
-            return;
-          }
-          console.log(`[${new Date().toISOString()}] Previewing file: ${file.name}`);
-          tapToUploadButton.innerHTML = `
-             <i class='bx bx-image-add' class="material-icons"></i>
-            <span>Image/Video Selected</span>
-          `;
-          tapToUploadButton.classList.add('image-selected');
-          const itemDiv = document.createElement('div');
-          itemDiv.className = 'preview-item';
-          const media = file.type.startsWith('image/') ? document.createElement('img') : document.createElement('video');
-          media.src = URL.createObjectURL(file);
-          media.className = 'media-preview';
-          if (file.type.startsWith('video/')) media.controls = true;
-
-          const dimensionsDiv = document.createElement('div');
-          dimensionsDiv.className = 'media-dimensions';
-          if (file.type.startsWith('image/')) {
-            const img = new Image();
-            img.src = URL.createObjectURL(file);
-            img.onload = () => {
-              dimensionsDiv.textContent = `${img.naturalWidth} × ${img.naturalHeight}`;
-            };
-            img.onerror = () => {
-              dimensionsDiv.textContent = 'Error loading dimensions';
-            };
-          } else {
-            const video = document.createElement('video');
-            video.src = URL.createObjectURL(file);
-            video.onloadedmetadata = () => {
-              dimensionsDiv.textContent = `${video.videoWidth} × ${video.videoHeight}`;
-            };
-            video.onerror = () => {
-              dimensionsDiv.textContent = 'Error loading dimensions';
-            };
-          }
-
-          const deleteBtn = document.createElement('span');
-          deleteBtn.className = 'delete-preview';
-          deleteBtn.innerHTML = '×';
-          deleteBtn.onclick = () => removePreviewItem(index, 'file', mediaInput, webUrlInput, mediaPreview, tapToUploadButton, mediaCaption);
-          itemDiv.appendChild(media);
-          itemDiv.appendChild(dimensionsDiv);
-          itemDiv.appendChild(deleteBtn);
-          mediaPreview.appendChild(itemDiv);
-        });
-      } else {
+        insertUrlButton.style.display = 'none';
+        mediaButtons.style.display = 'none'; // Hide media-buttons for text
+        mediaPreview.innerHTML = '';
+        mediaInput.value = '';
+        webUrlInput.value = '';
+        mediaCaption.style.display = 'block';
         tapToUploadButton.innerHTML = `
-          <i class='bx bx-image-add' class="material-icons"></i>
+          <i class='bx bx-image-add' style="margin-right: 6px; font-size: 30px;"></i>
           <span>Tap to Upload</span>
         `;
         tapToUploadButton.classList.remove('image-selected');
-        mediaCaption.style.display = webUrlInput.value.trim() ? 'none' : 'block';
-        mediaButtons.style.display = webUrlInput.value.trim() ? 'none' : 'flex';
+      } else if (type === 'image' || type === 'video') {
+        mediaInput.style.display = 'none';
+        webUrlInput.style.display = 'none';
+        insertUrlButton.style.display = 'none';
+        mediaButtons.style.display = 'flex';
+        mediaCaption.style.display = 'block';
+        tapToUploadButton.click();
+      } else if (type === 'link') {
+        mediaInput.style.display = 'none';
+        webUrlInput.style.display = 'block';
+        insertUrlButton.style.display = 'block';
+        mediaButtons.style.display = 'none';
+        mediaCaption.style.display = 'block';
+        webUrlInput.focus();
       }
-
-      // Re-render URLs if any
-      const urls = webUrlInput.value.trim().split('\n').filter(url => url.trim());
-      urls.forEach((url, index) => {
-        const itemDiv = document.createElement('div');
-        itemDiv.className = 'preview-item';
-        const img = document.createElement('img');
-        img.src = url;
-        img.className = 'media-preview';
-        const dimensionsDiv = document.createElement('div');
-        dimensionsDiv.className = 'media-dimensions';
-        const imgForDimensions = new Image();
-        imgForDimensions.src = url;
-        imgForDimensions.onload = () => {
-          dimensionsDiv.textContent = `${imgForDimensions.naturalWidth} × ${imgForDimensions.naturalHeight}`;
-        };
-        imgForDimensions.onerror = () => {
-          dimensionsDiv.textContent = 'Error loading dimensions';
-        };
-        const deleteBtn = document.createElement('span');
-        deleteBtn.className = 'delete-preview';
-        deleteBtn.innerHTML = '×';
-        deleteBtn.onclick = () => removePreviewItem(index, 'url', mediaInput, webUrlInput, mediaPreview, tapToUploadButton, mediaCaption);
-        itemDiv.appendChild(img);
-        itemDiv.appendChild(dimensionsDiv);
-        itemDiv.appendChild(deleteBtn);
-        mediaPreview.appendChild(itemDiv);
-      });
     });
+  });
 
-    insertUrlButton.addEventListener('click', () => {
-      console.log(`[${new Date().toISOString()}] Insert URL button clicked`);
-      const urls = webUrlInput.value.trim().split('\n').filter(url => url.trim());
-      if (!urls.length) {
-        urlError.textContent = 'Please enter at least one URL.';
-        return;
-      }
-      if (!validateUrls(urls)) {
-        urlError.textContent = 'Please provide valid image URLs (PNG, JPG, JPEG).';
-        return;
-      }
-      urlError.textContent = '';
-      mediaButtons.style.display = 'none';
-      mediaPreview.innerHTML = '';
+  tapToUploadButton.addEventListener('click', () => {
+    console.log(`[${new Date().toISOString()}] Tap to upload clicked`);
+    mediaInput.click();
+  });
 
-      // Re-render files
-      const files = Array.from(mediaInput.files);
-      files.forEach((file, index) => {
-        const itemDiv = document.createElement('div');
-        itemDiv.className = 'preview-item';
-        const media = file.type.startsWith('image/') ? document.createElement('img') : document.createElement('video');
-        media.src = URL.createObjectURL(file);
-        media.className = 'media-preview';
-        if (file.type.startsWith('video/')) media.controls = true;
-        const dimensionsDiv = document.createElement('div');
-        dimensionsDiv.className = 'media-dimensions';
-        if (file.type.startsWith('image/')) {
-          const img = new Image();
-          img.src = URL.createObjectURL(file);
-          img.onload = () => {
-            dimensionsDiv.textContent = `${img.naturalWidth} × ${img.naturalHeight}`;
-          };
-          img.onerror = () => {
-            dimensionsDiv.textContent = 'Error loading dimensions';
-          };
-        } else {
-          const video = document.createElement('video');
-          video.src = URL.createObjectURL(file);
-          video.onloadedmetadata = () => {
-            dimensionsDiv.textContent = `${video.videoWidth} × ${video.videoHeight}`;
-          };
-          video.onerror = () => {
-            dimensionsDiv.textContent = 'Error loading dimensions';
-          };
-        }
-        const deleteBtn = document.createElement('span');
-        deleteBtn.className = 'delete-preview';
-        deleteBtn.innerHTML = '×';
-        deleteBtn.onclick = () => removePreviewItem(index, 'file', mediaInput, webUrlInput, mediaPreview, tapToUploadButton, mediaCaption);
-        itemDiv.appendChild(media);
-        itemDiv.appendChild(dimensionsDiv);
-        itemDiv.appendChild(deleteBtn);
-        mediaPreview.appendChild(itemDiv);
-      });
+  mediaInput.addEventListener('change', () => {
+    console.log(`[${new Date().toISOString()}] Media files selected: ${mediaInput.files.length}`);
+    removePreviewItem(0, 'url', mediaInput, webUrlInput, mediaPreview, tapToUploadButton, mediaCaption);
+  });
 
-      // Render URLs
-      urls.forEach((url, index) => {
-        const itemDiv = document.createElement('div');
-        itemDiv.className = 'preview-item';
-        const img = document.createElement('img');
-        img.src = url;
-        img.className = 'media-preview';
-        const dimensionsDiv = document.createElement('div');
-        dimensionsDiv.className = 'media-dimensions';
-        const imgForDimensions = new Image();
-        imgForDimensions.src = url;
-        imgForDimensions.onload = () => {
-          dimensionsDiv.textContent = `${imgForDimensions.naturalWidth} × ${imgForDimensions.naturalHeight}`;
-        };
-        imgForDimensions.onerror = () => {
-          dimensionsDiv.textContent = 'Error loading dimensions';
-        };
-        const deleteBtn = document.createElement('span');
-        deleteBtn.className = 'delete-preview';
-        deleteBtn.innerHTML = '×';
-        deleteBtn.onclick = () => removePreviewItem(index, 'url', mediaInput, webUrlInput, mediaPreview, tapToUploadButton, mediaCaption);
-        itemDiv.appendChild(img);
-        itemDiv.appendChild(dimensionsDiv);
-        itemDiv.appendChild(deleteBtn);
-        mediaPreview.appendChild(itemDiv);
-      });
+  addWebUrlButton.addEventListener('click', () => {
+    console.log(`[${new Date().toISOString()}] Add web URL clicked`);
+    webUrlInput.style.display = 'block';
+    insertUrlButton.style.display = 'block';
+    mediaButtons.style.display = 'none';
+    webUrlInput.focus();
+  });
 
-      mediaCaption.style.display = files.length || urls.length ? 'none' : 'block';
-    });
-
-    webUrlInput.addEventListener('input', () => {
-      const urls = webUrlInput.value.trim().split('\n').filter(url => url.trim());
-      urlError.textContent = urls.length && !validateUrls(urls) ? 'Please provide valid image URLs (PNG, JPG, JPEG).' : '';
-      mediaButtons.style.display = urls.length || mediaInput.files.length ? 'none' : 'flex';
-    });
-
-    modalPostContent.addEventListener('input', debouncedResize);
-    modalPostContent.addEventListener('focus', resizeTextarea);
-    modalPostContent.addEventListener('change', resizeTextarea);
-  } else {
-    console.error(`[${new Date().toISOString()}] Post modal elements missing`);
-    Swal.fire('Error', 'Post modal elements missing. Please try refreshing the page.', 'error');
-  }
-
-  function closeShareModal() {
-    if (shareModal) {
-      shareModal.style.display = 'none';
-      const shareContent = document.getElementById('share-post-content');
-      const shareCaptionInput = document.getElementById('share-caption-input');
-      if (shareContent) shareContent.innerHTML = '';
-      if (shareCaptionInput) shareCaptionInput.value = '';
-      modalPostCategory.value = '';
-      delete shareModal.dataset.postId;
+  insertUrlButton.addEventListener('click', () => {
+    console.log(`[${new Date().toISOString()}] Insert web URL clicked`);
+    const urls = webUrlInput.value.trim().split('\n').filter(url => url.trim());
+    if (urls.length > 30) {
+      urlError.textContent = 'You can add up to 30 URLs';
+      console.log(`[${new Date().toISOString()}] Too many URLs: ${urls.length}`);
+      return;
     }
-  }
 
-  if (shareCloseButton) {
-    shareCloseButton.addEventListener('click', closeShareModal);
-  }
-  if (shareCancelButton) {
-    shareCancelButton.addEventListener('click', closeShareModal);
-  }
-  if (shareSubmitButton) {
-    shareSubmitButton.addEventListener('click', submitSharePost);
-  }
+    const invalidUrls = urls.filter(url => !url.match(/^https?:\/\/.*\.(?:png|jpg|jpeg)$/i));
+    if (invalidUrls.length > 0) {
+      urlError.textContent = 'Please provide valid image URLs (PNG, JPG, JPEG)';
+      console.log(`[${new Date().toISOString()}] Invalid URLs detected: ${invalidUrls.join(', ')}`);
+      return;
+    }
 
-  if (sortButton) {
-    sortButton.addEventListener('click', () => {
-      sortOrder = sortOrder === 'newest' ? 'oldest' : 'newest';
-      const icon = sortButton.querySelector('i');
-      icon.className = sortOrder === 'newest' ? 'bx bx-sort-up' : 'bx bx-sort-down';
-      loadPosts();
+    urlError.textContent = '';
+    removePreviewItem(0, 'url', mediaInput, webUrlInput, mediaPreview, tapToUploadButton, mediaCaption);
+  });
+
+  postCloseButton.addEventListener('click', () => {
+    console.log(`[${new Date().toISOString()}] Post modal closed`);
+    modal.style.display = 'none';
+    modalPostContent.value = '';
+    modalPostTitle.value = '';
+    modalPostCategory.value = '';
+    mediaInput.value = '';
+    webUrlInput.value = '';
+    mediaPreview.innerHTML = '';
+    modalPostContent.style.height = '80px';
+    mediaButtons.style.display = 'flex';
+    webUrlInput.style.display = 'none';
+    insertUrlButton.style.display = 'none';
+    urlError.textContent = '';
+    mediaCaption.style.display = 'block';
+    tapToUploadButton.innerHTML = `
+      <i class='bx bx-image-add' style="margin-right: 6px; font-size: 30px;"></i>
+      <span>Tap to Upload</span>
+    `;
+    tapToUploadButton.classList.remove('image-selected');
+    postButtons.forEach(btn => btn.classList.remove('active'));
+    postButtons[0].classList.add('active');
+  });
+
+  document.querySelectorAll('.post-creator .post-option').forEach(button => {
+    button.addEventListener('click', () => {
+      console.log(`[${new Date().toISOString()}] Creator post option clicked: ${button.dataset.type}`);
+      if (!user) {
+        Swal.fire('Please log in to create a post', '', 'warning');
+        return;
+      }
+      modal.style.display = 'block';
+      postButtons.forEach(btn => btn.classList.remove('active'));
+      const modalButton = modal.querySelector(`.post-option[data-type="${button.dataset.type}"]`);
+      if (modalButton) modalButton.classList.add('active');
+      if (button.dataset.type === 'text') {
+        mediaButtons.style.display = 'none'; // Hide media-buttons for text
+      } else if (button.dataset.type === 'link') {
+        webUrlInput.style.display = 'block';
+        insertUrlButton.style.display = 'block';
+        mediaButtons.style.display = 'none';
+        webUrlInput.focus();
+      } else if (button.dataset.type === 'image' || button.dataset.type === 'video') {
+        mediaInput.click();
+      }
     });
-  }
+  });
 
-  if (categoryFilter) {
-    categoryFilter.addEventListener('change', () => {
-      selectedCategoryFilter = categoryFilter.value;
-      loadPosts();
+  document.getElementById('modal-post-button').addEventListener('click', createPost);
+
+  shareCloseButton.addEventListener('click', () => {
+    console.log(`[${new Date().toISOString()}] Share modal closed`);
+    shareModal.style.display = 'none';
+    shareCaptionInput.value = '';
+    document.getElementById('share-modal-post-category').value = '';
+    delete shareModal.dataset.postId;
+  });
+
+  shareCancelButton.addEventListener('click', () => {
+    console.log(`[${new Date().toISOString()}] Share modal cancelled`);
+    shareModal.style.display = 'none';
+    shareCaptionInput.value = '';
+    document.getElementById('share-modal-post-category').value = '';
+    delete shareModal.dataset.postId;
+  });
+
+  shareSubmitButton.addEventListener('click', submitSharePost);
+
+  sortButton.addEventListener('click', () => {
+    sortOrder = sortOrder === 'newest' ? 'oldest' : 'newest';
+    sortButton.innerHTML = `<i class='bx bx-sort-${sortOrder === 'newest' ? 'up' : 'down'}'></i> Sort Posts`;
+    console.log(`[${new Date().toISOString()}] Sort order changed to: ${sortOrder}`);
+    loadPosts();
+  });
+
+  categoryFilter.addEventListener('change', () => {
+    selectedCategoryFilter = categoryFilter.value;
+    console.log(`[${new Date().toISOString()}] Category filter changed to: ${selectedCategoryFilter}`);
+    loadPosts();
+  });
+
+  // Handle modal click outside
+  document.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      postCloseButton.click();
+    } else if (e.target === shareModal) {
+      shareCloseButton.click();
+    }
+  });
+
+  // Video preview retry logic
+  mediaInput.addEventListener('change', () => {
+    const files = Array.from(mediaInput.files);
+    files.forEach((file, index) => {
+      if (file.type.startsWith('video/')) {
+        const videoPreview = document.querySelector(`#preview-video-${index}`);
+        if (videoPreview) {
+          let retries = 0;
+          const maxRetries = 3;
+          const attemptPlay = () => {
+            videoPreview.play().catch((error) => {
+              console.error(`[${new Date().toISOString()}] Video preview playback failed for ${file.name}, attempt ${retries + 1}:`, error);
+              if (retries < maxRetries) {
+                retries++;
+                console.log(`[${new Date().toISOString()}] Retrying video preview playback for ${file.name}, attempt ${retries}`);
+                setTimeout(attemptPlay, 1000 * retries);
+              } else {
+                console.error(`[${new Date().toISOString()}] Max retries reached for video preview ${file.name}`);
+                const errorDiv = videoPreview.nextElementSibling;
+                if (errorDiv) {
+                  errorDiv.style.display = 'block';
+                  videoPreview.style.display = 'none';
+                }
+              }
+            });
+          };
+          videoPreview.addEventListener('loadeddata', () => {
+            console.log(`[${new Date().toISOString()}] Video preview loaded successfully for ${file.name}`);
+            retries = 0;
+          });
+          attemptPlay();
+        } else {
+          console.error(`[${new Date().toISOString()}] Video preview element not found for index ${index}`);
+        }
+      }
     });
-  }
+  });
+
+  // Initialize modal on page load
+  resizeTextarea();
+  console.log(`[${new Date().toISOString()}] Modal setup completed`);
 }
 
-// Initialize image gallery display
-async function initializeImageDisplay() {
-  console.log(`[${new Date().toISOString()}] Initializing image display`);
-  const imageUrls = await listUserImages();
-  displayImages(imageUrls, 'image-gallery');
-}
+// Call setupModal on page load
+document.addEventListener('DOMContentLoaded', setupModal);
 
-document.addEventListener('DOMContentLoaded', () => {
-  console.log(`[${new Date().toISOString()}] DOMContentLoaded: Initializing`);
-  setupModal();
-  initializeImageDisplay();
-  if (typeof initializeDashboard !== 'undefined') {
-    initializeDashboard();
-  } else {
-    console.warn(`[${new Date().toISOString()}] initializeDashboard function not found`);
-  }
-
-  const postButton = document.getElementById('modal-post-button');
-  if (postButton) {
-    postButton.addEventListener('click', createPost);
-  } else {
-    console.error(`[${new Date().toISOString()}] Post button not found`);
-    Swal.fire('Error', 'Post button not found.', 'error');
-  }
-});
-
-window.addEventListener('dashboard-loaded', () => {
-  console.log(`[${new Date().toISOString()}] dashboard-loaded event: Initializing`);
-  if (typeof initializeDashboard !== 'undefined') {
-    initializeDashboard();
-  } else {
-    console.warn(`[${new Date().toISOString()}] initializeDashboard function not found`);
+// Ensure Firebase listeners are detached on page unload
+window.addEventListener('unload', () => {
+  console.log(`[${new Date().toISOString()}] Detaching Firebase listeners`);
+  database.ref('posts').off();
+  if (user) {
+    database.ref(`activity_log/${user.uid}`).off();
+    document.querySelectorAll('.post').forEach(post => {
+      const postId = post.id.replace('post-', '');
+      database.ref(`posts/submitted/${postId}/comments`).off();
+    });
   }
 });
