@@ -198,7 +198,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     summaryData["Status"] = "Pending";
                     summaryData["Timestamp"] = firebase.database.ServerValue.TIMESTAMP;
 
-                    database.ref("reports/submitted").push(summaryData)
+                    database.ref("reports/pending").push(summaryData) // Save to pending
                         .then(async (result) => {
                             console.log("Report successfully saved to Firebase");
 

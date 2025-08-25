@@ -1388,19 +1388,40 @@ async function checkNewSubmissions(node, key, type, location, details, eventId) 
     }
 }
 
-// Update notification badge with unread count
 function updateNotificationBadge() {
     if (!notifBadge) return;
+
     database.ref("notifications")
         .orderByChild("read")
         .equalTo(false)
         .once("value", snapshot => {
-            const unreadCount = snapshot.numChildren();
+            let unreadCount = 0;
+
+            snapshot.forEach(childSnap => {
+                const notif = childSnap.val();
+
+                // Skip admin notifications if user is not AB ADMIN
+                if (notif.type === "admin" && userRole !== "AB ADMIN") {
+                    return; 
+                }
+
+                // For approval notifications, only count if belongs to current user
+                if (["donation_approved", "rdana_approved"].includes(notif.type)) {
+                    if (notif.userUid !== userUid) return;
+                } else if (userRole !== "AB ADMIN" && notif.userUid && notif.userUid !== userUid) {
+                    // Non-admin users only count their own notifications
+                    return;
+                }
+
+                unreadCount++;
+            });
+
             notifBadge.textContent = unreadCount > 0 ? unreadCount : '';
             notifBadge.style.display = unreadCount > 0 ? "inline-flex" : "none";
             notifDot.style.display = unreadCount > 0 ? "block" : "none";
         });
 }
+
 // Setup admin notifications (unchanged)
 function setupAdminNotifications() {
  if (!calamityList || !adminList || !notifDot || !notifBadge) return;
