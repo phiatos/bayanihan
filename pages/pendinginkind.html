@@ -4,8 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="../components/sidebar.css" />
-    <link rel="stylesheet" href="../css/inkind.css" />
     <link rel="stylesheet" href="../css/global.css" />
+    <link rel="stylesheet" href="../css/vgandvolunteers.css" />
+
     <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" />
 
     <!-- EmailJS -->
@@ -27,9 +28,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     
-    <!-- Your Script -->
-    <script src="../js/pendinginkind.js"></script>
-    
     <title>Bayanihan | Angat Buhay Disaster Relief Portal</title>
 </head>
 <body>
@@ -40,7 +38,7 @@
             <section>
                 <div class="controls">
                     <div class="controls_left">
-                        <header>Pending In Kind Donation</header>
+                        <header>Pending In-Kind Donation</header>
                     </div>
                     <div class="controls_right">
                         <div class="search-wrapper">
@@ -77,6 +75,12 @@
                     </div>
                 </div>
 
+                <div class="table-controls">
+                    <button id="viewApprovedBtn" class="viewApprovedBtn">
+                        <i class='bx bx-show' style="font-size: 1.2rem;"></i>View Monetary Donation
+                    </button>
+                </div>
+                
                 <div class="table-container">
                     <table id="donationTable">
                         <thead>
@@ -172,7 +176,7 @@
                                     <td>Status</td>
                                     <th>Action</th>
                             </thead>
-                            <tbody></tbody>
+                            <tbody id="archivedTableBody"></tbody>
                         </table>
                     </div>
                     <div class="pagination-info" style="margin-top: 15px;">
@@ -198,5 +202,6 @@
     </script>
 
     <script src="../js/inactivity-detector.js"></script> 
+    <script src="../js/pendinginkind.js"></script>
 </body>
 </html>

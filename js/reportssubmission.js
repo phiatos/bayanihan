@@ -1,8 +1,7 @@
-
-    // Global variables for map and markers
-    let map;
-    let markers = [];
-    let autocomplete;
+// Global variables for map and markers
+let map;
+let markers = [];
+let autocomplete;
 
     function initMap() {
         // Default to Manila, Philippines
@@ -273,19 +272,20 @@
         // Disable nextBtn initially
         nextBtn.disabled = true;
 
-        function populateCalamityAreaDropdown() {
-            calamityAreaDropdown.innerHTML = '<option value="">-- Select an Active Operation --</option>';
-            activeActivations.forEach(activation => {
-                const option = document.createElement("option");
-                option.value = activation.id;
+    function populateCalamityAreaDropdown() {
+        console.log("Populating dropdown with activations:", activeActivations);
+        calamityAreaDropdown.innerHTML = '<option value="">-- Select an Active Operation --</option>';
+        activeActivations.forEach(activation => {
+            const option = document.createElement("option");
+            option.value = activation.id;
 
-                let displayCalamity = activation.calamityType;
-                if (activation.calamityType === "Typhoon" && activation.typhoonName) {
-                    displayCalamity += ` (${activation.typhoonName})`;
-                }
-                option.textContent = `${displayCalamity} (by ${activation.organization})`;
-                calamityAreaDropdown.appendChild(option);
-            });
+            // Use calamityType and calamityName for display
+            const calamityType = activation.calamityType || "Unknown Type";
+            const calamityName = activation.calamityName || (activation.calamityType === "Typhoon" && activation.typhoonName ? activation.typhoonName : calamityType);
+            const organization = activation.organization || "Unknown Organization";
+            option.textContent = `${calamityType} - ${calamityName} (by ${organization})`;
+            calamityAreaDropdown.appendChild(option);
+        });
 
             const savedData = JSON.parse(localStorage.getItem("reportData"));
             if (savedData && savedData.CalamityAreaId) {
@@ -296,8 +296,9 @@
             }
         }
 
-        calamityAreaDropdown.addEventListener('change', () => {
-            const selectedActivationId = calamityAreaDropdown.value;
+    calamityAreaDropdown.addEventListener('change', () => {
+        const selectedActivationId = calamityAreaDropdown.value;
+        console.log("Calamity Area Dropdown changed, selected ID:", selectedActivationId);
 
             if (selectedActivationId === "") {
                 areaOfOperationInput.value = "";
@@ -331,27 +332,28 @@
                         console.log('User Role:', currentUserRole);
                         console.log('Volunteer Group Name:', volunteerGroupName);
 
-                        if (currentUserRole === 'AB ADMIN') {
-                            console.log('AB ADMIN role detected. Allowing access to submit report.');
-                            let activationsQuery = database.ref("activations").orderByChild("status").equalTo("active");
-                            activationsQuery.on("value", snapshot => {
-                                activeActivations = [];
-                                snapshot.forEach(childSnapshot => {
-                                    activeActivations.push({ id: childSnapshot.key, ...childSnapshot.val() });
-                                });
-                                populateCalamityAreaDropdown();
-                                nextBtn.disabled = false;
-                            }, error => {
-                                console.error("Error listening for all active activations (AB ADMIN):", error);
-                                Swal.fire({
-                                    icon: 'error',
-                                    title: 'Error',
-                                    text: 'Failed to load active operations. Please try again.'
-                                });
-                                nextBtn.disabled = true;
+                    if (currentUserRole === 'AB ADMIN') {
+                        console.log('AB ADMIN role detected. Allowing access to submit report.');
+                        let activationsQuery = database.ref("activations").orderByChild("status").equalTo("active");
+                        activationsQuery.on("value", snapshot => {
+                            activeActivations = [];
+                            snapshot.forEach(childSnapshot => {
+                                activeActivations.push({ id: childSnapshot.key, ...childSnapshot.val() });
                             });
-                        } else if (currentUserRole === 'ABVN') {
-                            console.log('ABVN role detected. Checking organization activations.');
+                            console.log("Active activations (AB ADMIN):", activeActivations);
+                            populateCalamityAreaDropdown();
+                            nextBtn.disabled = false;
+                        }, error => {
+                            console.error("Error listening for all active activations (AB ADMIN):", error);
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: 'Failed to load active operations. Please try again.'
+                            });
+                            nextBtn.disabled = true;
+                        });
+                    } else if (currentUserRole === 'ABVN') {
+                        console.log('ABVN role detected. Checking organization activations.');
 
                             if (volunteerGroupName !== "Unknown Group") {
                                 database.ref("activations")
@@ -366,116 +368,117 @@
                                             }
                                         });
 
-                                        if (organizationHasActiveActivations) {
-                                            console.log(`Organization "${volunteerGroupName}" has active operations.`);
-                                            let activationsQuery = database.ref("activations").orderByChild("status").equalTo("active");
-                                            activationsQuery.on("value", snapshot => {
-                                                activeActivations = [];
-                                                snapshot.forEach(childSnapshot => {
-                                                    const activation = { id: childSnapshot.key, ...childSnapshot.val() };
-                                                    if (activation.organization === volunteerGroupName) {
-                                                        activeActivations.push(activation);
-                                                    }
-                                                });
-                                                populateCalamityAreaDropdown();
-                                                nextBtn.disabled = false;
-                                            }, error => {
-                                                console.error("Error listening for active activations:", error);
-                                                Swal.fire({
-                                                    icon: 'error',
-                                                    title: 'Error',
-                                                    text: 'Failed to load active operations. Please try again.'
-                                                });
-                                                nextBtn.disabled = true;
-                                            });
-                                        } else {
-                                            console.warn(`Organization "${volunteerGroupName}" has no active operations.`);
-                                            Swal.fire({
-                                                icon: 'warning',
-                                                title: 'Organization Inactive',
-                                                text: 'Your organization has no active operations. Redirecting to dashboard.',
-                                                didClose: () => {
-                                                    window.location.href = '../pages/dashboard.html';
+                                    if (organizationHasActiveActivations) {
+                                        console.log(`Organization "${volunteerGroupName}" has active operations.`);
+                                        let activationsQuery = database.ref("activations").orderByChild("status").equalTo("active");
+                                        activationsQuery.on("value", snapshot => {
+                                            activeActivations = [];
+                                            snapshot.forEach(childSnapshot => {
+                                                const activation = { id: childSnapshot.key, ...childSnapshot.val() };
+                                                if (activation.organization === volunteerGroupName) {
+                                                    activeActivations.push(activation);
                                                 }
                                             });
+                                            console.log("Active activations (ABVN):", activeActivations);
+                                            populateCalamityAreaDropdown();
+                                            nextBtn.disabled = false;
+                                        }, error => {
+                                            console.error("Error listening for active activations:", error);
+                                            Swal.fire({
+                                                icon: 'error',
+                                                title: 'Error',
+                                                text: 'Failed to load active operations. Please try again.'
+                                            });
                                             nextBtn.disabled = true;
-                                            calamityAreaDropdown.innerHTML = '<option value="">-- No Active Operations (Organization Inactive) --</option>';
-                                            calamityAreaDropdown.disabled = true;
-                                            areaOfOperationInput.disabled = true;
-                                            if (pinBtn) pinBtn.style.display = 'none';
-                                        }
-                                    }).catch(error => {
-                                        console.error('Error checking organization active status:', error);
+                                        });
+                                    } else {
+                                        console.warn(`Organization "${volunteerGroupName}" has no active operations.`);
                                         Swal.fire({
-                                            icon: 'error',
-                                            title: 'Error',
-                                            text: 'Failed to check organization activation status.'
+                                            icon: 'warning',
+                                            title: 'Organization Inactive',
+                                            text: 'Your organization has no active operations. Redirecting to dashboard.',
+                                            didClose: () => {
+                                                window.location.href = '../pages/dashboard.html';
+                                            }
                                         });
                                         nextBtn.disabled = true;
-                                    });
-                            } else {
-                                console.warn('ABVN user has no organization assigned.');
-                                Swal.fire({
-                                    icon: 'warning',
-                                    title: 'Organization Not Assigned',
-                                    text: 'Your account is not associated with an organization. Redirecting to dashboard.',
-                                    didClose: () => {
-                                        window.location.href = '../pages/dashboard.html';
+                                        calamityAreaDropdown.innerHTML = '<option value="">-- No Active Operations (Organization Inactive) --</option>';
+                                        calamityAreaDropdown.disabled = true;
+                                        areaOfOperationInput.disabled = true;
+                                        if (pinBtn) pinBtn.style.display = 'none';
                                     }
+                                }).catch(error => {
+                                    console.error('Error checking organization active status:', error);
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: 'Error',
+                                        text: 'Failed to check organization activation status.'
+                                    });
+                                    nextBtn.disabled = true;
                                 });
-                                nextBtn.disabled = true;
-                                calamityAreaDropdown.innerHTML = '<option value="">-- No Active Operations (No Organization) --</option>';
-                                calamityAreaDropdown.disabled = true;
-                                areaOfOperationInput.disabled = true;
-                                if (pinBtn) pinBtn.style.display = 'none';
-                            }
                         } else {
-                            console.warn(`User ${userUid} has unsupported role: ${currentUserRole}.`);
+                            console.warn('ABVN user has no organization assigned.');
                             Swal.fire({
-                                icon: 'error',
-                                title: 'Unauthorized Access',
-                                text: 'Your role does not permit access. Redirecting to dashboard.',
+                                icon: 'warning',
+                                title: 'Organization Not Assigned',
+                                text: 'Your account is not associated with an organization. Redirecting to dashboard.',
                                 didClose: () => {
                                     window.location.href = '../pages/dashboard.html';
                                 }
                             });
                             nextBtn.disabled = true;
-                            calamityAreaDropdown.innerHTML = '<option value="">-- Access Denied (Unauthorized Role) --</option>';
+                            calamityAreaDropdown.innerHTML = '<option value="">-- No Active Operations (No Organization) --</option>';
                             calamityAreaDropdown.disabled = true;
                             areaOfOperationInput.disabled = true;
                             if (pinBtn) pinBtn.style.display = 'none';
                         }
                     } else {
-                        console.warn('User data not found for UID:', userUid);
+                        console.warn(`User ${userUid} has unsupported role: ${currentUserRole}.`);
                         Swal.fire({
-                            icon: 'warning',
-                            title: 'User Data Missing',
-                            text: 'User data could not be retrieved. Redirecting to dashboard.',
+                            icon: 'error',
+                            title: 'Unauthorized Access',
+                            text: 'Your role does not permit access. Redirecting to dashboard.',
                             didClose: () => {
                                 window.location.href = '../pages/dashboard.html';
                             }
                         });
                         nextBtn.disabled = true;
-                        calamityAreaDropdown.innerHTML = '<option value="">-- Error (User Data Missing) --</option>';
+                        calamityAreaDropdown.innerHTML = '<option value="">-- Access Denied (Unauthorized Role) --</option>';
                         calamityAreaDropdown.disabled = true;
                         areaOfOperationInput.disabled = true;
                         if (pinBtn) pinBtn.style.display = 'none';
                     }
-                }).catch(error => {
-                    console.error('Error fetching user data:', error);
+                } else {
+                    console.warn('User data not found for UID:', userUid);
                     Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: 'Failed to fetch user data.'
+                        icon: 'warning',
+                        title: 'User Data Missing',
+                        text: 'User data could not be retrieved. Redirecting to dashboard.',
+                        didClose: () => {
+                            window.location.href = '../pages/dashboard.html';
+                        }
                     });
                     nextBtn.disabled = true;
+                    calamityAreaDropdown.innerHTML = '<option value="">-- Error (User Data Missing) --</option>';
+                    calamityAreaDropdown.disabled = true;
+                    areaOfOperationInput.disabled = true;
+                    if (pinBtn) pinBtn.style.display = 'none';
+                }
+            }).catch(error => {
+                console.error('Error fetching user data:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Failed to fetch user data.'
                 });
-            } else {
-                console.warn('No user is logged in');
-                window.location.href = '../pages/login.html';
                 nextBtn.disabled = true;
-            }
-        });
+            });
+        } else {
+            console.warn('No user is logged in');
+            window.location.href = '../pages/login.html';
+            nextBtn.disabled = true;
+        }
+    });
 
         const today = new Date();
         const formattedDate = today.toLocaleDateString('en-CA');
@@ -545,22 +548,22 @@
                 return;
             }
 
-            const startDateValue = startDateInput.value;
-            const endDateValue = endDateInput.value;
-            
-            if (!startDateValue || !endDateValue) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Missing Dates',
-                    text: 'Please fill in both Start Date and End Date.'
-                });
-                if (!startDateValue) {
-                    startDateInput.focus();
-                } else {
-                    endDateInput.focus();
-                }
-                return;
+        const startDateValue = startDateInput.value;
+        const endDateValue = endDateInput.value;
+
+        if (!startDateValue || !endDateValue) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Missing Dates',
+                text: 'Please fill in both Start Date and End Date.'
+            });
+            if (!startDateValue) {
+                startDateInput.focus();
+            } else {
+                endDateInput.focus();
             }
+            return;
+        }
 
             const startDate = new Date(startDateValue + 'T00:00:00');
             const endDate = new Date(endDateValue + 'T00:00:00');
@@ -600,78 +603,91 @@
                 return;
             }
 
-            if (endDate > oneYearFromNow) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Excessive End Date',
-                    text: 'End Date cannot be more than 1 year from today. Please enter a valid date range.'
-                });
-                endDateInput.focus();
-                return;
-            }
+        if (endDate > oneYearFromNow) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Excessive End Date',
+                text: 'End Date cannot be more than 1 year from today. Please enter a valid date range.'
+            });
+            endDateInput.focus();
+            return;
+        }
 
-            let selectedCalamityName = "";
-            let selectedCalamityOrganization = "";
-            let selectedCalamityTyphoonName = "";
-            let calamityAreaDetailsText = "";
+        if (!calamityAreaDropdown.value) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Missing Calamity Area',
+                text: 'Please select an active operation from the dropdown.'
+            });
+            calamityAreaDropdown.focus();
+            return;
+        }
 
-            const selectedActivationId = calamityAreaDropdown.value;
-            if (selectedActivationId) {
-                const selectedActivation = activeActivations.find(
-                    (activation) => activation.id === selectedActivationId
-                );
-                if (selectedActivation) {
-                    selectedCalamityName = selectedActivation.calamityType;
-                    selectedCalamityOrganization = selectedActivation.organization;
-                    selectedCalamityTyphoonName = selectedActivation.typhoonName || "";
+        let selectedCalamityName = "";
+        let selectedCalamityType = "";
+        let selectedCalamityOrganization = "";
+        let calamityAreaDetailsText = "";
 
-                    calamityAreaDetailsText = selectedCalamityName;
-                    if (selectedCalamityTyphoonName) {
-                        calamityAreaDetailsText += ` (${selectedCalamityTyphoonName})`;
-                    }
-                    if (selectedCalamityOrganization) {
-                        calamityAreaDetailsText += ` (by ${selectedCalamityOrganization})`;
-                    }
-                } else {
-                    console.warn("Calamity Area ID found but no matching activation data.");
-                    calamityAreaDetailsText = `ID: ${selectedActivationId} (Details Missing)`;
-                }
+        const selectedActivationId = calamityAreaDropdown.value;
+        console.log("Selected Activation ID:", selectedActivationId);
+        if (selectedActivationId) {
+            const selectedActivation = activeActivations.find(
+                (activation) => activation.id === selectedActivationId
+            );
+            console.log("Selected Activation:", selectedActivation);
+            if (selectedActivation) {
+                selectedCalamityType = selectedActivation.calamityType || "Unknown Type";
+                selectedCalamityName = selectedActivation.calamityName || (selectedActivation.calamityType === "Typhoon" && selectedActivation.typhoonName ? selectedActivation.typhoonName : selectedCalamityType);
+                selectedCalamityOrganization = selectedActivation.organization || "Unknown Organization";
+
+                calamityAreaDetailsText = `${selectedCalamityType} - ${selectedCalamityName} (by ${selectedCalamityOrganization})`;
             } else {
-                console.warn("No Calamity Area selected.");
-                calamityAreaDetailsText = "Not Specified";
+                console.warn("Calamity Area ID found but no matching activation data.");
+                calamityAreaDetailsText = `ID: ${selectedActivationId} (Details Missing)`;
+                selectedCalamityName = "Unknown Calamity";
+                selectedCalamityType = "Unknown Type";
             }
+        } else {
+            console.warn("No Calamity Area selected.");
+            calamityAreaDetailsText = "Not Specified";
+            selectedCalamityName = "Not Specified";
+            selectedCalamityType = "Not Specified";
+        }
 
-            console.log("notesInfoTextarea value:", notesInfoTextarea.value);
+        console.log("Selected Calamity Type:", selectedCalamityType);
+        console.log("Selected Calamity Name:", selectedCalamityName);
+        console.log("notesInfoTextarea value:", notesInfoTextarea.value);
 
             formPage1.style.display = "none";
             formPage2.style.display = "block";
 
-            const formData = {
-                userUid: userUid,
-                VolunteerGroupName: volunteerGroupName || "Not Assigned",
-                AreaOfOperation: areaOfOperationInput.value,
-                CalamityAreaId: calamityAreaDropdown.value,
-                CalamityName: selectedCalamityName,
-                CalamityAreaDetails: calamityAreaDetailsText,
-                TimeOfIntervention: completionTimeInput.value,
-                DateOfReport: dateOfReportInput.value,
-                ReportID: reportIdInput.value,
-                StartDate: startDateInput.value,
-                EndDate: endDateInput.value,
-                NoOfIndividualsOrFamilies: numIndividualsFamiliesInput.value,
-                NoOfFoodPacks: numFoodPacksInput.value,
-                NoOfHotMeals: numHotMealsInput.value,
-                LitersOfWater: litersWaterInput.value,
-                NoOfVolunteersMobilized: numVolunteersInput.value,
-                NoOfOrganizationsActivated: numOrganizationsInput.value,
-                TotalValueOfInKindDonations: valueInKindInput.value,
-                TotalMonetaryDonations: monetaryDonationsInput.value,
-                NotesAdditionalInformation: notesInfoTextarea.value || "No additional notes",
-                Status: "Pending"
-            };
-            localStorage.setItem("reportData", JSON.stringify(formData));
-            console.log("Form data saved to localStorage:", formData);
-        });
+        const formData = {
+            userUid: userUid,
+            VolunteerGroupName: volunteerGroupName || "Not Assigned",
+            AreaOfOperation: areaOfOperationInput.value,
+            CalamityAreaId: calamityAreaDropdown.value,
+            CalamityType: selectedCalamityType,
+            CalamityName: selectedCalamityName,
+            CalamityAreaDetails: calamityAreaDetailsText,
+            TimeOfIntervention: completionTimeInput.value,
+            DateOfReport: dateOfReportInput.value,
+            ReportID: reportIdInput.value,
+            StartDate: startDateInput.value,
+            EndDate: endDateInput.value,
+            NoOfIndividualsOrFamilies: numIndividualsFamiliesInput.value,
+            NoOfFoodPacks: numFoodPacksInput.value,
+            NoOfHotMeals: numHotMealsInput.value,
+            LitersOfWater: litersWaterInput.value,
+            NoOfVolunteersMobilized: numVolunteersInput.value,
+            NoOfOrganizationsActivated: numOrganizationsInput.value,
+            TotalValueOfInKindDonations: valueInKindInput.value,
+            TotalMonetaryDonations: monetaryDonationsInput.value,
+            NotesAdditionalInformation: notesInfoTextarea.value || "No additional notes",
+            Status: "Pending"
+        };
+        localStorage.setItem("reportData", JSON.stringify(formData));
+        console.log("Form data saved to localStorage:", formData);
+    });
 
         backBtn.addEventListener('click', () => {
             formPage2.style.display = "none";
@@ -701,25 +717,24 @@
                 dateOfReportInput.value = savedData.DateOfReport || '';
                 areaOfOperationInput.value = savedData.AreaOfOperation || '';
 
-                if (savedData.CalamityAreaId) {
-                    calamityAreaDropdown.value = savedData.CalamityAreaId;
-                    calamityAreaDropdown.dispatchEvent(new Event('change'));
-                }
-                
-                completionTimeInput.value = savedData.TimeOfIntervention || '';
-                startDateInput.value = savedData.StartDate || '';
-                endDateInput.value = savedData.EndDate || '';
-
-                numIndividualsFamiliesInput.value = savedData.NoOfIndividualsOrFamilies || '';
-                numFoodPacksInput.value = savedData.NoOfFoodPacks || '';
-                numHotMealsInput.value = savedData.NoOfHotMeals || '';
-                litersWaterInput.value = savedData.LitersOfWater || '';
-                numVolunteersInput.value = savedData.NoOfVolunteersMobilized || '';
-                numOrganizationsInput.value = savedData.NoOfOrganizationsActivated || '';
-                valueInKindInput.value = savedData.TotalValueOfInKindDonations || '';
-                monetaryDonationsInput.value = savedData.TotalMonetaryDonations || '';
-                notesInfoTextarea.value = savedData.NotesAdditionalInformation || '';
+            if (savedData.CalamityAreaId) {
+                calamityAreaDropdown.value = savedData.CalamityAreaId;
+                calamityAreaDropdown.dispatchEvent(new Event('change'));
             }
+
+            completionTimeInput.value = savedData.TimeOfIntervention || '';
+            startDateInput.value = savedData.StartDate || '';
+            endDateInput.value = savedData.EndDate || '';
+            numIndividualsFamiliesInput.value = savedData.NoOfIndividualsOrFamilies || '';
+            numFoodPacksInput.value = savedData.NoOfFoodPacks || '';
+            numHotMealsInput.value = savedData.NoOfHotMeals || '';
+            litersWaterInput.value = savedData.LitersOfWater || '';
+            numVolunteersInput.value = savedData.NoOfVolunteersMobilized || '';
+            numOrganizationsInput.value = savedData.NoOfOrganizationsActivated || '';
+            valueInKindInput.value = savedData.TotalValueOfInKindDonations || '';
+            monetaryDonationsInput.value = savedData.TotalMonetaryDonations || '';
+            notesInfoTextarea.value = savedData.NotesAdditionalInformation || '';
+        }
 
             if (returnTo === "form-container-1") {
                 formPage1.style.display = "block";

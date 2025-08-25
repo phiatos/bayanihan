@@ -1642,6 +1642,12 @@ label:has(+ textarea[required])::after {
   background-color: #17a2b8;
 }
 
+.error-message {
+  color: red;
+  font-size: 0.8em;
+  margin-top: 5px;
+}
+
 /* --- SweetAlert2 (Success) --- */
 .swal2-popup-success-clean {
   border-radius: 14px;

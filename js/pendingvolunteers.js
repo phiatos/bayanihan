@@ -21,9 +21,9 @@ if (!firebase.apps.length) {
 const database = firebase.database();
 const auth = firebase.auth();
 
-// Initialize EmailJS with your public key
+// EmailJS with your public key
 try {
-    emailjs.init('ULA8rmn7VM-3fZ7ik');
+    emailjs.init('BwfsCx-NJCb3qGxCk');
     console.log("EmailJS initialized successfully");
 } catch (error) {
     console.error("EmailJS initialization failed:", error);
@@ -303,52 +303,56 @@ function initializePageFunctions(userId) {
     exportBtn.addEventListener('click', exportToExcel);
     savePdfBtn.addEventListener('click', exportToPDF);
 
+    function showError(input, message) {
+        console.error(`Validation error for ${input.name || 'field'}: ${message}`);
+    }
+
     async function validateVolunteerForm(inputs) {
-    let isValid = true;
-    if (!inputs.name.value || inputs.name.value.trim() === '') {
-        showError(inputs.name, 'Full Name is required.');
-        isValid = false;
-    }
-    if (inputs.email.value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inputs.email.value)) {
-        showError(inputs.email, 'Invalid email format.');
-        isValid = false;
-    }
-    if (inputs.mobileNumber.value && !/^09\d{9}$/.test(inputs.mobileNumber.value)) {
-        showError(inputs.mobileNumber, 'Mobile Number must be 11 digits starting with 09.');
-        isValid = false;
-    }
-    if (inputs.age.value && (isNaN(inputs.age.value) || inputs.age.value < 18)) {
-        showError(inputs.age, 'Age must be a number >= 18.');
-        isValid = false;
-    }
-    if (!inputs.region.value) {
-        showError(inputs.region, 'Region is required.');
-        isValid = false;
-    }
-    if (!inputs.province.value) {
-        showError(inputs.province, 'Province is required.');
-        isValid = false;
-    }
-    if (!inputs.city.value) {
-        showError(inputs.city, 'City is required.');
-        isValid = false;
-    }
-    if (!inputs.barangay.value) {
-        showError(inputs.barangay, 'Barangay is required.');
-        isValid = false;
-    }
-    if (inputs.specificDateTimeSlots.value) {
-        const slots = inputs.specificDateTimeSlots.value.split(',').map(slot => slot.trim());
-        for (const slot of slots) {
-            const [date, time] = slot.split(' at ');
-            if (!date || !time || !/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{1,2}:\d{2}\s(AM|PM)$/.test(time)) {
-                showError(inputs.specificDateTimeSlots, 'Date/Time Availability must be in format YYYY-MM-DD at HH:MM AM/PM');
-                isValid = false;
+        let isValid = true;
+        if (!inputs.name.value || inputs.name.value.trim() === '') {
+            showError(inputs.name, 'Full Name is required.');
+            isValid = false;
+        }
+        if (inputs.email.value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inputs.email.value)) {
+            showError(inputs.email, 'Invalid email format.');
+            isValid = false;
+        }
+        if (inputs.mobileNumber.value && !/^09\d{9}$/.test(inputs.mobileNumber.value)) {
+            showError(inputs.mobileNumber, 'Mobile Number must be 11 digits starting with 09.');
+            isValid = false;
+        }
+        if (inputs.age.value && (isNaN(inputs.age.value) || inputs.age.value < 18)) {
+            showError(inputs.age, 'Age must be a number >= 18.');
+            isValid = false;
+        }
+        if (!inputs.region.value) {
+            showError(inputs.region, 'Region is required.');
+            isValid = false;
+        }
+        if (!inputs.province.value) {
+            showError(inputs.province, 'Province is required.');
+            isValid = false;
+        }
+        if (!inputs.city.value) {
+            showError(inputs.city, 'City is required.');
+            isValid = false;
+        }
+        if (!inputs.barangay.value) {
+            showError(inputs.barangay, 'Barangay is required.');
+            isValid = false;
+        }
+        if (inputs.specificDateTimeSlots.value) {
+            const slots = inputs.specificDateTimeSlots.value.split(',').map(slot => slot.trim());
+            for (const slot of slots) {
+                const [date, time] = slot.split(' at ');
+                if (!date || !time || !/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{1,2}:\d{2}\s(AM|PM)$/.test(time)) {
+                    showError(inputs.specificDateTimeSlots, 'Date/Time Availability must be in format YYYY-MM-DD at HH:MM AM/PM');
+                    isValid = false;
+                }
             }
         }
+        return isValid;
     }
-    return isValid;
-}
 
 async function checkForDuplicate(mobileNumber, email, name) {
     const duplicates = { all: false, email: false, number: false, name: false };
@@ -413,70 +417,75 @@ async function checkForDuplicate(mobileNumber, email, name) {
         importStatusText.textContent = message;
     }
 
-    // Function to download Excel template
     function downloadExcelTemplate() {
-        const headers = [
-            "Full Name",
-            "Email",
-            "Mobile Number",
-            "Age",
-            "Social Media",
-            "Other Skills",
-            "Emergency Response",
-            "Date/Time Availability",
-            "Region",
-            "Province",
-            "City",
-            "Barangay",
-            "Skills",
-            "Status Notes"
-        ];
-        const sampleData = [{
-            "Full Name": "Jane Doe",
-            "Email": "jane.doe@gmail.com",
-            "Mobile Number": "09123456789",
-            "Age": 25,
-            "Social Media": "Facebook: JaneDoe",
-            "Other Skills": "First Aid Training",
-            "Emergency Response": "Yes (24/7)",
-            "Date/Time Availability": "2025-08-20 at 10:00 AM, 2025-08-21 at 02:00 PM",
-            "Region": "NCR",
-            "Province": "Metro Manila",
-            "City": "Quezon City",
-            "Barangay": "Bagong Pag-asa",
-            "Skills": "Medical, Logistics",
-            "Status Notes": "Pending"
-        }];
-        const instructions = [{
-            Instructions: "1. Ensure Mobile Number is 11 digits starting with '09' (e.g., 09123456789). Format the Mobile Number column as 'Text' in Excel to preserve leading zeros.\n2. Duplicate volunteers (same name, mobile number, and email) are allowed but will prompt for confirmation during import.\n3. Emergency Response should be 'Yes (24/7)' or 'No'.\n4. Date/Time Availability should be in the format 'YYYY-MM-DD at HH:MM AM/PM' (comma-separated for multiple slots, e.g., '2025-08-20 at 10:00 AM, 2025-08-21 at 02:00 PM').\n5. Skills can include 'Medical', 'Logistics', 'General' (comma-separated).\n6. Status Notes can be 'Pending', 'Approved', or 'Rejected'."
-        }];
+    const headers = [
+        "Full Name",
+        "Middle Initial",
+        "Name Extension",
+        "Email",
+        "Mobile Number",
+        "Age",
+        "Social Media",
+        "Other Skills",
+        "Emergency Response",
+        "Date/Time Availability",
+        "Street Address",
+        "Region",
+        "Province",
+        "City",
+        "Barangay",
+        "Skills",
+        "Status Notes"
+    ];
+    const sampleData = [{
+        "Full Name": "Jane Doe",
+        "Middle Initial": "",
+        "Name Extension": "",
+        "Email": "jane.doe@gmail.com",
+        "Mobile Number": "09123456789",
+        "Age": 25,
+        "Social Media": "Facebook: JaneDoe",
+        "Other Skills": "First Aid Training",
+        "Emergency Response": "Yes (24/7)",
+        "Date/Time Availability": "2025-08-20 at 10:00 AM, 2025-08-21 at 02:00 PM",
+        "Street Address": "123 Main St",
+        "Region": "NCR",
+        "Province": "Metro Manila",
+        "City": "Quezon City",
+        "Barangay": "Bagong Pag-asa",
+        "Skills": "Medical, Logistics",
+        "Status Notes": "Pending"
+    }];
+    const instructions = [{
+        Instructions: "1. Ensure Mobile Number is 11 digits starting with '09' (e.g., 09123456789). Format the Mobile Number column as 'Text' in Excel to preserve leading zeros.\n2. Duplicate volunteers (same name, mobile number, and email) are allowed but will prompt for confirmation during import.\n3. Emergency Response should be 'Yes (24/7)' or 'No'.\n4. Date/Time Availability should be in the format 'YYYY-MM-DD at HH:MM AM/PM' (comma-separated for multiple slots, e.g., '2025-08-20 at 10:00 AM, 2025-08-21 at 02:00 PM').\n5. Skills can include 'Medical', 'Logistics', 'General' (comma-separated).\n6. Status Notes can be 'Pending', 'Approved', 'Rejected', or other valid statuses."
+    }];
 
-        const ws = XLSX.utils.json_to_sheet(sampleData, { header: headers });
-        const wsInstructions = XLSX.utils.json_to_sheet(instructions);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Volunteer Template");
-        XLSX.utils.book_append_sheet(wb, wsInstructions, "Instructions");
-        const today = new Date();
-        const year = today.getFullYear();
-        const month = String(today.getMonth() + 1).padStart(2, '0');
-        const day = String(today.getDate()).padStart(2, '0');
-        const formattedDate = `${year}-${month}-${day}`;
-        const filename = `volunteer_template_${formattedDate}.xlsx`;
-        XLSX.writeFile(wb, filename);
-        Swal.fire({
-            title: 'Template Downloaded!',
-            text: `Excel template saved as "${filename}"`,
-            icon: 'success',
-            showConfirmButton: true,
-            confirmButtonText: 'OK',
-            customClass: {
-                popup: 'swal2-popup-success-clean',
-                title: 'swal2-title-success-clean',
-                htmlContainer: 'swal2-text-success-clean',
-                confirmButton: 'my-success-button'
-            }
-        });
-    }
+    const ws = XLSX.utils.json_to_sheet(sampleData, { header: headers });
+    const wsInstructions = XLSX.utils.json_to_sheet(instructions);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Volunteer Template");
+    XLSX.utils.book_append_sheet(wb, wsInstructions, "Instructions");
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    const formattedDate = `${year}-${month}-${day}`;
+    const filename = `volunteer_template_${formattedDate}.xlsx`;
+    XLSX.writeFile(wb, filename);
+    Swal.fire({
+        title: 'Template Downloaded!',
+        text: `Excel template saved as "${filename}"`,
+        icon: 'success',
+        showConfirmButton: true,
+        confirmButtonText: 'OK',
+        customClass: {
+            popup: 'swal2-popup-success-clean',
+            title: 'swal2-title-success-clean',
+            htmlContainer: 'swal2-text-success-clean',
+            confirmButton: 'my-success-button'
+        }
+    });
+}
 
     // Add Excel import handling
     excelFileInput.addEventListener("change", (event) => {
@@ -534,39 +543,51 @@ async function checkForDuplicate(mobileNumber, email, name) {
                     const progress = (processedRows / totalRows) * 100;
                     updateImportStatus(progress, `Processing row ${processedRows} of ${totalRows}...`);
 
-                    // Create volunteer object
+                    console.log('Row data:', row, 'Headers:', headers); // Debug row data
+
+                    // Inside the excelFileInput event listener, replace the mockInputs creation with this:
+                    const fullName = String(row[headers.indexOf("Full Name")] || '').trim();
+                    if (!fullName) {
+                        importErrors.push(`Row ${i + 2}: Full Name is missing or invalid.`);
+                        continue;
+                    }
+
                     const volunteer = {
-                        firstName: String(row[headers.indexOf("Full Name")] || '').trim().split(' ')[0] || '',
-                        lastName: String(row[headers.indexOf("Full Name")] || '').trim().split(' ').slice(-1)[0] || '',
-                        middleInitial: '',
-                        nameExtension: '',
+                        firstName: fullName.split(' ')[0] || 'Unknown',
+                        lastName: fullName.split(' ').slice(-1)[0] || 'Unknown',
+                        middleInitial: String(row[headers.indexOf("Middle Initial")] || '').trim(),
+                        nameExtension: String(row[headers.indexOf("Name Extension")] || '').trim(),
                         email: String(row[headers.indexOf("Email")] || '').trim(),
                         mobileNumber: String(row[headers.indexOf("Mobile Number")] || '').trim().replace(/\D/g, ''),
                         age: parseInt(row[headers.indexOf("Age")] || 0),
                         socialMediaLink: String(row[headers.indexOf("Social Media")] || '').trim(),
                         otherSkillComments: String(row[headers.indexOf("Other Skills")] || '').trim(),
                         isEmergencyResponse: String(row[headers.indexOf("Emergency Response")] || '').trim() === 'Yes (24/7)',
-                        availability: {
-                            specificDateTimeSlots: String(row[headers.indexOf("Date/Time Availability")] || '')
-                                .trim()
-                                .split(',')
-                                .map(slot => {
-                                    const [date, time] = slot.trim().split(' at ');
-                                    return { date: date || '', time: time || '' };
-                                })
-                                .filter(slot => slot.date && slot.time)
-                        },
+                        availability: String(row[headers.indexOf("Date/Time Availability")] || '').trim()
+                            ? {
+                                specificDateTimeSlots: String(row[headers.indexOf("Date/Time Availability")] || '')
+                                    .trim()
+                                    .split(',')
+                                    .map(slot => {
+                                        const [date, time] = slot.trim().split(' at ');
+                                        return { date: date || '', time: time || '' };
+                                    })
+                                    .filter(slot => slot.date && slot.time)
+                            }
+                            : null,
                         address: {
+                            streetAddress: String(row[headers.indexOf("Street Address")] || '').trim(),
                             region: String(row[headers.indexOf("Region")] || '').trim(),
                             province: String(row[headers.indexOf("Province")] || '').trim(),
                             city: String(row[headers.indexOf("City")] || '').trim(),
                             barangay: String(row[headers.indexOf("Barangay")] || '').trim()
                         },
                         skills: String(row[headers.indexOf("Skills")] || '').trim().split(',').map(skill => skill.trim()).filter(skill => skill),
-                        statusNotes: String(row[headers.indexOf("Status Notes")] || 'Pending').trim(),
-                        userUid: firebase.auth().currentUser.uid,
-                        createdAt: new Date().toISOString(),
-                        updatedAt: new Date().toISOString()
+                        status: String(row[headers.indexOf("Status Notes")] || 'Pending').trim(),
+                        statusNotes: String(row[headers.indexOf("Status Notes")] || '').trim(),
+                        applicationDateandTime: new Date().toISOString(),
+                        lastStatusUpdate: Date.now(),
+                        recaptchaResponse: null
                     };
 
                     // Normalize mobile number
@@ -574,8 +595,11 @@ async function checkForDuplicate(mobileNumber, email, name) {
                         volunteer.mobileNumber = '0' + volunteer.mobileNumber;
                     }
 
-                    // Create mock input elements for validateVolunteerForm
+                    console.log('Volunteer object:', volunteer); // Debug volunteer object
+
+                    // Create mock inputs, adding the `name` field
                     const mockInputs = {
+                        name: { value: fullName, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null }, // Add name field
                         firstName: { value: volunteer.firstName, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
                         lastName: { value: volunteer.lastName, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
                         middleInitial: { value: volunteer.middleInitial, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
@@ -586,14 +610,18 @@ async function checkForDuplicate(mobileNumber, email, name) {
                         socialMediaLink: { value: volunteer.socialMediaLink, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
                         otherSkillComments: { value: volunteer.otherSkillComments, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
                         isEmergencyResponse: { value: volunteer.isEmergencyResponse ? 'Yes (24/7)' : 'No', classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
-                        specificDateTimeSlots: { value: volunteer.availability.specificDateTimeSlots.map(slot => `${slot.date} at ${slot.time}`).join(','), classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                        specificDateTimeSlots: { value: volunteer.availability ? volunteer.availability.specificDateTimeSlots.map(slot => `${slot.date} at ${slot.time}`).join(',') : '', classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                        streetAddress: { value: volunteer.address.streetAddress, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
                         region: { value: volunteer.address.region, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
                         province: { value: volunteer.address.province, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
                         city: { value: volunteer.address.city, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
                         barangay: { value: volunteer.address.barangay, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
                         skills: { value: volunteer.skills.join(','), classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                        status: { value: volunteer.status, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
                         statusNotes: { value: volunteer.statusNotes, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null }
                     };
+
+                    console.log('Mock inputs:', mockInputs); // Debug mock inputs
 
                     // Override showError to collect errors
                     const originalShowError = showError;
@@ -602,8 +630,14 @@ async function checkForDuplicate(mobileNumber, email, name) {
                         rowErrors.push(`Row ${i + 2}: ${message}`);
                     };
 
-                    // Validate using validateVolunteerForm
-                    const isValidRow = await validateVolunteerForm(mockInputs);
+                    // Validate with try-catch to catch the error
+                    let isValidRow = false;
+                    try {
+                        isValidRow = await validateVolunteerForm(mockInputs);
+                    } catch (error) {
+                        console.error(`Validation error for row ${i + 2}:`, error);
+                        importErrors.push(`Row ${i + 2}: Validation error - ${error.message}`);
+                    }
 
                     // Restore original showError
                     showError = originalShowError;
@@ -616,7 +650,7 @@ async function checkForDuplicate(mobileNumber, email, name) {
                     }
 
                     // Check for duplicates
-                    const duplicates = await checkForDuplicate(volunteer.mobileNumber, volunteer.email, volunteer.name);
+                    const duplicates = await checkForDuplicate(volunteer.mobileNumber, volunteer.email, volunteer.firstName + ' ' + volunteer.lastName);
                     if (duplicates.all || duplicates.email || duplicates.number || duplicates.name) {
                         const duplicateMessages = [];
                         if (duplicates.all) {
@@ -671,8 +705,8 @@ async function checkForDuplicate(mobileNumber, email, name) {
                     updateImportStatus(100, `Importing ${volunteersToImport.length} records to Firebase...`);
                     const updates = {};
                     volunteersToImport.forEach(volunteer => {
-                        const newKey = database.ref().child('pendingVolunteer').push().key;
-                        updates[`pendingVolunteer/${newKey}`] = volunteer;
+                        const newKey = database.ref().child('volunteerApplications/pendingVolunteer').push().key;
+                        updates[`volunteerApplications/pendingVolunteer/${newKey}`] = volunteer;
                     });
 
                     await database.ref().update(updates);
@@ -1239,10 +1273,10 @@ async function checkForDuplicate(mobileNumber, email, name) {
                     htmlContainer: 'swal2-text-success-clean',
                     confirmButton: 'my-success-button'
                 }
-        });
+            });
     }
 
-    // PDF all
+    // Export PDF all
     function exportToPDF() {
         if (!restrictAction('view')) return;
         if (filteredApplications.length === 0) {
@@ -1396,7 +1430,7 @@ async function checkForDuplicate(mobileNumber, email, name) {
         };
     }
 
-    // PDF Single
+    // Export PDF Single
     function saveSingleApplicationPdf(volunteer) {
         if (!restrictAction('view')) return;
         const { jsPDF } = window.jspdf;
@@ -1979,7 +2013,7 @@ async function checkForDuplicate(mobileNumber, email, name) {
                 dropdownHTML += `<button id="dropdownSetStalled"><i class='bx bxs-hand'></i>Status Notes</button>`;
             }
             if (allowedActions.includes('archive')) {
-                dropdownHTML += `<button id="dropdownArchive"><i class='bx bx-archive'></i>Archive</button>`;
+                dropdownHTML += `<button id="dropdownArchive"><i class='bx bx-archive'></i>Reject</button>`;
             }
             dropdown.innerHTML = dropdownHTML;
             if (dropdownHTML === '') {
@@ -2721,7 +2755,7 @@ async function checkForDuplicate(mobileNumber, email, name) {
             focusCancel: true,
             allowOutsideClick: false,
             customClass: {
-                popup: 'custom-swal-popup-small',
+                popup: 'custom-swal-popup-large',
                 title: 'custom-swal-title',
                 htmlContainer: 'custom-swal-content',
                 confirmButton: 'custom-confirm-btn',
@@ -2791,194 +2825,6 @@ async function checkForDuplicate(mobileNumber, email, name) {
             }
         });
     });
-
-    // async function handleEndorsementProcess() {
-    //     if (!restrictAction('endorseToABVN')) return;
-    //     const volunteerEmail = currentVolunteerData.email;
-    //     const volunteerMobile = currentVolunteerData.mobileNumber;
-    //     const volunteerFullName = getFullName(currentVolunteerData).toLowerCase();
-    //     if (!volunteerEmail && !volunteerMobile && !volunteerFullName) {
-    //         Swal.fire({
-    //             title: 'Error',
-    //             text: 'Volunteer data is missing crucial information (email, mobile, full name). Cannot perform duplicate check for endorsement.',
-    //             icon: 'error',
-    //             customClass: {
-    //                 popup: 'swal2-popup-error-clean',
-    //                 title: 'swal2-title-error-clean',
-    //                 htmlContainer: 'swal2-text-error-clean',
-    //                 confirmButton: 'my-error-button'
-    //             }
-    //         });
-    //         resetCurrentVolunteer();
-    //         return;
-    //     }
-    //     try {
-    //         const abvnGroupsRef = database.ref('volunteerGroups');
-    //         let duplicateMessages = [];
-    //         let isAlreadyEndorsedToAnABVN = false;
-    //         const allAbvnSnapshot = await abvnGroupsRef.once('value');
-    //         let allEndorsedVolunteersData = [];
-    //         if (allAbvnSnapshot.exists()) {
-    //             allAbvnSnapshot.forEach(abvnGroupChild => {
-    //                 const groupData = abvnGroupChild.val();
-    //                 const groupName = groupData.organization || abvnGroupChild.key;
-    //                 const endorsedVolunteers = abvnGroupChild.child('endorsedVolunteers').val();
-    //                 if (endorsedVolunteers) {
-    //                     for (const volKey in endorsedVolunteers) {
-    //                         if (volKey !== currentVolunteerKey) {
-    //                             allEndorsedVolunteersData.push({
-    //                                 key: volKey,
-    //                                 endorsedGroupName: groupName,
-    //                                 ...endorsedVolunteers[volKey]
-    //                             });
-    //                         } else {
-    //                             isAlreadyEndorsedToAnABVN = true;
-    //                             duplicateMessages.push(`• This exact volunteer application (key: ${currentVolunteerKey}) is already endorsed to: <strong>${groupName}</strong>`);
-    //                         }
-    //                     }
-    //                 }
-    //             });
-    //         }
-    //         console.log('Duplicate Messages:', duplicateMessages);
-    //         console.log('All Endorsed Volunteers:', allEndorsedVolunteersData);
-    //         if (isAlreadyEndorsedToAnABVN) {
-    //             Swal.fire({
-    //                 title: 'Potential Duplicate of Endorsed Volunteer Detected',
-    //                 html: `${duplicateMessages.join('<br>')}<br><br>Please verify it first.`,
-    //                 icon: 'warning',
-    //                 showCancelButton: true,
-    //                 confirmButtonText: 'Proceed Anyway',
-    //                 cancelButtonText: 'Cancel & Review',
-    //                 reverseButtons: true,
-    //                 customClass: {
-    //                     popup: 'custom-swal-popup-large',
-    //                     title: 'custom-swal-title',
-    //                     htmlContainer: 'custom-swal-content',
-    //                     confirmButton: 'custom-confirm-btn',
-    //                     cancelButton: 'custom-cancel-btn'
-    //                 }
-    //             }).then((duplicateResult) => {
-    //                 if (duplicateResult.isConfirmed) {
-    //                     Swal.fire({
-    //                         title: 'Proceeding',
-    //                         text: 'Proceeding with endorsement despite previous record.',
-    //                         icon: 'error',
-    //                         customClass: {
-    //                             popup: 'swal2-popup-error-clean',
-    //                             title: 'swal2-title-error-clean',
-    //                             htmlContainer: 'swal2-text-error-clean',
-    //                             confirmButton: 'my-error-button'
-    //                         }
-    //                     });
-    //                     showEndorseABVNModal();
-    //                 } else {
-    //                     Swal.fire({
-    //                         title: 'Cancelled',
-    //                         text: 'Endorsement cancelled for review.',
-    //                         icon: 'error',
-    //                         customClass: {
-    //                             popup: 'swal2-popup-error-clean',
-    //                             title: 'swal2-title-error-clean',
-    //                             htmlContainer: 'swal2-text-error-clean',
-    //                             confirmButton: 'my-error-button'
-    //                         }
-    //                     });
-    //                     hideEndorseABVNModal();
-    //                 }
-    //             });
-    //             return;
-    //         }
-    //         if (volunteerEmail) {
-    //             const emailDuplicate = allEndorsedVolunteersData.find(ev =>
-    //                 (ev.email || '').toLowerCase() === volunteerEmail.toLowerCase()
-    //             );
-    //             if (emailDuplicate) {
-    //                 isAlreadyEndorsedToAnABVN = true;
-    //                 duplicateMessages.push(`• Email Address (found in ABVN Group: ${emailDuplicate.endorsedGroupName})`);
-    //             }
-    //         }
-    //         if (volunteerMobile) {
-    //             const mobileDuplicate = allEndorsedVolunteersData.find(ev =>
-    //                 (ev.mobileNumber || '') === volunteerMobile
-    //             );
-    //             if (mobileDuplicate) {
-    //                 isAlreadyEndorsedToAnABVN = true;
-    //                 duplicateMessages.push(`• Mobile Number (found in ABVN Group: ${mobileDuplicate.endorsedGroupName})`);
-    //             }
-    //         }
-    //         if (volunteerFullName) {
-    //             const nameDuplicate = allEndorsedVolunteersData.find(ev =>
-    //                 getFullName(ev).toLowerCase() === volunteerFullName
-    //             );
-    //             if (nameDuplicate) {
-    //                 isAlreadyEndorsedToAnABVN = true;
-    //                 duplicateMessages.push(`• Full Name (found in ABVN Group: ${nameDuplicate.endorsedGroupName})`);
-    //             }
-    //         }
-    //         if (isAlreadyEndorsedToAnABVN) {
-    //             Swal.fire({
-    //                 title: 'Potential Duplicate of Endorsed Volunteer Detected',
-    //                 html: `${duplicateMessages.join('<br>')}<br><br>Please verify if first.`,
-    //                 icon: 'warning',
-    //                 showCancelButton: true,
-    //                 confirmButtonText: 'Proceed Anyway',
-    //                 cancelButtonText: 'Cancel & Review',
-    //                 reverseButtons: true,
-    //                 customClass: {
-    //                     popup: 'custom-swal-popup-large',
-    //                     title: 'custom-swal-title',
-    //                     htmlContainer: 'custom-swal-content',
-    //                     confirmButton: 'custom-confirm-btn',
-    //                     cancelButton: 'custom-cancel-btn'
-    //                 }
-    //             }).then((duplicateResult) => {
-    //                 if (duplicateResult.isConfirmed) {
-    //                     Swal.fire({
-    //                         title: 'Proceeding',
-    //                         text: 'Proceeding with endorsement despite potential duplicate warning.',
-    //                         icon: 'success',
-    //                         customClass: {
-    //                             popup: 'swal2-popup-success-clean',
-    //                             title: 'swal2-title-success-clean',
-    //                             htmlContainer: 'swal2-text-success-clean',
-    //                             confirmButton: 'my-success-button'
-    //                         }
-    //                     });
-    //                     showEndorseABVNModal();
-    //                 } else {
-    //                     Swal.fire({
-    //                         title: 'Cancelled',
-    //                         text: 'Endorsement cancelled for review.',
-    //                         icon: 'error',
-    //                         customClass: {
-    //                             popup: 'swal2-popup-error-clean',
-    //                             title: 'swal2-title-error-clean',
-    //                             htmlContainer: 'swal2-text-error-clean',
-    //                             confirmButton: 'my-error-button'
-    //                         }
-    //                     });
-    //                     hideEndorseABVNModal();
-    //                 }
-    //             });
-    //             return;
-    //         }
-    //         showEndorseABVNModal();
-    //     } catch (endorseCheckError) {
-    //         console.error("Error during duplicate check for endorsed volunteer:", endorseCheckError);
-    //         Swal.fire({
-    //             title: 'Error',
-    //             text: 'Failed to perform endorsement duplicate check. Please try again.',
-    //             icon: 'error',
-    //             customClass: {
-    //                 popup: 'swal2-popup-error-clean',
-    //                 title: 'swal2-title-error-clean',
-    //                 htmlContainer: 'swal2-text-error-clean',
-    //                 confirmButton: 'my-error-button'
-    //             }
-    //         });
-    //         hideEndorseABVNModal();
-    //     }
-    // }
 
     async function handleEndorsementProcess() {
         if (!restrictAction('endorseToABVN')) return;

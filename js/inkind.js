@@ -386,10 +386,10 @@ document.addEventListener("DOMContentLoaded", () => {
     viewArchivedBtn.addEventListener('click', async () => {
         if (!permissions.canRetrieve) {
             Swal.fire({
-                title: 'Error',
+                title: 'Access Denied',
                 text: 'You do not have permission to view archived donations.',
                 icon: 'error',
-                timer: 2000,
+                timer: 1600,
                 showConfirmButton: false,
                 timerProgressBar: true,
                 allowOutsideClick: false,
@@ -1060,10 +1060,10 @@ document.addEventListener("DOMContentLoaded", () => {
         viewArchivedBtn.addEventListener('click', async () => {
             if (!permissions.canRetrieve) {
                 Swal.fire({
-                    title: 'Error',
+                    title: 'Access Denied',
                     text: 'You do not have permission to view archived donations.',
                     icon: 'error',
-                    timer: 2000,
+                    timer: 1600,
                     showConfirmButton: false,
                     timerProgressBar: true,
                     allowOutsideClick: false,
@@ -1241,7 +1241,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 title: 'Access Denied',
                 text: 'You do not have permission to add or edit this donation.',
                 icon: 'error',
-                timer: 2500,
+                timer: 1600,
                 showConfirmButton: false,
                 timerProgressBar: true,
                 allowOutsideClick: false,
@@ -2081,23 +2081,23 @@ document.addEventListener("DOMContentLoaded", () => {
         const modal = document.getElementById("endorseModal");
         modal.style.display = "none";
         Swal.fire({
-            icon: 'info',
+            icon: 'error',
             title: 'Endorsement Cancelled',
             text: 'No endorsement was made.',
             timer: 1500,
             showConfirmButton: false,
             timerProgressBar: true,
             customClass: {
-                popup: 'swal2-popup-info-clean',
-                title: 'swal2-title-info-clean',
-                htmlContainer: 'swal2-text-info-clean'
+                popup: 'swal2-popup-error-clean',
+                title: 'swal2-title-error-clean',
+                htmlContainer: 'swal2-text-error-clean'
             }
         });
     };
 
     function openEndorseModal(firebaseKey) {
         const modal = document.getElementById("endorseModal");
-        modal.style.display = "block";
+        modal.style.display = "flex";
         const abvnList = document.getElementById("abvnList");
 
         abvnList.innerHTML = '<p>Loading organizations...</p>';
@@ -2375,7 +2375,19 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
         const group = selected.value;
-        Swal.fire("Endorsed!", `Donation with ID ${firebaseKey} endorsed to ${group}`, "success");
+        Swal.fire({
+            icon: 'success',
+            title: 'Endorsed!',
+            html: `Donation with ID ${firebaseKey} endorsed to ${group}`,
+            showConfirmButton: true,
+            confirmButtonText: "Ok",
+            customClass: {
+                popup: 'swal2-popup-success-clean',
+                title: 'swal2-title-success-clean',
+                htmlContainer: 'swal2-text-success-clean',
+                confirmButton: 'my-success-button'
+            }
+        });
         modal.style.display = "none";
     });
 

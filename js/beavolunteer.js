@@ -1174,7 +1174,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log("Volunteer application saved to Realtime Database successfully!");
                 Swal.fire({
                     title: 'Success!',
-                    text: 'Your volunteer application has been submitted successfully! Thank you for your interest in helping.',
+                    text: 'Application submitted successfully! Thank you for joining us.',
                     icon: 'success',
                     showConfirmButton: true,
                     confirmButtonText: 'OK',

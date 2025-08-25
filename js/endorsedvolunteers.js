@@ -118,6 +118,21 @@ viewApprovedBtn.addEventListener('click', () => {
 });
 
 // Permission check function
+// async function checkAdminPermissions() {
+//     const user = auth.currentUser;
+//     if (!user) {
+//         Swal.fire('Error', 'User not authenticated.', 'error');
+//         return { canView: false, canArchive: false, canRetrieve: false };
+//     }
+//     const snapshot = await database.ref(`users/${user.uid}`).once('value');
+//     const userData = snapshot.val();
+//     const adminPosition = userData?.adminPosition || '';
+//     return {
+//         canView: ['Super Admin', 'position-one', 'position-two'].includes(adminPosition),
+//         canArchive: ['Super Admin', 'position-one'].includes(adminPosition),
+//         canRetrieve: ['Super Admin', 'position-one'].includes(adminPosition)
+//     };
+// }
 async function checkAdminPermissions() {
     const user = auth.currentUser;
     if (!user) {
@@ -127,8 +142,9 @@ async function checkAdminPermissions() {
     const snapshot = await database.ref(`users/${user.uid}`).once('value');
     const userData = snapshot.val();
     const adminPosition = userData?.adminPosition || '';
+    const role = userData?.role || '';
     return {
-        canView: ['Super Admin', 'position-one', 'position-two'].includes(adminPosition),
+        canView: ['Super Admin', 'position-one', 'position-two'].includes(adminPosition) || role === 'ABVN',
         canArchive: ['Super Admin', 'position-one'].includes(adminPosition),
         canRetrieve: ['Super Admin', 'position-one'].includes(adminPosition)
     };
@@ -269,19 +285,18 @@ function exportToExcel() {
         title: 'Export Successful!',
         text: `Endorsed volunteer details have been exported to Excel "${filename}".`,
         icon: 'success',
-        timer: 2500,
-        showConfirmButton: false,
-        timerProgressBar: true,
-        allowOutsideClick: false,
+        showConfirmButton: true,
+        confirmButtonText: 'OK',
         customClass: {
             popup: 'swal2-popup-success-clean',
             title: 'swal2-title-success-clean',
-            htmlContainer: 'swal2-text-success-clean'
+            htmlContainer: 'swal2-text-success-clean',
+            confirmButton: 'my-success-button'
         }
     });
 }
 
-// Export All to PDF
+// Export PDF All
 function exportToPDF() {
     if (filteredVolunteers.length === 0) {
         Swal.fire("Info", "No data to export to PDF!", "info");
@@ -291,6 +306,11 @@ function exportToPDF() {
         title: 'Generating PDF',
         text: 'Please wait while your PDF is being generated...',
         allowOutsideClick: false,
+        customClass: {
+            popup: 'swal2-popup-success-clean',
+            title: 'swal2-title-success-clean',
+            htmlContainer: 'swal2-text-success-clean',
+        },
         didOpen: () => {
             Swal.showLoading();
         }
@@ -367,7 +387,26 @@ function exportToPDF() {
             },
             styles: {
                 fontSize: 8,
-                cellPadding: 2
+                cellPadding: 2,
+                overflow: 'linebreak' // Ensure text wraps within cells
+            },
+            columnStyles: {
+                0: { cellWidth: 10 },  // No. 
+                1: { cellWidth: 20 },  // Full Name
+                2: { cellWidth: 20 },  // Email
+                3: { cellWidth: 20 },  // Mobile Number 
+                4: { cellWidth: 10 },  // Age 
+                5: { cellWidth: 20 },  // Social Media 
+                6: { cellWidth: 15 },  // Region 
+                7: { cellWidth: 15 },  // Province 
+                8: { cellWidth: 15 },  // City 
+                9: { cellWidth: 15 },  // Barangay 
+                10: { cellWidth: 15 }, // Additional Info 
+                11: { cellWidth: 10 }, // Emergency Response 
+                12: { cellWidth: 20 }, // Date and Time Availability 
+                13: { cellWidth: 25 }, // Skills 
+                14: { cellWidth: 25 }, // Endorsed To ABVN 
+                15: { cellWidth: 20 }  // Endorsement Date
             },
             didDrawPage: function(data) {
                 doc.setFontSize(8);
@@ -395,14 +434,13 @@ function exportToPDF() {
             title: 'Export Successful!',
             text: `Endorsed volunteer details have been exported to PDF "${filename}".`,
             icon: 'success',
-            timer: 2500,
-            showConfirmButton: false,
-            timerProgressBar: true,
-            allowOutsideClick: false,
+            showConfirmButton: true,
+            confirmButtonText: 'OK',
             customClass: {
                 popup: 'swal2-popup-success-clean',
                 title: 'swal2-title-success-clean',
-                htmlContainer: 'swal2-text-success-clean'
+                htmlContainer: 'swal2-text-success-clean',
+                confirmButton: 'my-success-button'
             }
         });
     };
@@ -412,7 +450,7 @@ function exportToPDF() {
     };
 }
 
-// Export Single to PDF
+// Export PDF Single
 function saveSingleVolunteerPdf(volunteer) {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
@@ -487,14 +525,13 @@ function saveSingleVolunteerPdf(volunteer) {
             title: 'Export Successful!',
             text: 'Endorsed volunteer details have been exported to PDF.',
             icon: 'success',
-            timer: 1600,
-            showConfirmButton: false,
-            timerProgressBar: true,
-            allowOutsideClick: false,
+            showConfirmButton: true,
+            confirmButtonText: 'OK',
             customClass: {
                 popup: 'swal2-popup-success-clean',
                 title: 'swal2-title-success-clean',
-                htmlContainer: 'swal2-text-success-clean'
+                htmlContainer: 'swal2-text-success-clean',
+                confirmButton: 'my-success-button'
             }
         });
     };
@@ -503,7 +540,7 @@ function saveSingleVolunteerPdf(volunteer) {
     };
 }
 
-async function fetchEndorsedVolunteers(userUid) { 
+async function fetchEndorsedVolunteers(userUid) {
     if (!userUid) {
         console.warn("No user UID provided. Cannot fetch endorsed volunteers.");
         allEndorsedVolunteers = [];
@@ -513,33 +550,111 @@ async function fetchEndorsedVolunteers(userUid) {
 
     try {
         const tempEndorsedVolunteers = [];
+        const userSnapshot = await database.ref(`users/${userUid}`).once('value');
+        const userData = userSnapshot.val();
+        const userRole = userData?.role || 'ABVN';
 
-        const volunteerGroupsRef = database.ref('volunteerGroups');
-        const groupsSnapshot = await volunteerGroupsRef.once('value');
-        const groupsData = groupsSnapshot.val();
+        if (userRole === 'ABVN') {
+            // For ABVN users, find their associated volunteer group
+            const volunteerGroupsRef = database.ref('volunteerGroups');
+            const querySnapshot = await volunteerGroupsRef.orderByChild('userId').equalTo(userUid).once('value');
+            let foundAbvnKey = null;
 
-        if (groupsData) {
-            for (const abvnKey in groupsData) {
-                const group = groupsData[abvnKey];
-                const endorsedData = group.endorsedVolunteers;
+            querySnapshot.forEach(childSnapshot => {
+                foundAbvnKey = childSnapshot.key;
+                return true;
+            });
 
-                if (endorsedData) {
-                    for (const volunteerKey in endorsedData) {
-                        const volunteerData = endorsedData[volunteerKey];
-                        tempEndorsedVolunteers.push({
-                            key: volunteerKey,
-                            sourceAbvnKey: abvnKey,
-                            ...volunteerData
-                        });
+            if (!foundAbvnKey) {
+                Swal.fire({
+                    title: 'Access Denied',
+                    text: 'Your account is not associated with an ABVN group to view endorsements, or the association is missing. Please contact support.',
+                    icon: 'error',
+                    showConfirmButton: true,
+                    confirmButtonText: 'OK',
+                    customClass: {
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean',
+                        confirmButton: 'my-error-button'
+                    }
+                });
+                allEndorsedVolunteers = [];
+                renderVolunteersTable();
+                return;
+            }
+
+            const endorsedVolunteersRef = database.ref(`volunteerGroups/${foundAbvnKey}/endorsedVolunteers`);
+            const snapshot = await endorsedVolunteersRef.once('value');
+            const endorsedData = snapshot.val();
+
+            if (endorsedData) {
+                for (const volunteerKey in endorsedData) {
+                    const volunteerData = endorsedData[volunteerKey];
+                    tempEndorsedVolunteers.push({
+                        key: volunteerKey,
+                        sourceAbvnKey: foundAbvnKey,
+                        ...volunteerData
+                    });
+                }
+            }
+        } else if (permissions.canView) {
+            // For admins with view permission, fetch all endorsed volunteers
+            const volunteerGroupsRef = database.ref('volunteerGroups');
+            const groupsSnapshot = await volunteerGroupsRef.once('value');
+            const groupsData = groupsSnapshot.val();
+
+            if (groupsData) {
+                for (const abvnKey in groupsData) {
+                    const group = groupsData[abvnKey];
+                    const endorsedData = group.endorsedVolunteers;
+
+                    if (endorsedData) {
+                        for (const volunteerKey in endorsedData) {
+                            const volunteerData = endorsedData[volunteerKey];
+                            tempEndorsedVolunteers.push({
+                                key: volunteerKey,
+                                sourceAbvnKey: abvnKey,
+                                ...volunteerData
+                            });
+                        }
                     }
                 }
             }
+        } else {
+            Swal.fire({
+                title: 'Access Denied',
+                text: 'You do not have permission to view endorsed volunteers.',
+                icon: 'error',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
+                }
+            });
+            allEndorsedVolunteers = [];
+            renderVolunteersTable();
+            return;
         }
+
         allEndorsedVolunteers = tempEndorsedVolunteers;
         applyFiltersAndSort();
     } catch (error) {
         console.error("Error fetching endorsed volunteers:", error);
-        Swal.fire('Error', 'Failed to fetch endorsed volunteers.', 'error');
+        Swal.fire({
+            title: 'Error',
+            text: 'Failed to fetch endorsed volunteers.',
+            icon: 'error',
+            customClass: {
+                popup: 'swal2-popup-error-clean',
+                title: 'swal2-title-error-clean',
+                htmlContainer: 'swal2-text-error-clean',
+                confirmButton: 'my-error-button'
+            }
+        });
     }
 }
 
@@ -568,16 +683,21 @@ async function archiveVolunteer(volunteer) {
     }
 
     Swal.fire({
-        title: 'Are you sure?',
-        text: "You are about to archive this volunteer application. It will be moved to the deleted applications.",
+        title: 'Archive Volunteer?',
+        text: `Archive ${getFullName(volunteer)}?`,
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#d33', 
-        cancelButtonColor: '#3085d6',
-        confirmButtonText: 'Yes, archive it!',
+        confirmButtonText: 'Archive',
+        cancelButtonText: 'Cancel',
+        reverseButtons: true,
+        focusCancel: true,
+        allowOutsideClick: false,
         customClass: {
-            confirmButton: 'my-confirm-button-class',
-            cancelButton: 'my-cancel-button-class'
+            popup: 'custom-swal-popup-small',
+            title: 'custom-swal-title',
+            htmlContainer: 'custom-swal-content',
+            confirmButton: 'custom-confirm-btn',
+            cancelButton: 'custom-cancel-btn'
         }
     }).then(async (result) => {
         if (result.isConfirmed) {
@@ -590,7 +710,7 @@ async function archiveVolunteer(volunteer) {
             }
 
             sourcePath = `volunteerGroups/${abvnKeyToOperateOn}/endorsedVolunteers/${volunteer.key}`;
-            const destinationPath = `volunteerApplications/archivedEndorsedVolunteer${volunteer.key}`;
+            const destinationPath = `volunteerApplications/archivedEndorsedVolunteer/${volunteer.key}`;
 
             try {
                 const volunteerRef = database.ref(sourcePath);
@@ -612,7 +732,20 @@ async function archiveVolunteer(volunteer) {
                 await deletedRef.set(dataToArchive); 
                 await volunteerRef.remove(); 
 
-                Swal.fire('Archived!', 'Volunteer application has been archived.', 'success');
+                Swal.fire({
+                    title: 'Archived!',
+                    text: `${getFullName(volunteer)}'s application has been archived.`,
+                    icon: 'success',
+                    timer: 1600,
+                    showConfirmButton: false,
+                    timerProgressBar: true,
+                    allowOutsideClick: false,
+                    customClass: {
+                        popup: 'swal2-popup-success-clean',
+                        title: 'swal2-title-success-clean',
+                        htmlContainer: 'swal2-text-success-clean',
+                    }
+                });
 
                 allEndorsedVolunteers = allEndorsedVolunteers.filter(v => v.key !== volunteer.key);
                 applyFiltersAndSort();
@@ -632,20 +765,25 @@ async function retrieveVolunteer(volunteer) {
     }
 
     Swal.fire({
-        title: 'Are you sure?',
-        text: "You are about to retrieve this archived volunteer application. It will be moved back to active applications.",
-        icon: 'warning',
+        title: 'Retrieve Application?',
+        text: `${getFullName(volunteer)} will move the volunteer group application from archived records back to endorsed applications.`,
+        icon: 'question',
         showCancelButton: true,
-        confirmButtonColor: '#3085d6', 
-        cancelButtonColor: '#d33',
-        confirmButtonText: 'Yes, retrieve it!',
+        confirmButtonText: 'Retrieve',
+        cancelButtonText: 'Cancel',
+        reverseButtons: true,
+        focusCancel: true,
+        allowOutsideClick: false,
         customClass: {
-            confirmButton: 'my-confirm-button-class',
-            cancelButton: 'my-cancel-button-class'
-        }
+            popup: 'custom-swal-popup-large',
+            title: 'custom-swal-title',
+            htmlContainer: 'custom-swal-content',
+            confirmButton: 'custom-confirm-btn',
+            cancelButton: 'custom-cancel-btn'
+        },
     }).then(async (result) => {
         if (result.isConfirmed) {
-            const sourcePath = `deletedEndorsedVolunteerApplications/${volunteer.key}`;
+            const sourcePath = `volunteerApplications/archivedEndorsedVolunteer/${volunteer.key}`;
             const destinationPath = `volunteerGroups/${volunteer.sourceAbvnKey}/endorsedVolunteers/${volunteer.key}`;
 
             if (!volunteer.sourceAbvnKey) {
@@ -672,7 +810,20 @@ async function retrieveVolunteer(volunteer) {
                 await activeRef.set(dataToRetrieve); 
                 await archivedRef.remove();        
 
-                Swal.fire('Retrieved!', 'Volunteer application has been retrieved.', 'success');
+                Swal.fire({
+                    title: 'Retrieved!',
+                    text: 'Volunteer has been retrieved to endorsed volunteers.',
+                    icon: 'success',
+                    timer: 1600,
+                    showConfirmButton: false,
+                    timerProgressBar: true,
+                    allowOutsideClick: false,
+                    customClass: {
+                        popup: 'swal2-popup-success-clean',
+                        title: 'swal2-title-success-clean',
+                        htmlContainer: 'swal2-text-success-clean',
+                    }
+                });
 
                 fetchEndorsedVolunteers(currentUserId);
                 fetchArchivedVolunteers();
@@ -888,27 +1039,55 @@ function renderPagination() {
     paginationElement.innerHTML = '';
     const totalPages = Math.ceil(filteredVolunteers.length / rowsPerPage);
 
-    if (totalPages <= 1) return;
-
-    const prevBtn = document.createElement('button');
-    prevBtn.textContent = 'Previous';
-    prevBtn.disabled = currentPage === 1;
-    prevBtn.onclick = () => { currentPage--; paginateVolunteers(); };
-    paginationElement.appendChild(prevBtn);
-
-    for (let i = 1; i <= totalPages; i++) {
-        const pageBtn = document.createElement('button');
-        pageBtn.textContent = i;
-        pageBtn.classList.toggle('active', i === currentPage);
-        pageBtn.onclick = () => { currentPage = i; paginateVolunteers(); };
-        paginationElement.appendChild(pageBtn);
+    if (totalPages === 0) {
+        paginationElement.innerHTML = '<span>No entries to display</span>';
+        return;
     }
 
-    const nextBtn = document.createElement('button');
-    nextBtn.textContent = 'Next';
-    nextBtn.disabled = currentPage === totalPages;
-    nextBtn.onclick = () => { currentPage++; paginateVolunteers(); };
-    paginationElement.appendChild(nextBtn);
+    const createButton = (label, page, disabled = false, isActive = false) => {
+        const btn = document.createElement('button');
+        btn.textContent = label;
+        if (disabled) btn.disabled = true;
+        if (isActive) btn.classList.add('active-page');
+        btn.addEventListener('click', () => {
+            currentPage = page;
+            paginateVolunteers();
+        });
+        return btn;
+    };
+
+    paginationElement.appendChild(createButton('Prev', currentPage - 1, currentPage === 1));
+
+    const maxVisible = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+    if (endPage - startPage < maxVisible - 1) {
+        startPage = Math.max(1, endPage - maxVisible + 1);
+    }
+
+    if (startPage > 1) {
+        paginationElement.appendChild(createButton('1', 1));
+        if (startPage > 2) {
+            const dots = document.createElement('span');
+            dots.textContent = '...';
+            paginationElement.appendChild(dots);
+        }
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+        paginationElement.appendChild(createButton(i, i, false, i === currentPage));
+    }
+
+    if (endPage < totalPages) {
+        if (endPage < totalPages - 1) {
+            const dots = document.createElement('span');
+            dots.textContent = '...';
+            paginationElement.appendChild(dots);
+        }
+        paginationElement.appendChild(createButton(totalPages, totalPages));
+    }
+
+    paginationElement.appendChild(createButton('Next', currentPage + 1, currentPage === totalPages));
 }
 
 viewArchivedButton.addEventListener('click', () => {
@@ -952,7 +1131,7 @@ async function fetchArchivedVolunteers() {
     }
     
     try {
-        const archivedRef = database.ref('deletedEndorsedVolunteerApplications');
+        const archivedRef = database.ref('volunteerApplications/archivedEndorsedVolunteer');
         const snapshot = await archivedRef.once('value');
         const archivedData = snapshot.val();
         
@@ -1263,3 +1442,5 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
+
+

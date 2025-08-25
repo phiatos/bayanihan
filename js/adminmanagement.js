@@ -1022,7 +1022,7 @@ function deleteAdmin(uid) {
             focusCancel: true,
             allowOutsideClick: false,
             customClass: {
-                popup: 'custom-swal-popup-small',
+                popup: 'custom-swal-popup-large',
                 title: 'custom-swal-title',
                 htmlContainer: 'custom-swal-content',
                 confirmButton: 'custom-confirm-btn',

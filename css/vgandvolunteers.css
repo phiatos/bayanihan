@@ -2,6 +2,10 @@
     width: 100%;
 }
 
+h3 {
+    color: var(--accent-color) !important; 
+}
+
 .action-dropdown-menu {
     position: absolute;
     top: 100%;
@@ -9,7 +13,7 @@
     width: 200px;
     border-radius: 20px;
     padding: 10px 20px;
-    background-color: #fff;
+    background-color: var(--white, #FFFFFF);
     box-shadow: 0px 10px 8px rgba(0, 0, 0, 0.1);
     z-index: 1000;
     display: flex;
@@ -23,21 +27,19 @@
     gap: 10px;
     font-size: 12px;
     font-weight: 500;
-    color: var(--primary-color, #333);
-    text-decoration: none;
+    color: var(--primary-color, #14AEBB);
     padding: 8px 12px;
     border-radius: 8px;
-    transition: all 0.3s;
     background-color: transparent;
     border: none;
     cursor: pointer;
     width: 100%;
     text-align: left;
+    transition: all 0.3s;
 }
 
 .action-dropdown-menu button:hover {
-    color: var(--accent-color, #007bff);
-    background-color: var(--white, #f0f0f0);
+    color: var(--accent-color, #FA3B99);
 }
 
 .actionBtn i {
@@ -52,16 +54,21 @@
 #endorseABVNForm {
     display: flex;
     flex-direction: column;
-    gap: 20px;
-    margin-top: 25px;
+    gap: 15px;
+    padding: 15px;
+    border-radius: 12px;
+    animation: fadeIn 0.3s ease-in-out;
 }
 
 #scheduleForm label,
 #endorseABVNForm label {
-    font-weight: 700;
-    color: var(--primary-color);
-    margin-bottom: 5px;
-    font-size: 14px;
+    font-weight: 600;
+    color: var(--primary-color, #14AEBB);
+    margin-bottom: 4px;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
 }
 
 #scheduleForm input[type="datetime-local"],
@@ -70,205 +77,181 @@
 #endorseABVNForm select,
 #endorseABVNForm textarea {
     width: 100%;
-    padding: 14px 16px;
-    border-radius: 12px;
-    border: 1px solid #d1d5db;
-    background-color: #f9fafb;
-    font-size: 15px;
-    transition: all 0.2s ease-in-out;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--gray, #9e9e9e);
+    font-size: 14px;
     outline: none;
+    box-sizing: border-box;
+    transition: all 0.2s ease-in-out;
 }
 
-#scheduleForm input[type="datetime-local"]:focus,
-#scheduleForm input[type="text"]:focus,
+#scheduleForm input:focus,
 #endorseABVNForm input:focus,
 #endorseABVNForm select:focus,
 #endorseABVNForm textarea:focus {
-    border-color: #4f46e5;
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
-    background-color: #ffffff;
+    border-color: var(--accent-color, #FA3B99);
+    box-shadow: 0 0 0 2px rgba(250, 59, 153, 0.25);
 }
 
 #scheduleForm button[type="submit"],
 #endorseABVNForm button[type="submit"] {
-    padding: 14px;
+    padding: 10px;
     width: 100%;
-    background-color: var(--primary-color);
-    color: #ffffff;
-    font-size: 16px;
+    background-color: var(--primary-color, #14AEBB);
+    color: var(--white, #FFFFFF);
+    font-size: 15px;
     font-weight: 600;
     border: none;
-    border-radius: 12px;
+    border-radius: 8px;
     cursor: pointer;
-    transition: background-color 0.2s ease, transform 0.2s ease;
     align-self: stretch;
-    margin-top: 15px;
-    box-shadow: none;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 #scheduleForm button[type="submit"]:hover,
 #endorseABVNForm button[type="submit"]:hover {
-    background-color: var(--button-hover);
-    transform: scale(1.01);
-    box-shadow: none;
+    background-color: var(--button-hover, #0e7781);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
 }
 
 #endorseABVNSubmitBtn:disabled {
-    background-color: var(--gray);
+    background-color: var(--gray, #9e9e9e);
     cursor: not-allowed;
-    transform: none;
     opacity: 0.7;
     box-shadow: none;
 }
 
 #endorseABVNForm p {
-    font-size: 1.05rem;
-    color: var(--black);
-    margin-bottom: 5px;
-    line-height: 1.5;
+    font-size: 0.95rem;
+    color: var(--black, #121212);
+    line-height: 1.4;
 }
 
 .filter-controls {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 20px;
-    margin-top: -15px;
-    margin-bottom: 30px;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+    margin: -10px 0;
     align-items: end;
+    padding: 10px;
+    border-radius: 8px;
+    animation: fadeIn 0.3s ease-in-out;
 }
 
 .filter-group {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
 }
 
 .filter-controls label {
     font-weight: 600;
-    color: var(--primary-color);
-    font-size: 0.95rem;
-    margin-bottom: 0;
+    color: var(--primary-color, #14AEBB);
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 4px;
 }
 
 .filter-controls input,
 .filter-controls select {
     width: 100%;
-    padding: 14px 16px;
-    border-radius: 12px;
-    border: 1px solid #d1d5db;
-    background-color: #f9fafb;
-    font-size: 15px;
-    transition: all 0.2s ease-in-out;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--gray, #9e9e9e);
+    background-color: var(--white, #FFFFFF);
+    font-size: 14px;
     outline: none;
+    box-sizing: border-box;
+    transition: all 0.2s ease-in-out;
 }
 
 .filter-controls input:focus,
 .filter-controls select:focus {
-    border-color: #4f46e5;
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
-    background-color: #ffffff;
-}
-
-.filter-controls button {
-    padding: 14px;
-    width: 100%;
-    background-color: var(--primary-color);
-    color: #ffffff;
-    font-size: 16px;
-    font-weight: 600;
-    border: none;
-    border-radius: 12px;
-    cursor: pointer;
-    transition: background-color 0.2s ease, transform 0.2s ease;
-    box-shadow: none;
-    white-space: nowrap;
-    align-self: flex-end;
-}
-
-.filter-controls button#clearFiltersBtn {
-    background-color: var(--gray);
-    min-width: 150px;
-}
-
-.filter-controls button#clearFiltersBtn:hover {
-    background-color: #7c7c7c;
-    transform: scale(1.01);
-}
-
-.filter-controls button:hover {
-    background-color: var(--button-hover);
-    transform: scale(1.01);
-    box-shadow: none;
+    border-color: var(--accent-color, #FA3B99);
+    box-shadow: 0 0 0 2px rgba(250, 59, 153, 0.25);
+    background-color: var(--white, #FFFFFF);
 }
 
 .abvn-radio-group {
-    max-height: 300px;
-    min-height: 100px;
+    max-height: 250px;
+    min-height: 80px;
     overflow-y: auto;
-    border: 1px solid var(--gray);
-    border-radius: 10px;
-    padding: 20px;
-    background-color: var(--white);
-    margin-bottom: 20px;
+    border: 1px solid var(--gray, #9e9e9e);
+    border-radius: 8px;
+    padding: 15px;
+    background-color: var(--white, #FFFFFF);
     box-shadow: inset 0 1px 5px rgba(0, 0, 0, 0.05);
 }
 
 .abvn-radio-group p {
-    font-size: 1rem;
-    color: var(--gray);
+    font-size: 0.9rem;
+    color: var(--gray, #9e9e9e);
     font-style: italic;
-    padding: 15px;
+    padding: 10px;
     text-align: center;
-    background-color: var(--light-bg);
+    background-color: var(--light-bg, #FFF9F0);
     border-radius: 5px;
 }
 
 .abvn-option label {
     display: flex;
     align-items: center;
-    padding: 12px 0;
+    padding: 8px 0;
     cursor: pointer;
-    color: var(--black);
+    color: var(--black, #121212);
     font-weight: 400;
-    font-size: 1.05rem;
+    font-size: 1rem;
+    border-bottom: 1px solid var(--gray, #9e9e9e);
     transition: background-color 0.2s ease;
-    border-bottom: 1px solid #e0e0e0;
 }
 
-.abvn-option:last-child label {
+.abvn-option {
+    display: flex;
+    align-items: center; 
+    gap: 8px;         
+    padding: 8px 0;
     border-bottom: none;
 }
 
-.abvn-option label:hover {
-    background-color: rgba(20, 174, 187, 0.08);
-    border-radius: 6px;
+.abvn-option:last-child {
+    border-bottom: none;
+}
+
+.abvn-option label {
+    cursor: pointer;
+    font-weight: 400;
+    font-size: 1rem;
 }
 
 .abvn-radio-group input[type="radio"] {
-    margin-right: 15px;
+    margin-right: 10px;
     appearance: none;
     -webkit-appearance: none;
-    width: 22px;
-    height: 22px;
-    border: 2px solid var(--primary-color);
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--primary-color, #14AEBB);
     border-radius: 50%;
     position: relative;
     cursor: pointer;
     outline: none;
-    transition: background-color 0.3s ease, border-color 0.3s ease;
     flex-shrink: 0;
+    transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
 .abvn-radio-group input[type="radio"]:checked {
-    background-color: var(--primary-color);
-    border-color: var(--primary-color);
+    background-color: var(--primary-color, #14AEBB);
+    border-color: var(--primary-color, #14AEBB);
 }
 
 .abvn-radio-group input[type="radio"]:checked::after {
     content: '';
-    width: 12px;
-    height: 12px;
-    background-color: var(--white);
+    width: 10px;
+    height: 10px;
+    background-color: var(--white, #FFFFFF);
     border-radius: 50%;
     position: absolute;
     top: 50%;
@@ -277,67 +260,74 @@
 }
 
 #filterResultsInfo {
-    margin: 20px 0 30px 0;
-    font-size: 1rem;
-    color: var(--dark-gray);
+    font-size: 0.95rem;
+    color: var(--swal-text-color, #566573);
     text-align: center;
     font-weight: 500;
 }
 
-#endorseABVNSubmitBtn {
-    width: auto;
-    padding: 15px 30px;
-    font-size: 1.15rem;
-    align-self: center;
-    margin-top: 25px;
-    border-radius: 12px;
+#endorseABVNSubmitBtn,
+#clearFiltersBtn {
+    width: 100%;
+    padding: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    border-radius: 8px;
+}
+
+#clearFiltersBtn {
+    grid-column: 1 / -1;   
+    justify-self: center; 
+    width: 100%;           
+    padding: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    border-radius: 8px;
 }
 
 .back-btn {
-    background-color: var(--gray);
-    color: var(--white);
+    background-color: var(--gray, #9e9e9e);
+    color: var(--white, #FFFFFF);
     border: none;
-    padding: 14px;
-    border-radius: 12px;
-    font-size: 16px;
+    padding: 10px;
+    border-radius: 8px;
+    font-size: 15px;
     font-weight: 600;
     cursor: pointer;
-    transition: background-color 0.2s ease, transform 0.2s ease;
     align-self: stretch;
-    margin-top: 10px;
+    margin-top: 8px;
     box-shadow: none;
+    transition: background-color 0.2s ease, transform 0.2s ease;
 }
 
 .back-btn:hover {
-    background-color: #7c7c7c;
+    background-color: var(--red-hover, #d63128);
     transform: scale(1.01);
-    box-shadow: none;
 }
 
 .abvn-radio-group::-webkit-scrollbar {
-    width: 8px;
+    width: 6px;
 }
 
 .abvn-radio-group::-webkit-scrollbar-thumb {
-    background-color: var(--primary-color);
+    background-color: var(--primary-color, #14AEBB);
     border-radius: 4px;
 }
 
 .abvn-radio-group::-webkit-scrollbar-thumb:hover {
-    background-color: var(--button-hover);
+    background-color: var(--button-hover, #0e7781);
 }
 
 .abvn-radio-group::-webkit-scrollbar-track {
-    background-color: var(--white);
+    background-color: var(--white, #FFFFFF);
     border-radius: 4px;
 }
 
 @keyframes fadeIn {
     from {
         opacity: 0;
-        transform: translateY(30px);
+        transform: translateY(20px);
     }
-
     to {
         opacity: 1;
         transform: translateY(0);
@@ -346,89 +336,84 @@
 
 @media (max-width: 768px) {
     .action-dropdown button {
-        font-size: 0.95rem;
-        padding: 10px 15px;
+        font-size: 0.9rem;
+        padding: 8px 12px;
     }
-
+    #scheduleForm,
+    #endorseABVNForm {
+        padding: 12px;
+    }
     #scheduleForm button[type="submit"],
     #endorseABVNForm button[type="submit"],
     .back-btn {
         font-size: 14px;
-        padding: 14px;
+        padding: 10px;
         width: 100%;
-        align-self: stretch;
     }
-
-    #scheduleForm input[type="datetime-local"],
-    #scheduleForm input[type="text"] {
-        padding: 14px 16px;
-        font-size: 15px;
+    #scheduleForm input,
+    #endorseABVNForm input,
+    #endorseABVNForm select,
+    #endorseABVNForm textarea {
+        padding: 10px 12px;
+        font-size: 14px;
     }
-
     .filter-controls {
         grid-template-columns: 1fr;
-        gap: 20px;
+        gap: 10px;
         padding: 10px;
-        margin-top: 20px;
+        margin-top: 15px;
     }
-
     .filter-controls input,
     .filter-controls select {
-        padding: 14px 16px;
-        font-size: 15px;
+        padding: 10px 12px;
+        font-size: 14px;
     }
-
     .filter-controls button {
-        padding: 14px;
-        font-size: 16px;
+        padding: 10px;
+        font-size: 14px;
     }
-
     .abvn-radio-group {
-        max-height: 200px;
-        padding: 15px;
+        max-height: 180px;
+        padding: 12px;
     }
-
     .abvn-option label {
-        font-size: 1rem;
-        padding: 10px 0;
+        font-size: 0.95rem;
+        padding: 8px 0;
     }
-
     #endorseABVNSubmitBtn {
         width: 100%;
-        padding: 14px;
-        font-size: 16px;
+        padding: 10px;
+        font-size: 14px;
     }
-
     #filterResultsInfo {
-        margin: 15px 0 25px 0;
+        margin: 10px 0 15px 0;
     }
 }
 
 @media (max-width: 480px) {
     .filter-controls button {
-        font-size: 14px;
-        padding: 14px;
+        font-size: 13px;
+        padding: 8px;
     }
-
     .abvn-radio-group {
-        padding: 10px;
+        padding: 8px;
     }
-
     .abvn-option label {
-        font-size: 0.95rem;
+        font-size: 0.9rem;
     }
-
     .abvn-radio-group input[type="radio"] {
-        width: 18px;
-        height: 18px;
+        width: 16px;
+        height: 16px;
     }
-
     .abvn-radio-group input[type="radio"]:checked::after {
         width: 8px;
         height: 8px;
     }
-
     #filterResultsInfo {
-        margin: 10px 0 20px 0;
+        margin: 8px 0 15px 0;
+    }
+    #scheduleForm,
+    #endorseABVNForm {
+        padding: 8px;
     }
 }

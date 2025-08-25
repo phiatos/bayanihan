@@ -383,7 +383,7 @@ function initializePageFunctions(userId) {
                 "Age": volunteer.age || 'N/A',
                 "Social Media": volunteer.socialMediaLink || 'N/A',
                 "Additional Info": volunteer.otherSkillComments || 'N/A',
-                "Emergency Response": volunteer.emergencyResponse || 'N/A',
+                "Emergency Response": volunteer.isEmergencyResponse ? 'Yes (24/7)' : 'No' || 'N/A',
                 "Date/Time Availability": volunteer.availability?.specificDateTimeSlots?.map(slot => `${slot.date} at ${slot.time}`).join('; ') || 'N/A',
                 "Region": volunteer.address?.region || 'N/A',
                 "Province": volunteer.address?.province || 'N/A',
@@ -410,14 +410,13 @@ function initializePageFunctions(userId) {
             title: 'Export Successful!',
             text: `Approved volunteer application details have been exported to Excel "${filename}".`,
             icon: 'success',
-            timer: 2500,
-            showConfirmButton: false,
-            timerProgressBar: true,
-            allowOutsideClick: false,
+            showConfirmButton: true,
+            confirmButtonText: 'OK',
             customClass: {
                 popup: 'swal2-popup-success-clean',
                 title: 'swal2-title-success-clean',
-                htmlContainer: 'swal2-text-success-clean'
+                htmlContainer: 'swal2-text-success-clean',
+                confirmButton: 'my-success-button'
             }
         });
     }
@@ -446,6 +445,11 @@ function initializePageFunctions(userId) {
             title: 'Generating PDF',
             text: 'Please wait while your PDF is being generated...',
             allowOutsideClick: false,
+            customClass: {
+                popup: 'swal2-popup-success-clean',
+                title: 'swal2-title-success-clean',
+                htmlContainer: 'swal2-text-success-clean',
+            },
             didOpen: () => {
                 Swal.showLoading();
             }
@@ -475,9 +479,8 @@ function initializePageFunctions(userId) {
             yOffset += 15;
             const head = [[
                 "No.", "Full Name", "Email", "Mobile Number", "Age", "Social Media",
-                "Region", "Province", "City", "Barangay", "Additional Info",
-                "Skills", "Date/Time Availability",
-                "Scheduled Date/Time"
+                "Additional Info", "Emergency Response", "Date/Time Availability",
+                "Region", "Province", "City", "Barangay", "Skills", "Scheduled Date/Time"
             ]];
             const body = filteredApprovedApplications.map((volunteer, i) => {
                 let skillsDisplay = 'None';
@@ -494,12 +497,15 @@ function initializePageFunctions(userId) {
                     String(volunteer.mobileNumber || 'N/A'),
                     volunteer.age || 'N/A',
                     volunteer.socialMediaLink || 'N/A',
+                    volunteer.otherSkillComments || 'N/A',
+                    volunteer.isEmergencyResponse ? 'Yes (24/7)' : 'No',
+                    volunteer.availability?.specificDateTimeSlots?.map(slot => `${slot.date} at ${slot.time}`).join('; ') || 'N/A',
                     volunteer.address?.region || 'N/A',
                     volunteer.address?.province || 'N/A',
                     volunteer.address?.city || 'N/A',
                     volunteer.address?.barangay || 'N/A',
-                    volunteer.otherSkillComments || 'N/A',
-                    formatDate(volunteer.scheduledDateTime || volunteer.applicationDateandTime),
+                    skillsDisplay,
+                    formatDate(volunteer.scheduledDateTime || volunteer.applicationDateandTime)
                 ];
             });
             doc.autoTable({
@@ -515,6 +521,23 @@ function initializePageFunctions(userId) {
                 styles: {
                     fontSize: 8,
                     cellPadding: 2
+                },
+                columnStyles: {
+                    0: { cellWidth: 10 }, // No.
+                    1: { cellWidth: 20 }, // Full Name
+                    2: { cellWidth: 25 }, // Email
+                    3: { cellWidth: 25 }, // Mobile Number
+                    4: { cellWidth: 10 }, // Age
+                    5: { cellWidth: 20 }, // Social Media
+                    6: { cellWidth: 10 }, // Additional Info
+                    7: { cellWidth: 10 }, // Emergency Response
+                    8: { cellWidth: 20 }, // Date/Time Availability
+                    9: { cellWidth: 20 }, // Region
+                    10: { cellWidth: 20 }, // Province
+                    11: { cellWidth: 20 }, // City
+                    12: { cellWidth: 20 }, // Barangay
+                    13: { cellWidth: 20 }, // Skills
+                    14: { cellWidth: 20 }  // Scheduled Date/Time
                 },
                 didDrawPage: function(data) {
                     doc.setFontSize(8);
@@ -542,14 +565,13 @@ function initializePageFunctions(userId) {
                 title: 'Export Successful!',
                 text: `Approved volunteer application details have been exported to PDF "${filename}".`,
                 icon: 'success',
-                timer: 2500,
-                showConfirmButton: false,
-                timerProgressBar: true,
-                allowOutsideClick: false,
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
                 customClass: {
                     popup: 'swal2-popup-success-clean',
                     title: 'swal2-title-success-clean',
-                    htmlContainer: 'swal2-text-success-clean'
+                    htmlContainer: 'swal2-text-success-clean',
+                    confirmButton: 'my-success-button'
                 }
             });
         };
@@ -565,19 +587,19 @@ function initializePageFunctions(userId) {
             return;
         }
         const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
+        const doc = new jsPDF('landscape'); // Use landscape to match exportToPDF
         const logo = new Image();
         logo.src = '../assets/images/AB_logo.png';
         logo.onload = function() {
             const pageWidth = doc.internal.pageSize.width;
-            const pageHeight = doc.internal.pageSize.height;
             const logoWidth = 30;
             const logoHeight = (logo.naturalHeight / logo.naturalWidth) * logoWidth;
             const margin = 14;
-            const maxTextWidth = pageWidth - 2 * margin;
+            let yOffset = 20;
             doc.addImage(logo, 'PNG', pageWidth - logoWidth - margin, margin, logoWidth, logoHeight);
             doc.setFontSize(18);
-            doc.text("Approved Volunteer Application Details", 14, 22);
+            doc.text("Approved Volunteer Application Details", 14, yOffset);
+            yOffset += 10;
             doc.setFontSize(10);
             const now = new Date();
             const options = {
@@ -585,51 +607,79 @@ function initializePageFunctions(userId) {
                 hour: '2-digit', minute: '2-digit', second: '2-digit',
                 hour12: true, timeZone: 'Asia/Manila'
             };
-            doc.text(`Report Generated: ${now.toLocaleString('en-US', options)} (PHT)`, 14, 30);
-            let y = 45;
-            const addDetail = (label, value) => {
-                const text = `${label}: ${value || 'N/A'}`;
-                const textLines = doc.splitTextToSize(text, maxTextWidth);
-                textLines.forEach(line => {
-                    if (y + 7 > pageHeight - 20) {
-                        doc.addPage();
-                        y = 20;
-                        doc.addImage(logo, 'PNG', pageWidth - logoWidth - margin, margin, logoWidth, logoHeight);
-                        doc.setFontSize(18);
-                        doc.text("Approved Volunteer Application Details (Continued)", 14, 22);
-                        doc.setFontSize(10);
-                    }
-                    doc.text(line, 14, y);
-                    y += 7;
-                });
-                return y;
-            };
-            y = addDetail("Full Name", getFullName(volunteer));
-            y = addDetail("Email", volunteer.email);
-            y = addDetail("Mobile Number", String(volunteer.mobileNumber));
-            y = addDetail("Age", volunteer.age);
-            y = addDetail("Social Media Link", volunteer.socialMediaLink);
-            y = addDetail("Region", volunteer.address?.region);
-            y = addDetail("Province", volunteer.address?.province);
-            y = addDetail("City", volunteer.address?.city);
-            y = addDetail("Barangay", volunteer.address?.barangay);
-            y = addDetail("Street Address", volunteer.address?.streetAddress);
-            y = addDetail("Additional Info", volunteer.additionalInfo);
-            y = addDetail("General Availability", volunteer.availability?.general);
-            y = addDetail("Available Days", volunteer.availability?.specificDays ? volunteer.availability.specificDays.join(', ') : 'N/A');
-            y = addDetail("Time Availability", volunteer.availability?.timeAvailability);
-            y = addDetail("Scheduled Date/Time", formatDate(volunteer.scheduledDateTime || volunteer.applicationDateandTime));
-            const applicationDateTime = formatDate(volunteer.applicationDateandTime);
-            if (applicationDateTime === 'N/A') {
-                console.warn(`Missing or invalid applicationDateandTime for volunteer ${volunteer.key}:`, volunteer.applicationDateandTime);
+            doc.text(`Report Generated: ${now.toLocaleString('en-US', options)} (PHT)`, 14, yOffset);
+            yOffset += 15;
+            const head = [[
+                "No.", "Full Name", "Email", "Mobile Number", "Age", "Social Media",
+                "Additional Info", "Emergency Response", "Date/Time Availability",
+                "Region", "Province", "City", "Barangay", "Skills", "Scheduled Date/Time"
+            ]];
+            let skillsDisplay = 'None';
+            if (volunteer.skills && Array.isArray(volunteer.skills) && volunteer.skills.length > 0) {
+                skillsDisplay = volunteer.skills.map(skill => 
+                    skill === 'Other' && volunteer.otherSkillComments ? 
+                    `${skill} (${volunteer.otherSkillComments})` : skill
+                ).join('; ');
             }
-            y = addDetail("Application Date/Time", applicationDateTime);
-            doc.setFontSize(8);
-            const footerY = doc.internal.pageSize.height - 10;
-            const pageNumberText = `Page ${doc.internal.getNumberOfPages()} of ${doc.internal.getNumberOfPages()}`;
-            const poweredByText = "Powered by: Appvance";
-            doc.text(pageNumberText, margin, footerY);
-            doc.text(poweredByText, pageWidth - margin, footerY, { align: 'right' });
+            const body = [[
+                1,
+                getFullName(volunteer) || 'N/A',
+                volunteer.email || 'N/A',
+                String(volunteer.mobileNumber || 'N/A'),
+                volunteer.age || 'N/A',
+                volunteer.socialMediaLink || 'N/A',
+                volunteer.otherSkillComments || 'N/A',
+                volunteer.isEmergencyResponse ? 'Yes (24/7)' : 'No',
+                volunteer.availability?.specificDateTimeSlots?.map(slot => `${slot.date} at ${slot.time}`).join('; ') || 'N/A',
+                volunteer.address?.region || 'N/A',
+                volunteer.address?.province || 'N/A',
+                volunteer.address?.city || 'N/A',
+                volunteer.address?.barangay || 'N/A',
+                skillsDisplay,
+                formatDate(volunteer.scheduledDateTime || volunteer.applicationDateandTime)
+            ]];
+            doc.autoTable({
+                head: head,
+                body: body,
+                startY: yOffset,
+                theme: 'grid',
+                headStyles: {
+                    fillColor: [20, 174, 187],
+                    textColor: [255, 255, 255],
+                    halign: 'center'
+                },
+                styles: {
+                    fontSize: 8,
+                    cellPadding: 2
+                },
+                columnStyles: {
+                    0: { cellWidth: 10 }, // No.
+                    1: { cellWidth: 20 }, // Full Name
+                    2: { cellWidth: 25 }, // Email
+                    3: { cellWidth: 25 }, // Mobile Number
+                    4: { cellWidth: 10 }, // Age
+                    5: { cellWidth: 20 }, // Social Media
+                    6: { cellWidth: 10 }, // Additional Info
+                    7: { cellWidth: 10 }, // Emergency Response
+                    8: { cellWidth: 20 }, // Date/Time Availability
+                    9: { cellWidth: 20 }, // Region
+                    10: { cellWidth: 20 }, // Province
+                    11: { cellWidth: 20 }, // City
+                    12: { cellWidth: 20 }, // Barangay
+                    13: { cellWidth: 20 }, // Skills
+                    14: { cellWidth: 20 }  // Scheduled Date/Time
+                },
+                didDrawPage: function(data) {
+                    doc.setFontSize(8);
+                    const pageNumberText = `Page ${data.pageNumber} of ${doc.internal.getNumberOfPages()}`;
+                    const poweredByText = "Powered by: Appvance";
+                    const pageWidth = doc.internal.pageSize.width;
+                    const margin = data.settings.margin.left;
+                    const footerY = doc.internal.pageSize.height - 10;
+                    doc.text(pageNumberText, margin, footerY);
+                    doc.text(poweredByText, pageWidth - margin, footerY, { align: 'right' });
+                }
+            });
             const sanitizedFullName = getFullName(volunteer).replace(/[^a-zA-Z0-9-_]/g, '_') || 'unknown';
             const nowForFilename = new Date();
             const year = nowForFilename.getFullYear();
@@ -641,14 +691,13 @@ function initializePageFunctions(userId) {
                 title: 'Export Successful!',
                 text: 'Approved volunteer application details have been exported to PDF.',
                 icon: 'success',
-                timer: 1600,
-                showConfirmButton: false,
-                timerProgressBar: true,
-                allowOutsideClick: false,
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
                 customClass: {
                     popup: 'swal2-popup-success-clean',
                     title: 'swal2-title-success-clean',
-                    htmlContainer: 'swal2-text-success-clean'
+                    htmlContainer: 'swal2-text-success-clean',
+                    confirmButton: 'my-success-button'
                 }
             });
         };
@@ -734,34 +783,6 @@ function initializePageFunctions(userId) {
 
         let i = startIndex + 1;
 
-        // paginatedApplications.forEach(volunteer => {
-        //     const row = archivedTableBody.insertRow();
-        //     row.setAttribute('data-key', volunteer.key);
-        //     const fullName = getFullName(volunteer);
-        //     const socialMediaDisplay = volunteer.socialMediaLink ? `<a href="${volunteer.socialMediaLink}" target="_blank" rel="noopener noreferrer">Link</a>` : 'N/A';
-        //     const scheduledDateTimeDisplay = volunteer.scheduledDateTime ? formatDate(volunteer.scheduledDateTime) : 'N/A';
-        //     row.innerHTML = `
-        //         <td>${i++}</td>
-        //         <td>${fullName}</td>
-        //         <td>${volunteer.email || 'N/A'}</td>
-        //         <td>${volunteer.mobileNumber || 'N/A'}</td>
-        //         <td>${volunteer.age || 'N/A'}</td>
-        //         <td>${socialMediaDisplay}</td>
-        //         <td>${volunteer.otherSkillComments || 'N/A'}</td>
-        //         <td>${volunteer.isEmergencyResponse ? 'Yes (24/7)' : 'No'}</td>
-        //         <td>${specificSlotsHtml}</td>
-        //         <td>${volunteer.address?.region || 'N/A'}</td>
-        //         <td>${volunteer.address?.province || 'N/A'}</td>
-        //         <td>${volunteer.address?.city || 'N/A'}</td>
-        //         <td>${volunteer.address?.barangay || 'N/A'}</td>
-        //         <td>${skillsHtml}</td>
-        //         <td>${scheduledDateTimeDisplay}</td>
-        //         <td>${formatDate(volunteer.archivedAt)}</td>
-        //         <td>
-        //             ${permissions.canRetrieve ? `<button class="retrieveBtn" data-key="${volunteer.key}">Retrieve</button>` : ''}
-        //         </td>
-        //     `;
-        // });
         paginatedApplications.forEach(volunteer => {
             const row = archivedTableBody.insertRow();
             row.setAttribute('data-key', volunteer.key);
@@ -1341,7 +1362,7 @@ function initializePageFunctions(userId) {
                 focusCancel: true,
                 allowOutsideClick: false,
                 customClass: {
-                    popup: 'custom-swal-popup-small',
+                    popup: 'custom-swal-popup-large',
                     title: 'custom-swal-title',
                     htmlContainer: 'custom-swal-content',
                     confirmButton: 'custom-confirm-btn',
@@ -1397,142 +1418,6 @@ function initializePageFunctions(userId) {
             Swal.fire('Error', 'Volunteer data not found.', 'error');
         }
     }
-
-    // async function handleRescheduleClick(button) {
-    //     if (!permissions.canEdit) {
-    //         Swal.fire('Error', 'You do not have permission to reschedule volunteers.', 'error');
-    //         return;
-    //     }
-    //     const isVerified = await verifySuperAdminPassword();
-    //     if (!isVerified) {
-    //         Swal.fire({
-    //             title: 'Error',
-    //             text: 'Incorrect admin password.',
-    //             icon: 'error',
-    //             showConfirmButton: true,
-    //             confirmButtonText: 'OK',
-    //             customClass: {
-    //                 popup: 'swal2-popup-error-clean',
-    //                 title: 'swal2-title-error-clean',
-    //                 htmlContainer: 'swal2-text-error-clean',
-    //                 confirmButton: 'my-error-button'
-    //             }
-    //         });
-    //         return;
-    //     }
-
-    //     const volunteerKey = button.dataset.key;
-    //     const volunteer = allApprovedApplications.find(v => v.key === volunteerKey);
-
-    //     if (!volunteer) {
-    //         console.warn("Volunteer data not found for rescheduling:", volunteerKey);
-    //         Swal.fire('Error', 'Volunteer data not found for rescheduling.', 'error');
-    //         return;
-    //     }
-
-    //     const currentScheduledDateTime = volunteer.scheduledDateTime ? formatToDatetimeLocal(volunteer.scheduledDateTime) : '';
-
-    //     Swal.fire({
-    //         title: `Reschedule ${getFullName(volunteer)}`,
-    //         html: `
-    //             <label for="swal-input-datetime" style="display:block; margin-bottom: 5px; font-weight: bold;">New Scheduled Date & Time:</label>
-    //             <input type="datetime-local" id="swal-input-datetime" class="swal2-input" value="${currentScheduledDateTime}">
-    //         `,
-    //         showCancelButton: true,
-    //         confirmButtonText: 'Reschedule',
-    //         cancelButtonText: 'Cancel',
-    //         reverseButtons: true,
-    //         focusCancel: true,
-    //         customClass: {
-    //             popup: 'custom-swal-popup-large',
-    //             title: 'custom-swal-title',
-    //             htmlContainer: 'custom-swal-content',
-    //             confirmButton: 'custom-confirm-btn',
-    //             cancelButton: 'custom-cancel-btn'
-    //         },
-    //         preConfirm: () => {
-    //             const newDateTimeString = document.getElementById('swal-input-datetime').value;
-    //             if (!newDateTimeString) {
-    //                 Swal.showValidationMessage('Please select a date and time.');
-    //                 return false;
-    //             }
-
-    //             // Validate input format
-    //             const datetimeRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
-    //             if (!datetimeRegex.test(newDateTimeString)) {
-    //                 Swal.showValidationMessage('Invalid date and time format. Please use the datetime picker.');
-    //                 return false;
-    //             }
-
-    //             const newTimestamp = new Date(newDateTimeString).getTime();
-    //             if (isNaN(newTimestamp)) {
-    //                 Swal.showValidationMessage('Invalid date and time format.');
-    //                 return false;
-    //             }
-
-    //             const currentDateTime = Date.now();
-    //             // Prevent past date/time and current time
-    //             if (newTimestamp <= currentDateTime) {
-    //                 Swal.showValidationMessage('Scheduled date and time cannot be in the past or the current time.');
-    //                 return false;
-    //             }
-
-    //             // Minimum future time buffer
-    //             const MINIMUM_FUTURE_TIME = 60 * 60 * 1000; // 1 hour
-    //             if (newTimestamp < currentDateTime + MINIMUM_FUTURE_TIME) {
-    //                 Swal.showValidationMessage('Scheduled date and time must be at least 1 hour in the future.');
-    //                 return false;
-    //             }
-
-    //             // Maximum scheduling window
-    //             const MAXIMUM_FUTURE_TIME = 6 * 30 * 24 * 60 * 60 * 1000; // 6 months
-    //             if (newTimestamp > currentDateTime + MAXIMUM_FUTURE_TIME) {
-    //                 Swal.showValidationMessage('Scheduled date and time cannot be more than 6 months in the future.');
-    //                 return false;
-    //             }
-
-    //             // Prevent same as original schedule
-    //             if (volunteer.scheduledDateTime && newTimestamp === volunteer.scheduledDateTime) {
-    //                 Swal.showValidationMessage('The new schedule is the same as the current schedule.');
-    //                 return false;
-    //             }
-
-    //             return newTimestamp;
-    //         }
-    //     }).then(async (result) => {
-    //         if (result.isConfirmed) {
-    //             const newTimestamp = result.value;
-    //             try {
-    //                 const volunteerRef = database.ref(`volunteerApplications/approvedVolunteer/${volunteerKey}`);
-    //                 await volunteerRef.update({ scheduledDateTime: newTimestamp });
-    //                 await sendApprovalEmail(volunteer, formatDate(newTimestamp));
-    //                 Swal.fire({
-    //                     icon: 'success',
-    //                     title: 'Rescheduled',
-    //                     text: `${getFullName(volunteer)}'s schedule has been updated to ${formatDate(newTimestamp)}.`,
-    //                     timer: 2000,
-    //                     showConfirmButton: false,
-    //                     timerProgressBar: true,
-    //                     customClass: {
-    //                         popup: 'swal2-popup-success-clean',
-    //                         title: 'swal2-title-success-clean',
-    //                         htmlContainer: 'swal2-text-success-clean'
-    //                     }
-    //                 });
-    //             } catch (error) {
-    //                 console.error("Error rescheduling volunteer or sending email: ", error);
-    //                 let errorMessage = `Failed to reschedule volunteer: ${error.message}`;
-    //                 if (error.status === 422) {
-    //                     errorMessage = 'Failed to send reschedule email. Please check EmailJS template parameters and IDs. (Error 422)';
-    //                 } else if (error.text) {
-    //                     errorMessage = `Failed to send reschedule email: ${error.text}. Please check EmailJS setup.`;
-    //                 }
-    //                 Swal.fire('Error', errorMessage, 'error');
-    //             }
-    //         }
-    //     });
-    // }
-    // Replace the handleRescheduleClick function in approvedvolunteers.js with this:
 
     async function handleRescheduleClick(button) {
         if (!permissions.canEdit) {
@@ -1728,18 +1613,18 @@ function initializePageFunctions(userId) {
                 await database.ref(`volunteerApplications/archivedApprovedVolunteer/${volunteerKey}`).set(volunteerToArchive);
                 await approvedVolunteerRef.remove();
                 Swal.fire({
-                title: 'Archived!',
-                text: `${getFullName(volunteer)}'s application has been archived.`,
-                icon: 'success',
-                timer: 1600,
-                showConfirmButton: false,
-                timerProgressBar: true,
-                allowOutsideClick: false,
-                customClass: {
-                    popup: 'swal2-popup-success-clean',
-                    title: 'swal2-title-success-clean',
-                    htmlContainer: 'swal2-text-success-clean',
-                }
+                    title: 'Archived!',
+                    text: `${getFullName(volunteer)}'s application has been archived.`,
+                    icon: 'success',
+                    timer: 1600,
+                    showConfirmButton: false,
+                    timerProgressBar: true,
+                    allowOutsideClick: false,
+                    customClass: {
+                        popup: 'swal2-popup-success-clean',
+                        title: 'swal2-title-success-clean',
+                        htmlContainer: 'swal2-text-success-clean',
+                    }
                 });
                 fetchApprovedVolunteers();
             } catch (error) {

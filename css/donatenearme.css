@@ -249,7 +249,7 @@ header::before {
 }
 
 #mapModal.show {
-    display: block;
+    display: flex;
 }
 
 .modal-content {

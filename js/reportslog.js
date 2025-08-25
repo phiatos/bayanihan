@@ -102,33 +102,37 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-     function formatWithCommas(value) {
-    return value != null ? Number(value).toLocaleString() : "-";
+    function formatWithCommas(value) {
+        return value != null ? Number(value).toLocaleString() : "-";
     }
 
     function formatCompact(value) {
-    return value != null
-        ? new Intl.NumberFormat('en', {
-            notation: 'compact',
-            compactDisplay: 'short',
-        }).format(value)
-        : "-";
+        return value != null
+            ? new Intl.NumberFormat('en', {
+                notation: 'compact',
+                compactDisplay: 'short',
+            }).format(value)
+            : "-";
     }
 
     function formatCurrency(value) {
-    return value != null
-        ? new Intl.NumberFormat('en-PH', {
-            style: 'currency',
-            currency: 'PHP',
-            minimumFractionDigits: 0,
-        }).format(value)
-        : "-";
+        return value != null
+            ? new Intl.NumberFormat('en-PH', {
+                style: 'currency',
+                currency: 'PHP',
+                minimumFractionDigits: 0,
+            }).format(value)
+            : "-";
     }
 
+    function transformReportData(report, key, activationData = {}) {
+        // Fallback to report data if activationData is missing or incomplete
+        const calamityName = activationData.calamityName || activationData.typhoonName || report.CalamityName || report.CalamityAreaDetails || "-";
+        const calamityType = activationData.calamityType || activationData.CalamityType || report.CalamityType || 
+                            (report.CalamityAreaDetails ? report.CalamityAreaDetails.split(' ')[0] : "-");
 
-    function transformReportData(report, key) {
         return {
-            firebaseKey: key, // Use the actual node key as firebaseKey
+            firebaseKey: key,
             ReportID: report.reportID || report.ReportID || "-",
             VolunteerGroupName: report.organization || report.VolunteerGroupName || "[Unknown Org]",
             AreaOfOperation: report.AreaOfOperation || "-",
@@ -148,24 +152,39 @@ document.addEventListener('DOMContentLoaded', () => {
             NotesAdditionalInformation: report.remarks || report.urgentNeeds || report.NotesAdditionalInformation || "-",
             userUid: report.userUid || "-",
             submittedBy: report.submittedBy || "-",
+            CalamityType: calamityType,
+            CalamityName: calamityName,
+            activationId: report.activationId || "-"
         };
     }
 
     function loadReportsFromFirebase(userRole) {
-        database.ref("reports/approved").on("value", (snapshot) => {
+        database.ref("reports/approved").on("value", async (snapshot) => {
             reviewedReports = [];
             const reports = snapshot.val();
             if (reports) {
-                Object.keys(reports).forEach((key) => {
-                    const report = reports[key];
+                for (const [key, report] of Object.entries(reports)) {
+                    let activationData = {};
+                    if (report.activationId) {
+                        try {
+                            console.log(`Fetching activation data for report ${key} with activationId: ${report.activationId}`);
+                            const activationSnapshot = await database.ref(`activations/${report.activationId}`).once("value");
+                            activationData = activationSnapshot.val() || {};
+                            console.log(`Activation data for ${report.activationId}:`, activationData);
+                        } catch (error) {
+                            console.warn(`Error fetching activation data for report ${key} (activationId: ${report.activationId}):`, error);
+                        }
+                    } else {
+                        console.warn(`No activationId found for report ${key}:`, report);
+                    }
                     if (!report.VolunteerGroupName && !report.organization) {
                         console.warn(`Approved report ${key} is missing VolunteerGroupName/organization. Report data:`, report);
                         report.VolunteerGroupName = "[Unknown Org]";
                     }
-                    const transformedReport = transformReportData(report, key); // Pass the key to transformReportData
+                    const transformedReport = transformReportData(report, key, activationData);
                     reviewedReports.push(transformedReport);
-                    console.log(`Loaded report with key: ${key}, transformed firebaseKey: ${transformedReport.firebaseKey}`);
-                });
+                    console.log(`Loaded report with key: ${key}, transformed firebaseKey: ${transformedReport.firebaseKey}, CalamityType: ${transformedReport.CalamityType}, CalamityName: ${transformedReport.CalamityName}`);
+                }
             } else {
                 console.log("No approved reports found in Firebase");
             }
@@ -226,11 +245,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderReportsTable(reports, userRole, filteredReports) {
         reportsBody.innerHTML = '';
-        const totalEntries = filteredReports.length; // Use filteredReports for accurate total
+        const totalEntries = filteredReports.length;
         const totalPages = Math.ceil(totalEntries / rowsPerPage);
 
         if (reports.length === 0) {
-            reportsBody.innerHTML = "<tr><td colspan='9'>No approved reports found on this page.</td></tr>";
+            reportsBody.innerHTML = "<tr><td colspan='11'>No approved reports found on this page.</td></tr>";
             entriesInfo.textContent = "Showing 0 to 0 of 0 entries";
             renderPaginationControlsForReports(totalPages, filteredReports);
             return;
@@ -248,6 +267,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${formatDate(report["EndDate"]) || "-"}</td>
                 <td>${formatCurrency(report["TotalValueOfInKindDonations"])}</td>
                 <td>${formatCurrency(report["TotalMonetaryDonations"])}</td>
+                <td>${report["CalamityType"] || "-"}</td>
+                <td>${report["CalamityName"] || "-"}</td>
                 <td>
                     <button class="viewBtn"><i class="bx bx-show-alt"></i></button>
                     <button class="savePDFBtn"><i class="bx bxs-file-pdf"></i></button>
@@ -284,6 +305,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             <p><strong>Report ID:</strong> ${report.ReportID || "-"}</p>
                             <p><strong>Volunteer Group:</strong> ${report.VolunteerGroupName || "[Unknown Org]"}</p>
                             <p class="cell"><strong>Location of Operation:</strong> ${report.AreaOfOperation || "-"}</p>
+                            <p><strong>Calamity Name:</strong> ${report.CalamityName || "-"}</p>
+                            <p><strong>Calamity Type:</strong> ${report.CalamityType || "-"}</p>
                             <p><strong>Date of Report Submitted:</strong> ${formatDate(report.DateOfReport)}</p>
                         </div>
                         <div class="form-2">
@@ -458,6 +481,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 "ReportID": "Report ID",
                 "VolunteerGroupName": "Volunteer Group Name",
                 "AreaOfOperation": "Area of Operation",
+                "CalamityType": "Calamity Type",
+                "CalamityName": "Calamity Name",
                 "StartDate": "Operation Start Date",
                 "EndDate": "Operation End Date",
                 "NoOfHotMeals": "No. of Hot Meals",
@@ -488,9 +513,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const ws = XLSX.utils.json_to_sheet(wsData);
             const wscols = [
                 { wch: 15 }, { wch: 30 }, { wch: 25 }, { wch: 20 }, { wch: 20 },
-                { wch: 18 }, { wch: 18 }, { wch: 20 }, { wch: 25 }, { wch: 25 },
-                { wch: 20 }, { wch: 25 }, { wch: 25 }, { wch: 25 }, { wch: 25 },
-                { wch: 40 }
+                { wch: 20 }, { wch: 20 }, { wch: 18 }, { wch: 18 }, { wch: 20 },
+                { wch: 25 }, { wch: 25 }, { wch: 20 }, { wch: 25 }, { wch: 25 },
+                { wch: 25 }, { wch: 25 }, { wch: 40 }
             ];
             ws['!cols'] = wscols;
             const wb = XLSX.utils.book_new();
@@ -591,6 +616,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 doc.setFontSize(10);
                 yPos = addDetailText(doc, "Volunteer Group", report.VolunteerGroupName || "[Unknown Org]", yPos, contentWidth);
                 yPos = addDetailText(doc, "Location of Operation", report.AreaOfOperation || "-", yPos, contentWidth);
+                yPos = addDetailText(doc, "Calamity Name", report.CalamityName || "-", yPos, contentWidth);
+                yPos = addDetailText(doc, "Calamity Type", report.CalamityType || "-", yPos, contentWidth);
                 yPos = addDetailText(doc, "Date of Report Submitted", formatDate(report.DateOfReport), yPos, contentWidth);
                 yPos += 5;
                 yPos = addSectionTitle(doc, "Relief Operations", yPos);
@@ -696,6 +723,8 @@ document.addEventListener('DOMContentLoaded', () => {
             addDetail("Basic Information", "", true);
             addDetail("Volunteer Group", report.VolunteerGroupName || "[Unknown Org]");
             addDetail("Location of Operation", report.AreaOfOperation || "-");
+            addDetail("Calamity Name", report.CalamityName || "-");
+            addDetail("Calamity Type", report.CalamityType || "-");
             addDetail("Date of Report Submitted", formatDate(report.DateOfReport));
             y += 5;
             addDetail("Relief Operations", "", true);
@@ -742,7 +771,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         logo.onerror = function() {
             Swal.close();
-            Swal.fire("Error", "Failed to load logo image. Please check the path.", "error");
+            Swal.fire("Error", "Failed to load logo image at ../assets/images/AB_logo.png. Please check the path.", "error");
         };
     }
 });

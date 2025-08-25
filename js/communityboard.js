@@ -233,12 +233,10 @@ async function fetchUserData(uid) {
   }
 
   if (userOrgCache.has(uid)) {
-    console.log(`[${new Date().toISOString()}] Using cached user data for user: ${uid}`);
     return userOrgCache.get(uid);
   }
 
   try {
-    console.log(`[${new Date().toISOString()}] Fetching user data for user: ${uid}`);
     const snapshot = await database.ref(`users/${uid}`).once('value');
     const userData = snapshot.val() || {};
     let contactPerson = userData.contactPerson ||
@@ -252,8 +250,8 @@ async function fetchUserData(uid) {
       contactPerson,
       organization: userData.organization || ''
     };
+
     userOrgCache.set(uid, data);
-    console.log(`[${new Date().toISOString()}] User data fetched:`, data);
     return data;
   } catch (error) {
     console.error(`[${new Date().toISOString()}] Error fetching user data:`, error);

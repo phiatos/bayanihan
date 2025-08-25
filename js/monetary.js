@@ -261,15 +261,52 @@ document.addEventListener("DOMContentLoaded", () => {
             if (fieldConfig.isUrl && input.value && !isValidUrl(input.value.trim())) {
                 showError(input, `${fieldConfig.label} must be a valid URL.`);
             }
+            // bawal future date
+            // if (fieldConfig.isDate) {
+            //     const receivedDate = new Date(input.value);
+            //     if (isNaN(receivedDate.getTime())) {
+            //         showError(input, `${fieldConfig.label} is not a valid date.`);
+            //     } else if (receivedDate.setHours(0, 0, 0, 0) > new Date().setHours(0, 0, 0, 0)) {
+            //         showError(input, `${fieldConfig.label} cannot be a future date.`);
+            //     }
+            // }
+
+            // pede past, present, and future
+            // if (fieldConfig.isDate) {
+            //     const receivedDate = new Date(input.value);
+            //     if (isNaN(receivedDate.getTime())) {
+            //         showError(input, `${fieldConfig.label} is not a valid date.`);
+            //     }
+            // }
             if (fieldConfig.isDate) {
                 const receivedDate = new Date(input.value);
                 if (isNaN(receivedDate.getTime())) {
                     showError(input, `${fieldConfig.label} is not a valid date.`);
                 } else if (receivedDate.setHours(0, 0, 0, 0) > new Date().setHours(0, 0, 0, 0)) {
-                    showError(input, `${fieldConfig.label} cannot be a future date.`);
+                    Swal.fire({
+                        title: 'Future Date Detected',
+                        text: 'The Date Received is in the future. Is this a pledged or scheduled donation?',
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonText: 'Yes, Proceed',
+                        cancelButtonText: 'No, Change Date',
+                        reverseButtons: true,
+                        customClass: {
+                            popup: 'custom-swal-popup-large',
+                            title: 'custom-swal-title',
+                            htmlContainer: 'custom-swal-content',
+                            confirmButton: 'custom-confirm-btn',
+                            cancelButton: 'custom-cancel-btn'
+                        }
+                    }).then((result) => {
+                        if (!result.isConfirmed) {
+                            input.value = '';
+                            showError(input, 'Please select a valid date.');
+                        }
+                    });
                 }
             }
-            if (fieldConfig.isReferenceNumber && input.value && !isValidReferenceNumber(input.value)) {
+            if (fieldConfig.isValidReferenceNumber && input.value &&    !isValidReferenceNumber(input.value)) {
                 showError(input, `${fieldConfig.label} must be alphanumeric and up to 20 characters.`);
             }
         }
@@ -287,8 +324,7 @@ document.addEventListener("DOMContentLoaded", () => {
             dateReceived: { label: 'Date Received', isDate: true },
             email: { label: 'Email', isEmail: true },
             bank: { label: 'Bank' },
-            referenceNumber: { label: 'Reference Number', required: false, isReferenceNumber: true },
-            proof: { label: 'Proof of Transaction', required: false, isUrl: true }
+            referenceNumber: { label: 'Reference Number', required: false, isValidReferenceNumber: true },            proof: { label: 'Proof of Transaction', required: false, isUrl: true }
         }[input.id];
         if (fieldConfig) {
             input.addEventListener('input', () => validateInputInRealTime(input, fieldConfig, {
@@ -319,7 +355,7 @@ document.addEventListener("DOMContentLoaded", () => {
             'edit-dateReceived': { label: 'Date Received', isDate: true },
             'edit-email': { label: 'Email', isEmail: true },
             'edit-bank': { label: 'Bank' },
-            'edit-referenceNumber': { label: 'Reference Number', required: false, isReferenceNumber: true },
+            'edit-referenceNumber': { label: 'Reference Number', required: false, isValidReferenceNumber: true },
             'edit-proof': { label: 'Proof of Transaction', required: false, isUrl: true}
         }[input.id];
         if (fieldConfig) {
@@ -342,10 +378,10 @@ document.addEventListener("DOMContentLoaded", () => {
     viewArchivedBtn.addEventListener('click', async () => {
         if (!permissions.canRetrieve) {
             Swal.fire({
-                title: 'Error',
+                title: 'Access Denied',
                 text: 'You do not have permission to view archived donations.',
                 icon: 'error',
-                timer: 2000,
+                timer: 1600,
                 showConfirmButton: false,
                 timerProgressBar: true,
                 allowOutsideClick: false,
@@ -469,6 +505,11 @@ document.addEventListener("DOMContentLoaded", () => {
         const reader = new FileReader();
         reader.onload = async function(e) {
             try {
+                // Verify isValidUrl is defined
+                if (typeof isValidUrl !== 'function') {
+                    throw new Error('isValidUrl function is not defined');
+                }
+
                 const data = new Uint8Array(e.target.result);
                 const workbook = XLSX.read(data, { type: 'array' });
                 const firstSheetName = workbook.SheetNames[0];
@@ -515,7 +556,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     const progress = (processedRows / totalRows) * 100;
                     updateImportStatus(progress, `Processing row ${processedRows} of ${totalRows}...`);
 
-                    // Create donation object
                     const donation = {
                         encoder: String(row[headers.indexOf("Encoder")] || '').trim(),
                         name: String(row[headers.indexOf("Name")] || '').trim(),
@@ -533,12 +573,10 @@ document.addEventListener("DOMContentLoaded", () => {
                         updatedAt: new Date().toISOString()
                     };
 
-                    // Normalize mobile number
                     if (donation.number && donation.number.length === 10 && donation.number.startsWith('9')) {
                         donation.number = '0' + donation.number;
                     }
 
-                    // Create mock input elements for validateDonationForm
                     const mockInputs = {
                         encoder: { value: donation.encoder, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
                         name: { value: donation.name, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
@@ -549,20 +587,20 @@ document.addEventListener("DOMContentLoaded", () => {
                         dateReceived: { value: donation.dateReceived, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
                         email: { value: donation.email, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
                         bank: { value: donation.bank, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                        referenceNumber: { value: donation.referenceNumber, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
                         proof: { value: donation.proof, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null }
                     };
 
-                    // Override showError to collect errors instead of modifying DOM
                     const originalShowError = showError;
                     const rowErrors = [];
                     showError = (input, message) => {
                         rowErrors.push(`Row ${i + 2}: ${message}`);
                     };
 
-                    // Validate using validateDonationForm
+                    console.log('isValidUrl defined:', typeof isValidUrl);
+
                     const isValidRow = await validateDonationForm(mockInputs);
 
-                    // Restore original showError
                     showError = originalShowError;
 
                     if (!isValidRow) {
@@ -572,18 +610,57 @@ document.addEventListener("DOMContentLoaded", () => {
                         continue;
                     }
 
-                    // Format dateReceived to match form submission format
+                    // if (donation.dateReceived) {
+                    //     const parsedDate = new Date(donation.dateReceived);
+                    //     if (!isNaN(parsedDate.getTime())) {
+                    //         donation.dateReceived = parsedDate.toISOString().slice(0, 10);
+                    //     }
+                    // }
+
+                    // if (donation.dateReceived) {
+                    //     const parsedDate = new Date(donation.dateReceived);
+                    //     if (!isNaN(parsedDate.getTime())) {
+                    //         donation.dateReceived = parsedDate.toISOString().slice(0, 10);
+                    //     } else {
+                    //         importErrors.push(`Row ${i + 2}: Invalid Date Received.`);
+                    //         continue;
+                    //     }
+                    // }
+
                     if (donation.dateReceived) {
                         const parsedDate = new Date(donation.dateReceived);
                         if (!isNaN(parsedDate.getTime())) {
                             donation.dateReceived = parsedDate.toISOString().slice(0, 10);
+                            if (parsedDate.setHours(0, 0, 0, 0) > new Date().setHours(0, 0, 0, 0)) {
+                                const result = await Swal.fire({
+                                    title: 'Future Date Detected in Row ' + (i + 2),
+                                    text: 'The Date Received is in the future. Is this a pledged or scheduled donation?',
+                                    icon: 'question',
+                                    showCancelButton: true,
+                                    confirmButtonText: 'Yes, Proceed',
+                                    cancelButtonText: 'No, Skip Row',
+                                    reverseButtons: true,
+                                    customClass: {
+                                        popup: 'custom-swal-popup-large',
+                                        title: 'custom-swal-title',
+                                        htmlContainer: 'custom-swal-content',
+                                        confirmButton: 'custom-confirm-btn',
+                                        cancelButton: 'custom-cancel-btn'
+                                    }
+                                });
+                                if (!result.isConfirmed) {
+                                    importErrors.push(`Row ${i + 2}: Future date not confirmed as pledged/scheduled.`);
+                                    continue;
+                                }
+                            }
+                        } else {
+                            importErrors.push(`Row ${i + 2}: Invalid Date Received.`);
+                            continue;
                         }
                     }
 
-                    // Convert amount back to number for storage
                     donation.amountDonated = parseFloat(donation.amount);
 
-                    // Check for duplicates
                     const duplicates = await checkForDuplicate(donation.number, donation.email, donation.name);
                     if (duplicates.all || duplicates.email || duplicates.number || duplicates.name) {
                         const duplicateMessages = [];
@@ -606,7 +683,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     await new Promise(resolve => setTimeout(resolve, 10));
                 }
 
-                // Handle potential duplicates with a confirmation prompt
                 if (potentialDuplicates.length > 0) {
                     const duplicateMessages = potentialDuplicates.map(d => d.duplicateMessages.join('<br>')).join('<br>');
                     const result = await Swal.fire({
@@ -1040,120 +1116,160 @@ document.addEventListener("DOMContentLoaded", () => {
         inputField.classList.remove('error');
     }
 
-    async function validateDonationForm(inputs, excludeKey = null) {
-        let isValid = true;
-        const today = new Date();
+async function validateDonationForm(inputs, excludeKey = null) {
+    let isValid = true;
+    const today = new Date();
 
-        // Define fields to validate with their properties
-        const fieldsToCheck = [
-            { id: "encoder", label: "Encoder", lettersOnly: true },
-            { id: "name", label: "Name", lettersOnly: false },
-            { id: "address", label: "Location" },
-            { id: "number", label: "Number", telNumber: true },
-            { id: "amount", label: "Amount Donated", numericAmount: true, positiveNumber: true },
-            { id: "invoice", label: "Cash Invoice #", required: false },
-            { id: "dateReceived", label: "Date Received", isDate: true },
-            { id: "email", label: "Email", isEmail: true },
-            { id: "bank", label: "Bank" },
-            { id: "referenceNumber", label: "Reference Number", required: false, isReferenceNumber: true },
-            { id: "proof", label: "Proof of Transaction", required: false, isUrl: true },
-        ];
+    // Define fields to validate with their properties
+    const fieldsToCheck = [
+        { id: "encoder", label: "Encoder", lettersOnly: true },
+        { id: "name", label: "Name", lettersOnly: false },
+        { id: "address", label: "Location" },
+        { id: "number", label: "Number", telNumber: true },
+        { id: "amount", label: "Amount Donated", numericAmount: true, positiveNumber: true },
+        { id: "invoice", label: "Cash Invoice #", required: false },
+        { id: "dateReceived", label: "Date Received", isDate: true },
+        { id: "email", label: "Email", isEmail: true },
+        { id: "bank", label: "Bank" },
+        { id: "referenceNumber", label: "Reference Number", required: false, hasValidReferenceNumber: true }, // Changed property name
+        { id: "proof", label: "Proof of Transaction", required: false, isUrl: true },
+    ];
 
-        // Validate each field
-        fieldsToCheck.forEach(({ id, label, lettersOnly, telNumber, numericAmount, positiveNumber, isEmail, isDate = false, required = true }) => {
-            const input = inputs[id];
-            clearError(input);
-            if (required && isEmpty(input.value)) {
-                showError(input, `${label} is required.`);
+    // Validate each field
+    fieldsToCheck.forEach(({ id, label, lettersOnly, telNumber, numericAmount, positiveNumber, isEmail, isDate = false, required = true, isUrl = false, hasValidReferenceNumber = false }) => {
+        const input = inputs[id];
+        clearError(input);
+        if (required && isEmpty(input.value)) {
+            showError(input, `${label} is required.`);
+            isValid = false;
+        } else if (!isEmpty(input.value)) {
+            if (lettersOnly && !isLettersOnly(input.value)) {
+                showError(input, `${label} should only contain letters and spaces.`);
                 isValid = false;
-            } else if (!isEmpty(input.value)) {
-                if (lettersOnly && !isLettersOnly(input.value)) {
-                    showError(input, `${label} should only contain letters and spaces.`);
+            }
+            if (telNumber && !isValidMobile(input.value)) {
+                showError(input, `Mobile number must be 11 digits starting with "09"`);
+                isValid = false;
+            }
+            if (numericAmount) {
+                if (!isValidNumericAmount(input.value)) {
+                    showError(input, `${label} should only contain numbers.`);
                     isValid = false;
-                }
-                if (telNumber && !isValidMobile(input.value)) {
-                    showError(input, `Mobile number must be 11 digits starting with "09"`);
+                } else if (positiveNumber && parseFloat(input.value) <= 0) {
+                    showError(input, `${label} must be a positive number.`);
                     isValid = false;
-                }
-                if (numericAmount) {
-                    if (!isValidNumericAmount(input.value)) {
-                        showError(input, `${label} should only contain numbers.`);
-                        isValid = false;
-                    } else if (positiveNumber && parseFloat(input.value) <= 0) {
-                        showError(input, `${label} must be a positive number.`);
-                        isValid = false;
-                    } else if (label === "Amount Donated" && parseFloat(input.value) < 100) {
-                        showError(input, `${label} must be at least PHP 100.`);
-                        isValid = false;
-                    }
-                }
-                if (isEmail) {
-                    if (!isValidEmail(input.value.trim())) {
-                        showError(input, `Please enter a valid email address from an allowed domain.`);
-                        isValid = false;
-                    }
-                }
-                if (isDate) {
-                    const receivedDate = new Date(input.value);
-                    if (isNaN(receivedDate.getTime())) {
-                        showError(input, `${label} is not a valid date.`);
-                        isValid = false;
-                    } else if (receivedDate.setHours(0, 0, 0, 0) > today.setHours(0, 0, 0, 0)) {
-                        showError(input, `${label} cannot be a future date.`);
-                        isValid = false;
-                    }
-                }
-                if (isReferenceNumber && input.value && !isValidReferenceNumber(input.value)) {
-                    showError(input, `${label} must be alphanumeric and up to 20 characters.`);
-                    isValid = false;
-                }
-                if (isUrl && input.value && !isValidUrl(input.value.trim())) {
-                    showError(input, `${label} must be a valid URL.`);
+                } else if (label === "Amount Donated" && parseFloat(input.value) < 100) {
+                    showError(input, `${label} must be at least PHP 100.`);
                     isValid = false;
                 }
             }
-        });
-
-        // Check for duplicate donation
-        if (isValid) {
-            const number = inputs.number.value;
-            const email = inputs.email.value;
-            const name = inputs.name.value;
-            const duplicates = await checkForDuplicate(number, email, name, excludeKey);
-            const duplicateMessages = [];
-            if (duplicates.all) {
-                duplicateMessages.push("A donation with the same name, mobile number, and email already exists.");
-            } else {
-                if (duplicates.email) duplicateMessages.push("<li>This email is already used in another donation.</li>");
-                if (duplicates.number) duplicateMessages.push("<li>This mobile number is already used in another donation.</li>");
-                if (duplicates.name) duplicateMessages.push("<li>This name is already used in another donation.</li>");
+            if (isEmail && !isValidEmail(input.value.trim())) {
+                showError(input, `Please enter a valid email address from an allowed domain.`);
+                isValid = false;
             }
+            // bawal future date
+            // if (isDate) {
+            //     const receivedDate = new Date(input.value);
+            //     if (isNaN(receivedDate.getTime())) {
+            //         showError(input, `${label} is not a valid date.`);
+            //         isValid = false;
+            //     } else if (receivedDate.setHours(0, 0, 0, 0) > today.setHours(0, 0, 0, 0)) {
+            //         showError(input, `${label} cannot be a future date.`);
+            //         isValid = false;
+            //     }
+            // }
 
-            if (duplicateMessages.length > 0) {
-                return new Promise((resolve) => {
-                    Swal.fire({
-                        title: 'Potential Duplicate Donation',
-                        html: duplicateMessages.join('<br>') + '<br>Proceed anyway?',
-                        icon: 'warning',
-                        showCancelButton: true,
-                        confirmButtonText: 'Proceed Anyway',
-                        cancelButtonText: 'Cancel',
-                        reverseButtons: true,
-                        customClass: {
-                            popup: 'custom-swal-popup-large',
-                            title: 'custom-swal-title',
-                            htmlContainer: 'custom-swal-content',
-                            confirmButton: 'custom-confirm-btn',
-                            cancelButton: 'custom-cancel-btn'
-                        }
-                    }).then((result) => {
-                        resolve(result.isConfirmed);
+            // pede past, present, and future
+            // if (isDate) {
+            //     const receivedDate = new Date(input.value);
+            //     if (isNaN(receivedDate.getTime())) {
+            //         showError(input, `${label} is not a valid date.`);
+            //         isValid = false;
+            //     }
+            // }
+            if (isDate) {
+                const receivedDate = new Date(input.value);
+                if (isNaN(receivedDate.getTime())) {
+                    showError(input, `${label} is not a valid date.`);
+                    isValid = false;
+                } else if (receivedDate.setHours(0, 0, 0, 0) > today.setHours(0, 0, 0, 0)) {
+                    return new Promise((resolve) => {
+                        Swal.fire({
+                            title: 'Future Date Detected',
+                            text: 'The Date Received is in the future. Is this a pledged or scheduled donation?',
+                            icon: 'question',
+                            showCancelButton: true,
+                            confirmButtonText: 'Yes, Proceed',
+                            cancelButtonText: 'No, Change Date',
+                            reverseButtons: true,
+                            customClass: {
+                                popup: 'custom-swal-popup-large',
+                                title: 'custom-swal-title',
+                                htmlContainer: 'custom-swal-content',
+                                confirmButton: 'custom-confirm-btn',
+                                cancelButton: 'custom-cancel-btn'
+                            }
+                        }).then((result) => {
+                            if (!result.isConfirmed) {
+                                showError(input, 'Please select a valid date.');
+                                isValid = false;
+                            }
+                            resolve(isValid);
+                        });
                     });
-                });
+                }
+            }
+            if (hasValidReferenceNumber && input.value && !isValidReferenceNumber(input.value)) {
+                showError(input, `${label} must be alphanumeric and up to 20 characters.`);
+                isValid = false;
+            }
+            if (isUrl && input.value && !isValidUrl(input.value.trim())) {
+                showError(input, `${label} must be a valid URL.`);
+                isValid = false;
             }
         }
-        return isValid;
+    });
+
+    // Check for duplicate donation
+    if (isValid) {
+        const number = inputs.number.value;
+        const email = inputs.email.value;
+        const name = inputs.name.value;
+        const duplicates = await checkForDuplicate(number, email, name, excludeKey);
+        const duplicateMessages = [];
+        if (duplicates.all) {
+            duplicateMessages.push("A donation with the same name, mobile number, and email already exists.");
+        } else {
+            if (duplicates.email) duplicateMessages.push("<li>This email is already used in another donation.</li>");
+            if (duplicates.number) duplicateMessages.push("<li>This mobile number is already used in another donation.</li>");
+            if (duplicates.name) duplicateMessages.push("<li>This name is already used in another donation.</li>");
+        }
+
+        if (duplicateMessages.length > 0) {
+            return new Promise((resolve) => {
+                Swal.fire({
+                    title: 'Potential Duplicate Donation',
+                    html: duplicateMessages.join('<br>') + '<br>Proceed anyway?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Proceed Anyway',
+                    cancelButtonText: 'Cancel',
+                    reverseButtons: true,
+                    customClass: {
+                        popup: 'custom-swal-popup-large',
+                        title: 'custom-swal-title',
+                        htmlContainer: 'custom-swal-content',
+                        confirmButton: 'custom-confirm-btn',
+                        cancelButton: 'custom-cancel-btn'
+                    }
+                }).then((result) => {
+                    resolve(result.isConfirmed);
+                });
+            });
+        }
     }
+    return isValid;
+}
 
     form.addEventListener("input", () => {
         formHasChanges = true;
