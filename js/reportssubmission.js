@@ -1,4 +1,3 @@
-
 // Global variables for map and markers
 let map;
 let markers = [];
@@ -274,16 +273,17 @@ document.addEventListener('DOMContentLoaded', () => {
     nextBtn.disabled = true;
 
     function populateCalamityAreaDropdown() {
+        console.log("Populating dropdown with activations:", activeActivations);
         calamityAreaDropdown.innerHTML = '<option value="">-- Select an Active Operation --</option>';
         activeActivations.forEach(activation => {
             const option = document.createElement("option");
             option.value = activation.id;
 
-            let displayCalamity = activation.calamityType;
-            if (activation.calamityType === "Typhoon" && activation.typhoonName) {
-                displayCalamity += ` (${activation.typhoonName})`;
-            }
-            option.textContent = `${displayCalamity} (by ${activation.organization})`;
+            // Use calamityType and calamityName for display
+            const calamityType = activation.calamityType || "Unknown Type";
+            const calamityName = activation.calamityName || (activation.calamityType === "Typhoon" && activation.typhoonName ? activation.typhoonName : calamityType);
+            const organization = activation.organization || "Unknown Organization";
+            option.textContent = `${calamityType} - ${calamityName} (by ${organization})`;
             calamityAreaDropdown.appendChild(option);
         });
 
@@ -298,6 +298,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     calamityAreaDropdown.addEventListener('change', () => {
         const selectedActivationId = calamityAreaDropdown.value;
+        console.log("Calamity Area Dropdown changed, selected ID:", selectedActivationId);
 
         if (selectedActivationId === "") {
             areaOfOperationInput.value = "";
@@ -339,6 +340,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             snapshot.forEach(childSnapshot => {
                                 activeActivations.push({ id: childSnapshot.key, ...childSnapshot.val() });
                             });
+                            console.log("Active activations (AB ADMIN):", activeActivations);
                             populateCalamityAreaDropdown();
                             nextBtn.disabled = false;
                         }, error => {
@@ -377,6 +379,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                                     activeActivations.push(activation);
                                                 }
                                             });
+                                            console.log("Active activations (ABVN):", activeActivations);
                                             populateCalamityAreaDropdown();
                                             nextBtn.disabled = false;
                                         }, error => {
@@ -547,7 +550,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const startDateValue = startDateInput.value;
         const endDateValue = endDateInput.value;
-        
+
         if (!startDateValue || !endDateValue) {
             Swal.fire({
                 icon: 'warning',
@@ -610,37 +613,49 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        if (!calamityAreaDropdown.value) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Missing Calamity Area',
+                text: 'Please select an active operation from the dropdown.'
+            });
+            calamityAreaDropdown.focus();
+            return;
+        }
+
         let selectedCalamityName = "";
+        let selectedCalamityType = "";
         let selectedCalamityOrganization = "";
-        let selectedCalamityTyphoonName = "";
         let calamityAreaDetailsText = "";
 
         const selectedActivationId = calamityAreaDropdown.value;
+        console.log("Selected Activation ID:", selectedActivationId);
         if (selectedActivationId) {
             const selectedActivation = activeActivations.find(
                 (activation) => activation.id === selectedActivationId
             );
+            console.log("Selected Activation:", selectedActivation);
             if (selectedActivation) {
-                selectedCalamityName = selectedActivation.calamityType;
-                selectedCalamityOrganization = selectedActivation.organization;
-                selectedCalamityTyphoonName = selectedActivation.typhoonName || "";
+                selectedCalamityType = selectedActivation.calamityType || "Unknown Type";
+                selectedCalamityName = selectedActivation.calamityName || (selectedActivation.calamityType === "Typhoon" && selectedActivation.typhoonName ? selectedActivation.typhoonName : selectedCalamityType);
+                selectedCalamityOrganization = selectedActivation.organization || "Unknown Organization";
 
-                calamityAreaDetailsText = selectedCalamityName;
-                if (selectedCalamityTyphoonName) {
-                    calamityAreaDetailsText += ` (${selectedCalamityTyphoonName})`;
-                }
-                if (selectedCalamityOrganization) {
-                    calamityAreaDetailsText += ` (by ${selectedCalamityOrganization})`;
-                }
+                calamityAreaDetailsText = `${selectedCalamityType} - ${selectedCalamityName} (by ${selectedCalamityOrganization})`;
             } else {
                 console.warn("Calamity Area ID found but no matching activation data.");
                 calamityAreaDetailsText = `ID: ${selectedActivationId} (Details Missing)`;
+                selectedCalamityName = "Unknown Calamity";
+                selectedCalamityType = "Unknown Type";
             }
         } else {
             console.warn("No Calamity Area selected.");
             calamityAreaDetailsText = "Not Specified";
+            selectedCalamityName = "Not Specified";
+            selectedCalamityType = "Not Specified";
         }
 
+        console.log("Selected Calamity Type:", selectedCalamityType);
+        console.log("Selected Calamity Name:", selectedCalamityName);
         console.log("notesInfoTextarea value:", notesInfoTextarea.value);
 
         formPage1.style.display = "none";
@@ -651,6 +666,7 @@ document.addEventListener('DOMContentLoaded', () => {
             VolunteerGroupName: volunteerGroupName || "Not Assigned",
             AreaOfOperation: areaOfOperationInput.value,
             CalamityAreaId: calamityAreaDropdown.value,
+            CalamityType: selectedCalamityType,
             CalamityName: selectedCalamityName,
             CalamityAreaDetails: calamityAreaDetailsText,
             TimeOfIntervention: completionTimeInput.value,
@@ -705,11 +721,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 calamityAreaDropdown.value = savedData.CalamityAreaId;
                 calamityAreaDropdown.dispatchEvent(new Event('change'));
             }
-            
+
             completionTimeInput.value = savedData.TimeOfIntervention || '';
             startDateInput.value = savedData.StartDate || '';
             endDateInput.value = savedData.EndDate || '';
-
             numIndividualsFamiliesInput.value = savedData.NoOfIndividualsOrFamilies || '';
             numFoodPacksInput.value = savedData.NoOfFoodPacks || '';
             numHotMealsInput.value = savedData.NoOfHotMeals || '';
