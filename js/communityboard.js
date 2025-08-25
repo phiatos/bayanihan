@@ -1265,6 +1265,46 @@ async function loadPosts() {
   });
 }
 
+// Example toggleComments function
+function toggleComments(postId) {
+  const commentsSection = document.getElementById(`comments-section-${postId}`);
+  if (commentsSection) {
+    commentsSection.style.display = commentsSection.style.display === 'none' ? 'block' : 'none';
+    if (commentsSection.style.display === 'block') {
+      // Optionally load comments dynamically here
+      loadComments(postId);
+    }
+  } else {
+    console.error(`Comments section for post ${postId} not found`);
+  }
+}
+
+// Example loadComments function (adjust based on your database structure)
+async function loadComments(postId) {
+  const commentsList = document.getElementById(`comments-${postId}`);
+  if (!commentsList) return;
+
+  try {
+    const snapshot = await database.ref(`posts/submitted/${postId}/comments`).once('value');
+    commentsList.innerHTML = '';
+    const comments = snapshot.val();
+    if (comments) {
+      Object.entries(comments).forEach(([commentId, comment]) => {
+        const commentElem = document.createElement('div');
+        commentElem.className = 'comment';
+        commentElem.innerHTML = `
+          <strong>${comment.userName}</strong>
+          <p>${comment.content}</p>
+          <small>${new Date(comment.timestamp).toLocaleString()}</small>
+        `;
+        commentsList.appendChild(commentElem);
+      });
+    }
+  } catch (error) {
+    console.error(`Error loading comments for post ${postId}:`, error);
+  }
+}
+
 async function sharePost(id) {
   console.log(`[${new Date().toISOString()}] sharePost called for post: ${id}`);
   if (!user) {
@@ -1921,29 +1961,6 @@ function setupModal() {
     previewItem.appendChild(mediaElement);
     previewItem.appendChild(removeButton);
     mediaPreview.appendChild(previewItem);
-
-    if (isVideo) {
-      let retries = 0;
-      const maxRetries = 3;
-      const attemptPlay = () => {
-        mediaElement.play().catch((error) => {
-          console.error(`[${new Date().toISOString()}] Video preview playback failed for ${url}, attempt ${retries + 1}:`, error);
-          if (retries < maxRetries) {
-            retries++;
-            console.log(`[${new Date().toISOString()}] Retrying video preview playback for ${url}, attempt ${retries}`);
-            setTimeout(attemptPlay, 1000 * retries);
-          } else {
-            console.error(`[${new Date().toISOString()}] Max retries reached for video preview ${url}`);
-            const errorDiv = document.createElement('div');
-            errorDiv.textContent = 'Failed to load video';
-            errorDiv.style.color = '#d33';
-            previewItem.appendChild(errorDiv);
-            mediaElement.style.display = 'none';
-          }
-        });
-      };
-      attemptPlay();
-    }
   }
 
   modalPostContent.addEventListener('input', resizeTextarea);
