@@ -306,6 +306,11 @@ function exportToPDF() {
         title: 'Generating PDF',
         text: 'Please wait while your PDF is being generated...',
         allowOutsideClick: false,
+        customClass: {
+            popup: 'swal2-popup-success-clean',
+            title: 'swal2-title-success-clean',
+            htmlContainer: 'swal2-text-success-clean',
+        },
         didOpen: () => {
             Swal.showLoading();
         }
@@ -807,7 +812,7 @@ async function retrieveVolunteer(volunteer) {
 
                 Swal.fire({
                     title: 'Retrieved!',
-                    text: 'Volunteer Group has been retrieved to endorsed volunteers.',
+                    text: 'Volunteer has been retrieved to endorsed volunteers.',
                     icon: 'success',
                     timer: 1600,
                     showConfirmButton: false,

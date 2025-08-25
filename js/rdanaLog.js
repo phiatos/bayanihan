@@ -348,6 +348,18 @@ document.getElementById('closeArchivedModalBtn').addEventListener('click', () =>
   document.getElementById('archivedModal').style.display = 'none';
 });
 
+document.getElementById("viewApprovedBtn").addEventListener("click", () => {
+    try {
+        window.location.href = "../pages/rdanaVerification.html";
+    } catch (error) {
+        Swal.fire({
+            icon: "error",
+            title: "Navigation Error",
+            text: "Could not navigate to RDANA Verification page. Please check if the page exists.",
+        });
+    }
+});
+
 let archivedCurrentPage = 1;
 const archivedRowsPerPage = 5; // Number of rows per page
 
@@ -522,7 +534,7 @@ function restoreReport(reportKey) {
 
     previewDiv.innerHTML = reportIDHTML + profileHTML + modalityHTML + summaryHTML + affectedHTML + structureHTML + checklistHTML + otherNeedsHTML;
 
-    document.getElementById("previewModal").style.display = "block";
+    document.getElementById("previewModal").style.display = "flex";
   }
 
   document.getElementById("closeModal").addEventListener("click", () => {

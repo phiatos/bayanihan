@@ -1453,9 +1453,17 @@ async function registerVolunteerGroup(applicationData) {
     }
 
     Swal.fire({
+        icon: 'success',
         title: 'Processing...',
-        text: 'Registering volunteer group and creating user account. Please wait.',
+        html: 'Registering volunteer group and creating user account. Please wait.',
         allowOutsideClick: false,
+        showConfirmButton: false,
+        timerProgressBar: true,
+        customClass: {
+            popup: 'swal2-popup-success-clean',
+            title: 'swal2-title-success-clean',
+            htmlContainer: 'swal2-text-success-clean'
+        },
         didOpen: () => {
             Swal.showLoading();
         }
