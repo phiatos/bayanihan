@@ -548,7 +548,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 Swal.fire({
                     icon: 'success',
                     title: 'Success!',
-                    text: 'In Kind Donation submitted successfully.',
+                    text: 'Your in-kind donation has been successfully recorded. Thank you for your generosity!',
                     showConfirmButton: true,
                     confirmButtonText: 'OK',
                     customClass: {
