@@ -77,13 +77,13 @@ function checkInactivity() {
 });
 
 // Compress media
-async function compressMedia(file) {
+async function compressMedia(file, userId) {
   const storage = firebase.storage();
   const storageRef = storage.ref();
-  const fileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
-  const fileRef = storageRef.child(`media/${fileName}`);
+  const fileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
 
   if (file.type.startsWith('image/')) {
+    const fileRef = storageRef.child(`image_posts/${userId}/${fileName}`);
     return new Promise((resolve, reject) => {
       const img = new Image();
       img.src = URL.createObjectURL(file);
@@ -108,7 +108,7 @@ async function compressMedia(file) {
 
         canvas.toBlob(async (blob) => {
           try {
-            const uploadTask = await fileRef.put(blob, { contentType: file.type });
+            const uploadTask = await fileRef.put(blob, { contentType: 'image/jpeg' });
             const downloadUrl = await uploadTask.ref.getDownloadURL();
             console.log(`[${new Date().toISOString()}] Image uploaded to Storage: ${downloadUrl}`);
             resolve({ mediaUrl: downloadUrl, mediaType: 'image' });
@@ -116,7 +116,7 @@ async function compressMedia(file) {
             console.error(`[${new Date().toISOString()}] Image upload failed:`, error);
             reject(error);
           }
-        }, file.type, 0.5);
+        }, 'image/jpeg', 0.8);
       };
       img.onerror = (error) => {
         console.error(`[${new Date().toISOString()}] Image processing failed:`, error);
@@ -124,6 +124,8 @@ async function compressMedia(file) {
       };
     });
   } else if (file.type.startsWith('video/')) {
+    const fileRef = storageRef.child(`video_posts/${userId}/${fileName}`);
+    const thumbnailRef = storageRef.child(`video_posts/${userId}/thumbnails/${fileName}.jpg`);
     return new Promise((resolve, reject) => {
       const video = document.createElement('video');
       video.src = URL.createObjectURL(file);
@@ -145,13 +147,12 @@ async function compressMedia(file) {
 
         canvas.width = width;
         canvas.height = height;
-        video.currentTime = 0;
+        video.currentTime = 1;
 
         const generateThumbnail = async () => {
           ctx.drawImage(video, 0, 0, width, height);
           canvas.toBlob(async (thumbnailBlob) => {
             try {
-              const thumbnailRef = storageRef.child(`thumbnails/${fileName}.jpg`);
               const thumbnailUpload = await thumbnailRef.put(thumbnailBlob, { contentType: 'image/jpeg' });
               const thumbnailUrl = await thumbnailUpload.ref.getDownloadURL();
               const videoUpload = await fileRef.put(file, { contentType: file.type });
@@ -162,7 +163,7 @@ async function compressMedia(file) {
               console.error(`[${new Date().toISOString()}] Video/thumbnail upload failed:`, error);
               reject(error);
             }
-          }, 'image/jpeg', 0.5);
+          }, 'image/jpeg', 0.8);
         };
 
         video.onseeked = generateThumbnail;
@@ -172,7 +173,7 @@ async function compressMedia(file) {
         };
 
         video.play().catch(() => {
-          video.currentTime = 0;
+          video.currentTime = 1;
         });
       };
       video.onerror = (error) => {
@@ -410,12 +411,15 @@ async function createPost() {
   const modalPostContent = document.getElementById('modal-post-content');
   const modalPostCategory = document.getElementById('modal-post-category');
   const mediaInput = document.getElementById('modal-media-upload');
+  const webUrlInput = document.getElementById('modal-web-url-input');
   const postButton = document.getElementById('modal-post-button');
   const modal = document.getElementById('post-modal');
   const mediaPreview = document.getElementById('modal-media-preview');
+  const postTypeElement = document.querySelector('.modal-buttons .post-option.active');
+  const postType = postTypeElement ? postTypeElement.dataset.type : 'text';
 
-  if (!modalPostTitle || !modalPostContent || !modalPostCategory || !mediaInput || !postButton || !modal || !mediaPreview) {
-    console.error(`[${new Date().toISOString()}] DOM elements missing:`, { modalPostTitle, modalPostContent, modalPostCategory, mediaInput, postButton, modal, mediaPreview });
+  if (!modalPostTitle || !modalPostContent || !modalPostCategory || !mediaInput || !webUrlInput || !postButton || !modal || !mediaPreview) {
+    console.error(`[${new Date().toISOString()}] DOM elements missing:`, { modalPostTitle, modalPostContent, modalPostCategory, mediaInput, webUrlInput, postButton, modal, mediaPreview });
     Swal.fire('Error', 'Page elements not found. Please try refreshing the page.', 'error');
     return;
   }
@@ -423,15 +427,62 @@ async function createPost() {
   const title = modalPostTitle.value.trim();
   const content = modalPostContent.value.trim();
   const category = modalPostCategory.value;
-  const files = Array.from(mediaInput.files); // Support multiple files
-  if (!title && !category && !content && !files.length) {
+  const files = Array.from(mediaInput.files);
+  const previewImages = Array.from(mediaPreview.querySelectorAll('img')).map(img => img.src);
+  const previewVideos = Array.from(mediaPreview.querySelectorAll('video')).map(video => video.src);
+
+  console.log(`[${new Date().toISOString()}] Post type selected: ${postType}, files count: ${files.length}, preview images: ${previewImages.length}, preview videos: ${previewVideos.length}, webUrlInput: ${webUrlInput.value}`);
+
+  // Determine effective post type based on input
+  let effectivePostType = postType;
+  if (files.length > 0) {
+    const isVideo = files[0].type.startsWith('video/');
+    effectivePostType = isVideo ? 'video' : 'image';
+    if (effectivePostType !== postType) {
+      console.warn(`[${new Date().toISOString()}] Mismatch: postType is ${postType}, but files suggest ${effectivePostType}. Correcting.`);
+      const correctButton = document.querySelector(`.modal-buttons .post-option[data-type="${effectivePostType}"]`);
+      if (correctButton) {
+        document.querySelectorAll('.modal-buttons .post-option').forEach(btn => btn.classList.remove('active'));
+        correctButton.classList.add('active');
+      }
+    }
+  } else if (previewImages.length > 0 && postType !== 'video') {
+    effectivePostType = postType === 'link' ? 'link' : 'image';
+    console.warn(`[${new Date().toISOString()}] Mismatch: postType is ${postType}, but preview images suggest ${effectivePostType}. Correcting.`);
+    const correctButton = document.querySelector(`.modal-buttons .post-option[data-type="${effectivePostType}"]`);
+    if (correctButton) {
+      document.querySelectorAll('.modal-buttons .post-option').forEach(btn => btn.classList.remove('active'));
+      correctButton.classList.add('active');
+    }
+  } else if (previewVideos.length > 0) {
+    effectivePostType = 'video';
+    console.warn(`[${new Date().toISOString()}] Mismatch: postType is ${postType}, but preview videos suggest video. Correcting.`);
+    const correctButton = document.querySelector('.modal-buttons .post-option[data-type="video"]');
+    if (correctButton) {
+      document.querySelectorAll('.modal-buttons .post-option').forEach(btn => btn.classList.remove('active'));
+      correctButton.classList.add('active');
+    }
+  }
+
+  // Validation
+  if (!title && !content && !category && files.length === 0 && previewImages.length === 0 && previewVideos.length === 0) {
     console.log(`[${new Date().toISOString()}] Fields are blank`);
-    Swal.fire('Missing Fields', 'Please fill all the fields', 'warning');
+    Swal.fire('Missing Fields', 'Please fill at least one field (title, content, media, or link).', 'warning');
     return;
   }
-  if (!content && !files.length) {
-    console.log(`[${new Date().toISOString()}] No content or media provided`);
-    Swal.fire('Missing Field', 'Please add content or media to post', 'warning');
+  if (effectivePostType === 'image' && files.length === 0 && previewImages.length === 0) {
+    console.log(`[${new Date().toISOString()}] No images provided for image post`);
+    Swal.fire('Missing Media', 'Please select or provide at least one image.', 'warning');
+    return;
+  }
+  if (effectivePostType === 'video' && files.length === 0 && previewVideos.length === 0) {
+    console.log(`[${new Date().toISOString()}] No video provided for video post`);
+    Swal.fire('Missing Media', 'Please select or provide a video.', 'warning');
+    return;
+  }
+  if (effectivePostType === 'link' && previewImages.length === 0) {
+    console.log(`[${new Date().toISOString()}] No valid image URLs provided for link post`);
+    Swal.fire('Missing Media', 'Please provide at least one valid image URL.', 'warning');
     return;
   }
   if (!category) {
@@ -440,80 +491,254 @@ async function createPost() {
     return;
   }
 
-  console.log(`[${new Date().toISOString()}] Posting with title: ${title}, content: ${content}, category: ${category}, files: ${files.map(f => f.name).join(', ')}`);
-  postButton.classList.add('loading');
+  console.log(`[${new Date().toISOString()}] Posting with type: ${effectivePostType}, title: ${title}, content: ${content}, category: ${category}, files: ${files.map(f => f.name).join(', ')}, preview images: ${previewImages}, preview videos: ${previewVideos}`);
+  postButton.classList.add('loading', 'disabled');
+  postButton.disabled = true;
   modal.classList.add('disabled');
 
   try {
-    const mediaUrls = [];
-    let mediaType = '';
-    if (files.length) {
-      for (const file of files) {
-        if (!['image/jpeg', 'image/png', 'video/mp4', 'video/webm'].includes(file.type)) {
-          console.log(`[${new Date().toISOString()}] Invalid file type: ${file.type}`);
-          Swal.fire('Unsupported file type', 'Please upload JPEG, PNG, MP4, or WebM files', 'error');
-          mediaInput.value = null;
-          mediaPreview.innerHTML = '';
-          throw new Error('Unsupported file type');
-        }
-        if (file.size > 5 * 1024 * 1024) {
-          console.log(`[${new Date().toISOString()}] File size exceeds 5MB limit`);
-          Swal.fire('File too large', 'Maximum file size is 5MB', 'error');
-          mediaInput.value = null;
-          mediaPreview.innerHTML = '';
-          throw new Error('File size exceeds 5MB');
-        }
-
-        const result = await compressMedia(file);
-        mediaUrls.push({
-          url: result.mediaUrl,
-          type: result.mediaType,
-          thumbnail: result.thumbnailUrl || ''
-        });
-        mediaType = result.mediaType; // Use the last file's type (assumes single type per post)
-      }
-    }
-
     const { contactPerson, organization } = await fetchUserData(user.uid);
-    let userName = contactPerson;
-    if (organization && contactPerson.firstName && contactPerson.lastName) {
-      userName = `${contactPerson.firstName} ${contactPerson.lastName}`.trim();
-    }
+    const userName = contactPerson || user.displayName || 'Anonymous';
 
-    const post = {
+    const postData = {
       title: title || '',
-      content: content,
-      userId: user.uid,
-      userName: userName,
-      organization: organization,
+      content: content || '',
+      category,
+      userName,
+      organization: organization || '',
       timestamp: firebase.database.ServerValue.TIMESTAMP,
-      mediaUrls: mediaUrls.length ? mediaUrls : [], // Store as array
-      mediaType: mediaType,
-      category: category
+      userId: user.uid,
+      mediaType: effectivePostType,
     };
 
-    console.log(`[${new Date().toISOString()}] Writing post to database:`, { ...post, mediaUrls: mediaUrls.map(m => m.url.slice(0, 50) + '...') });
-    await database.ref('posts').push(post);
+    // Initialize media array to match React Native format
+    const mediaItems = [];
+
+    if (effectivePostType === 'image' && files.length > 0) {
+      postData.mediaUrls = [];
+      for (const file of files) {
+        console.log(`[${new Date().toISOString()}] Processing image: ${file.name}, type: ${file.type}, size: ${file.size}`);
+        if (!['image/jpeg', 'image/png'].includes(file.type)) {
+          console.log(`[${new Date().toISOString()}] Invalid file type: ${file.type}`);
+          Swal.fire('Unsupported file type', 'Please upload JPEG or PNG files', 'error');
+          throw new Error('Unsupported file type');
+        }
+        if (file.size > 20 * 1024 * 1024) {
+          console.log(`[${new Date().toISOString()}] File size exceeds 20MB limit`);
+          Swal.fire('File too large', 'Maximum file size is 20MB', 'error');
+          throw new Error('File size exceeds 20MB');
+        }
+
+        const { mediaUrl } = await compressMedia(file, user.uid);
+
+        // Validate URL with retries, fallback to storing URL if validation fails
+        const isValid = await validateMediaUrlWithRetries(mediaUrl, 'image', 5, 2000);
+        if (!isValid) {
+          console.warn(`[${new Date().toISOString()}] Validation failed for image URL: ${mediaUrl}. Storing anyway.`);
+          postData.validationWarning = `Image URL validation failed: ${mediaUrl}`;
+        }
+
+        mediaItems.push({
+          uri: mediaUrl,
+          name: file.name.replace(/[^a-zA-Z0-9._-]/g, '_'),
+          mimeType: 'image/jpeg',
+        });
+        postData.mediaUrls.push(mediaUrl);
+        console.log(`[${new Date().toISOString()}] Image processed: ${mediaUrl}`);
+      }
+    } else if (effectivePostType === 'image' && previewImages.length > 0) {
+      postData.mediaUrls = [];
+      for (const [index, url] of previewImages.entries()) {
+        console.log(`[${new Date().toISOString()}] Processing preview image URL: ${url}`);
+        const isValid = await validateMediaUrlWithRetries(url, 'image', 5, 2000);
+        if (!isValid) {
+          console.warn(`[${new Date().toISOString()}] Validation failed for image URL: ${url}. Storing anyway.`);
+          postData.validationWarning = postData.validationWarning
+            ? `${postData.validationWarning}; Image URL validation failed: ${url}`
+            : `Image URL validation failed: ${url}`;
+        }
+        mediaItems.push({
+          uri: url,
+          name: `image_${index}.jpg`,
+          mimeType: 'image/jpeg',
+        });
+        postData.mediaUrls.push(url);
+        console.log(`[${new Date().toISOString()}] Preview image processed: ${url}`);
+      }
+    } else if (effectivePostType === 'video' && files.length > 0) {
+      const file = files[0];
+      console.log(`[${new Date().toISOString()}] Processing video: ${file.name}, type: ${file.type}, size: ${file.size}`);
+      if (!['video/mp4', 'video/webm'].includes(file.type)) {
+        console.log(`[${new Date().toISOString()}] Invalid file type: ${file.type}`);
+        Swal.fire('Unsupported file type', 'Please upload MP4 or WebM files', 'error');
+        throw new Error('Unsupported file type');
+      }
+      if (file.size > 20 * 1024 * 1024) {
+        console.log(`[${new Date().toISOString()}] File size exceeds 20MB limit`);
+        Swal.fire('File too large', 'Maximum file size is 20MB', 'error');
+        throw new Error('File size exceeds 20MB');
+      }
+
+      const { mediaUrl, thumbnailUrl } = await compressMedia(file, user.uid);
+
+      // Validate URLs with retries, fallback to storing if validation fails
+      const isVideoValid = await validateMediaUrlWithRetries(mediaUrl, 'video', 5, 2000);
+      if (!isVideoValid) {
+        console.warn(`[${new Date().toISOString()}] Validation failed for video URL: ${mediaUrl}. Storing anyway.`);
+        postData.validationWarning = postData.validationWarning
+          ? `${postData.validationWarning}; Video URL validation failed: ${mediaUrl}`
+          : `Video URL validation failed: ${mediaUrl}`;
+      }
+      const isThumbnailValid = await validateMediaUrlWithRetries(thumbnailUrl, 'image', 5, 2000);
+      if (!isThumbnailValid) {
+        console.warn(`[${new Date().toISOString()}] Validation failed for thumbnail URL: ${thumbnailUrl}. Storing anyway.`);
+        postData.validationWarning = postData.validationWarning
+          ? `${postData.validationWarning}; Thumbnail URL validation failed: ${thumbnailUrl}`
+          : `Thumbnail URL validation failed: ${thumbnailUrl}`;
+      }
+
+      mediaItems.push({
+        uri: mediaUrl,
+        name: file.name.replace(/[^a-zA-Z0-9._-]/g, '_'),
+        mimeType: file.type,
+        thumbnailUri: thumbnailUrl,
+      });
+      postData.mediaUrl = mediaUrl;
+      postData.thumbnailUrl = thumbnailUrl;
+      console.log(`[${new Date().toISOString()}] Video processed: ${mediaUrl}, thumbnail: ${thumbnailUrl}`);
+    } else if (effectivePostType === 'video' && previewVideos.length > 0) {
+      const url = previewVideos[0];
+      console.log(`[${new Date().toISOString()}] Processing preview video URL: ${url}`);
+      const isValid = await validateMediaUrlWithRetries(url, 'video', 5, 2000);
+      if (!isValid) {
+        console.warn(`[${new Date().toISOString()}] Validation failed for video URL: ${url}. Storing anyway.`);
+        postData.validationWarning = postData.validationWarning
+          ? `${postData.validationWarning}; Video URL validation failed: ${url}`
+          : `Video URL validation failed: ${url}`;
+      }
+      mediaItems.push({
+        uri: url,
+        name: `video_0.${url.split('.').pop().toLowerCase()}`,
+        mimeType: `video/${url.split('.').pop().toLowerCase()}`,
+      });
+      postData.mediaUrl = url;
+      console.log(`[${new Date().toISOString()}] Preview video processed: ${url}`);
+    } else if (effectivePostType === 'link' && previewImages.length > 0) {
+      const url = previewImages[0];
+      console.log(`[${new Date().toISOString()}] Processing preview link image URL: ${url}`);
+      const isValid = await validateMediaUrlWithRetries(url, 'image', 5, 2000);
+      if (!isValid) {
+        console.warn(`[${new Date().toISOString()}] Validation failed for link image URL: ${url}. Storing anyway.`);
+        postData.validationWarning = postData.validationWarning
+          ? `${postData.validationWarning}; Image URL validation failed: ${url}`
+          : `Image URL validation failed: ${url}`;
+      }
+      mediaItems.push({
+        uri: url,
+        name: `image_0.jpg`,
+        mimeType: 'image/jpeg',
+      });
+      postData.mediaUrls = [url];
+      console.log(`[${new Date().toISOString()}] Preview link image processed: ${url}`);
+    }
+
+    const postsRef = database.ref('posts/submitted');
+    const newPostRef = postsRef.push();
+    const submissionId = newPostRef.key;
+    await newPostRef.set(postData);
     await logActivity(`${userName}${organization ? ` from ${organization}` : ''} created a new post in ${category}`);
+
+    // Clear form
     modalPostTitle.value = '';
     modalPostContent.value = '';
     modalPostCategory.value = '';
     mediaInput.value = '';
+    webUrlInput.value = '';
     mediaPreview.innerHTML = '';
-    modal.style.display = 'none';
     modalPostContent.style.height = '80px';
-    console.log(`[${new Date().toISOString()}] Post created successfully`);
-    Swal.fire('Success', 'Post created successfully!', 'success');
+    modal.style.display = 'none';
+    document.querySelectorAll('.modal-buttons .post-option').forEach(btn => btn.classList.remove('active'));
+    const textButton = document.querySelector('.modal-buttons .post-option[data-type="text"]');
+    if (textButton) textButton.classList.add('active');
 
-    const modalButtons = modal.querySelectorAll('.modal-buttons .post-option');
-    modalButtons.forEach(btn => btn.style.display = 'inline-block');
+    console.log(`[${new Date().toISOString()}] Post created successfully: ${submissionId}, postData:`, postData);
+    Swal.fire('Success', 'Post created successfully!', 'success');
   } catch (error) {
     console.error(`[${new Date().toISOString()}] Error creating post:`, error.message);
     Swal.fire('Error', `Failed to create post: ${error.message}`, 'error');
   } finally {
-    postButton.classList.remove('loading');
+    postButton.classList.remove('loading', 'disabled');
+    postButton.disabled = false;
     modal.classList.remove('disabled');
   }
+}
+
+// Helper function to validate media URLs with retries
+async function validateMediaUrlWithRetries(url, type, maxRetries = 5, delayMs = 2000) {
+  console.log(`[${new Date().toISOString()}] Validating ${type} URL: ${url}, maxRetries: ${maxRetries}`);
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetch(url, { 
+        method: 'HEAD', 
+        mode: 'cors',
+        cache: 'no-store' // Avoid cached responses
+      });
+      const contentType = response.headers.get('content-type') || '';
+      const isValid = response.ok && (
+        type === 'image' ? contentType.startsWith('image/') || contentType === '' :
+        type === 'video' ? contentType.startsWith('video/') || contentType === '' :
+        true
+      );
+      console.log(`[${new Date().toISOString()}] Validation attempt ${attempt} for ${url}: ${isValid ? 'Valid' : 'Invalid'}, status: ${response.status}, contentType: ${contentType}`);
+      if (isValid) return true;
+      if (attempt < maxRetries) {
+        console.log(`[${new Date().toISOString()}] Retrying validation for ${url} after ${delayMs}ms`);
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] Validation attempt ${attempt} failed for ${url}:`, error.message);
+      if (attempt < maxRetries) {
+        console.log(`[${new Date().toISOString()}] Retrying validation for ${url} after ${delayMs}ms`);
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
+    }
+  }
+  console.error(`[${new Date().toISOString()}] Validation failed after ${maxRetries} attempts for ${url}`);
+  return false;
+}
+
+// Helper function to validate media URLs with retries
+async function validateMediaUrlWithRetries(url, type, maxRetries = 5, delayMs = 2000) {
+  console.log(`[${new Date().toISOString()}] Validating ${type} URL: ${url}, maxRetries: ${maxRetries}`);
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetch(url, { 
+        method: 'HEAD', 
+        mode: 'cors',
+        cache: 'no-store' // Avoid cached responses
+      });
+      const contentType = response.headers.get('content-type') || '';
+      const isValid = response.ok && (
+        type === 'image' ? contentType.startsWith('image/') || contentType === '' :
+        type === 'video' ? contentType.startsWith('video/') || contentType === '' :
+        true
+      );
+      console.log(`[${new Date().toISOString()}] Validation attempt ${attempt} for ${url}: ${isValid ? 'Valid' : 'Invalid'}, status: ${response.status}, contentType: ${contentType}`);
+      if (isValid) return true;
+      if (attempt < maxRetries) {
+        console.log(`[${new Date().toISOString()}] Retrying validation for ${url} after ${delayMs}ms`);
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] Validation attempt ${attempt} failed for ${url}:`, error.message);
+      if (attempt < maxRetries) {
+        console.log(`[${new Date().toISOString()}] Retrying validation for ${url} after ${delayMs}ms`);
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
+    }
+  }
+  console.error(`[${new Date().toISOString()}] Validation failed after ${maxRetries} attempts for ${url}`);
+  return false;
 }
 
 // Share post
@@ -943,23 +1168,20 @@ async function loadPosts() {
         postElem.id = `post-${id}`;
 
         let mediaHtml = '';
-        // Handle both mediaUrls (array) and mediaUrl (string)
-        if (post.mediaUrls && Array.isArray(post.mediaUrls) && post.mediaUrls.length > 0) {
-          // Image posts with mediaUrls array
-          mediaHtml = post.mediaUrls.map(url => `
-            <img src="${url}" class="post-media" alt="Post media" this.style.display='none'; this.nextElementSibling.style.display='block'">
+        if (post.mediaType === 'image' && post.mediaUrls && Array.isArray(post.mediaUrls) && post.mediaUrls.length > 0) {
+          mediaHtml = post.mediaUrls.map((url, index) => `
+            <img src="${url}" class="post-media" alt="Post image ${index}" onerror="console.error('Failed to load image for post ${id}: ${url}'); this.style.display='none'; this.nextElementSibling.style.display='block'; this.nextElementSibling.textContent='Failed to load image';">
+            <div style="display: none; color: red; text-align: center; font-size: 14px;"></div>
           `).join('');
-        } else if (post.mediaUrl) {
-          // Video posts with mediaUrl string
-          if (post.mediaType === 'image') {
-            mediaHtml = `
-              <img src="${post.mediaUrl}" class="post-media" alt="Post media" this.style.display='none'; this.nextElementSibling.style.display='block'">
-            `;
-          } else if (post.mediaType === 'video') {
-            mediaHtml = `
-              <video src="${post.mediaUrl}" class="post-media" poster="${post.thumbnailUrl || ''}" controls onerror="console.error('Failed to load video: ${post.mediaUrl}'); this.style.display='none'; this.nextElementSibling.style.display='block'">
-            `;
-          }
+        } else if (post.mediaType === 'video' && post.mediaUrl) {
+          mediaHtml = `
+            <video src="${post.mediaUrl}" class="post-media" poster="${post.thumbnailUrl || ''}" controls onerror="console.error('Failed to load video for post ${id}: ${post.mediaUrl}'); this.style.display='none'; this.nextElementSibling.style.display='block'; this.nextElementSibling.textContent='Failed to load video';">
+            <div style="display: none; color: red; text-align: center; font-size: 14px;"></div>
+          `;
+        } else if (post.mediaType === 'link' && post.mediaUrl) {
+          mediaHtml = `
+            <a href="${post.mediaUrl}" target="_blank" class="post-link">View Link</a>
+          `;
         }
 
         const canEdit = user && user.uid === post.userId;
@@ -1036,7 +1258,7 @@ async function loadPosts() {
         }
       }
     } else {
-      postsContainer.innerHTML = '<p>No posts available.</p>';
+      postsContainer.innerHTML = '<p style="text-align: center; color: black;">No posts available.</p>';
     }
   }, (error) => {
     console.error(`[${new Date().toISOString()}] Error loading posts:`, error);
@@ -1326,7 +1548,7 @@ async function deletePost(id) {
 
   Swal.fire({
     title: 'Delete Post',
-    text: 'Are you sure you want to delete this post? It will be moved to a deleted posts archive.',
+    text: 'Are you sure you want to preview this post? It will be moved to a deleted posts archive.',
     icon: 'warning',
     showCancelButton: true,
     confirmButtonText: 'Yes',
@@ -1553,7 +1775,7 @@ function setupModal() {
   }
 
   const postCloseButton = document.getElementById('post-modal-close');
-  const postButtons = document.querySelectorAll('.post-option');
+  const postButtons = document.querySelectorAll('.modal-buttons .post-option');
   const modalPostContent = document.getElementById('modal-post-content');
   const modalPostCategory = document.getElementById('modal-post-category');
   const mediaInput = document.getElementById('modal-media-upload');
@@ -1581,6 +1803,7 @@ function setupModal() {
   urlError.style.color = '#d33';
   urlError.style.fontSize = '0.9em';
   urlError.style.marginTop = '5px';
+  urlError.style.display = 'none';
   webUrlInput.insertAdjacentElement('afterend', urlError);
 
   const insertUrlButton = document.createElement('button');
@@ -1602,6 +1825,129 @@ function setupModal() {
     modalPostContent.style.height = `${newHeight}px`;
   }
 
+  function updateAddWebUrlButton(type) {
+    const isVideo = type === 'video';
+    addWebUrlButton.innerHTML = `
+      <i class='bx bx-scan-ar' style="margin-right: 6px; font-size: 30px;"></i>
+      <span>Add ${isVideo ? 'Video' : 'Image'} from Web</span>
+    `;
+  }
+
+  function updateTapToUploadButton(type) {
+    const isVideo = type === 'video';
+    tapToUploadButton.innerHTML = `
+      <i class='bx bx-${isVideo ? 'video' : 'image-add'}' style="margin-right: 6px; font-size: 30px;"></i>
+      <span>Tap to Upload ${isVideo ? 'Video' : 'Image'}</span>
+    `;
+    tapToUploadButton.classList.remove('image-selected');
+  }
+
+  function addMediaPreview(url, type, index) {
+    const isVideo = type === 'video';
+    const previewItem = document.createElement('div');
+    previewItem.className = 'preview-item';
+    previewItem.style.position = 'relative';
+    previewItem.style.display = 'inline-block';
+    previewItem.style.margin = '5px';
+
+    const mediaElement = isVideo ? document.createElement('video') : document.createElement('img');
+    mediaElement.id = `preview-${isVideo ? 'video' : 'image'}-${index}`;
+    mediaElement.src = url;
+    mediaElement.style.width = '100%';
+    mediaElement.style.height = '100%';
+    mediaElement.style.alignContent = 'center';
+    mediaElement.style.objectFit = 'contain';
+    if (isVideo) {
+      mediaElement.controls = true;
+      mediaElement.muted = true;
+      mediaElement.addEventListener('loadeddata', () => {
+        console.log(`[${new Date().toISOString()}] Video preview loaded for ${url}`);
+      });
+      mediaElement.addEventListener('error', () => {
+        console.error(`[${new Date().toISOString()}] Failed to load video preview for ${url}`);
+        const errorDiv = document.createElement('div');
+        errorDiv.textContent = 'Failed to load video';
+        errorDiv.style.color = '#d33';
+        previewItem.appendChild(errorDiv);
+        mediaElement.style.display = 'none';
+      });
+    } else {
+      mediaElement.alt = 'Media preview';
+      mediaElement.addEventListener('error', () => {
+        console.error(`[${new Date().toISOString()}] Failed to load image preview for ${url}`);
+        const errorDiv = document.createElement('div');
+        errorDiv.textContent = 'Failed to load image';
+        errorDiv.style.color = '#d33';
+        previewItem.appendChild(errorDiv);
+        mediaElement.style.display = 'none';
+      });
+    }
+
+    const removeButton = document.createElement('button');
+    removeButton.className = 'remove-preview';
+    removeButton.innerHTML = `<i class='bx bx-x'></i>`;
+    removeButton.style.position = 'absolute';
+    removeButton.style.top = '0';
+    removeButton.style.right = '0';
+    removeButton.style.background = '#ff0000cc'; 
+    removeButton.style.color = '#fff';
+    removeButton.style.border = 'none';
+    removeButton.style.borderRadius = '50%'; 
+    removeButton.style.cursor = 'pointer';
+    removeButton.style.width = '30px';   
+    removeButton.style.height = '30px';  
+    removeButton.style.display = 'flex';
+    removeButton.style.alignItems = 'center';
+    removeButton.style.justifyContent = 'center';
+    removeButton.style.fontSize = '16px';
+
+    removeButton.addEventListener('click', () => {
+      previewItem.remove();
+      console.log(`[${new Date().toISOString()}] Removed preview for ${url}`);
+      // Restore buttons/inputs if no previews remain
+      const remainingPreviews = mediaPreview.querySelectorAll('.preview-item').length;
+      if (remainingPreviews === 0) {
+        const activeType = document.querySelector('.modal-buttons .post-option.active')?.dataset.type || 'text';
+        if (activeType === 'link') {
+          webUrlInput.style.display = 'block';
+          insertUrlButton.style.display = 'block';
+          urlError.style.display = 'block';
+        } else if (activeType === 'image' || activeType === 'video') {
+          mediaButtons.style.display = 'flex';
+          tapToUploadButton.style.display = 'block';
+          addWebUrlButton.style.display = 'block';
+        }
+      }
+    });
+
+    previewItem.appendChild(mediaElement);
+    previewItem.appendChild(removeButton);
+    mediaPreview.appendChild(previewItem);
+
+    if (isVideo) {
+      let retries = 0;
+      const maxRetries = 3;
+      const attemptPlay = () => {
+        mediaElement.play().catch((error) => {
+          console.error(`[${new Date().toISOString()}] Video preview playback failed for ${url}, attempt ${retries + 1}:`, error);
+          if (retries < maxRetries) {
+            retries++;
+            console.log(`[${new Date().toISOString()}] Retrying video preview playback for ${url}, attempt ${retries}`);
+            setTimeout(attemptPlay, 1000 * retries);
+          } else {
+            console.error(`[${new Date().toISOString()}] Max retries reached for video preview ${url}`);
+            const errorDiv = document.createElement('div');
+            errorDiv.textContent = 'Failed to load video';
+            errorDiv.style.color = '#d33';
+            previewItem.appendChild(errorDiv);
+            mediaElement.style.display = 'none';
+          }
+        });
+      };
+      attemptPlay();
+    }
+  }
+
   modalPostContent.addEventListener('input', resizeTextarea);
 
   postButtons.forEach(button => {
@@ -1611,33 +1957,37 @@ function setupModal() {
       postButtons.forEach(btn => btn.classList.remove('active'));
       button.classList.add('active');
 
+      updateAddWebUrlButton(type);
+      updateTapToUploadButton(type);
+
       if (type === 'text') {
         mediaInput.style.display = 'none';
         webUrlInput.style.display = 'none';
         insertUrlButton.style.display = 'none';
-        mediaButtons.style.display = 'none'; // Hide media-buttons for text
+        urlError.style.display = 'none';
+        mediaButtons.style.display = 'none';
+        mediaCaption.style.display = 'none';
         mediaPreview.innerHTML = '';
         mediaInput.value = '';
         webUrlInput.value = '';
-        mediaCaption.style.display = 'block';
-        tapToUploadButton.innerHTML = `
-          <i class='bx bx-image-add' style="margin-right: 6px; font-size: 30px;"></i>
-          <span>Tap to Upload</span>
-        `;
-        tapToUploadButton.classList.remove('image-selected');
       } else if (type === 'image' || type === 'video') {
         mediaInput.style.display = 'none';
         webUrlInput.style.display = 'none';
         insertUrlButton.style.display = 'none';
+        urlError.style.display = 'none';
         mediaButtons.style.display = 'flex';
+        tapToUploadButton.style.display = 'block';
+        addWebUrlButton.style.display = 'block';
         mediaCaption.style.display = 'block';
-        tapToUploadButton.click();
       } else if (type === 'link') {
         mediaInput.style.display = 'none';
         webUrlInput.style.display = 'block';
         insertUrlButton.style.display = 'block';
+        urlError.style.display = 'block';
         mediaButtons.style.display = 'none';
         mediaCaption.style.display = 'block';
+        mediaPreview.innerHTML = '';
+        mediaInput.value = '';
         webUrlInput.focus();
       }
     });
@@ -1645,40 +1995,113 @@ function setupModal() {
 
   tapToUploadButton.addEventListener('click', () => {
     console.log(`[${new Date().toISOString()}] Tap to upload clicked`);
+    const activeButton = document.querySelector('.modal-buttons .post-option.active');
+    if (!activeButton || (activeButton.dataset.type !== 'image' && activeButton.dataset.type !== 'video')) {
+      console.log(`[${new Date().toISOString()}] No image/video post type active, setting to image`);
+      postButtons.forEach(btn => btn.classList.remove('active'));
+      const imageButton = document.querySelector('.modal-buttons .post-option[data-type="image"]');
+      if (imageButton) {
+        imageButton.classList.add('active');
+        mediaButtons.style.display = 'flex';
+        tapToUploadButton.style.display = 'block';
+        addWebUrlButton.style.display = 'block';
+        mediaCaption.style.display = 'block';
+        webUrlInput.style.display = 'none';
+        insertUrlButton.style.display = 'none';
+        urlError.style.display = 'none';
+        updateAddWebUrlButton('image');
+        updateTapToUploadButton('image');
+      }
+    }
     mediaInput.click();
   });
 
   mediaInput.addEventListener('change', () => {
     console.log(`[${new Date().toISOString()}] Media files selected: ${mediaInput.files.length}`);
-    removePreviewItem(0, 'url', mediaInput, webUrlInput, mediaPreview, tapToUploadButton, mediaCaption);
+    const activeButton = document.querySelector('.modal-buttons .post-option.active');
+    const files = Array.from(mediaInput.files);
+    if (files.length > 0) {
+      const isVideo = files[0].type.startsWith('video/');
+      const expectedType = isVideo ? 'video' : 'image';
+      if (activeButton && activeButton.dataset.type !== expectedType) {
+        postButtons.forEach(btn => btn.classList.remove('active'));
+        const correctButton = document.querySelector(`.modal-buttons .post-option[data-type="${expectedType}"]`);
+        if (correctButton) {
+          correctButton.classList.add('active');
+          console.log(`[${new Date().toISOString()}] Corrected post type to: ${expectedType}`);
+          mediaButtons.style.display = 'flex';
+          tapToUploadButton.style.display = 'block';
+          addWebUrlButton.style.display = 'block';
+          mediaCaption.style.display = 'block';
+          webUrlInput.style.display = 'none';
+          insertUrlButton.style.display = 'none';
+          urlError.style.display = 'none';
+          updateAddWebUrlButton(expectedType);
+          updateTapToUploadButton(expectedType);
+        }
+      }
+      removePreviewItem(0, 'url', mediaInput, webUrlInput, mediaPreview, tapToUploadButton, mediaCaption, false);
+    }
   });
 
   addWebUrlButton.addEventListener('click', () => {
     console.log(`[${new Date().toISOString()}] Add web URL clicked`);
+    postButtons.forEach(btn => btn.classList.remove('active'));
+    const linkButton = document.querySelector('.modal-buttons .post-option[data-type="link"]');
+    if (linkButton) {
+      linkButton.classList.add('active');
+      updateAddWebUrlButton('link');
+      updateTapToUploadButton('link');
+    }
     webUrlInput.style.display = 'block';
     insertUrlButton.style.display = 'block';
+    urlError.style.display = 'block';
     mediaButtons.style.display = 'none';
+    mediaCaption.style.display = 'block';
     webUrlInput.focus();
   });
 
   insertUrlButton.addEventListener('click', () => {
     console.log(`[${new Date().toISOString()}] Insert web URL clicked`);
+    const activeButton = document.querySelector('.modal-buttons .post-option.active');
+    const postType = activeButton ? activeButton.dataset.type : 'link';
     const urls = webUrlInput.value.trim().split('\n').filter(url => url.trim());
+
     if (urls.length > 30) {
       urlError.textContent = 'You can add up to 30 URLs';
+      urlError.style.display = 'block';
       console.log(`[${new Date().toISOString()}] Too many URLs: ${urls.length}`);
       return;
     }
 
-    const invalidUrls = urls.filter(url => !url.match(/^https?:\/\/.*\.(?:png|jpg|jpeg)$/i));
+    const isVideo = postType === 'video';
+    const urlRegex = isVideo ? /^https?:\/\/.*\.(?:mp4|webm|ogg)$/i : /^https?:\/\/.*\.(?:png|jpg|jpeg)$/i;
+    const invalidUrls = urls.filter(url => !url.match(urlRegex));
     if (invalidUrls.length > 0) {
-      urlError.textContent = 'Please provide valid image URLs (PNG, JPG, JPEG)';
+      urlError.textContent = `Please provide valid ${isVideo ? 'video (MP4, WEBM, OGG)' : 'image (PNG, JPG, JPEG)'} URLs`;
+      urlError.style.display = 'block';
       console.log(`[${new Date().toISOString()}] Invalid URLs detected: ${invalidUrls.join(', ')}`);
       return;
     }
 
     urlError.textContent = '';
-    removePreviewItem(0, 'url', mediaInput, webUrlInput, mediaPreview, tapToUploadButton, mediaCaption);
+    urlError.style.display = 'none';
+    removePreviewItem(0, 'url', mediaInput, webUrlInput, mediaPreview, tapToUploadButton, mediaCaption, false);
+
+    urls.forEach((url, index) => {
+      addMediaPreview(url, postType, index);
+    });
+
+    // Hide buttons and inputs after successful preview
+    tapToUploadButton.style.display = 'none';
+    addWebUrlButton.style.display = 'none';
+    webUrlInput.style.display = 'none';
+    insertUrlButton.style.display = 'none';
+    urlError.style.display = 'none';
+    mediaButtons.style.display = 'none';
+
+    webUrlInput.value = '';
+    console.log(`[${new Date().toISOString()}] Embedded ${urls.length} ${isVideo ? 'video' : 'image'} previews`);
   });
 
   postCloseButton.addEventListener('click', () => {
@@ -1691,18 +2114,25 @@ function setupModal() {
     webUrlInput.value = '';
     mediaPreview.innerHTML = '';
     modalPostContent.style.height = '80px';
-    mediaButtons.style.display = 'flex';
+    mediaButtons.style.display = 'none';
+    tapToUploadButton.style.display = 'block';
+    addWebUrlButton.style.display = 'block';
     webUrlInput.style.display = 'none';
     insertUrlButton.style.display = 'none';
-    urlError.textContent = '';
-    mediaCaption.style.display = 'block';
+    urlError.style.display = 'none';
+    mediaCaption.style.display = 'none';
     tapToUploadButton.innerHTML = `
       <i class='bx bx-image-add' style="margin-right: 6px; font-size: 30px;"></i>
-      <span>Tap to Upload</span>
+      <span>Tap to Upload Image</span>
     `;
     tapToUploadButton.classList.remove('image-selected');
     postButtons.forEach(btn => btn.classList.remove('active'));
-    postButtons[0].classList.add('active');
+    const textButton = document.querySelector('.modal-buttons .post-option[data-type="text"]');
+    if (textButton) {
+      textButton.classList.add('active');
+      updateAddWebUrlButton('text');
+      updateTapToUploadButton('text');
+    }
   });
 
   document.querySelectorAll('.post-creator .post-option').forEach(button => {
@@ -1714,17 +2144,46 @@ function setupModal() {
       }
       modal.style.display = 'block';
       postButtons.forEach(btn => btn.classList.remove('active'));
-      const modalButton = modal.querySelector(`.post-option[data-type="${button.dataset.type}"]`);
-      if (modalButton) modalButton.classList.add('active');
-      if (button.dataset.type === 'text') {
-        mediaButtons.style.display = 'none'; // Hide media-buttons for text
-      } else if (button.dataset.type === 'link') {
+      const selectedType = button.dataset.type;
+      const modalButton = document.querySelector(`.modal-buttons .post-option[data-type="${selectedType}"]`);
+      if (modalButton) {
+        modalButton.classList.add('active');
+      } else {
+        const textButton = document.querySelector('.modal-buttons .post-option[data-type="text"]');
+        if (textButton) {
+          textButton.classList.add('active');
+        }
+      }
+      updateAddWebUrlButton(selectedType);
+      updateTapToUploadButton(selectedType);
+      mediaPreview.innerHTML = '';
+      mediaInput.value = '';
+      webUrlInput.value = '';
+      if (selectedType === 'link') {
         webUrlInput.style.display = 'block';
         insertUrlButton.style.display = 'block';
+        urlError.style.display = 'block';
         mediaButtons.style.display = 'none';
+        tapToUploadButton.style.display = 'none';
+        addWebUrlButton.style.display = 'none';
+        mediaCaption.style.display = 'block';
         webUrlInput.focus();
-      } else if (button.dataset.type === 'image' || button.dataset.type === 'video') {
-        mediaInput.click();
+      } else if (selectedType === 'image' || selectedType === 'video') {
+        webUrlInput.style.display = 'none';
+        insertUrlButton.style.display = 'none';
+        urlError.style.display = 'none';
+        mediaButtons.style.display = 'flex';
+        tapToUploadButton.style.display = 'block';
+        addWebUrlButton.style.display = 'block';
+        mediaCaption.style.display = 'block';
+      } else {
+        webUrlInput.style.display = 'none';
+        insertUrlButton.style.display = 'none';
+        urlError.style.display = 'none';
+        mediaButtons.style.display = 'none';
+        tapToUploadButton.style.display = 'none';
+        addWebUrlButton.style.display = 'none';
+        mediaCaption.style.display = 'none';
       }
     });
   });
@@ -1762,7 +2221,6 @@ function setupModal() {
     loadPosts();
   });
 
-  // Handle modal click outside
   document.addEventListener('click', (e) => {
     if (e.target === modal) {
       postCloseButton.click();
@@ -1771,45 +2229,34 @@ function setupModal() {
     }
   });
 
-  // Video preview retry logic
   mediaInput.addEventListener('change', () => {
+    console.log(`[${new Date().toISOString()}] Media files selected: ${mediaInput.files.length}`);
+    const activeButton = document.querySelector('.modal-buttons .post-option.active');
     const files = Array.from(mediaInput.files);
-    files.forEach((file, index) => {
-      if (file.type.startsWith('video/')) {
-        const videoPreview = document.querySelector(`#preview-video-${index}`);
-        if (videoPreview) {
-          let retries = 0;
-          const maxRetries = 3;
-          const attemptPlay = () => {
-            videoPreview.play().catch((error) => {
-              console.error(`[${new Date().toISOString()}] Video preview playback failed for ${file.name}, attempt ${retries + 1}:`, error);
-              if (retries < maxRetries) {
-                retries++;
-                console.log(`[${new Date().toISOString()}] Retrying video preview playback for ${file.name}, attempt ${retries}`);
-                setTimeout(attemptPlay, 1000 * retries);
-              } else {
-                console.error(`[${new Date().toISOString()}] Max retries reached for video preview ${file.name}`);
-                const errorDiv = videoPreview.nextElementSibling;
-                if (errorDiv) {
-                  errorDiv.style.display = 'block';
-                  videoPreview.style.display = 'none';
-                }
-              }
-            });
-          };
-          videoPreview.addEventListener('loadeddata', () => {
-            console.log(`[${new Date().toISOString()}] Video preview loaded successfully for ${file.name}`);
-            retries = 0;
-          });
-          attemptPlay();
-        } else {
-          console.error(`[${new Date().toISOString()}] Video preview element not found for index ${index}`);
+    if (files.length > 0) {
+      const isVideo = files[0].type.startsWith('video/');
+      const expectedType = isVideo ? 'video' : 'image';
+      if (activeButton && activeButton.dataset.type !== expectedType) {
+        postButtons.forEach(btn => btn.classList.remove('active'));
+        const correctButton = document.querySelector(`.modal-buttons .post-option[data-type="${expectedType}"]`);
+        if (correctButton) {
+          correctButton.classList.add('active');
+          console.log(`[${new Date().toISOString()}] Corrected post type to: ${expectedType}`);
+          mediaButtons.style.display = 'flex';
+          tapToUploadButton.style.display = 'block';
+          addWebUrlButton.style.display = 'block';
+          mediaCaption.style.display = 'block';
+          webUrlInput.style.display = 'none';
+          insertUrlButton.style.display = 'none';
+          urlError.style.display = 'none';
+          updateAddWebUrlButton(expectedType);
+          updateTapToUploadButton(expectedType);
         }
       }
-    });
+      removePreviewItem(0, 'url', mediaInput, webUrlInput, mediaPreview, tapToUploadButton, mediaCaption, false);
+    }
   });
 
-  // Initialize modal on page load
   resizeTextarea();
   console.log(`[${new Date().toISOString()}] Modal setup completed`);
 }
@@ -1820,7 +2267,7 @@ document.addEventListener('DOMContentLoaded', setupModal);
 // Ensure Firebase listeners are detached on page unload
 window.addEventListener('unload', () => {
   console.log(`[${new Date().toISOString()}] Detaching Firebase listeners`);
-  database.ref('posts').off();
+  database.ref('posts/submitted').off();
   if (user) {
     database.ref(`activity_log/${user.uid}`).off();
     document.querySelectorAll('.post').forEach(post => {
