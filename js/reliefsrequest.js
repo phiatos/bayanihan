@@ -185,14 +185,18 @@ document.addEventListener('DOMContentLoaded', () => {
             if (passwordNeedsReset) {
                 console.log("Password change required. Redirecting to profile page.");
                 Swal.fire({
-                    icon: 'info',
+                    icon: 'error',
                     title: 'Password Change Required',
                     text: 'For security reasons, please change your password. You will be redirected to your profile.',
                     allowOutsideClick: false,
-                    allowEscapeKey: false,
+                    timer: 1600,
                     showConfirmButton: false,
-                    timer: 2000,
-                    timerProgressBar: true
+                    timerProgressBar: true,
+                    customClass: {
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean'
+                    }
                 }).then(() => {
                     window.location.replace(`../pages/${profilePage}`);
                 });
