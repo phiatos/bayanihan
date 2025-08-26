@@ -38,6 +38,13 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentPage = 1;
     const rowsPerPage = 5;
 
+    const viewApprovedBtn = document.getElementById("viewApprovedBtn");
+    if (viewApprovedBtn) {
+        viewApprovedBtn.addEventListener("click", () => {
+            window.location.href = "../pages/reportsVerification.html";
+        });
+    }
+
     if (!reportsBody || !paginationContainer || !entriesInfo || !searchInput || !sortSelect || !savePdfBtn || !exportExcelBtn) {
         console.error("Required DOM elements not found");
         Swal.fire({
