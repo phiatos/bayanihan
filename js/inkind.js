@@ -1557,7 +1557,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         <button class="viewBtn"><i class='bx bx-show-alt'></i></button>
                         ${permissions.canEdit ? `<button class="editBtn"><i class='bx bx-edit'></i></button>` : ''}
                         ${permissions.canArchive ? `<button class="archiveBtn"><i class="bx bx-x-circle"></i></button>` : ''}
-                        <button class="endorseBtn"><i class='bx bx-send'></i></button>
+                        <button class="endorseBtn"><i class='bx bx-mail-send'></i></button>
                         <button class="savePDFBtn"><i class='bx bxs-file-pdf'></i></button>
                     </td>
                 `;

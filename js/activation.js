@@ -1,5 +1,5 @@
 const firebaseConfig = {
-    apiKey: "AIzaSyAAAu6BeQjIZ7H7beFbAsPWuKuORmh0wrk",
+    apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
     authDomain: "bayanihan-5ce7e.firebaseapp.com",
     databaseURL: "https://bayanihan-5ce7e-default-rtdb.asia-southeast1.firebasedatabase.app",
     projectId: "bayanihan-5ce7e",
@@ -900,8 +900,8 @@ function renderTable(filteredData = currentActiveActivations) {
             <td>${calamityDisplay || 'N/A'}</td>
             <td><span class="status-circle ${row.status === "active" ? "green" : "red"}"></span> ${row.status}</td>
             <td>
-                <button class="action-button-endorse-button" data-activation-id="${row.id}" data-group-id="${row.groupId}">Send Relief Assistance</button>
-                <button class="action-button" data-activation-id="${row.id}" data-group-id="${row.groupId}">Deactivate</button>
+                <button class="endorseBtn"${row.id}" data-group-id="${row.groupId}"><i class='bx bx-mail-send'></i></button>
+                <button class="archiveBtn" data-activation-id="${row.id}" data-group-id="${row.groupId}"><i class="bx bx-x-circle"></i></button>
             </td>
         `;
         tableBody.appendChild(tr);
