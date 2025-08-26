@@ -328,17 +328,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function preventNavigation(e) {
         e.preventDefault();
-        // Check if the current page is 'profile.html' or 'dashboard.html'
-        // const currentPage = window.location.pathname.split('/').pop(); // Currently not used
-        
-        let message = 'You must complete the required actions to navigate the application.';
-
-        // Customize message based on current blocking state
         if (isNavigationBlocked) {
             Swal.fire({
                 icon: 'warning',
                 title: 'Action Required',
-                text: message
+                text: 'You must complete the required actions to navigate the application.',
+                allowOutsideClick: false, 
+                allowEscapeKey: false,   
+                showConfirmButton: true, 
+                confirmButtonText: 'Ok',
+                customClass: {
+                    popup: 'swal2-popup-warning-clean',
+                    title: 'swal2-title-warning-clean',
+                    htmlContainer: 'swal2-text-warning-clean',
+                    confirmButton: 'my-warning-button'
+                }
             });
         }
     }
@@ -377,7 +381,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     console.log("Showing terms modal: termsPending=true");
                     showTermsModal();
                 } else if (passwordNeedsReset) {
-                    console.log("Password change required: passwordNeedsReset=true");
                     hideTermsModal(); 
                     isNavigationBlocked = true;
                     applyNavigationBlocking(); 
@@ -394,13 +397,19 @@ document.addEventListener("DOMContentLoaded", () => {
                     const passwordChangePromptShown = sessionStorage.getItem('passwordChangePromptShown');
                     if (!passwordChangePromptShown) {
                         Swal.fire({
-                            icon: 'info',
+                            icon: 'warning',
                             title: 'Password Change Required',
                             text: 'For security reasons, please change your password.',
                             allowOutsideClick: false, 
                             allowEscapeKey: false,   
                             showConfirmButton: true, 
-                            confirmButtonText: 'okay'
+                            confirmButtonText: 'Ok',
+                            customClass: {
+                                popup: 'swal2-popup-warning-clean',
+                                title: 'swal2-title-warning-clean',
+                                htmlContainer: 'swal2-text-warning-clean',
+                                confirmButton: 'my-warning-button'
+                            }
                         });
                         sessionStorage.setItem('passwordChangePromptShown', 'true'); 
                     }
@@ -591,9 +600,17 @@ document.addEventListener("DOMContentLoaded", () => {
                 Swal.fire({
                     icon: 'error',
                     title: 'Same Password',
-                    text: 'Your new password cannot be the same as your current password.'
+                    text: 'Your new password cannot be the same as your current password.',
+                    showConfirmButton: true,
+                    confirmButtonText: 'OK',
+                    customClass: {
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean',
+                        confirmButton: 'my-error-button'
+                    }
                 });
-                return; // Stop the function here
+                return; 
             }
 
             // Validate password length and complexity
@@ -653,16 +670,15 @@ document.addEventListener("DOMContentLoaded", () => {
                     icon: 'success',
                     title: 'Password Changed',
                     text: 'Your password has been updated successfully. You can now access your full profile.',
-                    timer: 3000,
-                    showConfirmButton: false,
-                    timerProgressBar: true,
-                    background: '#fff',
-                    color: '#333',
-                    width: '360px',
-                    padding: '1.5em',
-                    didOpen: () => {
-                        Swal.showLoading();
-                    }
+                    showConfirmButton: true,
+                    allowOutsideClick: false,
+                    confirmButtonText: 'OK',
+                    customClass: {
+                        popup: 'swal2-popup-success-clean',
+                        title: 'swal2-title-success-clean',
+                        htmlContainer: 'swal2-text-success-clean',
+                        confirmButton: 'my-success-button'
+                    },
                 }).then(() => {
                     form.reset();
                     sessionStorage.removeItem('passwordChangePromptShown'); 
