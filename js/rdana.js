@@ -224,9 +224,17 @@ document.addEventListener('DOMContentLoaded', () => {
             submitBtn.disabled = true; // Disable submit button
             Swal.fire({
               icon: 'warning',
-              title: 'Inactive Organization',
-              text: 'Your organization has no active operations. You cannot submit reports at this time.',
-              timer: 3000,
+              title: 'Organization Inactive',
+              text: 'Your organization has no active operations. Redirecting to dashboard.',
+              allowOutsideClick: false,
+              showConfirmButton: true,
+              confirmButtonText: 'OK',
+              customClass: {
+                popup: 'swal2-popup-warning-clean',
+                title: 'swal2-title-warning-clean',
+                htmlContainer: 'swal2-text-warning-clean',
+                confirmButton: 'my-warning-button'
+              },
               didClose: () => {
                 window.location.href = '../pages/dashboard.html';
               }
