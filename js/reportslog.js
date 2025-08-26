@@ -38,6 +38,13 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentPage = 1;
     const rowsPerPage = 5;
 
+    const viewApprovedBtn = document.getElementById("viewApprovedBtn");
+    if (viewApprovedBtn) {
+        viewApprovedBtn.addEventListener("click", () => {
+            window.location.href = "../pages/reportsVerification.html";
+        });
+    }
+
     if (!reportsBody || !paginationContainer || !entriesInfo || !searchInput || !sortSelect || !savePdfBtn || !exportExcelBtn) {
         console.error("Required DOM elements not found");
         Swal.fire({
@@ -270,9 +277,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${report["CalamityType"] || "-"}</td>
                 <td>${report["CalamityName"] || "-"}</td>
                 <td>
-                    <button class="viewBtn"><i class="bx bx-show-alt"></i></button>
-                    <button class="savePDFBtn"><i class="bx bxs-file-pdf"></i></button>
-                    <button class="deleteBtn"><i class="bx bx-x-circle"></i></button>
+                    <button title="View" class="viewBtn"><i class="bx bx-show-alt"></i></button>
+                    <button title="Save as PDF" class="savePDFBtn"><i class="bx bxs-file-pdf"></i></button>
+                    <button title="Archive" class="deleteBtn"><i class="bx bx-x-circle"></i></button>
                 </td>
             `;
 

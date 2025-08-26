@@ -222,11 +222,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
         emailjs.send('service_mzpjk2a', 'template_owchxrw', templateParams)
             .then(() => {
-                console.log('Approval email sent successfully to', donationData.email);
-                Swal.fire('Success', `Approval email sent to ${donationData.email}`, 'success');
+                Swal.fire({
+                    title: 'Success!',
+                    text: `Approval email sent to ${donationData.email}`,
+                    icon: 'success',
+                    showConfirmButton: true,
+                    confirmButtonText: 'OK',
+                    customClass: {
+                        popup: 'swal2-popup-success-clean',
+                        title: 'swal2-title-success-clean',
+                        htmlContainer: 'swal2-text-success-clean',
+                        confirmButton: 'my-success-button'
+                    }
+                });
             })
             .catch(error => {
-                console.error('Error sending approval email:', error);
                 const errorMessage = error && typeof error === 'object' && error.message ? error.message : 'Unknown error';
                 Swal.fire('Error', `Failed to send approval email: ${errorMessage}`, 'error');
                 logErrorToFirebase(error, 'sendApprovalEmail');
@@ -412,6 +422,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonText: 'Reject',
+                reverseButtons: true,
                 customClass: {
                     popup: 'custom-swal-popup-small',
                     title: 'custom-swal-title',
@@ -612,41 +623,67 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             Swal.fire({
-                title: 'Assign Donation',
-                html: `
-                    <p>Select an active volunteer network or pending relief request:</p>
-                    <select id="assignmentSelect" style="width: 100%; padding: 8px;">
-                        <option value="" selected>-- Select an option --</option>
-                        ${selectOptions}
-                    </select>
-                    <div id="assignmentDetails" style="margin-top: 10px; max-height: 200px; overflow-y: auto; text-align: left;">
-                        <p>Please select an option to view details.</p>
-                    </div>
-                `,
-                icon: 'info',
-                showCancelButton: true,
-                confirmButtonText: 'Confirm Selection',
-                cancelButtonText: 'Cancel',
-                didOpen: () => {
-                    console.log('Options available:', options);
-                    const select = document.getElementById('assignmentSelect');
-                    if (options.length > 0) {
-                        select.value = `${options[0].type}:${options[0].id}`;
-                        updateDetailsDisplay(select.value);
-                    }
-                    select.addEventListener('change', () => {
-                        updateDetailsDisplay(select.value);
-                    });
-                },
-                preConfirm: () => {
-                    const selectedValue = document.getElementById('assignmentSelect').value;
-                    if (!selectedValue) {
-                        Swal.showValidationMessage('Please select an option.');
-                        return false;
-                    }
-                    return selectedValue;
+            title: 'Assign Donation',
+            html: `
+                <p style="font-weight: 500; color: #333;">Select an active volunteer network or pending relief request:</p>
+                <select id="assignmentSelect" style="
+                    width: 100%; 
+                    margin-bottom: 10px;
+                    padding: 10px; 
+                    border-radius: 8px; 
+                    border: 1px solid #ccc; 
+                    font-size: 14px;
+                    background: #fefefe;
+                    box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+                ">
+                    <option value="" selected>-- Select an option --</option>
+                    ${selectOptions}
+                </select>
+                <div id="assignmentDetails" style="
+                    margin-top: 15px; 
+                    max-height: 200px; 
+                    overflow-y: auto; 
+                    text-align: left; 
+                    background: #f9f9f9; 
+                    padding: 10px; 
+                    border-radius: 8px; 
+                    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+                ">
+                    <p>Please select an option to view details.</p>
+                </div>
+            `,
+            icon: 'info',
+            showCancelButton: true,
+            confirmButtonText: 'Confirm Selection',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: '#1e88e5',
+            cancelButtonColor: '#e0e0e0',
+            reverseButtons: true,
+            buttonsStyling: true,
+            customClass: {
+                popup: 'swal-popup-modern',
+                title: 'swal-title-modern',
+                content: 'swal-content-modern',
+                confirmButton: 'swal-confirm-modern',
+                cancelButton: 'swal-cancel-modern'
+            },
+            didOpen: () => {
+                const select = document.getElementById('assignmentSelect');
+                if (options.length > 0) {
+                    select.value = `${options[0].type}:${options[0].id}`;
+                    updateDetailsDisplay(select.value);
                 }
-            }).then(async (result) => {
+                select.addEventListener('change', () => updateDetailsDisplay(select.value));
+            },
+            preConfirm: () => {
+                const selectedValue = document.getElementById('assignmentSelect').value;
+                if (!selectedValue) {
+                    Swal.showValidationMessage('Please select an option.');
+                    return false;
+                }
+                return selectedValue;
+            }
+        }).then(async (result) => {
                 if (result.isConfirmed) {
                     const [type, selectedId] = result.value.split(':');
                     const selectedOption = options.find(opt => opt.type === type && opt.id === selectedId);
@@ -678,9 +715,16 @@ document.addEventListener("DOMContentLoaded", () => {
                         `,
                         icon: 'question',
                         showCancelButton: true,
-                        confirmButtonColor: '#3085d6',
-                        cancelButtonColor: '#d33',
-                        confirmButtonText: 'Yes, approve it!'
+                        confirmButtonText: 'Yes, approve it!',
+                        cancelButtonText: 'Cancel',
+                        reverseButtons: true,
+                        customClass: {
+                            popup: 'custom-swal-popup-large',
+                            title: 'custom-swal-title',
+                            htmlContainer: 'custom-swal-content',
+                            confirmButton: 'custom-confirm-btn',
+                            cancelButton: 'custom-cancel-btn'
+                        }
                     });
 
                     if (confirmResult.isConfirmed) {
@@ -754,7 +798,15 @@ document.addEventListener("DOMContentLoaded", () => {
                                     <p>Donation has been approved and assigned to ${selectedOption.type}: ${selectedOption.name}.</p>
                                     ${reliefDetails}
                                 `,
-                                icon: 'success'
+                                icon: 'success',
+                                showConfirmButton: true,
+                                confirmButtonText: 'OK',
+                                customClass: {
+                                    popup: 'swal2-popup-success-clean',
+                                    title: 'swal2-title-success-clean',
+                                    htmlContainer: 'swal2-text-success-clean',
+                                    confirmButton: 'my-success-button'
+                                }
                             });
                         } catch (error) {
                             console.error('Error approving donation in Firebase:', error);
@@ -883,11 +935,11 @@ document.addEventListener("DOMContentLoaded", () => {
                     <td>${donation.staffIncharge}</td>
                     <td>${donation.donationDate ? new Date(donation.donationDate).toLocaleDateString('en-PH') : 'N/A'}</td>
                     <td>
-                        <button class="viewBtn" aria-label="View donation details"><i class='bx bx-show-alt'></i></button>
+                        <button title="View" class="viewBtn" aria-label="View donation details"><i class='bx bx-show-alt'></i></button>
                         ${permissions.canEdit ? `
-                            <button class="approveBtn" aria-label="Approve donation"><i class='bx bx-check-circle'></i></button>
+                            <button title="Approve" class="approveBtn" aria-label="Approve donation"><i class='bx bx-check-circle'></i></button>
                             ${permissions.canArchive ? `
-                                <button class="rejectBtn" aria-label="Reject donation"><i class='bx bx-x-circle'></i></button>
+                                <button title="Reject" class="rejectBtn" aria-label="Reject donation"><i class='bx bx-x-circle'></i></button>
                             ` : ''}
                         ` : ''}
                     </td>

@@ -331,12 +331,14 @@ document.addEventListener('DOMContentLoaded', function() {
             const approveButton = document.createElement('button');
             approveButton.className = 'approveBtn';
             approveButton.innerHTML = '<i class="bx bx-check-circle"></i>';
+            approveButton.title = "Approve Donation"; // tooltip text
             approveButton.addEventListener('click', () => updateDonationStatus(donation.id, donation, 'Approved'));
             actionCell.appendChild(approveButton);
 
             const rejectButton = document.createElement('button');
             rejectButton.className = 'rejectBtn';
             rejectButton.innerHTML = '<i class="bx bx-x-circle"></i>';
+            rejectButton.title = "Reject Donation"; // tooltip text
             rejectButton.addEventListener('click', () => updateDonationStatus(donation.id, donation, 'Rejected'));
             actionCell.appendChild(rejectButton);
         });
@@ -414,6 +416,7 @@ document.addEventListener('DOMContentLoaded', function() {
             icon: 'warning',
             showCancelButton: true,
             confirmButtonText: 'Reject',
+            reverseButtons: true,
             customClass: {
                 popup: 'custom-swal-popup-small',
                 title: 'custom-swal-title',
@@ -432,7 +435,19 @@ document.addEventListener('DOMContentLoaded', function() {
                         await database.ref('donations/savedDonations/monetary/' + id).set(donationToApprove);
                         await database.ref('donations/pending/monetary/' + id).remove();
                         debugLog('Removal from donations/pending/monetary successful', { id });
-                        Swal.fire('Approved!', 'The monetary donation has been approved.', 'success');
+                        Swal.fire({
+                            title: 'Approved!',
+                            text: 'The monetary donation has been approved.',
+                            icon: 'success',
+                            showConfirmButton: true,
+                            confirmButtonText: 'OK',
+                            customClass: {
+                                popup: 'swal2-popup-success-clean',
+                                title: 'swal2-title-success-clean',
+                                htmlContainer: 'swal2-text-success-clean',
+                                confirmButton: 'my-success-button'
+                            }
+                        });
                     } else if (newStatus === 'Rejected') {
                         const donationToArchive = { ...finalDonationData };
                         donationToArchive.rejectedAt = new Date().toISOString();

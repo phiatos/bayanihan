@@ -111,12 +111,18 @@ document.addEventListener('DOMContentLoaded', () => {
             const actionCodeSettings = {
                 // url: '../pages/login.html',
                 // handleCodeInApp: false,
-                //for host
-                url: 'https://bayanihan-drrm.vercel.app/pages/login.html', 
-                handleCodeInApp: false, 
-                //for live server  
+
+                // for vercel host
+                // url: 'https://bayanihan-drrm.vercel.app/pages/login.html', 
+                // handleCodeInApp: false, 
+
+                // for live server  
                 // url: 'http://127.0.0.1:5500/bayanihan/pages/login.html',
                 // handleCodeInApp: true, 
+
+                // for domain host
+                url: 'https://www.angat-bayanihan.com/pages/login.html', 
+                handleCodeInApp: false, 
             };
             await auth.sendPasswordResetEmail(email, actionCodeSettings);
 
@@ -156,7 +162,15 @@ document.addEventListener('DOMContentLoaded', () => {
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
-                text: errorMessage
+                text: errorMessage,
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
+                }
             });
         }
     });

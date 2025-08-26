@@ -22,12 +22,17 @@
   <script defer src="./index.js"></script>
   <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAAAu6BeQjIZ7H7beFbAsPWuKuORmh0wrk&libraries=places,marker"></script>
 
-  <!-- Navigation -->
   <header class="navbar">
     <div class="navbar-container">
       <div class="logo">
         <img src="./assets/images/AB_logo.png" alt="Angat Buhay Logo" />
       </div>
+
+       <!-- Hamburger -->
+      <button class="hamburger" aria-label="Toggle Menu">
+        ☰
+      </button>
+
       <nav>
         <ul class="nav-links">
           <li><a href="./index.html" class="active">Home</a></li>
@@ -40,6 +45,7 @@
       </nav>
     </div>
   </header>
+
 
   <!-- Hero Section -->
   <section class="hero">
@@ -128,5 +134,17 @@
       <p>© 2025 Bayanihan | Angat Pinas Inc. All rights reserved. | Powered by Appvance</p>
     </div>
   </footer>
+
+<script>
+  const hamburger = document.querySelector('.hamburger');
+  const navLinks = document.querySelector('.nav-links');
+
+  hamburger.addEventListener('click', () => {
+    navLinks.classList.toggle('show');
+  });
+</script>
+
+
+
 </body>
 </html>

@@ -1410,17 +1410,16 @@ document.addEventListener("DOMContentLoaded", () => {
             try {
                 await database.ref("donations/savedDonations/inkind").push(newDonation);
                 Swal.fire({
-                    title: 'Success',
-                    text: 'Donation added successfully!',
                     icon: 'success',
-                    timer: 2500,
-                    showConfirmButton: false,
-                    timerProgressBar: true,
-                    allowOutsideClick: false,
+                    title: 'Donation Added!',
+                    text: 'Your donation has been successfully recorded.',
+                    showConfirmButton: true,
+                    confirmButtonText: 'OK',
                     customClass: {
                         popup: 'swal2-popup-success-clean',
                         title: 'swal2-title-success-clean',
                         htmlContainer: 'swal2-text-success-clean',
+                        confirmButton: 'my-success-button'
                     }
                 });
                 clearFormFields();
@@ -1557,7 +1556,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         <button class="viewBtn"><i class='bx bx-show-alt'></i></button>
                         ${permissions.canEdit ? `<button class="editBtn"><i class='bx bx-edit'></i></button>` : ''}
                         ${permissions.canArchive ? `<button class="archiveBtn"><i class="bx bx-x-circle"></i></button>` : ''}
-                        <button class="endorseBtn"><i class='bx bx-send'></i></button>
+                        <button class="endorseBtn"><i class='bx bx-mail-send'></i></button>
                         <button class="savePDFBtn"><i class='bx bxs-file-pdf'></i></button>
                     </td>
                 `;

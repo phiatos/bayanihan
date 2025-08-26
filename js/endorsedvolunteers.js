@@ -885,9 +885,9 @@ function renderVolunteersTable() {
             <td>${volunteer.endorsedToABVNName ? `${volunteer.endorsedToABVNName} (${volunteer.endorsedToABVNLocation})` : 'N/A'}</td>
             <td>${formatDate(volunteer.endorsementDate)}</td>
             <td>
-                <button class="viewBtn"><i class='bx bx-show-alt'></i></button>
-                ${permissions.canArchive ? `<button class="archiveBtn"><i class='bx bx-x-circle'></i></button>` : ''}
-                <button class="saveSinglePdfBtn"><i class='bx bxs-file-pdf'></i></button>
+                <button title="View" class="viewBtn"><i class='bx bx-show-alt'></i></button>
+                ${permissions.canArchive ? `<button title="Archive" class="archiveBtn"><i class='bx bx-x-circle'></i></button>` : ''}
+                <button title="Save as PDF" class="saveSinglePdfBtn"><i class='bx bxs-file-pdf'></i></button>
             </td>
         `;
 
@@ -1400,14 +1400,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (passwordNeedsReset) {
                     console.log(`Password change required for user ${user.uid}. Redirecting to profile page.`);
                     Swal.fire({
-                        icon: 'info',
+                        icon: 'error',
                         title: 'Password Change Required',
                         text: 'For security reasons, please change your password. You will be redirected to your profile.',
                         allowOutsideClick: false,
-                        allowEscapeKey: false,
+                        timer: 1600,
                         showConfirmButton: false,
-                        timer: 2000,
-                        timerProgressBar: true
+                        timerProgressBar: true,
+                        customClass: {
+                            popup: 'swal2-popup-error-clean',
+                            title: 'swal2-title-error-clean',
+                            htmlContainer: 'swal2-text-error-clean'
+                        }
                     }).then(() => {
                         window.location.replace(`../pages/${profilePage}`);
                     });

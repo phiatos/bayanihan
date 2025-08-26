@@ -1324,13 +1324,13 @@ async function validateDonationForm(inputs, excludeKey = null) {
                     icon: 'success',
                     title: 'Donation Added!',
                     text: 'Your donation has been successfully recorded.',
-                    timer: 2000,
-                    showConfirmButton: false,
-                    timerProgressBar: true,
+                    showConfirmButton: true,
+                    confirmButtonText: 'OK',
                     customClass: {
                         popup: 'swal2-popup-success-clean',
                         title: 'swal2-title-success-clean',
-                        htmlContainer: 'swal2-text-success-clean'
+                        htmlContainer: 'swal2-text-success-clean',
+                        confirmButton: 'my-success-button'
                     }
                 });
             })
@@ -1479,9 +1479,9 @@ async function validateDonationForm(inputs, excludeKey = null) {
                     <td>${d.proof ? `<a href="${d.proof}" target="_blank">View Proof</a>` : 'N/A'}</td>
                     <td>
                         <button class="viewBtn"><i class='bx bx-show-alt'></i></button>
-                        ${permissions.canEdit ? `<button class="editBtn"><i class='bx bx-edit'></i></button>` : ''}
-                        ${permissions.canArchive ? `<button class="archiveBtn"><i class="bx bx-x-circle"></i></button>` : ''}
-                        <button class="savePDFBtn"><i class='bx bxs-file-pdf'></i></button>
+                        ${permissions.canEdit ? `<button title="Edit" class="editBtn"><i class='bx bx-edit'></i></button>` : ''}
+                        ${permissions.canArchive ? `<button title="Archive" class="archiveBtn"><i class="bx bx-x-circle"></i></button>` : ''}
+                        <button title="Save as PDF" class="savePDFBtn"><i class='bx bxs-file-pdf'></i></button>
                     </td>
                 `;
                 tr.querySelector(".viewBtn").addEventListener("click", () => {

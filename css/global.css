@@ -889,7 +889,7 @@ td:has(.viewBtn, .editBtn,
 .saveSinglePdfBtn, .savePDFBtn,
 .actionBtn, .endorseBtn,
 .deleteBtn, .rejectBtn, .archiveBtn,
-.rescheduleBtn, .saveBtn) {
+.rescheduleBtn, .saveBtn, .action-button-endorse-button, .action-button) {
   display: flex;
   gap: 8px;
   justify-content: center;
@@ -903,7 +903,7 @@ td:has(.viewBtn, .editBtn,
 .saveSinglePdfBtn, .savePDFBtn,
 .actionBtn, .endorseBtn,
 .deleteBtn, .rejectBtn, .archiveBtn,
-.rescheduleBtn, .saveBtn {
+.rescheduleBtn, .saveBtn, .action-button-endorse-button, .action-button {
   width: 45px;
   height: 45px;
   padding: 0;
@@ -941,7 +941,8 @@ td:has(.viewBtn, .editBtn,
 .rejectBtn i,
 .archiveBtn i,
 .rescheduleBtn i,
-.saveBtn i {
+.saveBtn i,
+.action-button-endorse-button i, .action-button i {
   display: inline-flex;
   justify-content: center;
   align-items: center;
@@ -962,7 +963,8 @@ td:has(.viewBtn, .editBtn,
 .rejectBtn,
 .archiveBtn,
 .rescheduleBtn,
-.saveBtn {
+.saveBtn,
+.action-button-endorse-button, .action-button {
   pointer-events: auto;
 }
 
@@ -1957,11 +1959,11 @@ label:has(+ textarea[required])::after {
 /*Responsiveness*/
 
 @media (max-width: 768px) {
-    .pagination-info {
-        flex-direction: column;
-        gap: 10px;
-        text-align: center;
-    }
+  .pagination-info {
+    flex-direction: column;
+    gap: 10px;
+    text-align: center;
+  }
 
   .controls {
     flex-direction: column;
@@ -2048,6 +2050,49 @@ label:has(+ textarea[required])::after {
   }
 
 }
+
+@media (max-width: 425px) {
+  /* Form adjustments */
+  .form-page-container .fields {
+    flex-direction: column; /* stack inputs */
+    gap: 12px;
+  }
+
+  .form-page-container .input-field {
+    width: 100%; /* full width */
+    min-width: unset; /* remove 370px restriction */
+  }
+
+  .form-page-container .input-field input,
+  .form-page-container .input-field p {
+    font-size: 12px;
+    padding: 9px 10px;
+  }
+
+  .form-page-container label {
+    font-size: 11px;
+    margin-bottom: 3px;
+  }
+
+  .form-page-container #nextBtn {
+    width: 100%; /* button full width */
+  }
+
+  /* Main container adjustments */
+  .main-container {
+    flex-direction: column; /* stack content vertically */
+    margin: 0 10px; /* reduce side margins */
+    justify-content: flex-start; /* align at top */
+  }
+
+  #main-content {
+    padding: 20px;
+    margin: 20px 0; /* smaller vertical margin */
+    border-radius: 20px; /* slightly smaller radius */
+    max-height: calc(100vh - 40px); /* adjust for smaller screen */
+  }
+}
+
 
 @media (max-width: 480px) {
   .form-page-container .input-field {

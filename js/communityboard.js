@@ -330,22 +330,26 @@ auth.onAuthStateChanged(async (currentUser) => {
       const userDataFromDb = userSnapshot.val();
       const passwordNeedsReset = userDataFromDb ? (userDataFromDb.password_needs_reset || false) : false;
 
-      if (passwordNeedsReset) {
-        console.log(`[${new Date().toISOString()}] Password change required for user ${user.uid}. Redirecting to profile page.`);
-        Swal.fire({
-          icon: 'info',
-          title: 'Password Change Required',
-          text: 'For security reasons, please change your password. You will be redirected to your profile.',
-          allowOutsideClick: false,
-          allowEscapeKey: false,
-          showConfirmButton: false,
-          timer: 2000,
-          timerProgressBar: true
-        }).then(() => {
-          window.location.replace(`../pages/${profilePage}`);
-        });
-        return;
-      }
+            if (passwordNeedsReset) {
+                console.log(`[${new Date().toISOString()}] Password change required for user ${user.uid}. Redirecting to profile page.`);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Password Change Required',
+                    text: 'For security reasons, please change your password. You will be redirected to your profile.',
+                    allowOutsideClick: false,
+                    timer: 1600,
+                    showConfirmButton: false,
+                    timerProgressBar: true,
+                    customClass: {
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean'
+                    }
+                }).then(() => {
+                    window.location.replace(`../pages/${profilePage}`);
+                });
+                return; // IMPORTANT: Stop further execution if password reset is needed
+            }
 
       loadPosts();
       loadActivityLog();

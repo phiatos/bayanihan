@@ -211,7 +211,19 @@ function checkInactivity() {
             const filename = `Relief_Request_Log_${new Date().toISOString().slice(0, 10)}.pdf`;
             doc.save(filename);
             Swal.close();
-            Swal.fire("Success", `Relief Request Log exported to "${filename}"`, "success"); // Matched success message
+            Swal.fire({
+                icon: 'success',
+                title: 'Export Successful!',
+                text: `Relief Request Log exported to "${filename}"`,
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    htmlContainer: 'swal2-text-success-clean',
+                    confirmButton: 'my-success-button'
+                }
+            })
         };
 
         logo.onerror = function() {
@@ -737,8 +749,13 @@ document.getElementById('closeArchivedModalBtn').addEventListener('click', funct
             title: 'Generating Excel...',
             text: 'Please wait while the Excel file is being created.',
             allowOutsideClick: false,
-            didOpen: () => {
-                Swal.showLoading();
+            showConfirmButton: true,
+            confirmButtonText: 'OK',
+            customClass: {
+                popup: 'swal2-popup-success-clean',
+                title: 'swal2-title-success-clean',
+                htmlContainer: 'swal2-text-success-clean',
+                confirmButton: 'my-success-button'
             }
         });
 
@@ -802,8 +819,14 @@ document.getElementById('closeArchivedModalBtn').addEventListener('click', funct
                 title: 'Success!',
                 text: 'Excel file generated successfully!',
                 icon: 'success',
-                timer: 1500,
-                showConfirmButton: false
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    htmlContainer: 'swal2-text-success-clean',
+                    confirmButton: 'my-success-button'
+                }
             });
 
         } catch (error) {
