@@ -583,6 +583,8 @@ header {
   }
 }
 
+
+
 @media (max-width: 1024px) {
   .dashboard-container {
     display: grid;
@@ -606,6 +608,51 @@ header {
   }
 
 }
+
+/* Small phone screens - 425px */
+@media (max-width: 425px) {
+  /* Hide the map completely */
+  .map-container {
+    display: none;
+  }
+
+  /* Hide sidebar completely */
+  .metrics-sidebar {
+    display: none;
+  }
+
+  /* Make metrics-main full width and smaller */
+  .metrics-main {
+    width: 100%;
+    padding: 0.5rem;
+  }
+
+  /* Shrink metric cards */
+  .metric-card {
+    padding: 1rem;
+    transform: scale(0.75); /* smaller cards */
+  }
+
+  .metric-card h3 {
+    font-size: 10px;
+  }
+
+  .metric-card p {
+    font-size: 18px;
+  }
+
+  /* Stack metrics container items */
+  .metrics-container {
+    grid-template-columns: 1fr; /* one card per row */
+    gap: 1rem;
+  }
+
+  /* Optional: reduce header size */
+  header {
+    font-size: 1.5rem;
+  }
+}
+
 
 @media (max-width: 768px) {
   .dashboard-container {

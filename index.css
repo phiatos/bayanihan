@@ -469,6 +469,7 @@ body {
   .navbar-container {
     flex-direction: column;
     align-items: flex-start;
+    margin-top: auto;
   }
 
   .nav-links {
@@ -481,4 +482,55 @@ body {
     display: block;
     width: 100%;
   }
+
+  .metric-card{
+    width: fit-content;
+    padding: 15px;
+  }
+
+  .metric-card p, .metric-card h3, .metric-card i{
+    font-size: 12px;
+  }
 }
+
+/* Hamburger Button */
+.hamburger {
+  display: none;
+  font-size: 1.8rem;
+  background: none;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+}
+
+/* Mobile Styles */
+@media (max-width: 425px) {
+  .hamburger {
+    display: block;
+  }
+
+  .nav-links {
+    display: none;
+    flex-direction: column;
+    width: 100%;
+    margin-top: 0.5rem;
+    background: rgba(64, 89, 165, 0.9);
+    padding: 1rem 0;
+    border-radius: 12px;
+  }
+
+  .nav-links li {
+    width: 100%;
+    text-align: center;
+    margin: 0.5rem 0;
+  }
+
+  .nav-links.show {
+    display: flex;
+  }
+
+  .navbar-container {
+    flex-wrap: wrap;
+  }
+}
+
