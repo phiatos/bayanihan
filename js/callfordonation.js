@@ -845,10 +845,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 tr.setAttribute('data-id', r.donationId);
                 // Include both approveBtn and deleteBtn based on user role
                 const actionButtons = `
-                    <button class="viewBtn"><i class="bx bx-show-alt"></i></button>
-                    ${userRole === 'AB ADMIN' ? `<button class="approveBtn"><i class="bx bx-check"></i></button>` : ''}
-                    <button class="deleteBtn"><i class='bx bx-trash' ></i></button>
-                    <button class="savePDFBtn"><i class="bx bxs-file-pdf"></i></button>
+                    <button title="View" class="viewBtn"><i class="bx bx-show-alt"></i></button>
+                    ${userRole === 'AB ADMIN' ? `<button title="Approve" class="approveBtn"><i class="bx bx-check"></i></button>` : ''}
+                    <button title="Archive" class="deleteBtn"><i class='bx bx-trash' ></i></button>
+                    <button title="Save as PDF" class="savePDFBtn"><i class="bx bxs-file-pdf"></i></button>
                 `;
                 tr.innerHTML = `
                     <td>${startIndex + i + 1}</td>

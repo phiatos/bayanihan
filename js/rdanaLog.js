@@ -60,8 +60,10 @@ function checkInactivity() {
     document.addEventListener(eventType, resetInactivityTimer);
 });
 
-  const exportExcelBtn = document.getElementById('exportExcelBtn'); 
+  const exportExcelBtn = document.getElementById('exportBtn'); 
   const savePdfBtn = document.getElementById('savePdfBtn');
+  console.log(savePdfBtn); // should not be null
+  console.log(exportExcelBtn); // should not be null
   const entriesInfo = document.querySelector("#entriesInfo");
   const paginationContainer = document.querySelector("#pagination");
 
@@ -159,11 +161,11 @@ function checkInactivity() {
         <td>${log.effects?.affectedPopulation ?? "N/A"}</td>
         <td>${log.needs?.priority?.join(", ") ?? "N/A"}</td>
         <td>
-          <button class="viewBtn"><i class='bx bx-show-alt'></i>
+          <button title="View" class="viewBtn"><i class='bx bx-show-alt'></i>
 </button>
-          <button class="deleteBtn"><i class="bx bx-x-circle"></i>
+          <button title="Archive" class="deleteBtn"><i class="bx bx-x-circle"></i>
 </button>
-          <button class="savePDFBtn"><i class='bx bxs-file-pdf'></i>
+          <button title="Save as PDF" class="savePDFBtn"><i class='bx bxs-file-pdf'></i>
 </button>
         </td>
       `;
@@ -433,34 +435,72 @@ function loadArchivedReports(page = 1) {
 
 
 function restoreReport(reportKey) {
-  Swal.fire({
-    title: 'Restore Report?',
-    text: 'This will move the report back to the active list.',
-    icon: 'question',
-    showCancelButton: true,
-    confirmButtonColor: '#28a745',
-    cancelButtonColor: '#6c757d',
-    confirmButtonText: 'Yes, Restore it!'
-  }).then(result => {
-    if (result.isConfirmed) {
-      database.ref(`rdana/archived/${reportKey}`).once('value').then(snapshot => {
-        const reportData = snapshot.val();
-        if (!reportData) throw new Error('Report not found in archive.');
+    // Step 1: Custom confirmation
+    Swal.fire({
+        title: 'Retrieve Report?',
+        text: 'This will move the report from archived records back to the active list.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Retrieve',
+        cancelButtonText: 'Cancel',
+        reverseButtons: true,
+        focusCancel: true,
+        allowOutsideClick: false,
+        customClass: {
+            popup: 'custom-swal-popup-small',
+            title: 'custom-swal-title',
+            htmlContainer: 'custom-swal-content',
+            confirmButton: 'custom-confirm-btn',
+            cancelButton: 'custom-cancel-btn'
+        }
+    }).then((result) => {
+        if (!result.isConfirmed) return;
 
-        // Move back to approved
-        return database.ref(`rdana/approved/${reportKey}`).set(reportData).then(() => {
-          return database.ref(`rdana/archived/${reportKey}`).remove();
-        });
-      }).then(() => {
-        Swal.fire('Restored!', 'The report has been moved back to the active list.', 'success');
-        loadArchivedReports(); // refresh table
-      }).catch(err => {
-        console.error(err);
-        Swal.fire('Error', err.message, 'error');
-      });
-    }
-  });
+        // Step 2: Move report from archived → approved
+        database.ref(`rdana/archived/${reportKey}`).once('value')
+            .then(snapshot => {
+                const reportData = snapshot.val();
+                if (!reportData) throw new Error('Report not found in archive.');
+
+                return database.ref(`rdana/approved/${reportKey}`).set(reportData)
+                    .then(() => database.ref(`rdana/archived/${reportKey}`).remove());
+            })
+            .then(() => {
+                // Step 3: Success alert
+                Swal.fire({
+                    title: 'Retrieved!',
+                    text: 'The report has been moved back to the active list.',
+                    icon: 'success',
+                    timer: 1600,
+                    showConfirmButton: false,
+                    timerProgressBar: true,
+                    allowOutsideClick: false,
+                    customClass: {
+                        popup: 'swal2-popup-success-clean',
+                        title: 'swal2-title-success-clean',
+                        htmlContainer: 'swal2-text-success-clean'
+                    }
+                });
+
+                // Step 4: Refresh archived reports table
+                loadArchivedReports();
+            })
+            .catch(err => {
+                console.error("💥 Restore failed:", err);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Restore Failed',
+                    text: err.message || 'Failed to retrieve the report.',
+                    customClass: {
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        content: 'swal2-text-error-clean'
+                    }
+                });
+            });
+    });
 }
+
 
 
   function viewLog(globalIndex) {
@@ -1146,3 +1186,4 @@ searchInput.addEventListener('input', function() {
   }
 
 });
+

@@ -360,8 +360,8 @@ function renderTable(dataToRender = filteredData) {
             <td>${row.address?.barangay || 'N/A'}</td>
             <td>${row.address?.streetAddress || 'N/A'}</td>
             <td>
-                <button class="editBtn" data-id="${row.id}"><i class='bx bx-edit'></i></button>
-                <button class="deleteBtn" data-id="${row.id}"><i class="bx bx-x-circle"></i></button>
+                <button title="Edit" class="editBtn" data-id="${row.id}"><i class='bx bx-edit'></i></button>
+                <button title="Archive" class="deleteBtn" data-id="${row.id}"><i class="bx bx-x-circle"></i></button>
             </td>
         `;
         tableBody.appendChild(tr);

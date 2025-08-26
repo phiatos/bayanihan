@@ -885,9 +885,9 @@ function renderVolunteersTable() {
             <td>${volunteer.endorsedToABVNName ? `${volunteer.endorsedToABVNName} (${volunteer.endorsedToABVNLocation})` : 'N/A'}</td>
             <td>${formatDate(volunteer.endorsementDate)}</td>
             <td>
-                <button class="viewBtn"><i class='bx bx-show-alt'></i></button>
-                ${permissions.canArchive ? `<button class="archiveBtn"><i class='bx bx-x-circle'></i></button>` : ''}
-                <button class="saveSinglePdfBtn"><i class='bx bxs-file-pdf'></i></button>
+                <button title="View" class="viewBtn"><i class='bx bx-show-alt'></i></button>
+                ${permissions.canArchive ? `<button title="Archive" class="archiveBtn"><i class='bx bx-x-circle'></i></button>` : ''}
+                <button title="Save as PDF" class="saveSinglePdfBtn"><i class='bx bxs-file-pdf'></i></button>
             </td>
         `;
 
