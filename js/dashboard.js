@@ -1388,19 +1388,40 @@ async function checkNewSubmissions(node, key, type, location, details, eventId) 
     }
 }
 
-// Update notification badge with unread count
 function updateNotificationBadge() {
     if (!notifBadge) return;
+
     database.ref("notifications")
         .orderByChild("read")
         .equalTo(false)
         .once("value", snapshot => {
-            const unreadCount = snapshot.numChildren();
+            let unreadCount = 0;
+
+            snapshot.forEach(childSnap => {
+                const notif = childSnap.val();
+
+                // Skip admin notifications if user is not AB ADMIN
+                if (notif.type === "admin" && userRole !== "AB ADMIN") {
+                    return; 
+                }
+
+                // For approval notifications, only count if belongs to current user
+                if (["donation_approved", "rdana_approved"].includes(notif.type)) {
+                    if (notif.userUid !== userUid) return;
+                } else if (userRole !== "AB ADMIN" && notif.userUid && notif.userUid !== userUid) {
+                    // Non-admin users only count their own notifications
+                    return;
+                }
+
+                unreadCount++;
+            });
+
             notifBadge.textContent = unreadCount > 0 ? unreadCount : '';
             notifBadge.style.display = unreadCount > 0 ? "inline-flex" : "none";
             notifDot.style.display = unreadCount > 0 ? "block" : "none";
         });
 }
+
 // Setup admin notifications (unchanged)
 function setupAdminNotifications() {
  if (!calamityList || !adminList || !notifDot || !notifBadge) return;
@@ -1558,26 +1579,37 @@ function loadNotifications() {
                 let targetPage = "";
                 let reportIdToUse = "";
 
-                // Determine the target page and ID based on notification message and type
-                if (notification.message.toLowerCase().includes("rdana report")) {
-                    reportIdToUse = notification.rdanaId || ""; // Use rdanaId for RDANA reports
-                    targetPage = `/bayanihan/pages/rdanaVerification.html?reportId=${reportIdToUse}`;
-                    console.log(`Navigating to RDANA verification page with rdanaId: ${reportIdToUse}`);
-                } else if (notification.message.toLowerCase().includes("relief report")) {
-                    reportIdToUse = notification.rdanaId || ""; // Use rdanaId for relief reports
-                    targetPage = `/bayanihan/pages/reliefsLog.html?reportId=${reportIdToUse}`;
-                    console.log(`Navigating to reliefs log page with rdanaId: ${reportIdToUse}`);
-                } else if (notification.message.toLowerCase().includes("donation")) {
-                    reportIdToUse = notification.donationId || ""; // Use donationId for donation calls
-                    targetPage = `/bayanihan/pages/callfordonation.html?reportId=${reportIdToUse}`;
-                    console.log(`Navigating to donation page with donationId: ${reportIdToUse}`);
-                } else if (notification.message.toLowerCase().includes("report")) {
-                    // Extract reportId from message (e.g., "New report (REPORTS-5205362849)")
-                    const reportIdMatch = notification.message.match(/REPORTS-\d+/);
-                    reportIdToUse = reportIdMatch ? reportIdMatch[0] : notification.reportId || ""; // Fallback to reportId if parsing fails
-                    targetPage = `/bayanihan/pages/reportsVerification.html?reportId=${reportIdToUse}`;
-                    console.log(`Navigating to reports verification page with reportId: ${reportIdToUse}`);
-                }
+                // Detect the base path dynamically
+let basePath = window.location.origin;
+
+// Check if the current URL already contains "/bayanihan"
+if (window.location.pathname.includes("/bayanihan")) {
+    basePath += "/bayanihan";
+}
+
+// Determine the target page and ID based on notification message and type
+if (notification.message.toLowerCase().includes("rdana report")) {
+    reportIdToUse = notification.rdanaId || "";
+    targetPage = `${basePath}/pages/rdanaVerification.html?reportId=${reportIdToUse}`;
+    console.log(`Navigating to RDANA verification page with rdanaId: ${reportIdToUse}`);
+} else if (notification.message.toLowerCase().includes("relief report")) {
+    reportIdToUse = notification.rdanaId || "";
+    targetPage = `${basePath}/pages/reliefsLog.html?reportId=${reportIdToUse}`;
+    console.log(`Navigating to reliefs log page with rdanaId: ${reportIdToUse}`);
+} else if (notification.message.toLowerCase().includes("donation")) {
+    reportIdToUse = notification.donationId || "";
+    targetPage = `${basePath}/pages/callfordonation.html?reportId=${reportIdToUse}`;
+    console.log(`Navigating to donation page with donationId: ${reportIdToUse}`);
+} else if (notification.message.toLowerCase().includes("report")) {
+    const reportIdMatch = notification.message.match(/REPORTS-\d+/);
+    reportIdToUse = reportIdMatch ? reportIdMatch[0] : notification.reportId || "";
+    targetPage = `${basePath}/pages/reportsVerification.html?reportId=${reportIdToUse}`;
+    console.log(`Navigating to reports verification page with reportId: ${reportIdToUse}`);
+}
+
+// Redirect to the detected path
+window.location.href = targetPage;
+
 
                 if (targetPage && reportIdToUse) {
                     console.log(`Navigating to: ${targetPage}`);

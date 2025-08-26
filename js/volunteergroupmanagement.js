@@ -790,10 +790,10 @@ if (addOrgForm) {
                 showConfirmButton: true,
                 confirmButtonText: 'OK',
                 customClass: {
-                    popup: 'swal2-popup-success-clean',
-                    title: 'swal2-title-success-clean',
-                    htmlContainer: 'swal2-text-success-clean',
-                    confirmButton: 'custom-confirm-btn'
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
                 }
             });
             return;
@@ -807,10 +807,10 @@ if (addOrgForm) {
                 showConfirmButton: true,
                 confirmButtonText: 'OK',
                 customClass: {
-                    popup: 'swal2-popup-success-clean',
-                    title: 'swal2-title-success-clean',
-                    htmlContainer: 'swal2-text-success-clean',
-                    confirmButton: 'custom-confirm-btn'
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
                 }
             });
             return;
@@ -824,10 +824,10 @@ if (addOrgForm) {
                 showConfirmButton: true,
                 confirmButtonText: 'OK',
                 customClass: {
-                    popup: 'swal2-popup-success-clean',
-                    title: 'swal2-title-success-clean',
-                    htmlContainer: 'swal2-text-success-clean',
-                    confirmButton: 'custom-confirm-btn'
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
                 }
             });
             return;
@@ -842,10 +842,10 @@ if (addOrgForm) {
                 showConfirmButton: true,
                 confirmButtonText: 'OK',
                 customClass: {
-                    popup: 'swal2-popup-success-clean',
-                    title: 'swal2-title-success-clean',
-                    htmlContainer: 'swal2-text-success-clean',
-                    confirmButton: 'custom-confirm-btn'
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
                 }
             });
             return;
@@ -860,10 +860,10 @@ if (addOrgForm) {
                 showConfirmButton: true,
                 confirmButtonText: 'OK',
                 customClass: {
-                    popup: 'swal2-popup-success-clean',
-                    title: 'swal2-title-success-clean',
-                    htmlContainer: 'swal2-text-success-clean',
-                    confirmButton: 'custom-confirm-btn'
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
                 }
             });
             return;
@@ -919,10 +919,10 @@ if (confirmSaveBtn) {
                 showConfirmButton: true,
                 confirmButtonText: 'OK',
                 customClass: {
-                    popup: 'swal2-popup-success-clean',
-                    title: 'swal2-title-success-clean',
-                    htmlContainer: 'swal2-text-success-clean',
-                    confirmButton: 'custom-confirm-btn'
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
                 }
             });
             isProcessing = false;
@@ -1005,13 +1005,13 @@ if (confirmSaveBtn) {
                 icon: 'success',
                 title: 'Volunteer Group Successfully Added!',
                 html: 'A temporary password has been sent to the newly added volunteer group. <i class="bx bxs-check-circle"></i>',
-                timer: 3000,
-                timerProgressBar: true,
-                showConfirmButton: false,
+                showConfirmButton: true,
+                confirmButtonText: "Ok",
                 customClass: {
                     popup: 'swal2-popup-success-clean',
                     title: 'swal2-title-success-clean',
-                    htmlContainer: 'swal2-text-success-clean'
+                    htmlContainer: 'swal2-text-success-clean',
+                    confirmButton: 'my-success-button'
                 }
             });
 
@@ -1029,13 +1029,11 @@ if (confirmSaveBtn) {
                 icon: 'error',
                 title: 'Error',
                 text: `Failed to add group: ${error.message}`,
-                showConfirmButton: true,
-                confirmButtonText: 'OK',
                 customClass: {
-                    popup: 'swal2-popup-success-clean',
-                    title: 'swal2-title-success-clean',
-                    htmlContainer: 'swal2-text-success-clean',
-                    confirmButton: 'custom-confirm-btn'
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
                 }
             });
         } finally {
@@ -1072,10 +1070,10 @@ function openEditModal(orgId) {
             showConfirmButton: true,
             confirmButtonText: 'OK',
             customClass: {
-                popup: 'swal2-popup-success-clean',
-                title: 'swal2-title-success-clean',
-                htmlContainer: 'swal2-text-success-clean',
-                confirmButton: 'custom-confirm-btn'
+                popup: 'swal2-popup-suerrorccess-clean',
+                title: 'swal2-title-error-clean',
+                htmlContainer: 'swal2-text-error-clean',
+                confirmButton: 'my-error-button'
             }
         });
         return;
@@ -1175,10 +1173,10 @@ async function populateEditLocationDropdowns(selectedRegion, selectedProvince, s
             showConfirmButton: true,
             confirmButtonText: 'OK',
             customClass: {
-                popup: 'swal2-popup-success-clean',
-                title: 'swal2-title-success-clean',
-                htmlContainer: 'swal2-text-success-clean',
-                confirmButton: 'custom-confirm-btn'
+                popup: 'swal2-popup-error-clean',
+                title: 'swal2-title-error-clean',
+                htmlContainer: 'swal2-text-error-clean',
+                confirmButton: 'my-error-button'
             }
         });
     }
@@ -1281,10 +1279,10 @@ if (editOrgForm) {
                 showConfirmButton: true,
                 confirmButtonText: 'OK',
                 customClass: {
-                    popup: 'swal2-popup-success-clean',
-                    title: 'swal2-title-success-clean',
-                    htmlContainer: 'swal2-text-success-clean',
-                    confirmButton: 'custom-confirm-btn'
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
                 }
             });
             return;
@@ -1312,10 +1310,10 @@ if (editOrgForm) {
                 showConfirmButton: true,
                 confirmButtonText: 'OK',
                 customClass: {
-                    popup: 'swal2-popup-success-clean',
-                    title: 'swal2-title-success-clean',
-                    htmlContainer: 'swal2-text-success-clean',
-                    confirmButton: 'custom-confirm-btn'
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
                 }
             });
             return;
@@ -1329,10 +1327,10 @@ if (editOrgForm) {
                 showConfirmButton: true,
                 confirmButtonText: 'OK',
                 customClass: {
-                    popup: 'swal2-popup-success-clean',
-                    title: 'swal2-title-success-clean',
-                    htmlContainer: 'swal2-text-success-clean',
-                    confirmButton: 'custom-confirm-btn'
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
                 }
             });
             return;
@@ -1346,10 +1344,10 @@ if (editOrgForm) {
                 showConfirmButton: true,
                 confirmButtonText: 'OK',
                 customClass: {
-                    popup: 'swal2-popup-success-clean',
-                    title: 'swal2-title-success-clean',
-                    htmlContainer: 'swal2-text-success-clean',
-                    confirmButton: 'custom-confirm-btn'
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
                 }
             });
             return;
@@ -1383,10 +1381,10 @@ if (editOrgForm) {
                     showConfirmButton: true,
                     confirmButtonText: 'OK',
                     customClass: {
-                        popup: 'swal2-popup-success-clean',
-                        title: 'swal2-title-success-clean',
-                        htmlContainer: 'swal2-text-success-clean',
-                        confirmButton: 'custom-confirm-btn'
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean',
+                        confirmButton: 'my-error-button'
                     }
                 });
                 return;
@@ -1404,7 +1402,7 @@ if (editOrgForm) {
                     popup: 'swal2-popup-success-clean',
                     title: 'swal2-title-success-clean',
                     htmlContainer: 'swal2-text-success-clean',
-                    confirmButton: 'custom-confirm-btn'
+                    confirmButton: 'my-success-button'
                 }
             });
             return;
@@ -1423,7 +1421,7 @@ if (editOrgForm) {
                     popup: 'swal2-popup-success-clean',
                     title: 'swal2-title-success-clean',
                     htmlContainer: 'swal2-text-success-clean',
-                    confirmButton: 'custom-confirm-btn'
+                    confirmButton: 'my-success-button'
                 }
             });
             editOrgModal.style.display = 'none';
@@ -1443,7 +1441,7 @@ if (editOrgForm) {
                     popup: 'swal2-popup-success-clean',
                     title: 'swal2-title-success-clean',
                     htmlContainer: 'swal2-text-success-clean',
-                    confirmButton: 'custom-confirm-btn'
+                    confirmButton: 'my-success-button'
                 }
             });
             return;
@@ -1462,7 +1460,7 @@ if (editOrgForm) {
                     popup: 'swal2-popup-success-clean',
                     title: 'swal2-title-success-clean',
                     htmlContainer: 'swal2-text-success-clean',
-                    confirmButton: 'custom-confirm-btn'
+                    confirmButton: 'my-success-button'
                 }
             });
             return;
@@ -1482,13 +1480,11 @@ if (editOrgForm) {
                 text: 'The volunteer group has been updated.',
                 showConfirmButton: true,
                 confirmButtonText: 'OK',
-                timer: 3000,
-                timerProgressBar: true,
                 customClass: {
                     popup: 'swal2-popup-success-clean',
                     title: 'swal2-title-success-clean',
                     htmlContainer: 'swal2-text-success-clean',
-                    confirmButton: 'custom-confirm-btn'
+                    confirmButton: 'my-success-button'
                 }
             });
             editOrgModal.style.display = 'none';
@@ -1506,7 +1502,7 @@ if (editOrgForm) {
                     popup: 'swal2-popup-success-clean',
                     title: 'swal2-title-success-clean',
                     htmlContainer: 'swal2-text-success-clean',
-                    confirmButton: 'custom-confirm-btn'
+                    confirmButton: 'my-success-button'
                 }
             });
         }
@@ -1593,7 +1589,7 @@ function attachRowHandlers() {
                                         popup: 'swal2-popup-success-clean',
                                         title: 'swal2-title-success-clean',
                                         htmlContainer: 'swal2-text-success-clean',
-                                        confirmButton: 'custom-confirm-btn'
+                                        confirmButton: 'my-success-button'
                                     }
                                 });
                                 return;
@@ -1631,10 +1627,10 @@ function attachRowHandlers() {
                                 showConfirmButton: true,
                                 confirmButtonText: 'OK',
                                 customClass: {
-                                    popup: 'swal2-popup-success-clean',
-                                    title: 'swal2-title-success-clean',
-                                    htmlContainer: 'swal2-text-success-clean',
-                                    confirmButton: 'custom-confirm-btn'
+                                    popup: 'swal2-popup-error-clean',
+                                    title: 'swal2-title-error-clean',
+                                    htmlContainer: 'swal2-text-error-clean',
+                                    confirmButton: 'my-error-buttonn'
                                 }
                             });
                         }
@@ -1694,10 +1690,10 @@ function attachArchivedRowHandlers() {
                             showConfirmButton: true,
                             confirmButtonText: 'OK',
                             customClass: {
-                                popup: 'swal2-popup-success-clean',
-                                title: 'swal2-title-success-clean',
-                                htmlContainer: 'swal2-text-success-clean',
-                                confirmButton: 'custom-confirm-btn'
+                                popup: 'swal2-popup-error-clean',
+                                title: 'swal2-title-error-clean',
+                                htmlContainer: 'swal2-text-error-clean',
+                                confirmButton: 'my-error-button'
                             }
                         });
                         return;

@@ -135,6 +135,8 @@ document.addEventListener('DOMContentLoaded', () => {
             NotesAdditionalInformation: report.remarks || report.urgentNeeds || report.NotesAdditionalInformation || "-",
             userUid: report.userUid || "-",
             submittedBy: report.submittedBy || "-",
+            CalamityName: report.CalamityName || report.CalamityAreaDetails || "-",
+            CalamityType: report.CalamityType || (report.CalamityAreaDetails ? report.CalamityAreaDetails.split(' ')[0] : "-")
         };
         if (!isValidReport(transformed)) {
             console.warn(`Invalid report data for key ${report.firebaseKey}:`, transformed);
@@ -142,11 +144,12 @@ document.addEventListener('DOMContentLoaded', () => {
         return transformed;
     }
     function loadReportsFromFirebase() {
-        database.ref("reports/pending").on("value", snapshot => {
+        database.ref("reports/verification").on("value", snapshot => {
             submittedReports = [];
             const reports = snapshot.val();
             if (reports) {
                 Object.keys(reports).forEach(key => {
+                    if (key === "ArchivedReports") return; // Skip ArchivedReports node
                     const report = reports[key];
                     if (!report.VolunteerGroupName && !report.organization) {
                         console.warn(`Report ${key} is missing VolunteerGroupName/organization field. Will fetch dynamically on approval.`);
@@ -250,7 +253,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const totalEntries = filteredReports.length;
         const totalPages = Math.ceil(totalEntries / rowsPerPage);
         if (reports.length === 0) {
-            submittedReportsContainer.innerHTML = "<tr><td colspan='8'>No reports found on this page.</td></tr>";
+            submittedReportsContainer.innerHTML = "<tr><td colspan='10'>No reports found on this page.</td></tr>";
             entriesInfo.textContent = "Showing 0 to 0 of 0 entries";
             renderPaginationControlsForReports(totalPages, filteredReports);
             highlightReportFromURL();
@@ -269,6 +272,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${report["ReportID"] || "-"}</td>
                 <td>${report["VolunteerGroupName"] || "[Unknown Org]"}</td>
                 <td>${report["AreaOfOperation"] || "-"}</td>
+                <td>${report["CalamityName"] || "-"}</td>
+                <td>${report["CalamityType"] || "-"}</td>
                 <td>${formatTime(report["TimeOfIntervention"])}</td>
                 <td>${formatDate(report["DateOfReport"])}</td>
                 <td>${report["Status"] || "Pending"}</td>
@@ -297,7 +302,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="form-1">
                             <h2>Basic Information</h2>
                             <p><strong>Report ID:</strong> ${report.ReportID || "-"}</p>
-                            <p><strong>Volunteer Group:</strong> ${report.VolunteerGroupName || "[Unknown Org]"}</p>
+                            <p><strong>Volunteer Group:</strong> ${report.VolunteerGroupName || "[Unknown Org]"}</p> 
+                            <p><strong>Calamity Name:</strong> ${report.CalamityName || "-"}</p>
+                            <p><strong>Calamity Type:</strong> ${report.CalamityType || "-"}</p>
                             <p><strong>Date of Report Submitted:</strong> ${formatDate(report.DateOfReport)}</p>
                             <p class="cell"><strong>Location of Operation:</strong> ${report.AreaOfOperation || "-"}</p>
                         </div>
@@ -363,11 +370,11 @@ document.addEventListener('DOMContentLoaded', () => {
                             reportId: report.firebaseKey,
                             ReportID: report.ReportID || report.firebaseKey
                         };
-                        // Perform all database operations
+
                         return Promise.all([
                             database.ref(`reports/approved/${report.firebaseKey}`).set(report),
                             database.ref(`users/${userUid}/reports/${report.firebaseKey}`).set({ ...report, Status: "Approved" }),
-                            database.ref(`reports/pending/${report.firebaseKey}`).remove(),
+                            database.ref(`reports/verification/${report.firebaseKey}`).remove(),
                             database.ref(`notifications`).push(notification)
                         ]);
                     })
@@ -438,9 +445,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (result.isConfirmed) {
                         report["Status"] = "Rejected";
                         Promise.all([
-                            database.ref(`reports/archived/${report.firebaseKey}`).set(report),
+                            database.ref(`reports/verification/ArchivedReports/${report.firebaseKey}`).set(report),
                             database.ref(`users/${userUid}/reports/${report.firebaseKey}`).set({ ...report, Status: "Rejected" }),
-                            database.ref(`reports/pending/${report.firebaseKey}`).remove()
+                            database.ref(`reports/verification/${report.firebaseKey}`).remove()
                         ])
                             .then(() => {
                                 console.log(`Report ${report.firebaseKey} rejected and moved to archived`);
@@ -481,6 +488,130 @@ document.addEventListener('DOMContentLoaded', () => {
         renderPaginationControlsForReports(totalPages, filteredReports);
         highlightReportFromURL();
     }
+
+    function renderArchivedReportsTable() {
+        archivedTableBody.innerHTML = '';
+        const totalEntries = archivedReports.length;
+        const totalPages = Math.ceil(totalEntries / archivedRowsPerPage);
+
+        if (archivedReports.length === 0) {
+            archivedTableBody.innerHTML = "<tr><td colspan='9'>No archived reports found.</td></tr>";
+            archivedEntriesInfo.textContent = "Showing 0 to 0 of 0 entries";
+            renderPaginationControlsForArchived(totalPages);
+            return;
+        }
+
+        const startIndex = (currentArchivedPage - 1) * archivedRowsPerPage;
+        const endIndex = startIndex + archivedRowsPerPage;
+        const currentPageReports = archivedReports.slice(startIndex, endIndex);
+
+        currentPageReports.forEach((report, index) => {
+            const tr = document.createElement('tr');
+            const displayIndex = (currentArchivedPage - 1) * archivedRowsPerPage + index + 1;
+
+            tr.innerHTML = `
+                <td>${displayIndex}</td>
+                <td>${report["ReportID"] || "-"}</td>
+                <td>${report["VolunteerGroupName"] || "[Unknown Org]"}</td>
+                <td>${report["AreaOfOperation"] || "-"}</td>
+                <td>${formatDate(report["StartDate"])}</td>
+                <td>${formatDate(report["EndDate"])}</td>
+                <td>${formatCurrency(report["TotalValueOfInKindDonations"])}</td>
+                <td>${formatCurrency(report["TotalMonetaryDonations"])}</td>
+                <td>
+                    <button class="restoreBtn"><i class="bx bx-undo"></i></button>
+                </td>
+            `;
+
+            tr.querySelector('.restoreBtn').addEventListener('click', () => {
+                const userUid = report.userUid;
+                if (!userUid) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'User UID not found in report. Cannot restore.',
+                    });
+                    return;
+                }
+
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Confirm Restoration',
+                    text: 'Are you sure you want to restore this report? It will be moved back to verification reports.',
+                    showCancelButton: true,
+                    confirmButtonColor: '#059669',
+                    cancelButtonColor: '#6b7280',
+                    confirmButtonText: 'Yes, restore it',
+                    cancelButtonText: 'Cancel',
+                    background: '#f0fdf4',
+                    color: '#065f46',
+                    iconColor: '#059669',
+                    customClass: {
+                        popup: 'swal2-popup-success-clean',
+                        title: 'swal2-title-success-clean',
+                        content: 'swal2-text-success-clean'
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        report["Status"] = "Pending";
+
+                        Promise.all([
+                            database.ref(`reports/verification/${report.firebaseKey}`).set(report),
+                            database.ref(`users/${userUid}/reports/${report.firebaseKey}`).set({ ...report, Status: "Pending" }),
+                            database.ref(`reports/verification/ArchivedReports/${report.firebaseKey}`).remove()
+                        ])
+                            .then(() => {
+                                console.log(`Report ${report.firebaseKey} restored to verification reports`);
+                                archivedReports = archivedReports.filter(r => r.firebaseKey !== report.firebaseKey);
+                                if (!submittedReports.some(r => r.firebaseKey === report.firebaseKey)) {
+                                    submittedReports.push(report);
+                                } else {
+                                    console.warn(`Report ${report.firebaseKey} already exists in submittedReports, skipping push`);
+                                }
+                                setTimeout(() => {
+                                    currentPage = 1;
+                                    applySearchAndSort();
+                                    renderArchivedReportsTable();
+                                    console.log("After restoration - Submitted Reports:", submittedReports);
+                                    console.log("After restoration - Archived Reports:", archivedReports);
+                                }, 100);
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Report Restored',
+                                    text: 'The report has been restored to verification reports.',
+                                    background: '#f0fdf4',
+                                    color: '#065f46',
+                                    iconColor: '#059669',
+                                    confirmButtonColor: '#059669',
+                                    customClass: {
+                                        popup: 'swal2-popup-success-clean',
+                                        title: 'swal2-title-success-clean',
+                                        content: 'swal2-text-success-clean'
+                                    }
+                                });
+                                archivedModal.style.display = 'none';
+                            })
+                            .catch(error => {
+                                console.error("Error during report restoration:", error);
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error',
+                                    text: 'Failed to restore report: ' + error.message,
+                                });
+                            });
+                    }
+                });
+            });
+
+            archivedTableBody.appendChild(tr);
+        });
+
+        const firstEntry = (currentArchivedPage - 1) * archivedRowsPerPage + 1;
+        const lastEntry = Math.min(currentArchivedPage * archivedRowsPerPage, totalEntries);
+        archivedEntriesInfo.textContent = `Showing ${firstEntry} to ${lastEntry} of ${totalEntries} entries`;
+        renderPaginationControlsForArchived(totalPages);
+    }
+
     function renderPaginationControlsForReports(totalPages, filteredReports) {
         paginationContainer.innerHTML = '';
         if (totalPages === 0) {
@@ -598,4 +729,4 @@ document.addEventListener('DOMContentLoaded', () => {
             window.location.href = "../pages/reportsLog.html";
         });
     }
-});
+}); 

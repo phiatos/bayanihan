@@ -484,7 +484,7 @@ document.addEventListener('DOMContentLoaded', () => {
         modalDetails.innerHTML = reportIDHTML + profileHTML + modalityHTML + summaryHTML + affectedHTML + structureHTML + checklistHTML + otherNeedsHTML;
 
         // Show modal
-        modal.style.display = "block";
+        modal.style.display = "flex";
 
         // Modal close actions
         const closeModal = document.getElementById("closeModal");
@@ -507,7 +507,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById("viewApprovedBtn").addEventListener("click", () => {
         console.log("Navigating to rdanaLog.html");
         try {
-            window.location.href = "/bayanihan/pages/rdanaLog.html";
+            window.location.href = "../pages/rdanaLog.html";
         } catch (error) {
             console.error("Failed to navigate to rdanaLog.html:", error);
             Swal.fire({
