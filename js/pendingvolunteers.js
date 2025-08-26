@@ -1601,9 +1601,9 @@ async function checkForDuplicate(mobileNumber, email, name) {
                 <td>${displayStatusNotes}</td>
                 ${hasActionPermissions ? `
                     <td>
-                        <button class="actionBtn" data-key="${volunteer.key}"><i class='bx bx-dots-vertical-rounded'></i></button>
-                        <button class="viewBtn" data-key="${volunteer.key}"><i class='bx bx-show-alt'></i></button>
-                        <button class="saveSinglePdfBtn" data-key="${volunteer.key}"><i class='bx bxs-file-pdf'></i></button>
+                        <button title="Actions" class="actionBtn" data-key="${volunteer.key}"><i class='bx bx-dots-vertical-rounded'></i></button>
+                        <button title="View" class="viewBtn" data-key="${volunteer.key}"><i class='bx bx-show-alt'></i></button>
+                        <button title="Save as PDF" class="saveSinglePdfBtn" data-key="${volunteer.key}"><i class='bx bxs-file-pdf'></i></button>
                     </td>
                 ` : '<td></td>'}
             `;

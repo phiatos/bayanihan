@@ -900,8 +900,8 @@ function renderTable(filteredData = currentActiveActivations) {
             <td>${calamityDisplay || 'N/A'}</td>
             <td><span class="status-circle ${row.status === "active" ? "green" : "red"}"></span> ${row.status}</td>
             <td>
-                <button class="action-button-endorse-button" data-activation-id="${row.id}" data-group-id="${row.groupId}">Send Relief Assistance</button>
-                <button class="action-button" data-activation-id="${row.id}" data-group-id="${row.groupId}">Deactivate</button>
+                <button title="Endorse" class="action-button-endorse-button" data-activation-id="${row.id}" data-group-id="${row.groupId}"><i class='bx bx-send'></i></button>
+                <button title="Deactivate" class="action-button" data-activation-id="${row.id}" data-group-id="${row.groupId}"><i class='bx bx-block'></i></button>
             </td>
         `;
         tableBody.appendChild(tr);

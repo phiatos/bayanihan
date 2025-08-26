@@ -270,9 +270,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${report["CalamityType"] || "-"}</td>
                 <td>${report["CalamityName"] || "-"}</td>
                 <td>
-                    <button class="viewBtn"><i class="bx bx-show-alt"></i></button>
-                    <button class="savePDFBtn"><i class="bx bxs-file-pdf"></i></button>
-                    <button class="deleteBtn"><i class="bx bx-x-circle"></i></button>
+                    <button title="View" class="viewBtn"><i class="bx bx-show-alt"></i></button>
+                    <button title="Save as PDF" class="savePDFBtn"><i class="bx bxs-file-pdf"></i></button>
+                    <button title="Archive" class="deleteBtn"><i class="bx bx-x-circle"></i></button>
                 </td>
             `;
 

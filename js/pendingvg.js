@@ -480,10 +480,10 @@ function renderApplications(applicationsToRender) {
       <td>${app.headquarters?.streetAddress || 'N/A'}</td>
       <td>${formattedTimestamp}</td>
       <td>
-        <button class="viewBtn" data-key="${app.key}"><i class='bx bx-show-alt'></i></button>
-        <button class="approveBtn" data-key="${app.key}"><i class="bx bx-check-circle"></i></button>
-        <button class="rejectBtn" data-key="${app.key}"><i class="bx bx-x-circle"></i></button>
-        <button class="saveSinglePdfBtn" data-key="${app.key}"><i class='bx bxs-file-pdf'></i></button>
+        <button title="View" class="viewBtn" data-key="${app.key}"><i class='bx bx-show-alt'></i></button>
+        <button title="Approve" class="approveBtn" data-key="${app.key}"><i class="bx bx-check-circle"></i></button>
+        <button title="Reject" class="rejectBtn" data-key="${app.key}"><i class="bx bx-x-circle"></i></button>
+        <button title="Save as PDF" class="saveSinglePdfBtn" data-key="${app.key}"><i class='bx bxs-file-pdf'></i></button>
       </td>
     `;
   });

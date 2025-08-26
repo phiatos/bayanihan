@@ -889,7 +889,7 @@ td:has(.viewBtn, .editBtn,
 .saveSinglePdfBtn, .savePDFBtn,
 .actionBtn, .endorseBtn,
 .deleteBtn, .rejectBtn, .archiveBtn,
-.rescheduleBtn, .saveBtn) {
+.rescheduleBtn, .saveBtn, .action-button-endorse-button, .action-button) {
   display: flex;
   gap: 8px;
   justify-content: center;
@@ -903,7 +903,7 @@ td:has(.viewBtn, .editBtn,
 .saveSinglePdfBtn, .savePDFBtn,
 .actionBtn, .endorseBtn,
 .deleteBtn, .rejectBtn, .archiveBtn,
-.rescheduleBtn, .saveBtn {
+.rescheduleBtn, .saveBtn, .action-button-endorse-button, .action-button {
   width: 45px;
   height: 45px;
   padding: 0;
@@ -941,7 +941,8 @@ td:has(.viewBtn, .editBtn,
 .rejectBtn i,
 .archiveBtn i,
 .rescheduleBtn i,
-.saveBtn i {
+.saveBtn i,
+.action-button-endorse-button i, .action-button i {
   display: inline-flex;
   justify-content: center;
   align-items: center;
@@ -962,7 +963,8 @@ td:has(.viewBtn, .editBtn,
 .rejectBtn,
 .archiveBtn,
 .rescheduleBtn,
-.saveBtn {
+.saveBtn,
+.action-button-endorse-button, .action-button {
   pointer-events: auto;
 }
 

@@ -331,12 +331,14 @@ document.addEventListener('DOMContentLoaded', function() {
             const approveButton = document.createElement('button');
             approveButton.className = 'approveBtn';
             approveButton.innerHTML = '<i class="bx bx-check-circle"></i>';
+            approveButton.title = "Approve Donation"; // tooltip text
             approveButton.addEventListener('click', () => updateDonationStatus(donation.id, donation, 'Approved'));
             actionCell.appendChild(approveButton);
 
             const rejectButton = document.createElement('button');
             rejectButton.className = 'rejectBtn';
             rejectButton.innerHTML = '<i class="bx bx-x-circle"></i>';
+            rejectButton.title = "Reject Donation"; // tooltip text
             rejectButton.addEventListener('click', () => updateDonationStatus(donation.id, donation, 'Rejected'));
             actionCell.appendChild(rejectButton);
         });

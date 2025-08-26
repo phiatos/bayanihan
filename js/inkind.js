@@ -1555,10 +1555,10 @@ document.addEventListener("DOMContentLoaded", () => {
                     <td>${sanitizeInput(d.donationDate ? new Date(d.donationDate).toLocaleDateString('en-PH') : 'N/A')}</td>
                     <td>
                         <button class="viewBtn"><i class='bx bx-show-alt'></i></button>
-                        ${permissions.canEdit ? `<button class="editBtn"><i class='bx bx-edit'></i></button>` : ''}
-                        ${permissions.canArchive ? `<button class="archiveBtn"><i class="bx bx-x-circle"></i></button>` : ''}
-                        <button class="endorseBtn"><i class='bx bx-send'></i></button>
-                        <button class="savePDFBtn"><i class='bx bxs-file-pdf'></i></button>
+                        ${permissions.canEdit ? `<button title="Edit" class="editBtn"><i class='bx bx-edit'></i></button>` : ''}
+                        ${permissions.canArchive ? `<button title="Archive" class="archiveBtn"><i class="bx bx-x-circle"></i></button>` : ''}
+                        <button title="Endorse" class="endorseBtn"><i class='bx bx-send'></i></button>
+                        <button title="Save as PDF" class="savePDFBtn"><i class='bx bxs-file-pdf'></i></button>
                     </td>
                 `;
                 tr.querySelector(".viewBtn").addEventListener("click", () => {

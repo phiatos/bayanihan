@@ -278,9 +278,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${formatDate(report["DateOfReport"])}</td>
                 <td>${report["Status"] || "Pending"}</td>
                 <td>
-                    <button class="viewBtn"><i class="bx bx-show-alt"></i></button>
-                    <button class="approveBtn"><i class="bx bx-check-circle"></i></button>
-                    <button class="rejectBtn"><i class="bx bx-x-circle"></i></button>
+                    <button title="View" class="viewBtn"><i class="bx bx-show-alt"></i></button>
+                    <button title="Approve" class="approveBtn"><i class="bx bx-check-circle"></i></button>
+                    <button title="Reject" class="rejectBtn"><i class="bx bx-x-circle"></i></button>
                 </td>
             `;
             const viewBtn = tr.querySelector('.viewBtn');

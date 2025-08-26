@@ -231,12 +231,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const searchTerm = searchInput.value.toLowerCase().trim();
         if (searchTerm) {
             filtered = filtered.filter(log =>
-                log.rdanaId.toLowerCase().includes(searchTerm) ||
+                log.rdanaId?.toLowerCase().includes(searchTerm) ||
+                (log.rdanaGroup || "").toLowerCase().includes(searchTerm) ||
+                (log.dateTime ? new Date(log.dateTime).toLocaleString().toLowerCase().includes(searchTerm) : false) ||
                 (log.siteLocation || "").toLowerCase().includes(searchTerm) ||
-                (log.disasterType || "").toLowerCase().includes(searchTerm) ||
-                (log.needs?.priority?.join(", ")?.toLowerCase().includes(searchTerm) || false)
+                (log.rejectedAt ? new Date(log.rejectedAt).toLocaleDateString().toLowerCase().includes(searchTerm) : false)
             );
         }
+
+
 
         const sortBy = sortSelect.value;
         if (sortBy) {
@@ -347,9 +350,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${report.effects?.affectedPopulation || "N/A"}</td>
                 <td>${report.needs?.priority?.join(", ") || "N/A"}</td>
                 <td>
-                    <button class="viewBtn"><i class='bx bx-show-alt'></i></button>
-                    <button class="approveBtn"><i class="bx bx-check-circle"></i></button>
-                    <button class="rejectBtn"><i class="bx bx-x-circle"></i></button>
+                    <button title="View" class="viewBtn"><i class='bx bx-show-alt'></i></button>
+                    <button title="Approve" class="approveBtn"><i class="bx bx-check-circle"></i></button>
+                    <button title="Reject" class="rejectBtn"><i class="bx bx-x-circle"></i></button>
                 </td>
             `;
 
@@ -591,171 +594,246 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    document.addEventListener("click", function(e) {
-        if (e.target.classList.contains("restore-btn")) {
-            const key = e.target.dataset.key;
+ document.addEventListener("click", function(e) {
+    if (e.target.classList.contains("restore-btn")) {
+        const key = e.target.dataset.key;
 
-            database.ref(`rdana/rejected/${key}`).once("value").then(snapshot => {
-                const report = snapshot.val();
-                if (!report) return;
-
-                // Move back to submitted
-                return database.ref(`rdana/submitted/${key}`).set(report).then(() => {
-                    return database.ref(`rdana/rejected/${key}`).remove();
-                });
-            }).then(() => {
-                Swal.fire({
-                    icon: "success",
-                    title: "Report Restored",
-                    text: "The report has been moved back to submitted.",
-                    timer: 2000,
-                    showConfirmButton: false
-                });
-                loadArchivedReports(); // Refresh list
-            }).catch(err => {
-                console.error("Restore failed:", err);
-            });
-        }
-    });
-
-    function approveReport(report) {
-        auth.onAuthStateChanged(user => {
-            if (!user) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Authentication Required',
-                    text: 'Please sign in to approve reports.',
-                }).then(() => {
-                    window.location.href = "../pages/login.html";
-                });
-                return;
+        // Step 1: Ask for confirmation
+        Swal.fire({
+            title: 'Retrieve Report?',
+            text: 'This will move the rdana report from rejected rdana reports back to rdana verification page.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Retrieve',
+            cancelButtonText: 'Cancel',
+            reverseButtons: true,
+            focusCancel: true,
+            allowOutsideClick: false,
+            customClass: {
+                popup: 'custom-swal-popup-small',
+                title: 'custom-swal-title',
+                htmlContainer: 'custom-swal-content',
+                confirmButton: 'custom-confirm-btn',
+                cancelButton: 'custom-cancel-btn'
             }
+        }).then((result) => {
+            if (!result.isConfirmed) return;
 
-            console.log("Attempting to approve report:", report.rdanaId);
+            // Step 2: Move report from rejected → submitted
+            database.ref(`rdana/rejected/${key}`).once("value")
+                .then(snapshot => {
+                    const report = snapshot.val();
+                    if (!report) throw new Error("Report not found in rejected.");
 
-            // Check if user is admin
-            database.ref(`users/${user.uid}/role`).once('value', snapshot => {
-                if (snapshot.val() !== "AB ADMIN") {
+                    return database.ref(`rdana/submitted/${key}`).set(report)
+                        .then(() => database.ref(`rdana/rejected/${key}`).remove());
+                })
+                .then(() => {
+                    // Step 3: Show success alert
+                    Swal.fire({
+                        title: 'Retrieved!',
+                        text: 'RDANA Report has been retrieved to RDANA Verification.',
+                        icon: 'success',
+                        timer: 1600,
+                        showConfirmButton: false,
+                        timerProgressBar: true,
+                        allowOutsideClick: false,
+                        customClass: {
+                            popup: 'swal2-popup-success-clean',
+                            title: 'swal2-title-success-clean',
+                            htmlContainer: 'swal2-text-success-clean'
+                        }
+                    });
+
+                    // Step 4: Refresh archived list
+                    loadArchivedReports();
+                })
+                .catch(err => {
+                    console.error("Restore failed:", err);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Restore Failed',
+                        text: err.message || 'Failed to retrieve the application.',
+                        customClass: {
+                            popup: 'swal2-popup-error-clean',
+                            title: 'swal2-title-error-clean',
+                            content: 'swal2-text-error-clean'
+                        }
+                    });
+                });
+        });
+    }
+});
+
+
+// NEED HELP HERE RAZEL
+function approveReport(report) {
+    console.log("🔎 approveReport called with:", report);
+
+    auth.onAuthStateChanged(user => {
+        if (!user) {
+            console.warn("❌ No user signed in.");
+            Swal.fire({
+                icon: 'error',
+                title: 'Authentication Required',
+                text: 'Please sign in to approve reports.',
+            }).then(() => {
+                window.location.href = "../pages/login.html";
+            });
+            return;
+        }
+
+        console.log("✅ User signed in:", user.uid);
+
+        // Check role
+        database.ref(`users/${user.uid}/role`).once('value')
+            .then(snapshot => {
+                const role = snapshot.val();
+                console.log("👤 User role:", role);
+
+                if (role !== "AB ADMIN") {
+                    console.warn("❌ Unauthorized. Role is not AB ADMIN.");
                     Swal.fire({
                         icon: 'error',
                         title: 'Unauthorized',
-                        text: 'Only admins can approve reports.',
+                        text: `Only admins can approve reports. (Your role: ${role || "none"})`,
                     });
-                    return;
+                    return Promise.reject("Unauthorized");
                 }
 
-                if (!report.userUid) {
+                if (!report.firebaseKey || !report.userUid) {
+                    console.error("❌ Missing keys:", { firebaseKey: report.firebaseKey, userUid: report.userUid });
                     Swal.fire({
                         icon: 'error',
                         title: 'Error',
-                        text: 'User UID not found in report. Cannot approve.',
+                        text: 'Report is missing firebaseKey or userUid. Cannot approve.',
                     });
-                    return;
+                    return Promise.reject("Missing firebaseKey or userUid");
                 }
 
+                // Update report object
                 report.status = "Approved";
-                report.approvedAt = Date.now(); // Add approval timestamp
+                report.approvedAt = Date.now();
 
-                // Prepare notification for the report sender
-                const notificationMessage = `Your RDANA report (ID: ${report.rdanaId || report.firebaseKey}) has been approved.`;
+                console.log("📦 Writing report updates...", report);
 
-                // Perform Firebase updates and notification in a single transaction
-                Promise.all([
-                    database.ref(`rdana/approved`).push(report),
-                    database.ref(`users/${report.userUid}/rdana/${report.firebaseKey}`).set({ ...report, status: "Approved" }),
-                    database.ref(`rdana/submitted/${report.firebaseKey}`).remove(),
-                    notifySender(notificationMessage, report.userUid, report.rdanaId || report.firebaseKey)
-                ])
-                    .then(() => {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Report Approved',
-                            text: 'The RDANA report has been approved and the sender has been notified.',
-                            background: '#f0fdf4',
-                            color: '#065f46',
-                            iconColor: '#059669',
-                            confirmButtonColor: '#059669',
-                            customClass: {
-                                popup: 'swal2-popup-success-clean',
-                                title: 'swal2-title-success-clean',
-                                content: 'swal2-text-success-clean'
-                            }
-                        });
-                    })
-                    .catch(error => {
-                        console.error("Error approving report or sending notification:", error);
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Approval Failed',
-                            text: `Failed to approve RDANA report or send notification: ${error.message}`,
-                            background: '#fef2f2',
-                            color: '#7f1d1d',
-                            iconColor: '#dc2626',
-                            confirmButtonColor: '#b91c1c',
-                            customClass: {
-                                popup: 'swal2-popup-error-clean',
-                                title: 'swal2-title-error-clean',
-                                content: 'swal2-text-error-clean'
-                            }
-                        });
+                return Promise.all([
+                    database.ref(`rdana/approved/${report.firebaseKey}`).set(report)
+                        .then(() => console.log("✅ Saved to rdana/approved")),
+                    database.ref(`users/${report.userUid}/rdana/${report.firebaseKey}`).set(report)
+                        .then(() => console.log("✅ Saved to users/rdana")),
+                    database.ref(`rdana/submitted/${report.firebaseKey}`).remove()
+                        .then(() => console.log("✅ Removed from rdana/submitted"))
+                ]);
+            })
+            .then(() => {
+                console.log("🎉 Approval process completed successfully.");
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Report Approved',
+                    text: 'The RDANA report has been approved.',
+                    background: '#f0fdf4',
+                    color: '#065f46',
+                    iconColor: '#059669',
+                    confirmButtonColor: '#059669'
+                });
+            })
+            .catch(error => {
+                console.error("💥 Error in approveReport:", error);
+                if (error !== "Unauthorized" && error !== "Missing firebaseKey or userUid") {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Approval Failed',
+                        text: `Failed to approve RDANA report: ${error.message || error}`
                     });
+                }
             });
-        });
-    }
+    });
+}
 
-    function rejectReport(report) {
-        Swal.fire({
-            title: 'Are you sure?',
-            text: `You are about to reject the report: ${report.rdanaId}. This action will archive the report.`,
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
-            confirmButtonText: 'Yes, reject it!',
-            cancelButtonText: 'Cancel'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                report.status = "Rejected";
-                report.rejectedAt = Date.now();
 
-                database.ref(`rdana/rejected`).push(report)
-                    .then(() => {
-                        return database.ref(`rdana/submitted/${report.firebaseKey}`).remove();
-                    })
-                    .then(() => {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Report Rejected',
-                            text: `The report ${report.rdanaId} has been rejected and archived.`,
-                            background: '#f0fdf4',
-                            color: '#065f46',
-                            iconColor: '#059669',
-                            confirmButtonColor: '#059669',
-                            customClass: {
-                                popup: 'swal2-popup-success-clean',
-                                title: 'swal2-title-success-clean',
-                                content: 'swal2-text-success-clean'
-                            }
-                        });
-                    })
-                    .catch(error => {
-                        console.error("Error rejecting report:", error);
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Rejection Failed',
-                            text: `Failed to reject RDANA report: ${error.message}`,
-                            background: '#fef2f2',
-                            color: '#7f1d1d',
-                            iconColor: '#dc2626',
-                            confirmButtonColor: '#b91c1c',
-                            customClass: {
-                                popup: 'swal2-popup-error-clean',
-                                title: 'swal2-title-error-clean',
-                                content: 'swal2-text-error-clean'
-                            }
-                        });
-                    });
-            }
-        });
-    }
+
+function rejectReport(report) {
+    Swal.fire({
+        title: 'Are you sure to reject this RDANA Report?',
+        text: 'This will move the report to Rejected RDANA Reports.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Reject',
+        cancelButtonText: 'Cancel',
+        reverseButtons: true,
+        focusCancel: true,
+        allowOutsideClick: false,
+        customClass: {
+            popup: 'custom-swal-popup-small',
+            title: 'custom-swal-title',
+            htmlContainer: 'custom-swal-content',
+            confirmButton: 'custom-confirm-btn',
+            cancelButton: 'custom-cancel-btn'
+        }
+    }).then((result) => {
+        if (!result.isConfirmed) return;
+
+        if (!report.rdanaId || !report.userUid) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Report is missing RDANA ID or User UID. Cannot reject.',
+            });
+            return;
+        }
+
+        database.ref('rdana/submitted')
+            .orderByChild('rdanaId')
+            .equalTo(report.rdanaId)
+            .once('value')
+            .then(snapshot => {
+                const data = snapshot.val();
+                if (!data) throw new Error("Report not found in submitted.");
+
+                const actualKey = Object.keys(data)[0];
+                const reportData = { ...data[actualKey], status: "Rejected", rejectedAt: Date.now() };
+
+                return database.ref(`rdana/rejected/${actualKey}`).set(reportData)
+                    .then(() => actualKey);
+            })
+            .then(actualKey => database.ref(`rdana/submitted/${actualKey}`).remove())
+            .then(() => database.ref(`users/${report.userUid}/rdana/${report.firebaseKey || report.rdanaId}`).set({ ...report, status: "Rejected" }))
+            .then(() => {
+                // Remove from the main global array
+                const index = allLogs.findIndex(r => r.rdanaId === report.rdanaId);
+                if (index > -1) allLogs.splice(index, 1);
+
+                // Re-render the table
+                renderReportsTable(allLogs);
+
+                Swal.fire({
+                    title: 'Rejected!',
+                    text: 'The RDANA report has been rejected and archived.',
+                    icon: 'success',
+                    timer: 1600,
+                    showConfirmButton: false,
+                    timerProgressBar: true,
+                    allowOutsideClick: false,
+                    customClass: {
+                        popup: 'swal2-popup-success-clean',
+                        title: 'swal2-title-success-clean',
+                        htmlContainer: 'swal2-text-success-clean'
+                    }
+                });
+            })
+            .catch(error => {
+                console.error("💥 Error rejecting report:", error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Rejection Failed',
+                    text: error.message || "Failed to reject RDANA report."
+                });
+            });
+    });
+}
+
+
+
+
 });
