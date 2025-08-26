@@ -800,7 +800,7 @@
 
 #share-cancel-button, #share-submit-button {
   border-radius: 15px;
-  padding: 10px;
+  /* padding: 10px; */
 }
 
 #share-cancel-button {
