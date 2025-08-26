@@ -846,8 +846,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Include both approveBtn and deleteBtn based on user role
                 const actionButtons = `
                     <button title="View" class="viewBtn"><i class="bx bx-show-alt"></i></button>
-                    ${userRole === 'AB ADMIN' ? `<button title="Approve" class="approveBtn"><i class="bx bx-check"></i></button>` : ''}
-                    <button title="Archive" class="deleteBtn"><i class='bx bx-trash' ></i></button>
+                    ${userRole === 'AB ADMIN' ? `<button title="Approve" class="approveBtn"><i class="bx bx-check-circle"></i></button>` : ''}
+                    <button title="Archive" class="deleteBtn"><i class="bx bx-x-circle"></i></button>
                     <button title="Save as PDF" class="savePDFBtn"><i class="bx bxs-file-pdf"></i></button>
                 `;
                 tr.innerHTML = `
@@ -941,12 +941,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Delete button event listener for archiving
                 tr.querySelector(".deleteBtn").addEventListener("click", () => {
                     Swal.fire({
-                        title: 'Are you sure?',
-                        text: "This donation will be archived.",
+                        title: 'Are you sure to archive this call for donation?',
+                        text: "This will move it to archived records.",
                         icon: 'warning',
                         showCancelButton: true,
-                        confirmButtonText: 'Yes, archive it!',
-                        cancelButtonText: 'Cancel'
+                        confirmButtonText: 'Archive',
+                        cancelButtonText: 'Cancel',
+                        reverseButtons: true,
+                        focusCancel: true,
+                        allowOutsideClick: false,
+                        customClass: {
+                            popup: 'custom-swal-popup-small',
+                            title: 'custom-swal-title',
+                            htmlContainer: 'custom-swal-content',
+                            confirmButton: 'custom-confirm-btn',
+                            cancelButton: 'custom-cancel-btn'
+                        }
                     }).then(async (result) => {
                         if (result.isConfirmed) {
                             try {
@@ -974,7 +984,19 @@ document.addEventListener('DOMContentLoaded', () => {
                                     donationData.contact?.person || 'Unknown',
                                     currentOrganization
                                 );
-                                Swal.fire('Archived!', 'The donation has been archived.', 'success');
+                                Swal.fire({
+                                    title: 'Archived!',
+                                    text: 'The donation has been archived.',
+                                    icon: 'success',
+                                    showConfirmButton: true,
+                                    confirmButtonText: 'OK',
+                                    customClass: {
+                                        popup: 'swal2-popup-success-clean',
+                                        title: 'swal2-title-success-clean',
+                                        htmlContainer: 'swal2-text-success-clean',
+                                        confirmButton: 'my-success-button'
+                                    }
+                                });
                             } catch (error) {
                                 console.error("Error archiving donation:", error);
                                 Swal.fire('Error', 'Failed to archive the donation.', 'error');
@@ -1260,8 +1282,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (cityTextInput) cityTextInput.value = '';
                     if (barangayTextInput) barangayTextInput.value = '';
                     formHasChanges = false;
-                    applyChange(); // Refresh the table after submission
-                    Swal.fire('Success', 'Donation added successfully!', 'success');
+                    applyChange(); 
+                    Swal.fire({
+                        title: 'Success',
+                        text: 'Donation added successfully!',
+                        icon: 'success',
+                        showConfirmButton: true,
+                        confirmButtonText: 'OK',
+                        customClass: {
+                            popup: 'swal2-popup-success-clean',
+                            title: 'swal2-title-success-clean',
+                            htmlContainer: 'swal2-text-success-clean',
+                            confirmButton: 'my-success-button'
+                        }
+                    });
                 } catch (error) {
                     console.error("Error saving donation to Firebase:", error);
                     Swal.fire('Error', 'Failed to save the donation: ' + error.message, 'error');

@@ -228,24 +228,18 @@ function deleteLog(firebaseKey, globalIndex) {
   Swal.fire({
     title: 'Are you sure?',
     text: 'This will remove the RDANA log from the active list but keep it in the database for future access.',
-    icon: 'warning',
+    icon: 'question',
     showCancelButton: true,
-    confirmButtonColor: '#d9534f',
-    cancelButtonColor: '#6c757d',
     confirmButtonText: 'Yes, delete it!',
     cancelButtonText: 'Cancel',
-    background: '#fff',
-    color: '#212529',
-    iconColor: '#d9534f',
-    position: 'center',
+    reverseButtons: true,
     customClass: {
-      popup: 'custom-swal-popup',
+      popup: 'custom-swal-popup-large',
       title: 'custom-swal-title',
-      content: 'custom-swal-text',
+      htmlContainer: 'custom-swal-content',
       confirmButton: 'custom-confirm-btn',
       cancelButton: 'custom-cancel-btn'
-    },
-    buttonsStyling: false,
+    }
   }).then((result) => {
     if (result.isConfirmed) {
       const userUid = filteredLogs[globalIndex]?.userUid;
@@ -314,18 +308,17 @@ function deleteLog(firebaseKey, globalIndex) {
 
           renderTable(filteredLogs);
           Swal.fire({
-            icon: 'success',
+            icon: 'error',
             title: 'Deleted',
             text: 'RDANA log has been archived and moved to the deleted list.',
-            timer: 2500,
+            timer: 1600,
             showConfirmButton: false,
-            background: '#fff5f5',
-            color: '#b71c1c',
-            iconColor: '#d32f2f',
+            timerProgressBar: true,
+            allowOutsideClick: false,
             customClass: {
-              popup: 'swal2-popup-delete',
-              title: 'swal2-title-delete',
-              content: 'swal2-text-delete'
+              popup: 'swal2-popup-error-clean',
+              title: 'swal2-title-error-clean',
+              htmlContainer: 'swal2-text-error-clean'
             }
           });
         })
@@ -742,6 +735,14 @@ searchInput.addEventListener('input', function() {
       icon: 'success',
       title: 'Export Successful!',
       text: `All RDANA logs have been saved to "${filename}".`,
+      showConfirmButton: true,
+      confirmButtonText: 'OK',
+      customClass: {
+        popup: 'swal2-popup-success-clean',
+        title: 'swal2-title-success-clean',
+        htmlContainer: 'swal2-text-success-clean',
+        confirmButton: 'my-success-button'
+      }
     });
   }
 
@@ -751,6 +752,12 @@ searchInput.addEventListener('input', function() {
       title: 'Generating PDF...',
       text: 'Please wait while the PDF file is being created.',
       allowOutsideClick: false,
+      customClass: {
+        popup: 'swal2-popup-success-clean',
+        title: 'swal2-title-success-clean',
+        htmlContainer: 'swal2-text-success-clean',
+        confirmButton: 'my-success-button'
+      },
       didOpen: () => {
         Swal.showLoading();
       }
@@ -964,17 +971,13 @@ searchInput.addEventListener('input', function() {
         title: 'Success!',
         text: 'PDF file generated successfully!',
         icon: 'success',
-        timer: 1500,
-        showConfirmButton: false,
-        color: '#1b5e20',
-        iconColor: '#43a047',
-        confirmButtonColor: '#388e3c',
-        confirmButtonText: 'Great!',
+        showConfirmButton: true,
+        confirmButtonText: 'OK',
         customClass: {
-          popup: 'swal2-popup-success-export',
-          title: 'swal2-title-success-export',
-          content: 'swal2-text-success-export',
-          confirmButton: 'swal2-button-success-export'
+          popup: 'swal2-popup-success-clean',
+          title: 'swal2-title-success-clean',
+          htmlContainer: 'swal2-text-success-clean',
+          confirmButton: 'my-success-button'
         }
       });
     };

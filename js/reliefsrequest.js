@@ -685,6 +685,14 @@ nextBtn.addEventListener('click', () => {
                 icon: 'success',
                 title: 'Request Submitted',
                 text: 'Your relief request has been successfully submitted!',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    htmlContainer: 'swal2-text-success-clean',
+                    confirmButton: 'my-success-button'
+                }
             }).then(() => {
                 formPage1.reset();
                 formPage2.reset();
