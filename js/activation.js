@@ -1256,16 +1256,18 @@ document.getElementById("submitReliefBtn").addEventListener("click", async () =>
 });
 
 tableBody.addEventListener("click", e => {
-    const btn = e.target;
-    const activationId = btn.getAttribute('data-activation-id');
+    const btn = e.target.closest("button");
+    if (!btn) return;
+
+    const activationId = btn.getAttribute('data-id') || btn.getAttribute('data-activation-id');
     const groupId = btn.getAttribute('data-group-id');
 
-    if (btn.classList.contains("action-button-endorse-button")) {
+    if (btn.classList.contains("endorseBtn")) {
         console.log(`Endorse button clicked for activation ID: ${activationId}, Group ID: ${groupId}`);
         currentActivationId = activationId;
         currentGroupId = groupId;
         openEndorseModal();
-    } else if (btn.classList.contains("action-button")) {
+    } else if (btn.classList.contains("archiveBtn")) {
         console.log(`Deactivate button clicked for activation ID: ${activationId}, Group ID: ${groupId}`);
         Swal.fire({
             title: 'Are you sure?',
