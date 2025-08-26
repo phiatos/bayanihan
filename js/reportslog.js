@@ -27,6 +27,16 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
+    const archivedModal = document.getElementById("archivedModal");
+    const archivedTableBody = document.querySelector("#archivedTable tbody");
+    const archivedPaginationContainer = document.getElementById("archivedPagination");
+    const archivedEntriesInfo = document.getElementById("archivedEntriesInfo");
+    const viewArchivedBtn = document.getElementById("viewArchived");
+    const closeArchivedModalBtn = document.getElementById("closeArchivedModalBtn");
+    let archivedReports = [];
+    let archivedCurrentPage = 1;
+    const archivedRowsPerPage = 5;
+
     let reviewedReports = [];
     const reportsBody = document.getElementById("reportsBody");
     const paginationContainer = document.getElementById("pagination");
@@ -51,6 +61,16 @@ document.addEventListener('DOMContentLoaded', () => {
             icon: 'error',
             title: 'Page Error',
             text: 'Required elements are missing on the page. Please contact support.',
+        });
+        return;
+    }
+
+    if (!archivedModal || !archivedTableBody || !archivedPaginationContainer || !archivedEntriesInfo || !viewArchivedBtn || !closeArchivedModalBtn) {
+        console.error("Archived modal elements not found");
+        Swal.fire({
+            icon: 'error',
+            title: 'Page Error',
+            text: 'Required archived modal elements are missing. Please contact support.',
         });
         return;
     }
@@ -165,6 +185,41 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
+    function loadArchivedReports(userRole) {
+        database.ref("deletedreports").on("value", async (snapshot) => {
+            archivedReports = [];
+            const reports = snapshot.val();
+            if (reports) {
+                for (const [key, report] of Object.entries(reports)) {
+                    let activationData = {};
+                    if (report.activationId) {
+                        try {
+                            const activationSnapshot = await database.ref(`activations/${report.activationId}`).once("value");
+                            activationData = activationSnapshot.val() || {};
+                        } catch (error) {
+                            console.warn(`Error fetching activation data for archived report ${key}:`, error);
+                        }
+                    }
+                    if (!report.VolunteerGroupName && !report.organization) {
+                        report.VolunteerGroupName = "[Unknown Org]";
+                    }
+                    const transformedReport = transformReportData(report, key, activationData);
+                    archivedReports.push(transformedReport);
+                }
+            } else {
+                console.log("No archived reports found in Firebase");
+            }
+            renderArchivedTable(userRole);
+        }, (error) => {
+            console.error("Error fetching archived reports:", error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Failed to load archived reports: ' + error.message,
+            });
+        });
+    }
+
     function loadReportsFromFirebase(userRole) {
         database.ref("reports/approved").on("value", async (snapshot) => {
             reviewedReports = [];
@@ -205,6 +260,27 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
     }
+
+    // Load archived reports when user is authenticated
+    loadArchivedReports(userRole);
+
+    // Show archived modal
+    viewArchivedBtn.addEventListener('click', () => {
+        archivedModal.style.display = 'block';
+        renderArchivedTable(userRole);
+    });
+
+    // Close archived modal
+    closeArchivedModalBtn.addEventListener('click', () => {
+        archivedModal.style.display = 'none';
+    });
+
+    // Close modal when clicking outside
+    window.addEventListener('click', (event) => {
+        if (event.target === archivedModal) {
+            archivedModal.style.display = 'none';
+        }
+    });
 
     function getDisplayedReportsData() {
         const searchQuery = searchInput.value.toLowerCase();
@@ -439,6 +515,133 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         paginationContainer.appendChild(createButton('Next', currentPage + 1, currentPage === totalPages));
+    }
+
+    function renderArchivedTable(userRole) {
+        archivedTableBody.innerHTML = '';
+        const totalEntries = archivedReports.length;
+        const totalPages = Math.ceil(totalEntries / archivedRowsPerPage);
+
+        if (totalEntries === 0) {
+            archivedTableBody.innerHTML = "<tr><td colspan='9'>No archived reports found.</td></tr>";
+            archivedEntriesInfo.textContent = "Showing 0 to 0 of 0 entries";
+            renderArchivedPaginationControls(totalPages);
+            return;
+        }
+
+        const startIndex = (archivedCurrentPage - 1) * archivedRowsPerPage;
+        const endIndex = startIndex + archivedRowsPerPage;
+        const currentPageReports = archivedReports.slice(startIndex, endIndex);
+
+        currentPageReports.forEach((report, index) => {
+            const tr = document.createElement('tr');
+            const displayIndex = startIndex + index + 1;
+            tr.innerHTML = `
+                <td>${displayIndex}</td>
+                <td>${report.ReportID || "-"}</td>
+                <td>${report.VolunteerGroupName || "[Unknown Org]"}</td>
+                <td>${report.AreaOfOperation || "-"}</td>
+                <td>${formatDate(report.StartDate) || "-"}</td>
+                <td>${formatDate(report.EndDate) || "-"}</td>
+                <td>${formatCurrency(report.TotalValueOfInKindDonations)}</td>
+                <td>${formatCurrency(report.TotalMonetaryDonations)}</td>
+                <td>
+                    <button title="Restore" class="restoreBtn">Retrieve</button>
+                </td>
+            `;
+
+            const restoreBtn = tr.querySelector('.restoreBtn');
+            if (userRole === 'ABVN') {
+                restoreBtn.style.display = 'none';
+            }
+
+            restoreBtn.addEventListener('click', async () => {
+                const result = await Swal.fire({
+                    title: 'Restore Report?',
+                    text: `You are about to restore Report ID: ${report.ReportID || report.firebaseKey} to approved reports.`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#d33',
+                    confirmButtonText: 'Yes, restore it!',
+                    cancelButtonText: 'Cancel'
+                });
+
+                if (result.isConfirmed) {
+                    try {
+                        const reportRef = database.ref(`deletedreports/${report.firebaseKey}`);
+                        const reportSnapshot = await reportRef.once('value');
+                        const reportData = reportSnapshot.val();
+
+                        if (!reportData) {
+                            throw new Error("Report not found in deletedreports.");
+                        }
+
+                        // Remove deletedAt timestamp before restoring
+                        delete reportData.deletedAt;
+                        await database.ref(`reports/approved/${report.firebaseKey}`).set(reportData);
+                        await reportRef.remove();
+                        Swal.fire(
+                            'Restored!',
+                            `Report ID: ${report.ReportID || report.firebaseKey} has been restored to approved reports.`,
+                            'success'
+                        );
+                    } catch (error) {
+                        console.error("Error restoring report:", error);
+                        Swal.fire(
+                            'Error!',
+                            `Failed to restore report: ${error.message}.`,
+                            'error'
+                        );
+                    }
+                }
+            });
+
+            archivedTableBody.appendChild(tr);
+        });
+
+        const firstEntry = startIndex + 1;
+        const lastEntry = Math.min(endIndex, totalEntries);
+        archivedEntriesInfo.textContent = `Showing ${firstEntry} to ${lastEntry} of ${totalEntries} entries`;
+        renderArchivedPaginationControls(totalPages);
+    }
+
+    function renderArchivedPaginationControls(totalPages) {
+        archivedPaginationContainer.innerHTML = '';
+
+        if (totalPages === 0) {
+            archivedPaginationContainer.innerHTML = '<span>No entries to display</span>';
+            return;
+        }
+
+        const createButton = (label, page, disabled = false, isActive = false) => {
+            const btn = document.createElement('button');
+            btn.textContent = label;
+            if (disabled) btn.disabled = true;
+            if (isActive) btn.classList.add('active-page');
+            btn.addEventListener('click', () => {
+                if (!disabled) {
+                    archivedCurrentPage = page;
+                    renderArchivedTable(userRole);
+                }
+            });
+            return btn;
+        };
+
+        archivedPaginationContainer.appendChild(createButton('Prev', archivedCurrentPage - 1, archivedCurrentPage === 1));
+
+        const maxVisible = 5;
+        let startPage = Math.max(1, archivedCurrentPage - Math.floor(maxVisible / 2));
+        let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+        if (endPage - startPage < maxVisible - 1) {
+            startPage = Math.max(1, endPage - maxVisible + 1);
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
+            archivedPaginationContainer.appendChild(createButton(i, i, false, i === archivedCurrentPage));
+        }
+
+        archivedPaginationContainer.appendChild(createButton('Next', archivedCurrentPage + 1, archivedCurrentPage === totalPages));
     }
 
     function applySearchAndSort(userRole) {

@@ -53,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Remove the specific report with key -OPTGsB_vPQd5MNQPtpv from Firebase
     const reportKeyToRemove = "-OPTGsB_vPQd5MNQPtpv";
-    const pendingRef = database.ref(`reports/pending/${reportKeyToRemove}`);
+    const pendingRef = database.ref(`reports/verification/${reportKeyToRemove}`);
     const approvedRef = database.ref(`reports/approved/${reportKeyToRemove}`);
 
     Promise.all([
@@ -193,12 +193,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 // Show simplified confirmation dialog
-                if (confirm("Are you sure you want to submit the report?")) {
+                Swal.fire({
+                title: 'Submit Report?',
+                text: 'Are you sure you want to submit the report?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, Submit',
+                cancelButtonText: 'Cancel',
+                confirmButtonColor: '#388e3c',
+                cancelButtonColor: '#d33',
+                customClass: {
+                    popup: 'swal2-popup-confirm',
+                    title: 'swal2-title-confirm',
+                    content: 'swal2-text-confirm'
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
                     summaryData["userUid"] = user.uid;
                     summaryData["Status"] = "Pending";
                     summaryData["Timestamp"] = firebase.database.ServerValue.TIMESTAMP;
 
-                    database.ref("reports/pending").push(summaryData) // Save to pending
+                    database.ref("reports/verification").push(summaryData) // Save to pending
                         .then(async (result) => {
                             console.log("Report successfully saved to Firebase");
 
@@ -214,6 +229,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 icon: 'success',
                                 title: 'Report Submitted',
                                 text: 'Your report has been successfully submitted for verification!',
+                                confirmButtonColor: '#388e3c'
                             }).then(() => {
                                 window.location.href = "../pages/dashboard.html";
                             });
@@ -224,11 +240,13 @@ document.addEventListener('DOMContentLoaded', () => {
                                 icon: 'error',
                                 title: 'Error',
                                 text: 'Failed to submit report: ' + error.message,
+                                confirmButtonColor: '#d33'
                             });
                         });
                 } else {
                     console.log("Report submission canceled by user.");
                 }
+            });
             });
         });
 
