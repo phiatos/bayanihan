@@ -425,27 +425,27 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
                 Swal.fire({
+                    title: 'Are you sure to archive this report?',
+                    text: "This will move it to archived records.",
                     icon: 'warning',
-                    title: 'Confirm Rejection',
-                    text: 'Are you sure you want to reject this report? It will be moved to archived reports.',
                     showCancelButton: true,
-                    confirmButtonColor: '#b91c1c',
-                    cancelButtonColor: '#6b7280',
-                    confirmButtonText: 'Yes, reject it',
+                    confirmButtonText: 'Reject',
                     cancelButtonText: 'Cancel',
-                    background: '#fef2f2',
-                    color: '#7f1d1d',
-                    iconColor: '#dc2626',
+                    reverseButtons: true,
+                    focusCancel: true,
+                    allowOutsideClick: false,
                     customClass: {
-                        popup: 'swal2-popup-rejected-clean',
-                        title: 'swal2-title-rejected-clean',
-                        content: 'swal2-text-rejected-clean'
+                        popup: 'custom-swal-popup-small',
+                        title: 'custom-swal-title',
+                        htmlContainer: 'custom-swal-content',
+                        confirmButton: 'custom-confirm-btn',
+                        cancelButton: 'custom-cancel-btn'
                     }
                 }).then((result) => {
                     if (result.isConfirmed) {
                         report["Status"] = "Rejected";
                         Promise.all([
-                            database.ref(`reports/verification/ArchivedReports/${report.firebaseKey}`).set(report),
+                            database.ref(`reports/rejected/${report.firebaseKey}`).set(report),
                             database.ref(`users/${userUid}/reports/${report.firebaseKey}`).set({ ...report, Status: "Rejected" }),
                             database.ref(`reports/verification/${report.firebaseKey}`).remove()
                         ])
@@ -489,128 +489,149 @@ document.addEventListener('DOMContentLoaded', () => {
         highlightReportFromURL();
     }
 
-    function renderArchivedReportsTable() {
-        archivedTableBody.innerHTML = '';
-        const totalEntries = archivedReports.length;
-        const totalPages = Math.ceil(totalEntries / archivedRowsPerPage);
+    function loadRejectedReports() {
+    const archivedTableBody = document.querySelector("#archivedTable tbody");
+    const entriesInfo = document.getElementById("archivedEntriesInfo");
+    const paginationContainer = document.getElementById("archivedPagination");
 
-        if (archivedReports.length === 0) {
-            archivedTableBody.innerHTML = "<tr><td colspan='9'>No archived reports found.</td></tr>";
-            archivedEntriesInfo.textContent = "Showing 0 to 0 of 0 entries";
-            renderPaginationControlsForArchived(totalPages);
+    archivedTableBody.innerHTML = `<tr><td colspan="10">Loading...</td></tr>`;
+
+    database.ref("reports/rejected").once("value").then(snapshot => {
+        const data = snapshot.val();
+        archivedTableBody.innerHTML = "";
+        paginationContainer.innerHTML = "";
+
+        if (!data) {
+            archivedTableBody.innerHTML = `
+                <tr>
+                    <td colspan="10" style="text-align:center; color:gray; font-style:italic; padding:20px;">
+                        No rejected reports found.
+                    </td>
+                </tr>`;
+            entriesInfo.textContent = "Showing 0 to 0 of 0 entries";
             return;
         }
 
-        const startIndex = (currentArchivedPage - 1) * archivedRowsPerPage;
-        const endIndex = startIndex + archivedRowsPerPage;
-        const currentPageReports = archivedReports.slice(startIndex, endIndex);
+        const reports = Object.keys(data).map((key, index) => ({
+            key,
+            index: index + 1,
+            ...data[key]
+        }));
 
-        currentPageReports.forEach((report, index) => {
-            const tr = document.createElement('tr');
-            const displayIndex = (currentArchivedPage - 1) * archivedRowsPerPage + index + 1;
+        // Pagination settings
+        let currentPage = 1;
+        const rowsPerPage = 5;
 
-            tr.innerHTML = `
-                <td>${displayIndex}</td>
-                <td>${report["ReportID"] || "-"}</td>
-                <td>${report["VolunteerGroupName"] || "[Unknown Org]"}</td>
-                <td>${report["AreaOfOperation"] || "-"}</td>
-                <td>${formatDate(report["StartDate"])}</td>
-                <td>${formatDate(report["EndDate"])}</td>
-                <td>${formatCurrency(report["TotalValueOfInKindDonations"])}</td>
-                <td>${formatCurrency(report["TotalMonetaryDonations"])}</td>
-                <td>
-                    <button class="restoreBtn"><i class="bx bx-undo"></i></button>
-                </td>
-            `;
+        function renderPage(page) {
+            archivedTableBody.innerHTML = "";
+            const start = (page - 1) * rowsPerPage;
+            const paginated = reports.slice(start, start + rowsPerPage);
 
-            tr.querySelector('.restoreBtn').addEventListener('click', () => {
-                const userUid = report.userUid;
-                if (!userUid) {
+            paginated.forEach((report) => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                     <td>${report.index}</td>
+                    <td>${report.ReportID || "N/A"}</td>
+                    <td>${report.VolunteerGroupName || "N/A"}</td>
+                    <td>${report.NoOfIndividualsOrFamilies || "N/A"} individuals/families</td>
+                    <td>${report.NoOfVolunteersMobilized || "N/A"} volunteers</td>
+                    <td>${report.NoOfOrganizationsActivated || "N/A"} orgs</td>
+                    <td>${report.TimeOfIntervention || "N/A"}</td>
+                    <td>${report.StartDate ? new Date(report.StartDate).toLocaleDateString() : "N/A"}</td>
+                    <td><span class="status-badge rejected">${report.Status || "Rejected"}</span></td>
+                    <td>
+                        <button class="restore-btn" data-key="${report.key}">Restore</button>
+                    </td>
+                `;
+                archivedTableBody.appendChild(row);
+            });
+
+
+            // Attach restore button logic
+            document.querySelectorAll(".restore-btn").forEach(btn => {
+                btn.addEventListener("click", () => {
+                    const key = btn.getAttribute("data-key");
+
                     Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: 'User UID not found in report. Cannot restore.',
-                    });
-                    return;
-                }
-
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Confirm Restoration',
-                    text: 'Are you sure you want to restore this report? It will be moved back to verification reports.',
-                    showCancelButton: true,
-                    confirmButtonColor: '#059669',
-                    cancelButtonColor: '#6b7280',
-                    confirmButtonText: 'Yes, restore it',
-                    cancelButtonText: 'Cancel',
-                    background: '#f0fdf4',
-                    color: '#065f46',
-                    iconColor: '#059669',
-                    customClass: {
-                        popup: 'swal2-popup-success-clean',
-                        title: 'swal2-title-success-clean',
-                        content: 'swal2-text-success-clean'
-                    }
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        report["Status"] = "Pending";
-
-                        Promise.all([
-                            database.ref(`reports/verification/${report.firebaseKey}`).set(report),
-                            database.ref(`users/${userUid}/reports/${report.firebaseKey}`).set({ ...report, Status: "Pending" }),
-                            database.ref(`reports/verification/ArchivedReports/${report.firebaseKey}`).remove()
-                        ])
-                            .then(() => {
-                                console.log(`Report ${report.firebaseKey} restored to verification reports`);
-                                archivedReports = archivedReports.filter(r => r.firebaseKey !== report.firebaseKey);
-                                if (!submittedReports.some(r => r.firebaseKey === report.firebaseKey)) {
-                                    submittedReports.push(report);
-                                } else {
-                                    console.warn(`Report ${report.firebaseKey} already exists in submittedReports, skipping push`);
+                        title: 'Restore Report?',
+                        text: 'This will move the report back to verification.',
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonText: 'Restore',
+                        cancelButtonText: 'Cancel',
+                        reverseButtons: true,
+                        focusCancel: true,
+                        allowOutsideClick: false,
+                        customClass: {
+                            popup: 'custom-swal-popup-small',
+                            title: 'custom-swal-title',
+                            htmlContainer: 'custom-swal-content',
+                            confirmButton: 'custom-confirm-btn',
+                            cancelButton: 'custom-cancel-btn'
+                        },
+                    }).then(result => {
+                        if (result.isConfirmed) {
+                            database.ref("reports/rejected/" + key).once("value").then(snap => {
+                                const reportData = snap.val();
+                                if (reportData) {
+                                    // Move to verification
+                                    database.ref("reports/verification/" + key).set(reportData)
+                                        .then(() => {
+                                            // Remove from rejected
+                                            return database.ref("reports/rejected/" + key).remove();
+                                        })
+                                        .then(() => {
+                                            Swal.fire({
+                                                title: 'Restored!',
+                                                text: 'Report has been moved back to verification.',
+                                                icon: 'success',
+                                                timer: 1600,
+                                                showConfirmButton: false,
+                                                timerProgressBar: true,
+                                                allowOutsideClick: false,
+                                                customClass: {
+                                                    popup: 'swal2-popup-success-clean',
+                                                    title: 'swal2-title-success-clean',
+                                                    htmlContainer: 'swal2-text-success-clean',
+                                                }
+                                            });
+                                            loadRejectedReports(); // refresh table
+                                        })
+                                        .catch(err => {
+                                            console.error(err);
+                                            Swal.fire('Error', 'Something went wrong while restoring.', 'error');
+                                        });
                                 }
-                                setTimeout(() => {
-                                    currentPage = 1;
-                                    applySearchAndSort();
-                                    renderArchivedReportsTable();
-                                    console.log("After restoration - Submitted Reports:", submittedReports);
-                                    console.log("After restoration - Archived Reports:", archivedReports);
-                                }, 100);
-                                Swal.fire({
-                                    icon: 'success',
-                                    title: 'Report Restored',
-                                    text: 'The report has been restored to verification reports.',
-                                    background: '#f0fdf4',
-                                    color: '#065f46',
-                                    iconColor: '#059669',
-                                    confirmButtonColor: '#059669',
-                                    customClass: {
-                                        popup: 'swal2-popup-success-clean',
-                                        title: 'swal2-title-success-clean',
-                                        content: 'swal2-text-success-clean'
-                                    }
-                                });
-                                archivedModal.style.display = 'none';
-                            })
-                            .catch(error => {
-                                console.error("Error during report restoration:", error);
-                                Swal.fire({
-                                    icon: 'error',
-                                    title: 'Error',
-                                    text: 'Failed to restore report: ' + error.message,
-                                });
                             });
-                    }
+                        }
+                    });
                 });
             });
 
-            archivedTableBody.appendChild(tr);
-        });
 
-        const firstEntry = (currentArchivedPage - 1) * archivedRowsPerPage + 1;
-        const lastEntry = Math.min(currentArchivedPage * archivedRowsPerPage, totalEntries);
-        archivedEntriesInfo.textContent = `Showing ${firstEntry} to ${lastEntry} of ${totalEntries} entries`;
-        renderPaginationControlsForArchived(totalPages);
-    }
+            // Update entries info
+            entriesInfo.textContent = `Showing ${start + 1} to ${start + paginated.length} of ${reports.length} entries`;
+
+            // Render pagination
+            paginationContainer.innerHTML = "";
+            const totalPages = Math.ceil(reports.length / rowsPerPage);
+
+            for (let i = 1; i <= totalPages; i++) {
+                const btn = document.createElement("button");
+                btn.textContent = i;
+                btn.className = i === page ? "active-page" : "";
+                btn.addEventListener("click", () => {
+                    currentPage = i;
+                    renderPage(currentPage);
+                });
+                paginationContainer.appendChild(btn);
+            }
+        }
+
+        renderPage(currentPage);
+    });
+}
+
 
     function renderPaginationControlsForReports(totalPages, filteredReports) {
         paginationContainer.innerHTML = '';
@@ -708,7 +729,8 @@ document.addEventListener('DOMContentLoaded', () => {
         applySearchAndSort();
     });
     viewArchivedBtn.addEventListener('click', () => {
-        archivedModal.style.display = 'block';
+        archivedModal.style.display = 'flex';
+        loadRejectedReports();  // <-- call function here
     });
     closeArchivedModalBtn.addEventListener('click', () => {
         archivedModal.style.display = 'none';
@@ -730,3 +752,14 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 }); 
+
+// Open modal + load data
+document.getElementById("openArchivedModalBtn").addEventListener("click", () => {
+    document.getElementById("archivedModal").style.display = "flex";
+    loadRejectedReports();  // <-- call function here
+});
+
+// Close modal
+document.getElementById("closeArchivedModalBtn").addEventListener("click", () => {
+    document.getElementById("archivedModal").style.display = "none";
+});
