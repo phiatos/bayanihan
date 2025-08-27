@@ -192,7 +192,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
-                // Show simplified confirmation dialog
                 Swal.fire({
                 title: 'Submit Report?',
                 text: 'Are you sure you want to submit the report?',
@@ -200,12 +199,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 showCancelButton: true,
                 confirmButtonText: 'Yes, Submit',
                 cancelButtonText: 'Cancel',
-                confirmButtonColor: '#388e3c',
-                cancelButtonColor: '#d33',
+                reverseButtons: true,
                 customClass: {
-                    popup: 'swal2-popup-confirm',
-                    title: 'swal2-title-confirm',
-                    content: 'swal2-text-confirm'
+                    popup: 'custom-swal-popup-small',
+                    title: 'custom-swal-title',
+                    htmlContainer: 'custom-swal-content',
+                    confirmButton: 'custom-confirm-btn',
+                    cancelButton: 'custom-cancel-btn'
                 }
             }).then((result) => {
                 if (result.isConfirmed) {
@@ -229,7 +229,14 @@ document.addEventListener('DOMContentLoaded', () => {
                                 icon: 'success',
                                 title: 'Report Submitted',
                                 text: 'Your report has been successfully submitted for verification!',
-                                confirmButtonColor: '#388e3c'
+                                showConfirmButton: true,
+                                confirmButtonText: 'OK',
+                                customClass: {
+                                    popup: 'swal2-popup-success-clean',
+                                    title: 'swal2-title-success-clean',
+                                    htmlContainer: 'swal2-text-success-clean',
+                                    confirmButton: 'my-success-button'
+                                }
                             }).then(() => {
                                 window.location.href = "../pages/dashboard.html";
                             });

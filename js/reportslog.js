@@ -186,7 +186,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function loadArchivedReports(userRole) {
-        database.ref("deletedreports").on("value", async (snapshot) => {
+        database.ref("reports/archived/reportslog").on("value", async (snapshot) => {
             archivedReports = [];
             const reports = snapshot.val();
             if (reports) {
@@ -266,7 +266,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Show archived modal
     viewArchivedBtn.addEventListener('click', () => {
-        archivedModal.style.display = 'block';
+        archivedModal.style.display = 'flex';
         renderArchivedTable(userRole);
     });
 
@@ -354,8 +354,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${report["CalamityName"] || "-"}</td>
                 <td>
                     <button title="View" class="viewBtn"><i class="bx bx-show-alt"></i></button>
-                    <button title="Save as PDF" class="savePDFBtn"><i class="bx bxs-file-pdf"></i></button>
                     <button title="Archive" class="deleteBtn"><i class="bx bx-x-circle"></i></button>
+                    <button title="Save as PDF" class="savePDFBtn"><i class="bx bxs-file-pdf"></i></button>
                 </td>
             `;
 
@@ -382,34 +382,32 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 modalDetails.innerHTML = `
-                    <div class="report-section">
-                        <div class="form-1">
-                            <h2>Basic Information</h2>
-                            <p><strong>Report ID:</strong> ${report.ReportID || "-"}</p>
-                            <p><strong>Volunteer Group:</strong> ${report.VolunteerGroupName || "[Unknown Org]"}</p>
-                            <p class="cell"><strong>Location of Operation:</strong> ${report.AreaOfOperation || "-"}</p>
-                            <p><strong>Calamity Name:</strong> ${report.CalamityName || "-"}</p>
-                            <p><strong>Calamity Type:</strong> ${report.CalamityType || "-"}</p>
-                            <p><strong>Date of Report Submitted:</strong> ${formatDate(report.DateOfReport)}</p>
+                    <div class="modal-content-inner" style="padding: 20px;">
+                        <h2>Basic Information</h2>
+                        <p><strong>Report ID:</strong> ${report.ReportID || "N/A"}</p>
+                        <p><strong>Volunteer Group:</strong> ${report.VolunteerGroupName || "N/A"}</p>
+                        <p><strong>Location of Operation:</strong> ${report.AreaOfOperation || "N/A"}</p>
+                        <p><strong>Calamity Name:</strong> ${report.CalamityName || "N/A"}</p>
+                        <p><strong>Calamity Type:</strong> ${report.CalamityType || "N/A"}</p>
+                        <p><strong>Date of Report Submitted:</strong> ${formatDate(report.DateOfReport) || "N/A"}</p>
+                        <hr>
+                        <h2>Relief Operations</h2>
+                        <div style="margin-left: 10px;">
+                            <p><strong>Completion Time of Intervention:</strong> ${formatTime(report.TimeOfIntervention) || "N/A"}</p>
+                            <p><strong>Start Date of Operation:</strong> ${formatDate(report.StartDate) || "N/A"}</p>
+                            <p><strong>End Date of Operation:</strong> ${formatDate(report.EndDate) || "N/A"}</p>
+                            <p><strong>No. of Individuals or Families:</strong> ${formatWithCommas(report.NoOfIndividualsOrFamilies) || "N/A"}</p>
+                            <p><strong>No. of Food Packs:</strong> ${formatCompact(report.NoOfFoodPacks) || "N/A"}</p>
+                            <p><strong>No. of Hot Meals/Ready-to-eat food:</strong> ${formatCompact(report.NoOfHotMeals) || "N/A"}</p>
+                            <p><strong>Liters of Water:</strong> ${formatWithCommas(report.LitersOfWater) || "N/A"}</p>
+                            <p><strong>No. of Volunteers Mobilized:</strong> ${formatWithCommas(report.NoOfVolunteersMobilized) || "N/A"}</p>
+                            <p><strong>No. of Organizations Activated:</strong> ${formatCompact(report.NoOfOrganizationsActivated) || "N/A"}</p>
+                            <p><strong>Total Value of In-Kind Donations:</strong> ${formatCurrency(report.TotalValueOfInKindDonations) || "N/A"}</p>
+                            <p><strong>Total Monetary Donations:</strong> ${formatCurrency(report.TotalMonetaryDonations) || "N/A"}</p>
                         </div>
-                        <div class="form-2">
-                            <h2>Relief Operations</h2>
-                            <p><strong>Completion time of intervention:</strong> ${formatTime(report.TimeOfIntervention)}</p>
-                            <p><strong>Start Date of Operation:</strong> ${formatDate(report.StartDate) || "-"}</p>
-                            <p><strong>End Date of Operation:</strong> ${formatDate(report.EndDate) || "-"}</p>
-                            <p><strong>No. of Individuals or Families:</strong> ${formatWithCommas(report.NoOfIndividualsOrFamilies)}</p>
-                            <p><strong>No. of Food Packs:</strong> ${formatCompact(report.NoOfFoodPacks)}</p>
-                            <p><strong>No. of Hot Meals/Ready-to-eat food:</strong> ${formatCompact(report.NoOfHotMeals)}</p>
-                            <p><strong>Liters of Water:</strong> ${formatWithCommas(report.LitersOfWater)}</p>
-                            <p><strong>No. of Volunteers Mobilized:</strong> ${formatWithCommas(report.NoOfVolunteersMobilized)}</p>
-                            <p><strong>No. of Organizations Activated:</strong> ${formatCompact(report.NoOfOrganizationsActivated)}</p>
-                            <p><strong>Total Value of In-Kind Donations:</strong> ${formatCurrency(report.TotalValueOfInKindDonations)}</p>
-                            <p><strong>Total Monetary Donations:</strong> ${formatCurrency(report.TotalMonetaryDonations)}</p>
-                        </div>
-                    </div>
-                    <div class="form-3">
+                        <hr>
                         <h2>Additional Updates</h2>
-                        <p><strong>Notes/Additional Information:</strong> ${report.NotesAdditionalInformation || "-"}</p>
+                        <p><strong>Notes/Additional Information:</strong> ${report.NotesAdditionalInformation || "N/A"}</p>
                     </div>
                 `;
                 modal.classList.remove("hidden");
@@ -426,14 +424,22 @@ document.addEventListener('DOMContentLoaded', () => {
             if (deleteBtn) {
                 deleteBtn.addEventListener('click', async () => {
                     const result = await Swal.fire({
-                        title: 'Are you sure?',
-                        text: `You are about to remove Report ID: ${report.ReportID || report.firebaseKey}. This will move it to the deletedreports node.`,
+                        title: 'Are you sure to archive this report?',
+                        text: `You are about to remove Report ID: ${report.ReportID}. This will move it to archive records.`,
                         icon: 'warning',
                         showCancelButton: true,
-                        confirmButtonColor: '#d33',
-                        cancelButtonColor: '#3085d6',
-                        confirmButtonText: 'Yes, remove it!',
-                        cancelButtonText: 'Cancel'
+                        confirmButtonText: 'Reject',
+                        cancelButtonText: 'Cancel',
+                        reverseButtons: true,
+                        focusCancel: true,
+                        allowOutsideClick: false,
+                        customClass: {
+                            popup: 'custom-swal-popup-large',
+                            title: 'custom-swal-title',
+                            htmlContainer: 'custom-swal-content',
+                            confirmButton: 'custom-confirm-btn',
+                            cancelButton: 'custom-cancel-btn',
+                        },
                     });
 
                     if (result.isConfirmed) {
@@ -446,16 +452,25 @@ document.addEventListener('DOMContentLoaded', () => {
                                 throw new Error("Report not found in approved reports. It may have been already moved or deleted, or the key is incorrect. Expected key: " + report.firebaseKey);
                             }
 
-                            await database.ref(`deletedreports/${report.firebaseKey}`).set({
+                            await database.ref(`reports/archived/reportslog/${report.firebaseKey}`).set({
                                 ...reportData,
                                 deletedAt: new Date().toISOString()
                             });
                             await reportRef.remove();
-                            Swal.fire(
-                                'Removed!',
-                                `Report ID: ${report.ReportID || report.firebaseKey} has been moved to deletedreports.`,
-                                'success'
-                            );
+
+                            Swal.fire({
+                                title: 'Archived!',
+                                text: `Report ID: ${report.ReportID} has been moved to archived records.`,
+                                icon: 'success',
+                                showConfirmButton: true,
+                                confirmButtonText: 'OK',
+                                customClass: {
+                                    popup: 'swal2-popup-success-clean',
+                                    title: 'swal2-title-success-clean',
+                                    htmlContainer: 'swal2-text-success-clean',
+                                    confirmButton: 'my-success-button'
+                                }
+                            });
                         } catch (error) {
                             console.error("Error deleting report:", error);
                             Swal.fire(
@@ -557,35 +572,52 @@ document.addEventListener('DOMContentLoaded', () => {
 
             restoreBtn.addEventListener('click', async () => {
                 const result = await Swal.fire({
-                    title: 'Restore Report?',
-                    text: `You are about to restore Report ID: ${report.ReportID || report.firebaseKey} to approved reports.`,
-                    icon: 'warning',
+                    title: 'Retrieve report?',
+                    text: `You are about to restore Report ID: ${report.ReportID} to approved reports.`,
+                    icon: 'question',
                     showCancelButton: true,
-                    confirmButtonColor: '#3085d6',
-                    cancelButtonColor: '#d33',
-                    confirmButtonText: 'Yes, restore it!',
-                    cancelButtonText: 'Cancel'
+                    confirmButtonText: 'Retrieve',
+                    cancelButtonText: 'Cancel',
+                    reverseButtons: true,
+                    focusCancel: true,
+                    allowOutsideClick: false,
+                    customClass: {
+                        popup: 'custom-swal-popup-small',
+                        title: 'custom-swal-title',
+                        htmlContainer: 'custom-swal-content',
+                        confirmButton: 'custom-confirm-btn',
+                        cancelButton: 'custom-cancel-btn',
+                    },
                 });
 
                 if (result.isConfirmed) {
                     try {
-                        const reportRef = database.ref(`deletedreports/${report.firebaseKey}`);
+                        const reportRef = database.ref(`reports/archived/reportslog/${report.firebaseKey}`);
                         const reportSnapshot = await reportRef.once('value');
                         const reportData = reportSnapshot.val();
 
                         if (!reportData) {
-                            throw new Error("Report not found in deletedreports.");
+                            throw new Error("Report not found in archived records.");
                         }
 
                         // Remove deletedAt timestamp before restoring
                         delete reportData.deletedAt;
                         await database.ref(`reports/approved/${report.firebaseKey}`).set(reportData);
                         await reportRef.remove();
-                        Swal.fire(
-                            'Restored!',
-                            `Report ID: ${report.ReportID || report.firebaseKey} has been restored to approved reports.`,
-                            'success'
-                        );
+
+                        Swal.fire({
+                            title: 'Retrieved!',
+                            text: `Report ID: ${report.ReportID} has been restored to approved reports.`,
+                            icon: 'success',
+                            showConfirmButton: true,
+                            confirmButtonText: 'OK',
+                            customClass: {
+                            popup: 'swal2-popup-success-clean',
+                            title: 'swal2-title-success-clean',
+                            htmlContainer: 'swal2-text-success-clean',
+                            confirmButton: 'my-success-button'
+                            }
+                        });
                     } catch (error) {
                         console.error("Error restoring report:", error);
                         Swal.fire(
@@ -737,8 +769,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 title: 'Success!',
                 text: 'Excel file generated successfully!',
                 icon: 'success',
-                timer: 1500,
-                showConfirmButton: false
+                timer: 1600,
+                showConfirmButton: false,
+                customClass: {
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    htmlContainer: 'swal2-text-success-clean'
+                }
             });
         } catch (error) {
             console.error('Error generating Excel:', error);
@@ -856,17 +893,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 title: 'Success!',
                 text: 'PDF file generated successfully!',
                 icon: 'success',
-                timer: 1500,
-                showConfirmButton: false,
-                color: '#1b5e20',
-                iconColor: '#43a047',
-                confirmButtonColor: '#388e3c',
-                confirmButtonText: 'Great!',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
                 customClass: {
-                    popup: 'swal2-popup-success-export',
-                    title: 'swal2-title-success-export',
-                    content: 'swal2-text-success-export',
-                    confirmButton: 'swal2-button-success-export'
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    htmlContainer: 'swal2-text-success-clean',
+                    confirmButton: 'my-success-button'
                 }
             });
         };
@@ -965,17 +998,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 icon: 'success',
                 title: 'PDF Generated!',
                 text: `Report "${report.ReportID || 'Details'}" saved as PDF.`,
-                timer: 2000,
-                showConfirmButton: false,
-                color: '#1b5e20',
-                iconColor: '#43a047',
-                confirmButtonColor: '#388e3c',
-                confirmButtonText: 'Great!',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
                 customClass: {
-                    popup: 'swal2-popup-success-export',
-                    title: 'swal2-title-success-export',
-                    content: 'swal2-text-success-export',
-                    confirmButton: 'swal2-button-success-export'
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    htmlContainer: 'swal2-text-success-clean',
+                    confirmButton: 'my-success-button'
                 }
             });
         };
