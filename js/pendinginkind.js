@@ -196,6 +196,11 @@ document.addEventListener("DOMContentLoaded", () => {
             .catch(err => console.error("Failed to log error to Firebase:", err));
     }
 
+    // Function to validate email format
+        function isValidEmail(email) {
+            return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+        }
+
     // Function to send approval email
     function sendApprovalEmail(donationData) {
         console.log('Attempting to send approval email with data:', donationData);
@@ -241,6 +246,95 @@ document.addEventListener("DOMContentLoaded", () => {
                 Swal.fire('Error', `Failed to send approval email: ${errorMessage}`, 'error');
                 logErrorToFirebase(error, 'sendApprovalEmail');
             });
+    }
+
+    // Function to send endorsement email to volunteer group
+    async function sendEndorsementEmail(donation, endorsedGroup) {
+        const serviceID = 'service_mzpjk2a';
+        const templateID = 'template_4tks2la';
+
+        // Validate the volunteer group's email
+        if (!endorsedGroup.email || !isValidEmail(endorsedGroup.email)) {
+            console.error('Invalid or missing volunteer group email:', endorsedGroup.email);
+            Swal.fire({
+                icon: 'error',
+                title: 'Invalid Email',
+                text: 'The volunteer group’s email is invalid or missing.',
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean'
+                }
+            });
+            logErrorToFirebase(new Error('Invalid or missing volunteer group email'), 'sendEndorsementEmail');
+            return;
+        }
+
+        // Log donation data for debugging
+        console.log('Donation data for endorsement email:', {
+            name: donation.name,
+            address: donation.address,
+            contactPerson: donation.contactPerson,
+            number: donation.number,
+            type: donation.type,
+            valuation: donation.valuation
+        });
+
+        const templateParams = {
+            to_email: endorsedGroup.email,
+            reply_to: 'jldelossantos1101@gmail.com', // Replace with your organization’s email
+            volunteer_group_name: endorsedGroup.name || 'Unknown Group',
+            donor_name: donation.name || 'Unknown Donor',
+            donation_type: donation.type || 'N/A',
+            donation_quantity: parseFloat(donation.valuation || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+            endorsement_date: new Date().toLocaleDateString('en-US'),
+            organization_email: 'jldelossantos1101@gmail.com', // Replace with your organization’s email
+            organization_contact_number: '123-456-7890', // Replace with your organization’s contact number
+            donor_full_address: donation.address || 'Not specified',
+            donor_contact_person: donation.contactPerson || 'Not specified',
+            donor_contact_number: donation.number || 'Not specified'
+        };
+
+        console.log('Endorsement EmailJS templateParams:', templateParams);
+
+        Swal.fire({
+            title: 'Sending Endorsement...',
+            text: 'Please wait while we send the email to the volunteer group.',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        try {
+            await emailjs.send(serviceID, templateID, templateParams);
+            Swal.fire({
+                icon: 'success',
+                title: 'Endorsement Sent!',
+                text: `An email has been sent to ${endorsedGroup.email} confirming the endorsement of the donation from ${donation.name}.`,
+                timer: 3000,
+                showConfirmButton: false,
+                timerProgressBar: true,
+                customClass: {
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    htmlContainer: 'swal2-text-success-clean'
+                }
+            });
+        } catch (error) {
+            console.error("Error sending endorsement email with EmailJS:", error);
+            logErrorToFirebase(error, 'sendEndorsementEmail');
+            Swal.fire({
+                icon: 'error',
+                title: 'Endorsement Failed',
+                text: `An error occurred: ${error.text || error.message || 'Unknown error'}. Please try again later.`,
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean'
+                }
+            });
+        }
     }
 
     // Function to queue donation when no ABVNs or relief requests are available
@@ -421,7 +515,7 @@ async function retrieveDonation(id, donationData) {
 }
     
     // Updated function to handle donation approval or rejection
-    async function updateDonationStatus(id, donationData, newStatus) {
+        async function updateDonationStatus(id, donationData, newStatus) {
         if (newStatus === 'Rejected') {
             Swal.fire({
                 title: 'Are you sure to reject this application?',
@@ -836,12 +930,13 @@ async function retrieveDonation(id, donationData) {
         database.ref('donations/pending/inkind').on('value', (snapshot) => {
             clearTimeout(debounceTimeout);
             debounceTimeout = setTimeout(() => {
+                console.log('Raw Firebase snapshot for pending/inkind:', snapshot.val());
                 allDonations = [];
                 const data = snapshot.val();
                 if (data && typeof data === 'object') {
                     Object.keys(data).forEach((key) => {
                         const donation = data[key];
-                        allDonations.push({
+                        const donationEntry = {
                             id: key,
                             encoder: donation.encoder || 'N/A',
                             name: donation.name || 'N/A',
@@ -857,16 +952,33 @@ async function retrieveDonation(id, donationData) {
                             staffIncharge: donation.staffIncharge || 'N/A',
                             donationDate: donation.donationDate || 'N/A',
                             createdAt: donation.createdAt || 'N/A'
+                        };
+                        console.log(`Processed donation (ID: ${key}):`, {
+                            name: donationEntry.name,
+                            address: donationEntry.address,
+                            contactPerson: donationEntry.contactPerson,
+                            number: donationEntry.number
                         });
+                        allDonations.push(donationEntry);
                     });
                 }
+                console.log('Final allDonations array:', allDonations);
                 filteredAndSortedDonations = [...allDonations];
                 applySorting(filteredAndSortedDonations, sortSelect?.value || '');
                 renderTable();
             }, 300);
         }, (error) => {
             console.error('Error loading donations:', error);
-            Swal.fire('Error', `Failed to load donations: ${error.message}`, 'error');
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: `Failed to load donations: ${error.message}`,
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean'
+                }
+            });
             logErrorToFirebase(error, 'loadDonations');
         });
     }

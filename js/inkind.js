@@ -1088,52 +1088,62 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     function loadDonations(userUid) {
-        database.ref("donations/savedDonations/inkind").on("value", snapshot => {
-            allDonations = [];
-            const donations = snapshot.val();
-            if (donations) {
-                Object.keys(donations).forEach(key => {
-                    const donation = donations[key];
-                    allDonations.push({
-                        firebaseKey: key,
-                        userUid: donation.userUid || '',
-                        encoder: donation.encoder || '',
-                        name: donation.name || '',
-                        type: donation.type || '',
-                        address: donation.address || '',
-                        contactPerson: donation.contactPerson || '',
-                        number: donation.number || '',
-                        email: donation.email || '',
-                        assistance: donation.assistance || '',
-                        valuation: donation.valuation || 0,
-                        additionalnotes: donation.additionalnotes || '',
-                        status: donation.status || '',
-                        staffIncharge: donation.staffIncharge || '',
-                        donationDate: donation.donationDate || '',
-                        createdAt: donation.createdAt || ''
-                    });
+    database.ref("donations/savedDonations/inkind").on("value", snapshot => {
+        console.log('Raw Firebase snapshot:', snapshot.val()); // Log raw Firebase data
+        allDonations = [];
+        const donations = snapshot.val();
+        if (donations) {
+            Object.keys(donations).forEach(key => {
+                const donation = donations[key];
+                const donationEntry = {
+                    firebaseKey: key,
+                    userUid: donation.userUid || '',
+                    encoder: donation.encoder || '',
+                    name: donation.name || '',
+                    type: donation.type || '',
+                    address: donation.address || '',
+                    contactPerson: donation.contactPerson || '',
+                    number: donation.number || '',
+                    email: donation.email || '',
+                    assistance: donation.assistance || '',
+                    valuation: donation.valuation || 0,
+                    additionalnotes: donation.additionalnotes || '',
+                    status: donation.status || '',
+                    staffIncharge: donation.staffIncharge || '',
+                    donationDate: donation.donationDate || '',
+                    createdAt: donation.createdAt || ''
+                };
+                console.log(`Processed donation (ID: ${key}):`, {
+                    name: donationEntry.name,
+                    address: donationEntry.address,
+                    contactPerson: donationEntry.contactPerson,
+                    number: donationEntry.number
                 });
-            }
-            filteredAndSortedDonations = [...allDonations];
-            applySorting(filteredAndSortedDonations, sortSelect.value);
-            renderTable();
-        }, error => {
-            logErrorToFirebase(error, 'loadDonations_inkind');
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Failed to load in-kind donations: ' + error.message,
-                showConfirmButton: true,
-                confirmButtonText: 'OK',
-                customClass: {
-                    popup: 'swal2-popup-error-clean',
-                    title: 'swal2-title-error-clean',
-                    htmlContainer: 'swal2-text-error-clean',
-                    confirmButton: 'my-error-button'
-                }
+                allDonations.push(donationEntry);
             });
+        }
+        console.log('Final allDonations array:', allDonations);
+        filteredAndSortedDonations = [...allDonations];
+        applySorting(filteredAndSortedDonations, sortSelect.value);
+        renderTable();
+    }, error => {
+        console.error('Error loading donations:', error);
+        logErrorToFirebase(error, 'loadDonations_inkind');
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Failed to load in-kind donations: ' + error.message,
+            showConfirmButton: true,
+            confirmButtonText: 'OK',
+            customClass: {
+                popup: 'swal2-popup-error-clean',
+                title: 'swal2-title-error-clean',
+                htmlContainer: 'swal2-text-error-clean',
+                confirmButton: 'my-error-button'
+            }
         });
-    }
+    });
+}
 
     const isEmpty = (value) => value.trim() === "";
     const isLettersOnly = (value) => /^[a-zA-Z\s]+$/.test(value);
@@ -1170,15 +1180,15 @@ document.addEventListener("DOMContentLoaded", () => {
             { input: inputs.name, label: "Name", lettersOnly: true },
             { input: inputs.type, label: "Type", lettersOnly: true },
             { input: inputs.contactPerson, label: "Contact Person", lettersOnly: true },
-            { input: inputs.assistance, label: "Type of Assistance", lettersOnly: true },
             { input: inputs.number, label: "Number", numberOnly: true, checkMobile: true },
-            { input: inputs.valuation, label: "Valuation", numberOnly: true, checkValuation: true },
             { input: inputs.address, label: "Address" },
             { input: inputs.email, label: "Email", checkEmail: true },
+            { input: inputs.assistance, label: "Assistance", lettersOnly: true },
+            { input: inputs.valuation, label: "Valuation", numberOnly: true },
             { input: inputs.additionalnotes, label: "Additional Notes", required: false },
             { input: inputs.status, label: "Status" },
-            { input: inputs.staffIncharge, label: "Staff-In Charge", lettersOnly: true },
-            { input: inputs.donationDate, label: "Donation Date", isDate: true },
+            { input: inputs.staffIncharge, label: "Staff-In-Charge", lettersOnly: true },
+            { input: inputs.donationDate, label: "Donation Date", checkDate: true }
         ];
 
         for (const { input, label, lettersOnly, numberOnly, checkEmail, checkMobile, checkValuation, isDate, required = true } of fieldsToCheck) {
@@ -2019,7 +2029,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // Function to send an endorsement email using EmailJS
-async function sendEndorsementEmail(donation, endorsedGroup) {
+    async function sendEndorsementEmail(donation, endorsedGroup) {
     const serviceID = 'service_mzpjk2a';
     const templateID = 'template_4tks2la';
 
@@ -2038,29 +2048,33 @@ async function sendEndorsementEmail(donation, endorsedGroup) {
         return;
     }
 
-    // Prepare address and contact details, with fallbacks for missing data
-    const address = donation.address || {};
-    const contact = donation.contact || {};
+    // Log donation data for debugging
+    console.log('Donation data for email:', {
+        name: donation.name,
+        address: donation.address,
+        contactPerson: donation.contactPerson,
+        number: donation.number,
+        type: donation.type,
+        valuation: donation.valuation
+    });
 
     const templateParams = {
-        to_email: endorsedGroup.email, // Use volunteer group's email
-        reply_to: 'jldelossantos1101@gmail.com',
+        to_email: endorsedGroup.email,
+        reply_to: 'jldelossantos1101@gmail.com', // Replace with your organization’s email
         volunteer_group_name: endorsedGroup.name || 'Unknown Group',
         donor_name: donation.name || 'Unknown Donor',
         donation_type: donation.type || 'N/A',
         donation_quantity: parseFloat(donation.valuation || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
         endorsement_date: new Date().toLocaleDateString('en-US'),
-        organization_email: 'jldelossantos1101@gmail.com',
-        organization_contact_number: '123-456-7890', // Replace with your actual organization contact number
-        donor_barangay: address.barangay || 'Not specified',
-        donor_city: address.city || 'Not specified',
-        donor_full_address: address.fullAddress || 'Not specified',
-        donor_province: address.province || 'Not specified',
-        donor_region: address.region || 'Not specified',
-        donor_street: address.street || 'Not specified',
-        donor_contact_number: contact.number || 'Not specified',
-        donor_contact_person: contact.person || 'Not specified'
+        organization_email: 'jldelossantos1101@gmail.com', // Replace with your organization’s email
+        organization_contact_number: '123-456-7890', // Replace with your organization’s contact number
+        donor_full_address: donation.address || 'Not specified',
+        donor_contact_person: donation.contactPerson || 'Not specified',
+        donor_contact_number: donation.number || 'Not specified'
     };
+
+    // Log templateParams for debugging
+    console.log('EmailJS templateParams:', templateParams);
 
     Swal.fire({
         title: 'Sending Endorsement...',
@@ -2102,6 +2116,7 @@ async function sendEndorsementEmail(donation, endorsedGroup) {
     }
 }
 
+
     const cancelEndorseBtn = document.getElementById("cancelEndorseBtn");
         cancelEndorseBtn.onclick = () => {
         const modal = document.getElementById("endorseModal");
@@ -2122,9 +2137,33 @@ async function sendEndorsementEmail(donation, endorsedGroup) {
     };
 
     async function openEndorseModal(firebaseKey) {
-    const modal = document.getElementById("endorseModal");
-    modal.style.display = "flex";
-    const abvnList = document.getElementById("abvnList");
+        const modal = document.getElementById("endorseModal");
+        modal.style.display = "flex";
+        const abvnList = document.getElementById("abvnList");
+
+    const donationToEndorse = allDonations.find(d => d.firebaseKey === firebaseKey);
+    console.log('Donation selected for endorsement:', {
+        firebaseKey,
+        name: donationToEndorse?.name,
+        address: donationToEndorse?.address,
+        contactPerson: donationToEndorse?.contactPerson,
+        number: donationToEndorse?.number
+    });
+
+    if (!donationToEndorse) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Donation not found for endorsement.',
+            customClass: {
+                popup: 'swal2-popup-error-clean',
+                title: 'swal2-title-error-clean',
+                htmlContainer: 'swal2-text-error-clean'
+            }
+        });
+        modal.style.display = "none";
+        return;
+    }
 
     abvnList.innerHTML = '<p>Loading organizations...</p>';
 
@@ -2184,7 +2223,6 @@ async function sendEndorsementEmail(donation, endorsedGroup) {
 
     modal.dataset.firebaseKey = firebaseKey;
 }
-
 
         // Add event listener for the new endorsement button
         const submitEndorsementBtn = document.getElementById("confirmEndorseBtn");
