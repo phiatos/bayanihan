@@ -273,12 +273,13 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    async function retrieveDonation(id, donationData) {
-    console.log('retrieveDonation called with ID:', id, 'Data:', donationData); // Debug log
+async function retrieveDonation(id, donationData) {
+    console.log('retrieveDonation called with ID:', id, 'Data:', donationData);
     const permissions = await checkAdminPermissions();
-    console.log('Permissions in retrieveDonation:', permissions); // Debug log
+    console.log('Permissions in retrieveDonation:', permissions);
+
     if (!permissions.canRetrieve) {
-        console.log('Access denied: User lacks retrieve permissions'); // Debug log
+        console.log('Access denied: User lacks retrieve permissions');
         Swal.fire({
             title: 'Access Denied',
             text: 'You do not have permission to retrieve donations.',
@@ -294,6 +295,14 @@ document.addEventListener("DOMContentLoaded", () => {
             },
         });
         return;
+    }
+
+    // Require password verification for Super Admin
+    if (auth.currentUser?.adminPosition === 'Super Admin' && !isAdminVerified) {
+        const verified = await verifySuperAdminPassword();
+        if (!verified) {
+            return;
+        }
     }
 
     Swal.fire({
@@ -315,16 +324,16 @@ document.addEventListener("DOMContentLoaded", () => {
         },
     }).then(async (result) => {
         if (result.isConfirmed) {
-            console.log('User confirmed retrieval for donation ID:', id); // Debug log
+            console.log('User confirmed retrieval for donation ID:', id);
             try {
                 if (!navigator.onLine) {
                     throw new Error("No internet connection. Please check your network.");
                 }
+
                 const archivedRef = database.ref(`donations/pending/archivedDonations/inkind/${id}`);
-                console.log('Fetching archived donation from:', archivedRef.toString()); // Debug log
+                console.log('Fetching archived donation from:', archivedRef.toString());
                 const snapshot = await archivedRef.once('value');
                 const archivedDonation = snapshot.val();
-                console.log('Archived donation data:', archivedDonation); // Debug log
 
                 if (!archivedDonation || !archivedDonation.id) {
                     throw new Error("Archived donation data not found or invalid.");
@@ -337,17 +346,22 @@ document.addEventListener("DOMContentLoaded", () => {
                     retrievedTimestamp: Date.now(),
                     retrievedBy: auth.currentUser?.adminPosition || 'Unknown',
                 };
-                console.log('Restored donation data:', updatedDonation); // Debug log
 
+                // Move donation to pending/inkind
                 await database.ref(`donations/pending/inkind/${id}`).set(updatedDonation);
-                console.log('Donation restored to pending/inkind'); // Debug log
+                console.log('Donation restored to pending/inkind');
+
+                // Remove from archived
                 await archivedRef.remove();
-                console.log('Donation removed from archivedDonations'); // Debug log
+                console.log('Donation removed from archivedDonations');
+
+                // Verify removal
                 const checkSnapshot = await archivedRef.once('value');
                 if (checkSnapshot.exists()) {
-                    throw new Error("Failed to delete donation from donations/pending/archivedDonations/inkind.");
+                    throw new Error("Failed to delete donation from archived donations.");
                 }
 
+                // Log notification
                 const message = `In-kind donation from "${archivedDonation.name || 'Unknown'}" retrieved by ${auth.currentUser?.adminPosition || 'Unknown'} from ${localStorage.getItem('organization') || 'Unknown Group'} on ${new Date().toLocaleDateString('en-US')}. Status reset to pending.`;
                 await database.ref('notifications').push({
                     message,
@@ -359,20 +373,11 @@ document.addEventListener("DOMContentLoaded", () => {
                     organization: localStorage.getItem('organization') || 'Unknown Group',
                     timestamp: Date.now(),
                 });
-                console.log('Notification pushed for retrieval'); // Debug log
+                console.log('Notification pushed for retrieval');
 
-                // Force refresh donations
-                allDonations.push({ id, ...updatedDonation });
-                filteredAndSortedDonations = [...allDonations];
-                applySorting(filteredAndSortedDonations, sortSelect?.value || '');
-                renderTable();
-                console.log('Main table refreshed'); // Debug log
-
-                // Update archived donations
-                allArchivedDonations = allArchivedDonations.filter((d) => d.id !== id);
-                filteredAndSortedArchivedDonations = [...allArchivedDonations];
-                renderArchivedTable();
-                console.log('Archived table refreshed'); // Debug log
+                // Reload donations from Firebase to ensure consistency
+                await loadDonationsFromFirebase();
+                await loadArchivedDonationsFromFirebase();
 
                 Swal.fire({
                     icon: 'success',
@@ -388,10 +393,12 @@ document.addEventListener("DOMContentLoaded", () => {
                         htmlContainer: 'swal2-text-success-clean',
                     },
                 });
+
+                // Close archived modal
                 if (document.getElementById('archivedModal')) {
                     document.getElementById('archivedModal').style.display = 'none';
                 }
-                console.log('Retrieval completed successfully'); // Debug log
+                console.log('Retrieval completed successfully');
             } catch (error) {
                 console.error("Error retrieving donation:", error);
                 Swal.fire({
@@ -931,9 +938,9 @@ document.addEventListener("DOMContentLoaded", () => {
                     <td>${donation.assistance}</td>
                     <td>₱${parseFloat(donation.valuation || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                     <td>${donation.additionalnotes}</td>
-                    <td>${donation.status}</td>
                     <td>${donation.staffIncharge}</td>
                     <td>${donation.donationDate ? new Date(donation.donationDate).toLocaleDateString('en-PH') : 'N/A'}</td>
+                    <td>${donation.status}</td>
                     <td>
                         <button title="View" class="viewBtn" aria-label="View donation details"><i class='bx bx-show-alt'></i></button>
                         ${permissions.canEdit ? `
@@ -943,6 +950,7 @@ document.addEventListener("DOMContentLoaded", () => {
                             ` : ''}
                         ` : ''}
                     </td>
+                    
                 `;
                 const viewBtn = row.querySelector('.viewBtn');
                 if (viewBtn) viewBtn.addEventListener('click', () => showPreviewModal(donation));
@@ -958,64 +966,64 @@ document.addEventListener("DOMContentLoaded", () => {
         renderPagination();
     }
 
-    function renderArchivedTable() {
-        if (!archivedTableBody) {
-            console.error("ERROR: 'archivedTableBody' element not found.");
-            return;
-        }
-
-        archivedTableBody.innerHTML = '';
-        const start = (archivedCurrentPage - 1) * rowsPerPage;
-        const end = start + rowsPerPage;
-        const paginatedItems = filteredAndSortedArchivedDonations.slice(start, end);
-
-        if (paginatedItems.length === 0) {
-            archivedTableBody.innerHTML = '<tr><td colspan="15" style="text-align: center; padding: 20px;">No archived in-kind donations found.</td></tr>';
-        } else {
-            paginatedItems.forEach((donation, index) => {
-                if (!donation.id) {
-                    console.warn('Skipping invalid archived donation in renderArchivedTable:', donation);
-                    return;
-                }
-                const row = archivedTableBody.insertRow();
-                row.innerHTML = `
-                    <td>${start + index + 1}</td>
-                    <td>${donation.encoder}</td>
-                    <td>${donation.name}</td>
-                    <td>${donation.type}</td>
-                    <td>${donation.address}</td>
-                    <td>${donation.contactPerson}</td>
-                    <td>${donation.number}</td>
-                    <td>${donation.email}</td>
-                    <td>${donation.assistance}</td>
-                    <td>₱${parseFloat(donation.valuation || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                    <td>${donation.additionalnotes}</td>
-                    <td>${donation.staffIncharge}</td>
-                    <td>${donation.donationDate ? new Date(donation.donationDate).toLocaleDateString('en-PH') : 'N/A'}</td>
-                    <td><span class="status-${donation.status ? donation.status.toLowerCase() : 'na'}">${donation.status || 'N/A'}</span></td>
-                    <td>
-                        ${permissions.canEdit && permissions.canRetrieve ? `
-                            <button class="retrieveBtn" aria-label="Retrieve donation"><i class='bx bx-undo'></i></button>
-                        ` : ''}
-                    </td>
-                `;
-                if (permissions.canEdit && auth.currentUser?.adminPosition === 'Super Admin') {
-                    const retrieveBtn = row.querySelector('.retrieveBtn');
-                    if (retrieveBtn) {
-                        retrieveBtn.addEventListener('click', () => retrieveDonation(donation.id, donation));
-                    }
-                }
-            });
-        }
-
-        const totalEntries = filteredAndSortedArchivedDonations.length;
-        const showingStart = totalEntries > 0 ? start + 1 : 0;
-        const showingEnd = Math.min(end, totalEntries);
-        if (archivedEntriesInfo) {
-            archivedEntriesInfo.textContent = `Showing ${showingStart} to ${showingEnd} of ${totalEntries} entries`;
-        }
-        renderArchivedPagination();
+function renderArchivedTable() {
+    if (!archivedTableBody) {
+        console.error("ERROR: 'archivedTableBody' element not found.");
+        return;
     }
+
+    archivedTableBody.innerHTML = '';
+    const start = (archivedCurrentPage - 1) * rowsPerPage;
+    const end = start + rowsPerPage;
+    const paginatedItems = filteredAndSortedArchivedDonations.slice(start, end);
+
+    if (paginatedItems.length === 0) {
+        archivedTableBody.innerHTML = '<tr><td colspan="15" style="text-align: center; padding: 20px;">No archived in-kind donations found.</td></tr>';
+    } else {
+        paginatedItems.forEach((donation, index) => {
+            if (!donation.id) {
+                console.warn('Skipping invalid archived donation in renderArchivedTable:', donation);
+                return;
+            }
+            const row = archivedTableBody.insertRow();
+            row.innerHTML = `
+                <td>${start + index + 1}</td>
+                <td>${donation.encoder || 'N/A'}</td>
+                <td>${donation.name || 'N/A'}</td>
+                <td>${donation.type || 'N/A'}</td>
+                <td>${donation.address || 'N/A'}</td>
+                <td>${donation.contactPerson || 'N/A'}</td>
+                <td>${donation.number || 'N/A'}</td>
+                <td>${donation.email || 'N/A'}</td>
+                <td>${donation.assistance || 'N/A'}</td>
+                <td>₱${parseFloat(donation.valuation || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                <td>${donation.additionalnotes || 'N/A'}</td>
+                <td>${donation.staffIncharge || 'N/A'}</td>
+                <td>${donation.donationDate ? new Date(donation.donationDate).toLocaleDateString('en-PH') : 'N/A'}</td>
+                <td><span class="status-${donation.status ? donation.status.toLowerCase() : 'na'}">${donation.status || 'N/A'}</span></td>
+                <td>
+                    ${permissions.canRetrieve ? `
+                        <button class="retrieveBtn" aria-label="Retrieve donation">Retrieve</button>
+                    ` : ''}
+                </td>
+            `;
+            if (permissions.canRetrieve) {
+                const retrieveBtn = row.querySelector('.retrieveBtn');
+                if (retrieveBtn) {
+                    retrieveBtn.addEventListener('click', () => retrieveDonation(donation.id, donation));
+                }
+            }
+        });
+    }
+
+    const totalEntries = filteredAndSortedArchivedDonations.length;
+    const showingStart = totalEntries > 0 ? start + 1 : 0;
+    const showingEnd = Math.min(end, totalEntries);
+    if (archivedEntriesInfo) {
+        archivedEntriesInfo.textContent = `Showing ${showingStart} to ${showingEnd} of ${totalEntries} entries`;
+    }
+    renderArchivedPagination();
+}
 
     // Update pagination info
     function updatePaginationInfo() {

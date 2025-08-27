@@ -114,6 +114,7 @@
                             <i class="fa fa-search"></i>
                             <input type="text" placeholder="Search" id="searchInput" />
                         </div>
+                    
                         <div class="custom-select-wrapper">
                             <select id="sortSelect">
                                 <option value="">Sort by</option> 
@@ -141,6 +142,12 @@
                                 <i class='bx bx-archive' style="color: white; font-size: 20px;"></i>
                             </button>
                             <button id="downloadTemplateBtn"><i class='bx bx-file-blank'></i></button>
+                        </div>
+                            <div class="import-section">
+                            <input type="file" id="excelFileInput" accept=".xls,.xlsx" style="display: none;"/>
+                            <button id="importExcelBtn" class="importExcelBtn" type="button">
+                            <i class='bx bxs-file-import' style="font-size: 1.2rem;"></i>Import from Excel
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -206,36 +213,35 @@
                 </div>
             </div>
 
-             <!-- Archived Modal -->
+            <!-- Archived Modal -->
             <div class="modal" id="archivedModal" style="display: none;">
-                <div class="modal-content">
-                    <span class="close-button" id="closeArchivedModalBtn">×</span>
-                    <h2>Archived In-Kind Donations</h2>
-                    <div class="table-container" style="max-height: 400px; overflow-y: auto;">
-                        <table id="archivedTable">
-                            <thead>
-                                <tr>
-                                    <th>No.</th>
-                                    <th>Donation Drive</th>
-                                    <th>Contact Name</th>
-                                    <th>Contact Number</th>
-                                    <th>Account Number</th>
-                                    <th>Account Name</th>
-                                    <th>Exact Drop Off Address</th>
-                                    <th>Facebook Link</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody></tbody>
-                        </table>
-                    </div>
-                    <div class="pagination-info" style="margin-top: 15px;">
-                        <span id="archivedEntriesInfo">Showing 0 to 0 of 0 entries</span>
-                        <div id="archivedPagination" class="pagination"></div>
-                    </div>
-                </div>
-            </div>
-
+    <div class="modal-content">
+        <span class="close-button" id="closeArchivedModalBtn">×</span>
+        <h2>Archived In-Kind Donations</h2>
+        <div class="table-container" style="max-height: 400px; overflow-y: auto;">
+            <table id="archivedTable">
+                <thead>
+                    <tr>
+                        <th>No.</th>
+                        <th>Donation Drive</th>
+                        <th>Contact Name</th>
+                        <th>Contact Number</th>
+                        <th>Account Number</th>
+                        <th>Account Name</th>
+                        <th>Exact Drop Off Address</th>
+                        <th>Facebook Link</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="archivedTableBody"></tbody>
+            </table>
+        </div>
+        <div class="pagination-info" style="margin-top: 15px;">
+            <span id="archivedEntriesInfo">Showing 0 to 0 of 0 entries</span>
+            <div id="archivedPagination" class="pagination"></div>
+        </div>
+    </div>
+</div>
         </div>
     </div>
 

@@ -144,7 +144,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return transformed;
     }
     function loadReportsFromFirebase() {
-        database.ref("reports/verification").on("value", snapshot => {
+        database.ref("reports/verification/").on("value", snapshot => {
             submittedReports = [];
             const reports = snapshot.val();
             if (reports) {
@@ -178,6 +178,39 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
     }
+
+    function loadArchivedReportsFromFirebase() {
+    database.ref("reports/verification/ArchivedReports").on("value", snapshot => {
+        archivedReports = [];
+        const archived = snapshot.val();
+        if (archived) {
+            Object.keys(archived).forEach(key => {
+                const report = archived[key];
+                const transformedReport = transformReportData({
+                    firebaseKey: key,
+                    ...report
+                });
+                if (isValidReport(transformedReport)) {
+                    archivedReports.push(transformedReport);
+                } else {
+                    console.warn(`Skipping invalid archived report ${key}`);
+                }
+            });
+        } else {
+            console.log("No archived reports found in Firebase");
+        }
+        console.log("Archived Reports:", archivedReports);
+        renderArchivedReportsTable();
+    }, error => {
+        console.error("Error fetching archived reports from Firebase:", error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Failed to load archived reports: ' + error.message,
+        });
+    });
+}
+
     function highlightReportFromURL() {
         const urlParams = new URLSearchParams(window.location.search);
         const reportId = urlParams.get('reportId');
@@ -519,7 +552,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${formatCurrency(report["TotalValueOfInKindDonations"])}</td>
                 <td>${formatCurrency(report["TotalMonetaryDonations"])}</td>
                 <td>
-                    <button class="restoreBtn"><i class="bx bx-undo"></i></button>
+                    <button class="restoreBtn">Retrieve</button>
                 </td>
             `;
 
@@ -707,9 +740,11 @@ document.addEventListener('DOMContentLoaded', () => {
         currentPage = 1;
         applySearchAndSort();
     });
-    viewArchivedBtn.addEventListener('click', () => {
-        archivedModal.style.display = 'block';
-    });
+  viewArchivedBtn.addEventListener('click', () => {
+    currentArchivedPage = 1; // Reset to first page
+    loadArchivedReportsFromFirebase(); // Load archived reports
+    archivedModal.style.display = 'block';
+});
     closeArchivedModalBtn.addEventListener('click', () => {
         archivedModal.style.display = 'none';
     });
