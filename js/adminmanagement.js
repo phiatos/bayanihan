@@ -449,7 +449,11 @@ function renderAdminTable(data) {
         
         const actionsCell = row.insertCell(6);
         // Disable buttons for specific email
-        const isProtectedEmail = admin.email === 'sophiakirstentorrenueva@gmail.com';
+        const protectedEmails = [
+            'sophiakirstentorrenueva@gmail.com',
+            'kimrazel4@gmail.com'
+        ];
+        const isProtectedEmail = protectedEmails.includes(admin.email);
         actionsCell.innerHTML = `
             <button class="editBtn" data-uid="${admin.uid}" ${isProtectedEmail ? 'disabled' : ''}><i class='bx bx-edit'></i></button>
             <button class="deleteBtn" data-uid="${admin.uid}" ${isProtectedEmail ? 'disabled' : ''}><i class="bx bx-x-circle"></i></button>
