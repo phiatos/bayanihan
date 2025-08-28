@@ -2,6 +2,9 @@ let map;
 let markers = [];
 let autocomplete;
 
+const MAX_VALUATION = 1000000000; // Maximum valuation for in-kind donations (PHP 1,000,000,000)
+const MAX_AMOUNT_DONATED = 1000000000; // Maximum amount for monetary donations (PHP 1,000,000,000)
+
 function initMap() {
     // Default to Manila, Philippines
     const defaultLocation = { lat: 14.5995, lng: 120.9842 };
@@ -260,6 +263,44 @@ document.addEventListener('DOMContentLoaded', () => {
     const monetaryDonationDateInput = document.getElementById('monetaryDonationDate');
     const referenceNumberInput = document.getElementById('referenceNumber');
 
+    // In-Kind Valuation Formatting
+if (inKindValuationInput) {
+    inKindValuationInput.addEventListener('input', (event) => {
+        let value = event.target.value.replace(/,/g, ''); // Remove commas
+        if (value === '' || isNaN(value)) {
+            event.target.value = '';
+            return;
+        }
+        const parsedValue = parseFloat(value);
+        if (parsedValue > MAX_VALUATION) {
+            value = MAX_VALUATION.toString(); // Cap at maximum
+            Swal.fire({
+                icon: 'warning',
+                title: 'Maximum Valuation Exceeded',
+                text: `The valuation cannot exceed PHP ${MAX_VALUATION.toLocaleString('en-US')}.`,
+                timer: 1600,
+                showConfirmButton: false,
+                timerProgressBar: true,
+                allowOutsideClick: false,
+                customClass: {
+                    popup: 'swal2-popup-warning-clean',
+                    title: 'swal2-title-warning-clean',
+                    htmlContainer: 'swal2-text-warning-clean'
+                }
+            });
+        }
+        const cursorPosition = event.target.selectionStart;
+        const originalLength = event.target.value.length;
+        event.target.value = Number(value).toLocaleString('en-US', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        });
+        const newLength = event.target.value.length;
+        const cursorOffset = newLength - originalLength;
+        event.target.setSelectionRange(cursorPosition + cursorOffset, cursorPosition + cursorOffset);
+    });
+}
+
     // Set default donation date to current date and disable past dates for in-kind
     const today = new Date().toISOString().split('T')[0]; // Format: YYYY-MM-DD
     if (inKindDonationDateInput) {
@@ -358,24 +399,42 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Amount Donated Formatting (Monetary Form)
-    if (amountDonatedInput) {
-        amountDonatedInput.addEventListener('input', (event) => {
-            let value = event.target.value.replace(/,/g, '');
-            if (value === '' || isNaN(value)) {
-                event.target.value = '';
-                return;
-            }
-            const cursorPosition = event.target.selectionStart;
-            const originalLength = event.target.value.length;
-            event.target.value = Number(value).toLocaleString('en-US', {
-                minimumFractionDigits: 0,
-                maximumFractionDigits: 0
+if (amountDonatedInput) {
+    amountDonatedInput.addEventListener('input', (event) => {
+        let value = event.target.value.replace(/,/g, ''); // Remove commas
+        if (value === '' || isNaN(value)) {
+            event.target.value = '';
+            return;
+        }
+        const parsedValue = parseFloat(value);
+        if (parsedValue > MAX_AMOUNT_DONATED) {
+            value = MAX_AMOUNT_DONATED.toString(); // Cap at maximum
+            Swal.fire({
+                icon: 'warning',
+                title: 'Maximum Amount Exceeded',
+                text: `The amount donated cannot exceed PHP ${MAX_AMOUNT_DONATED.toLocaleString('en-US')}.`,
+                timer: 1600,
+                showConfirmButton: false,
+                timerProgressBar: true,
+                allowOutsideClick: false,
+                customClass: {
+                    popup: 'swal2-popup-warning-clean',
+                    title: 'swal2-title-warning-clean',
+                    htmlContainer: 'swal2-text-warning-clean'
+                }
             });
-            const newLength = event.target.value.length;
-            const cursorOffset = newLength - originalLength;
-            event.target.setSelectionRange(cursorPosition + cursorOffset, cursorPosition + cursorOffset);
+        }
+        const cursorPosition = event.target.selectionStart;
+        const originalLength = event.target.value.length;
+        event.target.value = Number(value).toLocaleString('en-US', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
         });
-    }
+        const newLength = event.target.value.length;
+        const cursorOffset = newLength - originalLength;
+        event.target.setSelectionRange(cursorPosition + cursorOffset, cursorPosition + cursorOffset);
+    });
+}
 
     // In-Kind Valuation Formatting
     if (inKindValuationInput) {
@@ -692,13 +751,30 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // Amount Donated Validation
+           // Amount Donated Validation
             const parsedAmount = parseFloat(amountDonated);
             if (isNaN(parsedAmount) || parsedAmount <= 0) {
                 Swal.fire({
                     icon: 'error',
                     title: 'Invalid Amount Donated',
                     text: 'Please enter a valid positive number for Amount Donated.',
+                    timer: 1600,
+                    showConfirmButton: false,
+                    timerProgressBar: true,
+                    allowOutsideClick: false,
+                    customClass: {
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean'
+                    }
+                });
+                return;
+            }
+            if (parsedAmount > MAX_AMOUNT_DONATED) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Invalid Amount Donated',
+                    text: `The amount donated cannot exceed PHP ${MAX_AMOUNT_DONATED.toLocaleString('en-US')}.`,
                     timer: 1600,
                     showConfirmButton: false,
                     timerProgressBar: true,

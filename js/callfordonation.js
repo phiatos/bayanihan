@@ -150,7 +150,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const auth = firebase.auth();
     const database = firebase.database();
     const userRole = localStorage.getItem('userRole');
-    let currentOrganization = 'Unknown Group';
+    let currentOrganization = 'Unknown Group'; 
 
     let archivedCurrentPage = 1;
     let allArchivedDonations = [];
@@ -343,20 +343,69 @@ document.addEventListener('DOMContentLoaded', () => {
                     Swal.fire('Error', 'Failed to load donations from the database.', 'error');
                 });
 
-                const archivedDbRef = firebase.database().ref('callfordonation/archivedCallforDonation');
-                archivedDbRef.on('value', (snapshot) => {
-                    const data = snapshot.val();
-                    allArchivedDonations = [];
-                    if (data) {
-                        Object.entries(data).forEach(([key, value]) => {
-                            allArchivedDonations.push({ ...value, firebaseKey: key });
-                        });
-                    }
-                    applyArchivedChange();
-                }, (error) => {
-                    console.error("Error fetching archived donations:", error);
-                    Swal.fire('Error', 'Failed to load archived donations.', 'error');
-                });
+        const archivedDbRef = firebase.database().ref('callfordonation/archivedCallforDonation');
+archivedDbRef.on('value', (snapshot) => {
+    const data = snapshot.val();
+    console.log('Raw archived data from Firebase (callfordonation/archivedCallforDonation) at', new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }), ':', JSON.stringify(data, null, 2));
+    allArchivedDonations = [];
+    if (data) {
+        Object.entries(data).forEach(([key, value]) => {
+            if (!value || typeof value !== 'object') {
+                console.warn(`Skipping invalid archived donation key ${key}:`, value);
+                return;
+            }
+            console.log(`Processing archived donation key ${key}:`, JSON.stringify(value, null, 2));
+            const donation = {
+                firebaseKey: key,
+                donationId: value.donationId || key || 'N/A',
+                donationDrive: value.donationDrive && typeof value.donationDrive === 'string' ? value.donationDrive : 'N/A',
+                contact: {
+                    person: value.contact && value.contact.person && typeof value.contact.person === 'string' ? value.contact.person : 'N/A',
+                    number: value.contact && value.contact.number ? String(value.contact.number) : 'N/A'
+                },
+                account: {
+                    number: value.account && value.account.number ? String(value.account.number) : 'N/A',
+                    name: value.account && value.account.name && typeof value.account.name === 'string' ? value.account.name : 'N/A'
+                },
+                address: {
+                    region: value.address && value.address.region ? value.address.region : 'N/A',
+                    province: value.address && value.address.province ? value.address.province : 'N/A',
+                    city: value.address && value.address.city ? value.address.city : 'N/A',
+                    barangay: value.address && value.address.barangay ? value.address.barangay : 'N/A',
+                    street: value.address && value.address.street ? value.address.street : 'N/A',
+                    fullAddress: value.address && value.address.fullAddress && typeof value.address.fullAddress === 'string' ? value.address.fullAddress : value.dropOff || 'N/A'
+                },
+                facebookLink: value.facebookLink && typeof value.facebookLink === 'string' ? value.facebookLink : 'N/A',
+                status: value.status && typeof value.status === 'string' ? value.status : 'Pending',
+                dateTime: value.dateTime && typeof value.dateTime === 'string' ? value.dateTime : new Date().toISOString(),
+                userUid: value.userUid && typeof value.userUid === 'string' ? value.userUid : auth.currentUser?.uid || 'Unknown',
+                timestamp: value.timestamp && typeof value.timestamp === 'number' ? value.timestamp : Date.now(),
+                image: value.image && typeof value.image === 'string' ? value.image : '',
+                archivedTimestamp: value.archivedTimestamp && typeof value.archivedTimestamp === 'number' ? value.archivedTimestamp : Date.now(),
+                archivedBy: value.archivedBy && typeof value.archivedBy === 'string' ? value.archivedBy : userRole || 'Unknown',
+                archiveReason: value.archiveReason && typeof value.archiveReason === 'string' ? value.archiveReason : 'Archived by user'
+            };
+            allArchivedDonations.push(donation);
+            console.log(`Constructed archived donation for key ${key}:`, JSON.stringify(donation, null, 2));
+        });
+    } else {
+        console.log('No archived donations found in Firebase.');
+    }
+    console.log('Calling applyArchivedChange with allArchivedDonations:', JSON.stringify(allArchivedDonations, null, 2));
+    applyArchivedChange();
+}, (error) => {
+    console.error("Error fetching archived donations:", error);
+    Swal.fire({
+        title: 'Error',
+        text: 'Failed to load archived donations.',
+        icon: 'error',
+        customClass: {
+            popup: 'swal2-popup-error-clean',
+            title: 'swal2-title-error-clean',
+            htmlContainer: 'swal2-text-error-clean'
+        }
+    });
+});
 
                 toggleExportCsvButton();
                 updateRemoveButtonVisibility();
@@ -720,8 +769,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function applyArchivedChange() {
+        console.log('applyArchivedChange called at', new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+        console.log('allArchivedDonations length:', allArchivedDonations.length, 'data:', JSON.stringify(allArchivedDonations, null, 2));
         filteredAndSortedArchivedDonations = [...allArchivedDonations];
-        archivedCurrentPage = 1;
+        // Sort by timestamp in descending order
+        filteredAndSortedArchivedDonations.sort((a, b) => {
+            try {
+                const valueA = a.timestamp || 0;
+                const valueB = b.timestamp || 0;
+                return valueB - valueA; // Descending order (newest first)
+            } catch (error) {
+                console.warn('Error sorting donations:', JSON.stringify(a, null, 2), JSON.stringify(b, null, 2), error);
+                return 0;
+            }
+        });
+        console.log('filteredAndSortedArchivedDonations length after sorting:', filteredAndSortedArchivedDonations.length, 'data:', JSON.stringify(filteredAndSortedArchivedDonations, null, 2));
         renderArchivedTable();
     }
 
@@ -939,71 +1001,120 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 // Delete button event listener for archiving
-                tr.querySelector(".deleteBtn").addEventListener("click", () => {
-                    Swal.fire({
-                        title: 'Are you sure to archive this call for donation?',
-                        text: "This will move it to archived records.",
-                        icon: 'warning',
-                        showCancelButton: true,
-                        confirmButtonText: 'Archive',
-                        cancelButtonText: 'Cancel',
-                        reverseButtons: true,
-                        focusCancel: true,
-                        allowOutsideClick: false,
-                        customClass: {
-                            popup: 'custom-swal-popup-small',
-                            title: 'custom-swal-title',
-                            htmlContainer: 'custom-swal-content',
-                            confirmButton: 'custom-confirm-btn',
-                            cancelButton: 'custom-cancel-btn'
-                        }
-                    }).then(async (result) => {
-                        if (result.isConfirmed) {
-                            try {
-                                const donationRef = firebase.database().ref(`callfordonation/${r.firebaseKey}`);
-                                const snapshot = await donationRef.once('value');
-                                const donationData = snapshot.val();
-                                if (!donationData) {
-                                    throw new Error("Donation data not found.");
-                                }
-                                const archivedDonation = {
-                                    ...donationData,
-                                    archivedTimestamp: Date.now(),
-                                    archivedBy: userRole || 'Unknown',
-                                    archiveReason: 'Archived by user'
-                                };
-                                await firebase.database().ref('callfordonation/archivedCallforDonation').push(archivedDonation);
-                                await donationRef.remove();
-                                const message = `Donation "${donationData.donationDrive}" archived by ${userRole} from ${currentOrganization} on ${new Date().toLocaleDateString('en-US')}.`;
-                                await notifyAdmin(
-                                    message,
-                                    null,
-                                    null,
-                                    null,
-                                    donationData.donationId,
-                                    donationData.contact?.person || 'Unknown',
-                                    currentOrganization
-                                );
-                                Swal.fire({
-                                    title: 'Archived!',
-                                    text: 'The donation has been archived.',
-                                    icon: 'success',
-                                    showConfirmButton: true,
-                                    confirmButtonText: 'OK',
-                                    customClass: {
-                                        popup: 'swal2-popup-success-clean',
-                                        title: 'swal2-title-success-clean',
-                                        htmlContainer: 'swal2-text-success-clean',
-                                        confirmButton: 'my-success-button'
-                                    }
-                                });
-                            } catch (error) {
-                                console.error("Error archiving donation:", error);
-                                Swal.fire('Error', 'Failed to archive the donation.', 'error');
-                            }
-                        }
-                    });
+   tr.querySelector(".deleteBtn").addEventListener("click", () => {
+    Swal.fire({
+        title: 'Reject Donation?',
+        text: `Are you sure you want to reject "${r.donationDrive || 'this donation'}"? This will move it to archived records.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Reject',
+        cancelButtonText: 'Cancel',
+        reverseButtons: true,
+        focusCancel: true,
+        allowOutsideClick: false,
+        customClass: {
+            popup: 'custom-swal-popup-small',
+            title: 'custom-swal-title',
+            htmlContainer: 'custom-swal-content',
+            confirmButton: 'custom-confirm-btn',
+            cancelButton: 'custom-cancel-btn'
+        }
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            try {
+                const donationRef = firebase.database().ref(`callfordonation/${r.firebaseKey}`);
+                // Validate r object
+                if (!r.donationDrive || !r.contact?.person || !r.contact?.number || !r.account?.number || !r.account?.name || !r.address?.fullAddress) {
+                    console.warn('Incomplete donation data in r:', r);
+                    throw new Error("Incomplete donation data. Missing required fields.");
+                }
+                const archivedDonation = {
+                    donationId: r.donationId || r.firebaseKey || 'N/A',
+                    donationDrive: r.donationDrive,
+                    contact: {
+                        person: r.contact.person,
+                        number: String(r.contact.number)
+                    },
+                    account: {
+                        number: String(r.account.number),
+                        name: r.account.name
+                    },
+                    address: {
+                        region: r.address.region,
+                        province: r.address.province,
+                        city: r.address.city,
+                        barangay: r.address.barangay,
+                        street: r.address.street,
+                        fullAddress: r.address.fullAddress || r.dropOff
+                    },
+                    facebookLink: r.facebookLink,
+                    status: 'Rejected',
+                    dateTime: r.dateTime || new Date().toISOString(),
+                    userUid: r.userUid || auth.currentUser?.uid || 'Unknown',
+                    timestamp: r.timestamp || Date.now(),
+                    image: r.image || '',
+                    archivedTimestamp: Date.now(),
+                    archivedBy: userRole || 'Unknown',
+                    archiveReason: 'Rejected by admin'
+                };
+                console.log('Archiving donation:', JSON.stringify(archivedDonation, null, 2));
+                // Push to archivedCallforDonation
+                const archiveRef = await firebase.database().ref('callfordonation/archivedCallforDonation').push(archivedDonation);
+                console.log(`Donation archived with key: ${archiveRef.key}`);
+                // Remove from callfordonation
+                await donationRef.remove();
+                // Verify removal
+                const verifySnapshot = await donationRef.once('value');
+                if (verifySnapshot.exists()) {
+                    console.error(`Failed to remove donation from callfordonation for key ${r.firebaseKey}`);
+                    throw new Error("Failed to remove donation from callfordonation.");
+                }
+                console.log(`Donation successfully removed from callfordonation for key ${r.firebaseKey}`);
+                // Notify admin
+                const message = `Donation "${r.donationDrive || 'Unknown'}" rejected by ${userRole} from ${currentOrganization} on ${new Date().toLocaleDateString('en-US')}.`;
+                await notifyAdmin(
+                    message,
+                    null,
+                    null,
+                    null,
+                    r.donationId || r.firebaseKey,
+                    r.contact?.person || 'Unknown',
+                    currentOrganization
+                );
+                // Notify sender
+                const senderMessage = `Your donation call "${r.donationDrive || 'Unknown'}" (ID: ${r.donationId || r.firebaseKey}) has been rejected.`;
+                await notifySender(senderMessage, r.userUid, r.donationId || r.firebaseKey);
+                Swal.fire({
+                    title: 'Rejected!',
+                    text: 'The donation has been rejected and moved to archived records.',
+                    icon: 'success',
+                    showConfirmButton: true,
+                    confirmButtonText: 'OK',
+                    customClass: {
+                        popup: 'swal2-popup-success-clean',
+                        title: 'swal2-title-success-clean',
+                        htmlContainer: 'swal2-text-success-clean',
+                        confirmButton: 'my-success-button'
+                    }
                 });
+                // Refresh main table
+                applyChange();
+            } catch (error) {
+                console.error("Error rejecting donation:", error);
+                Swal.fire({
+                    title: 'Error',
+                    text: `Failed to reject the donation: ${error.message}`,
+                    icon: 'error',
+                    customClass: {
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean'
+                    }
+                });
+            }
+        }
+    });
+});
 
                 tr.querySelector(".savePDFBtn").addEventListener("click", () => saveSingleCfdDonationPdf(r));
                 tableBody.appendChild(tr);
@@ -1014,76 +1125,185 @@ document.addEventListener('DOMContentLoaded', () => {
         updateRemoveButtonVisibility();
     }
 
-    function renderArchivedTable() {
-        const startIndex = (archivedCurrentPage - 1) * rowsPerPage;
-        const endIndex = startIndex + rowsPerPage;
-        const currentPageRows = filteredAndSortedArchivedDonations.slice(startIndex, endIndex);
-        archivedTableBody.innerHTML = "";
-        if (currentPageRows.length === 0) {
-            archivedTableBody.innerHTML = `<tr><td colspan="8" style="text-align: center;">No archived donations found.</td></tr>`;
-        } else {
-            currentPageRows.forEach((r, i) => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${startIndex + i + 1}</td>
-                    <td>${r.donationDrive || 'N/A'}</td>
-                    <td>${r.contact?.person || 'N/A'}</td>
-                    <td>${String(r.contact?.number || 'N/A')}</td>
-                    <td>${String(r.account?.number || 'N/A')}</td>
-                    <td>${r.account?.name || 'N/A'}</td>
-                    <td>${r.address?.fullAddress || r.dropOff || 'N/A'}</td>
-                    <td><a href="${r.facebookLink || '#'}" target="_blank" rel="noopener noreferrer">${r.facebookLink && r.facebookLink !== 'N/A' ? 'Visit The Page' : 'N/A'}</a></td>
-                    <td>
-                        ${userRole === 'AB ADMIN' ? `<button class="retrieveBtn"><p>Retrieve</p></i></button>` : ''}
-                    </td>
-                `;
-                if (userRole === 'AB ADMIN') {
-                    tr.querySelector(".retrieveBtn").addEventListener("click", () => {
-                        Swal.fire({
-                            title: 'Retrieve Donation?',
-                            text: `Are you sure you want to retrieve "${r.donationDrive}"?`,
-                            icon: 'question',
-                            showCancelButton: true,
-                            confirmButtonText: 'Yes, retrieve it!',
-                            cancelButtonText: 'Cancel'
-                        }).then(async (result) => {
-                            if (result.isConfirmed) {
-                                try {
-                                    const archivedRef = firebase.database().ref(`callfordonation/archivedCallforDonation/${r.firebaseKey}`);
-                                    const snapshot = await archivedRef.once('value');
-                                    const donationData = snapshot.val();
-                                    if (!donationData) {
-                                        throw new Error("Archived donation data not found.");
-                                    }
-                                    const { archivedTimestamp, archivedBy, archiveReason, ...restoredDonation } = donationData;
-                                    await firebase.database().ref('callfordonation').push(restoredDonation);
-                                    await archivedRef.remove();
-                                    const message = `Donation "${donationData.donationDrive}" retrieved by ${userRole} from ${currentOrganization} on ${new Date().toLocaleDateString('en-US')}.`;
-                                    await notifyAdmin(
-                                        message,
-                                        null,
-                                        null,
-                                        null,
-                                        donationData.donationId,
-                                        donationData.contact?.person || 'Unknown',
-                                        currentOrganization
-                                    );
-                                    Swal.fire('Retrieved!', 'The donation has been restored.', 'success');
-                                    document.getElementById('archivedModal').style.display = 'none';
-                                } catch (error) {
-                                    console.error("Error retrieving donation:", error);
-                                    Swal.fire('Error', 'Failed to retrieve the donation.', 'error');
-                                }
-                            }
-                        });
-                    });
-                }
-                archivedTableBody.appendChild(tr);
-            });
-        }
-        updateArchivedPaginationInfo();
-        renderArchivedPagination();
+function renderArchivedTable() {
+    console.log('renderArchivedTable called at', new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+    console.log('filteredAndSortedArchivedDonations length:', filteredAndSortedArchivedDonations.length, 'data:', JSON.stringify(filteredAndSortedArchivedDonations, null, 2));
+    if (!archivedTableBody) {
+        console.error('archivedTableBody is not defined or not found in the DOM');
+        Swal.fire({
+            title: 'Error',
+            text: 'Archived table body not found in the DOM.',
+            icon: 'error',
+            customClass: {
+                popup: 'swal2-popup-error-clean',
+                title: 'swal2-title-error-clean',
+                htmlContainer: 'swal2-text-error-clean'
+            }
+        });
+        return;
     }
+    console.log('Current archivedTableBody content before clearing:', archivedTableBody.innerHTML);
+    archivedTableBody.innerHTML = "";
+    const startIndex = (archivedCurrentPage - 1) * rowsPerPage;
+    const endIndex = startIndex + rowsPerPage;
+    const currentPageRows = filteredAndSortedArchivedDonations.slice(startIndex, endIndex);
+    console.log('Current page rows length:', currentPageRows.length, 'data:', JSON.stringify(currentPageRows, null, 2));
+    if (currentPageRows.length === 0) {
+        console.log('No archived donations to display.');
+        archivedTableBody.innerHTML = `<tr><td colspan="9" style="text-align: center;">No archived donations found.</td></tr>`;
+        if (archivedEntriesInfo) {
+            archivedEntriesInfo.textContent = 'Showing 0 to 0 of 0 entries';
+        }
+        renderArchivedPagination();
+        console.log('Final archivedTableBody content after rendering empty state:', archivedTableBody.innerHTML);
+        return;
+    }
+    currentPageRows.forEach((r, i) => {
+        console.log(`Rendering archived donation ${startIndex + i + 1} (ID: ${r.donationId || r.firebaseKey}):`, JSON.stringify(r, null, 2));
+        const donationDrive = r.donationDrive || 'N/A';
+        const contactPerson = r.contact?.person || 'N/A';
+        const contactNumber = r.contact?.number ? String(r.contact.number) : 'N/A';
+        const accountNumber = r.account?.number ? String(r.account.number) : 'N/A';
+        const accountName = r.account?.name || 'N/A';
+        const fullAddress = r.address?.fullAddress || r.dropOff || 'N/A';
+        const facebookLink = r.facebookLink || 'N/A';
+        const tr = document.createElement('tr');
+        tr.setAttribute('data-id', r.donationId || r.firebaseKey || 'unknown');
+        tr.innerHTML = `
+            <td>${startIndex + i + 1}</td>
+            <td>${donationDrive}</td>
+            <td>${contactPerson}</td>
+            <td>${contactNumber}</td>
+            <td>${accountNumber}</td>
+            <td>${accountName}</td>
+            <td>${fullAddress}</td>
+            <td><a href="${facebookLink !== 'N/A' ? facebookLink : '#'}" target="_blank" rel="noopener noreferrer">${facebookLink !== 'N/A' ? 'Visit The Page' : 'N/A'}</a></td>
+            <td>${userRole === 'AB ADMIN' ? `<button class="retrieveBtn"><p>Retrieve</p></button>` : ''}</td>
+        `;
+        console.log(`Rendered row ${startIndex + i + 1} (ID: ${r.donationId || r.firebaseKey}):`, {
+            donationDrive,
+            contactPerson,
+            contactNumber,
+            accountNumber,
+            accountName,
+            fullAddress,
+            facebookLink
+        });
+        archivedTableBody.appendChild(tr);
+        if (userRole === 'AB ADMIN') {
+            const retrieveBtn = tr.querySelector(".retrieveBtn");
+            if (retrieveBtn) {
+                retrieveBtn.addEventListener("click", () => {
+                    Swal.fire({
+                        title: 'Retrieve Donation?',
+                        text: `Are you sure you want to retrieve "${donationDrive !== 'N/A' ? donationDrive : 'this donation'}"?`,
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonText: 'Yes, retrieve it!',
+                        cancelButtonText: 'Cancel',
+                        customClass: {
+                            popup: 'swal2-popup-question-clean',
+                            title: 'swal2-title-question-clean',
+                            htmlContainer: 'swal2-text-question-clean',
+                            confirmButton: 'my-success-button',
+                            cancelButton: 'my-cancel-button'
+                        }
+                    }).then(async (result) => {
+                        if (result.isConfirmed) {
+                            try {
+                                const archivedRef = firebase.database().ref(`callfordonation/archivedCallforDonation/${r.firebaseKey}`);
+                                const snapshot = await archivedRef.once('value');
+                                const donationData = snapshot.val();
+                                if (!donationData) {
+                                    console.error(`Archived donation data not found for key ${r.firebaseKey}`);
+                                    throw new Error("Archived donation data not found.");
+                                }
+                                console.log('Retrieving archived donation:', JSON.stringify(donationData, null, 2));
+                                const restoredDonation = {
+                                    donationId: donationData.donationId || r.firebaseKey || 'N/A',
+                                    donationDrive: donationData.donationDrive || 'N/A',
+                                    contact: {
+                                        person: donationData.contact?.person || 'N/A',
+                                        number: donationData.contact?.number ? String(donationData.contact.number) : 'N/A'
+                                    },
+                                    account: {
+                                        number: donationData.account?.number ? String(donationData.account.number) : 'N/A',
+                                        name: donationData.account?.name || 'N/A'
+                                    },
+                                    address: {
+                                        region: donationData.address?.region || 'N/A',
+                                        province: donationData.address?.province || 'N/A',
+                                        city: donationData.address?.city || 'N/A',
+                                        barangay: donationData.address?.barangay || 'N/A',
+                                        street: donationData.address?.street || 'N/A',
+                                        fullAddress: donationData.address?.fullAddress || donationData.dropOff || 'N/A'
+                                    },
+                                    facebookLink: donationData.facebookLink || 'N/A',
+                                    status: donationData.status || 'Pending',
+                                    dateTime: donationData.dateTime || new Date().toISOString(),
+                                    userUid: donationData.userUid || auth.currentUser?.uid || 'Unknown',
+                                    timestamp: donationData.timestamp || Date.now(),
+                                    image: donationData.image || ''
+                                };
+                                console.log('Restoring donation to callfordonation:', JSON.stringify(restoredDonation, null, 2));
+                                const restoreRef = await firebase.database().ref('callfordonation').push(restoredDonation);
+                                console.log(`Donation restored with key: ${restoreRef.key}`);
+                                await archivedRef.remove();
+                                const verifySnapshot = await archivedRef.once('value');
+                                if (verifySnapshot.exists()) {
+                                    console.error(`Failed to remove donation from archivedCallforDonation for key ${r.firebaseKey}`);
+                                    throw new Error("Failed to remove donation from archivedCallforDonation.");
+                                }
+                                console.log(`Donation successfully removed from archivedCallforDonation for key ${r.firebaseKey}`);
+                                const message = `Donation "${donationData.donationDrive || 'Unknown'}" retrieved by ${userRole} from ${currentOrganization} on ${new Date().toLocaleDateString('en-US')}.`;
+                                await notifyAdmin(
+                                    message,
+                                    null,
+                                    null,
+                                    null,
+                                    donationData.donationId || r.firebaseKey,
+                                    donationData.contact?.person || 'Unknown',
+                                    currentOrganization
+                                );
+                                Swal.fire({
+                                    title: 'Retrieved!',
+                                    text: 'The donation has been restored.',
+                                    icon: 'success',
+                                    confirmButtonText: 'OK',
+                                    customClass: {
+                                        popup: 'swal2-popup-success-clean',
+                                        title: 'swal2-title-success-clean',
+                                        htmlContainer: 'swal2-text-success-clean',
+                                        confirmButton: 'my-success-button'
+                                    }
+                                });
+                                document.getElementById('archivedModal').style.display = 'none';
+                                applyArchivedChange();
+                            } catch (error) {
+                                console.error("Error retrieving donation:", error);
+                                Swal.fire({
+                                    title: 'Error',
+                                    text: `Failed to retrieve the donation: ${error.message}`,
+                                    icon: 'error',
+                                    customClass: {
+                                        popup: 'swal2-popup-error-clean',
+                                        title: 'swal2-title-error-clean',
+                                        htmlContainer: 'swal2-text-error-clean'
+                                    }
+                                });
+                            }
+                        }
+                    });
+                });
+            }
+        }
+    });
+    console.log('Final archivedTableBody content after rendering:', archivedTableBody.innerHTML);
+    if (archivedEntriesInfo) {
+        archivedEntriesInfo.textContent = `Showing ${startIndex + 1} to ${Math.min(endIndex, filteredAndSortedArchivedDonations.length)} of ${filteredAndSortedArchivedDonations.length} entries`;
+    }
+    renderArchivedPagination();
+}
 
     function updatePaginationInfo() {
         const totalEntries = filteredAndSortedDonations.length;
@@ -1139,15 +1359,120 @@ document.addEventListener('DOMContentLoaded', () => {
         archivedPaginationContainer.appendChild(createArchivedPaginationButton('Next', Math.min(totalPages, archivedCurrentPage + 1), archivedCurrentPage === totalPages));
     }
 
+if (viewArchivedBtn) {
     viewArchivedBtn.addEventListener('click', () => {
-        const modal = document.getElementById('archivedModal');
-        modal.style.display = 'flex';
-        applyArchivedChange();
+        console.log('viewArchived button clicked at', new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+        const archivedModal = document.getElementById('archivedModal');
+        if (!archivedModal) {
+            console.error('archivedModal not found in the DOM');
+            Swal.fire({
+                title: 'Error',
+                text: 'Archived modal not found in the DOM.',
+                icon: 'error',
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean'
+                }
+            });
+            return;
+        }
+        console.log('allArchivedDonations before opening modal:', JSON.stringify(allArchivedDonations, null, 2));
+        // Reset modal state
+        archivedCurrentPage = 1;
+        // Ensure modal is visible
+        archivedModal.style.display = 'block';
+        console.log('Set archivedModal display to block');
+        // Force data fetch and render
+        const archivedDbRef = firebase.database().ref('callfordonation/archivedCallforDonation');
+        archivedDbRef.once('value').then((snapshot) => {
+            const data = snapshot.val();
+            console.log('Fetched archived data on modal open:', JSON.stringify(data, null, 2));
+            allArchivedDonations = [];
+            if (data) {
+                Object.entries(data).forEach(([key, value]) => {
+                    if (!value || typeof value !== 'object') {
+                        console.warn(`Skipping invalid archived donation key ${key}:`, value);
+                        return;
+                    }
+                    const donation = {
+                        firebaseKey: key,
+                        donationId: value.donationId || key || 'N/A',
+                        donationDrive: value.donationDrive && typeof value.donationDrive === 'string' ? value.donationDrive : 'N/A',
+                        contact: {
+                            person: value.contact && value.contact.person && typeof value.contact.person === 'string' ? value.contact.person : 'N/A',
+                            number: value.contact && value.contact.number ? String(value.contact.number) : 'N/A'
+                        },
+                        account: {
+                            number: value.account && value.account.number ? String(value.account.number) : 'N/A',
+                            name: value.account && value.account.name && typeof value.account.name === 'string' ? value.account.name : 'N/A'
+                        },
+                        address: {
+                            region: value.address && value.address.region ? value.address.region : 'N/A',
+                            province: value.address && value.address.province ? value.address.province : 'N/A',
+                            city: value.address && value.address.city ? value.address.city : 'N/A',
+                            barangay: value.address && value.address.barangay ? value.address.barangay : 'N/A',
+                            street: value.address && value.address.street ? value.address.street : 'N/A',
+                            fullAddress: value.address && value.address.fullAddress && typeof value.address.fullAddress === 'string' ? value.address.fullAddress : value.dropOff || 'N/A'
+                        },
+                        facebookLink: value.facebookLink && typeof value.facebookLink === 'string' ? value.facebookLink : 'N/A',
+                        status: value.status && typeof value.status === 'string' ? value.status : 'Pending',
+                        dateTime: value.dateTime && typeof value.dateTime === 'string' ? value.dateTime : new Date().toISOString(),
+                        userUid: value.userUid && typeof value.userUid === 'string' ? value.userUid : auth.currentUser?.uid || 'Unknown',
+                        timestamp: value.timestamp && typeof value.timestamp === 'number' ? value.timestamp : Date.now(),
+                        image: value.image && typeof value.image === 'string' ? value.image : '',
+                        archivedTimestamp: value.archivedTimestamp && typeof value.archivedTimestamp === 'number' ? value.archivedTimestamp : Date.now(),
+                        archivedBy: value.archivedBy && typeof value.archivedBy === 'string' ? value.archivedBy : userRole || 'Unknown',
+                        archiveReason: value.archiveReason && typeof value.archiveReason === 'string' ? value.archiveReason : 'Archived by user'
+                    };
+                    allArchivedDonations.push(donation);
+                });
+            }
+            console.log('Updated allArchivedDonations on modal open:', JSON.stringify(allArchivedDonations, null, 2));
+            applyArchivedChange();
+            console.log('Forced applyArchivedChange after fetching data');
+        }).catch((error) => {
+            console.error('Error fetching archived data on modal open:', error);
+            Swal.fire({
+                title: 'Error',
+                text: 'Failed to load archived donations.',
+                icon: 'error',
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean'
+                }
+            });
+        });
     });
-
+} else {
+    console.error('viewArchived button not found in the DOM');
+    Swal.fire({
+        title: 'Error',
+        text: 'View Archived button not found in the DOM.',
+        icon: 'error',
+        customClass: {
+            popup: 'swal2-popup-error-clean',
+            title: 'swal2-title-error-clean',
+            htmlContainer: 'swal2-text-error-clean'
+        }
+    });
+}
+// Add close button handler
+if (closeArchivedModalBtn) {
     closeArchivedModalBtn.addEventListener('click', () => {
-        document.getElementById('archivedModal').style.display = 'none';
+        console.log('closeArchivedModalBtn clicked at', new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+        const archivedModal = document.getElementById('archivedModal');
+        if (archivedModal) {
+            archivedModal.style.display = 'none';
+            console.log('Set archivedModal display to none');
+            archivedCurrentPage = 1;
+            console.log('Reset modal state: page');
+        }
     });
+} else {
+    console.error('closeArchivedModalBtn not found in the DOM');
+}
 
     const createPaginationButton = (label, page, disabled = false, isActive = false) => {
         const btn = document.createElement('button');
