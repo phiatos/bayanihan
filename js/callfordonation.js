@@ -893,237 +893,193 @@ archivedDbRef.on('value', (snapshot) => {
     });
 
     function renderTable() {
-        const startIndex = (currentPage - 1) * rowsPerPage;
-        const endIndex = startIndex + rowsPerPage;
-        const currentPageRows = filteredAndSortedDonations.slice(startIndex, endIndex);
-        tableBody.innerHTML = "";
-        if (currentPageRows.length === 0) {
-            const noDataRow = document.createElement("tr");
-            noDataRow.innerHTML = `<td colspan="9" style="text-align: center;">No donations found.</td>`;
-            tableBody.appendChild(noDataRow);
-        } else {
-            currentPageRows.forEach((r, i) => {
-                const tr = document.createElement('tr');
-                tr.setAttribute('data-id', r.donationId);
-                // Include both approveBtn and deleteBtn based on user role
-                const actionButtons = `
-                    <button title="View" class="viewBtn"><i class="bx bx-show-alt"></i></button>
-                    ${userRole === 'AB ADMIN' ? `<button title="Approve" class="approveBtn"><i class="bx bx-check-circle"></i></button>` : ''}
-                    <button title="Archive" class="deleteBtn"><i class="bx bx-x-circle"></i></button>
-                    <button title="Save as PDF" class="savePDFBtn"><i class="bx bxs-file-pdf"></i></button>
-                `;
-                tr.innerHTML = `
-                    <td>${startIndex + i + 1}</td>
-                    <td>${r.donationDrive || 'N/A'}</td>
-                    <td>${r.contact?.person || 'N/A'}</td>
-                    <td>${String(r.contact?.number || 'N/A')}</td>
-                    <td>${String(r.account?.number || 'N/A')}</td>
-                    <td>${r.account?.name || 'N/A'}</td>
-                    <td>${r.address?.fullAddress || r.dropOff || 'N/A'}</td>
-                    <td><a href="${r.facebookLink || '#'}" target="_blank" rel="noopener noreferrer">${r.facebookLink && r.facebookLink !== 'N/A' ? 'Visit The Page' : 'N/A'}</a></td>
-                    <td>${actionButtons}</td>
-                `;
-                tr.querySelector(".viewBtn").addEventListener("click", () => {
-                    Swal.fire({
-                        html: r?.image ? `<img src="${r.image}" alt="Donation Image" style="max-width: 100%; margin-top: 10px;" />` : 'No image available.',
-                        icon: 'info',
-                        confirmButtonText: 'Close'
-                    });
-                });
+    console.log('Rendering table with filteredAndSortedDonations:', JSON.stringify(filteredAndSortedDonations, null, 2));
+    
+    tableBody.innerHTML = '';
 
-                // Approve button event listener (available only for AB ADMIN)
-                if (userRole === 'AB ADMIN') {
-                    const approveBtn = tr.querySelector(".approveBtn");
-                    if (approveBtn) {
-                        approveBtn.addEventListener("click", () => {
-                            if (!r.userUid) {
-                                Swal.fire({
-                                    icon: 'error',
-                                    title: 'Error',
-                                    text: 'User UID not found in donation. Cannot approve.',
-                                });
-                                return;
+    if (!Array.isArray(filteredAndSortedDonations) || filteredAndSortedDonations.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="9">No donations available</td></tr>';
+        console.log('No valid donations to render');
+        return;
+    }
+
+    const startIndex = (currentPage - 1) * rowsPerPage;
+
+    filteredAndSortedDonations.forEach((r, i) => {
+        if (!r.firebaseKey || !r.donationId) {
+            console.warn(`Skipping invalid donation at index ${i}:`, JSON.stringify(r, null, 2));
+            return;
+        }
+
+        console.log(`Rendering donation at index ${i}:`, JSON.stringify(r, null, 2));
+
+        const tr = document.createElement('tr');
+        const actionButtons = `
+            <button title="View" class="viewBtn"><i class="bx bx-show-alt"></i></button>
+            <button title="Archive" class="deleteBtn"><i class="bx bx-x-circle"></i></button>
+            <button title="Save as PDF" class="savePDFBtn"><i class="bx bxs-file-pdf"></i></button>
+        `;
+        tr.innerHTML = `
+            <td>${startIndex + i + 1}</td>
+            <td>${r.donationDrive ? String(r.donationDrive) : 'N/A'}</td>
+            <td>${r.contact?.person ? String(r.contact.person) : 'N/A'}</td>
+            <td>${r.contact?.number ? String(r.contact.number) : 'N/A'}</td>
+            <td>${r.account?.number ? String(r.account.number) : 'N/A'}</td>
+            <td>${r.account?.name ? String(r.account.name) : 'N/A'}</td>
+            <td>${r.address?.fullAddress || r.dropOff ? String(r.address?.fullAddress || r.dropOff) : 'N/A'}</td>
+            <td><a href="${r.facebookLink || '#'}" target="_blank" rel="noopener noreferrer">${r.facebookLink && r.facebookLink !== 'N/A' ? 'Visit The Page' : 'N/A'}</a></td>
+            <td>${actionButtons}</td>
+        `;
+
+        tr.querySelector(".viewBtn").addEventListener("click", () => {
+            Swal.fire({
+                html: r?.image ? `<img src="${r.image}" alt="Donation Image" style="max-width: 100%; margin-top: 10px;" />` : 'No image available.',
+                icon: 'info',
+                confirmButtonText: 'Close'
+            });
+        });
+
+        tr.querySelector(".deleteBtn").addEventListener("click", () => {
+            Swal.fire({
+                title: 'Reject Donation?',
+                text: `Are you sure you want to reject "${r.donationDrive || 'this donation'}"? This will move it to archived records.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Reject',
+                cancelButtonText: 'Cancel',
+                reverseButtons: true,
+                focusCancel: true,
+                allowOutsideClick: false,
+                customClass: {
+                    popup: 'custom-swal-popup-small',
+                    title: 'custom-swal-title',
+                    htmlContainer: 'custom-swal-content',
+                    confirmButton: 'custom-confirm-btn',
+                    cancelButton: 'custom-cancel-btn'
+                }
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    try {
+                        console.log('Attempting to reject donation with data:', JSON.stringify(r, null, 2));
+
+                        if (!r.firebaseKey || !r.donationId) {
+                            console.error(`Invalid donation data: Missing firebaseKey or donationId`, {
+                                firebaseKey: r.firebaseKey,
+                                donationId: r.donationId
+                            });
+                            throw new Error("Cannot reject donation: Missing critical data (ID).");
+                        }
+
+                        console.log('allDonations before removal:', JSON.stringify(allDonations, null, 2));
+                        console.log('filteredAndSortedDonations before removal:', JSON.stringify(filteredAndSortedDonations, null, 2));
+
+                        const archivedDonation = {
+                            donationId: r.donationId,
+                            donationDrive: r.donationDrive ? String(r.donationDrive) : 'Unknown Donation',
+                            contact: {
+                                person: r.contact?.person ? String(r.contact.person) : 'N/A',
+                                number: r.contact?.number ? String(r.contact.number) : 'N/A'
+                            },
+                            account: {
+                                number: r.account?.number ? String(r.account.number) : 'N/A',
+                                name: r.account?.name ? String(r.account.name) : 'N/A'
+                            },
+                            address: {
+                                region: r.address?.region ? String(r.address.region) : 'N/A',
+                                province: r.address?.province ? String(r.address.province) : 'N/A',
+                                city: r.address?.city ? String(r.address.city) : 'N/A',
+                                barangay: r.address?.barangay ? String(r.address.barangay) : 'N/A',
+                                street: r.address?.street ? String(r.address.street) : 'N/A',
+                                fullAddress: r.address?.fullAddress || r.dropOff ? String(r.address?.fullAddress || r.dropOff) : 'N/A'
+                            },
+                            facebookLink: r.facebookLink ? String(r.facebookLink) : 'N/A',
+                            status: 'Rejected',
+                            dateTime: r.dateTime ? String(r.dateTime) : new Date().toISOString(),
+                            userUid: r.userUid ? String(r.userUid) : firebase.auth().currentUser?.uid || 'Unknown',
+                            timestamp: r.timestamp ? Number(r.timestamp) : Date.now(),
+                            image: r.image ? String(r.image) : '',
+                            archivedTimestamp: Date.now(),
+                            archivedBy: userRole ? String(userRole) : 'Unknown',
+                            archiveReason: 'Rejected by admin'
+                        };
+
+                        console.log(`Archiving donation with ID ${r.donationId}:`, JSON.stringify(archivedDonation, null, 2));
+
+                        const archiveRef = await firebase.database().ref('callfordonation/archivedCallforDonation').push(archivedDonation);
+                        console.log(`Donation archived with key: ${archiveRef.key}`);
+
+                        const donationRef = firebase.database().ref(`callfordonation/${r.firebaseKey}`);
+                        await donationRef.remove();
+
+                        const verifySnapshot = await donationRef.once('value');
+                        if (verifySnapshot.exists()) {
+                            console.error(`Failed to remove donation from callfordonation for key ${r.firebaseKey}`);
+                            throw new Error("Failed to remove donation from the main database.");
+                        }
+                        console.log(`Donation successfully removed from callfordonation for key ${r.firebaseKey}`);
+
+                        allDonations = allDonations.filter(donation => donation.firebaseKey !== r.firebaseKey);
+                        console.log('allDonations after manual removal:', JSON.stringify(allDonations, null, 2));
+
+                        filteredAndSortedDonations = [...allDonations];
+                        console.log('filteredAndSortedDonations after update:', JSON.stringify(filteredAndSortedDonations, null, 2));
+
+                        tableBody.innerHTML = '';
+                        renderTable();
+
+                        console.log('Table body content after render:', tableBody.innerHTML);
+
+                        const message = `Donation "${r.donationDrive || 'Unknown'}" rejected by ${userRole || 'Unknown'} from ${currentOrganization || 'Unknown'} on ${new Date().toLocaleDateString('en-US')}.`;
+                        await notifyAdmin(
+                            message,
+                            null,
+                            null,
+                            null,
+                            r.donationId,
+                            r.contact?.person || 'Unknown',
+                            currentOrganization || 'Unknown'
+                        );
+
+                        const senderMessage = `Your donation call "${r.donationDrive || 'Unknown'}" (ID: ${r.donationId}) has been rejected.`;
+                        await notifySender(senderMessage, r.userUid || 'Unknown', r.donationId);
+
+                        Swal.fire({
+                            title: 'Rejected!',
+                            text: 'The donation has been rejected and moved to archived records.',
+                            icon: 'success',
+                            showConfirmButton: true,
+                            confirmButtonText: 'OK',
+                            customClass: {
+                                popup: 'swal2-popup-success-clean',
+                                title: 'swal2-title-success-clean',
+                                htmlContainer: 'swal2-text-success-clean',
+                                confirmButton: 'my-success-button'
                             }
-                            database.ref(`users/${r.userUid}`).once('value')
-                                .then(snapshot => {
-                                    const userData = snapshot.val();
-                                    let organization = currentOrganization;
-                                    if (userData && userData.organization) {
-                                        organization = userData.organization;
-                                        console.log(`Fetched organization for user ${r.userUid}: ${organization}`);
-                                    } else {
-                                        console.warn(`No organization found for user ${r.userUid}. Using default: ${organization}`);
-                                    }
-                                    r.status = "Approved";
-                                    const notificationMessage = `Your donation call "${r.donationDrive}" (ID: ${r.donationId || r.firebaseKey}) has been approved.`;
-                                    return Promise.all([
-                                        database.ref(`callfordonation_approved`).push(r),
-                                        database.ref(`users/${r.userUid}/callfordonation/${r.firebaseKey}`).set({ ...r, status: "Approved" }),
-                                        database.ref(`callfordonation/${r.firebaseKey}`).remove(),
-                                        notifySender(notificationMessage, r.userUid, r.donationId || r.firebaseKey)
-                                    ]);
-                                })
-                                .then(() => {
-                                    Swal.fire({
-                                        icon: 'success',
-                                        title: 'Donation Approved',
-                                        text: 'The donation call has been approved and the sender has been notified.',
-                                        background: '#f0fdf4',
-                                        color: '#065f46',
-                                        iconColor: '#059669',
-                                        confirmButtonColor: '#059669',
-                                        customClass: {
-                                            popup: 'swal2-popup-success-clean',
-                                            title: 'swal2-title-success-clean',
-                                            content: 'swal2-text-success-clean'
-                                        }
-                                    });
-                                })
-                                .catch(error => {
-                                    console.error("Error during donation approval or notification:", error);
-                                    Swal.fire({
-                                        icon: 'error',
-                                        title: 'Approval Failed',
-                                        text: `Failed to approve donation or send notification: ${error.message}`,
-                                        background: '#fef2f2',
-                                        color: '#7f1d1d',
-                                        iconColor: '#dc2626',
-                                        confirmButtonColor: '#b91c1c',
-                                        customClass: {
-                                            popup: 'swal2-popup-error-clean',
-                                            title: 'swal2-title-error-clean',
-                                            content: 'swal2-text-error-clean'
-                                        }
-                                    });
-                                });
+                        });
+                    } catch (error) {
+                        console.error("Error rejecting donation:", error);
+                        Swal.fire({
+                            title: 'Error',
+                            text: `Failed to reject the donation: ${error.message}`,
+                            icon: 'error',
+                            customClass: {
+                                popup: 'swal2-popup-error-clean',
+                                title: 'swal2-title-error-clean',
+                                htmlContainer: 'swal2-text-error-clean'
+                            }
                         });
                     }
                 }
-
-                // Delete button event listener for archiving
-   tr.querySelector(".deleteBtn").addEventListener("click", () => {
-    Swal.fire({
-        title: 'Reject Donation?',
-        text: `Are you sure you want to reject "${r.donationDrive || 'this donation'}"? This will move it to archived records.`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Reject',
-        cancelButtonText: 'Cancel',
-        reverseButtons: true,
-        focusCancel: true,
-        allowOutsideClick: false,
-        customClass: {
-            popup: 'custom-swal-popup-small',
-            title: 'custom-swal-title',
-            htmlContainer: 'custom-swal-content',
-            confirmButton: 'custom-confirm-btn',
-            cancelButton: 'custom-cancel-btn'
-        }
-    }).then(async (result) => {
-        if (result.isConfirmed) {
-            try {
-                const donationRef = firebase.database().ref(`callfordonation/${r.firebaseKey}`);
-                // Validate r object
-                if (!r.donationDrive || !r.contact?.person || !r.contact?.number || !r.account?.number || !r.account?.name || !r.address?.fullAddress) {
-                    console.warn('Incomplete donation data in r:', r);
-                    throw new Error("Incomplete donation data. Missing required fields.");
-                }
-                const archivedDonation = {
-                    donationId: r.donationId || r.firebaseKey || 'N/A',
-                    donationDrive: r.donationDrive,
-                    contact: {
-                        person: r.contact.person,
-                        number: String(r.contact.number)
-                    },
-                    account: {
-                        number: String(r.account.number),
-                        name: r.account.name
-                    },
-                    address: {
-                        region: r.address.region,
-                        province: r.address.province,
-                        city: r.address.city,
-                        barangay: r.address.barangay,
-                        street: r.address.street,
-                        fullAddress: r.address.fullAddress || r.dropOff
-                    },
-                    facebookLink: r.facebookLink,
-                    status: 'Rejected',
-                    dateTime: r.dateTime || new Date().toISOString(),
-                    userUid: r.userUid || auth.currentUser?.uid || 'Unknown',
-                    timestamp: r.timestamp || Date.now(),
-                    image: r.image || '',
-                    archivedTimestamp: Date.now(),
-                    archivedBy: userRole || 'Unknown',
-                    archiveReason: 'Rejected by admin'
-                };
-                console.log('Archiving donation:', JSON.stringify(archivedDonation, null, 2));
-                // Push to archivedCallforDonation
-                const archiveRef = await firebase.database().ref('callfordonation/archivedCallforDonation').push(archivedDonation);
-                console.log(`Donation archived with key: ${archiveRef.key}`);
-                // Remove from callfordonation
-                await donationRef.remove();
-                // Verify removal
-                const verifySnapshot = await donationRef.once('value');
-                if (verifySnapshot.exists()) {
-                    console.error(`Failed to remove donation from callfordonation for key ${r.firebaseKey}`);
-                    throw new Error("Failed to remove donation from callfordonation.");
-                }
-                console.log(`Donation successfully removed from callfordonation for key ${r.firebaseKey}`);
-                // Notify admin
-                const message = `Donation "${r.donationDrive || 'Unknown'}" rejected by ${userRole} from ${currentOrganization} on ${new Date().toLocaleDateString('en-US')}.`;
-                await notifyAdmin(
-                    message,
-                    null,
-                    null,
-                    null,
-                    r.donationId || r.firebaseKey,
-                    r.contact?.person || 'Unknown',
-                    currentOrganization
-                );
-                // Notify sender
-                const senderMessage = `Your donation call "${r.donationDrive || 'Unknown'}" (ID: ${r.donationId || r.firebaseKey}) has been rejected.`;
-                await notifySender(senderMessage, r.userUid, r.donationId || r.firebaseKey);
-                Swal.fire({
-                    title: 'Rejected!',
-                    text: 'The donation has been rejected and moved to archived records.',
-                    icon: 'success',
-                    showConfirmButton: true,
-                    confirmButtonText: 'OK',
-                    customClass: {
-                        popup: 'swal2-popup-success-clean',
-                        title: 'swal2-title-success-clean',
-                        htmlContainer: 'swal2-text-success-clean',
-                        confirmButton: 'my-success-button'
-                    }
-                });
-                // Refresh main table
-                applyChange();
-            } catch (error) {
-                console.error("Error rejecting donation:", error);
-                Swal.fire({
-                    title: 'Error',
-                    text: `Failed to reject the donation: ${error.message}`,
-                    icon: 'error',
-                    customClass: {
-                        popup: 'swal2-popup-error-clean',
-                        title: 'swal2-title-error-clean',
-                        htmlContainer: 'swal2-text-error-clean'
-                    }
-                });
-            }
-        }
-    });
-});
-
-                tr.querySelector(".savePDFBtn").addEventListener("click", () => saveSingleCfdDonationPdf(r));
-                tableBody.appendChild(tr);
             });
-        }
-        updatePaginationInfo();
-        renderPagination();
-        updateRemoveButtonVisibility();
-    }
+        });
+
+        tr.querySelector(".savePDFBtn").addEventListener("click", () => saveSingleCfdDonationPdf(r));
+
+        tableBody.appendChild(tr);
+    });
+
+    console.log('Table body content after render:', tableBody.innerHTML);
+}
 
 function renderArchivedTable() {
     console.log('renderArchivedTable called at', new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
@@ -1540,6 +1496,22 @@ if (closeArchivedModalBtn) {
                 Swal.fire('Error', "Please fill in all required fields, including the full address (Region, Province, City, Barangay, and Address).", 'error');
                 return;
             }
+
+            // Validate contact number: must start with "09" and be followed by exactly 9 digits (total 11 digits)
+            const phoneRegex = /^09\d{9}$/;
+            if (!phoneRegex.test(contactNumber)) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Invalid Contact Number',
+                    text: 'Contact number must start with "09" and be followed by exactly 9 digits (e.g., 09123456789).',
+                    confirmButtonText: 'OK'
+                });
+                document.getElementById('contactNumber')?.classList.add('error');
+                return;
+            } else {
+                document.getElementById('contactNumber')?.classList.remove('error');
+            }
+
             async function saveDonation(base64Image) {
                 async function generateUniqueDonationId() {
                     let attempts = 0;
