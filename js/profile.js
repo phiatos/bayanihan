@@ -27,7 +27,6 @@ const INACTIVITY_TIME = 1800000; // 30 minutes in milliseconds
 function resetInactivityTimer() {
     clearTimeout(inactivityTimeout);
     inactivityTimeout = setTimeout(checkInactivity, INACTIVITY_TIME);
-    console.log("Inactivity timer reset.");
 }
 
 // Function to check for inactivity and prompt the user
@@ -46,11 +45,9 @@ function checkInactivity() {
     }).then((result) => {
         if (result.isConfirmed) {
             resetInactivityTimer(); // User chose to continue, reset the timer
-            console.log("User chose to continue session.");
         } else if (result.dismiss === Swal.DismissReason.cancel) {
             // User chose to log out
             auth.signOut().then(() => {
-                console.log("User logged out due to inactivity.");
                 window.location.href = "../pages/login.html"; // Redirect to login page
             }).catch((error) => {
                 console.error("Error logging out:", error);
@@ -119,7 +116,6 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     const setFieldsToNA = () => {
-        console.log("Setting profile fields to N/A due to data fetch failure or irrelevance.");
         if (groupTitleElement) groupTitleElement.textContent = 'Group Information Unavailable';
         if (groupDescriptionElement) groupDescriptionElement.textContent = 'Unable to fetch group details.';
         if (profileOrgNameElement) profileOrgNameElement.textContent = 'N/A';
@@ -132,7 +128,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const fetchUserData = async (user) => {
         const userEmail = localStorage.getItem("userEmail");
-        console.log("Fetching data for user email:", userEmail);
 
         if (!userEmail) {
             console.error("No userEmail found in localStorage.");
@@ -142,7 +137,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
         try {
             const userSnapshot = await get(ref(database, 'users/' + user.uid));
-            console.log("Users snapshot:", userSnapshot.val());
 
             if (!userSnapshot.exists()) {
                 console.error("No user found with UID:", user.uid);
@@ -152,13 +146,11 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             let userData = userSnapshot.val();
-            console.log("User data retrieved:", userData);
 
             if (profileContactPersonElement) profileContactPersonElement.innerText = userData.contactPerson || 'N/A';
             
             // === ADMIN ROLE HANDLING ===
             if (userData.role === 'AB ADMIN') {
-                console.log("User is AB ADMIN. Adjusting display.");
 
                 // Display full name for AB ADMINs
                 const fullName = (userData.firstName && userData.lastName) ? `${userData.firstName} ${userData.lastName}` : userData.contactPerson || 'N/A';
@@ -197,7 +189,6 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             // Fetch volunteer group data by matching organization
-            console.log("Querying volunteerGroups node for organization:", userData.organization);
             const groupSnapshot = await get(ref(database, 'volunteerGroups'));
 
             let groupData = null;
@@ -213,15 +204,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 });
             }
 
-            console.log("Volunteer group snapshot:", groupSnapshot.val());
             if (!groupData) {
-                console.error("No group found for organization:", userData.organization);
                 showError('Group Data Not Found', 'Volunteer group data not found. Please contact support.');
                 setFieldsToNA();
                 return;
             }
-
-            console.log("Volunteer group data retrieved:", groupData);
 
             // Display group information at the top
             if (groupTitleElement) groupTitleElement.textContent = `Volunteer Group: ${groupData.organization || 'N/A'}`;
@@ -359,7 +346,6 @@ document.addEventListener("DOMContentLoaded", () => {
     // Main authentication state check for profile and terms modal (Modular SDK)
     onAuthStateChanged(auth, async (user) => {
         if (user) {
-            console.log("User is authenticated:", user.uid);
             resetInactivityTimer(); //TSAKA ITO SA AUTH ILALAGAY
             await fetchUserData(user); 
 
@@ -378,7 +364,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 // Check conditions for showing terms modal or forcing password reset
                 if (termsPending) {
-                    console.log("Showing terms modal: termsPending=true");
                     showTermsModal();
                 } else if (passwordNeedsReset) {
                     hideTermsModal(); 
@@ -415,7 +400,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     }
 
                 } else {
-                    console.log("No action required: full profile visible");
                     hideTermsModal(); 
                     isNavigationBlocked = false;
                     applyNavigationBlocking();

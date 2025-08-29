@@ -58,7 +58,6 @@ const INACTIVITY_TIME = 1800000; // 30 minutes in milliseconds
 function resetInactivityTimer() {
     clearTimeout(inactivityTimeout);
     inactivityTimeout = setTimeout(checkInactivity, INACTIVITY_TIME);
-    console.log("Inactivity timer reset.");
 }
 
 // Function to check for inactivity and prompt the user
@@ -83,13 +82,10 @@ function checkInactivity() {
     }).then((result) => {
         if (result.isConfirmed) {
             resetInactivityTimer();
-            console.log("User chose to continue session.");
         } else if (result.dismiss === Swal.DismissReason.cancel) {
             auth.signOut().then(() => {
-                console.log("User logged out due to inactivity.");
                 window.location.href = "../pages/login.html";
             }).catch((error) => {
-                console.error("Error logging out:", error);
                 Swal.fire({
                     title: 'Error',
                     text: 'Failed to log out. Please try again.',
@@ -215,7 +211,6 @@ function formatDate(isoString) {
         const date = new Date(isoString);
         return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
     } catch (error) {
-        console.error('Error formatting date:', isoString, error);
         return 'Invalid Date';
     }
 }
@@ -643,7 +638,6 @@ async function fetchEndorsedVolunteers(userUid) {
         allEndorsedVolunteers = tempEndorsedVolunteers;
         applyFiltersAndSort();
     } catch (error) {
-        console.error("Error fetching endorsed volunteers:", error);
         Swal.fire({
             title: 'Error',
             text: 'Failed to fetch endorsed volunteers.',
@@ -751,7 +745,6 @@ async function archiveVolunteer(volunteer) {
                 applyFiltersAndSort();
 
             } catch (error) {
-                console.error("Error archiving volunteer:", error);
                 Swal.fire('Error', 'Failed to archive volunteer application. Please try again.', 'error');
             }
         }
@@ -829,7 +822,6 @@ async function retrieveVolunteer(volunteer) {
                 fetchArchivedVolunteers();
                 archivedModal.style.display = 'none';
             } catch (error) {
-                console.error("Error retrieving volunteer:", error);
                 Swal.fire('Error', 'Failed to retrieve volunteer application. Please try again.', 'error');
             }
         }
@@ -902,8 +894,6 @@ function renderVolunteersTable() {
 }
 
 function applyFiltersAndSort() {
-    console.log('Search Term:', searchInput.value);
-    console.log('Sort Value:', sortSelect.value);
     let currentVolunteers = [...allEndorsedVolunteers];
     const searchTerm = searchInput.value.toLowerCase().trim();
     const sortValue = sortSelect.value;
@@ -1023,7 +1013,6 @@ function applyFiltersAndSort() {
     }
 
     filteredVolunteers = currentVolunteers;
-    console.log('Filtered and Sorted Volunteers:', filteredVolunteers);
     currentPage = 1;
     paginateVolunteers();
 }
@@ -1144,7 +1133,6 @@ async function fetchArchivedVolunteers() {
         allArchivedVolunteerData = tempArchived;
         renderArchivedVolunteerApplications();
     } catch (error) {
-        console.error("Error fetching archived volunteers:", error);
         Swal.fire('Error', 'Failed to fetch archived volunteers.', 'error');
     }
 }
@@ -1398,7 +1386,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 viewArchivedButton.style.display = permissions.canRetrieve ? 'block' : 'none';
 
                 if (passwordNeedsReset) {
-                    console.log(`Password change required for user ${user.uid}. Redirecting to profile page.`);
                     Swal.fire({
                         icon: 'error',
                         title: 'Password Change Required',
@@ -1421,7 +1408,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 setupInactivityListeners();
                 resetInactivityTimer();
             } catch (error) {
-                console.error("Error checking password reset status or fetching user data:", error);
                 Swal.fire({
                     icon: 'error',
                     title: 'Authentication Error',

@@ -149,15 +149,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
             if (!isEmailValid || !isPasswordValid) {
                 showToast("Please correct the errors in the form.", 'error');
-                console.log('Login failed due to client-side validation errors.');
                 return; // Stop execution if validation fails
             }
 
             // Get validated email and password values
             const email = emailInputElem.value.trim();
             const password = passwordInputElem.value;
-
-            console.log("Attempting to sign in with email:", { email: email });
 
             loginSubmitButton.disabled = true;
             loginSubmitButton.textContent = 'Logging In...';
@@ -193,7 +190,6 @@ document.addEventListener("DOMContentLoaded", async () => {
                 const updatedUser = auth.currentUser; 
 
                 // if (updatedUser && updatedUser.emailVerified && !userData.emailVerified) {
-                //     console.log("Email is now verified in Auth, updating Realtime Database...");
                 //     await set(ref(database, `users/${updatedUser.uid}/emailVerified`), true);
                 //     userData.emailVerified = true; 
                 //     showToast("Your email has been successfully verified upon login!", 'success'); 
@@ -206,12 +202,9 @@ document.addEventListener("DOMContentLoaded", async () => {
                             url: 'https://www.angat-bayanihan.com/pages/login.html',
                             handleCodeInApp: true,
                         };
-                        console.log("Sending verification email to:", updatedUser.email);
                         await sendEmailVerification(updatedUser, actionCodeSettings);
-                        console.log("Verification email sent successfully to:", updatedUser.email);
                         showToast("Your email address is not verified. A new verification email has been sent to your email address. Please verify your email to proceed with login (check spam/junk folder).");
                     } catch (error) {
-                        console.error("Error sending verification email:", error);
                         showToast("Failed to send verification email: " + error.message);
                     }
                     // Crucially, sign out the user if their email is not verified,
@@ -226,7 +219,6 @@ document.addEventListener("DOMContentLoaded", async () => {
                 // If the user's email is now verified in Auth but not yet in DB, update DB.
                 // This block should run *after* the email verification check above.
                 if (updatedUser.emailVerified && !userData.emailVerified) {
-                    console.log("Email is now verified in Auth, updating Realtime Database...");
                     await set(ref(database, `users/${updatedUser.uid}/emailVerified`), true);
                     userData.emailVerified = true;
                     showToast("Your email has been successfully verified upon login!", 'success');
@@ -251,9 +243,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                             handleCodeInApp: true, 
 
                         };
-                        console.log("Sending verification email to:", updatedUser.email);
                         await sendEmailVerification(updatedUser, actionCodeSettings);
-                        console.log("Verification email sent successfully to:", updatedUser.email);
                         showToast("Your email address is not verified. A new verification email has been sent to your email address. Please verify your email to proceed with login (check spam/junk folder).");
                     } catch (error) {
                         console.error("Error sending verification email:", error);
@@ -291,8 +281,6 @@ document.addEventListener("DOMContentLoaded", async () => {
                     isSuperAdmin: userData.isSuperAdmin === true,
                 };
 
-                console.log("User Data being stored in localStorage:", updatedUserData);
-
                 // Store user data in localStorage
                 localStorage.setItem("userData", JSON.stringify(updatedUserData));
                 localStorage.setItem("userEmail", updatedUser.email);
@@ -319,13 +307,11 @@ document.addEventListener("DOMContentLoaded", async () => {
                     const isAdminOrABVN = userData?.role === "AB ADMIN" || userData?.role === "admin" || userData?.role === "ABVN";
 
                     if (isAdminOrABVN && !isFirstLogin && termsAccepted && !password_needs_reset) {
-                        console.log("Redirecting Admin/ABVN to dashboard (fully onboarded).");
                         window.location.replace('../pages/dashboard.html');
                     } else if (isFirstLogin || !termsAccepted || password_needs_reset) {
-                        console.log("Redirecting to profile.html for setup (first login, unaccepted terms, or password reset).");
                         window.location.replace('../pages/profile.html');
                     } else {
-                        console.log("Redirecting based on role (fallback).");
+                        // window.location.replace('../pages/dashboard.html');
                         const userRole = userData.role;
 
                         if (userRole === "ABVN") { // This condition is now largely redundant due to the new isAdminOrABVN check

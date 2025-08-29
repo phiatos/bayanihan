@@ -11,10 +11,7 @@ const firebaseConfig = {
 
 if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
-    console.log("Firebase initialized successfully.");
-} else {
-    console.log("Firebase already initialized.");
-}
+} else {}
 
 const database = firebase.database();
 const auth = firebase.auth();
@@ -22,10 +19,7 @@ const auth = firebase.auth();
 // Initialize EmailJS with updated public key
 try {
     emailjs.init('BwfsCx-NJCb3qGxCk');
-    console.log("EmailJS initialized successfully");
-} catch (error) {
-    console.error("EmailJS initialization failed:", error);
-}
+} catch (error) {}
 
 // Variables for inactivity detection
 let inactivityTimeout;
@@ -36,7 +30,6 @@ let permissions = { canView: false, canEdit: false, canArchive: false, canRetrie
 function resetInactivityTimer() {
     clearTimeout(inactivityTimeout);
     inactivityTimeout = setTimeout(checkInactivity, INACTIVITY_TIME);
-    console.log("Inactivity timer reset.");
 }
 
 // Function to check for inactivity and prompt the user
@@ -61,13 +54,10 @@ function checkInactivity() {
     }).then((result) => {
         if (result.isConfirmed) {
             resetInactivityTimer();
-            console.log("User chose to continue session.");
         } else if (result.dismiss === Swal.DismissReason.cancel) {
             auth.signOut().then(() => {
-                console.log("User logged out due to inactivity.");
                 window.location.href = "../pages/login.html";
             }).catch((error) => {
-                console.error("Error logging out:", error);
                 Swal.fire('Error', 'Failed to log out. Please try again.', 'error');
             });
         }
@@ -82,7 +72,6 @@ function checkInactivity() {
 async function checkAdminPermissions() {
     const user = auth.currentUser;
     if (!user) {
-        console.error("No authenticated user found.");
         Swal.fire('Error', 'User not authenticated.', 'error');
         return { canView: false, canEdit: false, canArchive: false, canRetrieve: false };
     }
@@ -90,7 +79,6 @@ async function checkAdminPermissions() {
         const snapshot = await database.ref(`users/${user.uid}`).once('value');
         const userData = snapshot.val();
         const adminPosition = userData?.adminPosition || '';
-        console.log("User admin position:", adminPosition);
         return {
             canView: ['Super Admin', 'position-one', 'position-two'].includes(adminPosition),
             canEdit: ['Super Admin', 'position-one', 'position-two'].includes(adminPosition),
@@ -98,14 +86,12 @@ async function checkAdminPermissions() {
             canRetrieve: ['Super Admin', 'position-one'].includes(adminPosition)
         };
     } catch (error) {
-        console.error("Error fetching user permissions:", error);
         Swal.fire('Error', `Failed to fetch user permissions: ${error.message}`, 'error');
         return { canView: false, canEdit: false, canArchive: false, canRetrieve: false };
     }
 }
 
 async function verifySuperAdminPassword() {
-    console.log('verifySuperAdminPassword called, current searchInput value:', searchInput.value);
     const { value: password } = await Swal.fire({
         title: 'Enter Admin Password',
         input: 'password',
@@ -174,7 +160,6 @@ auth.onAuthStateChanged(async user => {
     }
     try {
         permissions = await checkAdminPermissions(); // Assign to global permissions
-        console.log("Permissions:", permissions);
         if (!permissions.canView) {
             Swal.fire({
                 icon: 'error',
@@ -193,11 +178,9 @@ auth.onAuthStateChanged(async user => {
             });
             return;
         }
-        console.log("User authenticated:", user.uid);
         initializePageFunctions(user.uid);
         resetInactivityTimer();
     } catch (error) {
-        console.error("Error during auth state change:", error);
         Swal.fire({
             icon: 'error',
             title: 'Error',
@@ -719,13 +702,11 @@ function initializePageFunctions(userId) {
                     const volunteerKey = childSnapshot.key;
                     allApprovedApplications.push({ key: volunteerKey, ...volunteerData });
                 });
-                console.log("Fetched approved volunteers:", allApprovedApplications);
             } else {
-                console.log("No approved volunteer applications found.");
+                volunteersContainer.innerHTML = `<tr><td colspan="${colCount}" style="text-align: center;">No approved volunteer applications found.</td></tr>`;
             }
             applySearchAndSort();
         }, (error) => {
-            console.error("Error fetching approved volunteers: ", error);
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
@@ -749,13 +730,9 @@ function initializePageFunctions(userId) {
                     const volunteerKey = childSnapshot.key;
                     allArchivedVolunteerData.push({ key: volunteerKey, ...volunteerData });
                 });
-                console.log("Fetched archived approved volunteers:", allArchivedVolunteerData);
-            } else {
-                console.log("No archived approved volunteer applications found.");
-            }
+            } else {}
             renderArchivedVolunteerApplications();
         }, (error) => {
-            console.error("Error fetching archived approved volunteers: ", error);
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
@@ -1011,8 +988,6 @@ function initializePageFunctions(userId) {
 
     // --- Search and Sort Logic ---
     function applySearchAndSort() {
-        console.log('Search Term:', searchInput.value);
-        console.log('Sort Value:', sortSelect.value);
         let currentApplications = [...allApprovedApplications];
         const searchTerm = searchInput.value.toLowerCase().trim();
         const sortValue = sortSelect.value;
@@ -1144,7 +1119,6 @@ function initializePageFunctions(userId) {
         }
 
         filteredApprovedApplications = currentApplications;
-        console.log('Filtered and Sorted Applications:', filteredApprovedApplications);
         currentPage = 1;
         renderCurrentView();
     }
@@ -1214,7 +1188,6 @@ function initializePageFunctions(userId) {
     // FullCalendar Initialization and Rendering
     function renderVolunteerCalendar() {
         if (!window.FullCalendar) {
-            console.error("FullCalendar library is not loaded.");
             Swal.fire('Error', 'Calendar functionality is unavailable. Please ensure FullCalendar library is included.', 'error');
             return;
         }
@@ -1285,7 +1258,6 @@ function initializePageFunctions(userId) {
     // Email Sending Function
     async function sendApprovalEmail(volunteer, scheduledDate) {
         if (!volunteer || !volunteer.email) {
-            console.error("Cannot send email: Volunteer or email missing.");
             Swal.fire('Error', 'Missing volunteer email. Cannot send confirmation.', 'error');
             return;
         }
@@ -1300,10 +1272,8 @@ function initializePageFunctions(userId) {
 
         try {
             const response = await emailjs.send('service_gupgjog', 'template_udpyecq', templateParams);
-            console.log('Email successfully sent!', response.status, response.text);
             Swal.fire('Email Sent!', 'Confirmation email has been sent to the volunteer.', 'success');
         } catch (error) {
-            console.error('Failed to send email:', error);
             let errorMessage = 'Failed to send confirmation email. Please try again.';
             if (error.status === 422) {
                 errorMessage = 'Failed to send email. Please check EmailJS template parameters and IDs. (Error 422)';
@@ -1400,7 +1370,6 @@ function initializePageFunctions(userId) {
                             Swal.fire('Error', 'Volunteer application not found.', 'error');
                         }
                     } catch (error) {
-                        console.error("Error retrieving volunteer application: ", error);
                         Swal.fire('Error', 'Failed to retrieve volunteer application. Please try again.', 'error');
                     }
                 }
@@ -1535,7 +1504,6 @@ function initializePageFunctions(userId) {
                         }
                     });
                 } catch (error) {
-                    console.error("Error rescheduling volunteer or sending email: ", error);
                     let errorMessage = `Failed to reschedule volunteer: ${error.message}`;
                     if (error.status === 422) {
                         errorMessage = 'Failed to send reschedule email. Please check EmailJS template parameters and IDs. (Error 422)';
@@ -1628,7 +1596,6 @@ function initializePageFunctions(userId) {
                 });
                 fetchApprovedVolunteers();
             } catch (error) {
-                console.error("Error archiving volunteer application: ", error);
                 Swal.fire(
                 'Error',
                 `Failed to archive application: ${error.message}`,

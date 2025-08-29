@@ -127,7 +127,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     async function verifySuperAdminPassword() {
-        console.log('verifySuperAdminPassword called, current searchInput value:', searchInput.value);
         const { value: password } = await Swal.fire({
             title: 'Enter Admin Password',
             input: 'password',
@@ -596,8 +595,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     showError = (input, message) => {
                         rowErrors.push(`Row ${i + 2}: ${message}`);
                     };
-
-                    console.log('isValidUrl defined:', typeof isValidUrl);
 
                     const isValidRow = await validateDonationForm(mockInputs);
 

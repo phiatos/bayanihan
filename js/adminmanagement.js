@@ -13,9 +13,7 @@ const firebaseConfig = {
 
 try {
     firebase.initializeApp(firebaseConfig);
-    console.log("Firebase initialized successfully:", firebase.app().name);
 } catch (error) {
-    console.error("Firebase initialization failed:", error);
     Swal.fire({
         icon: "error",
         title: "Initialization Error",
@@ -28,19 +26,14 @@ const database = firebase.database();
 // Initialize secondary Firebase app for creating users
 try {
     firebase.initializeApp(firebaseConfig, "SecondaryApp");
-    console.log("Secondary Firebase app initialized successfully");
 } catch (error) {
-    console.error("Secondary Firebase initialization failed:", error);
 }
 const secondaryAuth = firebase.auth(firebase.app("SecondaryApp"));
 
 // Initialize EmailJS with updated public key
 try {
     emailjs.init('ULA8rmn7VM-3fZ7ik');
-    console.log("EmailJS initialized successfully");
-} catch (error) {
-    console.error("EmailJS initialization failed:", error);
-}
+} catch (error) {}
 
 let currentUserIsSuperAdmin = false;
 let allAdminData = [];
@@ -258,7 +251,6 @@ function clearAddAdminInputs() {
 
 auth.onAuthStateChanged(user => {
     if (user) {
-        console.log("Admin management page: User is logged in.", user.email);
         // Fetch user data from database to check isSuperAdmin flag
         database.ref(`users/${user.uid}`).once('value', snapshot => {
             const userData = snapshot.val();
@@ -267,11 +259,9 @@ auth.onAuthStateChanged(user => {
                 if (addNewAdminButton) {
                     addNewAdminButton.style.display = 'block'; 
                 }
-                console.log("Current user is a Super Admin.");
                 fetchAndRenderAdmins();
             } else {
                 currentUserIsSuperAdmin = false;
-                console.log("Current user is NOT a Super Admin. Redirecting...");
                 Swal.fire({
                     icon: 'error',
                     title: 'Access Denied',
@@ -303,7 +293,6 @@ auth.onAuthStateChanged(user => {
             });
         });
     } else {
-        console.log("No user signed in. Redirecting to login...");
         Swal.fire({
             icon: 'info',
             title: 'Session Expired',
@@ -757,12 +746,10 @@ if (confirmSaveBtn) {
             clearAddAdminInputs();
             delete window.tempAdminFormData; 
             await secondaryAuth.signOut(); 
-            console.log("Secondary app signed out after AB Admin creation.");
             fetchAndRenderAdmins(); 
 
         } catch (error) {
             Swal.hideLoading(); // Hide loading on error
-            console.error('Error adding AB Admin:', error);
             let errorMessage = error.message;
             if (error.code === 'auth/email-already-in-use') {
                 errorMessage = 'The email address is already in use by another account.';
@@ -1138,7 +1125,6 @@ function deleteAdmin(uid) {
                         fetchAndRenderAdmins(); 
                     });
                 } catch (error) {
-                    console.error("Error archiving admin:", error);
                     Swal.close(); 
                     Swal.fire('Error', 'Failed to archive admin: ' + error.message, 'error');
                 }
@@ -1175,13 +1161,11 @@ async function fetchAndRenderArchivedAdmins() {
         archivedModal.style.display = 'flex'; // Show the modal after data is loaded
     } catch (error) {
         Swal.fire('Error', 'Failed to load archived admin data: ' + error.message, 'error');
-        console.error("Error fetching archived admin data:", error);
     }
 }
 
 function renderArchivedTable(data) {
     if (!archivedTableBody) {
-        console.error("Archived admin table body not found!");
         return;
     }
 
@@ -1307,7 +1291,6 @@ async function retrieveAdmin(uid) {
                     fetchAndRenderArchivedAdmins();
                 });
             } catch (error) {
-                console.error("Error retrieving admin:", error);
                 Swal.close();
                 Swal.fire('Error', 'Failed to retrieve admin: ' + error.message, 'error');
             }

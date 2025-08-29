@@ -17,7 +17,6 @@ try {
   database = firebase.database();
   auth = firebase.auth();
 } catch (error) {
-  console.error("Firebase initialization failed:", error);
   if (typeof Swal !== "undefined") {
     Swal.fire({
       icon: "error",

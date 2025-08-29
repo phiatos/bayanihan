@@ -1089,7 +1089,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function loadDonations(userUid) {
     database.ref("donations/savedDonations/inkind").on("value", snapshot => {
-        console.log('Raw Firebase snapshot:', snapshot.val()); // Log raw Firebase data
         allDonations = [];
         const donations = snapshot.val();
         if (donations) {
@@ -1113,21 +1112,13 @@ document.addEventListener("DOMContentLoaded", () => {
                     donationDate: donation.donationDate || '',
                     createdAt: donation.createdAt || ''
                 };
-                console.log(`Processed donation (ID: ${key}):`, {
-                    name: donationEntry.name,
-                    address: donationEntry.address,
-                    contactPerson: donationEntry.contactPerson,
-                    number: donationEntry.number
-                });
                 allDonations.push(donationEntry);
             });
         }
-        console.log('Final allDonations array:', allDonations);
         filteredAndSortedDonations = [...allDonations];
         applySorting(filteredAndSortedDonations, sortSelect.value);
         renderTable();
     }, error => {
-        console.error('Error loading donations:', error);
         logErrorToFirebase(error, 'loadDonations_inkind');
         Swal.fire({
             icon: 'error',
@@ -1193,7 +1184,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
         for (const { input, label, lettersOnly, numberOnly, checkEmail, checkMobile, checkValuation, isDate, required = true } of fieldsToCheck) {
             if (!input) {
-                console.error(`Input for ${label} is undefined`);
                 isValid = false;
                 continue;
             }
@@ -1241,7 +1231,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         if (!isValid) {
-            console.log('Validation failed:', fieldsToCheck.map(f => ({ label: f.label, value: f.input?.value, error: f.input?.nextElementSibling?.textContent })));
             return false;
         }
 
@@ -1318,7 +1307,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (!result.isConfirmed) return false;
             }
         } catch (error) {
-            console.error('Duplicate check failed:', error);
             Swal.fire({
                 title: 'Error',
                 text: 'Failed to check for duplicates: ' + error.message,
@@ -1382,7 +1370,6 @@ document.addEventListener("DOMContentLoaded", () => {
         if (isValid) {
             const user = auth.currentUser;
             if (!user) {
-                console.error('No authenticated user');
                 Swal.fire({
                     title: "Error",
                     text: "User not authenticated!",
@@ -1415,8 +1402,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 createdBy: user.uid,
             };
 
-            console.log('New Donation:', newDonation);
-
             try {
                 await database.ref("donations/savedDonations/inkind").push(newDonation);
                 Swal.fire({
@@ -1434,7 +1419,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 });
                 clearFormFields();
             } catch (error) {
-                console.error('Error adding donation:', error);
                 Swal.fire({
                     title: 'Error',
                     text: 'Failed to add donation: ' + error.message,
@@ -1448,7 +1432,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 });
             }
         } else {
-            console.log('Form submission failed due to validation errors');
         }
     });
 
@@ -2048,16 +2031,6 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
     }
 
-    // Log donation data for debugging
-    console.log('Donation data for email:', {
-        name: donation.name,
-        address: donation.address,
-        contactPerson: donation.contactPerson,
-        number: donation.number,
-        type: donation.type,
-        valuation: donation.valuation
-    });
-
     const templateParams = {
         to_email: endorsedGroup.email,
         reply_to: 'jldelossantos1101@gmail.com', // Replace with your organization’s email
@@ -2072,9 +2045,6 @@ document.addEventListener("DOMContentLoaded", () => {
         donor_contact_person: donation.contactPerson || 'Not specified',
         donor_contact_number: donation.number || 'Not specified'
     };
-
-    // Log templateParams for debugging
-    console.log('EmailJS templateParams:', templateParams);
 
     Swal.fire({
         title: 'Sending Endorsement...',
@@ -2101,7 +2071,6 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
     } catch (error) {
-        console.error("Error sending endorsement email with EmailJS:", error);
         logErrorToFirebase(error, 'sendEndorsementEmail');
         Swal.fire({
             icon: 'error',
@@ -2142,13 +2111,6 @@ document.addEventListener("DOMContentLoaded", () => {
         const abvnList = document.getElementById("abvnList");
 
     const donationToEndorse = allDonations.find(d => d.firebaseKey === firebaseKey);
-    console.log('Donation selected for endorsement:', {
-        firebaseKey,
-        name: donationToEndorse?.name,
-        address: donationToEndorse?.address,
-        contactPerson: donationToEndorse?.contactPerson,
-        number: donationToEndorse?.number
-    });
 
     if (!donationToEndorse) {
         Swal.fire({
@@ -2199,24 +2161,18 @@ document.addEventListener("DOMContentLoaded", () => {
                     const organizationName = activationData.organization || 'Unknown';
                     const areaOfOperation = activationData.areaOfOperation || 'Not specified';
                     groupHtml += `<label><input type="radio" name="abvn" value="${organizationName}" data-email="${matchedEmail}" data-activation-id="${activationId}" /> ${organizationName} (${areaOfOperation})</label><br/>`;
-                    console.log(`Matched organization: ${organizationName}, Email: ${matchedEmail}`);
-                } else {
-                    console.warn(`Skipping activation ${activationId}: No valid email found for ${activationData.organization}`);
-                }
+                } 
             }
 
             if (groupHtml) {
                 abvnList.innerHTML = groupHtml;
             } else {
                 abvnList.innerHTML = '<p>No active volunteer groups with valid emails found for endorsement. Please ensure active activations have matching organizations in volunteerGroups with valid email addresses.</p>';
-                console.warn('No valid active activations with matching volunteer group emails found.');
             }
         } else {
             abvnList.innerHTML = '<p>No active activations or volunteer groups found for endorsement. Please activate a volunteer group first.</p>';
-            console.warn('No active activations or volunteer groups found in Firebase.');
         }
     } catch (error) {
-        console.error("Error loading endorsement options:", error);
         logErrorToFirebase(error, 'openEndorseModal');
         abvnList.innerHTML = '<p>Error loading endorsement options: ' + error.message + '</p>';
     }
@@ -2276,7 +2232,6 @@ submitEndorsementBtn.onclick = () => {
             endorsementDate: new Date().toISOString()
         });
     } catch (error) {
-        console.error("Error updating donation with endorsement details:", error);
         logErrorToFirebase(error, 'submitEndorsementBtn_update');
         Swal.fire({
             icon: 'error',
@@ -2375,8 +2330,6 @@ submitEndorsementBtn.onclick = () => {
                 donationDate: inputs.donationDate.value,
             };
 
-            console.log('Updated Donation:', updatedDonation);
-
             try {
                 await database.ref(`donations/savedDonations/inkind/${editingKey}`).update(updatedDonation);
                 Swal.fire({
@@ -2395,7 +2348,6 @@ submitEndorsementBtn.onclick = () => {
                 });
                 editModal.style.display = "none";
             } catch (error) {
-                console.error('Error updating donation:', error);
                 Swal.fire({
                     title: 'Error',
                     text: 'Failed to update donation: ' + error.message,
@@ -2409,7 +2361,6 @@ submitEndorsementBtn.onclick = () => {
                 });
             }
         } else {
-            console.log('Edit submission failed due to validation errors');
         }
     });
 

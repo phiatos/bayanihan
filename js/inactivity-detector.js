@@ -5,7 +5,6 @@ const INACTIVITY_TIME = 1800000; // 1800000 = 30 minutes in milliseconds
 function resetInactivityTimer() {
     clearTimeout(inactivityTimeout);
     inactivityTimeout = setTimeout(checkInactivity, INACTIVITY_TIME);
-    console.log("Inactivity timer reset.");
 }
 
 // Function to check for inactivity and prompt the user
@@ -24,16 +23,13 @@ function checkInactivity() {
     }).then((result) => {
         if (result.isConfirmed) {
             resetInactivityTimer(); // User chose to continue, reset the timer
-            console.log("User chose to continue session.");
         } else if (result.dismiss === Swal.DismissReason.cancel) {
             // User chose to log out
             // Make sure 'auth' is accessible in this context,
             // or pass it as an argument if needed.
             auth.signOut().then(() => {
-                console.log("User logged out due to inactivity.");
                 window.location.href = "../pages/login.html"; // Redirect to login page
             }).catch((error) => {
-                console.error("Error logging out:", error);
                 Swal.fire('Error', 'Failed to log out. Please try again.', 'error');
             });
         }
