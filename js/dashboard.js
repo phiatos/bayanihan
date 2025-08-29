@@ -1487,6 +1487,12 @@ function loadNotifications() {
         const key = snapshot.key;
         console.log("New notification received:", notification);
 
+        // Skip if essential fields (message and timestamp) are missing or invalid
+        if (!notification || !notification.message || !notification.timestamp || isNaN(new Date(notification.timestamp))) {
+            console.warn(`Skipping invalid notification (Key: ${key}) - Missing or invalid message or timestamp`);
+            return;
+        }
+
         // Skip duplicate notifications
         if (processedNotifications.has(notification.identifier) || document.querySelector(`li[data-key="${key}"]`)) {
             console.log(`Skipping duplicate notification - Key: ${key}, Identifier: ${notification.identifier}`);
@@ -1512,7 +1518,7 @@ function loadNotifications() {
         }
 
         // Add notification to processed set
-        processedNotifications.add(notification.identifier);
+        processedNotifications.add(notification.identifier || key); // Use key as fallback identifier
         syncProcessedNotifications();
 
         // Create notification list item
@@ -1523,7 +1529,7 @@ function loadNotifications() {
         if (notification.type === "calamity") {
             content = `<strong>🚨 Calamity Alert:</strong> ${notification.message}`;
         } else if (notification.type === "admin") {
-            content = `<strong>🔔 Admin Notification:</strong> ${notification.message}`;
+            content = `<strong>🔔 Admin Notification:</strong> ${notification.message} ${notification.organization ? `from ${notification.organization}` : ''} ${notification.senderName ? `by ${notification.senderName}` : ''}`;
         } else if (notification.type === "donation_approved") {
             content = `<strong>✅ Donation Approved:</strong> ${notification.message}`;
         } else if (notification.type === "rdana_approved") {
@@ -1532,15 +1538,18 @@ function loadNotifications() {
             content = `<strong>🔔 Notification:</strong> ${notification.message}`;
         }
 
-        // Append timestamp
-        content += `<span class="timestamp">${new Date(notification.timestamp).toLocaleString("en-US", {
+        // Append timestamp with proper time zone (PST)
+        const timestamp = new Date(notification.timestamp);
+        content += `<span class="timestamp">${timestamp.toLocaleString("en-US", {
             hour: "numeric",
             minute: "numeric",
             hour12: true,
+            timeZone: "America/Los_Angeles" // Explicitly set to PST
         })}</span>`;
 
         li.innerHTML = content;
         li.dataset.key = key;
+        li.dataset.type = notification.type || "default";
         li.style.cursor = "pointer";
 
         // Style unread notifications
@@ -1550,6 +1559,13 @@ function loadNotifications() {
         } else {
             li.style.backgroundColor = "#ffffff"; // Default color for read
         }
+
+        // Add delete button
+        const deleteBtn = document.createElement("span");
+        deleteBtn.className = "delete-btn";
+        deleteBtn.innerHTML = "×";
+        deleteBtn.style.display = "none"; // Hidden by default
+        li.appendChild(deleteBtn);
 
         // Handle notification click (mark as read and navigate)
         li.addEventListener("click", () => {
@@ -1584,37 +1600,34 @@ function loadNotifications() {
                 let reportIdToUse = "";
 
                 // Detect the base path dynamically
-let basePath = window.location.origin;
+                let basePath = window.location.origin;
 
-// Check if the current URL already contains "/bayanihan"
-if (window.location.pathname.includes("/bayanihan")) {
-    basePath += "/bayanihan";
-}
+                // Check if the current URL already contains "/bayanihan"
+                if (window.location.pathname.includes("/bayanihan")) {
+                    basePath += "/bayanihan";
+                }
 
-// Determine the target page and ID based on notification message and type
-if (notification.message.toLowerCase().includes("rdana report")) {
-    reportIdToUse = notification.rdanaId || "";
-    targetPage = `${basePath}/pages/rdanaVerification.html?reportId=${reportIdToUse}`;
-    console.log(`Navigating to RDANA verification page with rdanaId: ${reportIdToUse}`);
-} else if (notification.message.toLowerCase().includes("relief report")) {
-    reportIdToUse = notification.rdanaId || "";
-    targetPage = `${basePath}/pages/reliefsLog.html?reportId=${reportIdToUse}`;
-    console.log(`Navigating to reliefs log page with rdanaId: ${reportIdToUse}`);
-} else if (notification.message.toLowerCase().includes("donation")) {
-    reportIdToUse = notification.donationId || "";
-    targetPage = `${basePath}/pages/callfordonation.html?reportId=${reportIdToUse}`;
-    console.log(`Navigating to donation page with donationId: ${reportIdToUse}`);
-} else if (notification.message.toLowerCase().includes("report")) {
-    const reportIdMatch = notification.message.match(/REPORTS-\d+/);
-    reportIdToUse = reportIdMatch ? reportIdMatch[0] : notification.reportId || "";
-    targetPage = `${basePath}/pages/reportsVerification.html?reportId=${reportIdToUse}`;
-    console.log(`Navigating to reports verification page with reportId: ${reportIdToUse}`);
-}
+                // Determine the target page and ID based on notification message and type
+                if (notification.message.toLowerCase().includes("rdana report")) {
+                    reportIdToUse = notification.rdanaId || "";
+                    targetPage = `${basePath}/pages/rdanaVerification.html?reportId=${reportIdToUse}`;
+                    console.log(`Navigating to RDANA verification page with rdanaId: ${reportIdToUse}`);
+                } else if (notification.message.toLowerCase().includes("relief report")) {
+                    reportIdToUse = notification.rdanaId || "";
+                    targetPage = `${basePath}/pages/reliefsLog.html?reportId=${reportIdToUse}`;
+                    console.log(`Navigating to reliefs log page with rdanaId: ${reportIdToUse}`);
+                } else if (notification.message.toLowerCase().includes("donation")) {
+                    reportIdToUse = notification.donationId || "";
+                    targetPage = `${basePath}/pages/callfordonation.html?reportId=${reportIdToUse}`;
+                    console.log(`Navigating to donation page with donationId: ${reportIdToUse}`);
+                } else if (notification.message.toLowerCase().includes("report")) {
+                    const reportIdMatch = notification.message.match(/REPORTS-\d+/);
+                    reportIdToUse = reportIdMatch ? reportIdMatch[0] : notification.reportId || "";
+                    targetPage = `${basePath}/pages/reportsVerification.html?reportId=${reportIdToUse}`;
+                    console.log(`Navigating to reports verification page with reportId: ${reportIdToUse}`);
+                }
 
-// Redirect to the detected path
-window.location.href = targetPage;
-
-
+                // Redirect to the detected path
                 if (targetPage && reportIdToUse) {
                     console.log(`Navigating to: ${targetPage}`);
                     try {
@@ -1648,6 +1661,40 @@ window.location.href = targetPage;
                 map.setCenter(coordinates);
                 map.setZoom(12);
             }
+        });
+
+        // Handle hover effect and delete button
+        li.addEventListener("mousemove", (e) => {
+            const rect = li.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const width = rect.width;
+            li.style.transform = "translateX(-10px)"; // Slide left on hover
+            if (mouseX > width * 0.8) {
+                deleteBtn.style.display = "inline";
+            } else {
+                deleteBtn.style.display = "none";
+            }
+        });
+
+        li.addEventListener("mouseleave", () => {
+            li.style.transform = "translateX(0)"; // Reset position
+            deleteBtn.style.display = "none";
+        });
+
+        // Handle delete button click
+        deleteBtn.addEventListener("click", (e) => {
+            e.stopPropagation(); // Prevent triggering the notification click
+            database.ref(`notifications/${key}`).remove().then(() => {
+                li.remove();
+                updateNotificationBadge();
+            }).catch(error => {
+                console.error("Error deleting notification:", error);
+                Swal.fire({
+                    icon: "error",
+                    title: "Error",
+                    text: "Failed to delete notification.",
+                });
+            });
         });
 
         // Append notification to appropriate list

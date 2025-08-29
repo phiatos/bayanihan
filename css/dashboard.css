@@ -720,3 +720,85 @@ header {
       color: #0fbaba;
       text-align: center;
     }
+    /* Notification Drawer Specific Styles */
+#notificationDrawer .notification-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+#notificationDrawer .notification-list li {
+    position: relative;
+    padding: 10px 15px;
+    margin-bottom: 5px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    animation: slideIn 0.5s ease-out;
+    background-color: var(--white); /* Use your theme variable */
+}
+
+#notificationDrawer .notification-list li.unread {
+    border-left: 4px solid var(--red); /* Use your red variable */
+}
+
+#notificationDrawer .notification-list .timestamp {
+    display: block;
+    font-size: 0.8em;
+    color: var(--gray); /* Use your gray variable */
+    margin-top: 5px;
+}
+
+/* Delete button styling for notifications */
+#notificationDrawer .notification-list .delete-btn {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1.2em;
+    color: var(--red); /* Use your red variable */
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+    user-select: none;
+    display: none; /* Hidden by default */
+}
+
+#notificationDrawer .notification-list li:hover .delete-btn {
+    display: inline;
+}
+
+#notificationDrawer .notification-list li:hover {
+    transform: translateX(-10px); /* Slide left on hover */
+    transition: transform 0.3s ease;
+}
+
+/* Animation for slide-in effect */
+@keyframes slideIn {
+    from {
+        transform: translateX(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Calamity notification style */
+#notificationDrawer .notification-list li[data-type="calamity"] {
+    background-color: var(--light-bg); /* Use your light background */
+    border-left-color: var(--accent-color); /* Use your accent color */
+}
+
+/* Admin notification style */
+#notificationDrawer .notification-list li[data-type="admin"] {
+    background-color: #e6f3ff; /* Temporary, adjust with your theme if needed */
+    border-left-color: var(--blue); /* Use your blue variable */
+}
+
+/* Approved notification style */
+#notificationDrawer .notification-list li[data-type="donation_approved"],
+#notificationDrawer .notification-list li[data-type="rdana_approved"] {
+    background-color: #e6ffe6; /* Temporary, adjust with your theme if needed */
+    border-left-color: var(--green); /* Use your green variable */
+}
