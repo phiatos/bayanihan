@@ -1089,7 +1089,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function loadDonations(userUid) {
     database.ref("donations/savedDonations/inkind").on("value", snapshot => {
-        console.log('Raw Firebase snapshot:', snapshot.val()); // Log raw Firebase data
+        
         allDonations = [];
         const donations = snapshot.val();
         if (donations) {
@@ -1113,16 +1113,11 @@ document.addEventListener("DOMContentLoaded", () => {
                     donationDate: donation.donationDate || '',
                     createdAt: donation.createdAt || ''
                 };
-                console.log(`Processed donation (ID: ${key}):`, {
-                    name: donationEntry.name,
-                    address: donationEntry.address,
-                    contactPerson: donationEntry.contactPerson,
-                    number: donationEntry.number
-                });
+                
                 allDonations.push(donationEntry);
             });
         }
-        console.log('Final allDonations array:', allDonations);
+        
         filteredAndSortedDonations = [...allDonations];
         applySorting(filteredAndSortedDonations, sortSelect.value);
         renderTable();
@@ -1193,7 +1188,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         for (const { input, label, lettersOnly, numberOnly, checkEmail, checkMobile, checkValuation, isDate, required = true } of fieldsToCheck) {
             if (!input) {
-                console.error(`Input for ${label} is undefined`);
+                
                 isValid = false;
                 continue;
             }
@@ -1241,7 +1236,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         if (!isValid) {
-            console.log('Validation failed:', fieldsToCheck.map(f => ({ label: f.label, value: f.input?.value, error: f.input?.nextElementSibling?.textContent })));
+           
             return false;
         }
 
@@ -1415,7 +1410,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 createdBy: user.uid,
             };
 
-            console.log('New Donation:', newDonation);
+            
 
             try {
                 await database.ref("donations/savedDonations/inkind").push(newDonation);
@@ -2048,15 +2043,7 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
     }
 
-    // Log donation data for debugging
-    console.log('Donation data for email:', {
-        name: donation.name,
-        address: donation.address,
-        contactPerson: donation.contactPerson,
-        number: donation.number,
-        type: donation.type,
-        valuation: donation.valuation
-    });
+    
 
     const templateParams = {
         to_email: endorsedGroup.email,
@@ -2073,8 +2060,7 @@ document.addEventListener("DOMContentLoaded", () => {
         donor_contact_number: donation.number || 'Not specified'
     };
 
-    // Log templateParams for debugging
-    console.log('EmailJS templateParams:', templateParams);
+    
 
     Swal.fire({
         title: 'Sending Endorsement...',
@@ -2142,13 +2128,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const abvnList = document.getElementById("abvnList");
 
     const donationToEndorse = allDonations.find(d => d.firebaseKey === firebaseKey);
-    console.log('Donation selected for endorsement:', {
-        firebaseKey,
-        name: donationToEndorse?.name,
-        address: donationToEndorse?.address,
-        contactPerson: donationToEndorse?.contactPerson,
-        number: donationToEndorse?.number
-    });
+   
 
     if (!donationToEndorse) {
         Swal.fire({
@@ -2199,9 +2179,9 @@ document.addEventListener("DOMContentLoaded", () => {
                     const organizationName = activationData.organization || 'Unknown';
                     const areaOfOperation = activationData.areaOfOperation || 'Not specified';
                     groupHtml += `<label><input type="radio" name="abvn" value="${organizationName}" data-email="${matchedEmail}" data-activation-id="${activationId}" /> ${organizationName} (${areaOfOperation})</label><br/>`;
-                    console.log(`Matched organization: ${organizationName}, Email: ${matchedEmail}`);
+                   
                 } else {
-                    console.warn(`Skipping activation ${activationId}: No valid email found for ${activationData.organization}`);
+                    
                 }
             }
 
@@ -2375,7 +2355,7 @@ submitEndorsementBtn.onclick = () => {
                 donationDate: inputs.donationDate.value,
             };
 
-            console.log('Updated Donation:', updatedDonation);
+            
 
             try {
                 await database.ref(`donations/savedDonations/inkind/${editingKey}`).update(updatedDonation);

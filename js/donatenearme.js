@@ -888,7 +888,7 @@ if (amountDonatedInput) {
                 createdAt: new Date().toISOString()
             };
 
-            console.log("Data to be written to Firebase:", newMonetaryDonation);
+            
             try {
                 const newDonationRef = database.ref('donations/pending/monetary').push();
                 await newDonationRef.set(newMonetaryDonation);

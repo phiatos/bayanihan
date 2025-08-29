@@ -139,7 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
             CalamityType: report.CalamityType || (report.CalamityAreaDetails ? report.CalamityAreaDetails.split(' ')[0] : "-")
         };
         if (!isValidReport(transformed)) {
-            console.warn(`Invalid report data for key ${report.firebaseKey}:`, transformed);
+            
         }
         return transformed;
     }
@@ -152,7 +152,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (key === "ArchivedReports") return; // Skip ArchivedReports node
                     const report = reports[key];
                     if (!report.VolunteerGroupName && !report.organization) {
-                        console.warn(`Report ${key} is missing VolunteerGroupName/organization field. Will fetch dynamically on approval.`);
+                        
                     }
                     const transformedReport = transformReportData({
                         firebaseKey: key,
@@ -161,13 +161,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (isValidReport(transformedReport)) {
                         submittedReports.push(transformedReport);
                     } else {
-                        console.warn(`Skipping invalid report ${key} from submittedReports`);
+                        
                     }
                 });
             } else {
                 console.log("No submitted reports found in Firebase");
             }
-            console.log("Submitted Reports:", submittedReports);
+            
             applySearchAndSort();
         }, error => {
             console.error("Error fetching reports from Firebase:", error);
@@ -193,7 +193,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (isValidReport(transformedReport)) {
                     archivedReports.push(transformedReport);
                 } else {
-                    console.warn(`Skipping invalid archived report ${key}`);
+                    
                 }
             });
         } else {
@@ -294,7 +294,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         reports.forEach((report, index) => {
             if (!isValidReport(report)) {
-                console.warn(`Skipping rendering invalid report ${report.firebaseKey}`);
                 return;
             }
             const tr = document.createElement('tr');
@@ -479,7 +478,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             database.ref(`reports/verification/${report.firebaseKey}`).remove()
                         ])
                             .then(() => {
-                                console.log(`Report ${report.firebaseKey} rejected and moved to archived`);
+                                
                                 submittedReports = submittedReports.filter(r => r.firebaseKey !== report.firebaseKey);
                                 archivedReports.push(report);
                                 applySearchAndSort();
@@ -589,12 +588,12 @@ document.addEventListener('DOMContentLoaded', () => {
                             database.ref(`reports/archived/reportsverification/${report.firebaseKey}`).remove()
                         ])
                             .then(() => {
-                                console.log(`Report ${report.firebaseKey} restored to verification reports`);
+                                
                                 archivedReports = archivedReports.filter(r => r.firebaseKey !== report.firebaseKey);
                                 if (!submittedReports.some(r => r.firebaseKey === report.firebaseKey)) {
                                     submittedReports.push(report);
                                 } else {
-                                    console.warn(`Report ${report.firebaseKey} already exists in submittedReports, skipping push`);
+                                    
                                 }
                                 setTimeout(() => {
                                     currentPage = 1;

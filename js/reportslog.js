@@ -237,15 +237,14 @@ document.addEventListener('DOMContentLoaded', () => {
                             console.warn(`Error fetching activation data for report ${key} (activationId: ${report.activationId}):`, error);
                         }
                     } else {
-                        console.warn(`No activationId found for report ${key}:`, report);
+                        
                     }
                     if (!report.VolunteerGroupName && !report.organization) {
-                        console.warn(`Approved report ${key} is missing VolunteerGroupName/organization. Report data:`, report);
+                       
                         report.VolunteerGroupName = "[Unknown Org]";
                     }
                     const transformedReport = transformReportData(report, key, activationData);
                     reviewedReports.push(transformedReport);
-                    console.log(`Loaded report with key: ${key}, transformed firebaseKey: ${transformedReport.firebaseKey}, CalamityType: ${transformedReport.CalamityType}, CalamityName: ${transformedReport.CalamityName}`);
                 }
             } else {
                 console.log("No approved reports found in Firebase");

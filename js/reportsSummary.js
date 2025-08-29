@@ -64,7 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error(`Error removing report from approved: ${error.message}`);
         })
     ]).then(() => {
-        console.log(`Report with key ${reportKeyToRemove} has been removed from the database.`);
+        
 
         // Display the summary
         const categories = {
@@ -276,7 +276,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     read: false,
                     type: "admin"
                 });
-                console.log(`Admin notified of new report - Report ID: ${reportId}, Key: ${key}`);
+                
             } catch (error) {
                 console.error("Error notifying admin:", error);
             }
