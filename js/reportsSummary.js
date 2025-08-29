@@ -1,22 +1,3 @@
-function formatDate(dateStr) {
-    const date = new Date(dateStr);
-    if (isNaN(date)) return dateStr; // If not a valid date, return original
-    return date.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-    });
-}
-
-function formatTime(timeStr) {
-    const [hourStr, minuteStr] = timeStr.split(":");
-    let hour = parseInt(hourStr, 10);
-    const minute = parseInt(minuteStr, 10);
-    const ampm = hour >= 12 ? "PM" : "AM";
-    hour = hour % 12 || 12;
-    return `${hour}:${minute.toString().padStart(2, '0')} ${ampm}`;
-}
-
 document.addEventListener('DOMContentLoaded', () => {
     // Firebase configuration
     const firebaseConfig = {
@@ -53,7 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Remove the specific report with key -OPTGsB_vPQd5MNQPtpv from Firebase
     const reportKeyToRemove = "-OPTGsB_vPQd5MNQPtpv";
-    const pendingRef = database.ref(`reports/pending/${reportKeyToRemove}`);
+    const pendingRef = database.ref(`reports/verification/${reportKeyToRemove}`);
     const approvedRef = database.ref(`reports/approved/${reportKeyToRemove}`);
 
     Promise.all([
@@ -192,43 +173,68 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
-                // Show simplified confirmation dialog
-                if (confirm("Are you sure you want to submit the report?")) {
-                    summaryData["userUid"] = user.uid;
-                    summaryData["Status"] = "Pending";
-                    summaryData["Timestamp"] = firebase.database.ServerValue.TIMESTAMP;
+                Swal.fire({
+                    title: 'Submit Report?',
+                    text: 'Are you sure you want to submit the report?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Yes, Submit',
+                    cancelButtonText: 'Cancel',
+                    reverseButtons: true,
+                    customClass: {
+                        popup: 'custom-swal-popup-small',
+                        title: 'custom-swal-title',
+                        htmlContainer: 'custom-swal-content',
+                        confirmButton: 'custom-confirm-btn',
+                        cancelButton: 'custom-cancel-btn'
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        summaryData["userUid"] = user.uid;
+                        summaryData["Status"] = "Pending";
+                        summaryData["Timestamp"] = firebase.database.ServerValue.TIMESTAMP;
 
-                    database.ref("reports/verification").push(summaryData) // Save to pending
-                        .then(async (result) => {
-                            console.log("Report successfully saved to Firebase");
+                        database.ref("reports/verification").push(summaryData) // Save to reports/verification
+                            .then(async (result) => {
+                                console.log("Report successfully saved to reports/verification");
 
-                            // Notify admin
-                            const message = `New report (${summaryData.ReportID}) submitted by ${summaryData.VolunteerGroupName} from ${summaryData.VolunteerGroupName} on ${summaryData.DateOfReport}.`;
-                            const reportRefKey = result.key; // Get the pushed key
-                            await notifyAdmin(message, null, null, null, reportRefKey, summaryData.VolunteerGroupName, summaryData.VolunteerGroupName);
+                                // Notify admin
+                                const message = `New report (${summaryData.ReportID}) submitted by ${summaryData.VolunteerGroupName || 'Unknown'} from ${summaryData.VolunteerGroupName || 'Unknown'} on ${summaryData.DateOfReport || 'Unknown Date'}.`;
+                                const reportRefKey = result.key; // Get the pushed key
+                                await notifyAdmin(message, null, null, null, reportRefKey, summaryData.VolunteerGroupName, summaryData.VolunteerGroupName);
 
-                            localStorage.removeItem("reportData");
-                            localStorage.removeItem("returnToStep");
+                                localStorage.removeItem("reportData");
+                                localStorage.removeItem("returnToStep");
 
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Report Submitted',
-                                text: 'Your report has been successfully submitted for verification!',
-                            }).then(() => {
-                                window.location.href = "../pages/dashboard.html";
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Report Submitted',
+                                    text: 'Your report has been successfully submitted for verification!',
+                                    showConfirmButton: true,
+                                    confirmButtonText: 'OK',
+                                    customClass: {
+                                        popup: 'swal2-popup-success-clean',
+                                        title: 'swal2-title-success-clean',
+                                        htmlContainer: 'swal2-text-success-clean',
+                                        confirmButton: 'my-success-button'
+                                    }
+                                }).then(() => {
+                                    window.location.href = "../pages/dashboard.html";
+                                });
+                            })
+                            .catch((error) => {
+                                console.error("Error saving report to reports/verification:", error);
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error',
+                                    text: 'Failed to submit report: ' + error.message,
+                                    confirmButtonColor: '#d33'
+                                });
                             });
-                        })
-                        .catch((error) => {
-                            console.error("Error saving report to Firebase:", error);
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Error',
-                                text: 'Failed to submit report: ' + error.message,
-                            });
-                        });
-                } else {
-                    console.log("Report submission canceled by user.");
-                }
+                    } else {
+                        console.log("Report submission canceled by user.");
+                    }
+                });
             });
         });
 
@@ -244,8 +250,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     details: details || null,
                     eventId: null,
                     reportId,
-                    senderName,
-                    organization,
+                    senderName: senderName || 'Unknown',
+                    organization: organization || 'Unknown',
                     identifier,
                     timestamp: Date.now(),
                     read: false,
@@ -266,3 +272,23 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 });
+
+// Date and Time Formatting Functions
+function formatDate(dateStr) {
+    const date = new Date(dateStr);
+    if (isNaN(date)) return dateStr; // If not a valid date, return original
+    return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+}
+
+function formatTime(timeStr) {
+    const [hourStr, minuteStr] = timeStr.split(":");
+    let hour = parseInt(hourStr, 10);
+    const minute = parseInt(minuteStr, 10);
+    const ampm = hour >= 12 ? "PM" : "AM";
+    hour = hour % 12 || 12;
+    return `${hour}:${minute.toString().padStart(2, '0')} ${ampm}`;
+}

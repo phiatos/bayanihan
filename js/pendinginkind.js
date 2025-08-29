@@ -196,6 +196,11 @@ document.addEventListener("DOMContentLoaded", () => {
             .catch(err => console.error("Failed to log error to Firebase:", err));
     }
 
+    // Function to validate email format
+        function isValidEmail(email) {
+            return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+        }
+
     // Function to send approval email
     function sendApprovalEmail(donationData) {
         console.log('Attempting to send approval email with data:', donationData);
@@ -222,15 +227,114 @@ document.addEventListener("DOMContentLoaded", () => {
 
         emailjs.send('service_mzpjk2a', 'template_owchxrw', templateParams)
             .then(() => {
-                console.log('Approval email sent successfully to', donationData.email);
-                Swal.fire('Success', `Approval email sent to ${donationData.email}`, 'success');
+                Swal.fire({
+                    title: 'Success!',
+                    text: `Approval email sent to ${donationData.email}`,
+                    icon: 'success',
+                    showConfirmButton: true,
+                    confirmButtonText: 'OK',
+                    customClass: {
+                        popup: 'swal2-popup-success-clean',
+                        title: 'swal2-title-success-clean',
+                        htmlContainer: 'swal2-text-success-clean',
+                        confirmButton: 'my-success-button'
+                    }
+                });
             })
             .catch(error => {
-                console.error('Error sending approval email:', error);
                 const errorMessage = error && typeof error === 'object' && error.message ? error.message : 'Unknown error';
                 Swal.fire('Error', `Failed to send approval email: ${errorMessage}`, 'error');
                 logErrorToFirebase(error, 'sendApprovalEmail');
             });
+    }
+
+    // Function to send endorsement email to volunteer group
+    async function sendEndorsementEmail(donation, endorsedGroup) {
+        const serviceID = 'service_mzpjk2a';
+        const templateID = 'template_4tks2la';
+
+        // Validate the volunteer group's email
+        if (!endorsedGroup.email || !isValidEmail(endorsedGroup.email)) {
+            console.error('Invalid or missing volunteer group email:', endorsedGroup.email);
+            Swal.fire({
+                icon: 'error',
+                title: 'Invalid Email',
+                text: 'The volunteer group’s email is invalid or missing.',
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean'
+                }
+            });
+            logErrorToFirebase(new Error('Invalid or missing volunteer group email'), 'sendEndorsementEmail');
+            return;
+        }
+
+        // Log donation data for debugging
+        console.log('Donation data for endorsement email:', {
+            name: donation.name,
+            address: donation.address,
+            contactPerson: donation.contactPerson,
+            number: donation.number,
+            type: donation.type,
+            valuation: donation.valuation
+        });
+
+        const templateParams = {
+            to_email: endorsedGroup.email,
+            reply_to: 'jldelossantos1101@gmail.com', // Replace with your organization’s email
+            volunteer_group_name: endorsedGroup.name || 'Unknown Group',
+            donor_name: donation.name || 'Unknown Donor',
+            donation_type: donation.type || 'N/A',
+            donation_quantity: parseFloat(donation.valuation || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+            endorsement_date: new Date().toLocaleDateString('en-US'),
+            organization_email: 'jldelossantos1101@gmail.com', // Replace with your organization’s email
+            organization_contact_number: '123-456-7890', // Replace with your organization’s contact number
+            donor_full_address: donation.address || 'Not specified',
+            donor_contact_person: donation.contactPerson || 'Not specified',
+            donor_contact_number: donation.number || 'Not specified'
+        };
+
+        console.log('Endorsement EmailJS templateParams:', templateParams);
+
+        Swal.fire({
+            title: 'Sending Endorsement...',
+            text: 'Please wait while we send the email to the volunteer group.',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        try {
+            await emailjs.send(serviceID, templateID, templateParams);
+            Swal.fire({
+                icon: 'success',
+                title: 'Endorsement Sent!',
+                text: `An email has been sent to ${endorsedGroup.email} confirming the endorsement of the donation from ${donation.name}.`,
+                timer: 3000,
+                showConfirmButton: false,
+                timerProgressBar: true,
+                customClass: {
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    htmlContainer: 'swal2-text-success-clean'
+                }
+            });
+        } catch (error) {
+            console.error("Error sending endorsement email with EmailJS:", error);
+            logErrorToFirebase(error, 'sendEndorsementEmail');
+            Swal.fire({
+                icon: 'error',
+                title: 'Endorsement Failed',
+                text: `An error occurred: ${error.text || error.message || 'Unknown error'}. Please try again later.`,
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean'
+                }
+            });
+        }
     }
 
     // Function to queue donation when no ABVNs or relief requests are available
@@ -263,12 +367,13 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    async function retrieveDonation(id, donationData) {
-    console.log('retrieveDonation called with ID:', id, 'Data:', donationData); // Debug log
+async function retrieveDonation(id, donationData) {
+    console.log('retrieveDonation called with ID:', id, 'Data:', donationData);
     const permissions = await checkAdminPermissions();
-    console.log('Permissions in retrieveDonation:', permissions); // Debug log
+    console.log('Permissions in retrieveDonation:', permissions);
+
     if (!permissions.canRetrieve) {
-        console.log('Access denied: User lacks retrieve permissions'); // Debug log
+        console.log('Access denied: User lacks retrieve permissions');
         Swal.fire({
             title: 'Access Denied',
             text: 'You do not have permission to retrieve donations.',
@@ -284,6 +389,14 @@ document.addEventListener("DOMContentLoaded", () => {
             },
         });
         return;
+    }
+
+    // Require password verification for Super Admin
+    if (auth.currentUser?.adminPosition === 'Super Admin' && !isAdminVerified) {
+        const verified = await verifySuperAdminPassword();
+        if (!verified) {
+            return;
+        }
     }
 
     Swal.fire({
@@ -305,16 +418,16 @@ document.addEventListener("DOMContentLoaded", () => {
         },
     }).then(async (result) => {
         if (result.isConfirmed) {
-            console.log('User confirmed retrieval for donation ID:', id); // Debug log
+            console.log('User confirmed retrieval for donation ID:', id);
             try {
                 if (!navigator.onLine) {
                     throw new Error("No internet connection. Please check your network.");
                 }
+
                 const archivedRef = database.ref(`donations/pending/archivedDonations/inkind/${id}`);
-                console.log('Fetching archived donation from:', archivedRef.toString()); // Debug log
+                console.log('Fetching archived donation from:', archivedRef.toString());
                 const snapshot = await archivedRef.once('value');
                 const archivedDonation = snapshot.val();
-                console.log('Archived donation data:', archivedDonation); // Debug log
 
                 if (!archivedDonation || !archivedDonation.id) {
                     throw new Error("Archived donation data not found or invalid.");
@@ -327,17 +440,22 @@ document.addEventListener("DOMContentLoaded", () => {
                     retrievedTimestamp: Date.now(),
                     retrievedBy: auth.currentUser?.adminPosition || 'Unknown',
                 };
-                console.log('Restored donation data:', updatedDonation); // Debug log
 
+                // Move donation to pending/inkind
                 await database.ref(`donations/pending/inkind/${id}`).set(updatedDonation);
-                console.log('Donation restored to pending/inkind'); // Debug log
+                console.log('Donation restored to pending/inkind');
+
+                // Remove from archived
                 await archivedRef.remove();
-                console.log('Donation removed from archivedDonations'); // Debug log
+                console.log('Donation removed from archivedDonations');
+
+                // Verify removal
                 const checkSnapshot = await archivedRef.once('value');
                 if (checkSnapshot.exists()) {
-                    throw new Error("Failed to delete donation from donations/pending/archivedDonations/inkind.");
+                    throw new Error("Failed to delete donation from archived donations.");
                 }
 
+                // Log notification
                 const message = `In-kind donation from "${archivedDonation.name || 'Unknown'}" retrieved by ${auth.currentUser?.adminPosition || 'Unknown'} from ${localStorage.getItem('organization') || 'Unknown Group'} on ${new Date().toLocaleDateString('en-US')}. Status reset to pending.`;
                 await database.ref('notifications').push({
                     message,
@@ -349,20 +467,11 @@ document.addEventListener("DOMContentLoaded", () => {
                     organization: localStorage.getItem('organization') || 'Unknown Group',
                     timestamp: Date.now(),
                 });
-                console.log('Notification pushed for retrieval'); // Debug log
+                console.log('Notification pushed for retrieval');
 
-                // Force refresh donations
-                allDonations.push({ id, ...updatedDonation });
-                filteredAndSortedDonations = [...allDonations];
-                applySorting(filteredAndSortedDonations, sortSelect?.value || '');
-                renderTable();
-                console.log('Main table refreshed'); // Debug log
-
-                // Update archived donations
-                allArchivedDonations = allArchivedDonations.filter((d) => d.id !== id);
-                filteredAndSortedArchivedDonations = [...allArchivedDonations];
-                renderArchivedTable();
-                console.log('Archived table refreshed'); // Debug log
+                // Reload donations from Firebase to ensure consistency
+                await loadDonationsFromFirebase();
+                await loadArchivedDonationsFromFirebase();
 
                 Swal.fire({
                     icon: 'success',
@@ -378,10 +487,12 @@ document.addEventListener("DOMContentLoaded", () => {
                         htmlContainer: 'swal2-text-success-clean',
                     },
                 });
+
+                // Close archived modal
                 if (document.getElementById('archivedModal')) {
                     document.getElementById('archivedModal').style.display = 'none';
                 }
-                console.log('Retrieval completed successfully'); // Debug log
+                console.log('Retrieval completed successfully');
             } catch (error) {
                 console.error("Error retrieving donation:", error);
                 Swal.fire({
@@ -404,7 +515,7 @@ document.addEventListener("DOMContentLoaded", () => {
 }
     
     // Updated function to handle donation approval or rejection
-    async function updateDonationStatus(id, donationData, newStatus) {
+        async function updateDonationStatus(id, donationData, newStatus) {
         if (newStatus === 'Rejected') {
             Swal.fire({
                 title: 'Are you sure to reject this application?',
@@ -412,6 +523,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonText: 'Reject',
+                reverseButtons: true,
                 customClass: {
                     popup: 'custom-swal-popup-small',
                     title: 'custom-swal-title',
@@ -647,6 +759,7 @@ document.addEventListener("DOMContentLoaded", () => {
             cancelButtonText: 'Cancel',
             confirmButtonColor: '#1e88e5',
             cancelButtonColor: '#e0e0e0',
+            reverseButtons: true,
             buttonsStyling: true,
             customClass: {
                 popup: 'swal-popup-modern',
@@ -703,9 +816,16 @@ document.addEventListener("DOMContentLoaded", () => {
                         `,
                         icon: 'question',
                         showCancelButton: true,
-                        confirmButtonColor: '#3085d6',
-                        cancelButtonColor: '#d33',
-                        confirmButtonText: 'Yes, approve it!'
+                        confirmButtonText: 'Yes, approve it!',
+                        cancelButtonText: 'Cancel',
+                        reverseButtons: true,
+                        customClass: {
+                            popup: 'custom-swal-popup-large',
+                            title: 'custom-swal-title',
+                            htmlContainer: 'custom-swal-content',
+                            confirmButton: 'custom-confirm-btn',
+                            cancelButton: 'custom-cancel-btn'
+                        }
                     });
 
                     if (confirmResult.isConfirmed) {
@@ -779,7 +899,15 @@ document.addEventListener("DOMContentLoaded", () => {
                                     <p>Donation has been approved and assigned to ${selectedOption.type}: ${selectedOption.name}.</p>
                                     ${reliefDetails}
                                 `,
-                                icon: 'success'
+                                icon: 'success',
+                                showConfirmButton: true,
+                                confirmButtonText: 'OK',
+                                customClass: {
+                                    popup: 'swal2-popup-success-clean',
+                                    title: 'swal2-title-success-clean',
+                                    htmlContainer: 'swal2-text-success-clean',
+                                    confirmButton: 'my-success-button'
+                                }
                             });
                         } catch (error) {
                             console.error('Error approving donation in Firebase:', error);
@@ -802,12 +930,13 @@ document.addEventListener("DOMContentLoaded", () => {
         database.ref('donations/pending/inkind').on('value', (snapshot) => {
             clearTimeout(debounceTimeout);
             debounceTimeout = setTimeout(() => {
+                console.log('Raw Firebase snapshot for pending/inkind:', snapshot.val());
                 allDonations = [];
                 const data = snapshot.val();
                 if (data && typeof data === 'object') {
                     Object.keys(data).forEach((key) => {
                         const donation = data[key];
-                        allDonations.push({
+                        const donationEntry = {
                             id: key,
                             encoder: donation.encoder || 'N/A',
                             name: donation.name || 'N/A',
@@ -823,16 +952,33 @@ document.addEventListener("DOMContentLoaded", () => {
                             staffIncharge: donation.staffIncharge || 'N/A',
                             donationDate: donation.donationDate || 'N/A',
                             createdAt: donation.createdAt || 'N/A'
+                        };
+                        console.log(`Processed donation (ID: ${key}):`, {
+                            name: donationEntry.name,
+                            address: donationEntry.address,
+                            contactPerson: donationEntry.contactPerson,
+                            number: donationEntry.number
                         });
+                        allDonations.push(donationEntry);
                     });
                 }
+                console.log('Final allDonations array:', allDonations);
                 filteredAndSortedDonations = [...allDonations];
                 applySorting(filteredAndSortedDonations, sortSelect?.value || '');
                 renderTable();
             }, 300);
         }, (error) => {
             console.error('Error loading donations:', error);
-            Swal.fire('Error', `Failed to load donations: ${error.message}`, 'error');
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: `Failed to load donations: ${error.message}`,
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean'
+                }
+            });
             logErrorToFirebase(error, 'loadDonations');
         });
     }
@@ -904,9 +1050,9 @@ document.addEventListener("DOMContentLoaded", () => {
                     <td>${donation.assistance}</td>
                     <td>₱${parseFloat(donation.valuation || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                     <td>${donation.additionalnotes}</td>
-                    <td>${donation.status}</td>
                     <td>${donation.staffIncharge}</td>
                     <td>${donation.donationDate ? new Date(donation.donationDate).toLocaleDateString('en-PH') : 'N/A'}</td>
+                    <td>${donation.status}</td>
                     <td>
                         <button title="View" class="viewBtn" aria-label="View donation details"><i class='bx bx-show-alt'></i></button>
                         ${permissions.canEdit ? `
@@ -916,6 +1062,7 @@ document.addEventListener("DOMContentLoaded", () => {
                             ` : ''}
                         ` : ''}
                     </td>
+                    
                 `;
                 const viewBtn = row.querySelector('.viewBtn');
                 if (viewBtn) viewBtn.addEventListener('click', () => showPreviewModal(donation));
@@ -931,64 +1078,64 @@ document.addEventListener("DOMContentLoaded", () => {
         renderPagination();
     }
 
-    function renderArchivedTable() {
-        if (!archivedTableBody) {
-            console.error("ERROR: 'archivedTableBody' element not found.");
-            return;
-        }
-
-        archivedTableBody.innerHTML = '';
-        const start = (archivedCurrentPage - 1) * rowsPerPage;
-        const end = start + rowsPerPage;
-        const paginatedItems = filteredAndSortedArchivedDonations.slice(start, end);
-
-        if (paginatedItems.length === 0) {
-            archivedTableBody.innerHTML = '<tr><td colspan="15" style="text-align: center; padding: 20px;">No archived in-kind donations found.</td></tr>';
-        } else {
-            paginatedItems.forEach((donation, index) => {
-                if (!donation.id) {
-                    console.warn('Skipping invalid archived donation in renderArchivedTable:', donation);
-                    return;
-                }
-                const row = archivedTableBody.insertRow();
-                row.innerHTML = `
-                    <td>${start + index + 1}</td>
-                    <td>${donation.encoder}</td>
-                    <td>${donation.name}</td>
-                    <td>${donation.type}</td>
-                    <td>${donation.address}</td>
-                    <td>${donation.contactPerson}</td>
-                    <td>${donation.number}</td>
-                    <td>${donation.email}</td>
-                    <td>${donation.assistance}</td>
-                    <td>₱${parseFloat(donation.valuation || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                    <td>${donation.additionalnotes}</td>
-                    <td>${donation.staffIncharge}</td>
-                    <td>${donation.donationDate ? new Date(donation.donationDate).toLocaleDateString('en-PH') : 'N/A'}</td>
-                    <td><span class="status-${donation.status ? donation.status.toLowerCase() : 'na'}">${donation.status || 'N/A'}</span></td>
-                    <td>
-                        ${permissions.canEdit && permissions.canRetrieve ? `
-                            <button class="retrieveBtn" aria-label="Retrieve donation"><i class='bx bx-undo'></i></button>
-                        ` : ''}
-                    </td>
-                `;
-                if (permissions.canEdit && auth.currentUser?.adminPosition === 'Super Admin') {
-                    const retrieveBtn = row.querySelector('.retrieveBtn');
-                    if (retrieveBtn) {
-                        retrieveBtn.addEventListener('click', () => retrieveDonation(donation.id, donation));
-                    }
-                }
-            });
-        }
-
-        const totalEntries = filteredAndSortedArchivedDonations.length;
-        const showingStart = totalEntries > 0 ? start + 1 : 0;
-        const showingEnd = Math.min(end, totalEntries);
-        if (archivedEntriesInfo) {
-            archivedEntriesInfo.textContent = `Showing ${showingStart} to ${showingEnd} of ${totalEntries} entries`;
-        }
-        renderArchivedPagination();
+function renderArchivedTable() {
+    if (!archivedTableBody) {
+        console.error("ERROR: 'archivedTableBody' element not found.");
+        return;
     }
+
+    archivedTableBody.innerHTML = '';
+    const start = (archivedCurrentPage - 1) * rowsPerPage;
+    const end = start + rowsPerPage;
+    const paginatedItems = filteredAndSortedArchivedDonations.slice(start, end);
+
+    if (paginatedItems.length === 0) {
+        archivedTableBody.innerHTML = '<tr><td colspan="15" style="text-align: center; padding: 20px;">No archived in-kind donations found.</td></tr>';
+    } else {
+        paginatedItems.forEach((donation, index) => {
+            if (!donation.id) {
+                console.warn('Skipping invalid archived donation in renderArchivedTable:', donation);
+                return;
+            }
+            const row = archivedTableBody.insertRow();
+            row.innerHTML = `
+                <td>${start + index + 1}</td>
+                <td>${donation.encoder || 'N/A'}</td>
+                <td>${donation.name || 'N/A'}</td>
+                <td>${donation.type || 'N/A'}</td>
+                <td>${donation.address || 'N/A'}</td>
+                <td>${donation.contactPerson || 'N/A'}</td>
+                <td>${donation.number || 'N/A'}</td>
+                <td>${donation.email || 'N/A'}</td>
+                <td>${donation.assistance || 'N/A'}</td>
+                <td>₱${parseFloat(donation.valuation || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                <td>${donation.additionalnotes || 'N/A'}</td>
+                <td>${donation.staffIncharge || 'N/A'}</td>
+                <td>${donation.donationDate ? new Date(donation.donationDate).toLocaleDateString('en-PH') : 'N/A'}</td>
+                <td><span class="status-${donation.status ? donation.status.toLowerCase() : 'na'}">${donation.status || 'N/A'}</span></td>
+                <td>
+                    ${permissions.canRetrieve ? `
+                        <button class="retrieveBtn" aria-label="Retrieve donation">Retrieve</button>
+                    ` : ''}
+                </td>
+            `;
+            if (permissions.canRetrieve) {
+                const retrieveBtn = row.querySelector('.retrieveBtn');
+                if (retrieveBtn) {
+                    retrieveBtn.addEventListener('click', () => retrieveDonation(donation.id, donation));
+                }
+            }
+        });
+    }
+
+    const totalEntries = filteredAndSortedArchivedDonations.length;
+    const showingStart = totalEntries > 0 ? start + 1 : 0;
+    const showingEnd = Math.min(end, totalEntries);
+    if (archivedEntriesInfo) {
+        archivedEntriesInfo.textContent = `Showing ${showingStart} to ${showingEnd} of ${totalEntries} entries`;
+    }
+    renderArchivedPagination();
+}
 
     // Update pagination info
     function updatePaginationInfo() {

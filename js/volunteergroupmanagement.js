@@ -1641,7 +1641,6 @@ function attachRowHandlers() {
     });
 }
 
-// Function to attach handlers to dynamically created archived table rows
 function attachArchivedRowHandlers() {
     document.querySelectorAll('.retrieveBtn').forEach(button => {
         button.addEventListener('click', () => {
@@ -1668,17 +1667,20 @@ function attachArchivedRowHandlers() {
             const orgName = orgToRestore ? orgToRestore.organization : 'N/A';
 
             Swal.fire({
-                title: `Retrieved!`,
-                text: 'The volunteer group has been retrieved.',
-                icon: 'success',
-                timer: 1600,
-                showConfirmButton: false,
-                timerProgressBar: true,
+                title: `Restore "${orgName}"?`,
+                text: 'This will move the volunteer group back to the active list.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Restore',
+                cancelButtonText: 'Cancel',
+                reverseButtons: true,
+                focusCancel: true,
                 allowOutsideClick: false,
                 customClass: {
-                    popup: 'swal2-popup-success-clean',
-                    title: 'swal2-title-success-clean',
-                    htmlContainer: 'swal2-text-success-clean',
+                    popup: 'custom-swal-popup',
+                    title: 'custom-swal-title',
+                    confirmButton: 'custom-confirm-btn',
+                    cancelButton: 'custom-cancel-btn'
                 }
             }).then(async (result) => {
                 if (result.isConfirmed) {
@@ -1699,27 +1701,27 @@ function attachArchivedRowHandlers() {
                         return;
                     }
 
-                    const { deletedAt, ...restoredData } = orgToRestore;
-
                     try {
+                        const { deletedAt, ...restoredData } = orgToRestore;
+
                         await database.ref(`volunteerGroups/${rowId}`).set(restoredData);
                         await database.ref(`deletedVolunteerGroups/${rowId}`).remove();
+
                         Swal.fire({
                             icon: 'success',
                             title: 'Retrieved!',
                             text: `Volunteer group "${orgName}" has been restored to the active list.`,
-                            timer: 3000,
+                            timer: 1600,
+                            showConfirmButton: false,
                             timerProgressBar: true,
-                            showConfirmButton: true,
-                            confirmButtonText: 'OK',
                             allowOutsideClick: false,
                             customClass: {
                                 popup: 'swal2-popup-success-clean',
                                 title: 'swal2-title-success-clean',
-                                htmlContainer: 'swal2-text-success-clean',
-                                confirmButton: 'custom-confirm-btn'
+                                htmlContainer: 'swal2-text-success-clean'
                             }
                         });
+
                         fetchAndRenderTable();
                         fetchAndRenderArchivedTable();
                     } catch (error) {
@@ -1727,14 +1729,14 @@ function attachArchivedRowHandlers() {
                         Swal.fire({
                             icon: 'error',
                             title: 'Restoration Error',
-                            text: `Failed to restore volunteer group: ${error.message}. Please try again.`,
+                            text: `Failed to restore volunteer group: ${error.message}.`,
                             showConfirmButton: true,
                             confirmButtonText: 'OK',
                             customClass: {
-                                popup: 'swal2-popup-success-clean',
-                                title: 'swal2-title-success-clean',
-                                htmlContainer: 'swal2-text-success-clean',
-                                confirmButton: 'custom-confirm-btn'
+                                popup: 'swal2-popup-error-clean',
+                                title: 'swal2-title-error-clean',
+                                htmlContainer: 'swal2-text-error-clean',
+                                confirmButton: 'my-error-button'
                             }
                         });
                     }

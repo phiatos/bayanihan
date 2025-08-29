@@ -239,8 +239,6 @@ document.addEventListener('DOMContentLoaded', () => {
             );
         }
 
-
-
         const sortBy = sortSelect.value;
         if (sortBy) {
             const [key, order] = sortBy.split("-");
@@ -727,6 +725,10 @@ function approveReport(report) {
                 ]);
             })
             .then(() => {
+                // FIX: immediately remove from local array and re-render with current filters/sort/page
+                allLogs = allLogs.filter(r => r.firebaseKey !== report.firebaseKey);
+                applySearchAndSort();
+
                 console.log("🎉 Approval process completed successfully.");
                 Swal.fire({
                     icon: 'success',
@@ -783,6 +785,8 @@ function rejectReport(report) {
             return;
         }
 
+        let movedKey = null; // FIX: track the actual key we moved so we can remove locally by key
+
         database.ref('rdana/submitted')
             .orderByChild('rdanaId')
             .equalTo(report.rdanaId)
@@ -792,6 +796,7 @@ function rejectReport(report) {
                 if (!data) throw new Error("Report not found in submitted.");
 
                 const actualKey = Object.keys(data)[0];
+                movedKey = actualKey; // FIX: remember the key
                 const reportData = { ...data[actualKey], status: "Rejected", rejectedAt: Date.now() };
 
                 return database.ref(`rdana/rejected/${actualKey}`).set(reportData)
@@ -800,12 +805,16 @@ function rejectReport(report) {
             .then(actualKey => database.ref(`rdana/submitted/${actualKey}`).remove())
             .then(() => database.ref(`users/${report.userUid}/rdana/${report.firebaseKey || report.rdanaId}`).set({ ...report, status: "Rejected" }))
             .then(() => {
-                // Remove from the main global array
-                const index = allLogs.findIndex(r => r.rdanaId === report.rdanaId);
-                if (index > -1) allLogs.splice(index, 1);
+                // FIX: Remove from the main global array using the key we actually moved
+                if (movedKey) {
+                    allLogs = allLogs.filter(r => r.firebaseKey !== movedKey);
+                } else {
+                    // fallback by rdanaId if key wasn't captured
+                    allLogs = allLogs.filter(r => r.rdanaId !== report.rdanaId);
+                }
 
-                // Re-render the table
-                renderReportsTable(allLogs);
+                // FIX: Re-apply current filters/sort/pagination and re-render
+                applySearchAndSort();
 
                 Swal.fire({
                     title: 'Rejected!',

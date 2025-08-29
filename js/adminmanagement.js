@@ -350,6 +350,68 @@ async function fetchAndRenderAdmins() {
     }
 }
 
+// function renderAdminTable(data) {
+//     if (!adminTableBody) {
+//         console.error("Admin table body not found!");
+//         return;
+//     }
+
+//     adminTableBody.innerHTML = ''; 
+
+//     const paginatedData = getPaginatedData(data, currentPage, rowsPerPage);
+
+//     if (paginatedData.length === 0) {
+//         adminTableBody.innerHTML = '<tr><td colspan="7" style="text-align: center;">No admin accounts found.</td></tr>';
+//     }
+
+//     paginatedData.forEach((admin, index) => {
+//         const row = adminTableBody.insertRow();
+//         row.dataset.uid = admin.uid; 
+
+//         // Calculate row number
+//         const rowNumber = (currentPage - 1) * rowsPerPage + index + 1;
+
+//         // Add numbering column
+//         row.insertCell(0).textContent = rowNumber;
+
+//         const fullName = `${admin.firstName || ''} ${admin.middleInitial ? admin.middleInitial + '.' : ''} ${admin.lastName || ''} ${admin.nameExtension || ''}`.trim();
+
+//         row.insertCell(1).textContent = fullName || 'N/A';
+//         row.insertCell(2).textContent = admin.email || 'N/A';
+//         row.insertCell(3).textContent = admin.mobile || 'N/A';
+        
+//         // Social Media column with clickable link
+//         const socialMediaCell = row.insertCell(4);
+//         const socialMediaValue = admin.socialMedia || 'N/A';
+//         socialMediaCell.innerHTML = isValidURL(socialMediaValue) 
+//             ? `<a href="${socialMediaValue}" target="_blank" rel="noopener noreferrer">${socialMediaValue}</a>`
+//             : socialMediaValue;
+
+//         row.insertCell(5).textContent = `${admin.adminPosition || 'N/A'} (${admin.role || 'N/A'})`;
+        
+//         const actionsCell = row.insertCell(6);
+//         actionsCell.innerHTML = `
+//             <button class="editBtn" data-uid="${admin.uid}"><i class='bx bx-edit'></i></button>
+//             <button class="deleteBtn" data-uid="${admin.uid}"><i class="bx bx-x-circle"></i></button>
+//         `;
+//     });
+
+//     // Use the global pagination functions
+//     renderPagination(data, currentPage, rowsPerPage, paginationContainer, (newPage) => {
+//         currentPage = newPage;
+//         renderAdminTable(data); 
+//     });
+//     updateEntriesInfo(data, currentPage, rowsPerPage, entriesInfo);
+
+//     // Add event listeners for edit/delete buttons
+//     document.querySelectorAll('.editBtn').forEach(button => {
+//         button.addEventListener('click', (event) => editAdmin(event.target.dataset.uid));
+//     });
+//     document.querySelectorAll('.deleteBtn').forEach(button => {
+//         button.addEventListener('click', (event) => deleteAdmin(event.target.dataset.uid));
+//     });
+// }
+
 function renderAdminTable(data) {
     if (!adminTableBody) {
         console.error("Admin table body not found!");
@@ -368,10 +430,7 @@ function renderAdminTable(data) {
         const row = adminTableBody.insertRow();
         row.dataset.uid = admin.uid; 
 
-        // Calculate row number
         const rowNumber = (currentPage - 1) * rowsPerPage + index + 1;
-
-        // Add numbering column
         row.insertCell(0).textContent = rowNumber;
 
         const fullName = `${admin.firstName || ''} ${admin.middleInitial ? admin.middleInitial + '.' : ''} ${admin.lastName || ''} ${admin.nameExtension || ''}`.trim();
@@ -380,7 +439,6 @@ function renderAdminTable(data) {
         row.insertCell(2).textContent = admin.email || 'N/A';
         row.insertCell(3).textContent = admin.mobile || 'N/A';
         
-        // Social Media column with clickable link
         const socialMediaCell = row.insertCell(4);
         const socialMediaValue = admin.socialMedia || 'N/A';
         socialMediaCell.innerHTML = isValidURL(socialMediaValue) 
@@ -390,13 +448,18 @@ function renderAdminTable(data) {
         row.insertCell(5).textContent = `${admin.adminPosition || 'N/A'} (${admin.role || 'N/A'})`;
         
         const actionsCell = row.insertCell(6);
+        // Disable buttons for specific email
+        const protectedEmails = [
+            'sophiakirstentorrenueva@gmail.com',
+            'kimrazel4@gmail.com'
+        ];
+        const isProtectedEmail = protectedEmails.includes(admin.email);
         actionsCell.innerHTML = `
-            <button class="editBtn" data-uid="${admin.uid}"><i class='bx bx-edit'></i></button>
-            <button class="deleteBtn" data-uid="${admin.uid}"><i class="bx bx-x-circle"></i></button>
+            <button class="editBtn" data-uid="${admin.uid}" ${isProtectedEmail ? 'disabled' : ''}><i class='bx bx-edit'></i></button>
+            <button class="deleteBtn" data-uid="${admin.uid}" ${isProtectedEmail ? 'disabled' : ''}><i class="bx bx-x-circle"></i></button>
         `;
     });
 
-    // Use the global pagination functions
     renderPagination(data, currentPage, rowsPerPage, paginationContainer, (newPage) => {
         currentPage = newPage;
         renderAdminTable(data); 
@@ -404,10 +467,10 @@ function renderAdminTable(data) {
     updateEntriesInfo(data, currentPage, rowsPerPage, entriesInfo);
 
     // Add event listeners for edit/delete buttons
-    document.querySelectorAll('.editBtn').forEach(button => {
+    document.querySelectorAll('.editBtn:not([disabled])').forEach(button => {
         button.addEventListener('click', (event) => editAdmin(event.target.dataset.uid));
     });
-    document.querySelectorAll('.deleteBtn').forEach(button => {
+    document.querySelectorAll('.deleteBtn:not([disabled])').forEach(button => {
         button.addEventListener('click', (event) => deleteAdmin(event.target.dataset.uid));
     });
 }
@@ -635,6 +698,11 @@ if (confirmSaveBtn) {
             title: 'Creating Admin Account...',
             text: 'Please wait...',
             allowOutsideClick: false,
+            customClass: {
+                popup: 'swal2-popup-success-clean',
+                title: 'swal2-title-success-clean',
+                htmlContainer: 'swal2-text-success-clean'
+            },
             didOpen: () => {
                 Swal.showLoading();
             }

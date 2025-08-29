@@ -188,6 +188,18 @@ document.addEventListener('DOMContentLoaded', function() {
     const archivedTableBody = document.querySelector('#archivedTable tbody');
     const archivedEntriesInfo = document.getElementById('archivedEntriesInfo');
     const archivedPaginationDiv = document.getElementById('archivedPagination');
+    const previewModal = document.getElementById('previewModal');
+    const closeModal = document.getElementById('closeModal');
+
+    if (closeModal) {
+        closeModal.addEventListener('click', hideViewModal);
+    }
+
+    window.addEventListener('click', (event) => {
+        if (event.target === previewModal) {
+            hideViewModal();
+        }
+    });
 
     viewApprovedBtn.addEventListener('click', () => {
         window.location.href = '../pages/pendinginkind.html';
@@ -278,98 +290,249 @@ document.addEventListener('DOMContentLoaded', function() {
     if (searchInput) searchInput.addEventListener('input', applyFiltersAndSort);
     if (sortSelect) sortSelect.addEventListener('change', applyFiltersAndSort);
 
-    // Function to render the donation table rows for the current page
-    function renderTable() {
-        console.log('8. renderTable called.');
-        if (!donationTableBody) {
-            console.error("ERROR: 'donationTableBody' element not found.");
-            return;
-        }
-
-        donationTableBody.innerHTML = '';
-        const start = (currentPage - 1) * rowsPerPage;
-        const end = start + rowsPerPage;
-        const paginatedItems = filteredMonetaryDonations.slice(start, end);
-        debugLog('Items to render on current page', paginatedItems);
-
-        if (paginatedItems.length === 0) {
-            donationTableBody.innerHTML = '<tr><td colspan="13" style="text-align: center; padding: 20px;">No pending monetary donations found.</td></tr>';
-            entriesInfo.textContent = 'Showing 0 to 0 of 0 entries';
-            return;
-        }
-
-        paginatedItems.forEach((donation, index) => {
-            debugLog('Rendering donation', donation);
-            const row = donationTableBody.insertRow();
-            row.insertCell().textContent = start + index + 1;
-            row.insertCell().textContent = donation.encoder || 'N/A';
-            row.insertCell().textContent = donation.name || 'N/A';
-            row.insertCell().textContent = donation.address || 'N/A';
-            row.insertCell().textContent = donation.number || 'N/A';
-            const numericAmount = parseFloat(donation.amountDonated || 0);
-            row.insertCell().textContent = isNaN(numericAmount) ? 'N/A' : `PHP ${numericAmount.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-            row.insertCell().textContent = donation.invoice || 'N/A';
-            row.insertCell().textContent = donation.dateReceived || 'N/A';
-            row.insertCell().textContent = donation.email || 'N/A';
-            row.insertCell().textContent = donation.bank || 'N/A';
-            row.insertCell().textContent = donation.referenceNumber || 'N/A';
-            const proofCell = row.insertCell();
-            if (donation.proof && typeof donation.proof === 'string' && donation.proof.startsWith('http')) {
-                const proofLink = document.createElement('a');
-                proofLink.href = donation.proof;
-                proofLink.textContent = 'View Proof';
-                proofLink.target = '_blank';
-                proofLink.rel = 'noopener noreferrer';
-                proofCell.appendChild(proofLink);
-            } else {
-                proofCell.textContent = 'No file selected';
+    function showViewModal(donation) {
+    const modalContentDiv = document.getElementById('modalContent');
+    if (!previewModal || !modalContentDiv) {
+        Swal.fire({
+            title: 'Error',
+            text: 'Modal not found. Please check the page setup.',
+            icon: 'error',
+            customClass: {
+                popup: 'swal2-popup-error-clean',
+                title: 'swal2-title-error-clean',
+                htmlContainer: 'swal2-text-error-clean'
             }
-
-            const actionCell = row.insertCell();
-            actionCell.classList.add('action-buttons');
-
-            const approveButton = document.createElement('button');
-            approveButton.className = 'approveBtn';
-            approveButton.innerHTML = '<i class="bx bx-check-circle"></i>';
-            approveButton.title = "Approve Donation"; // tooltip text
-            approveButton.addEventListener('click', () => updateDonationStatus(donation.id, donation, 'Approved'));
-            actionCell.appendChild(approveButton);
-
-            const rejectButton = document.createElement('button');
-            rejectButton.className = 'rejectBtn';
-            rejectButton.innerHTML = '<i class="bx bx-x-circle"></i>';
-            rejectButton.title = "Reject Donation"; // tooltip text
-            rejectButton.addEventListener('click', () => updateDonationStatus(donation.id, donation, 'Rejected'));
-            actionCell.appendChild(rejectButton);
         });
-
-        const totalEntries = filteredMonetaryDonations.length;
-        const showingStart = totalEntries > 0 ? start + 1 : 0;
-        const showingEnd = Math.min(end, totalEntries);
-        entriesInfo.textContent = `Showing ${showingStart} to ${showingEnd} of ${totalEntries} entries`;
+        return;
     }
+
+    const formattedTimestamp = donation.updatedAt ? new Date(donation.updatedAt).toLocaleString('en-PH', {
+        year: 'numeric', month: 'short', day: 'numeric',
+        hour: '2-digit', minute: '2-digit', second: '2-digit'
+    }) : 'N/A';
+
+    modalContentDiv.innerHTML = `
+        <div class="modal-content-inner" style="padding: 20px;">
+            <h2>Donor Information:</h2>
+            <p><strong>Encoder:</strong> ${donation.encoder || 'N/A'}</p>
+            <p><strong>Name:</strong> ${donation.name || 'N/A'}</p>
+            <p><strong>Location:</strong> ${donation.address || 'N/A'}</p>
+            <p><strong>Number:</strong> ${donation.number || 'N/A'}</p>
+            <hr>
+            <h2>Transaction Details</h2>
+            <p><strong>Amount Donated:</strong> ${parseFloat(donation.amountDonated || 0).toLocaleString('en-PH', { style: 'currency', currency: 'PHP' })}</p>
+            <p><strong>Cash Invoice #:</strong> ${donation.invoice || 'N/A'}</p>
+            <p><strong>Date Received:</strong> ${donation.dateReceived ? new Date(donation.dateReceived).toLocaleDateString('en-PH') : 'N/A'}</p>
+            <p><strong>Email:</strong> ${donation.email || 'N/A'}</p>
+            <p><strong>Bank:</strong> ${donation.bank || 'N/A'}</p>
+            <p><strong>Reference Number:</strong> ${donation.referenceNumber || 'N/A'}</p>
+            <p><strong>Proof of Transaction:</strong> ${donation.proof ? `<a href="${donation.proof}" target="_blank" rel="noopener noreferrer">View Proof</a>` : 'N/A'}</p>
+            <p><strong>Updated On:</strong> ${formattedTimestamp}</p>
+            ${donation.rejectedAt ? `<p><strong>Rejected At:</strong> ${new Date(donation.rejectedAt).toLocaleString('en-PH', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' })}</p>` : ''}
+        </div>
+    `;
+    previewModal.style.display = 'flex';
+}
+
+function hideViewModal() {
+    if (previewModal && document.getElementById('modalContent')) {
+        previewModal.style.display = 'none';
+        document.getElementById('modalContent').innerHTML = '';
+    }
+}
+
+    // Function to render the donation table rows for the current page
+function renderTable() {
+    console.log('8. renderTable called.');
+    if (!donationTableBody) {
+        console.error("ERROR: 'donationTableBody' element not found.");
+        return;
+    }
+
+    donationTableBody.innerHTML = '';
+    const start = (currentPage - 1) * rowsPerPage;
+    const end = start + rowsPerPage;
+    const paginatedItems = filteredMonetaryDonations.slice(start, end);
+    debugLog('Items to render on current page', paginatedItems);
+
+    if (paginatedItems.length === 0) {
+        donationTableBody.innerHTML = '<tr><td colspan="13" style="text-align: center; padding: 20px;">No pending monetary donations found.</td></tr>';
+        entriesInfo.textContent = 'Showing 0 to 0 of 0 entries';
+        renderPagination();
+        return;
+    }
+
+    paginatedItems.forEach((donation, index) => {
+        debugLog('Rendering donation', donation);
+        const row = donationTableBody.insertRow();
+        row.insertCell().textContent = start + index + 1;
+        row.insertCell().textContent = donation.encoder || 'N/A';
+        row.insertCell().textContent = donation.name || 'N/A';
+        row.insertCell().textContent = donation.address || 'N/A';
+        row.insertCell().textContent = donation.number || 'N/A';
+        const numericAmount = parseFloat(donation.amountDonated || 0);
+        row.insertCell().textContent = isNaN(numericAmount) ? 'N/A' : `PHP ${numericAmount.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        row.insertCell().textContent = donation.invoice || 'N/A';
+        row.insertCell().textContent = donation.dateReceived || 'N/A';
+        row.insertCell().textContent = donation.email || 'N/A';
+        row.insertCell().textContent = donation.bank || 'N/A';
+        row.insertCell().textContent = donation.referenceNumber || 'N/A';
+        const proofCell = row.insertCell();
+        if (donation.proof && typeof donation.proof === 'string' && donation.proof.startsWith('http')) {
+            const proofLink = document.createElement('a');
+            proofLink.href = donation.proof;
+            proofLink.textContent = 'View Proof';
+            proofLink.target = '_blank';
+            proofLink.rel = 'noopener noreferrer';
+            proofCell.appendChild(proofLink);
+        } else {
+            proofCell.textContent = 'No file selected';
+        }
+
+        const actionCell = row.insertCell();
+        actionCell.classList.add('action-buttons');
+        actionCell.innerHTML = `
+            <button class="viewBtn" data-id="${donation.id}" title="View"><i class='bx bx-show-alt'></i></button>
+            <button class="approveBtn" data-id="${donation.id}" title="Approve Donation"><i class='bx bx-check-circle'></i></button>
+            <button class="rejectBtn" data-id="${donation.id}" title="Reject Donation"><i class='bx bx-x-circle'></i></button>
+        `;
+    });
+
+    document.querySelectorAll('.viewBtn').forEach(button => {
+        button.addEventListener('click', (event) => {
+            const donation = filteredMonetaryDonations.find(item => item.id === event.target.dataset.id);
+            if (donation) {
+                showViewModal(donation);
+            } else {
+                Swal.fire({
+                    title: 'Error',
+                    text: 'Donation details not found.',
+                    icon: 'error',
+                    customClass: {
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean'
+                    }
+                });
+            }
+        });
+    });
+
+    document.querySelectorAll('.approveBtn').forEach(button => {
+        button.addEventListener('click', (event) => updateDonationStatus(event.target.dataset.id, filteredMonetaryDonations.find(item => item.id === event.target.dataset.id), 'Approved'));
+    });
+    document.querySelectorAll('.rejectBtn').forEach(button => {
+        button.addEventListener('click', (event) => updateDonationStatus(event.target.dataset.id, filteredMonetaryDonations.find(item => item.id === event.target.dataset.id), 'Rejected'));
+    });
+
+    const totalEntries = filteredMonetaryDonations.length;
+    const showingStart = totalEntries > 0 ? start + 1 : 0;
+    const showingEnd = Math.min(end, totalEntries);
+    entriesInfo.textContent = `Showing ${showingStart} to ${showingEnd} of ${totalEntries} entries`;
+    renderPagination();
+}
+
+// render
+function renderPagination() {
+    if (!paginationDiv) {
+        console.error("ERROR: 'paginationDiv' element not found.");
+        return;
+    }
+    paginationDiv.innerHTML = '';
+    const pageCount = Math.ceil(filteredMonetaryDonations.length / rowsPerPage);
+
+    if (pageCount <= 0) {
+        paginationDiv.innerHTML = '';
+        return;
+    }
+
+    const createPaginationButton = (label, page, disabled = false, isActive = false) => {
+        const btn = document.createElement('button');
+        btn.textContent = label;
+        if (isActive) btn.classList.add('active-page');
+        if (disabled) btn.disabled = true;
+        btn.addEventListener('click', () => {
+            if (!disabled) {
+                currentPage = page;
+                renderTable();
+            }
+        });
+        return btn;
+    };
+
+    // Add Previous button
+    paginationDiv.appendChild(createPaginationButton('Prev', Math.max(1, currentPage - 1), currentPage === 1));
+
+    // Add numbered buttons
+    const maxVisible = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+    let endPage = Math.min(pageCount, startPage + maxVisible - 1);
+    if (endPage - startPage < maxVisible - 1) {
+        startPage = Math.max(1, endPage - maxVisible + 1);
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+        paginationDiv.appendChild(createPaginationButton(i, i, false, i === currentPage));
+    }
+
+    // Add Next button
+    paginationDiv.appendChild(createPaginationButton('Next', Math.min(pageCount, currentPage + 1), currentPage === pageCount));
+
+    debugLog('Pagination rendered', { pageCount, currentPage, startPage, endPage });
+}
+
+
 
     // Function to render pagination buttons
-    function renderPagination() {
-        if (!paginationDiv) return;
-        paginationDiv.innerHTML = '';
-        const pageCount = Math.ceil(filteredMonetaryDonations.length / rowsPerPage);
-
-        if (pageCount <= 1) return;
-
-        for (let i = 1; i <= pageCount; i++) {
-            const button = document.createElement('button');
-            button.textContent = i;
-            button.classList.add('pagination-button');
-            if (i === currentPage) button.classList.add('active');
-            button.addEventListener('click', () => {
-                currentPage = i;
-                renderTable();
-                renderPagination();
-            });
-            paginationDiv.appendChild(button);
-        }
+ function renderArchivedPagination() {
+    if (!archivedPaginationDiv) {
+        console.error("ERROR: 'archivedPaginationDiv' element not found.");
+        return;
     }
+    archivedPaginationDiv.innerHTML = '';
+    const pageCount = Math.ceil(filteredArchivedDonations.length / archivedRowsPerPage);
+
+    if (pageCount <= 1) {
+        archivedPaginationDiv.innerHTML = '<span>No pagination needed</span>';
+        return;
+    }
+
+    const createPaginationButton = (label, page, disabled = false, isActive = false) => {
+        const btn = document.createElement('button');
+        btn.textContent = label;
+        btn.classList.add('pagination-button');
+        if (isActive) btn.classList.add('active');
+        if (disabled) btn.disabled = true;
+        btn.addEventListener('click', () => {
+            if (!disabled) {
+                archivedCurrentPage = page;
+                renderArchivedTable();
+                renderArchivedPagination(); // Re-render to ensure active state
+            }
+        });
+        return btn;
+    };
+
+    // Add Previous button
+    archivedPaginationDiv.appendChild(createPaginationButton('Prev', Math.max(1, archivedCurrentPage - 1), archivedCurrentPage === 1));
+
+    // Add numbered buttons
+    const maxVisible = 5;
+    let startPage = Math.max(1, archivedCurrentPage - Math.floor(maxVisible / 2));
+    let endPage = Math.min(pageCount, startPage + maxVisible - 1);
+    if (endPage - startPage < maxVisible - 1) {
+        startPage = Math.max(1, endPage - maxVisible + 1);
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+        archivedPaginationDiv.appendChild(createPaginationButton(i, i, false, i === archivedCurrentPage));
+    }
+
+    // Add Next button
+    archivedPaginationDiv.appendChild(createPaginationButton('Next', Math.min(pageCount, archivedCurrentPage + 1), archivedCurrentPage === pageCount));
+
+    debugLog('Archived pagination rendered', { pageCount, archivedCurrentPage, startPage, endPage });
+}
 
     // Function to update donation status (Approve/Reject)
     async function updateDonationStatus(id, donationData, newStatus) {
@@ -416,6 +579,7 @@ document.addEventListener('DOMContentLoaded', function() {
             icon: 'warning',
             showCancelButton: true,
             confirmButtonText: 'Reject',
+            reverseButtons: true,
             customClass: {
                 popup: 'custom-swal-popup-small',
                 title: 'custom-swal-title',
@@ -434,7 +598,19 @@ document.addEventListener('DOMContentLoaded', function() {
                         await database.ref('donations/savedDonations/monetary/' + id).set(donationToApprove);
                         await database.ref('donations/pending/monetary/' + id).remove();
                         debugLog('Removal from donations/pending/monetary successful', { id });
-                        Swal.fire('Approved!', 'The monetary donation has been approved.', 'success');
+                        Swal.fire({
+                            title: 'Approved!',
+                            text: 'The monetary donation has been approved.',
+                            icon: 'success',
+                            showConfirmButton: true,
+                            confirmButtonText: 'OK',
+                            customClass: {
+                                popup: 'swal2-popup-success-clean',
+                                title: 'swal2-title-success-clean',
+                                htmlContainer: 'swal2-text-success-clean',
+                                confirmButton: 'my-success-button'
+                            }
+                        });
                     } else if (newStatus === 'Rejected') {
                         const donationToArchive = { ...finalDonationData };
                         donationToArchive.rejectedAt = new Date().toISOString();
@@ -523,88 +699,141 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Function to render the archived donations table
-    function renderArchivedTable() {
-        console.log('renderArchivedTable called.');
-        if (!archivedTableBody) {
-            console.error("ERROR: 'archivedTableBody' element not found.");
-            return;
-        }
-
-        archivedTableBody.innerHTML = '';
-        const start = (archivedCurrentPage - 1) * archivedRowsPerPage;
-        const end = start + archivedRowsPerPage;
-        const paginatedItems = filteredArchivedDonations.slice(start, end);
-
-        if (paginatedItems.length === 0) {
-            archivedTableBody.innerHTML = '<tr><td colspan="13" style="text-align: center; padding: 20px;">No archived monetary donations found.</td></tr>';
-            archivedEntriesInfo.textContent = 'Showing 0 to 0 of 0 entries';
-            return;
-        }
-
-        paginatedItems.forEach((donation, index) => {
-            debugLog('Rendering archived donation', donation);
-            const row = archivedTableBody.insertRow();
-            row.insertCell().textContent = start + index + 1;
-            row.insertCell().textContent = donation.encoder || 'N/A';
-            row.insertCell().textContent = donation.name || 'N/A';
-            row.insertCell().textContent = donation.address || 'N/A';
-            row.insertCell().textContent = donation.number || 'N/A';
-            const numericAmount = parseFloat(donation.amountDonated || 0);
-            row.insertCell().textContent = isNaN(numericAmount) ? 'N/A' : `PHP ${numericAmount.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-            row.insertCell().textContent = donation.invoice || 'N/A';
-            row.insertCell().textContent = donation.dateReceived || 'N/A';
-            row.insertCell().textContent = donation.email || 'N/A';
-            row.insertCell().textContent = donation.bank || 'N/A';
-            row.insertCell().textContent = donation.referenceNumber || 'N/A';
-            const proofCell = row.insertCell();
-            if (donation.proof && typeof donation.proof === 'string' && donation.proof.startsWith('http')) {
-                const proofLink = document.createElement('a');
-                proofLink.href = donation.proof;
-                proofLink.textContent = 'View Proof';
-                proofLink.target = '_blank';
-                proofLink.rel = 'noopener noreferrer';
-                proofCell.appendChild(proofLink);
-            } else {
-                proofCell.textContent = 'No file selected';
-            }
-
-            const actionCell = row.insertCell();
-            actionCell.classList.add('action-buttons');
-
-            const restoreButton = document.createElement('button');
-            restoreButton.className = 'action-button restore-button';
-            restoreButton.innerHTML = 'Retrieve';
-            restoreButton.addEventListener('click', () => restoreDonation(donation.id, donation));
-            actionCell.appendChild(restoreButton);
-        });
-
-        const totalEntries = filteredArchivedDonations.length;
-        const showingStart = totalEntries > 0 ? start + 1 : 0;
-        const showingEnd = Math.min(end, totalEntries);
-        archivedEntriesInfo.textContent = `Showing ${showingStart} to ${showingEnd} of ${totalEntries} entries`;
+function renderArchivedTable() {
+    console.log('renderArchivedTable called.');
+    if (!archivedTableBody) {
+        console.error("ERROR: 'archivedTableBody' element not found.");
+        return;
     }
+
+    archivedTableBody.innerHTML = '';
+    const start = (archivedCurrentPage - 1) * archivedRowsPerPage;
+    const end = start + archivedRowsPerPage;
+    const paginatedItems = filteredArchivedDonations.slice(start, end);
+
+    if (paginatedItems.length === 0) {
+        archivedTableBody.innerHTML = '<tr><td colspan="13" style="text-align: center; padding: 20px;">No archived monetary donations found.</td></tr>';
+        archivedEntriesInfo.textContent = 'Showing 0 to 0 of 0 entries';
+        renderArchivedPagination();
+        return;
+    }
+
+    paginatedItems.forEach((donation, index) => {
+        debugLog('Rendering archived donation', donation);
+        const row = archivedTableBody.insertRow();
+        row.insertCell().textContent = start + index + 1;
+        row.insertCell().textContent = donation.encoder || 'N/A';
+        row.insertCell().textContent = donation.name || 'N/A';
+        row.insertCell().textContent = donation.address || 'N/A';
+        row.insertCell().textContent = donation.number || 'N/A';
+        const numericAmount = parseFloat(donation.amountDonated || 0);
+        row.insertCell().textContent = isNaN(numericAmount) ? 'N/A' : `PHP ${numericAmount.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        row.insertCell().textContent = donation.invoice || 'N/A';
+        row.insertCell().textContent = donation.dateReceived || 'N/A';
+        row.insertCell().textContent = donation.email || 'N/A';
+        row.insertCell().textContent = donation.bank || 'N/A';
+        row.insertCell().textContent = donation.referenceNumber || 'N/A';
+        const proofCell = row.insertCell();
+        if (donation.proof && typeof donation.proof === 'string' && donation.proof.startsWith('http')) {
+            const proofLink = document.createElement('a');
+            proofLink.href = donation.proof;
+            proofLink.textContent = 'View Proof';
+            proofLink.target = '_blank';
+            proofLink.rel = 'noopener noreferrer';
+            proofCell.appendChild(proofLink);
+        } else {
+            proofCell.textContent = 'No file selected';
+        }
+
+        const actionCell = row.insertCell();
+        actionCell.classList.add('action-buttons');
+        actionCell.innerHTML = `
+            <button class="viewBtn" data-id="${donation.id}" title="View"><i class='bx bx-show-alt'></i></button>
+            <button class="action-button restore-button" data-id="${donation.id}" title="Retrieve">Retrieve</button>
+        `;
+    });
+
+    document.querySelectorAll('.viewBtn').forEach(button => {
+        button.addEventListener('click', (event) => {
+            const donation = filteredArchivedDonations.find(item => item.id === event.target.dataset.id);
+            if (donation) {
+                showViewModal(donation);
+            } else {
+                Swal.fire({
+                    title: 'Error',
+                    text: 'Archived donation details not found.',
+                    icon: 'error',
+                    customClass: {
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean'
+                    }
+                });
+            }
+        });
+    });
+
+    document.querySelectorAll('.restore-button').forEach(button => {
+        button.addEventListener('click', (event) => restoreDonation(event.target.dataset.id, filteredArchivedDonations.find(item => item.id === event.target.dataset.id)));
+    });
+
+    const totalEntries = filteredArchivedDonations.length;
+    const showingStart = totalEntries > 0 ? start + 1 : 0;
+    const showingEnd = Math.min(end, totalEntries);
+    archivedEntriesInfo.textContent = `Showing ${showingStart} to ${showingEnd} of ${totalEntries} entries`;
+    renderArchivedPagination();
+}
 
     // Function to render pagination for archived table
-    function renderArchivedPagination() {
-        if (!archivedPaginationDiv) return;
-        archivedPaginationDiv.innerHTML = '';
-        const pageCount = Math.ceil(filteredArchivedDonations.length / archivedRowsPerPage);
-
-        if (pageCount <= 1) return;
-
-        for (let i = 1; i <= pageCount; i++) {
-            const button = document.createElement('button');
-            button.textContent = i;
-            button.classList.add('pagination-button');
-            if (i === archivedCurrentPage) button.classList.add('active');
-            button.addEventListener('click', () => {
-                archivedCurrentPage = i;
-                renderArchivedTable();
-                renderArchivedPagination();
-            });
-            archivedPaginationDiv.appendChild(button);
-        }
+ function renderArchivedPagination() {
+    if (!archivedPaginationDiv) {
+        console.error("ERROR: 'archivedPaginationDiv' element not found.");
+        return;
     }
+    archivedPaginationDiv.innerHTML = '';
+    const pageCount = Math.ceil(filteredArchivedDonations.length / archivedRowsPerPage);
+
+    if (pageCount <= 1) {
+        archivedPaginationDiv.innerHTML = '<span>No pagination needed</span>';
+        return;
+    }
+
+    const createPaginationButton = (label, page, disabled = false, isActive = false) => {
+        const btn = document.createElement('button');
+        btn.textContent = label;
+        btn.classList.add('pagination-button');
+        if (isActive) btn.classList.add('active');
+        if (disabled) btn.disabled = true;
+        btn.addEventListener('click', () => {
+            if (!disabled) {
+                archivedCurrentPage = page;
+                renderArchivedTable();
+                renderArchivedPagination(); // Re-render to ensure active state
+            }
+        });
+        return btn;
+    };
+
+    // Add Previous button
+    archivedPaginationDiv.appendChild(createPaginationButton('Prev', Math.max(1, archivedCurrentPage - 1), archivedCurrentPage === 1));
+
+    // Add numbered buttons
+    const maxVisible = 5;
+    let startPage = Math.max(1, archivedCurrentPage - Math.floor(maxVisible / 2));
+    let endPage = Math.min(pageCount, startPage + maxVisible - 1);
+    if (endPage - startPage < maxVisible - 1) {
+        startPage = Math.max(1, endPage - maxVisible + 1);
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+        archivedPaginationDiv.appendChild(createPaginationButton(i, i, false, i === archivedCurrentPage));
+    }
+
+    // Add Next button
+    archivedPaginationDiv.appendChild(createPaginationButton('Next', Math.min(pageCount, archivedCurrentPage + 1), archivedCurrentPage === pageCount));
+
+    debugLog('Archived pagination rendered', { pageCount, archivedCurrentPage, startPage, endPage });
+}
 
     // Function to restore an archived donation back to pending
     async function restoreDonation(id, donationData) {

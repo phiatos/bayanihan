@@ -144,7 +144,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return transformed;
     }
     function loadReportsFromFirebase() {
-        database.ref("reports/verification").on("value", snapshot => {
+        database.ref("reports/verification/").on("value", snapshot => {
             submittedReports = [];
             const reports = snapshot.val();
             if (reports) {
@@ -178,6 +178,39 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
     }
+
+    function loadArchivedReportsFromFirebase() {
+    database.ref("reports/archived/reportsverification").on("value", snapshot => {
+        archivedReports = [];
+        const archived = snapshot.val();
+        if (archived) {
+            Object.keys(archived).forEach(key => {
+                const report = archived[key];
+                const transformedReport = transformReportData({
+                    firebaseKey: key,
+                    ...report
+                });
+                if (isValidReport(transformedReport)) {
+                    archivedReports.push(transformedReport);
+                } else {
+                    console.warn(`Skipping invalid archived report ${key}`);
+                }
+            });
+        } else {
+            console.log("No archived reports found in Firebase");
+        }
+        console.log("Archived Reports:", archivedReports);
+        renderArchivedReportsTable();
+    }, error => {
+        console.error("Error fetching archived reports from Firebase:", error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Failed to load archived reports: ' + error.message,
+        });
+    });
+}
+
     function highlightReportFromURL() {
         const urlParams = new URLSearchParams(window.location.search);
         const reportId = urlParams.get('reportId');
@@ -298,35 +331,33 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
                 modalDetails.innerHTML = `
-                    <div class="report-section">
-                        <div class="form-1">
-                            <h2>Basic Information</h2>
-                            <p><strong>Report ID:</strong> ${report.ReportID || "-"}</p>
-                            <p><strong>Volunteer Group:</strong> ${report.VolunteerGroupName || "[Unknown Org]"}</p> 
-                            <p><strong>Calamity Name:</strong> ${report.CalamityName || "-"}</p>
-                            <p><strong>Calamity Type:</strong> ${report.CalamityType || "-"}</p>
-                            <p><strong>Date of Report Submitted:</strong> ${formatDate(report.DateOfReport)}</p>
-                            <p class="cell"><strong>Location of Operation:</strong> ${report.AreaOfOperation || "-"}</p>
-                        </div>
-                        <div class="form-2">
-                            <h2>Relief Operations</h2>
-                            <p class="cell"><strong>Completion Time of Intervention:</strong> ${formatTime(report.TimeOfIntervention)}</p>
-                            <p><strong>Start Date of Operation:</strong> ${formatDate(report.StartDate) || "-"}</p>
-                            <p><strong>End Date of Operation:</strong> ${formatDate(report.EndDate) || "-"}</p>
-                            <p><strong>No. of Individuals or Families:</strong> ${formatWithCommas(report.NoOfIndividualsOrFamilies)}</p>
-                            <p><strong>No. of Food Packs:</strong> ${formatCompact(report.NoOfFoodPacks)}</p>
-                            <p><strong>No. of Hot Meals/Ready-to-eat food:</strong> ${formatCompact(report.NoOfHotMeals)}</p>
-                            <p><strong>Liters of Water:</strong> ${formatWithCommas(report.LitersOfWater)}</p>
-                            <p><strong>No. of Volunteers Mobilized:</strong> ${formatWithCommas(report.NoOfVolunteersMobilized)}</p>
-                            <p><strong>No. of Organizations Activated:</strong> ${formatCompact(report.NoOfOrganizationsActivated)}</p>
-                            <p><strong>Total Value of In-Kind Donations:</strong> ${formatCurrency(report.TotalValueOfInKindDonations)}</p>
-                            <p><strong>Total Monetary Donations:</strong> ${formatCurrency(report.TotalMonetaryDonations)}</p>
-                        </div>
+                    <div class="modal-content-inner" style="padding: 20px;">
+                    <h2>Basic Information</h2>
+                    <p><strong>Report ID:</strong> ${report.ReportID || "N/A"}</p>
+                    <p><strong>Volunteer Group:</strong> ${report.VolunteerGroupName || "N/A"}</p>
+                    <p><strong>Calamity Name:</strong> ${report.CalamityName || "N/A"}</p>
+                    <p><strong>Calamity Type:</strong> ${report.CalamityType || "N/A"}</p>
+                    <p><strong>Date of Report Submitted:</strong> ${formatDate(report.DateOfReport) || "N/A"}</p>
+                    <p><strong>Location of Operation:</strong> ${report.AreaOfOperation || "N/A"}</p>
+                    <hr>
+                    <h2>Relief Operations</h2>
+                    <div style="margin-left: 10px;">
+                        <p><strong>Completion Time of Intervention:</strong> ${formatTime(report.TimeOfIntervention) || "N/A"}</p>
+                        <p><strong>Start Date of Operation:</strong> ${formatDate(report.StartDate) || "N/A"}</p>
+                        <p><strong>End Date of Operation:</strong> ${formatDate(report.EndDate) || "N/A"}</p>
+                        <p><strong>No. of Individuals or Families:</strong> ${formatWithCommas(report.NoOfIndividualsOrFamilies) || "N/A"}</p>
+                        <p><strong>No. of Food Packs:</strong> ${formatCompact(report.NoOfFoodPacks) || "N/A"}</p>
+                        <p><strong>No. of Hot Meals/Ready-to-eat food:</strong> ${formatCompact(report.NoOfHotMeals) || "N/A"}</p>
+                        <p><strong>Liters of Water:</strong> ${formatWithCommas(report.LitersOfWater) || "N/A"}</p>
+                        <p><strong>No. of Volunteers Mobilized:</strong> ${formatWithCommas(report.NoOfVolunteersMobilized) || "N/A"}</p>
+                        <p><strong>No. of Organizations Activated:</strong> ${formatCompact(report.NoOfOrganizationsActivated) || "N/A"}</p>
+                        <p><strong>Total Value of In-Kind Donations:</strong> ${formatCurrency(report.TotalValueOfInKindDonations) || "N/A"}</p>
+                        <p><strong>Total Monetary Donations:</strong> ${formatCurrency(report.TotalMonetaryDonations) || "N/A"}</p>
                     </div>
-                    <div class="form-3">
-                        <h2>Additional Updates</h2>
-                        <p><strong>Notes/Additional Information:</strong> ${report.NotesAdditionalInformation || "-"}</p>
-                    </div>
+                    <hr>
+                    <h2>Additional Updates</h2>
+                    <p><strong>Notes/Additional Information:</strong> ${report.NotesAdditionalInformation || "N/A"}</p>
+                </div>
                 `;
                 modal.classList.remove("hidden");
                 closeModal.addEventListener("click", () => {
@@ -385,14 +416,12 @@ document.addEventListener('DOMContentLoaded', () => {
                             icon: 'success',
                             title: 'Report Approved',
                             text: 'The report has been approved and the sender has been notified.',
-                            background: '#f0fdf4',
-                            color: '#065f46',
-                            iconColor: '#059669',
-                            confirmButtonColor: '#059669',
+                            confirmButtonText: 'OK',
                             customClass: {
                                 popup: 'swal2-popup-success-clean',
                                 title: 'swal2-title-success-clean',
-                                content: 'swal2-text-success-clean'
+                                htmlContainer: 'swal2-text-success-clean',
+                                confirmButton: 'my-success-button'
                             }
                         });
                     })
@@ -402,14 +431,14 @@ document.addEventListener('DOMContentLoaded', () => {
                             icon: 'error',
                             title: 'Approval Failed',
                             text: `Failed to approve report or send notification: ${error.message}`,
-                            background: '#fef2f2',
-                            color: '#7f1d1d',
-                            iconColor: '#dc2626',
-                            confirmButtonColor: '#b91c1c',
+                            timer: 1600,
+                            showConfirmButton: false,
+                            timerProgressBar: true,
+                            allowOutsideClick: false,
                             customClass: {
                                 popup: 'swal2-popup-error-clean',
                                 title: 'swal2-title-error-clean',
-                                content: 'swal2-text-error-clean'
+                                htmlContainer: 'swal2-text-error-clean'
                             }
                         });
                     });
@@ -425,8 +454,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
                 Swal.fire({
-                    title: 'Are you sure to archive this report?',
-                    text: "This will move it to archived records.",
+                    title: 'Are you sure to reject this report?',
+                    text: 'This will move it to archived records.',
                     icon: 'warning',
                     showCancelButton: true,
                     confirmButtonText: 'Reject',
@@ -439,13 +468,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         title: 'custom-swal-title',
                         htmlContainer: 'custom-swal-content',
                         confirmButton: 'custom-confirm-btn',
-                        cancelButton: 'custom-cancel-btn'
-                    }
+                        cancelButton: 'custom-cancel-btn',
+                    },
                 }).then((result) => {
                     if (result.isConfirmed) {
                         report["Status"] = "Rejected";
                         Promise.all([
-                            database.ref(`reports/rejected/${report.firebaseKey}`).set(report),
+                            database.ref(`reports/archived/reportsverification/${report.firebaseKey}`).set(report),
                             database.ref(`users/${userUid}/reports/${report.firebaseKey}`).set({ ...report, Status: "Rejected" }),
                             database.ref(`reports/verification/${report.firebaseKey}`).remove()
                         ])
@@ -455,17 +484,16 @@ document.addEventListener('DOMContentLoaded', () => {
                                 archivedReports.push(report);
                                 applySearchAndSort();
                                 Swal.fire({
-                                    icon: 'info',
-                                    title: 'Report Rejected',
+                                    icon: 'success',
+                                    title: 'Archived!',
                                     text: 'The report has been rejected and moved to archived reports.',
-                                    background: '#fef2f2',
-                                    color: '#7f1d1d',
-                                    iconColor: '#dc2626',
-                                    confirmButtonColor: '#b91c1c',
+                                    showConfirmButton: true,
+                                    confirmButtonText: 'OK',
                                     customClass: {
-                                        popup: 'swal2-popup-rejected-clean',
-                                        title: 'swal2-title-rejected-clean',
-                                        content: 'swal2-text-rejected-clean'
+                                        popup: 'swal2-popup-success-clean',
+                                        title: 'swal2-title-success-clean',
+                                        htmlContainer: 'swal2-text-success-clean',
+                                        confirmButton: 'my-success-button'
                                     }
                                 });
                             })
@@ -512,99 +540,103 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const reports = Object.keys(data).map((key, index) => ({
-            key,
-            index: index + 1,
-            ...data[key]
-        }));
+        const startIndex = (currentArchivedPage - 1) * archivedRowsPerPage;
+        const endIndex = startIndex + archivedRowsPerPage;
+        const currentPageReports = archivedReports.slice(startIndex, endIndex);
 
-        // Pagination settings
-        let currentPage = 1;
-        const rowsPerPage = 5;
+        currentPageReports.forEach((report, index) => {
+            const tr = document.createElement('tr');
+            const displayIndex = (currentArchivedPage - 1) * archivedRowsPerPage + index + 1;
 
-        function renderPage(page) {
-            archivedTableBody.innerHTML = "";
-            const start = (page - 1) * rowsPerPage;
-            const paginated = reports.slice(start, start + rowsPerPage);
+            tr.innerHTML = `
+                <td>${displayIndex}</td>
+                <td>${report["ReportID"] || "-"}</td>
+                <td>${report["VolunteerGroupName"] || "[Unknown Org]"}</td>
+                <td>${report["AreaOfOperation"] || "-"}</td>
+                <td>${formatDate(report["StartDate"])}</td>
+                <td>${formatDate(report["EndDate"])}</td>
+                <td>${formatCurrency(report["TotalValueOfInKindDonations"])}</td>
+                <td>${formatCurrency(report["TotalMonetaryDonations"])}</td>
+                <td>
+                    <button class="restoreBtn">Retrieve</button>
+                </td>
+            `;
 
-            paginated.forEach((report) => {
-                const row = document.createElement("tr");
-                row.innerHTML = `
-                     <td>${report.index}</td>
-                    <td>${report.ReportID || "N/A"}</td>
-                    <td>${report.VolunteerGroupName || "N/A"}</td>
-                    <td>${report.NoOfIndividualsOrFamilies || "N/A"} individuals/families</td>
-                    <td>${report.NoOfVolunteersMobilized || "N/A"} volunteers</td>
-                    <td>${report.NoOfOrganizationsActivated || "N/A"} orgs</td>
-                    <td>${report.TimeOfIntervention || "N/A"}</td>
-                    <td>${report.StartDate ? new Date(report.StartDate).toLocaleDateString() : "N/A"}</td>
-                    <td><span class="status-badge rejected">${report.Status || "Rejected"}</span></td>
-                    <td>
-                        <button class="restore-btn" data-key="${report.key}">Restore</button>
-                    </td>
-                `;
-                archivedTableBody.appendChild(row);
-            });
-
-
-            // Attach restore button logic
-            document.querySelectorAll(".restore-btn").forEach(btn => {
-                btn.addEventListener("click", () => {
-                    const key = btn.getAttribute("data-key");
-
+            tr.querySelector('.restoreBtn').addEventListener('click', () => {
+                const userUid = report.userUid;
+                if (!userUid) {
                     Swal.fire({
-                        title: 'Restore Report?',
-                        text: 'This will move the report back to verification.',
-                        icon: 'question',
-                        showCancelButton: true,
-                        confirmButtonText: 'Restore',
-                        cancelButtonText: 'Cancel',
-                        reverseButtons: true,
-                        focusCancel: true,
-                        allowOutsideClick: false,
-                        customClass: {
-                            popup: 'custom-swal-popup-small',
-                            title: 'custom-swal-title',
-                            htmlContainer: 'custom-swal-content',
-                            confirmButton: 'custom-confirm-btn',
-                            cancelButton: 'custom-cancel-btn'
-                        },
-                    }).then(result => {
-                        if (result.isConfirmed) {
-                            database.ref("reports/rejected/" + key).once("value").then(snap => {
-                                const reportData = snap.val();
-                                if (reportData) {
-                                    // Move to verification
-                                    database.ref("reports/verification/" + key).set(reportData)
-                                        .then(() => {
-                                            // Remove from rejected
-                                            return database.ref("reports/rejected/" + key).remove();
-                                        })
-                                        .then(() => {
-                                            Swal.fire({
-                                                title: 'Restored!',
-                                                text: 'Report has been moved back to verification.',
-                                                icon: 'success',
-                                                timer: 1600,
-                                                showConfirmButton: false,
-                                                timerProgressBar: true,
-                                                allowOutsideClick: false,
-                                                customClass: {
-                                                    popup: 'swal2-popup-success-clean',
-                                                    title: 'swal2-title-success-clean',
-                                                    htmlContainer: 'swal2-text-success-clean',
-                                                }
-                                            });
-                                            loadRejectedReports(); // refresh table
-                                        })
-                                        .catch(err => {
-                                            console.error(err);
-                                            Swal.fire('Error', 'Something went wrong while restoring.', 'error');
-                                        });
-                                }
-                            });
-                        }
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'User UID not found in report. Cannot restore.',
                     });
+                    return;
+                }
+
+                Swal.fire({
+                    title: 'Retrieve report?',
+                    text: 'This will move the report from archived records back to pending reports.',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Retrieve',
+                    cancelButtonText: 'Cancel',
+                    reverseButtons: true,
+                    focusCancel: true,
+                    allowOutsideClick: false,
+                    customClass: {
+                    popup: 'custom-swal-popup-small',
+                    title: 'custom-swal-title',
+                    htmlContainer: 'custom-swal-content',
+                    confirmButton: 'custom-confirm-btn',
+                    cancelButton: 'custom-cancel-btn',
+                    },
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        report["Status"] = "Pending";
+
+                        Promise.all([
+                            database.ref(`reports/verification/${report.firebaseKey}`).set(report),
+                            database.ref(`users/${userUid}/reports/${report.firebaseKey}`).set({ ...report, Status: "Pending" }),
+                            database.ref(`reports/archived/reportsverification/${report.firebaseKey}`).remove()
+                        ])
+                            .then(() => {
+                                console.log(`Report ${report.firebaseKey} restored to verification reports`);
+                                archivedReports = archivedReports.filter(r => r.firebaseKey !== report.firebaseKey);
+                                if (!submittedReports.some(r => r.firebaseKey === report.firebaseKey)) {
+                                    submittedReports.push(report);
+                                } else {
+                                    console.warn(`Report ${report.firebaseKey} already exists in submittedReports, skipping push`);
+                                }
+                                setTimeout(() => {
+                                    currentPage = 1;
+                                    applySearchAndSort();
+                                    renderArchivedReportsTable();
+                                    console.log("After restoration - Submitted Reports:", submittedReports);
+                                    console.log("After restoration - Archived Reports:", archivedReports);
+                                }, 100);
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Retrieved!',
+                                    text: 'The report has been restored to verification reports.',
+                                    confirmButtonText: 'OK',
+                                    customClass: {
+                                        popup: 'swal2-popup-success-clean',
+                                        title: 'swal2-title-success-clean',
+                                        htmlContainer: 'swal2-text-success-clean',
+                                        confirmButton: 'my-success-button'
+                                    }
+                                });
+                                archivedModal.style.display = 'none';
+                            })
+                            .catch(error => {
+                                console.error("Error during report restoration:", error);
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error',
+                                    text: 'Failed to restore report: ' + error.message,
+                                });
+                            });
+                    }
                 });
             });
 
@@ -728,10 +760,11 @@ document.addEventListener('DOMContentLoaded', () => {
         currentPage = 1;
         applySearchAndSort();
     });
-    viewArchivedBtn.addEventListener('click', () => {
-        archivedModal.style.display = 'flex';
-        loadRejectedReports();  // <-- call function here
-    });
+  viewArchivedBtn.addEventListener('click', () => {
+    currentArchivedPage = 1; // Reset to first page
+    loadArchivedReportsFromFirebase(); // Load archived reports
+    archivedModal.style.display = 'flex';
+});
     closeArchivedModalBtn.addEventListener('click', () => {
         archivedModal.style.display = 'none';
     });
