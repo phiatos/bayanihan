@@ -1,3 +1,7 @@
+console.log = function () {};
+console.error = function () {};
+console.warn = function () {};
+
 // Notify admin function (defined globally within the file)
 const notifyAdmin = async (message, calamityType, location, details, requestId, senderName, organization) => {
     try {

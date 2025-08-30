@@ -1,3 +1,8 @@
+console.log = function () {};
+console.error = function () {};
+console.warn = function () {};
+
+
 let map;
 let markers = [];
 let autocomplete;
@@ -1006,3 +1011,6 @@ if (amountDonatedInput) {
       navbar.style.pointerEvents = "auto";
     }
   });
+
+// Expose initMap to Google Maps callback
+window.initMap = initMap;

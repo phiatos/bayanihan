@@ -346,10 +346,6 @@ window.initializeDashboard = function () {
                 setupAdminNotifications();
                 fetchReports();
                 fetchApprovedReports();
-
-                if (userRole === "AB ADMIN") {
-                    fetchAndRenderABVNMetrics();
-                }
                 if (userRole === "ABVN") {
                     map.setOptions({
                         disableDefaultUI: true,

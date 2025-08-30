@@ -1,3 +1,7 @@
+console.log = function () {};
+console.error = function () {};
+console.warn = function () {};
+
 if (typeof firebase === 'undefined') {
     console.error('Firebase SDK not loaded. Please check HTML script tags.');
     Swal.fire('Error', 'Firebase SDK failed to load. Please check your network or script tags.', 'error');

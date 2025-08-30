@@ -1,3 +1,7 @@
+console.log = function () {};
+console.error = function () {};
+console.warn = function () {};
+
 document.addEventListener('DOMContentLoaded', () => {
     // Firebase configuration
     const firebaseConfig = {
