@@ -152,7 +152,6 @@ document.addEventListener('DOMContentLoaded', () => {
             current = 1;
             showStep(current);
         } catch (error) {
-            console.error('Error in Step 1:', error);
             let errorMessage = 'Failed to send reset email. Please try again.';
             if (error.code === 'auth/user-not-found') {
                 errorMessage = 'No account is associated with this email address.';

@@ -778,7 +778,6 @@ document.addEventListener('DOMContentLoaded', () => {
             barangaySelect.selectedIndex = 0;
 
             const url = '../json/region.json';
-            console.log(`Fetching regions from: ${url}`);
 
             fetch(url)
                 .then(response => {
@@ -788,7 +787,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     return response.json();
                 })
                 .then(data => {
-                    console.log("Region data loaded (Vanilla JS):", data);
                     if (!Array.isArray(data) || !data.every(item => item.region_code && item.region_name)) {
                         throw new Error("Invalid region data structure");
                     }
@@ -854,7 +852,6 @@ document.addEventListener('DOMContentLoaded', () => {
             barangaySelect.selectedIndex = 0;
 
             const url = '../json/province.json';
-            console.log(`Fetching provinces from: ${url}`);
 
             fetch(url)
                 .then(response => {
@@ -864,7 +861,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     return response.json();
                 })
                 .then(data => {
-                    console.log("Province data loaded (Vanilla JS):", data);
                     if (!Array.isArray(data) || !data.every(item => item.region_code && item.province_code && item.province_name)) {
                         throw new Error("Invalid province data structure");
                     }
@@ -927,7 +923,6 @@ document.addEventListener('DOMContentLoaded', () => {
             barangaySelect.selectedIndex = 0;
 
             const url = '../json/city.json';
-            console.log(`Fetching cities from: ${url}`);
 
             fetch(url)
                 .then(response => {
@@ -937,7 +932,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     return response.json();
                 })
                 .then(data => {
-                    console.log("City data loaded (Vanilla JS):", data);
                     if (!Array.isArray(data) || !data.every(item => item.province_code && item.city_code && item.city_name)) {
                         throw new Error("Invalid city data structure");
                     }
@@ -993,7 +987,6 @@ document.addEventListener('DOMContentLoaded', () => {
             barangaySelect.selectedIndex = 0;
 
             const url = '../json/barangay.json';
-            console.log(`Fetching barangays from: ${url}`);
 
             fetch(url)
                 .then(response => {
@@ -1003,7 +996,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     return response.json();
                 })
                 .then(data => {
-                    console.log("Barangay data loaded (Vanilla JS):", data);
                     if (!Array.isArray(data) || !data.every(item => item.city_code && item.brgy_code && item.brgy_name)) {
                         throw new Error("Invalid barangay data structure");
                     }
@@ -1052,7 +1044,6 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
 
             if (isSubmitting) {
-                console.log('Already submitting, please wait...');
                 return;
             }
 
@@ -1171,7 +1162,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 await database.ref("volunteerApplications/pendingVolunteer").push(volunteerData);
 
-                console.log("Volunteer application saved to Realtime Database successfully!");
                 Swal.fire({
                     title: 'Success!',
                     text: 'Application submitted successfully! Thank you for joining us.',

@@ -11,9 +11,7 @@ const firebaseConfig = {
 
 try {
     firebase.initializeApp(firebaseConfig);
-    console.log("Firebase initialized successfully:", firebase.app().name);
 } catch (error) {
-    console.error("Firebase initialization failed:", error);
     Swal.fire({
         icon: "error",
         title: "Initialization Error",
@@ -26,18 +24,14 @@ const database = firebase.database();
 // Initialize secondary Firebase app for creating users
 try {
     firebase.initializeApp(firebaseConfig, "SecondaryApp");
-    console.log("Secondary Firebase app initialized successfully");
 } catch (error) {
-    console.error("Secondary Firebase initialization failed:", error);
 }
 const secondaryAuth = firebase.auth(firebase.app("SecondaryApp"));
 
 // Initialize EmailJS with updated public key
 try {
     emailjs.init('ULA8rmn7VM-3fZ7ik');
-    console.log("EmailJS initialized successfully");
 } catch (error) {
-    console.error("EmailJS initialization failed:", error);
 }
 
 // Function to generate a random temporary password
@@ -76,7 +70,6 @@ async function isMobileNumberInUse(mobile, excludeUid) {
         }
         return false;
     } catch (error) {
-        console.error("Error checking mobile number in use:", error);
         return false;
     }
 }
@@ -93,7 +86,6 @@ async function isEmailInUse(email, excludeUid) {
         }
         return false;
     } catch (error) {
-        console.error("Error checking email in use:", error);
         return false;
     }
 }
@@ -118,7 +110,6 @@ async function isDataUnchanged(orgId, updatedData) {
             orgData.address.streetAddress === updatedData.address.streetAddress
         );
     } catch (error) {
-        console.error("Error checking unchanged data:", error);
         return false;
     }
 }
@@ -259,9 +250,7 @@ function clearAInputs() {
 function fetchAndRenderTable() {
     database.ref("volunteerGroups").on("value", snapshot => {
         const fetchedData = snapshot.val();
-        console.log("Fetched volunteerGroups:", fetchedData);
         if (!fetchedData) {
-            console.warn("No data found in volunteerGroups node.");
             data = [];
             filteredData = [];
             applySearchAndSort();
@@ -299,9 +288,7 @@ function fetchAndRenderTable() {
 function fetchAndRenderArchivedTable() {
     database.ref("deletedVolunteerGroups").on("value", snapshot => {
         const fetchedArchivedData = snapshot.val();
-        console.log("Fetched deletedVolunteerGroups:", fetchedArchivedData);
         if (!fetchedArchivedData) {
-            console.warn("No data found in deletedVolunteerGroups node.");
             archivedData = [];
             filteredArchivedData = [];
             applyArchivedSearchAndSort();
@@ -329,7 +316,6 @@ function fetchAndRenderArchivedTable() {
 
 // Render table
 function renderTable(dataToRender = filteredData) {
-    console.log("Rendering table with data:", dataToRender);
     if (!tableBody) return;
     tableBody.innerHTML = "";
     const start = (currentPage - 1) * rowsPerPage;
@@ -374,7 +360,6 @@ function renderTable(dataToRender = filteredData) {
 
 // Render archived table
 function renderArchivedTable(dataToRender = filteredArchivedData) {
-    console.log("Rendering archived table with data:", dataToRender);
     if (!archivedTableBody) return;
     archivedTableBody.innerHTML = "";
     const start = (archivedCurrentPage - 1) * archivedRowsPerPage;
@@ -427,7 +412,6 @@ var my_handlers = {
         barangaySelect.selectedIndex = 0;
 
         const url = '../json/region.json';
-        console.log(`Fetching regions from: ${url}`);
 
         fetch(url)
             .then(response => {
@@ -437,7 +421,6 @@ var my_handlers = {
                 return response.json();
             })
             .then(data => {
-                console.log("Region data loaded (Vanilla JS):", data);
                 if (!Array.isArray(data) || !data.every(item => item.region_code && item.region_name)) {
                     throw new Error("Invalid region data structure");
                 }
@@ -454,7 +437,6 @@ var my_handlers = {
                 });
             })
             .catch(error => {
-                console.error("Request for region.json Failed (Vanilla JS): " + error.message);
                 Swal.fire({
                     icon: 'error',
                     title: 'Failed to Load Regions',
@@ -502,7 +484,6 @@ var my_handlers = {
         barangaySelect.selectedIndex = 0;
 
         const url = '../json/province.json';
-        console.log(`Fetching provinces from: ${url}`);
 
         fetch(url)
             .then(response => {
@@ -512,7 +493,6 @@ var my_handlers = {
                 return response.json();
             })
             .then(data => {
-                console.log("Province data loaded (Vanilla JS):", data);
                 if (!Array.isArray(data) || !data.every(item => item.region_code && item.province_code && item.province_name)) {
                     throw new Error("Invalid province data structure");
                 }
@@ -533,7 +513,6 @@ var my_handlers = {
                 });
             })
             .catch(error => {
-                console.error("Request for province.json Failed (Vanilla JS): " + error.message);
                 Swal.fire({
                     icon: 'error',
                     title: 'Failed to Load Provinces',
@@ -574,7 +553,6 @@ var my_handlers = {
         barangaySelect.selectedIndex = 0;
 
         const url = '../json/city.json';
-        console.log(`Fetching cities from: ${url}`);
 
         fetch(url)
             .then(response => {
@@ -584,7 +562,6 @@ var my_handlers = {
                 return response.json();
             })
             .then(data => {
-                console.log("City data loaded (Vanilla JS):", data);
                 if (!Array.isArray(data) || !data.every(item => item.province_code && item.city_code && item.city_name)) {
                     throw new Error("Invalid city data structure");
                 }
@@ -605,7 +582,6 @@ var my_handlers = {
                 });
             })
             .catch(error => {
-                console.error("Request for city.json Failed (Vanilla JS): " + error.message);
                 Swal.fire({
                     icon: 'error',
                     title: 'Failed to Load Cities',
@@ -639,7 +615,6 @@ var my_handlers = {
         barangaySelect.selectedIndex = 0;
 
         const url = '../json/barangay.json';
-        console.log(`Fetching barangays from: ${url}`);
 
         fetch(url)
             .then(response => {
@@ -649,7 +624,6 @@ var my_handlers = {
                 return response.json();
             })
             .then(data => {
-                console.log("Barangay data loaded (Vanilla JS):", data);
                 if (!Array.isArray(data) || !data.every(item => item.city_code && item.brgy_code && item.brgy_name)) {
                     throw new Error("Invalid barangay data structure");
                 }
@@ -670,7 +644,6 @@ var my_handlers = {
                 });
             })
             .catch(error => {
-                console.error("Request for barangay.json Failed (Vanilla JS): " + error.message);
                 Swal.fire({
                     icon: 'error',
                     title: 'Failed to Load Barangays',
@@ -951,7 +924,6 @@ if (confirmSaveBtn) {
             if (!adminUser) {
                 throw new Error("No admin signed in. Please sign in again.");
             }
-            console.log("Current admin:", adminUser.uid);
 
             const tempPassword = generateTempPassword();
             let userCredential;
@@ -1024,7 +996,6 @@ if (confirmSaveBtn) {
 
             await secondaryAuth.signOut();
         } catch (error) {
-            console.error('Error adding volunteer group:', error);
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
@@ -1039,7 +1010,6 @@ if (confirmSaveBtn) {
         } finally {
             isProcessing = false;
             confirmSaveBtn.disabled = false;
-            console.log("Admin still signed in:", auth.currentUser?.uid);
         }
     });
 }
@@ -1062,7 +1032,6 @@ window.addEventListener('click', (event) => {
 function openEditModal(orgId) {
     const orgToEdit = data.find(org => org.id === orgId);
     if (!orgToEdit) {
-        console.error("Organization not found for editing:", orgId);
         Swal.fire({
             icon: 'error',
             title: 'Error',
@@ -1165,7 +1134,6 @@ async function populateEditLocationDropdowns(selectedRegion, selectedProvince, s
             editBarangaySelect.value = barangayFound.brgy_code;
         }
     } catch (error) {
-        console.error("Error populating edit location dropdowns:", error);
         Swal.fire({
             icon: 'error',
             title: 'Failed to Load Location Data',
@@ -1201,7 +1169,6 @@ editRegionSelect.addEventListener('change', async () => {
             editProvinceSelect.appendChild(opt);
         });
     } catch (error) {
-        console.error("Error fetching provinces for edit modal:", error);
     }
 });
 
@@ -1223,7 +1190,6 @@ editProvinceSelect.addEventListener('change', async () => {
             editCitySelect.appendChild(opt);
         });
     } catch (error) {
-        console.error("Error fetching cities for edit modal:", error);
     }
 });
 
@@ -1244,7 +1210,6 @@ editCitySelect.addEventListener('change', async () => {
             editBarangaySelect.appendChild(opt);
         });
     } catch (error) {
-        console.error("Error fetching barangays for edit modal:", error);
     }
 });
 
@@ -1391,7 +1356,6 @@ if (editOrgForm) {
             }
             userId = orgData.userId;
         } catch (error) {
-            console.error("Error fetching userId:", error);
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
@@ -1473,7 +1437,6 @@ if (editOrgForm) {
 
         try {
             await database.ref(`volunteerGroups/${orgId}`).update(updatedData);
-            console.log("Volunteer group updated successfully!");
             Swal.fire({
                 icon: 'success',
                 title: 'Success',
@@ -1491,7 +1454,6 @@ if (editOrgForm) {
             editOrgForm.reset();
             fetchAndRenderTable();
         } catch (error) {
-            console.error("Error updating volunteer group:", error);
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
@@ -1618,7 +1580,6 @@ function attachRowHandlers() {
                             fetchAndRenderArchivedTable();
                             });
                         } catch (error) {
-                            console.error("Volunteer group archiving error:", error);
                             Swal.close();
                             Swal.fire({
                                 icon: 'error',
@@ -1725,7 +1686,6 @@ function attachArchivedRowHandlers() {
                         fetchAndRenderTable();
                         fetchAndRenderArchivedTable();
                     } catch (error) {
-                        console.error("Volunteer group restoration error:", error);
                         Swal.fire({
                             icon: 'error',
                             title: 'Restoration Error',
@@ -1923,20 +1883,16 @@ if (sortSelect) {
 
 if (viewArchivedBtn) {
     viewArchivedBtn.addEventListener('click', () => {
-        console.log("View Archived button clicked!");
         if (!isSuperAdmin) {
             Swal.fire('Access Denied', 'You must be a Super Admin to view archived groups.', 'error');
             return;
         }
-        console.log("archivedModal element before display attempt:", archivedModal, archivedModal.style.display);
         if (archivedModal) {
             document.getElementById('addOrgModal').style.display = 'none';
             document.getElementById('confirmModal').style.display = 'none';
             document.getElementById('editOrgModal').style.display = 'none';
             
-            console.log("archivedModal element found. Setting display to flex.");
             archivedModal.style.display = 'flex';
-            console.log("archivedModal display after setting:", archivedModal.style.display);
             fetchAndRenderArchivedTable();
         }
     });
@@ -1962,15 +1918,11 @@ if (editDetailsBtn) {
 
 // Initialize
 document.addEventListener("DOMContentLoaded", () => {
-    console.log("DOM loaded, fetching data...");
-    // Moved the initial fetchAndRenderTable and fetchAndRenderArchivedTable
-    // calls inside the auth.onAuthStateChanged listener's .then() block
-    // to ensure isSuperAdmin is set first.
+    
 });
 
 // --- FIX APPLIED HERE: Moved data fetching and rendering inside the auth.onAuthStateChanged .then() block ---
 auth.onAuthStateChanged(user => {
-    console.log("User state:", user ? `Signed in as ${user.uid}` : "No user signed in");
     if (!user) {
         Swal.fire({
             icon: "warning",
@@ -1999,14 +1951,12 @@ auth.onAuthStateChanged(user => {
                 viewArchivedBtn.style.display = 'none'; // Hide if not super admin
             }
         }
-        console.log("Is Super Admin:", isSuperAdmin);
 
         // Now that isSuperAdmin is determined, fetch and render tables
         fetchAndRenderTable();
         fetchAndRenderArchivedTable();
 
     }).catch(error => {
-        console.error("Error fetching user role:", error);
         isSuperAdmin = false; // Default to not super admin on error
         if (viewArchivedBtn) {
             viewArchivedBtn.style.display = 'none';

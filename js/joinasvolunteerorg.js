@@ -239,7 +239,6 @@ document.addEventListener('DOMContentLoaded', () => {
             barangaySelect.selectedIndex = 0;
 
             const url = '../json/region.json';
-            console.log(`Fetching regions from: ${url}`);
 
             fetch(url)
                 .then(response => {
@@ -249,7 +248,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     return response.json();
                 })
                 .then(data => {
-                    console.log("Region data loaded (Vanilla JS):", data);
                     if (!Array.isArray(data) || !data.every(item => item.region_code && item.region_name)) {
                         throw new Error("Invalid region data structure");
                     }
@@ -315,7 +313,6 @@ document.addEventListener('DOMContentLoaded', () => {
             barangaySelect.selectedIndex = 0;
 
             const url = '../json/province.json';
-            console.log(`Fetching provinces from: ${url}`);
 
             fetch(url)
                 .then(response => {
@@ -325,7 +322,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     return response.json();
                 })
                 .then(data => {
-                    console.log("Province data loaded (Vanilla JS):", data);
                     if (!Array.isArray(data) || !data.every(item => item.region_code && item.province_code && item.province_name)) {
                         throw new Error("Invalid province data structure");
                     }
@@ -388,7 +384,6 @@ document.addEventListener('DOMContentLoaded', () => {
             barangaySelect.selectedIndex = 0;
 
             const url = '../json/city.json';
-            console.log(`Fetching cities from: ${url}`);
 
             fetch(url)
                 .then(response => {
@@ -398,7 +393,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     return response.json();
                 })
                 .then(data => {
-                    console.log("City data loaded (Vanilla JS):", data);
                     if (!Array.isArray(data) || !data.every(item => item.province_code && item.city_code && item.city_name)) {
                         throw new Error("Invalid city data structure");
                     }
@@ -454,7 +448,6 @@ document.addEventListener('DOMContentLoaded', () => {
             barangaySelect.selectedIndex = 0;
 
             const url = '../json/barangay.json';
-            console.log(`Fetching barangays from: ${url}`);
 
             fetch(url)
                 .then(response => {
@@ -464,7 +457,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     return response.json();
                 })
                 .then(data => {
-                    console.log("Barangay data loaded (Vanilla JS):", data);
                     if (!Array.isArray(data) || !data.every(item => item.city_code && item.brgy_code && item.brgy_name)) {
                         throw new Error("Invalid barangay data structure");
                     }
@@ -517,7 +509,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Prevent multiple rapid submissions
             if (isSubmitting) {
-                console.log('Already submitting ABVN application, please wait...');
                 return;
             }
 
@@ -736,7 +727,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const newApplicationRef = await database.ref("abvnApplications/pendingABVN").push(applicationData);
 
-                console.log("ABVN application saved to Realtime Database successfully!");
                 Swal.fire({
                     title: 'Success!',
                     text: 'Application submitted successfully! Thank you for joining us.',
@@ -775,9 +765,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Firebase Authentication State Change Listener
     auth.onAuthStateChanged(user => {
         if (user) {
-            console.log(`User logged in: ${user.uid}`);
         } else {
-            console.log('User logged out');
         }
     });
 

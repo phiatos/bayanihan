@@ -10,12 +10,8 @@ const firebaseConfig = {
     measurementId: "G-ZTQ9VXXVV0",
 };
 
-// Initialize Firebase only if it hasn't been initialized already
 if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
-    console.log("Firebase initialized successfully.");
-} else {
-    console.log("Firebase already initialized.");
 }
 
 const database = firebase.database();
@@ -24,10 +20,7 @@ const auth = firebase.auth();
 // EmailJS with your public key
 try {
     emailjs.init('BwfsCx-NJCb3qGxCk');
-    console.log("EmailJS initialized successfully");
-} catch (error) {
-    console.error("EmailJS initialization failed:", error);
-}
+} catch (error) {}
 
 // Variables for inactivity detection
 let inactivityTimeout;
@@ -143,7 +136,6 @@ function restrictAction(action) {
 function resetInactivityTimer() {
     clearTimeout(inactivityTimeout);
     inactivityTimeout = setTimeout(checkInactivity, INACTIVITY_TIME);
-    console.log("Inactivity timer reset.");
 }
 
 // Function to check for inactivity and prompt the user
@@ -168,13 +160,10 @@ function checkInactivity() {
     }).then((result) => {
         if (result.isConfirmed) {
             resetInactivityTimer();
-            console.log("User chose to continue session.");
         } else if (result.dismiss === Swal.DismissReason.cancel) {
             auth.signOut().then(() => {
-                console.log("User logged out due to inactivity.");
                 window.location.href = "../pages/login.html";
             }).catch((error) => {
-                console.error("Error logging out:", error);
                 Swal.fire({
                     title: 'Error',
                     text: 'Failed to log out. Please try again.',
@@ -219,25 +208,20 @@ auth.onAuthStateChanged(user => {
         });
         return;
     }
-    console.log("User authenticated:", user.uid);
 
     // Fetch user role to determine Super Admin status and permissions
     database.ref(`users/${user.uid}`).once('value', snapshot => {
         const userData = snapshot.val();
         if (userData && userData.adminPosition) {
             currentUserAdminPosition = userData.adminPosition;
-            console.log("Current user admin position:", currentUserAdminPosition);
         } else {
             currentUserAdminPosition = null;
-            console.log("No admin position found for user. Access restricted.");
         }
         currentUserIsSuperAdmin = userData && userData.isSuperAdmin === true;
-        console.log("Current user isSuperAdmin:", currentUserIsSuperAdmin);
         initializePageFunctions(user.uid);
         setupInactivityListeners();
         resetInactivityTimer();
     }).catch(error => {
-        console.error("Error fetching user role:", error);
         currentUserAdminPosition = null;
         currentUserIsSuperAdmin = false;
         initializePageFunctions(user.uid);
@@ -303,9 +287,7 @@ function initializePageFunctions(userId) {
     exportBtn.addEventListener('click', exportToExcel);
     savePdfBtn.addEventListener('click', exportToPDF);
 
-    function showError(input, message) {
-        console.error(`Validation error for ${input.name || 'field'}: ${message}`);
-    }
+    function showError(input, message) {}
 
     async function validateVolunteerForm(inputs) {
         let isValid = true;
@@ -376,7 +358,6 @@ async function checkForDuplicate(mobileNumber, email, name) {
             });
         }
     } catch (error) {
-        console.error('Error checking for duplicates:', error);
     }
     return duplicates;
 }
@@ -543,8 +524,6 @@ async function checkForDuplicate(mobileNumber, email, name) {
                     const progress = (processedRows / totalRows) * 100;
                     updateImportStatus(progress, `Processing row ${processedRows} of ${totalRows}...`);
 
-                    console.log('Row data:', row, 'Headers:', headers); // Debug row data
-
                     // Inside the excelFileInput event listener, replace the mockInputs creation with this:
                     const fullName = String(row[headers.indexOf("Full Name")] || '').trim();
                     if (!fullName) {
@@ -595,8 +574,6 @@ async function checkForDuplicate(mobileNumber, email, name) {
                         volunteer.mobileNumber = '0' + volunteer.mobileNumber;
                     }
 
-                    console.log('Volunteer object:', volunteer); // Debug volunteer object
-
                     // Create mock inputs, adding the `name` field
                     const mockInputs = {
                         name: { value: fullName, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null }, // Add name field
@@ -621,8 +598,6 @@ async function checkForDuplicate(mobileNumber, email, name) {
                         statusNotes: { value: volunteer.statusNotes, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null }
                     };
 
-                    console.log('Mock inputs:', mockInputs); // Debug mock inputs
-
                     // Override showError to collect errors
                     const originalShowError = showError;
                     const rowErrors = [];
@@ -635,7 +610,6 @@ async function checkForDuplicate(mobileNumber, email, name) {
                     try {
                         isValidRow = await validateVolunteerForm(mockInputs);
                     } catch (error) {
-                        console.error(`Validation error for row ${i + 2}:`, error);
                         importErrors.push(`Row ${i + 2}: Validation error - ${error.message}`);
                     }
 
@@ -932,7 +906,6 @@ async function checkForDuplicate(mobileNumber, email, name) {
 
     function showEndorseABVNModal() {
         if (!restrictAction('endorseToABVN')) return;
-        console.log('Opening Endorse ABVN Modal for:', currentVolunteerKey);
         endorseABVNModal.style.display = 'flex';
         fetchABVNs();
     }
@@ -955,13 +928,9 @@ async function checkForDuplicate(mobileNumber, email, name) {
                     const volunteerKey = childSnapshot.key;
                     allApplications.push({ key: volunteerKey, ...volunteerData });
                 });
-                console.log("Fetched pending volunteers:", allApplications);
-            } else {
-                console.log("No pending volunteer applications found.");
             }
             applySearchAndSort();
         }, (error) => {
-            console.error("Error fetching pending volunteers: ", error);
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
@@ -987,13 +956,9 @@ async function checkForDuplicate(mobileNumber, email, name) {
                     const volunteerKey = childSnapshot.key;
                     archivedApplications.push({ key: volunteerKey, ...volunteerData });
                 });
-                console.log("Fetched archived volunteers:", archivedApplications);
-            } else {
-                console.log("No archived volunteer applications found.");
             }
             renderArchivedApplications();
         }, (error) => {
-            console.error("Error fetching archived volunteers:", error);
             archivedTableBody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: red;">Failed to load data.</td></tr>';
         });
     }
@@ -1096,7 +1061,6 @@ async function checkForDuplicate(mobileNumber, email, name) {
                         abvnCache.push({ key: childSnapshot.key, ...childSnapshot.val() });
                     });
                 }
-                console.log('ABVN Cache:', abvnCache);
             }
             if (abvnCache.length === 0) {
                 abvnListContainer.innerHTML = '<p>No volunteer groups found.</p>';
@@ -1124,7 +1088,6 @@ async function checkForDuplicate(mobileNumber, email, name) {
             });
             setupFilterListeners(volunteerLocation);
         } catch (error) {
-            console.error("Error fetching ABVN groups:", error);
             abvnListContainer.innerHTML = '<p style="color: red;">Failed to load ABVN locations.</p>';
             filterResultsInfo.textContent = 'Showing 0 ABVN groups';
             Swal.fire({
@@ -1219,9 +1182,7 @@ async function checkForDuplicate(mobileNumber, email, name) {
             }
             const dataForExport = filteredApplications.map((volunteer, i) => {
                 const applicationDateTime = formatDate(volunteer.applicationDateandTime);
-                if (applicationDateTime === 'N/A') {
-                    console.warn(`Missing or invalid applicationDateandTime for volunteer ${volunteer.key}:`, volunteer.applicationDateandTime);
-                }
+                if (applicationDateTime === 'N/A') {}
                 let skillsDisplay = 'None';
                 if (volunteer.skills && Array.isArray(volunteer.skills) && volunteer.skills.length > 0) {
                     skillsDisplay = volunteer.skills.map(skill => 
@@ -1335,9 +1296,7 @@ async function checkForDuplicate(mobileNumber, email, name) {
             ]];
             const body = filteredApplications.map((volunteer, i) => {
                 const applicationDateTime = formatDate(volunteer.applicationDateandTime);
-                if (applicationDateTime === 'N/A') {
-                    console.warn(`Missing or invalid applicationDateandTime for volunteer ${volunteer.key}:`, volunteer.applicationDateandTime);
-                }
+                if (applicationDateTime === 'N/A') {}
                 let skillsDisplay = 'None';
                 if (volunteer.skills && Array.isArray(volunteer.skills) && volunteer.skills.length > 0) {
                     skillsDisplay = volunteer.skills.map(skill => 
@@ -1488,9 +1447,7 @@ async function checkForDuplicate(mobileNumber, email, name) {
             y = addDetail("Skills", skillsDisplay);
             y = addDetail("Date/Time Availability", volunteer.availability?.specificDateTimeSlots?.map(slot => `${slot.date} at ${slot.time}`).join('; '));
             const applicationDateTime = formatDate(volunteer.applicationDateandTime);
-            if (applicationDateTime === 'N/A') {
-                console.warn(`Missing or invalid applicationDateandTime for volunteer ${volunteer.key}:`, volunteer.applicationDateandTime);
-            }
+            if (applicationDateTime === 'N/A') {}
             y = addDetail("Application Date/Time", applicationDateTime);
             y = addDetail("Status Notes", typeof volunteer.statusNotes === 'string' ? volunteer.statusNotes : (Array.isArray(volunteer.statusNotes) && volunteer.statusNotes.length > 0 ? volunteer.statusNotes[volunteer.statusNotes.length - 1].note : '-'));
             doc.setFontSize(8);
@@ -1649,8 +1606,6 @@ async function checkForDuplicate(mobileNumber, email, name) {
 
     // --- Search and Sort Logic ---
     function applySearchAndSort() {
-        console.log('Search Term:', searchInput.value);
-        console.log('Sort Value:', sortSelect.value);
         let currentApplications = [...allApplications];
         const searchTerm = searchInput.value.toLowerCase().trim();
         const sortValue = sortSelect.value;
@@ -1827,7 +1782,6 @@ async function checkForDuplicate(mobileNumber, email, name) {
         }
 
         filteredApplications = currentApplications;
-        console.log('Filtered and Sorted Applications:', filteredApplications);
         currentPage = 1;
         renderApplications(filteredApplications);
     }
@@ -1961,7 +1915,6 @@ async function checkForDuplicate(mobileNumber, email, name) {
         const volunteerKey = rowWithKey.dataset.key;
         const volunteer = allApplications.find(v => v.key === volunteerKey);
         if (!volunteer) {
-            console.warn("Volunteer data not found for key:", volunteerKey);
             Swal.fire({
                 title: 'Error',
                 text: 'Volunteer data not found.',
@@ -2095,7 +2048,6 @@ async function checkForDuplicate(mobileNumber, email, name) {
                             });
                             fetchPendingVolunteers();
                         } catch (error) {
-                            console.error("Error setting volunteer to stalled:", error);
                             Swal.fire({
                                 title: 'Error',
                                 text: 'Failed to update volunteer status. Please try again.',
@@ -2171,7 +2123,6 @@ async function checkForDuplicate(mobileNumber, email, name) {
                                 });
                                 fetchPendingVolunteers();
                             } catch (error) {
-                                console.error('Error archiving volunteer:', error);
                                 Swal.fire({
                                     title: 'Error',
                                     text: 'Failed to archive volunteer. Please try again.',
@@ -2270,7 +2221,6 @@ async function checkForDuplicate(mobileNumber, email, name) {
                         });
                         fetchArchivedApplications();
                     } catch (error) {
-                        console.error('Error restoring volunteer:', error);
                         Swal.fire({
                             title: 'Error',
                             text: 'Failed to retrieve volunteer. Please try again.',
@@ -2620,7 +2570,6 @@ async function checkForDuplicate(mobileNumber, email, name) {
             }
             handleScheduleConfirmation(scheduledDateTime, currentVolunteerKey, currentVolunteerData);
         } catch (error) {
-            console.error("Error during duplicate check for approved volunteer:", error);
             Swal.fire({
                 title: 'Error',
                 text: 'Failed to perform duplicate check. Please try again.',
@@ -2685,7 +2634,6 @@ async function checkForDuplicate(mobileNumber, email, name) {
                     hideScheduleModal();
                     fetchPendingVolunteers();
                 } catch (error) {
-                    console.error("Error confirming schedule and approving volunteer:", error);
                     Swal.fire({
                         title: 'Error',
                         text: 'Failed to schedule and approve volunteer. Please try again.',
@@ -2806,7 +2754,6 @@ async function checkForDuplicate(mobileNumber, email, name) {
                     });
                     hideEndorseABVNModal();
                 } catch (error) {
-                    console.error("Error endorsing volunteer to ABVN:", error);
                     Swal.fire({
                         title: 'Error',
                         text: 'Failed to endorse volunteer. Please try again.',
@@ -2981,7 +2928,6 @@ async function checkForDuplicate(mobileNumber, email, name) {
             }
             showEndorseABVNModal();
         } catch (endorseCheckError) {
-            console.error("Error during duplicate check for endorsed volunteer:", endorseCheckError);
             Swal.fire({
                 title: 'Error',
                 text: 'Failed to perform endorsement duplicate check. Please try again.',
@@ -3000,7 +2946,6 @@ async function checkForDuplicate(mobileNumber, email, name) {
     async function sendApprovalEmail(volunteer, scheduledDate) {
         if (!restrictAction('confirmByAB')) return;
         if (!volunteer || !volunteer.email) {
-            console.error("Cannot send email: Volunteer or email missing.");
             Swal.fire({
                 title: 'Error',
                 text: 'Missing volunteer email. Cannot send confirmation.',
@@ -3022,7 +2967,6 @@ async function checkForDuplicate(mobileNumber, email, name) {
         };
         try {
             const response = await emailjs.send('service_gupgjog', 'template_udpyecq', templateParams);
-            console.log('Email successfully sent!', response.status, response.text);
             Swal.fire({
                 title: 'Email Sent!',
                 text: 'Confirmation email has been sent to the volunteer.',
@@ -3038,7 +2982,6 @@ async function checkForDuplicate(mobileNumber, email, name) {
                 }
             });
         } catch (error) {
-            console.error('Failed to send email:', error);
             Swal.fire({
                 title: 'Email Error',
                 text: 'Failed to send confirmation email. Please try again.',
@@ -3056,7 +2999,6 @@ async function checkForDuplicate(mobileNumber, email, name) {
     async function sendEndorsementEmail(volunteer, abvnGroup) {
         if (!restrictAction('endorseToABVN')) return;
         if (!volunteer || !volunteer.email || !abvnGroup || !abvnGroup.email) {
-            console.error("Cannot send endorsement email: Missing volunteer or ABVN group email.");
             Swal.fire({
                 title: 'Error',
                 text: 'Missing volunteer or ABVN group email. Cannot send endorsement.',
@@ -3088,7 +3030,6 @@ async function checkForDuplicate(mobileNumber, email, name) {
         };
         try {
             const response = await emailjs.send('service_gupgjog', 'template_5ndnhco', templateParams);
-            console.log('Endorsement email successfully sent!', response.status, response.text);
             Swal.fire({
                 title: 'Endorsement Sent!',
                 text: 'Endorsement email has been sent to the ABVN group.',
@@ -3101,7 +3042,6 @@ async function checkForDuplicate(mobileNumber, email, name) {
                 }
             });
         } catch (error) {
-            console.error('Failed to send endorsement email:', error);
             Swal.fire({
                 title: 'Email Error',
                 text: 'Failed to send endorsement email. Please try again.',

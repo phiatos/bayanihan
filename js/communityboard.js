@@ -14,9 +14,7 @@ try {
   firebase.initializeApp(firebaseConfig);
   auth = firebase.auth();
   database = firebase.database();
-  console.log(`[${new Date().toISOString()}] Firebase initialized successfully`);
 } catch (error) {
-  console.error(`[${new Date().toISOString()}] Firebase initialization failed:`, error);
   Swal.fire('Error', 'Failed to initialize Firebase. Please check your configuration.', 'error');
 }
 
@@ -97,11 +95,9 @@ async function compressMedia(file) {
         ctx.drawImage(img, 0, 0, width, height);
 
         const base64String = canvas.toDataURL(file.type, 0.5);
-        console.log(`[${new Date().toISOString()}] Image compressed: ${file.size} bytes -> ${base64String.length} chars (base64)`);
         resolve(base64String);
       };
       img.onerror = (error) => {
-        console.error(`[${new Date().toISOString()}] Image compression failed:`, error);
         reject(error);
       };
     });
@@ -132,16 +128,13 @@ async function compressMedia(file) {
         const generateThumbnail = () => {
           ctx.drawImage(video, 0, 0, width, height);
           const base64String = canvas.toDataURL('image/jpeg', 0.5);
-          console.log(`[${new Date().toISOString()}] Video thumbnail generated: ${base64String.length} chars (base64)`);
 
           const reader = new FileReader();
           reader.onload = () => {
             const base64Video = reader.result;
-            console.log(`[${new Date().toISOString()}] Video converted to base64: ${base64Video.length} chars`);
             resolve({ video: base64Video, thumbnail: base64String });
           };
           reader.onerror = (error) => {
-            console.error(`[${new Date().toISOString()}] Video base64 conversion failed:`, error);
             reject(error);
           };
           reader.readAsDataURL(file);
@@ -149,7 +142,6 @@ async function compressMedia(file) {
 
         video.onseeked = generateThumbnail;
         video.onerror = (error) => {
-          console.error(`[${new Date().toISOString()}] Video processing failed:`, error);
           reject(error);
         };
 

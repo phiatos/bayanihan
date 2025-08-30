@@ -1,15 +1,11 @@
 export const clearError = (inputElement) => {
     // Check if inputElement is defined before proceeding
     if (!inputElement) {
-        console.error("clearError: inputElement is undefined.");
         return;
     }
     const inputBox = inputElement.closest('.input-box');
     // Check if inputBox is found
     if (!inputBox) {
-        console.error("clearError: .input-box not found for", inputElement);
-        // It's possible the input doesn't have a parent .input-box,
-        // so we might just clear the error class on the input itself.
         inputElement.classList.remove('error');
         return;
     }
@@ -29,13 +25,11 @@ export const clearError = (inputElement) => {
 export const displayError = (inputElement, message) => {
     // Check if inputElement is defined before proceeding
     if (!inputElement) {
-        console.error("displayError: inputElement is undefined.");
         return;
     }
     const inputBox = inputElement.closest('.input-box');
     // Check if inputBox is found
     if (!inputBox) {
-        console.error("displayError: .input-box not found for", inputElement);
         // If no .input-box, we can still add the error class to the input
         inputElement.classList.add('error');
         return;
@@ -55,7 +49,6 @@ export const displayError = (inputElement, message) => {
 // Validate Email
 export const validateEmail = (emailInput) => {
     if (!emailInput) {
-        console.error("validateEmail: emailInput is undefined.");
         return false;
     }
     clearError(emailInput);
@@ -78,7 +71,6 @@ export const validateEmail = (emailInput) => {
 // Validate Password
 export const validatePassword = (passwordInput) => {
     if (!passwordInput) {
-        console.error("validatePassword: passwordInput is undefined.");
         return false;
     }
     clearError(passwordInput);
@@ -112,19 +104,6 @@ document.addEventListener("DOMContentLoaded", () => {
         openLockIcon.style.display = 'none';
     }
 
-    // Comprehensive null checks and error reporting for all critical elements
-    if (!container) console.error("Container not found");
-    if (!loginBtn) console.error("Login button not found");
-    if (!assistBtn) console.error("Assistance button not found");
-    if (!loginForm) console.error("Login form not found");
-    if (!assistanceBox) console.error("Assistance box not found");
-    if (!backBtn) console.error("Back button not found");
-    if (!passwordInput) console.error("Password input not found");
-    if (!emailInput) console.error("Email input not found");
-    if (!lockIcon) console.error("Closed lock icon not found");
-    if (!openLockIcon) console.error("Open lock icon not found");
-
-
     // Login form submission listener
     if (loginForm && emailInput && passwordInput) { // Ensure all necessary elements exist
         loginForm.addEventListener('submit', (event) => {
@@ -134,13 +113,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (!isEmailValid || !isPasswordValid) {
                 event.preventDefault(); 
-                console.log('Login failed due to client-side validation errors.');
-            } else {
-                console.log('Login successful (client-side validation passed)!', {
-                    mobile: emailInput.value,
-                    password: passwordInput.value
-                });
-            }
+            } 
         });
     }
 

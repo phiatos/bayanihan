@@ -97,7 +97,6 @@ async function checkAdminPermissions() {
 
         return permissions;
     } catch (error) {
-        console.error('Error checking admin permissions:', error);
         return {
             canView: false,
             canEdit: false,
@@ -293,7 +292,6 @@ async function verifyUserPassword(password) {
         return true;
     } catch (error) {
         Swal.hideLoading();
-        console.error("Password re-authentication failed:", error);
         if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
             Swal.showValidationMessage('Incorrect password.');
         } else if (error.code === 'auth/user-not-found') {
@@ -357,7 +355,6 @@ async function openArchivedModal() {
 
         archivedModal.style.display = 'flex';
     } catch (error) {
-        console.error("Error fetching archived applications:", error);
         showErrorAlert('Error', 'Failed to load archived applications. Please try again.');
         archivedApplicationsContainer.innerHTML = '<tr><td colspan="8" style="text-align: center; color: red;">Failed to load data.</td></tr>';
         archivedModal.style.display = 'flex';
@@ -443,7 +440,6 @@ function initializeArchivedModal() {
             // Refresh the main approved applications table
             fetchApprovedApplications();
         } catch (error) {
-            console.error("Error retrieving application:", error);
             showErrorAlert('Error', 'Failed to retrieve application. Please try again.');
         }
     });
@@ -474,7 +470,6 @@ document.addEventListener('DOMContentLoaded', () => {
             initializePageFunctions(user.uid);
             resetInactivityTimer();
         } catch (error) {
-            console.error('Error fetching user role:', error);
             currentUserAdminPosition = null;
             initializePageFunctions(user.uid);
             resetInactivityTimer();
@@ -650,7 +645,6 @@ function initializePageFunctions(adminUserId) {
                     editProvinceSelect.appendChild(opt);
                 });
             } catch (error) {
-                console.error("Error fetching provinces for edit modal:", error);
             }
         });
     }
@@ -678,7 +672,6 @@ function initializePageFunctions(adminUserId) {
                     editCitySelect.appendChild(opt);
                 });
             } catch (error) {
-                console.error("Error fetching cities for edit modal:", error);
             }
         });
     }
@@ -704,7 +697,6 @@ function initializePageFunctions(adminUserId) {
                     editBarangaySelect.appendChild(opt);
                 });
             } catch (error) {
-                console.error("Error fetching barangays for edit modal:", error);
             }
         });
     }
@@ -744,7 +736,6 @@ function fetchApprovedApplications() {
         } else {}
         applySearchAndSort();
     }, (error) => {
-        console.error("Error fetching approved applications: ", error);
         showErrorAlert('Error', 'Failed to load approved applications. Please try again later.');
         volunteerOrgsContainer.innerHTML = '<tr><td colspan="10" style="text-align: center; color: red;">Failed to load data.</td></tr>';
     });
@@ -1171,7 +1162,6 @@ async function handleTableActions(event) {
 async function openEditModal(appKey) {
     const applicationToEdit = allApplications.find(app => app.key === appKey);
     if (!applicationToEdit) {
-        console.error("Application not found for editing:", appKey);
         showErrorAlert('Error', 'Application details not found.');
         return;
     }
@@ -1293,7 +1283,6 @@ async function populateEditLocationDropdowns(selectedRegionName, selectedProvinc
             if (editBarangayTextInput) editBarangayTextInput.value = barangayFound.brgy_name;
         }
     } catch (error) {
-        console.error("Error populating edit location dropdowns:", error);
         showErrorAlert('Failed to Load Location Data', `Unable to load location data for editing: ${error.message}.`);
     }
 }
@@ -1425,7 +1414,6 @@ async function handleEditFormSubmission() {
         editOrgForm.reset();
         fetchApprovedApplications();
     } catch (error) {
-        console.error("Error updating approved application:", error);
         showErrorAlert('Error', 'Failed to update approved application. Please try again.');
     }
 }
@@ -1562,7 +1550,6 @@ async function registerVolunteerGroup(applicationData) {
                 }
             }
         } catch (error) {
-            console.error("Error checking Firebase Auth user by email (fetchSignInMethodsForEmail):", error);
             throw new Error(`Firebase Auth user check failed: ${error.message}`);
         }
 
@@ -1692,7 +1679,6 @@ async function registerVolunteerGroup(applicationData) {
 
         fetchApprovedApplications();
     } catch (error) {
-        console.error('Error registering volunteer group:', error);
         let errorMessage = 'Failed to register volunteer group. Please try again.';
         if (error.message.includes('auth/email-already-in-use')) {
             errorMessage = 'An account with this email already exists. Please check if the organization is already registered or use a different email.';
@@ -2002,7 +1988,6 @@ async function handleExcelFileSelect(event) {
                     await newAppRef.set(appData);
                     successCount++;
                 } catch (error) {
-                    console.error("Error importing application:", appData.organizationName, error);
                     currentErrors.push(`Failed to import "${appData.organizationName || 'N/A'}": ${error.message}`);
                 }
                 processedCount++;
@@ -2035,7 +2020,6 @@ async function handleExcelFileSelect(event) {
                 showErrorAlert('Import Failed', 'No applications were successfully imported. Please check for errors in the status modal.');
             }
         } catch (error) {
-            console.error("Error processing Excel file:", error);
             showErrorAlert('Error', `Failed to process Excel file: ${error.message}`);
             importProgressBar.style.backgroundColor = '#f44336';
             importStatusText.textContent = `Error: ${error.message}`;

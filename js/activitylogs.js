@@ -15,9 +15,7 @@ try {
     firebase.initializeApp(firebaseConfig);
     auth = firebase.auth();
     database = firebase.database();
-    console.log(`[${new Date().toISOString()}] Firebase initialized successfully`);
 } catch (error) {
-    console.error(`[${new Date().toISOString()}] Firebase initialization failed:`, error);
     Swal.fire('Error', 'Failed to initialize Firebase. Please check your configuration.', 'error');
 }
 
@@ -121,7 +119,6 @@ async function debugUserData(user) {
         const result = await response.json();
         userDataContent.innerHTML = result.candidates[0].content.parts[0].text;
     } catch (error) {
-        console.error("User data analysis failed:", error);
         userDataContent.innerHTML = `<p><strong>Status:</strong> Error - Failed to analyze user data: ${error.message}</p>`;
     }
 }
@@ -149,7 +146,6 @@ async function analyzeActivities(logs) {
         const result = await response.json();
         dbSummaryContent.innerHTML = result.candidates[0].content.parts[0].text;
     } catch (error) {
-        console.error("Activity analysis failed:", error);
         dbSummaryContent.innerHTML = `<p><strong>Status:</strong> Error - Failed to analyze activities: ${error.message}</p>`;
     }
 }
@@ -167,7 +163,6 @@ function startContinuousAnalysis() {
             await analyzeActivities(logsToAnalyze);
         }
     }, (error) => {
-        console.error("Failed to fetch logs for analysis:", error);
         dbSummaryContent.innerHTML = `<p><strong>Status:</strong> Error - Failed to analyze logs: ${error.message}</p>`;
     });
 }
@@ -300,7 +295,6 @@ function fetchAndRenderTable() {
                     }
                     return { id: key, action, userName, role, timestamp, details, userUid, source: node };
                 } catch (error) {
-                    console.error(`Error processing entry from ${node}:`, error);
                     return null;
                 }
             });
@@ -310,10 +304,8 @@ function fetchAndRenderTable() {
                 data.sort((a, b) => b.timestamp - a.timestamp);
                 applySearchAndSort();
             } catch (error) {
-                console.error(`Failed to process entries from ${node}:`, error);
             }
         }, error => {
-            console.error(`Failed to fetch data from ${node}:`, error);
         });
     });
 }
@@ -462,7 +454,6 @@ async function showLogDetails(log) {
             <p><strong>Summary:</strong> ${description}</p>
         `;
     } catch (error) {
-        console.error("Log details generation failed:", error);
         logDetailsContent.innerHTML = `
             <p><strong>Action:</strong> ${log.action}</p>
             <p><strong>User:</strong> ${log.userName} (${log.role})</p>

@@ -13,9 +13,7 @@ const firebaseConfig = {
 // Initialize Firebase
 if (!firebase.apps.length) {
   firebase.initializeApp(firebaseConfig);
-  console.log('Firebase initialized successfully.');
 } else {
-  console.log('Firebase already initialized.');
 }
 
 const database = firebase.database();
@@ -74,7 +72,6 @@ async function checkAdminPermissions() {
 
     return permissions;
   } catch (error) {
-    console.error('Error checking admin permissions:', error);
     return { canView: false, canEdit: false, canArchive: false, canRetrieve: false };
   }
 }
@@ -114,11 +111,9 @@ async function verifySuperAdminPassword() {
     const user = auth.currentUser;
     const credential = firebase.auth.EmailAuthProvider.credential(user.email, password);
     await user.reauthenticateWithCredential(credential);
-    console.log('Admin password verified successfully.');
     isAdminVerified = true;
     return true;
   } catch (error) {
-    console.error('Password verification failed:', error);
     showErrorAlert('Verification Failed', 'Invalid admin password.');
     isAdminVerified = false;
     return false;
@@ -129,7 +124,6 @@ async function verifySuperAdminPassword() {
 function resetInactivityTimer() {
   clearTimeout(inactivityTimeout);
   inactivityTimeout = setTimeout(checkInactivity, INACTIVITY_TIME);
-  console.log('Inactivity timer reset.');
 }
 
 function checkInactivity() {
@@ -153,16 +147,13 @@ function checkInactivity() {
   }).then((result) => {
     if (result.isConfirmed) {
       resetInactivityTimer();
-      console.log('User chose to continue session.');
     } else {
       auth
         .signOut()
         .then(() => {
-          console.log('User logged out due to inactivity.');
           window.location.href = '../pages/login.html';
         })
         .catch((error) => {
-          console.error('Error logging out:', error);
           showErrorAlert('Error', 'Failed to log out. Please try again.');
         });
     }
@@ -178,7 +169,6 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       return;
     }
-    console.log('User authenticated:', user.uid);
 
     const permissions = await checkAdminPermissions();
     if (!permissions.canView) {
@@ -192,15 +182,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const snapshot = await database.ref(`users/${user.uid}`).once('value');
       const userData = snapshot.val();
       currentUserAdminPosition = userData?.adminPosition || null;
-      console.log(
-        currentUserAdminPosition
-          ? `Current user has admin position: "${currentUserAdminPosition}".`
-          : 'Current user has no recognized admin position. Limiting access.',
-      );
       initializePageFunctions(user.uid);
       resetInactivityTimer();
     } catch (error) {
-      console.error('Error fetching user role:', error);
       currentUserAdminPosition = null;
       initializePageFunctions(user.uid);
       resetInactivityTimer();
@@ -395,14 +379,11 @@ function fetchPendingApplications() {
         snapshot.forEach((childSnapshot) => {
           allApplications.push({ key: childSnapshot.key, ...childSnapshot.val() });
         });
-        console.log('Fetched pending applications:', allApplications);
       } else {
-        console.log('No pending ABVN applications found.');
       }
       applySearchAndSort();
     },
     (error) => {
-      console.error('Error fetching pending applications:', error);
       showErrorAlert('Error', 'Failed to load pending applications. Please try again later.');
       volunteerOrgsContainer.innerHTML = '<tr><td colspan="13" style="text-align: center; color: red;">Failed to load data.</td></tr>';
     },
@@ -428,7 +409,6 @@ async function fetchAndRenderArchivedVGs() {
     renderArchivedVGTable(allArchivedVGData);
     document.getElementById('archivedModal').style.display = 'flex';
   } catch (error) {
-    console.error('Error fetching archived applications:', error);
     showErrorAlert('Error', `Failed to load archived applications: ${error.message}`);
   }
 }
@@ -495,7 +475,6 @@ function renderApplications(applicationsToRender) {
 function renderArchivedVGTable(data) {
   const archivedVGTableBody = document.getElementById('archivedTableBody');
   if (!archivedVGTableBody) {
-    console.error('Archived volunteer group table body not found!');
     return;
   }
 
@@ -979,7 +958,6 @@ async function handleTableActions(event) {
           await appRef.remove();
           showSuccessAlert('Approved!', 'The application has been approved and moved to the approved list.');
         } catch (error) {
-          console.error('Error approving application:', error);
           showErrorAlert('Error', `Failed to approve application: ${error.message}`);
         }
       }
@@ -1030,7 +1008,6 @@ async function handleTableActions(event) {
           await appRef.remove();
           showSuccessAlert('Rejected!', 'The application has been rejected and archived.');
         } catch (error) {
-          console.error('Error rejecting application:', error);
           showErrorAlert('Error', `Failed to reject application: ${error.message}`);
         }
       }
@@ -1140,7 +1117,6 @@ async function retrieveVG(uid) {
         await fetchAndRenderArchivedVGs();
         showSuccessAlert('Retrieved!', 'Volunteer Group has been retrieved to pending applications.');
       } catch (error) {
-        console.error('Error retrieving VG:', error);
         showErrorAlert('Error', `Failed to retrieve application: ${error.message}`);
       }
     }
@@ -1353,7 +1329,6 @@ async function handleExcelFileSelect(event) {
           await newAppRef.set(appData);
           successCount++;
         } catch (error) {
-          console.error('Error importing application:', appData.organizationName, error);
           currentErrors.push(`Failed to import "${appData.organizationName || 'N/A'}": ${error.message}`);
         }
         processedCount++;
@@ -1393,7 +1368,6 @@ async function handleExcelFileSelect(event) {
         });
       }
     } catch (error) {
-      console.error('Error processing Excel file:', error);
       Swal.fire({
         title: 'Error',
         html: `Failed to process Excel file: ${error.message}`,
@@ -1759,8 +1733,6 @@ function clearDInputs() {
     searchInput.value = '';
     if (typeof applySearchAndSort === 'function') {
       applySearchAndSort();
-    } else {
-      console.warn('applySearchAndSort function not found in scope for clearDInputs.');
-    }
+    } 
   }
 }
