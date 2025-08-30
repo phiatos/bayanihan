@@ -110,6 +110,21 @@ function checkInactivity() {
     });
   }
 
+     function formatLargeNumber(value) {
+        if (value === null || value === undefined || value === "") return "0";
+
+        // Convert to number safely
+        let num = Number(value.toString().replace(/^0+/, "")); // Remove leading zeros
+        if (isNaN(num)) return "0";
+
+        // Handle large numbers
+        if (num >= 1_000_000_000) return (num / 1_000_000_000).toFixed(1).replace(/\.0$/, "") + "B";
+        if (num >= 1_000_000)     return (num / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
+        if (num >= 1_000)         return (num / 1_000).toFixed(1).replace(/\.0$/, "") + "k";
+
+        return num.toString();
+        }
+
   function renderTable(logs) {
     const tbody = document.querySelector("#orgTable tbody");
     tbody.innerHTML = "";
@@ -147,7 +162,7 @@ function checkInactivity() {
         <td>${new Date(log.dateTime).toLocaleString()}</td>
         <td>${log.profile?.Site_Location_Address_Barangay || log.siteLocation || "N/A"}</td>
         <td>${log.disasterType}</td>
-        <td>${log.effects?.affectedPopulation ?? "N/A"}</td>
+        <td>${formatLargeNumber(log.effects?.affectedPopulation ?? "N/A")}</td>
         <td>${log.needs?.priority?.join(", ") ?? "N/A"}</td>
         <td>
           <button title="View" class="viewBtn"><i class='bx bx-show-alt'></i>

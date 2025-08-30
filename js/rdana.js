@@ -176,7 +176,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Get user role and organization
       const currentUserRole = userDataFromDb.role;
-      currentUserGroupName = userDataFromDb.organization || 'Unknown Group';
+      currentUserGroupName = userDataFromDb.organization || 'Admin';
       
 
       // Role-based submission eligibility check
@@ -187,7 +187,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (submitBtn) submitBtn.disabled = false; // Ensure button is enabled
       } else if (currentUserRole === 'ABVN') {
         
-        if (currentUserGroupName === 'Unknown Group') {
+        if (currentUserGroupName === 'Admin') {
           
           Swal.fire({
             icon: 'warning',
@@ -694,7 +694,7 @@ if (nextBtn4) {
             const firebaseKey = snapshot.key;
 
             // Use the custom RDANA ID for notification
-            const preparedBy = profileData[sanitizeKey("Prepared By")] || currentUserGroupName || "Unknown";
+            const preparedBy = profileData[sanitizeKey("Prepared By")] || currentUserGroupName || "Admin";
             const message = `New RDANA report "${profileData[sanitizeKey('Type of Disaster')] || 'N/A'}" submitted by ${preparedBy} from ${currentUserGroupName} on ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} at ${new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })} PST.`;
             await notifyAdmin(message, profileData[sanitizeKey('Type of Disaster')], profileData[sanitizeKey('Site Location/Address (Barangay)')], summary, customRdanaId, preparedBy, currentUserGroupName);
 
