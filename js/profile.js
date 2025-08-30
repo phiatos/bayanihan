@@ -50,7 +50,6 @@ function checkInactivity() {
             auth.signOut().then(() => {
                 window.location.href = "../pages/login.html"; // Redirect to login page
             }).catch((error) => {
-                console.error("Error logging out:", error);
                 Swal.fire('Error', 'Failed to log out. Please try again.', 'error');
             });
         }
@@ -130,7 +129,6 @@ document.addEventListener("DOMContentLoaded", () => {
         const userEmail = localStorage.getItem("userEmail");
 
         if (!userEmail) {
-            console.error("No userEmail found in localStorage.");
             showError('Not Logged In', 'No user email found. Please log in again.', true);
             return;
         }
@@ -139,7 +137,6 @@ document.addEventListener("DOMContentLoaded", () => {
             const userSnapshot = await get(ref(database, 'users/' + user.uid));
 
             if (!userSnapshot.exists()) {
-                console.error("No user found with UID:", user.uid);
                 showError('User Not Found', 'User data not found in the database. Please contact support.');
                 setFieldsToNA(); 
                 return;
@@ -182,7 +179,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
             // Check if the user has an organization (applicable to ABVN, volunteer, etc.)
             if (!userData.organization) {
-                console.error("No organization found for user:", user.uid);
                 showError('Organization Not Found', 'Organization data not found for this user. Please contact support.');
                 setFieldsToNA(); 
                 return;
@@ -252,7 +248,6 @@ document.addEventListener("DOMContentLoaded", () => {
             }));
 
         } catch (error) {
-            console.error('Error fetching user or group data:', error);
             showError('Error', 'Failed to fetch data: ' + error.message);
             setFieldsToNA();
         }
@@ -407,7 +402,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 }
             } catch (error) {
-                console.error("Error fetching user terms agreement or password reset status:", error);
                 Swal.fire({
                     icon: 'warning',
                     title: 'Agreement/Password Check Failed',
@@ -417,7 +411,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 });
             }
         } else {
-            console.error("No user is authenticated. Redirecting to login.");
             showError('Not Logged In', 'Please log in to view your profile.', true);
         }
     });
@@ -512,7 +505,6 @@ document.addEventListener("DOMContentLoaded", () => {
                         }
 
                     } catch (error) {
-                        console.error("Error updating terms agreement:", error);
                         showError('Oops...', 'Failed to record your agreement. Please try again.');
                     }
                 } else {
@@ -543,7 +535,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 parentDiv.classList.remove('show-open-lock');
             });
         } else {
-            console.warn(`Password toggle icons or input not found for ${passwordInputId}`);
         }
     };
 
@@ -560,7 +551,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const user = auth.currentUser;
             if (!user) {
-                console.error("No user is signed in.");
                 showError('Not Logged In', 'Please log in to change your password.', true);
                 return;
             }
@@ -670,7 +660,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 });
 
             } catch (error) {
-                console.error('Password change error:', error);
                 let errorMessage = 'Failed to change password. Please ensure your current password is correct.';
                 if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
                     errorMessage = 'Incorrect current password or authentication issue.';
@@ -746,6 +735,5 @@ document.addEventListener("DOMContentLoaded", () => {
             strengthBar.style.backgroundColor = barColor;
         });
     } else {
-        console.warn("Password strength indicator elements not found. Skipping password strength logic.");
     }
 });

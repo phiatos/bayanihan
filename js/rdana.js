@@ -64,9 +64,9 @@ document.addEventListener('DOMContentLoaded', () => {
         read: false,
         type: "admin"
       });
-      console.log(`Admin notified of new RDANA report - RDANA ID: ${rdanaId}, Key: ${key}`);
+      
     } catch (error) {
-      console.error("Error notifying admin:", error);
+      
     }
   };
 
@@ -78,7 +78,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function resetInactivityTimer() {
     clearTimeout(inactivityTimeout);
     inactivityTimeout = setTimeout(checkInactivity, INACTIVITY_TIME);
-    console.log("Inactivity timer reset.");
+    
   }
 
   // Function to check for inactivity and prompt the user
@@ -97,13 +97,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }).then((result) => {
       if (result.isConfirmed) {
         resetInactivityTimer();
-        console.log("User chose to continue session.");
+        
       } else if (result.dismiss === Swal.DismissReason.cancel) {
         auth.signOut().then(() => {
-          console.log("User logged out due to inactivity.");
+          
           window.location.href = "../pages/login.html";
         }).catch((error) => {
-          console.error("Error logging out:", error);
+          
           Swal.fire('Error', 'Failed to log out. Please try again.', 'error');
         });
       }
@@ -129,7 +129,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     resetInactivityTimer();
-    console.log('Logged-in user UID:', user.uid);
+    
     currentUserUid = user.uid;
 
     const profilePage = 'profile.html';
@@ -140,7 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const userDataFromDb = userSnapshot.val();
 
       if (!userDataFromDb) {
-        console.error('User data not found for UID:', user.uid);
+        
         Swal.fire({
           icon: 'error',
           title: 'User Data Missing',
@@ -154,7 +154,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // Password reset check
       const passwordNeedsReset = userDataFromDb.password_needs_reset || false;
       if (passwordNeedsReset) {
-        console.log(`Password change required for user ${user.uid}. Redirecting to profile page.`);
+        
         Swal.fire({
           icon: 'error',
           title: 'Password Change Required',
@@ -177,18 +177,18 @@ document.addEventListener('DOMContentLoaded', () => {
       // Get user role and organization
       const currentUserRole = userDataFromDb.role;
       currentUserGroupName = userDataFromDb.organization || 'Unknown Group';
-      console.log('User Role:', currentUserRole, 'Organization:', currentUserGroupName);
+      
 
       // Role-based submission eligibility check
       const submitBtn = document.getElementById("submitReportBtn");
       if (currentUserRole === 'AB ADMIN') {
-        console.log('AB ADMIN role detected. Submission allowed.');
+        
         canSubmit = true;
         if (submitBtn) submitBtn.disabled = false; // Ensure button is enabled
       } else if (currentUserRole === 'ABVN') {
-        console.log('ABVN role detected. Checking organization activations.');
+        
         if (currentUserGroupName === 'Unknown Group') {
-          console.warn('ABVN user has no organization assigned.');
+          
           Swal.fire({
             icon: 'warning',
             title: 'Organization Not Assigned',
@@ -214,11 +214,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         if (organizationHasActiveActivations) {
-          console.log(`Organization "${currentUserGroupName}" has active operations. Submission allowed.`);
           canSubmit = true;
           if (submitBtn) submitBtn.disabled = false;
         } else {
-          console.warn(`Organization "${currentUserGroupName}" has no active operations. Submission disabled.`);
           canSubmit = false;
           if (submitBtn) {
             submitBtn.disabled = true; // Disable submit button
@@ -242,7 +240,6 @@ document.addEventListener('DOMContentLoaded', () => {
           }
         }
       } else {
-        console.warn(`Unsupported role: ${currentUserRole}. Submission disabled.`);
         canSubmit = false;
         if (submitBtn) submitBtn.disabled = true;
         Swal.fire({
@@ -260,7 +257,6 @@ document.addEventListener('DOMContentLoaded', () => {
         loadSubmittedReports(user.uid);
       }
     } catch (error) {
-      console.error("Error checking user data or activations:", error);
       Swal.fire({
         icon: 'error',
         title: 'Authentication Error',
@@ -616,7 +612,6 @@ if (nextBtn4) {
           if (!profileData || Object.keys(profileData).length === 0 ||
               !affectedCommunities || affectedCommunities.length === 0 ||
               !needsChecklist || needsChecklist.length === 0) {
-            console.error("Form data is incomplete:", { profileData, affectedCommunities, needsChecklist });
             Swal.fire({
               icon: 'error',
               title: 'Submission Failed',
@@ -657,7 +652,6 @@ if (nextBtn4) {
               }
 
               attempts++;
-              console.log(`RDANA ID ${customRdanaId} already exists, retrying (${attempts}/${maxAttempts})`);
             }
 
             throw new Error("Unable to generate a unique RDANA ID after multiple attempts.");
@@ -704,7 +698,6 @@ if (nextBtn4) {
             const message = `New RDANA report "${profileData[sanitizeKey('Type of Disaster')] || 'N/A'}" submitted by ${preparedBy} from ${currentUserGroupName} on ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} at ${new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })} PST.`;
             await notifyAdmin(message, profileData[sanitizeKey('Type of Disaster')], profileData[sanitizeKey('Site Location/Address (Barangay)')], summary, customRdanaId, preparedBy, currentUserGroupName);
 
-            console.log("RDANA report saved successfully to rdana/submitted with custom RDANA ID:", customRdanaId);
             Swal.fire({
               icon: 'success',
               title: 'Report Submitted',
@@ -757,7 +750,6 @@ if (nextBtn4) {
               document.getElementById("form-page-1").style.display = "block";
             });
           } catch (error) {
-            console.error("Error saving RDANA report to Firebase:", error);
             Swal.fire({
               icon: 'error',
               title: 'Submission Failed',

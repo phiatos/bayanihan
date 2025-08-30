@@ -14,9 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize Firebase
     try {
         firebase.initializeApp(firebaseConfig);
-        console.log('Firebase initialized successfully');
     } catch (error) {
-        console.error('Firebase initialization failed:', error);
     }
     const database = firebase.database();
 
@@ -28,7 +26,6 @@ const INACTIVITY_TIME = 1800000; // 30 minutes in milliseconds
 function resetInactivityTimer() {
     clearTimeout(inactivityTimeout);
     inactivityTimeout = setTimeout(checkInactivity, INACTIVITY_TIME);
-    console.log("Inactivity timer reset.");
 }
 
 // --- Helper function to generate a random Relief ID ---
@@ -58,14 +55,11 @@ function checkInactivity() {
     }).then((result) => {
         if (result.isConfirmed) {
             resetInactivityTimer(); // User chose to continue, reset the timer
-            console.log("User chose to continue session.");
         } else if (result.dismiss === Swal.DismissReason.cancel) {
             // User chose to log out
             auth.signOut().then(() => {
-                console.log("User logged out due to inactivity.");
                 window.location.href = "../pages/login.html"; // Redirect to login page
             }).catch((error) => {
-                console.error("Error logging out:", error);
                 Swal.fire('Error', 'Failed to log out. Please try again.', 'error');
             });
         }
@@ -86,17 +80,9 @@ function checkInactivity() {
     const exportExcelBtn = document.getElementById('exportBtn'); 
 
     if (!tableBody || !searchInput || !sortSelect || !entriesInfo || !pagination || !savePdfBtn || !exportExcelBtn) {
-        console.error('One or more DOM elements are missing:', {
-            tableBody: !!tableBody,
-            searchInput: !!searchInput,
-            sortSelect: !!sortSelect,
-            entriesInfo: !!entriesInfo,
-            pagination: !!pagination,
-            savePdfBtn: !!savePdfBtn,
-            exportExcelBtn: !!exportExcelBtn
-        });
         return;
     }
+
 
     let data = [];
     let filteredData = [];
@@ -233,7 +219,6 @@ function checkInactivity() {
 
     // Fetch data from Firebase
     database.ref('requestRelief/requests').on('value', (snapshot) => {
-        console.log('Fetching data from Firebase');
         data = [];
         const requests = snapshot.val();
         if (requests) {
@@ -243,7 +228,6 @@ function checkInactivity() {
                 const request = requests[key];
                 const groupName = request.volunteerOrganization || "[Unknown Org]";
                 if (!request.volunteerOrganization) {
-                    console.warn(`Relief request ${key} is missing volunteerOrganization field. Using default: [Unknown Org]`);
                 }
 
                 let reliefId = request.id; 
@@ -270,14 +254,11 @@ function checkInactivity() {
                     notes: request.notes || ""
                 });
             });
-            console.log('Data fetched successfully:', data);
         } else {
-            console.log('No data found in requestRelief/requests');
         }
         filteredData = [...data];
         renderTable();
     }, (error) => {
-        console.error('Error fetching data from Firebase:', error);
         Swal.fire({
             icon: 'error',
             title: 'Error',
@@ -286,7 +267,6 @@ function checkInactivity() {
     });
 
     function renderTable() {
-        console.log('Rendering table');
         tableBody.innerHTML = '';
         const start = (currentPage - 1) * rowsPerPage;
         const end = start + rowsPerPage;
@@ -369,7 +349,6 @@ function checkInactivity() {
                 }
                 });
             }).catch(error => {
-                console.error('Error saving to Firebase:', error);
                 Swal.fire({
                 icon: 'error',
                 title: 'Save failed',
@@ -467,7 +446,6 @@ function checkInactivity() {
 
     document.addEventListener('click', (e) => {
         if (e.target.classList.contains('viewBtn')) {
-            console.log('View button clicked');
             const idx = parseInt(e.target.dataset.index);
             const item = data[idx];
 
@@ -581,7 +559,6 @@ function checkInactivity() {
             }
         })
         .catch(error => {
-            console.error('Archive failed:', error);
             Swal.fire({
             icon: 'error',
             title: 'Archive Error',
@@ -603,7 +580,6 @@ function renderArchivedTable() {
 
   database.ref('requestRelief/archived').once('value').then(snapshot => {
     const data = snapshot.val();
-    console.log("Archived data from Firebase:", data);
     archivedTableBody.innerHTML = '';
 
     if (!data) {
@@ -678,7 +654,6 @@ function renderArchivedTable() {
       });
     });
   }).catch(err => {
-    console.error('Error loading archived requests:', err);
     archivedTableBody.innerHTML = '<tr><td colspan="10">Error loading data.</td></tr>';
   });
 }
@@ -713,7 +688,6 @@ function restoreArchivedRequest(firebaseKey) {
           renderArchivedTable();
         })
         .catch(err => {
-          console.error(err);
           Swal.fire('Error', err.message || 'Failed to restore request.', 'error');
         });
     }
@@ -830,7 +804,6 @@ document.getElementById('closeArchivedModalBtn').addEventListener('click', funct
             });
 
         } catch (error) {
-            console.error('Error generating Excel:', error);
             Swal.close();
             Swal.fire('Error!', 'Failed to generate Excel: ' + error.message, 'error');
         }

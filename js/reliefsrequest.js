@@ -17,9 +17,7 @@ const notifyAdmin = async (message, calamityType, location, details, requestId, 
             read: false,
             type: "admin"
         });
-        console.log(`Admin notified of new relief request - Request ID: ${requestId}, Key: ${key}`);
     } catch (error) {
-        console.error("Error notifying admin:", error);
     }
 };
 
@@ -39,9 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize Firebase
     try {
         firebase.initializeApp(firebaseConfig);
-        console.log('Firebase initialized successfully');
     } catch (error) {
-        console.error('Firebase initialization failed:', error);
     }
     const database = firebase.database();
     const auth = firebase.auth();
@@ -71,29 +67,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const notesInput = document.getElementById('notes');
 
     // Verify DOM elements exist
-    if (!formPage1 || !formPage2 || !nextBtn || !backBtn || !addItemBtn || !itemsTable || !itemsTableBody || !previewContact || !previewItemsTable || !contactPersonInput || !contactNumberInput || !emailInput || !addressInput || !cityInput || !donationCategoryInput || !itemNameInput || !quantityInput || !notesInput) {
-        console.error('One or more DOM elements are missing:', {
-            formPage1: !!formPage1,
-            formPage2: !!formPage2,
-            nextBtn: !!nextBtn,
-            backBtn: !!backBtn,
-            addItemBtn: !!addItemBtn,
-            itemsTable: !!itemsTable,
-            itemsTableBody: !!itemsTableBody,
-            previewContact: !!previewContact,
-            previewItemsTable: !!previewItemsTable,
-            contactPersonInput: !!contactPersonInput,
-            contactNumberInput: !!contactNumberInput,
-            emailInput: !!emailInput,
-            addressInput: !!addressInput,
-            cityInput: !!cityInput,
-            donationCategoryInput: !!donationCategoryInput,
-            itemNameInput: !!itemNameInput,
-            quantityInput: !!quantityInput,
-            notesInput: !!notesInput
-        });
+    if (
+        !formPage1 || !formPage2 || !nextBtn || !backBtn || !addItemBtn || 
+        !itemsTable || !itemsTableBody || !previewContact || !previewItemsTable || 
+        !contactPersonInput || !contactNumberInput || !emailInput || 
+        !addressInput || !cityInput || !donationCategoryInput || 
+        !itemNameInput || !quantityInput || !notesInput
+    ) {
         return;
     }
+
 
     const addedItems = [];
     let userUid = null;
@@ -107,7 +90,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function resetInactivityTimer() {
         clearTimeout(inactivityTimeout);
         inactivityTimeout = setTimeout(checkInactivity, INACTIVITY_TIME);
-        console.log("Inactivity timer reset.");
     }
 
     // Function to check for inactivity and prompt the user
@@ -126,14 +108,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }).then((result) => {
             if (result.isConfirmed) {
                 resetInactivityTimer(); // User chose to continue, reset the timer
-                console.log("User chose to continue session.");
             } else if (result.dismiss === Swal.DismissReason.cancel) {
                 // User chose to log out
                 auth.signOut().then(() => {
-                    console.log("User logged out due to inactivity.");
                     window.location.href = "../pages/login.html"; // Redirect to login page
                 }).catch((error) => {
-                    console.error("Error logging out:", error);
                     Swal.fire('Error', 'Failed to log out. Please try again.', 'error');
                 });
             }
@@ -148,7 +127,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Updated auth.onAuthStateChanged with role and activation checks
     auth.onAuthStateChanged(async user => {
         if (!user) {
-            console.warn('No user is logged in');
             Swal.fire({
                 icon: 'error',
                 title: 'Not Logged In',
@@ -161,14 +139,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         resetInactivityTimer();
         userUid = user.uid;
-        console.log('Logged-in user UID:', userUid);
 
         try {
             // Fetch user data from the database
             const userSnapshot = await database.ref(`users/${userUid}`).once('value');
             const userData = userSnapshot.val();
             if (!userData) {
-                console.warn('User data not found in database for UID:', userUid);
                 Swal.fire({
                     icon: 'error',
                     title: 'User Data Missing',
@@ -183,7 +159,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const passwordNeedsReset = userData.password_needs_reset || false;
             const profilePage = 'profile.html';
             if (passwordNeedsReset) {
-                console.log("Password change required. Redirecting to profile page.");
                 Swal.fire({
                     icon: 'error',
                     title: 'Password Change Required',
@@ -206,12 +181,10 @@ document.addEventListener('DOMContentLoaded', () => {
             // Get user role and organization
             const currentUserRole = userData.role;
             volunteerOrganization = userData.organization || 'Not Assigned';
-            console.log('User Role:', currentUserRole);
-            console.log('Volunteer Organization:', volunteerOrganization);
+
 
             // Check if user is AB ADMIN
             if (currentUserRole === 'AB ADMIN') {
-                console.log('AB ADMIN role detected. Allowing access to submit request.');
                 // Pre-fill form fields
                 contactPersonInput.value = userData.contactPerson || '';
                 contactNumberInput.value = userData.mobile || '';
@@ -219,7 +192,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             // Check if user is ABVN
             else if (currentUserRole === 'ABVN') {
-                console.log('ABVN role detected. Checking organization activations.');
                 if (volunteerOrganization !== 'Not Assigned') {
                     // Check for active activations
                     const organizationActivationsSnapshot = await database.ref("activations")
@@ -236,13 +208,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
 
                     if (organizationHasActiveActivations) {
-                        console.log(`Organization "${volunteerOrganization}" has active operations.`);
                         // Pre-fill form fields
                         contactPersonInput.value = userData.contactPerson || '';
                         contactNumberInput.value = userData.mobile || '';
                         emailInput.value = userData.email || '';
                     } else {
-                        console.warn(`Organization "${volunteerOrganization}" has no active operations.`);
                         Swal.fire({
                             icon: 'warning',
                             title: 'Organization Inactive',
@@ -262,7 +232,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         });
                     }
                 } else {
-                    console.warn('ABVN user has no organization assigned.');
                     Swal.fire({
                         icon: 'warning',
                         title: 'Organization Not Assigned',
@@ -275,7 +244,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             // Handle unsupported roles
             else {
-                console.warn(`User ${userUid} has unsupported role: ${currentUserRole}.`);
                 Swal.fire({
                     icon: 'error',
                     title: 'Unauthorized Access',
@@ -286,7 +254,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
         } catch (error) {
-            console.error('Error checking user data or activations:', error);
             Swal.fire({
                 icon: 'error',
                 title: 'Authentication Error',
@@ -431,29 +398,24 @@ function showWarning(title, text) {
 
 // Add Item button event listener
 addItemBtn.addEventListener('click', () => {
-    console.log('Add Item button clicked');
 
     const name = itemNameInput.value.trim();
     const quantityStr = quantityInput.value.trim();
     const notes = notesInput.value.trim();
 
-    console.log('Add Item inputs:', { name, quantityStr, notes });
 
     if (!name) {
-        console.log('Validation failed: Item name is empty');
         showWarning('Missing Item Name', 'Please enter the item name.');
         return;
     }
 
     const quantity = parseInt(quantityStr, 10);
     if (!quantityStr || isNaN(quantity) || quantity <= 0) {
-        console.log('Validation failed: Invalid quantity', { quantityStr });
         showWarning('Invalid Quantity', 'Please enter a quantity greater than 0.');
         return;
     }
 
     addedItems.push({ name, quantity, notes });
-    console.log('Item added:', { name, quantity, notes, index: addedItems.length - 1 });
 
     renderItemsTable();
 
@@ -466,7 +428,6 @@ addItemBtn.addEventListener('click', () => {
 // Delete button event listener using event delegation
 itemsTableBody.addEventListener('click', (e) => {
     if (e.target.classList.contains('deleteBtn')) {
-        console.log('Delete button clicked');
         const index = Number(e.target.dataset.index);
         if (!isNaN(index)) {
             addedItems.splice(index, 1);
@@ -477,7 +438,6 @@ itemsTableBody.addEventListener('click', (e) => {
 
 // Render items table dynamically
 function renderItemsTable() {
-    console.log('Rendering items table');
     itemsTableBody.innerHTML = '';
     addedItems.forEach(({ name, quantity, notes }, index) => {
         const formattedQuantity = formatLargeNumber(quantity);
@@ -497,7 +457,6 @@ function renderItemsTable() {
 
     // Proceed button event listener
 nextBtn.addEventListener('click', () => {
-    console.log('Proceed button clicked');
 
     const contactPerson = contactPersonInput.value.trim();
     const contactNumber = contactNumberInput.value.trim();
@@ -506,16 +465,6 @@ nextBtn.addEventListener('click', () => {
     const city = cityInput.value.trim();
     const donationCategory = donationCategoryInput.value;
 
-    console.log('Proceed inputs:', {
-        contactPerson,
-        contactNumber,
-        email,
-        address,
-        city,
-        donationCategory,
-        addedItemsLength: addedItems.length,
-        volunteerOrganization
-    });
 
     // ✅ Centralized alert function
     function showValidationError(title, text) {
@@ -545,7 +494,6 @@ nextBtn.addEventListener('click', () => {
         !donationCategory &&
         addedItems.length === 0
     ) {
-        console.log('Validation failed: All fields empty');
         showValidationError(
             'No Information Provided',
             'Please fill out the form and add at least one item before proceeding.'
@@ -555,43 +503,36 @@ nextBtn.addEventListener('click', () => {
 
     // ✅ Individual validations
     if (!contactPerson) {
-        console.log('Validation failed: Contact person is empty');
         showValidationError('Missing Contact Person', 'Please enter the contact person’s name.');
         return;
     }
 
     if (!contactNumber || !/^\d{10,15}$/.test(contactNumber)) {
-        console.log('Validation failed: Invalid contact number', { contactNumber });
         showValidationError('Invalid Contact Number', 'Please enter a valid contact number (10–15 digits).');
         return;
     }
 
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        console.log('Validation failed: Invalid email', { email });
         showValidationError('Invalid Email', 'Please enter a valid email address.');
         return;
     }
 
     if (!address) {
-        console.log('Validation failed: Address is empty');
         showValidationError('Missing Address', 'Please enter the drop-off address.');
         return;
     }
 
     if (!city) {
-        console.log('Validation failed: City is empty');
         showValidationError('Missing City', 'Please enter the city.');
         return;
     }
 
     if (!donationCategory) {
-        console.log('Validation failed: Donation category not selected');
         showValidationError('Missing Category', 'Please select a donation category.');
         return;
     }
 
     if (addedItems.length === 0) {
-        console.log('Validation failed: No items added');
         showValidationError('No Items Added', 'Please add at least one item before proceeding.');
         return;
     }
@@ -599,7 +540,6 @@ nextBtn.addEventListener('click', () => {
     // ✅ Passed all validations → move to next form page
     formPage1.style.display = 'none';
     formPage2.style.display = 'block';
-    console.log('Switched to form-page-2');
 
     previewContact.innerHTML = `
         <p><strong>Contact Person:</strong> ${contactPerson}</p>
@@ -621,7 +561,6 @@ nextBtn.addEventListener('click', () => {
 
     // Back button event listener
     backBtn.addEventListener('click', () => {
-        console.log('Back button clicked');
         formPage2.style.display = 'none';
         formPage1.style.display = 'block';
     });
@@ -629,10 +568,8 @@ nextBtn.addEventListener('click', () => {
     // Handle form submission to save data to Firebase
     formPage2.addEventListener('submit', async (e) => {
         e.preventDefault();
-        console.log('Submit button clicked');
 
         if (!userUid) {
-            console.error('No user UID available. Cannot submit request.');
             Swal.fire({
                 icon: 'error',
                 title: 'Authentication Error',
@@ -674,7 +611,6 @@ nextBtn.addEventListener('click', () => {
                 userRequestRef.set(newRequest)
             ]);
 
-            console.log('Data saved to Firebase successfully');
 
             // Notify admin
             const message = `New relief request submitted by ${contactPerson} from ${volunteerOrganization} for ${donationCategory} on ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} at ${new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })} PST.`;
@@ -702,7 +638,6 @@ nextBtn.addEventListener('click', () => {
                 formPage1.style.display = 'block';
             });
         } catch (error) {
-            console.error('Failed to save data to Firebase:', error);
             Swal.fire({
                 icon: 'error',
                 title: 'Error',

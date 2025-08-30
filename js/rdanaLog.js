@@ -22,7 +22,6 @@ const INACTIVITY_TIME = 1800000; // 30 minutes in milliseconds
 function resetInactivityTimer() {
     clearTimeout(inactivityTimeout);
     inactivityTimeout = setTimeout(checkInactivity, INACTIVITY_TIME);
-    console.log("Inactivity timer reset.");
 }
 
 // Function to check for inactivity and prompt the user
@@ -41,14 +40,11 @@ function checkInactivity() {
     }).then((result) => {
         if (result.isConfirmed) {
             resetInactivityTimer(); // User chose to continue, reset the timer
-            console.log("User chose to continue session.");
         } else if (result.dismiss === Swal.DismissReason.cancel) {
             // User chose to log out
             auth.signOut().then(() => {
-                console.log("User logged out due to inactivity.");
                 window.location.href = "../pages/login.html"; // Redirect to login page
             }).catch((error) => {
-                console.error("Error logging out:", error);
                 Swal.fire('Error', 'Failed to log out. Please try again.', 'error');
             });
         }
@@ -62,8 +58,6 @@ function checkInactivity() {
 
   const exportExcelBtn = document.getElementById('exportBtn'); 
   const savePdfBtn = document.getElementById('savePdfBtn');
-  console.log(savePdfBtn); // should not be null
-  console.log(exportExcelBtn); // should not be null
   const entriesInfo = document.querySelector("#entriesInfo");
   const paginationContainer = document.querySelector("#pagination");
 
@@ -88,16 +82,13 @@ function checkInactivity() {
 
     resetInactivityTimer(); // Start timer
 
-    console.log("User authenticated:", user.uid);
     loadApprovedReports(user.uid);
   });
 
   function loadApprovedReports(userUid) {
-    console.log("Loading approved reports for user:", userUid);
     database.ref("rdana/approved").on("value", snapshot => {
       rdanaLogs = [];
       const reports = snapshot.val();
-      console.log("Approved reports snapshot:", reports);
       if (reports) {
         Object.keys(reports).forEach(key => {
           const report = reports[key];
@@ -107,12 +98,10 @@ function checkInactivity() {
           });
         });
       } else {
-        console.log("No approved reports found in rdana/approved");
       }
       filteredLogs = [...rdanaLogs];
       renderTable(filteredLogs);
     }, error => {
-      console.error("Error fetching approved RDANA reports:", error);
       Swal.fire({
         icon: 'error',
         title: 'Error',
@@ -245,7 +234,6 @@ function deleteLog(firebaseKey, globalIndex) {
       const userUid = filteredLogs[globalIndex]?.userUid;
       const rdanaId = filteredLogs[globalIndex]?.rdanaId;
       if (!userUid || !rdanaId) {
-        console.error("Invalid userUid or rdanaId:", { userUid, rdanaId, log: filteredLogs[globalIndex] });
         Swal.fire({
           icon: 'error',
           title: 'Delete Error',
@@ -259,7 +247,6 @@ function deleteLog(firebaseKey, globalIndex) {
         .then(snapshot => {
           const reports = snapshot.val();
           if (!reports) {
-            console.warn(`RDANA log with rdanaId ${rdanaId} not found in rdana/approved. Proceeding with UI update.`);
             return Promise.resolve();
           }
 
@@ -267,7 +254,6 @@ function deleteLog(firebaseKey, globalIndex) {
           const actualKey = Object.keys(reports)[0];
           const logData = reports[actualKey];
           if (!actualKey || !logData) {
-            console.warn(`RDANA log with rdanaId ${rdanaId} not found in rdana/approved. Proceeding with UI update.`);
             return Promise.resolve();
           }
 
@@ -323,7 +309,6 @@ function deleteLog(firebaseKey, globalIndex) {
           });
         })
         .catch(error => {
-          console.error("Delete error:", error);
           Swal.fire({
             icon: 'error',
             title: 'Delete Error',
@@ -479,7 +464,6 @@ function restoreReport(reportKey) {
                 loadArchivedReports();
             })
             .catch(err => {
-                console.error("💥 Restore failed:", err);
                 Swal.fire({
                     icon: 'error',
                     title: 'Restore Failed',
