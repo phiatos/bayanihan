@@ -1,3 +1,8 @@
+console.log = function () {};
+console.error = function () {};
+console.warn = function () {};
+
+
 window.addEventListener('load', () => {
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker
