@@ -517,26 +517,15 @@ document.addEventListener('DOMContentLoaded', () => {
         highlightReportFromURL();
     }
 
-    function loadRejectedReports() {
-    const archivedTableBody = document.querySelector("#archivedTable tbody");
-    const entriesInfo = document.getElementById("archivedEntriesInfo");
-    const paginationContainer = document.getElementById("archivedPagination");
+    function renderArchivedReportsTable() {
+        archivedTableBody.innerHTML = '';
+        const totalEntries = archivedReports.length;
+        const totalPages = Math.ceil(totalEntries / archivedRowsPerPage);
 
-    archivedTableBody.innerHTML = `<tr><td colspan="10">Loading...</td></tr>`;
-
-    database.ref("reports/rejected").once("value").then(snapshot => {
-        const data = snapshot.val();
-        archivedTableBody.innerHTML = "";
-        paginationContainer.innerHTML = "";
-
-        if (!data) {
-            archivedTableBody.innerHTML = `
-                <tr>
-                    <td colspan="10" style="text-align:center; color:gray; font-style:italic; padding:20px;">
-                        No rejected reports found.
-                    </td>
-                </tr>`;
-            entriesInfo.textContent = "Showing 0 to 0 of 0 entries";
+        if (archivedReports.length === 0) {
+            archivedTableBody.innerHTML = "<tr><td colspan='9'>No archived reports found.</td></tr>";
+            archivedEntriesInfo.textContent = "Showing 0 to 0 of 0 entries";
+            renderPaginationControlsForArchived(totalPages);
             return;
         }
 
@@ -640,30 +629,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             });
 
+            archivedTableBody.appendChild(tr);
+        });
 
-            // Update entries info
-            entriesInfo.textContent = `Showing ${start + 1} to ${start + paginated.length} of ${reports.length} entries`;
-
-            // Render pagination
-            paginationContainer.innerHTML = "";
-            const totalPages = Math.ceil(reports.length / rowsPerPage);
-
-            for (let i = 1; i <= totalPages; i++) {
-                const btn = document.createElement("button");
-                btn.textContent = i;
-                btn.className = i === page ? "active-page" : "";
-                btn.addEventListener("click", () => {
-                    currentPage = i;
-                    renderPage(currentPage);
-                });
-                paginationContainer.appendChild(btn);
-            }
-        }
-
-        ,renderPage(currentPage));
-    });
-}
-
+        const firstEntry = (currentArchivedPage - 1) * archivedRowsPerPage + 1;
+        const lastEntry = Math.min(currentArchivedPage * archivedRowsPerPage, totalEntries);
+        archivedEntriesInfo.textContent = `Showing ${firstEntry} to ${lastEntry} of ${totalEntries} entries`;
+        renderPaginationControlsForArchived(totalPages);
+    }
 
     function renderPaginationControlsForReports(totalPages, filteredReports) {
         paginationContainer.innerHTML = '';
@@ -785,14 +758,3 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 }); 
-
-// Open modal + load data
-document.getElementById("openArchivedModalBtn").addEventListener("click", () => {
-    document.getElementById("archivedModal").style.display = "flex";
-    loadRejectedReports();  // <-- call function here
-});
-
-// Close modal
-document.getElementById("closeArchivedModalBtn").addEventListener("click", () => {
-    document.getElementById("archivedModal").style.display = "none";
-});
