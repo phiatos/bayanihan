@@ -298,6 +298,21 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function formatLargeNumber(value) {
+        if (value === null || value === undefined || value === "") return "0";
+
+        // Convert to number safely
+        let num = Number(value.toString().replace(/^0+/, "")); // Remove leading zeros
+        if (isNaN(num)) return "0";
+
+        // Handle large numbers
+        if (num >= 1_000_000_000) return (num / 1_000_000_000).toFixed(1).replace(/\.0$/, "") + "B";
+        if (num >= 1_000_000)     return (num / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
+        if (num >= 1_000)         return (num / 1_000).toFixed(1).replace(/\.0$/, "") + "k";
+
+        return num.toString();
+        }
+
     function renderReportsTable(reports) {
         submittedReportsContainer.innerHTML = "";
         const start = (currentPage - 1) * rowsPerPage;
@@ -326,7 +341,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${formatDate(report?.dateTime)}</td>
                 <td>${report.siteLocation || "N/A"}</td>
                 <td>${report.disasterType}</td>
-                <td>${report.effects?.affectedPopulation || "N/A"}</td>
+                <td>${formatLargeNumber(report.effects?.affectedPopulation || "N/A")}</td>
                 <td>${report.needs?.priority?.join(", ") || "N/A"}</td>
                 <td>
                     <button title="View" class="viewBtn"><i class='bx bx-show-alt'></i></button>
