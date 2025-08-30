@@ -87,10 +87,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 console.log('No authenticated user found');
                 return { canView: false, canEdit: false, canArchive: false, canRetrieve: false };
             }
-            console.log('Checking permissions for user:', user.uid); // Debug log
+            
             const snapshot = await database.ref(`users/${user.uid}`).once('value');
             const userData = snapshot.val();
-            console.log('User data from database:', userData); // Debug log
+            
             const adminPosition = userData?.adminPosition || null;
             console.log('Admin position:', adminPosition); // Debug log
 
@@ -111,7 +111,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 permissions.canRetrieve = true;
             }
 
-            console.log('Computed permissions:', permissions); // Debug log
+           
             return permissions;
         } catch (error) {
             console.error('Error checking admin permissions:', error);
@@ -203,10 +203,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Function to send approval email
     function sendApprovalEmail(donationData) {
-        console.log('Attempting to send approval email with data:', donationData);
+        
 
         if (!donationData.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(donationData.email)) {
-            console.error('Invalid or missing donor email:', donationData.email);
+            
             Swal.fire('Warning', 'Cannot send approval email: Invalid or missing donor email address.', 'warning');
             logErrorToFirebase(new Error('Invalid or missing donor email'), 'sendApprovalEmail');
             return;
@@ -223,7 +223,7 @@ document.addEventListener("DOMContentLoaded", () => {
             assignment: donationData.assignment ? `${donationData.assignment.type}: ${donationData.assignment.name} (${donationData.assignment.details})` : 'Pending manual assignment'
         };
 
-        console.log('EmailJS send call:', { serviceID: 'service_mzpjk2a', templateID: 'template_owchxrw', templateParams });
+        
 
         emailjs.send('service_mzpjk2a', 'template_owchxrw', templateParams)
             .then(() => {
@@ -255,7 +255,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // Validate the volunteer group's email
         if (!endorsedGroup.email || !isValidEmail(endorsedGroup.email)) {
-            console.error('Invalid or missing volunteer group email:', endorsedGroup.email);
+            
             Swal.fire({
                 icon: 'error',
                 title: 'Invalid Email',
@@ -270,15 +270,8 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        // Log donation data for debugging
-        console.log('Donation data for endorsement email:', {
-            name: donation.name,
-            address: donation.address,
-            contactPerson: donation.contactPerson,
-            number: donation.number,
-            type: donation.type,
-            valuation: donation.valuation
-        });
+       
+       
 
         const templateParams = {
             to_email: endorsedGroup.email,
@@ -295,7 +288,7 @@ document.addEventListener("DOMContentLoaded", () => {
             donor_contact_number: donation.number || 'Not specified'
         };
 
-        console.log('Endorsement EmailJS templateParams:', templateParams);
+        
 
         Swal.fire({
             title: 'Sending Endorsement...',
@@ -340,13 +333,13 @@ document.addEventListener("DOMContentLoaded", () => {
     // Function to queue donation when no ABVNs or relief requests are available
     async function queueDonation(id, donationData) {
         try {
-            console.log('Queuing donation ID:', id);
+            
             const snapshot = await database.ref('donations/pending/inkind/' + id).once('value');
             const queuedDonation = snapshot.val();
             if (!queuedDonation) {
                 throw new Error('Donation data not found in pendingInkind.');
             }
-            console.log('Donation data for queuing:', queuedDonation);
+            
 
             queuedDonation.approvedAt = new Date().toISOString();
             queuedDonation.updatedAt = new Date().toISOString();
@@ -368,9 +361,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
 async function retrieveDonation(id, donationData) {
-    console.log('retrieveDonation called with ID:', id, 'Data:', donationData);
+    
     const permissions = await checkAdminPermissions();
-    console.log('Permissions in retrieveDonation:', permissions);
+    
 
     if (!permissions.canRetrieve) {
         console.log('Access denied: User lacks retrieve permissions');
@@ -418,14 +411,14 @@ async function retrieveDonation(id, donationData) {
         },
     }).then(async (result) => {
         if (result.isConfirmed) {
-            console.log('User confirmed retrieval for donation ID:', id);
+            
             try {
                 if (!navigator.onLine) {
                     throw new Error("No internet connection. Please check your network.");
                 }
 
                 const archivedRef = database.ref(`donations/pending/archivedDonations/inkind/${id}`);
-                console.log('Fetching archived donation from:', archivedRef.toString());
+                
                 const snapshot = await archivedRef.once('value');
                 const archivedDonation = snapshot.val();
 
@@ -443,7 +436,7 @@ async function retrieveDonation(id, donationData) {
 
                 // Move donation to pending/inkind
                 await database.ref(`donations/pending/inkind/${id}`).set(updatedDonation);
-                console.log('Donation restored to pending/inkind');
+                
 
                 // Remove from archived
                 await archivedRef.remove();
@@ -534,7 +527,7 @@ async function retrieveDonation(id, donationData) {
             }).then(async (result) => {
                 if (result.isConfirmed) {
                     try {
-                        console.log('Rejecting donation ID:', id);
+                        
                         const donationRef = database.ref('donations/pending/inkind/' + id);
                         const snapshot = await donationRef.once('value');
                         const donation = snapshot.val();
@@ -619,7 +612,7 @@ async function retrieveDonation(id, donationData) {
                 window.location.href = '../pages/login.html';
                 return;
             }
-            console.log('Authenticated user:', auth.currentUser.uid);
+            
 
             console.log('Fetching active ABVNs from Firebase...');
             const abvnSnapshot = await database.ref('activations').orderByChild('status').equalTo('active').once('value');
@@ -629,7 +622,7 @@ async function retrieveDonation(id, donationData) {
             console.log('Fetching pending relief requests from Firebase...');
             const reliefSnapshot = await database.ref('requestRelief/requests').orderByChild('status').equalTo('Pending').once('value');
             const reliefRequests = reliefSnapshot.val();
-            console.log('Relief requests snapshot:', reliefRequests);
+            
 
             const options = [];
 
@@ -637,7 +630,7 @@ async function retrieveDonation(id, donationData) {
                 for (let key in abvns) {
                     if (abvns.hasOwnProperty(key)) {
                         const abvn = abvns[key];
-                        console.log(`Processing ABVN ${key}:`, abvn);
+                        
                         options.push({
                             type: 'ABVN',
                             id: key,
@@ -656,7 +649,7 @@ async function retrieveDonation(id, donationData) {
                 for (let key in reliefRequests) {
                     if (reliefRequests.hasOwnProperty(key)) {
                         const request = reliefRequests[key];
-                        console.log(`Processing relief request ${key}:`, request);
+                        
                         const itemsList = (request.items || []).map(i => `${i.name} (Qty: ${i.quantity})`).join(', ');
                         options.push({
                             type: 'Relief Request',
@@ -679,7 +672,7 @@ async function retrieveDonation(id, donationData) {
             } else {
                 console.warn('No relief requests found or access denied.');
             }
-            console.log('Processed options (ABVNs and relief requests):', options);
+            
 
             if (options.length === 0) {
                 console.error('No active ABVNs or pending relief requests found.');
@@ -700,7 +693,7 @@ async function retrieveDonation(id, donationData) {
                 return;
             }
             options.sort((a, b) => a.name.localeCompare(b.name));
-            console.log('Sorted options:', options);
+            
 
             const selectOptions = options.map(option => {
                 return `<option value="${option.type}:${option.id}">${option.type}: ${option.name} (${option.details})</option>`;
@@ -788,7 +781,7 @@ async function retrieveDonation(id, donationData) {
                 if (result.isConfirmed) {
                     const [type, selectedId] = result.value.split(':');
                     const selectedOption = options.find(opt => opt.type === type && opt.id === selectedId);
-                    console.log('Selected option:', selectedOption);
+                    
 
                     let reliefDetails = '';
                     if (type === 'Relief Request' && selectedOption.reliefData) {
@@ -830,13 +823,13 @@ async function retrieveDonation(id, donationData) {
 
                     if (confirmResult.isConfirmed) {
                         try {
-                            console.log('Fetching donation data for ID:', id);
+                            
                             const snapshot = await database.ref('donations/pending/inkind/' + id).once('value');
                             const approvedDonation = snapshot.val();
                             if (!approvedDonation) {
                                 throw new Error('Donation data not found in donations/pending/inkind.');
                             }
-                            console.log('Donation data:', approvedDonation);
+                            
 
                             approvedDonation.approvedAt = new Date().toISOString();
                             approvedDonation.updatedAt = new Date().toISOString();
@@ -853,7 +846,7 @@ async function retrieveDonation(id, donationData) {
                             await database.ref('donations/pending/inkind/' + id).remove();
 
                             if (type === 'Relief Request') {
-                                console.log('Updating relief request status to Completed for ID:', selectedId);
+                                
                                 await database.ref(`requestRelief/requests/${selectedId}`).update({
                                     status: 'Completed',
                                     updatedAt: new Date().toISOString()
@@ -930,7 +923,7 @@ async function retrieveDonation(id, donationData) {
         database.ref('donations/pending/inkind').on('value', (snapshot) => {
             clearTimeout(debounceTimeout);
             debounceTimeout = setTimeout(() => {
-                console.log('Raw Firebase snapshot for pending/inkind:', snapshot.val());
+                
                 allDonations = [];
                 const data = snapshot.val();
                 if (data && typeof data === 'object') {
@@ -953,16 +946,11 @@ async function retrieveDonation(id, donationData) {
                             donationDate: donation.donationDate || 'N/A',
                             createdAt: donation.createdAt || 'N/A'
                         };
-                        console.log(`Processed donation (ID: ${key}):`, {
-                            name: donationEntry.name,
-                            address: donationEntry.address,
-                            contactPerson: donationEntry.contactPerson,
-                            number: donationEntry.number
-                        });
+                        
                         allDonations.push(donationEntry);
                     });
                 }
-                console.log('Final allDonations array:', allDonations);
+                
                 filteredAndSortedDonations = [...allDonations];
                 applySorting(filteredAndSortedDonations, sortSelect?.value || '');
                 renderTable();
@@ -1094,7 +1082,7 @@ function renderArchivedTable() {
     } else {
         paginatedItems.forEach((donation, index) => {
             if (!donation.id) {
-                console.warn('Skipping invalid archived donation in renderArchivedTable:', donation);
+                
                 return;
             }
             const row = archivedTableBody.insertRow();

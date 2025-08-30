@@ -165,7 +165,6 @@ function initMap() {
                 });
                 infowindow.open(map, marker);
 
-                console.log("User location:", userLocation);
             },
             (error) => {
                 console.error("Geolocation error:", error);
@@ -273,7 +272,7 @@ document.addEventListener('DOMContentLoaded', () => {
     nextBtn.disabled = true;
 
     function populateCalamityAreaDropdown() {
-        console.log("Populating dropdown with activations:", activeActivations);
+       
         calamityAreaDropdown.innerHTML = '<option value="">-- Select an Active Operation --</option>';
         activeActivations.forEach(activation => {
             const option = document.createElement("option");
@@ -298,7 +297,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     calamityAreaDropdown.addEventListener('change', () => {
         const selectedActivationId = calamityAreaDropdown.value;
-        console.log("Calamity Area Dropdown changed, selected ID:", selectedActivationId);
+        
 
         if (selectedActivationId === "") {
             areaOfOperationInput.value = "";
@@ -322,7 +321,7 @@ document.addEventListener('DOMContentLoaded', () => {
     auth.onAuthStateChanged(user => {
         if (user) {
             userUid = user.uid;
-            console.log('Logged-in user UID:', userUid);
+            
 
             database.ref(`users/${userUid}`).once('value', snapshot => {
                 const userData = snapshot.val();
@@ -340,7 +339,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             snapshot.forEach(childSnapshot => {
                                 activeActivations.push({ id: childSnapshot.key, ...childSnapshot.val() });
                             });
-                            console.log("Active activations (AB ADMIN):", activeActivations);
+                            
                             populateCalamityAreaDropdown();
                             nextBtn.disabled = false;
                         }, error => {
@@ -379,7 +378,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                                     activeActivations.push(activation);
                                                 }
                                             });
-                                            console.log("Active activations (ABVN):", activeActivations);
+                                           
                                             populateCalamityAreaDropdown();
                                             nextBtn.disabled = false;
                                         }, error => {
@@ -638,12 +637,12 @@ document.addEventListener('DOMContentLoaded', () => {
         let calamityAreaDetailsText = "";
 
         const selectedActivationId = calamityAreaDropdown.value;
-        console.log("Selected Activation ID:", selectedActivationId);
+        
         if (selectedActivationId) {
             const selectedActivation = activeActivations.find(
                 (activation) => activation.id === selectedActivationId
             );
-            console.log("Selected Activation:", selectedActivation);
+            
             if (selectedActivation) {
                 selectedCalamityType = selectedActivation.calamityType || "Unknown Type";
                 selectedCalamityName = selectedActivation.calamityName || (selectedActivation.calamityType === "Typhoon" && selectedActivation.typhoonName ? selectedActivation.typhoonName : selectedCalamityType);
@@ -695,7 +694,6 @@ document.addEventListener('DOMContentLoaded', () => {
             Status: "Pending"
         };
         localStorage.setItem("reportData", JSON.stringify(formData));
-        console.log("Form data saved to localStorage:", formData);
     });
 
     backBtn.addEventListener('click', () => {

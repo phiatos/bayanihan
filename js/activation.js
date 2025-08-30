@@ -368,7 +368,7 @@ function addMarkersForActiveActivations() {
 
         Object.entries(activations).forEach(([key, activation]) => {
             if (!activation.latitude || !activation.longitude) {
-                console.warn(`Activation ${key} is missing latitude or longitude:`, activation);
+                
                 return;
             }
 
@@ -562,7 +562,7 @@ function createInfoWindow(marker, activation, logoUrl) {
         if (currentInfoWindow === marker) {
             singleInfoWindow.close();
             currentInfoWindow = null;
-            console.log(`InfoWindow closed on mouseout for ${activation.organization}`);
+            
         }
     });
 
@@ -572,13 +572,13 @@ function createInfoWindow(marker, activation, logoUrl) {
         singleInfoWindow.open(activationMap, marker);
         currentInfoWindow = marker;
         isInfoWindowClicked = true;
-        console.log(`InfoWindow opened on click for ${activation.organization}`);
+        
     });
 
     singleInfoWindow?.addListener("closeclick", () => {
         isInfoWindowClicked = false;
         currentInfoWindow = null;
-        console.log(`InfoWindow closed manually for ${activation.organization}`);
+        
     });
 }
 
@@ -698,9 +698,9 @@ async function notifyABVN(activationId, groupId, reliefAmount, reliefPurpose) {
             message: `Relief assistance of ₱${parseFloat(reliefAmount).toLocaleString()} for "${reliefPurpose}" has been sent to ${group.organization} for ${activation.calamityType}${activation.calamityName ? ` (${activation.calamityName})` : ''} in ${activation.areaOfOperation}.`
         };
 
-        console.log("Creating notification:", notification);
+        
         const newNotificationRef = await database.ref("notifications").push(notification);
-        console.log("Notification created with ID:", newNotificationRef.key);
+       
 
         return newNotificationRef.key;
     } catch (error) {
@@ -740,7 +740,7 @@ function listenForDataUpdates() {
     console.log("Setting up real-time listener for volunteerGroups...");
     database.ref("volunteerGroups").on("value", snapshot => {
         const fetchedGroups = snapshot.val();
-        console.log("Volunteer groups data received:", fetchedGroups);
+        
 
         allVolunteerGroups = [];
         if (fetchedGroups) {
@@ -796,7 +796,7 @@ function listenForDataUpdates() {
     console.log("Setting up real-time listener for activations...");
     database.ref("activations").orderByChild("activationDate").on("value", snapshot => {
         const fetchedActivations = snapshot.val();
-        console.log("Activations data received:", fetchedActivations);
+        
 
         currentActiveActivations = [];
         if (fetchedActivations) {
@@ -825,7 +825,7 @@ function listenForDataUpdates() {
                     });
                 }
             }
-            console.log("Filtered active activations:", currentActiveActivations);
+           
             currentActiveActivations.sort((a, b) => {
                 const dateA = new Date(a.activationDate);
                 const dateB = new Date(b.activationDate);
@@ -865,7 +865,7 @@ function populateGroupDropdown() {
 }
 
 function renderTable(filteredData = currentActiveActivations) {
-    console.log("Rendering table with data:", filteredData);
+    
     tableBody.innerHTML = "";
     const start = (currentPage - 1) * rowsPerPage;
     const end = start + rowsPerPage;
@@ -1232,7 +1232,7 @@ document.getElementById("submitReliefBtn").addEventListener("click", async () =>
         };
 
         await database.ref("reliefAssistance").push(reliefRecord);
-        console.log("Relief assistance record stored:", reliefRecord);
+        
 
         Swal.fire({
             icon: 'success',
@@ -1263,12 +1263,12 @@ tableBody.addEventListener("click", e => {
     const groupId = btn.getAttribute('data-group-id');
 
     if (btn.classList.contains("endorseBtn")) {
-        console.log(`Endorse button clicked for activation ID: ${activationId}, Group ID: ${groupId}`);
+        
         currentActivationId = activationId;
         currentGroupId = groupId;
         openEndorseModal();
     } else if (btn.classList.contains("archiveBtn")) {
-        console.log(`Deactivate button clicked for activation ID: ${activationId}, Group ID: ${groupId}`);
+        
         Swal.fire({
             title: 'Are you sure?',
             text: `Do you want to deactivate this specific operation for group ID ${groupId}?`,
@@ -1286,10 +1286,10 @@ tableBody.addEventListener("click", e => {
                     Swal.fire({ icon: 'error', title: 'Authentication Error', text: 'User not authenticated.' });
                     return;
                 }
-                console.log("User authenticated:", user.uid);
+                
 
                 const activationRef = database.ref(`activations/${activationId}`);
-                console.log(`Fetching activation data from path: activations/${activationId}`);
+                
 
                 activationRef.once('value')
                     .then(snapshot => {
@@ -1298,17 +1298,16 @@ tableBody.addEventListener("click", e => {
                             console.error("No activation data found at the specified path.");
                             throw new Error('Activation data not found.');
                         }
-                        console.log("Activation data retrieved:", activationData);
+                        
 
                         const deactivatedActivation = {
                             ...activationData,
                             status: "inactive",
                             deactivationDate: new Date().toISOString()
                         };
-                        console.log("Prepared deactivated activation data:", deactivatedActivation);
 
                         const deletedActivationRef = database.ref('deletedactivations').push();
-                        console.log("Generated new key for deletedactivations:", deletedActivationRef.key);
+                        
 
                         console.log("Performing copy to deletedactivations and remove from activations...");
                         return Promise.all([

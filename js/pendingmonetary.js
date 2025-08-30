@@ -106,7 +106,7 @@ const archivedRowsPerPage = 10;
 
 // Debug function to log data at each step
 function debugLog(step, data) {
-    console.log(`[DEBUG] ${step}:`, JSON.stringify(data, null, 2));
+    
 }
 
 // Test function to manually save a donation to pending monetary
@@ -568,7 +568,7 @@ function renderPagination() {
             !finalDonationData[field] || finalDonationData[field] === '' || finalDonationData[field] === null
         );
         if (missingFields.length > 0) {
-            console.error('Missing or invalid fields in donation data:', { missingFields, finalDonationData });
+            
             Swal.fire('Error', `Required donation data missing: ${missingFields.join(', ')}. Please check the data source.`, 'error');
             return;
         }
@@ -643,7 +643,7 @@ function renderPagination() {
                     loadMonetaryDonationsFromFirebase();
                     loadArchivedDonationsFromFirebase();
                 } catch (error) {
-                    console.error(`Error processing monetary donation status to ${newStatus}:`, error);
+                    
                     Swal.fire('Error', `Failed to ${newStatus.toLowerCase()} monetary donation. Error: ${error.message}`, 'error');
                 }
             }
@@ -679,7 +679,7 @@ function renderPagination() {
                     }
                 }
             } else {
-                console.log('No archived monetary donations found in Firebase at donations/pending/monetary/archivedMonetary');
+                
             }
             debugLog('Loaded archived monetary donations from Firebase', loadedArchivedDonations);
 
