@@ -18,7 +18,6 @@ document.addEventListener('DOMContentLoaded', () => {
         database = firebase.database();
         auth = firebase.auth();
     } catch (error) {
-        console.error("Firebase initialization failed:", error);
         Swal.fire({
             icon: 'error',
             title: 'Initialization Error',
@@ -35,7 +34,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function resetInactivityTimer() {
         clearTimeout(inactivityTimeout);
         inactivityTimeout = setTimeout(checkInactivity, INACTIVITY_TIME);
-        console.log("Inactivity timer reset.");
     }
 
     // Function to check for inactivity and prompt the user
@@ -54,14 +52,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }).then((result) => {
             if (result.isConfirmed) {
                 resetInactivityTimer(); // User chose to continue, reset the timer
-                console.log("User chose to continue session.");
             } else if (result.dismiss === Swal.DismissReason.cancel) {
                 // User chose to log out
                 auth.signOut().then(() => {
-                    console.log("User logged out due to inactivity.");
                     window.location.href = "../pages/login.html"; // Redirect to login page
                 }).catch((error) => {
-                    console.error("Error logging out:", error);
                     Swal.fire('Error', 'Failed to log out. Please try again.', 'error');
                 });
             }
@@ -85,7 +80,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Check if required DOM elements exist
     if (!submittedReportsContainer || !paginationContainer || !entriesInfo || !searchInput || !sortSelect) {
-        console.error("Required DOM elements not found");
         Swal.fire({
             icon: 'error',
             title: 'Page Error',
@@ -108,7 +102,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         resetInactivityTimer(); // Start timer
-        console.log("User authenticated:", user.uid);
         loadSubmittedReports(user.uid);
     });
 
@@ -116,17 +109,14 @@ document.addEventListener('DOMContentLoaded', () => {
     function highlightReportFromURL() {
         const urlParams = new URLSearchParams(window.location.search);
         const reportId = urlParams.get('reportId');
-        console.log(`Attempting to highlight RDANA report with rdanaId: ${reportId}`);
 
         if (!reportId) {
-            console.log("No reportId found in URL");
             return;
         }
 
         const attemptHighlight = () => {
             const reportRow = document.querySelector(`tr[data-id="${reportId}"]`);
             if (reportRow) {
-                console.log(`Found RDANA report row with data-id: ${reportId}`);
                 reportRow.style.backgroundColor = "#e0f7fa"; // Light cyan highlight
                 reportRow.scrollIntoView({ behavior: "smooth", block: "center" });
 
@@ -152,7 +142,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     reportRow.style.backgroundColor = "";
                 }, 5000);
             } else {
-                console.error(`RDANA report with rdanaId ${reportId} not found in DOM`);
                 Swal.fire({
                     icon: "warning",
                     title: "Report Not Found",
@@ -168,7 +157,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const observer = new MutationObserver(() => {
             const reportRow = document.querySelector(`tr[data-id="${reportId}"]`);
             if (reportRow) {
-                console.log(`MutationObserver: Found RDANA report row with data-id: ${reportId}`);
                 attemptHighlight();
                 observer.disconnect();
             }
@@ -183,10 +171,8 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => {
             const reportRow = document.querySelector(`tr[data-id="${reportId}"]`);
             if (reportRow) {
-                console.log(`Fallback: Found RDANA report row with data-id: ${reportId}`);
                 attemptHighlight();
             } else {
-                console.error(`Fallback: RDANA report with rdanaId ${reportId} still not found in DOM`);
             }
             observer.disconnect();
         }, 2000);
@@ -194,11 +180,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Load reports from Firebase
     function loadSubmittedReports(userUid) {
-        console.log("Loading submitted reports for user:", userUid);
         database.ref("rdana/submitted").on("value", snapshot => {
             let rdanaLogs = [];
             const reports = snapshot.val();
-            console.log("Submitted reports snapshot:", reports);
 
             if (reports) {
                 Object.keys(reports).forEach(key => {
@@ -215,7 +199,6 @@ document.addEventListener('DOMContentLoaded', () => {
             // Render unfiltered reports initially
             applySearchAndSort();
         }, error => {
-            console.error("Error fetching submitted RDANA reports:", error);
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
@@ -290,9 +273,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const reportIndex = filtered.findIndex(report => report.rdanaId === reportId);
             if (reportIndex !== -1) {
                 currentPage = Math.ceil((reportIndex + 1) / rowsPerPage);
-                console.log(`Navigated to page ${currentPage} for rdanaId: ${reportId}`);
             } else {
-                console.log(`RDANA report with rdanaId ${reportId} not found in filtered reports.`);
             }
         }
 
@@ -359,7 +340,6 @@ document.addEventListener('DOMContentLoaded', () => {
             tr.querySelector(".rejectBtn").addEventListener("click", () => rejectReport(report));
 
             submittedReportsContainer.appendChild(tr);
-            console.log("Verifying RDANA Report:", report);
         });
 
         renderPagination(reports.length, reports);
@@ -506,11 +486,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Navigate to rdanaLog.html when View Approved RDANA is clicked
     document.getElementById("viewApprovedBtn").addEventListener("click", () => {
-        console.log("Navigating to rdanaLog.html");
         try {
             window.location.href = "../pages/rdanaLog.html";
         } catch (error) {
-            console.error("Failed to navigate to rdanaLog.html:", error);
             Swal.fire({
                 icon: "error",
                 title: "Navigation Error",
@@ -647,7 +625,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     loadArchivedReports();
                 })
                 .catch(err => {
-                    console.error("Restore failed:", err);
                     Swal.fire({
                         icon: 'error',
                         title: 'Restore Failed',
@@ -666,11 +643,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // NEED HELP HERE RAZEL
 function approveReport(report) {
-    console.log("🔎 approveReport called with:", report);
-
     auth.onAuthStateChanged(user => {
         if (!user) {
-            console.warn("❌ No user signed in.");
             Swal.fire({
                 icon: 'error',
                 title: 'Authentication Required',
@@ -681,16 +655,13 @@ function approveReport(report) {
             return;
         }
 
-        console.log("✅ User signed in:", user.uid);
 
         // Check role
         database.ref(`users/${user.uid}/role`).once('value')
             .then(snapshot => {
                 const role = snapshot.val();
-                console.log("👤 User role:", role);
 
                 if (role !== "AB ADMIN") {
-                    console.warn("❌ Unauthorized. Role is not AB ADMIN.");
                     Swal.fire({
                         icon: 'error',
                         title: 'Unauthorized',
@@ -700,7 +671,6 @@ function approveReport(report) {
                 }
 
                 if (!report.firebaseKey || !report.userUid) {
-                    console.error("❌ Missing keys:", { firebaseKey: report.firebaseKey, userUid: report.userUid });
                     Swal.fire({
                         icon: 'error',
                         title: 'Error',
@@ -713,15 +683,11 @@ function approveReport(report) {
                 report.status = "Approved";
                 report.approvedAt = Date.now();
 
-                console.log("📦 Writing report updates...", report);
 
                 return Promise.all([
-                    database.ref(`rdana/approved/${report.firebaseKey}`).set(report)
-                        .then(() => console.log("✅ Saved to rdana/approved")),
-                    database.ref(`users/${report.userUid}/rdana/${report.firebaseKey}`).set(report)
-                        .then(() => console.log("✅ Saved to users/rdana")),
+                    database.ref(`rdana/approved/${report.firebaseKey}`).set(report),
+                    database.ref(`users/${report.userUid}/rdana/${report.firebaseKey}`).set(report),
                     database.ref(`rdana/submitted/${report.firebaseKey}`).remove()
-                        .then(() => console.log("✅ Removed from rdana/submitted"))
                 ]);
             })
             .then(() => {
@@ -729,7 +695,6 @@ function approveReport(report) {
                 allLogs = allLogs.filter(r => r.firebaseKey !== report.firebaseKey);
                 applySearchAndSort();
 
-                console.log("🎉 Approval process completed successfully.");
                 Swal.fire({
                     icon: 'success',
                     title: 'Report Approved',
@@ -741,7 +706,6 @@ function approveReport(report) {
                 });
             })
             .catch(error => {
-                console.error("💥 Error in approveReport:", error);
                 if (error !== "Unauthorized" && error !== "Missing firebaseKey or userUid") {
                     Swal.fire({
                         icon: 'error',
@@ -832,7 +796,6 @@ function rejectReport(report) {
                 });
             })
             .catch(error => {
-                console.error("💥 Error rejecting report:", error);
                 Swal.fire({
                     icon: 'error',
                     title: 'Rejection Failed',

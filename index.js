@@ -3,10 +3,8 @@ window.addEventListener('load', () => {
         navigator.serviceWorker
             .register('./service-worker.js')
             .then((registration) => {
-                console.log('Service Worker registered with scope:', registration.scope);
             })
             .catch((error) => {
-                console.error('Service Worker registration failed:', error);
             });
     }
 
@@ -42,7 +40,6 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
 
-console.log('Firebase DB initialized:', database);
 
 // Format numbers
 function formatLargeNumber(numStr) {
@@ -156,7 +153,6 @@ function fetchReports() {
         animateNumber('amount-raised', totalMonetaryDonations, 1000, 2);
         animateNumber('inkind-donations', totalInKindDonations, 1000, 2);
     }, error => {
-        console.error("Error fetching approved reports:", error);
         document.getElementById("latest-update-date").textContent = "Unavailable";
     });
 }
@@ -202,7 +198,6 @@ function initializeMap() {
             return res.json();
         })
         .then(data => {
-            console.log("GeoJSON loaded:", data);
 
             geoJsonLayer = map.data;
             geoJsonLayer.addGeoJson(data);
@@ -243,17 +238,14 @@ function initializeMap() {
 
             // Load markers after GeoJSON
             loadApprovedReports().then(() => {
-                console.log("Approved reports loaded before adding markers");
                 addMarkersForActiveActivations();
                 fetchReports();
             }).catch(error => {
-                console.error("Failed to load approved reports before adding markers:", error);
                 addMarkersForActiveActivations();
                 fetchReports();
             });
         })
         .catch(err => {
-            console.error("Failed to load GeoJSON:", err);
             Swal.fire({
                 icon: "error",
                 title: "GeoJSON Error",
@@ -359,7 +351,6 @@ async function loadApprovedReports() {
         if (reports) {
             Object.keys(reports).forEach(key => {
                 const report = reports[key];
-                console.log(`Loading report ${key}:`, report); // Debug log
                 const transformedReport = {
                     firebaseKey: key,
                     ReportID: report.reportID || report.ReportID || "-",
@@ -384,12 +375,9 @@ async function loadApprovedReports() {
                 };
                 approvedReports.push(transformedReport);
             });
-            console.log("Approved reports loaded:", approvedReports);
         } else {
-            console.log("No approved reports found in Firebase");
         }
     } catch (error) {
-        console.error("Error loading approved reports:", error);
         throw error; // Re-throw to catch in initializeMap
     }
 }
@@ -402,7 +390,6 @@ async function loadApprovedReports() {
         if (reports) {
             Object.keys(reports).forEach(key => {
                 const report = reports[key];
-                console.log(`Loading report ${key}:`, report); // Debug log
                 const transformedReport = {
                     firebaseKey: key,
                     ReportID: report.reportID || report.ReportID || "-",
@@ -427,25 +414,20 @@ async function loadApprovedReports() {
                 };
                 approvedReports.push(transformedReport);
             });
-            console.log("Approved reports loaded:", approvedReports);
         } else {
-            console.log("No approved reports found in Firebase");
         }
     } catch (error) {
-        console.error("Error loading approved reports:", error);
         throw error; // Re-throw to catch in initializeMap
     }
 }
 
 async function addMarkersForActiveActivations() {
     if (!map) {
-        console.error("Map not initialized before adding markers");
         return;
     }
 
     if (activationsListenerQuery && activationsListenerCallback) {
         activationsListenerQuery.off("value", activationsListenerCallback);
-        console.log("Removed previous activations listener");
     }
 
     activationsListenerQuery = database.ref("activations").orderByChild("status").equalTo("active");
@@ -455,23 +437,19 @@ async function addMarkersForActiveActivations() {
         markers = [];
 
         const activations = snapshot.val();
-        console.log("Firebase activations snapshot:", activations);
 
         if (!activations) {
-            console.log("No active activations found in Firebase.");
             return;
         }
 
         for (const [key, activation] of Object.entries(activations)) {
             if (!activation.latitude || !activation.longitude) {
-                console.warn(`Skipping activation ${key} due to missing lat/lng`);
                 continue;
             }
 
             const lat = parseFloat(activation.latitude);
             const lng = parseFloat(activation.longitude);
             if (isNaN(lat) || isNaN(lng)) {
-                console.warn(`Skipping activation ${key} due to invalid lat/lng`);
                 continue;
             }
 
@@ -479,7 +457,6 @@ async function addMarkersForActiveActivations() {
 
             const group = allVolunteerGroups.find(g => g.no === activation.groupId);
             const organization = activation.organization || "unknown";
-            console.log(`Processing activation ${key} with organization: ${organization}`);
 
             const marker = new google.maps.Marker({
                 position,
@@ -496,15 +473,12 @@ async function addMarkersForActiveActivations() {
                 // Fetch RDANA logs
                 const rdanaSnapshot = await database.ref("rdana/approved").once("value");
                 const rdanaLogs = rdanaSnapshot.val();
-                console.log(`All RDANA logs:`, rdanaLogs);
 
                 if (rdanaLogs) {
                     for (let rdanaKey in rdanaLogs) {
                         const log = rdanaLogs[rdanaKey];
-                        console.log(`Checking RDANA ${rdanaKey}: rdanaGroup=${log.rdanaGroup}, activation organization=${organization}`);
                         if (log.rdanaGroup && organization && log.rdanaGroup.toLowerCase() === organization.toLowerCase()) {
                             const needsChecklist = log.needsChecklist || [];
-                            console.log(`Needs checklist for RDANA ${rdanaKey}:`, needsChecklist);
 
                             if (needsChecklist.length > 0) {
                                 const neededItems = needsChecklist.filter(item => item.needed);
@@ -528,11 +502,9 @@ async function addMarkersForActiveActivations() {
                         }
                     }
                 } else {
-                    console.log("No RDANA logs found in rdana/approved.");
                 }
 
                 // Fetch all approved reports for this organization
-                console.log(`Approved reports array:`, approvedReports);
                 const relevantReports = approvedReports.filter(report => 
                     report.VolunteerGroupName && organization && report.VolunteerGroupName.toLowerCase() === organization.toLowerCase()
                 ).sort((a, b) => new Date(b.DateOfReport) - new Date(a.DateOfReport)); // Sort by date descending
@@ -550,31 +522,32 @@ async function addMarkersForActiveActivations() {
                     }), {});
 
                     approvedReportsHtml = `
-                        <div data-id="${totals.reportId}">
- <div style="background: ${totals.status === 'pending' ? '#e0f7fa' : '#f0f0f0'}; border: ${totals.status === 'pending' ? '2px solid #00acc1' : '1px solid #ccc'}; border-radius: 8px; padding: 15px 20px; margin-top: 12px; font-family: Arial, sans-serif;">
- <h3 style="color: #333; margin-bottom: 10px; font-weight: 700; font-size: 1rem;">
- Total for ${organization === "unknown" ? "Unknown Organization" : organization}
- ${totals.status === 'pending' ? '<span style="background-color: #ff4444; color: white; padding: 2px 6px; border-radius: 3px; font-size: 12px; margin-left: 5px;">New</span>' : ''}
- </h3>
- <div style="line-height: 1.5; color: #333; font-size: 1rem;">
- As of: <strong style="color: #ff4081; font-weight: 600;">${totals.timestamp ? new Date(totals.timestamp).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }) : "August 21, 2025"}</strong><br>
- Evacuees: <strong style="color: #ff4081; font-weight: 600;">${totals.evacuees}</strong><br>
- Food Packs: <strong style="color: #ff4081; font-weight: 600;">${totals.foodPacks}</strong><br>
- Hot Meals: <strong style="color: #ff4081; font-weight: 600;">${totals.hotMeals}</strong><br>
- Water (Liters): <strong style="color: #ff4081; font-weight: 600;">${totals.water}</strong><br>
- Volunteers: <strong style="color: #ff4081; font-weight: 600;">${totals.volunteers}</strong><br>
- Monetary Donations: <strong style="color: #ff4081; font-weight: 600;">₱${abbreviateNumber(totals.monetary)}</strong><br>
- In-Kind Donations: <strong style="color: #ff4081; font-weight: 600;">₱${abbreviateNumber(totals.inKind)}</strong>
- </div>
- </div>
-</div>
+                    <div data-id="${totals.reportId}">
+                        <div style="background: ${totals.status === 'pending' ? '#e0f7fa' : '#f0f0f0'}; border: ${totals.status === 'pending' ? '2px solid #00acc1' : '1px solid #ccc'}; border-radius: 8px; padding: 15px 20px; margin-top: 12px; font-family: Arial, sans-serif;">
+
+                            <h3 style="color: #333; margin-bottom: 10px; font-weight: 700; font-size: 1rem;">
+                            Total for ${organization === "unknown" ? "Unknown Organization" : organization}
+                            ${totals.status === 'pending' ? '<span style="background-color: #ff4444; color: white; padding: 2px 6px; border-radius: 3px; font-size: 12px; margin-left: 5px;">New</span>' : ''}
+                            </h3>
+
+                            <div style="line-height: 1.5; color: #333; font-size: 1rem;">
+                                As of: <strong style="color: #ff4081; font-weight: 600;">${totals.timestamp ? new Date(totals.timestamp).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }) : "August 21, 2025"}</strong><br>
+                                Evacuees: <strong style="color: #ff4081; font-weight: 600;">${totals.evacuees}</strong><br>
+                                Food Packs: <strong style="color: #ff4081; font-weight: 600;">${totals.foodPacks}</strong><br>
+                                Hot Meals: <strong style="color: #ff4081; font-weight: 600;">${totals.hotMeals}</strong><br>
+                                Water (Liters): <strong style="color: #ff4081; font-weight: 600;">${totals.water}</strong><br>
+                                Volunteers: <strong style="color: #ff4081; font-weight: 600;">${totals.volunteers}</strong><br>
+                                Monetary Donations: <strong style="color: #ff4081; font-weight: 600;">₱${abbreviateNumber(totals.monetary)}</strong><br>
+                                In-Kind Donations: <strong style="color: #ff4081; font-weight: 600;">₱${abbreviateNumber(totals.inKind)}</strong>
+                            </div>
+                        </div>
+                    </div>
                     `;
                     hasApprovedReports = true;
                 } else {
                     approvedReportsHtml = "<p>No approved reports available for this ABVN.</p>";
                 }
             } catch (error) {
-                console.error(`Error fetching RDANA or reports for organization ${organization}:`, error);
                 needsAssessmentHtml = "<p>Error loading needs assessment.</p>";
                 approvedReportsHtml = "<p>Error loading approved reports for this ABVN.</p>";
             }
@@ -753,11 +726,9 @@ async function addMarkersForActiveActivations() {
             markers.push(marker);
         }
 
-        console.log(`Added ${markers.length} markers to the map.`);
     };
 
     activationsListenerQuery.on("value", activationsListenerCallback);
-    console.log('addMarkersForActiveActivations listener attached');
 }
 
 function fetchVolunteerGroups() {
@@ -775,7 +746,6 @@ function fetchVolunteerGroups() {
             allVolunteerGroups.sort((a, b) => a.no - b.no);
         }
     }, error => {
-        console.error("Error fetching volunteerGroups:", error);
         Swal.fire({
             icon: 'error',
             title: 'Error',
