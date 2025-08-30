@@ -217,20 +217,23 @@ display: flex;
 }
 
 .close-button {
-  position: absolute;
-  top: 5px;
-  right: 15px;
-  cursor: pointer;
-  color: #333;
-  background: transparent;
-  border: none;
-  padding: 0; /* remove extra padding */
+  display: inline-flex;          /* let it size nicely */
+  align-items: center;
+  justify-content: center;
+  width: 30px;                   /* increase clickable area */
+  height: 30px;                  /* increase clickable area */
+  cursor: pointer;               /* show pointer on hover */
+  position: absolute;            /* if you want it on top-right corner */
+  top: 10px;
+  right: 10px;
+  z-index: 1000;                 /* make sure it’s above content */
 }
 
 .close-button i {
-  font-size: 40px;
-  display: block;       /* ensures the icon itself is the clickable area */
+  font-size: 30px;               /* size of the icon */
+  pointer-events: none;          /* ensure click goes to span */
 }
+
 
 .close-button:hover i {
   color: var(--primary-color);
@@ -325,7 +328,7 @@ display: flex;
 }
 
 .share-post-content {
-  margin-bottom: 20px;
+  margin-bottom: 10px;
 }
 
 .share-post-content .post-title {
@@ -333,6 +336,7 @@ display: flex;
   font-weight: bold;
   margin: 10px 0;
   color: #2c3e50;
+  text-align: left;
 }
 
 .share-post-content .post-content {

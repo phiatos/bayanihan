@@ -108,6 +108,19 @@ label:has(+ textarea[required])::after {
   #form-page-2 {
     animation: fadeIn 0.3s ease;
   }
+
+#status-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+#form-page-3 .form-container-1 > div {
+  max-height: 450px;   /* adjust height as needed */
+  overflow-y: auto;    /* enables vertical scroll */
+  overflow-x: hidden;  /* keep it neat */
+}
+
+
   
   #previewContact {
     background: rgba(20, 174, 187, 0.1);
@@ -480,10 +493,30 @@ textarea:focus {
     background-color: #f2f2f2;
 }
 
-/* Ensure tables do not overflow their container */
-#preview-data {
-    overflow-x: auto;
+#form-page-1, #form-page-2, #form-page-3, 
+#form-page-4, #form-page-5{
+  max-height: max-content;
 }
+
+#form-page-5 .form-container-1 {
+  display: flex;
+  flex-direction: column;
+  max-height: 600px;   /* adjust depending on your layout */
+}
+
+#preview-data {
+  flex: 1;             /* take up available space */
+  overflow-y: auto;    /* scroll only the preview */
+  padding-right: 10px; /* avoid text cutoff with scrollbar */
+  margin-bottom: 10px;
+}
+
+#form-page-5 .button-group {
+  display: flex;
+  justify-content: space-between; /* buttons side by side */
+  margin-top: 10px;
+}
+
 
 .table-scroll {
     overflow-x: auto;
