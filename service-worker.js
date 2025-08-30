@@ -9,8 +9,8 @@ const urlsToCache = [
     '/css/global.css',
     '/js/dashboard.js',
     '/assets/images/AB_logo.png',
-    '/components/sidebar.js', // Added if it exists
-    '/assets/images/user.jpg', // Added if it exists
+    '/components/sidebar.js',
+    '/assets/images/user.jpg',
 ];
 
 // Install event - cache essential files and skip waiting
@@ -18,7 +18,6 @@ self.addEventListener('install', event => {
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then(cache => {
-                console.log('Lenlen: Service Worker caching files');
                 return Promise.all(
                     urlsToCache.map(url => {
                         return fetch(url)
@@ -26,17 +25,13 @@ self.addEventListener('install', event => {
                                 if (!response.ok) throw new Error(`Failed to fetch ${url}`);
                                 return cache.put(url, response);
                             })
-                            .catch(error => {
-                                console.warn(`Lenlen: Skipping invalid URL ${url}:`, error);
+                            .catch(() => {
                                 return Promise.resolve(); // Skip failed URLs
                             });
                     })
                 );
             })
             .then(() => self.skipWaiting())
-            .catch(error => {
-                console.error('Lenlen: Service Worker installation failed:', error);
-            })
     );
 });
 
@@ -47,7 +42,6 @@ self.addEventListener('activate', event => {
             return Promise.all(
                 cacheNames.map(cache => {
                     if (cache !== CACHE_NAME) {
-                        console.log('Lenlen: Deleting old cache:', cache);
                         return caches.delete(cache);
                     }
                 })
@@ -60,12 +54,10 @@ self.addEventListener('activate', event => {
 // Fetch event - serve from cache or network
 self.addEventListener('fetch', event => {
     if (!event.request) {
-        console.error('Lenlen: Fetch event has no request object:', event);
         return;
     }
 
     const requestUrl = event.request.url;
-    console.log('Lenlen: Fetching:', requestUrl);
 
     event.respondWith(
         caches.match(event.request)
@@ -79,14 +71,10 @@ self.addEventListener('fetch', event => {
                     caches.open(CACHE_NAME)
                         .then(cache => {
                             cache.put(event.request, responseToCache);
-                        })
-                        .catch(error => {
-                            console.error('Lenlen: Failed to cache:', requestUrl, error);
                         });
 
                     return networkResponse;
-                }).catch(error => {
-                    console.error('Lenlen: Fetch failed for:', requestUrl, error);
+                }).catch(() => {
                     return cachedResponse || new Response('Network error occurred', { status: 503 });
                 });
 

@@ -1,13 +1,20 @@
 // dashboard.js
 // Global variables
+// Place this at the very top of dashboard.js
+console.log = function () {};
+console.error = function () {};
+console.warn = function () {};
+
 let map, markers = [], geocoder, autocomplete, reportsListener, userRole, userEmail, userUid, currentInfoWindow, singleInfoWindow, isInfoWindowClicked = false;
 let calamityMarkers = [], calamityListener, notificationsListener;
 // Session lock to prevent multiple executions
 const SESSION_KEY = 'dashboard_initialized';
 const CALAMITY_TRACKING_KEY = 'calamity_tracking_lock';
-const SESSION_TIMESTAMP_KEY = 'session_timestamp';
+const SESSION_TIMESTAMP_KEY = 'session_timestamp'; 
 const PROCESSED_CALAMITIES_KEY = 'processed_calamities';
 const PROCESSED_NOTIFICATIONS_KEY = 'processed_notifications';
+const reportBarsEls = document.querySelectorAll(".data-reports .data-bar");
+
 // Persistent in-memory cache, synced with sessionStorage
 let processedCalamities = new Set();
 let processedNotifications = new Set();
@@ -282,108 +289,93 @@ if (notifDot && !notifDot.querySelector("#notifBadge")) {
 }
 // Initialize dashboard with session lock
 window.initializeDashboard = function () {
-    if (!mapDiv) {
-        console.error("Map container not found");
-        return;
-    }
-    cleanupDashboard(); // Force cleanup on every load
-    const sessionInitialized = sessionStorage.getItem(SESSION_KEY);
-    const sessionTimestamp = sessionStorage.getItem(SESSION_TIMESTAMP_KEY);
-    const currentTime = Date.now();
-    const sessionAgeLimit = 30 * 60 * 1000;
-    if (sessionInitialized && sessionTimestamp && (currentTime - parseInt(sessionTimestamp) < sessionAgeLimit)) {
-        console.log("Dashboard already initialized in this session, skipping. Timestamp:", new Date(parseInt(sessionTimestamp)).toISOString());
-        return;
-    }
-    console.log("Initializing dashboard at", new Date().toISOString());
-    sessionStorage.setItem(SESSION_KEY, 'true');
-    sessionStorage.setItem(SESSION_TIMESTAMP_KEY, currentTime.toString());
-    auth.onAuthStateChanged(user => {
-        if (!user) {
-            Swal.fire({
-                icon: "error",
-                title: "Authentication Required",
-                text: "Please sign in to access the dashboard.",
-            }).then(() => {
-                window.location.href = "../pages/login.html";
-            });
-            return;
+    return new Promise((resolve, reject) => {
+        if (!mapDiv) {
+            console.error("Map container not found");
+            return reject("Map container not found");
         }
-        userUid = user.uid;
-        console.log(`Logged-in user UID: ${userUid}`);
-        database.ref(`users/${user.uid}`).once("value", snapshot => {
-            const userData = snapshot.val();
-            if (!userData || !userData.role) {
-                console.error(`User data not found for UID: ${user.uid}`);
+
+        cleanupDashboard();
+        const sessionInitialized = sessionStorage.getItem(SESSION_KEY);
+        const sessionTimestamp = sessionStorage.getItem(SESSION_TIMESTAMP_KEY);
+        const currentTime = Date.now();
+        const sessionAgeLimit = 30 * 60 * 1000;
+
+        if (sessionInitialized && sessionTimestamp && (currentTime - parseInt(sessionTimestamp) < sessionAgeLimit)) {
+            console.log("Dashboard already initialized in this session, skipping.");
+            return resolve();
+        }
+
+        console.log("Initializing dashboard at", new Date().toISOString());
+        sessionStorage.setItem(SESSION_KEY, 'true');
+        sessionStorage.setItem(SESSION_TIMESTAMP_KEY, currentTime.toString());
+
+        auth.onAuthStateChanged(user => {
+            if (!user) {
                 Swal.fire({
                     icon: "error",
-                    title: "User Data Missing",
-                    text: "User role not found. Please contact an administrator.",
-                }).then(() => {
-                    window.location.href = "../pages/login.html";
-                });
-                return;
+                    title: "Authentication Required",
+                    text: "Please sign in to access the dashboard.",
+                }).then(() => window.location.href = "../pages/login.html");
+                return reject("User not authenticated");
             }
-            const passwordNeedsReset = userData.password_needs_reset || false;
-            const profilePage = '../pages/profile.html';
-            if (passwordNeedsReset) {
-                console.log("Password change required. Redirecting to profile page.");
+
+            userUid = user.uid;
+            database.ref(`users/${user.uid}`).once("value", snapshot => {
+                const userData = snapshot.val();
+                if (!userData || !userData.role) {
+                    Swal.fire({
+                        icon: "error",
+                        title: "User Data Missing",
+                        text: "User role not found.",
+                    }).then(() => window.location.href = "../pages/login.html");
+                    return reject("User role not found");
+                }
+
+                userRole = userData.role;
+                userEmail = user.email;
+                headerEl.textContent = userRole === "AB ADMIN" ? "Admin Dashboard" : "ABVN Dashboard";
+
+                initializeMap();
+                if (!map) {
+                    return reject("Map initialization failed");
+                }
+
+                addWeatherDataForProvinces();
+                trackCalamities();
+                setupAdminNotifications();
+                fetchReports();
+                fetchApprovedReports();
+
+                if (userRole === "AB ADMIN") {
+                    fetchAndRenderABVNMetrics();
+                }
+                if (userRole === "ABVN") {
+                    map.setOptions({
+                        disableDefaultUI: true,
+                        draggable: false,
+                    });
+                }
+
+                cleanDuplicateCalamities();
+                cleanDuplicateNotifications();
+                cleanOldCalamities();
+                migrateLegacyCalamities();
+                initializeProcessedSets();
+
+                resolve(); // ✅ Promise resolves here
+            }, error => {
                 Swal.fire({
-                    icon: 'error',
-                    title: 'Password Change Required',
-                    text: 'For security reasons, please change your password. You will be redirected to your profile.',
-                    allowOutsideClick: false,
-                    timer: 1600,
-                    showConfirmButton: false,
-                    timerProgressBar: true,
-                    customClass: {
-                        popup: 'swal2-popup-error-clean',
-                        title: 'swal2-title-error-clean',
-                        htmlContainer: 'swal2-text-error-clean'
-                    }
-                }).then(() => {
-                    window.location.replace(`../pages/${profilePage}`);
+                    icon: "error",
+                    title: "Error",
+                    text: "Failed to load user data.",
                 });
-                return;
-            }
-            userRole = userData.role;
-            userEmail = user.email;
-            console.log(`Role: ${userRole}, Email: ${userEmail}`);
-            headerEl.textContent = userRole === "AB ADMIN" ? "Admin Dashboard" : "ABVN Dashboard";
-            initializeMap();
-            if (!map) {
-                console.error("Map initialization failed.");
-                return;
-            }
-            addWeatherDataForProvinces();
-            trackCalamities();
-            setupAdminNotifications();
-            fetchReports();
-            // Fetch and render ABVN metrics only for AB ADMIN
-            if (userRole === "AB ADMIN") {
-                fetchAndRenderABVNMetrics();
-            }
-            if (userRole === "ABVN") {
-                map.setOptions({
-                    disableDefaultUI: true,
-                    draggable: false,
-                });
-            }
-            cleanDuplicateCalamities();
-            cleanDuplicateNotifications();
-            cleanOldCalamities();
-            migrateLegacyCalamities();
-            initializeProcessedSets();
-        }, error => {
-            console.error("Error fetching user data:", error);
-            Swal.fire({
-                icon: "error",
-                title: "Error",
-                text: "Failed to load user data. Please try again later.",
+                reject(error);
             });
         });
     });
 };
+
 // Initialize processed sets from database
 async function initializeProcessedSets() {
     try {
@@ -1391,6 +1383,51 @@ async function checkNewSubmissions(node, key, type, location, details, eventId) 
         }
     }
 }
+
+// for bar
+
+function updateReportsByType(reportCounts) {
+  const reportBarsEls = document.querySelectorAll(".data-reports .data-bar");
+  if (!reportBarsEls) return;
+
+  const max = Math.max(...Object.values(reportCounts), 1);
+
+  reportBarsEls.forEach(bar => {
+    const type = bar.getAttribute("title"); 
+    const value = reportCounts[type] || 0;
+    const percent = Math.round((value / max) * 100);
+
+    bar.style.height = percent + "%";
+    bar.querySelector("span").textContent = `${type} (${value})`;
+  });
+}
+
+
+function fetchApprovedReports() {
+  database.ref("reports/approved").on("value", snapshot => {
+    const reports = snapshot.val() || {};
+    const counts = { 
+      Flood: 0, 
+      Fire: 0, 
+      Landslide: 0, 
+      Earthquake: 0, 
+      Typhoon: 0, 
+      Tsunami: 0, 
+      "Volcanic Eruption": 0 
+    };
+
+    Object.values(reports).forEach(report => {
+      const calamity = report.CalamityType;
+      if (calamity && counts[calamity] !== undefined) {
+        counts[calamity]++;
+      }
+    });
+
+    updateReportsByType(counts);
+  });
+}
+
+
 
 function updateNotificationBadge() {
     if (!notifBadge) return;

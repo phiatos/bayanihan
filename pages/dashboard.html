@@ -129,6 +129,9 @@
                                     <div class="data-bar" style="height: 80%;" title="Fire"><span>Fire</span></div>
                                     <div class="data-bar" style="height: 40%;" title="Landslide"><span>Landslide</span></div>
                                     <div class="data-bar" style="height: 30%;" title="Earthquake"><span>Quake</span></div>
+                                    <div class="data-bar" style="height: 0%;" title="Typhoon"><span>Typhoon</span></div>
+                                    <div class="data-bar" style="height: 0%;" title="Tsunami"><span>Tsunami</span></div>
+                                    <div class="data-bar" style="height: 0%;" title="Volcanic Eruption"><span>Volcanic Eruption</span></div>
                                 </div>
                             </div>
                             <div class="data-metric-box data-donation" tabindex="0">
@@ -241,28 +244,19 @@
                 const sidebarScript = document.createElement('script');
                 sidebarScript.src = '../components/sidebar.js';
                 document.querySelector('.sidebar-placeholder').appendChild(sidebarScript);
-            })
-            .catch(error => {
-                console.error('Error loading sidebar:', error);
             });
 
         // Initialize the dashboard map on load
         document.addEventListener('DOMContentLoaded', () => {
-            console.log('DOMContentLoaded: Initializing dashboard');
             if (typeof initializeDashboard === 'function') {
                 initializeDashboard();
-            } else {
-                console.error('initializeDashboard function not found');
             }
         });
 
         // Listen for custom navigation events (for client-side navigation)
         window.addEventListener('dashboard-loaded', () => {
-            console.log('dashboard-loaded event: Initializing dashboard');
             if (typeof initializeDashboard === 'function') {
                 initializeDashboard();
-            } else {
-                console.error('initializeDashboard function not found');
             }
         });
 
@@ -281,7 +275,6 @@
 
             if (bell && drawer) {
                 bell.addEventListener('click', () => {
-                    console.log('Bell clicked');
                     drawer.classList.toggle('open');
                     if (drawer.classList.contains('open') && calamityList && adminList) {
                         adminList.classList.add('hidden');
@@ -293,7 +286,6 @@
             if (closeDrawerBtn) {
                 closeDrawerBtn.addEventListener('click', () => {
                     drawer.classList.remove('open');
-                    console.log('Drawer closed');
                 });
             }
 
@@ -304,8 +296,6 @@
                         tabNonCalamity.classList.remove('active');
                         calamityList.classList.remove('hidden');
                         adminList.classList.add('hidden');
-                    } else {
-                        console.error('calamityList or adminList not found');
                     }
                 });
             }
@@ -317,8 +307,6 @@
                         tabCalamity.classList.remove('active');
                         adminList.classList.remove('hidden');
                         calamityList.classList.add('hidden');
-                    } else {
-                        console.error('calamityList or adminList not found');
                     }
                 });
             }
@@ -326,7 +314,6 @@
             // Load Notifications with Warning Levels and Badge Update
             window.loadNotifications = function() {
                 if (!calamityList || !adminList || !notifDot || !notifBadge) {
-                    console.error("Notification elements not found");
                     return;
                 }
                 if (notificationsListener) notificationsListener.off();
@@ -383,7 +370,6 @@
                     // Update notification dot and badge
                     updateNotificationBadge();
                 }, error => {
-                    console.error("Fetch error:", error);
                     Swal.fire({ icon: "error", title: "Error", text: "Failed to load notifications." });
                 });
             };
@@ -426,7 +412,7 @@
                             });
                         });
                     }
-                }).catch(error => console.error('Dashboard init error:', error));
+                });
             }
         });
     </script>
