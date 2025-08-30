@@ -578,11 +578,11 @@ function renderPagination() {
         }
 
         Swal.fire({
-            title: `Are you sure to reject this application?`,
-            text: 'This will move it to archived records.',
+            title: `Are you sure to approve this application?`,
+            text: 'This will move it to monetary donation records.',
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonText: 'Reject',
+            confirmButtonText: 'Approve',
             reverseButtons: true,
             customClass: {
                 popup: 'custom-swal-popup-small',
