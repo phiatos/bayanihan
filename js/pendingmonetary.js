@@ -162,8 +162,8 @@ async function testSaveToArchived() {
         updatedAt: new Date().toISOString()
     };
     try {
-        await database.ref('donations/pending/monetary/archivedMonetary/testManual').set(testDonation);
-        debugLog('Test donation saved to donations/pending/monetary/archivedMonetary', testDonation);
+        await database.ref('donations/pending/archivedDonations/monetary/testManual').set(testDonation);
+        debugLog('Test donation saved to donations/pending/archivedDonations/monetary', testDonation);
         Swal.fire('Test Save', 'Test donation saved to archivedMonetary. Check the archived modal.', 'info');
         loadArchivedDonationsFromFirebase();
     } catch (error) {
@@ -615,14 +615,14 @@ function renderPagination() {
                         const donationToArchive = { ...finalDonationData };
                         donationToArchive.rejectedAt = new Date().toISOString();
                         donationToArchive.updatedAt = new Date().toISOString();
-                        debugLog('Saving rejected donation to donations/pending/monetary/archivedMonetary', donationToArchive);
-                        await database.ref('donations/pending/monetary/archivedMonetary/' + id).set(donationToArchive);
+                        debugLog('Saving rejected donation to donations/pending/archivedDonations/monetary', donationToArchive);
+                        await database.ref('donations/pending/archivedDonations/monetary/' + id).set(donationToArchive);
                         // Verify the saved data
-                        const savedSnapshot = await database.ref('donations/pending/monetary/archivedMonetary/' + id).once('value');
+                        const savedSnapshot = await database.ref('donations/pending/archivedDonations/monetary/' + id).once('value');
                         if (!savedSnapshot.exists()) {
-                            throw new Error('Failed to verify saved data in donations/pending/monetary/archivedMonetary');
+                            throw new Error('Failed to verify saved data in donations/pending/archivedDonations/monetary');
                         }
-                        debugLog('Verified saved data in donations/pending/monetary/archivedMonetary', savedSnapshot.val());
+                        debugLog('Verified saved data in donations/pending/archivedDonations/monetary', savedSnapshot.val());
                         await database.ref('donations/pending/monetary/' + id).remove();
                         debugLog('Removal from donations/pending/monetary successful', { id });
                         Swal.fire({
@@ -664,7 +664,7 @@ function renderPagination() {
         }
 
         console.log('loadArchivedDonationsFromFirebase called.');
-        const archivedDonationsRef = database.ref('donations/pending/monetary/archivedMonetary');
+        const archivedDonationsRef = database.ref('donations/pending/archivedDonations/monetary');
 
         archivedDonationsRef.on('value', (snapshot) => {
             debugLog('Firebase snapshot received for archived monetary donations', snapshot.val());
@@ -749,7 +749,7 @@ function renderArchivedTable() {
         actionCell.classList.add('action-buttons');
         actionCell.innerHTML = `
             <button class="viewBtn" data-id="${donation.id}" title="View"><i class='bx bx-show-alt'></i></button>
-            <button class="action-button restore-button" data-id="${donation.id}" title="Retrieve">Retrieve</button>
+            <button class="action-button restore-button" data-id="${donation.id}" title="Retrieve"><i class='bx bxs-download'></i></button>
         `;
     });
 
@@ -867,8 +867,8 @@ function renderArchivedTable() {
                     donationToRestore.updatedAt = new Date().toISOString();
                     debugLog('Restoring donation to donations/pending/monetary', donationToRestore);
                     await database.ref('donations/pending/monetary/' + id).set(donationToRestore);
-                    await database.ref('donations/pending/monetary/archivedMonetary/' + id).remove();
-                    debugLog('Removal from donations/pending/monetary/archivedMonetary successful', { id });
+                    await database.ref('donations/pending/archivedDonations/monetary/' + id).remove();
+                    debugLog('Removal from donations/pending/archivedDonations/monetary successful', { id });
                     Swal.fire({
                         icon: 'success',
                         title: 'Retrieved!',
@@ -920,19 +920,19 @@ function renderArchivedTable() {
                     }
                     debugLog('Validated ID and donationData', { id, donationData });
 
-                    // Verify donation exists in donations/pending/monetary/archivedMonetary
-                    const snapshot = await database.ref('donations/pending/monetary/archivedMonetary/' + id).once('value');
+                    // Verify donation exists in donations/pending/archivedDonations/monetary
+                    const snapshot = await database.ref('donations/pending/archivedDonations/monetary/' + id).once('value');
                     if (!snapshot.exists()) {
-                        throw new Error('Donation does not exist in donations/pending/monetary/archivedMonetary');
+                        throw new Error('Donation does not exist in donations/pending/archivedDonations/monetary');
                     }
-                    debugLog('Donation exists in donations/pending/monetary/archivedMonetary', snapshot.val());
+                    debugLog('Donation exists in donations/pending/archivedDonations/monetary', snapshot.val());
 
                     // Remove specific donation
-                    await database.ref('donations/pending/monetary/archivedMonetary/' + id).remove();
-                    debugLog('Donation removed from donations/pending/monetary/archivedMonetary', { id });
+                    await database.ref('donations/pending/archivedDonations/monetary/' + id).remove();
+                    debugLog('Donation removed from donations/pending/archivedDonations/monetary', { id });
 
                     // Verify parent node still exists
-                    const parentSnapshot = await database.ref('donations/pending/monetary/archivedMonetary').once('value');
+                    const parentSnapshot = await database.ref('donations/pending/archivedDonations/monetary').once('value');
                     debugLog('Parent node after deletion', parentSnapshot.val());
 
                     Swal.fire('Deleted!', 'The monetary donation has been permanently deleted.', 'success');

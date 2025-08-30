@@ -1160,7 +1160,15 @@ modalActivateSubmitBtn.addEventListener("click", async () => {
         Swal.fire({
             icon: 'success',
             title: 'Activated!',
-            text: `${selectedGroupForActivation.organization} has been activated for ${calamityType}${calamityName ? ` (${calamityName})` : ''} in ${areaOfOperation}.`
+            text: `${selectedGroupForActivation.organization} has been activated for ${calamityType}${calamityName ? ` (${calamityName})` : ''} in ${areaOfOperation}.`,
+            showConfirmButton: true,
+            confirmButtonText: 'OK',
+            customClass: {
+                popup: 'swal2-popup-success-clean',
+                title: 'swal2-title-success-clean',
+                htmlContainer: 'swal2-text-success-clean',
+                confirmButton: 'my-success-button'
+            }
         });
         closeActivationModal();
         currentPage = 1;
@@ -1237,7 +1245,15 @@ document.getElementById("submitReliefBtn").addEventListener("click", async () =>
         Swal.fire({
             icon: 'success',
             title: 'Relief Assistance Sent!',
-            text: `Relief assistance of ₱${parseFloat(reliefAmount).toLocaleString()} for "${reliefPurpose}" has been sent. The group has been notified.`
+            text: `Relief assistance of ₱${parseFloat(reliefAmount).toLocaleString()} for "${reliefPurpose}" has been sent. The group has been notified.`,
+            showConfirmButton: true,
+            confirmButtonText: 'OK',
+            customClass: {
+                popup: 'swal2-popup-success-clean',
+                title: 'swal2-title-success-clean',
+                htmlContainer: 'swal2-text-success-clean',
+                confirmButton: 'my-success-button'
+            }
         });
 
         document.getElementById("reliefAmountInput").value = "";
@@ -1274,9 +1290,18 @@ tableBody.addEventListener("click", e => {
             text: `Do you want to deactivate this specific operation for group ID ${groupId}?`,
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
-            confirmButtonText: 'Yes'
+            confirmButtonText: 'Yes, clear it!',
+            cancelButtonText: 'No, keep editing',
+            reverseButtons: true,
+            focusCancel: true,
+            allowOutsideClick: false,
+            customClass: {
+                popup: 'custom-swal-popup-large',
+                title: 'custom-swal-title',
+                htmlContainer: 'custom-swal-content',
+                confirmButton: 'custom-confirm-btn',
+                cancelButton: 'custom-cancel-btn'
+            }
         }).then((result) => {
             if (result.isConfirmed) {
                 console.log("User confirmed deactivation. Checking authentication...");
@@ -1321,7 +1346,19 @@ tableBody.addEventListener("click", e => {
                     })
                     .then(() => {
                         console.log("Deactivation process completed successfully.");
-                        Swal.fire('Deactivated!', `The activation has been moved to deleted activations.`, 'success');
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Deactivated!',
+                            text:  `The activation has been moved to deleted activations.`,
+                            showConfirmButton: true,
+                            confirmButtonText: 'OK',
+                            customClass: {
+                                popup: 'swal2-popup-success-clean',
+                                title: 'swal2-title-success-clean',
+                                htmlContainer: 'swal2-text-success-clean',
+                                confirmButton: 'my-success-button'
+                            }
+                        });
                         renderTable();
                     })
                     .catch(error => {
