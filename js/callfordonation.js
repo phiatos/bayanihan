@@ -248,7 +248,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     viewArchivedBtn.style.display = 'none';
                     console.log('View Archived button hidden for ABVN user.');
                 } else {
-                    viewArchivedBtn.style.display = 'block';
+                    viewArchivedBtn.style.display = 'flex';
                     console.log('View Archived button visible for non-ABVN user.');
                 }
             } else {
@@ -1282,8 +1282,7 @@ if (viewArchivedBtn) {
         // Reset modal state
         archivedCurrentPage = 1;
         // Ensure modal is visible
-        archivedModal.style.display = 'block';
-        console.log('Set archivedModal display to block');
+        archivedModal.style.display = 'flex';
         // Force data fetch and render
         const archivedDbRef = firebase.database().ref('callfordonation/archivedCallforDonation');
         archivedDbRef.once('value').then((snapshot) => {
@@ -1594,7 +1593,19 @@ if (closeArchivedModalBtn) {
         const formattedDate = `${year}-${month}-${day}`;
         const filename = `call-for-donations_${formattedDate}.xlsx`;
         XLSX.writeFile(wb, filename);
-        Swal.fire("Success", `Call for Donations data exported to ${filename}!`, "success");
+        Swal.fire({
+            title: 'Export Successful!',
+            text: `Call for Donations data exported to ${filename}!`,
+            icon: 'success',
+            showConfirmButton: true,
+            confirmButtonText: 'OK',
+            customClass: {
+                popup: 'swal2-popup-success-clean',
+                title: 'swal2-title-success-clean',
+                htmlContainer: 'swal2-text-success-clean',
+                confirmButton: 'my-success-button'
+            }
+        });
     });
 
     savePdfBtn.addEventListener("click", () => {
@@ -1678,7 +1689,19 @@ if (closeArchivedModalBtn) {
             const filename = `call-for-donations_${formattedDate}.pdf`;
             doc.save(filename);
             Swal.close();
-            Swal.fire("Success", `Call for Donations data exported to "${filename}"`, "success");
+            Swal.fire({
+                title: 'Export Successful!',
+                text: `Call for Donations data exported to "${filename}"`,
+                icon: 'success',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    htmlContainer: 'swal2-text-success-clean',
+                    confirmButton: 'my-success-button'
+                }
+            });
         };
         logo.onerror = function() {
             Swal.close();
@@ -1753,15 +1776,13 @@ if (closeArchivedModalBtn) {
                 title: 'Export Successful!',
                 text: `Donation details for "${donation.donationDrive}" have been exported to PDF.`,
                 icon: 'success',
-                color: '#1b5e20',
-                iconColor: '#43a047',
-                confirmButtonColor: '#388e3c',
-                confirmButtonText: 'Great!',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
                 customClass: {
-                    popup: 'swal2-popup-success-export',
-                    title: 'swal2-title-success-export',
-                    content: 'swal2-text-success-export',
-                    confirmButton: 'swal2-button-success-export'
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    htmlContainer: 'swal2-text-success-clean',
+                    confirmButton: 'my-success-button'
                 }
             });
         };

@@ -253,7 +253,6 @@ function initSidebar() {
 
   // Restrict menu items by role (your original code kept)
   function restrictMenuAccess(role, isSuperAdmin) {
-    console.log("User Role:", role);
     const menuItems = {
       activitylogs: document.querySelector(".menu-activitylogs"),
       adminmanagement: document.querySelector(".menu-adminmanagement"),

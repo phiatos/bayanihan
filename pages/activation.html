@@ -12,7 +12,10 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAAAu6BeQjIZ7H7beFbAsPWuKuORmh0wrk&libraries=places,marker&callback=initMap"></script>
+    
+    <!-- ❌ removed &callback=initMap -->
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAAAu6BeQjIZ7H7beFbAsPWuKuORmh0wrk&libraries=places,marker"></script>
+
     <title>Bayanihan | Angat Buhay Disaster Relief Portal</title>
 </head>
 <body>
@@ -31,11 +34,9 @@
                     </div>
                     <div class="search-wrapper">
                         <input type="text" placeholder="Search" id="searchInput" />
-
-                        
-                            <button onclick="clearDInputs()" class="clear-btn" style="display: none;">
-                                <i class='bx bx-x'></i>
-                            </button>
+                        <button onclick="clearDInputs()" class="clear-btn" style="display: none;">
+                            <i class='bx bx-x'></i>
+                        </button>
                     </div>
                     <div class="custom-select-wrapper">
                         <select id="sortSelect">
@@ -50,7 +51,6 @@
                 </div>
             </div>
 
-            
             <div class="table-container">
               <table id="orgTable">
                   <thead>
@@ -191,7 +191,7 @@
             .catch(err => console.error('Error loading sidebar:', err));
     </script>
     
-    <!-- <script src="../js/inactivity-detector.js"></script>  -->
+    <!-- Your JS as module -->
     <script type="module" src="../js/activation.js"></script>
 </body>
 </html>

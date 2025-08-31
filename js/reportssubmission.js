@@ -1,3 +1,8 @@
+console.log = function () {};
+console.error = function () {};
+console.warn = function () {};
+
+
 // Global variables for map and markers
 let map;
 let markers = [];

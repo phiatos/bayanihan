@@ -12,7 +12,7 @@
   <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
-  <script src="../js/navbar.js"></script> 
+  <script src="./js/navbar.js"></script>
   <!-- SweetAlert2 -->
   <script defer src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <title> Bayanihan | Angat Buhay Disaster Relief Portal</title>
@@ -136,6 +136,9 @@
   </footer>
 
 <script>
+  console.log = function () {};
+console.error = function () {};
+console.warn = function () {};
   const hamburger = document.querySelector('.hamburger');
   const navLinks = document.querySelector('.nav-links');
 
@@ -143,8 +146,5 @@
     navLinks.classList.toggle('show');
   });
 </script>
-
-
-
 </body>
 </html>

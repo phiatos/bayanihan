@@ -1,6 +1,11 @@
+console.log = function () {};
+console.error = function () {};
+console.warn = function () {};
+
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-import { getAuth, EmailAuthProvider, reauthenticateWithCredential, updatePassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { getDatabase, ref, get, update } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
+import { EmailAuthProvider, getAuth, onAuthStateChanged, reauthenticateWithCredential, updatePassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { get, getDatabase, ref, update } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
 
 // Firebase configuration
 const firebaseConfig = {

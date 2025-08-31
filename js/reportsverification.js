@@ -1,3 +1,7 @@
+console.log = function () {};
+console.error = function () {};
+console.warn = function () {};
+
 document.addEventListener('DOMContentLoaded', () => {
     const firebaseConfig = {
         apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
