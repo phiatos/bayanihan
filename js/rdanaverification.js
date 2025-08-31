@@ -670,7 +670,6 @@ function approveReport(report) {
             return;
         }
 
-
         // Check role
         database.ref(`users/${user.uid}/role`).once('value')
             .then(snapshot => {
@@ -694,21 +693,50 @@ function approveReport(report) {
                     return Promise.reject("Missing firebaseKey or userUid");
                 }
 
+                // Debug: Log report object to verify rdanaId
+                console.log("Report object:", report);
+
                 // Update report object
                 report.status = "Approved";
                 report.approvedAt = Date.now();
 
+                // ✅ Explicitly prioritize rdanaId
+                const displayId = report.rdanaId || report.ReportID || report.firebaseKey;
+                if (!report.rdanaId) {
+                    console.warn("rdanaId is missing in report. Using fallback ID:", displayId);
+                }
 
+                // Prepare notification with explicit rdanaId
+                const notification = {
+                    message: `✅ RDANA Report Approved: Your report (ID: ${displayId}) has been approved.`,
+                    timestamp: Date.now(),
+                    type: "rdana_approved",
+                    userUid: report.userUid,
+                    read: false,
+                    identifier: `rdana_approved_${report.userUid}_${displayId}_${Date.now()}`, // Unique identifier
+                    rdanaId: displayId, // Store displayId for navigation
+                    ReportID: report.ReportID || report.firebaseKey // Fallback for ReportID
+                };
+
+                // Debug: Log notification object
+                console.log("Notification object:", notification);
+
+                // Move report + push notification
                 return Promise.all([
                     database.ref(`rdana/approved/${report.firebaseKey}`).set(report),
                     database.ref(`users/${report.userUid}/rdana/${report.firebaseKey}`).set(report),
-                    database.ref(`rdana/submitted/${report.firebaseKey}`).remove()
+                    database.ref(`rdana/submitted/${report.firebaseKey}`).remove(),
+                    database.ref('notifications').push(notification)
                 ]);
             })
             .then(() => {
-                // FIX: immediately remove from local array and re-render with current filters/sort/page
+                // Update local data and UI
                 allLogs = allLogs.filter(r => r.firebaseKey !== report.firebaseKey);
                 applySearchAndSort();
+
+                if (typeof updateNotificationBadge === 'function') {
+                    updateNotificationBadge();
+                }
 
                 Swal.fire({
                     icon: 'success',
