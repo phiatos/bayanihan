@@ -1351,16 +1351,30 @@ const notifyAdmin = throttle(async (message, calamityType, location, details, ev
     updateNotificationBadge();
 }, 10000);
 
-async function checkNewSubmissions(node, key, type, location, details, eventId) {
-    const snapshot = await database.ref(node).orderByChild("status").equalTo("pending").once("value");
+// Creates notifications only for AB ADMIN when new submissions are pending
+async function checkNewSubmissions(node, type, location, details) {
+    const snapshot = await database.ref(node)
+        .orderByChild("status")
+        .equalTo("pending")
+        .once("value");
+
     const submissions = snapshot.val();
     if (submissions) {
         for (const [subKey, submission] of Object.entries(submissions)) {
             const subEventId = `${type}_${subKey}_${Date.now()}`;
-            const subIdentifier = generateCalamityIdentifier(type, submission.location || location, submission.timestamp || Date.now(), '', '');
+            const subIdentifier = generateCalamityIdentifier(
+                type,
+                submission.location || location,
+                submission.timestamp || Date.now(),
+                '',
+                ''
+            );
+
+            // Prevent duplicates
             if (!processedNotifications.has(subEventId) && !processedNotifications.has(subIdentifier)) {
                 const subMessage = `${type} pending at ${submission.location || location}: ${submission.details || details}`;
-                await database.ref("notifications").child(key || database.ref("notifications").push().key).set({
+
+                await database.ref("notifications").push({
                     message: subMessage,
                     calamityType: type,
                     location: submission.location || location,
@@ -1369,16 +1383,19 @@ async function checkNewSubmissions(node, key, type, location, details, eventId) 
                     identifier: subIdentifier,
                     timestamp: Date.now(),
                     read: false,
-                    type: "admin"
+                    type: "admin",   // 🔥 Only admin sees
+                    userUid: null    // No user assigned
                 });
+
                 processedNotifications.add(subEventId);
                 processedNotifications.add(subIdentifier);
                 syncProcessedNotifications();
-                console.log(`Notified new ${type} - Event ID: ${subEventId}`);
+                console.log(`Admin notified of new ${type} - Event ID: ${subEventId}`);
             }
         }
     }
 }
+
 
 // for bar
 
@@ -1509,9 +1526,30 @@ function loadNotifications() {
 
     // Remove existing listener to prevent duplicate event handlers
     if (notificationsListener) {
-        notificationsListener.off();
+        notificationsListener.off();               // keep your original call
+        notificationsListener.off("child_added");  // FIX: explicitly detach this handler
         console.log("Previous notifications listener removed.");
     }
+
+    // Helper: single source of truth for visibility (NO removals, only added)
+    const isNotifVisibleToUser = (n) => {
+        if (!n) return false;
+
+        // Admin-only
+        if (n.type === "admin") return userRole === "AB ADMIN";
+
+        // Approvals are only for the owner
+        if (["donation_approved", "rdana_approved"].includes(n.type)) {
+            return n.userUid === userUid;
+        }
+
+        // Calamity is public
+        if (n.type === "calamity") return true;
+
+        // Other types:
+        if (userRole === "AB ADMIN") return true;                 // admins see all
+        return !!n.userUid && n.userUid === userUid;              // non-admins only own items
+    };
 
     // Set up Firebase listener for notifications (limit to last 50 for performance)
     notificationsListener = database.ref("notifications").limitToLast(50);
@@ -1532,7 +1570,7 @@ function loadNotifications() {
             return;
         }
 
-        // Filter notifications based on user role and userUid
+        // Filter notifications based on user role and userUid (kept) -----------------
         if (notification.type === "admin" && userRole !== "AB ADMIN") {
             console.log(`Skipping admin notification for non-admin user: ${notification.message}`);
             return;
@@ -1549,6 +1587,16 @@ function loadNotifications() {
             console.log(`Skipping notification for user ${notification.userUid}, current user is ${userUid}`);
             return;
         }
+        // EXTRA GUARD (added, not replacing): non-admins should NOT see items without userUid unless calamity/approval
+        if (userRole !== "AB ADMIN" && !["calamity", "donation_approved", "rdana_approved"].includes(notification.type)) {
+            if (!notification.userUid || notification.userUid !== userUid) {
+                console.log("Skipping non-admin notification without matching userUid.");
+                return;
+            }
+        }
+        // Final gate using helper (added)
+        if (!isNotifVisibleToUser(notification)) return;
+        // ---------------------------------------------------------------------------
 
         // Add notification to processed set
         processedNotifications.add(notification.identifier || key); // Use key as fallback identifier
@@ -1616,12 +1664,16 @@ function loadNotifications() {
                 });
             });
 
-            // Update notification badge
+            // Update notification badge (kept block; FIX: apply same filtering as above)
             database.ref("notifications")
-                .orderByChild("read")
-                .equalTo(false)
                 .once("value", snapshot => {
-                    const unreadCount = snapshot.numChildren();
+                    let unreadCount = 0;
+                    snapshot.forEach(childSnap => {
+                        const n = childSnap.val();
+                        if (!n.read && isNotifVisibleToUser(n)) {
+                            unreadCount++;
+                        }
+                    });
                     notifBadge.textContent = unreadCount > 0 ? unreadCount : '';
                     notifBadge.style.display = unreadCount > 0 ? "inline-flex" : "none";
                     notifDot.style.display = unreadCount > 0 ? "block" : "none";
@@ -1748,6 +1800,7 @@ function loadNotifications() {
         });
     });
 }
+
 // Verify report in reportssubmission
 async function verifyReport(reportId) {
     try {
