@@ -375,6 +375,13 @@ header {
   font-weight: 600;
   padding-bottom: 0.2rem;
 }
+.data-bar span {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: white;
+  text-shadow: 0 0 3px rgba(0,0,0,0.5);
+}
+
 
 
 
