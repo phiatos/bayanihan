@@ -793,3 +793,16 @@ function formatDate(dateStr) {
       navbar.style.pointerEvents = "auto";
     }
   });
+
+  database.ref("settings/metrics").on("value", snapshot => {
+  const settings = snapshot.val();
+  if (!settings) return;
+
+  Object.entries(settings).forEach(([metricId, visible]) => {
+    const el = document.getElementById(metricId);
+    if (el) {
+      el.closest(".metric-card").style.display = visible ? "block" : "none";
+    }
+  });
+});
+

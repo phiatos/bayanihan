@@ -245,12 +245,14 @@ body {
 
 .row {
   display: flex;
-  gap: 2.5rem;
-  justify-content: space-between;
+  gap: 1.5rem;
+  justify-content: space-evenly;
 }
 
 .center-row {
-  justify-content: center; /* centers the 3 cards */
+  display: flex;
+  gap: 1.5rem;
+  justify-content: space-evenly;
 }
 
 
@@ -258,7 +260,7 @@ body {
 .metric-card {
   background: linear-gradient(135deg, #0fbaba 0%, #23d7d7 52%, #18e0e0 100%);
   backdrop-filter: blur(25px);
-  width: 400px;
+  width: 500px;
   -webkit-backdrop-filter: blur(25px);
   border-radius: 20px;
   padding: 1.8rem 1.6rem;
