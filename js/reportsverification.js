@@ -121,7 +121,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const transformed = {
             firebaseKey: report.firebaseKey,
             ReportID: report.reportID || report.ReportID || "-",
-            VolunteerGroupName: report.organization || report.VolunteerGroupName || "[Unknown Org]",
+            VolunteerGroupName: report.organization || report.VolunteerGroupName || "Admin",
             AreaOfOperation: report.AreaOfOperation || "-",
             TimeOfIntervention: report.timeOfIntervention || report.TimeOfIntervention || "-",
             DateOfReport: report.dateOfReport || report.DateOfReport || "-",
@@ -306,7 +306,7 @@ document.addEventListener('DOMContentLoaded', () => {
             tr.innerHTML = `
                 <td>${displayIndex}</td>
                 <td>${report["ReportID"] || "-"}</td>
-                <td>${report["VolunteerGroupName"] || "[Unknown Org]"}</td>
+                <td>${report["VolunteerGroupName"] || "Admin"}</td>
                 <td>${report["AreaOfOperation"] || "-"}</td>
                 <td>${report["CalamityName"] || "-"}</td>
                 <td>${report["CalamityType"] || "-"}</td>
@@ -385,7 +385,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 database.ref(`users/${userUid}`).once('value')
                     .then(snapshot => {
                         const userData = snapshot.val();
-                        let volunteerGroupName = "[Unknown Org]";
+                        let volunteerGroupName = "Admin";
                         if (userData && userData.organization) {
                             volunteerGroupName = userData.organization;
                             console.log(`Fetched VolunteerGroupName for user ${userUid}: ${volunteerGroupName}`);
@@ -543,7 +543,7 @@ document.addEventListener('DOMContentLoaded', () => {
             tr.innerHTML = `
                 <td>${displayIndex}</td>
                 <td>${report["ReportID"] || "-"}</td>
-                <td>${report["VolunteerGroupName"] || "[Unknown Org]"}</td>
+                <td>${report["VolunteerGroupName"] || "Admin"}</td>
                 <td>${report["AreaOfOperation"] || "-"}</td>
                 <td>${formatDate(report["StartDate"])}</td>
                 <td>${formatDate(report["EndDate"])}</td>
