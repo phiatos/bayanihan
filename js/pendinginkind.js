@@ -634,12 +634,12 @@ async function retrieveDonation(id, donationData) {
                 for (let key in abvns) {
                     if (abvns.hasOwnProperty(key)) {
                         const abvn = abvns[key];
-                        
                         options.push({
                             type: 'ABVN',
                             id: key,
                             name: abvn.organization || 'Unknown',
                             details: abvn.areaOfOperation || 'N/A',
+                            email: abvn.email || 'default@example.com', // Ensure email is included
                             display: `
                                 <strong>ABVN: ${abvn.organization || 'Unknown'}</strong><br>
                                 <p>Area of Operation: ${abvn.areaOfOperation || 'N/A'}</p>
@@ -826,92 +826,100 @@ async function retrieveDonation(id, donationData) {
                     });
 
                     if (confirmResult.isConfirmed) {
-                        try {
-                            
-                            const snapshot = await database.ref('donations/pending/inkind/' + id).once('value');
-                            const approvedDonation = snapshot.val();
-                            if (!approvedDonation) {
-                                throw new Error('Donation data not found in donations/pending/inkind.');
-                            }
-                            
+    try {
+        const snapshot = await database.ref('donations/pending/inkind/' + id).once('value');
+        const approvedDonation = snapshot.val();
+        if (!approvedDonation) {
+            throw new Error('Donation data not found in donations/pending/inkind.');
+        }
 
-                            approvedDonation.approvedAt = new Date().toISOString();
-                            approvedDonation.updatedAt = new Date().toISOString();
-                            approvedDonation.status = 'Approved';
-                            approvedDonation.assignment = {
-                                type: selectedOption.type,
-                                id: selectedId,
-                                name: selectedOption.name,
-                                details: selectedOption.details
-                            };
+        approvedDonation.approvedAt = new Date().toISOString();
+        approvedDonation.updatedAt = new Date().toISOString();
+        approvedDonation.status = 'Approved';
+        approvedDonation.assignment = {
+            type: selectedOption.type,
+            id: selectedId,
+            name: selectedOption.name,
+            details: selectedOption.details,
+            email: selectedOption.email // Add email to assignment
+        };
 
-                            console.log('Moving donation to donations/savedDonations/inkind and removing from pendingInkind...');
-                            await database.ref('donations/savedDonations/inkind/' + id).set(approvedDonation);
-                            await database.ref('donations/pending/inkind/' + id).remove();
+        console.log('Moving donation to donations/savedDonations/inkind and removing from pendingInkind...');
+        await database.ref('donations/savedDonations/inkind/' + id).set(approvedDonation);
+        await database.ref('donations/pending/inkind/' + id).remove();
 
-                            if (type === 'Relief Request') {
-                                
-                                await database.ref(`requestRelief/requests/${selectedId}`).update({
-                                    status: 'Completed',
-                                    updatedAt: new Date().toISOString()
-                                });
-                            }
+        if (type === 'Relief Request') {
+            await database.ref(`requestRelief/requests/${selectedId}`).update({
+                status: 'Completed',
+                updatedAt: new Date().toISOString()
+            });
+        }
 
-                            console.log('Triggering approval email...');
-                            sendApprovalEmail(approvedDonation);
+        console.log('Triggering approval email...');
+        sendApprovalEmail(approvedDonation);
 
-                            if (type === 'ABVN') {
-                                const abvnNotification = {
-                                    type: "abvn_endorsed",
-                                    message: `A donation has been assigned to ${selectedOption.name}.`,
-                                    abvnGroup: selectedOption.name,
-                                    timestamp: new Date().toISOString(),
-                                    read: false,
-                                    identifier: `abvn_endorsed_${id}_${Date.now()}`
-                                };
-                                await database.ref("notifications").push(abvnNotification).catch(error => {
-                                    console.error("Error sending ABVN notification:", error);
-                                    Swal.fire('Error', `Failed to notify ABVN group. Error: ${error.message}`, 'error');
-                                    logErrorToFirebase(error, 'sendABVNNotification');
-                                });
-                            }
+        // Add endorsement email for ABVN
+        if (type === 'ABVN') {
+            console.log('Triggering endorsement email...');
+            await sendEndorsementEmail(approvedDonation, {
+                email: selectedOption.email,
+                name: selectedOption.name,
+                details: selectedOption.details
+            });
+        }
 
-                            const approvalNotification = {
-                                type: "donation_approved",
-                                message: `The donation from ${approvedDonation.name || 'an anonymous donor'} has been approved and assigned to ${selectedOption.type}: ${selectedOption.name}.`,
-                                approverUid: auth.currentUser.uid,
-                                timestamp: new Date().toISOString(),
-                                read: false,
-                                identifier: `donation_approved_${id}_${Date.now()}`
-                            };
-                            await database.ref("notifications").push(approvalNotification).catch(error => {
-                                console.error("Error sending approval notification:", error);
-                                Swal.fire('Error', `Failed to notify admin. Error: ${error.message}`, 'error');
-                                logErrorToFirebase(error, 'sendApprovalNotification');
-                            });
+        if (type === 'ABVN') {
+            const abvnNotification = {
+                type: "abvn_endorsed",
+                message: `A donation has been assigned to ${selectedOption.name}.`,
+                abvnGroup: selectedOption.name,
+                timestamp: new Date().toISOString(),
+                read: false,
+                identifier: `abvn_endorsed_${id}_${Date.now()}`
+            };
+            await database.ref("notifications").push(abvnNotification).catch(error => {
+                console.error("Error sending ABVN notification:", error);
+                Swal.fire('Error', `Failed to notify ABVN group. Error: ${error.message}`, 'error');
+                logErrorToFirebase(error, 'sendABVNNotification');
+            });
+        }
 
-                            Swal.fire({
-                                title: 'Approved!',
-                                html: `
-                                    <p>Donation has been approved and assigned to ${selectedOption.type}: ${selectedOption.name}.</p>
-                                    ${reliefDetails}
-                                `,
-                                icon: 'success',
-                                showConfirmButton: true,
-                                confirmButtonText: 'OK',
-                                customClass: {
-                                    popup: 'swal2-popup-success-clean',
-                                    title: 'swal2-title-success-clean',
-                                    htmlContainer: 'swal2-text-success-clean',
-                                    confirmButton: 'my-success-button'
-                                }
-                            });
-                        } catch (error) {
-                            console.error('Error approving donation in Firebase:', error);
-                            Swal.fire('Error', `Failed to approve donation. Error: ${error.message}`, 'error');
-                            logErrorToFirebase(error, 'approveDonation');
-                        }
-                    }
+        const approvalNotification = {
+            type: "donation_approved",
+            message: `The donation from ${approvedDonation.name || 'an anonymous donor'} has been approved and assigned to ${selectedOption.type}: ${selectedOption.name}.`,
+            approverUid: auth.currentUser.uid,
+            timestamp: new Date().toISOString(),
+            read: false,
+            identifier: `donation_approved_${id}_${Date.now()}`
+        };
+        await database.ref("notifications").push(approvalNotification).catch(error => {
+            console.error("Error sending approval notification:", error);
+            Swal.fire('Error', `Failed to notify admin. Error: ${error.message}`, 'error');
+            logErrorToFirebase(error, 'sendApprovalNotification');
+        });
+
+        Swal.fire({
+            title: 'Approved!',
+            html: `
+                <p>Donation has been approved and assigned to ${selectedOption.type}: ${selectedOption.name}.</p>
+                ${reliefDetails}
+            `,
+            icon: 'success',
+            showConfirmButton: true,
+            confirmButtonText: 'OK',
+            customClass: {
+                popup: 'swal2-popup-success-clean',
+                title: 'swal2-title-success-clean',
+                htmlContainer: 'swal2-text-success-clean',
+                confirmButton: 'my-success-button'
+            }
+        });
+    } catch (error) {
+        console.error('Error approving donation in Firebase:', error);
+        Swal.fire('Error', `Failed to approve donation. Error: ${error.message}`, 'error');
+        logErrorToFirebase(error, 'approveDonation');
+    }
+}
                 }
             });
         } catch (error) {
