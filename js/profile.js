@@ -520,28 +520,33 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // --- Password Toggle Functionality ---
-    const setupPasswordToggle = (passwordInputId) => {
-        const passwordInput = document.getElementById(passwordInputId);
-        const parentDiv = passwordInput ? passwordInput.parentElement : null;
-        const lockIcon = parentDiv ? parentDiv.querySelector('.password-toggle-closed') : null;
-        const openLockIcon = parentDiv ? parentDiv.querySelector('.password-toggle-open') : null;
+    function setupPasswordToggle(passwordInputId) {
+  const passwordInput = document.getElementById(passwordInputId);
+  if (!passwordInput) return;
 
-        if (lockIcon && openLockIcon && passwordInput && parentDiv) {
-            openLockIcon.style.display = 'none';
-            lockIcon.style.display = 'inline';
+  const parentDiv = passwordInput.parentElement;
+  const toggleClosed = parentDiv.querySelector('.password-toggle-closed');
+  const toggleOpen = parentDiv.querySelector('.password-toggle-open');
 
-            lockIcon.addEventListener('click', () => {
-                passwordInput.type = 'text';
-                parentDiv.classList.add('show-open-lock'); 
-            });
+  // Make sure only the closed icon is visible by default
+  toggleClosed.style.display = 'inline';
+  toggleOpen.style.display = 'none';
 
-            openLockIcon.addEventListener('click', () => {
-                passwordInput.type = 'password';
-                parentDiv.classList.remove('show-open-lock');
-            });
-        } else {
-        }
-    };
+  // Show password
+  toggleClosed.addEventListener('click', () => {
+    passwordInput.type = 'text';
+    toggleClosed.style.display = 'none';
+    toggleOpen.style.display = 'inline';
+  });
+
+  // Hide password
+  toggleOpen.addEventListener('click', () => {
+    passwordInput.type = 'password';
+    toggleOpen.style.display = 'none';
+    toggleClosed.style.display = 'inline';
+  });
+}
+
 
     // Apply password toggle to all password fields
     setupPasswordToggle('current-password');
