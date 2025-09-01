@@ -1454,17 +1454,27 @@ function updateNotificationBadge() {
             snapshot.forEach(childSnap => {
                 const notif = childSnap.val();
 
-                // Skip admin notifications if user is not AB ADMIN
-                if (notif.type === "admin" && userRole !== "AB ADMIN") {
-                    return; 
+                // Skip invalid
+                if (!notif || !notif.type) return;
+
+                // Admin-only notifications → only admins see them
+                if (notif.type === "admin") {
+                    if (userRole !== "AB ADMIN") return;
                 }
 
-                // For approval notifications, only count if belongs to current user
-                if (["donation_approved", "rdana_approved"].includes(notif.type)) {
+                // Approvals & Reliefs → only the owner sees them (admins excluded)
+                if (["donation_approved", "rdana_approved", "report_approved", "relief"].includes(notif.type)) {
                     if (notif.userUid !== userUid) return;
-                } else if (userRole !== "AB ADMIN" && notif.userUid && notif.userUid !== userUid) {
-                    // Non-admin users only count their own notifications
-                    return;
+                }
+                // Calamity → everyone can see
+                else if (notif.type === "calamity") {
+                    // always count
+                }
+                // Other types
+                else {
+                    if (userRole !== "AB ADMIN" && notif.userUid && notif.userUid !== userUid) {
+                        return; // non-admins only count their own
+                    }
                 }
 
                 unreadCount++;
@@ -1475,6 +1485,8 @@ function updateNotificationBadge() {
             notifDot.style.display = unreadCount > 0 ? "block" : "none";
         });
 }
+
+
 
 // Setup admin notifications (unchanged)
 function setupAdminNotifications() {
@@ -1531,25 +1543,27 @@ function loadNotifications() {
         console.log("Previous notifications listener removed.");
     }
 
-    // Helper: single source of truth for visibility (NO removals, only added)
-    const isNotifVisibleToUser = (n) => {
-        if (!n) return false;
+    // Helper: single source of truth for visibility
+const isNotifVisibleToUser = (n) => {
+    if (!n) return false;
 
-        // Admin-only
-        if (n.type === "admin") return userRole === "AB ADMIN";
+    // Admin-only
+    if (n.type === "admin") return userRole === "AB ADMIN";
 
-        // Approvals are only for the owner
-        if (["donation_approved", "rdana_approved"].includes(n.type)) {
-            return n.userUid === userUid;
-        }
+    // Approvals & Reliefs → ONLY for the owner (admins cannot override)
+    if (["donation_approved", "rdana_approved", "report_approved", "relief"].includes(n.type)) {
+        return n.userUid === userUid;
+    }
 
-        // Calamity is public
-        if (n.type === "calamity") return true;
+    // Calamity is public
+    if (n.type === "calamity") return true;
 
-        // Other types:
-        if (userRole === "AB ADMIN") return true;                 // admins see all
-        return !!n.userUid && n.userUid === userUid;              // non-admins only own items
-    };
+    // Other types
+    if (userRole === "AB ADMIN") return true;
+    return !!n.userUid && n.userUid === userUid;
+};
+
+
 
     // Set up Firebase listener for notifications (limit to last 50 for performance)
     notificationsListener = database.ref("notifications").limitToLast(50);
@@ -1619,14 +1633,14 @@ function loadNotifications() {
             content = `<strong>🔔 Notification:</strong> ${notification.message}`;
         }
 
-        // Append timestamp with proper time zone (PST)
-        const timestamp = new Date(notification.timestamp);
-        content += `<span class="timestamp">${timestamp.toLocaleString("en-US", {
-            hour: "numeric",
-            minute: "numeric",
-            hour12: true,
-            timeZone: "America/Los_Angeles" // Explicitly set to PST
-        })}</span>`;
+         // Append timestamp with proper time zone (Philippine Time)
+const timestamp = new Date(notification.timestamp);
+content += `<span class="timestamp">${timestamp.toLocaleString("en-US", {
+    hour: "numeric",
+    minute: "numeric",
+    hour12: true,
+    timeZone: "Asia/Manila" // Updated to Philippine Time
+})}</span>`;
 
         li.innerHTML = content;
         li.dataset.key = key;
