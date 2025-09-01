@@ -1351,16 +1351,30 @@ const notifyAdmin = throttle(async (message, calamityType, location, details, ev
     updateNotificationBadge();
 }, 10000);
 
-async function checkNewSubmissions(node, key, type, location, details, eventId) {
-    const snapshot = await database.ref(node).orderByChild("status").equalTo("pending").once("value");
+// Creates notifications only for AB ADMIN when new submissions are pending
+async function checkNewSubmissions(node, type, location, details) {
+    const snapshot = await database.ref(node)
+        .orderByChild("status")
+        .equalTo("pending")
+        .once("value");
+
     const submissions = snapshot.val();
     if (submissions) {
         for (const [subKey, submission] of Object.entries(submissions)) {
             const subEventId = `${type}_${subKey}_${Date.now()}`;
-            const subIdentifier = generateCalamityIdentifier(type, submission.location || location, submission.timestamp || Date.now(), '', '');
+            const subIdentifier = generateCalamityIdentifier(
+                type,
+                submission.location || location,
+                submission.timestamp || Date.now(),
+                '',
+                ''
+            );
+
+            // Prevent duplicates
             if (!processedNotifications.has(subEventId) && !processedNotifications.has(subIdentifier)) {
                 const subMessage = `${type} pending at ${submission.location || location}: ${submission.details || details}`;
-                await database.ref("notifications").child(key || database.ref("notifications").push().key).set({
+
+                await database.ref("notifications").push({
                     message: subMessage,
                     calamityType: type,
                     location: submission.location || location,
@@ -1369,59 +1383,91 @@ async function checkNewSubmissions(node, key, type, location, details, eventId) 
                     identifier: subIdentifier,
                     timestamp: Date.now(),
                     read: false,
-                    type: "admin"
+                    type: "admin",   // 🔥 Only admin sees
+                    userUid: null    // No user assigned
                 });
+
                 processedNotifications.add(subEventId);
                 processedNotifications.add(subIdentifier);
                 syncProcessedNotifications();
-                console.log(`Notified new ${type} - Event ID: ${subEventId}`);
+                console.log(`Admin notified of new ${type} - Event ID: ${subEventId}`);
             }
         }
     }
 }
 
+
 // for bar
 
 function updateReportsByType(reportCounts) {
-  const reportBarsEls = document.querySelectorAll(".data-reports .data-bar");
-  if (!reportBarsEls) return;
+  const chartContainer = document.querySelector(".data-reports .data-mini-chart");
+  if (!chartContainer) return;
+
+  // Clear old bars
+  chartContainer.innerHTML = "";
+
+  const calamities = Object.keys(reportCounts);
+  if (calamities.length === 0) {
+    chartContainer.innerHTML = "<p style='font-size:0.8rem;color:#777;'>No reports yet</p>";
+    return;
+  }
 
   const max = Math.max(...Object.values(reportCounts), 1);
 
-  reportBarsEls.forEach(bar => {
-    const type = bar.getAttribute("title"); 
+  // Define colors for calamities
+  const calamityColors = {
+    "Flood": "var(--blue)",
+    "Fire": "var(--red)",
+    "Landslide": "#8B4513",
+    "Earthquake": "var(--gray)",
+    "Typhoon": "var(--primary-color)",
+    "Tsunami": "#0077b6",
+    "Volcanic Eruption": "#FF5733"
+  };
+
+  // Build bars dynamically
+  calamities.forEach(type => {
     const value = reportCounts[type] || 0;
     const percent = Math.round((value / max) * 100);
 
+    const bar = document.createElement("div");
+    bar.classList.add("data-bar");
     bar.style.height = percent + "%";
-    bar.querySelector("span").textContent = `${type} (${value})`;
+    bar.setAttribute("title", type);
+
+    // Apply color (fallback teal if not in list)
+    bar.style.background = calamityColors[type] || "#007b7b";
+
+    // Add label
+    const label = document.createElement("span");
+    label.textContent = `${type} (${value})`;
+
+    bar.appendChild(label);
+    chartContainer.appendChild(bar);
   });
 }
+
+
 
 
 function fetchApprovedReports() {
   database.ref("reports/approved").on("value", snapshot => {
     const reports = snapshot.val() || {};
-    const counts = { 
-      Flood: 0, 
-      Fire: 0, 
-      Landslide: 0, 
-      Earthquake: 0, 
-      Typhoon: 0, 
-      Tsunami: 0, 
-      "Volcanic Eruption": 0 
-    };
+    const counts = {};
 
+    // Count reports by calamity type
     Object.values(reports).forEach(report => {
       const calamity = report.CalamityType;
-      if (calamity && counts[calamity] !== undefined) {
-        counts[calamity]++;
+      if (calamity) {
+        counts[calamity] = (counts[calamity] || 0) + 1;
       }
     });
 
+    // Update the chart dynamically
     updateReportsByType(counts);
   });
 }
+
 
 
 
@@ -1437,17 +1483,27 @@ function updateNotificationBadge() {
             snapshot.forEach(childSnap => {
                 const notif = childSnap.val();
 
-                // Skip admin notifications if user is not AB ADMIN
-                if (notif.type === "admin" && userRole !== "AB ADMIN") {
-                    return; 
+                // Skip invalid
+                if (!notif || !notif.type) return;
+
+                // Admin-only notifications → only admins see them
+                if (notif.type === "admin") {
+                    if (userRole !== "AB ADMIN") return;
                 }
 
-                // For approval notifications, only count if belongs to current user
-                if (["donation_approved", "rdana_approved"].includes(notif.type)) {
+                // Approvals & Reliefs → only the owner sees them (admins excluded)
+                if (["donation_approved", "rdana_approved", "report_approved", "relief"].includes(notif.type)) {
                     if (notif.userUid !== userUid) return;
-                } else if (userRole !== "AB ADMIN" && notif.userUid && notif.userUid !== userUid) {
-                    // Non-admin users only count their own notifications
-                    return;
+                }
+                // Calamity → everyone can see
+                else if (notif.type === "calamity") {
+                    // always count
+                }
+                // Other types
+                else {
+                    if (userRole !== "AB ADMIN" && notif.userUid && notif.userUid !== userUid) {
+                        return; // non-admins only count their own
+                    }
                 }
 
                 unreadCount++;
@@ -1458,6 +1514,8 @@ function updateNotificationBadge() {
             notifDot.style.display = unreadCount > 0 ? "block" : "none";
         });
 }
+
+
 
 // Setup admin notifications (unchanged)
 function setupAdminNotifications() {
@@ -1509,9 +1567,32 @@ function loadNotifications() {
 
     // Remove existing listener to prevent duplicate event handlers
     if (notificationsListener) {
-        notificationsListener.off();
+        notificationsListener.off();               // keep your original call
+        notificationsListener.off("child_added");  // FIX: explicitly detach this handler
         console.log("Previous notifications listener removed.");
     }
+
+    // Helper: single source of truth for visibility
+const isNotifVisibleToUser = (n) => {
+    if (!n) return false;
+
+    // Admin-only
+    if (n.type === "admin") return userRole === "AB ADMIN";
+
+    // Approvals & Reliefs → ONLY for the owner (admins cannot override)
+    if (["donation_approved", "rdana_approved", "report_approved", "relief"].includes(n.type)) {
+        return n.userUid === userUid;
+    }
+
+    // Calamity is public
+    if (n.type === "calamity") return true;
+
+    // Other types
+    if (userRole === "AB ADMIN") return true;
+    return !!n.userUid && n.userUid === userUid;
+};
+
+
 
     // Set up Firebase listener for notifications (limit to last 50 for performance)
     notificationsListener = database.ref("notifications").limitToLast(50);
@@ -1532,7 +1613,7 @@ function loadNotifications() {
             return;
         }
 
-        // Filter notifications based on user role and userUid
+        // Filter notifications based on user role and userUid (kept) -----------------
         if (notification.type === "admin" && userRole !== "AB ADMIN") {
             console.log(`Skipping admin notification for non-admin user: ${notification.message}`);
             return;
@@ -1549,6 +1630,16 @@ function loadNotifications() {
             console.log(`Skipping notification for user ${notification.userUid}, current user is ${userUid}`);
             return;
         }
+        // EXTRA GUARD (added, not replacing): non-admins should NOT see items without userUid unless calamity/approval
+        if (userRole !== "AB ADMIN" && !["calamity", "donation_approved", "rdana_approved"].includes(notification.type)) {
+            if (!notification.userUid || notification.userUid !== userUid) {
+                console.log("Skipping non-admin notification without matching userUid.");
+                return;
+            }
+        }
+        // Final gate using helper (added)
+        if (!isNotifVisibleToUser(notification)) return;
+        // ---------------------------------------------------------------------------
 
         // Add notification to processed set
         processedNotifications.add(notification.identifier || key); // Use key as fallback identifier
@@ -1571,14 +1662,14 @@ function loadNotifications() {
             content = `<strong>🔔 Notification:</strong> ${notification.message}`;
         }
 
-        // Append timestamp with proper time zone (PST)
-        const timestamp = new Date(notification.timestamp);
-        content += `<span class="timestamp">${timestamp.toLocaleString("en-US", {
-            hour: "numeric",
-            minute: "numeric",
-            hour12: true,
-            timeZone: "America/Los_Angeles" // Explicitly set to PST
-        })}</span>`;
+         // Append timestamp with proper time zone (Philippine Time)
+const timestamp = new Date(notification.timestamp);
+content += `<span class="timestamp">${timestamp.toLocaleString("en-US", {
+    hour: "numeric",
+    minute: "numeric",
+    hour12: true,
+    timeZone: "Asia/Manila" // Updated to Philippine Time
+})}</span>`;
 
         li.innerHTML = content;
         li.dataset.key = key;
@@ -1616,12 +1707,16 @@ function loadNotifications() {
                 });
             });
 
-            // Update notification badge
+            // Update notification badge (kept block; FIX: apply same filtering as above)
             database.ref("notifications")
-                .orderByChild("read")
-                .equalTo(false)
                 .once("value", snapshot => {
-                    const unreadCount = snapshot.numChildren();
+                    let unreadCount = 0;
+                    snapshot.forEach(childSnap => {
+                        const n = childSnap.val();
+                        if (!n.read && isNotifVisibleToUser(n)) {
+                            unreadCount++;
+                        }
+                    });
                     notifBadge.textContent = unreadCount > 0 ? unreadCount : '';
                     notifBadge.style.display = unreadCount > 0 ? "inline-flex" : "none";
                     notifDot.style.display = unreadCount > 0 ? "block" : "none";
@@ -1748,6 +1843,7 @@ function loadNotifications() {
         });
     });
 }
+
 // Verify report in reportssubmission
 async function verifyReport(reportId) {
     try {

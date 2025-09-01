@@ -682,30 +682,44 @@ async function notifyABVN(activationId, groupId, reliefAmount, reliefPurpose) {
 
         const group = allVolunteerGroups.find(g => g.no === parseInt(groupId));
         if (!group) {
-            throw new Error("Volunteer group not found.");
+            throw new Error(`Volunteer group not found for groupId: ${groupId}`);
         }
 
         const activationSnapshot = await database.ref(`activations/${activationId}`).once("value");
         const activation = activationSnapshot.val();
         if (!activation) {
-            throw new Error("Activation not found.");
+            throw new Error(`Activation not found for activationId: ${activationId}`);
         }
 
+        let abvnUserUid = null;
+        const usersSnapshot = await database.ref("users").orderByChild("organization").equalTo(group.organization).once("value");
+        if (usersSnapshot.exists()) {
+            usersSnapshot.forEach(child => {
+                const userData = child.val();
+                if (userData.role === "ABVN") {
+                    abvnUserUid = child.key;
+                }
+            });
+        }
+
+        console.log(`ABVN user lookup for organization ${group.organization}: userUid=${abvnUserUid || 'none'}`);
+
         const notification = {
-            groupId: groupId, // 👈 this is the targeting field
+            groupId: groupId,
             organization: group.organization,
             activationId: activationId,
             reliefAmount: parseFloat(reliefAmount),
             reliefPurpose: reliefPurpose,
             timestamp: new Date().toISOString(),
-            status: "unread",
-            type: "relief", // 👈 identify this as a relief notification
-            message: `Relief assistance of ₱${parseFloat(reliefAmount).toLocaleString()} for "${reliefPurpose}" has been sent to ${group.organization} for ${activation.calamityType}${activation.calamityName ? ` (${activation.calamityName})` : ''} in ${activation.areaOfOperation}.`
+            read: false,
+            type: "relief",
+            userUid: abvnUserUid || null,
+            message: `Relief assistance of ₱${parseFloat(reliefAmount).toLocaleString()} Relief Purpose "${reliefPurpose}" has been sent to ${group.organization} for ${activation.calamityType}${activation.calamityName ? ` (${activation.calamityName})` : ''} in ${activation.areaOfOperation}.`,
+            identifier: `relief_${activationId}_${groupId}_${Date.now()}`
         };
 
-        
         const newNotificationRef = await database.ref("notifications").push(notification);
-       
+        console.log(`Notification created for ${group.organization}:`, notification);
 
         return newNotificationRef.key;
     } catch (error) {
@@ -713,7 +727,6 @@ async function notifyABVN(activationId, groupId, reliefAmount, reliefPurpose) {
         throw error;
     }
 }
-
 
 firebase.auth().onAuthStateChanged(user => {
     if (user) {
@@ -1157,15 +1170,22 @@ modalActivateSubmitBtn.addEventListener("click", async () => {
             status: "active",
             activationDate: activationDate,
             latitude: parseFloat(latitude) || null,
-            longitude: parseFloat(longitude) || null
+            longitude: parseFloat(longitude) || null,
+            activationId: null // Placeholder, updated after push
         };
 
-        console.log("Adding new activation record:", newActivationRecord);
-        await database.ref("activations").push(newActivationRecord);
+        // Push to Firebase and get the push key
+        const newActivationRef = database.ref("activations").push();
+        const activationId = newActivationRef.key; // e.g., -OZ284dKzhiYVc7Pagsf
+        newActivationRecord.activationId = activationId; // Add activationId to record
+
+        await newActivationRef.set(newActivationRecord);
+        console.log("Added new activation record:", { ...newActivationRecord, activationId });
+
         Swal.fire({
             icon: 'success',
             title: 'Activated!',
-            text: `${selectedGroupForActivation.organization} has been activated for ${calamityType}${calamityName ? ` (${calamityName})` : ''} in ${areaOfOperation}.`,
+            text: `${selectedGroupForActivation.organization} has been activated for ${calamityType}${calamityName ? ` (${calamityName})` : ''} in ${areaOfOperation}.`, // Removed activationId
             showConfirmButton: true,
             confirmButtonText: 'OK',
             customClass: {

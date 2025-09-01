@@ -2085,170 +2085,288 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 }
 
-
-    const cancelEndorseBtn = document.getElementById("cancelEndorseBtn");
-        cancelEndorseBtn.onclick = () => {
-        const modal = document.getElementById("endorseModal");
-        modal.style.display = "none";
-        Swal.fire({
-            icon: 'error',
-            title: 'Endorsement Cancelled',
-            text: 'No endorsement was made.',
-            timer: 1500,
-            showConfirmButton: false,
-            timerProgressBar: true,
-            customClass: {
-                popup: 'swal2-popup-error-clean',
-                title: 'swal2-title-error-clean',
-                htmlContainer: 'swal2-text-error-clean'
-            }
-        });
-    };
-
     async function openEndorseModal(firebaseKey) {
-        const modal = document.getElementById("endorseModal");
-        modal.style.display = "flex";
-        const abvnList = document.getElementById("abvnList");
+        const donationToEndorse = allDonations.find(d => d.firebaseKey === firebaseKey);
 
-    const donationToEndorse = allDonations.find(d => d.firebaseKey === firebaseKey);
+        if (!donationToEndorse) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Donation not found for endorsement.',
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean'
+                }
+            });
+            return;
+        }
 
-    if (!donationToEndorse) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'Donation not found for endorsement.',
-            customClass: {
-                popup: 'swal2-popup-error-clean',
-                title: 'swal2-title-error-clean',
-                htmlContainer: 'swal2-text-error-clean'
-            }
-        });
-        modal.style.display = "none";
-        return;
-    }
+        try {
+            // Fetch active activations
+            const activationsSnapshot = await firebase.database().ref('activations').orderByChild('status').equalTo('active').once('value');
+            const activations = activationsSnapshot.val();
 
-    abvnList.innerHTML = '<p>Loading organizations...</p>';
+            // Fetch volunteer groups
+            const volunteerGroupsSnapshot = await firebase.database().ref('volunteerGroups').once('value');
+            const volunteerGroups = volunteerGroupsSnapshot.val() || {};
 
-    try {
-        // Fetch active activations
-        const activationsSnapshot = await firebase.database().ref('activations').orderByChild('status').equalTo('active').once('value');
-        const activations = activationsSnapshot.val();
+            let selectOptions = '<option value="" selected>-- Select an option --</option>';
 
-        // Fetch volunteer groups
-        const volunteerGroupsSnapshot = await firebase.database().ref('volunteerGroups').once('value');
-        const volunteerGroups = volunteerGroupsSnapshot.val() || {};
+            if (activations && volunteerGroups) {
+                for (const activationId in activations) {
+                    const activationData = activations[activationId];
+                    if (activationData.status !== 'active') continue;
 
-        let groupHtml = '';
+                    // Find matching volunteer group by organization name
+                    let matchedEmail = '';
+                    for (const groupId in volunteerGroups) {
+                        const groupData = volunteerGroups[groupId];
+                        if (groupData.organization && activationData.organization && 
+                            groupData.organization.toLowerCase() === activationData.organization.toLowerCase()) {
+                            matchedEmail = groupData.email || '';
+                            break;
+                        }
+                    }
 
-        if (activations && volunteerGroups) {
-            for (const activationId in activations) {
-                const activationData = activations[activationId];
-                if (activationData.status !== 'active') continue;
-
-                // Find matching volunteer group by organization name
-                let matchedEmail = '';
-                for (const groupId in volunteerGroups) {
-                    const groupData = volunteerGroups[groupId];
-                    if (groupData.organization && activationData.organization && 
-                        groupData.organization.toLowerCase() === activationData.organization.toLowerCase()) {
-                        matchedEmail = groupData.email || '';
-                        break;
+                    // Only include groups with valid emails
+                    if (matchedEmail && isValidEmail(matchedEmail)) {
+                        const organizationName = activationData.organization || 'Unknown';
+                        const areaOfOperation = activationData.areaOfOperation || 'Not specified';
+                        selectOptions += `<option value="${organizationName}" data-email="${matchedEmail}" data-activation-id="${activationId}">${organizationName} (${areaOfOperation})</option>`;
                     }
                 }
 
-                // Only include groups with valid emails
-                if (matchedEmail && isValidEmail(matchedEmail)) {
-                    const organizationName = activationData.organization || 'Unknown';
-                    const areaOfOperation = activationData.areaOfOperation || 'Not specified';
-                    groupHtml += `<label><input type="radio" name="abvn" value="${organizationName}" data-email="${matchedEmail}" data-activation-id="${activationId}" /> ${organizationName} (${areaOfOperation})</label><br/>`;
-                } 
-            }
+                if (selectOptions !== '<option value="" selected>-- Select an option --</option>') {
+                    Swal.fire({
+                        title: 'Endorse Donation',
+                        html: `
+                            <p style="font-weight: 500; color: #333;">Select an active volunteer network for endorsement:</p>
+                            <select id="assignmentSelect" style="
+                                width: 100%; 
+                                margin-bottom: 10px;
+                                padding: 10px; 
+                                border-radius: 8px; 
+                                border: 1px solid #ccc; 
+                                font-size: 14px;
+                                background: #fefefe;
+                                box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+                            ">
+                                ${selectOptions}
+                            </select>
+                            <div id="assignmentDetails" style="
+                                margin-top: 15px; 
+                                max-height: 200px; 
+                                overflow-y: auto; 
+                                text-align: left; 
+                                background: #f9f9f9; 
+                                padding: 10px; 
+                                border-radius: 8px; 
+                                box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+                            ">
+                                <p>Please select an option to view details.</p>
+                            </div>
+                        `,
+                        icon: 'info',
+                        showCancelButton: true,
+                        confirmButtonText: 'Confirm Selection',
+                        cancelButtonText: 'Cancel',
+                        confirmButtonColor: '#1e88e5',
+                        cancelButtonColor: '#e0e0e0',
+                        reverseButtons: true,
+                        buttonsStyling: true,
+                        customClass: {
+                            popup: 'swal-popup-modern',
+                            title: 'swal-title-modern',
+                            content: 'swal-content-modern',
+                            confirmButton: 'swal-confirm-modern',
+                            cancelButton: 'swal-cancel-modern'
+                        },
+                        didOpen: () => {
+                            const select = document.getElementById('assignmentSelect');
+                            const details = document.getElementById('assignmentDetails');
+                            select.addEventListener('change', () => {
+                                const selectedOption = select.options[select.selectedIndex];
+                                if (selectedOption.value) {
+                                    const email = selectedOption.getAttribute('data-email');
+                                    const activationId = selectedOption.getAttribute('data-activation-id');
+                                    details.innerHTML = `
+                                        <p><strong>Organization:</strong> ${selectedOption.value}</p>
+                                        <p><strong>Email:</strong> ${email}</p>
+                                        <p><strong>Activation ID:</strong> ${activationId}</p>
+                                    `;
+                                } else {
+                                    details.innerHTML = '<p>Please select an option to view details.</p>';
+                                }
+                            });
+                        },
+                        preConfirm: () => {
+                            const select = document.getElementById('assignmentSelect');
+                            const selectedOption = select.options[select.selectedIndex];
+                            if (!selectedOption.value) {
+                                Swal.showValidationMessage('Please select an organization.');
+                                return false;
+                            }
+                            return {
+                                organization: selectedOption.value,
+                                email: selectedOption.getAttribute('data-email'),
+                                activationId: selectedOption.getAttribute('data-activation-id'),
+                                firebaseKey: firebaseKey
+                            };
+                        }
+                    }).then(async (result) => {
+                        if (result.isConfirmed) {
+                            const { organization, email, activationId, firebaseKey } = result.value;
+                            const endorsedGroup = {
+                                name: organization,
+                                email: email
+                            };
 
-            if (groupHtml) {
-                abvnList.innerHTML = groupHtml;
+                            try {
+                                await database.ref(`donations/savedDonations/inkind/${firebaseKey}`).update({
+                                    endorsedTo: endorsedGroup.name,
+                                    endorsedEmail: endorsedGroup.email,
+                                    endorsementDate: new Date().toISOString()
+                                });
+
+                                await sendEndorsementEmail(donationToEndorse, endorsedGroup);
+
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Endorsed!',
+                                    html: `Donation with ID ${firebaseKey} endorsed to ${organization}`,
+                                    showConfirmButton: true,
+                                    confirmButtonText: 'OK',
+                                    customClass: {
+                                        popup: 'swal2-popup-success-clean',
+                                        title: 'swal2-title-success-clean',
+                                        htmlContainer: 'swal2-text-success-clean',
+                                        confirmButton: 'my-success-button'
+                                    }
+                                });
+                            } catch (error) {
+                                logErrorToFirebase(error, 'submitEndorsementBtn_update');
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error',
+                                    text: 'Failed to update donation with endorsement details.',
+                                    customClass: {
+                                        popup: 'swal2-popup-error-clean',
+                                        title: 'swal2-title-error-clean',
+                                        htmlContainer: 'swal2-text-error-clean'
+                                    }
+                                });
+                            }
+                        }
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'No Options Available',
+                        text: 'No active volunteer groups with valid emails found for endorsement. Please ensure active activations have matching organizations in volunteerGroups with valid email addresses.',
+                        customClass: {
+                            popup: 'swal2-popup-error-clean',
+                            title: 'swal2-title-error-clean',
+                            htmlContainer: 'swal2-text-error-clean'
+                        }
+                    });
+                }
             } else {
-                abvnList.innerHTML = '<p>No active volunteer groups with valid emails found for endorsement. Please ensure active activations have matching organizations in volunteerGroups with valid email addresses.</p>';
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'No Options Available',
+                    text: 'No active activations or volunteer groups found for endorsement. Please activate a volunteer group first.',
+                    customClass: {
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean'
+                    }
+                });
             }
-        } else {
-            abvnList.innerHTML = '<p>No active activations or volunteer groups found for endorsement. Please activate a volunteer group first.</p>';
+        } catch (error) {
+            logErrorToFirebase(error, 'openEndorseModal');
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Error loading endorsement options: ' + error.message,
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean'
+                }
+            });
         }
-    } catch (error) {
-        logErrorToFirebase(error, 'openEndorseModal');
-        abvnList.innerHTML = '<p>Error loading endorsement options: ' + error.message + '</p>';
     }
 
-    modal.dataset.firebaseKey = firebaseKey;
-}
+    // Add event listener for the new endorsement button
+    const submitEndorsementBtn = document.getElementById("confirmEndorseBtn");
+    submitEndorsementBtn.onclick = () => {
+        const modal = document.getElementById("endorseModal");
+        const selectedRadio = document.querySelector('input[name="abvn"]:checked');
 
-        // Add event listener for the new endorsement button
-        const submitEndorsementBtn = document.getElementById("confirmEndorseBtn");
-submitEndorsementBtn.onclick = () => {
-    const modal = document.getElementById("endorseModal");
-    const selectedRadio = document.querySelector('input[name="abvn"]:checked');
+        if (!selectedRadio) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'No Group Selected',
+                text: 'Please select a volunteer group to endorse this donation.',
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-warning-clean',
+                    title: 'swal2-title-warning-clean',
+                    htmlContainer: 'swal2-text-warning-clean'
+                }
+            });
+            return;
+        }
 
-    if (!selectedRadio) {
-        Swal.fire({
-            icon: 'warning',
-            title: 'No Group Selected',
-            text: 'Please select a volunteer group to endorse this donation.',
-            confirmButtonText: 'OK',
-            customClass: {
-                popup: 'swal2-popup-warning-clean',
-                title: 'swal2-title-warning-clean',
-                htmlContainer: 'swal2-text-warning-clean'
-            }
-        });
-        return;
-    }
+        const firebaseKey = modal.dataset.firebaseKey;
+        const donationToEndorse = allDonations.find(d => d.firebaseKey === firebaseKey);
 
-    const firebaseKey = modal.dataset.firebaseKey;
-    const donationToEndorse = allDonations.find(d => d.firebaseKey === firebaseKey);
+        if (!donationToEndorse) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Donation not found for endorsement.',
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean'
+                }
+            });
+            modal.style.display = "none";
+            return;
+        }
 
-    if (!donationToEndorse) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'Donation not found for endorsement.',
-            customClass: {
-                popup: 'swal2-popup-error-clean',
-                title: 'swal2-title-error-clean',
-                htmlContainer: 'swal2-text-error-clean'
-            }
-        });
+        const endorsedGroup = {
+            name: selectedRadio.value,
+            email: selectedRadio.getAttribute('data-email')
+        };
+
+        // Update the donation record with the endorsed group
+        try {
+            database.ref(`donations/savedDonations/inkind/${firebaseKey}`).update({
+                endorsedTo: endorsedGroup.name,
+                endorsedEmail: endorsedGroup.email,
+                endorsementDate: new Date().toISOString()
+            });
+        } catch (error) {
+            logErrorToFirebase(error, 'submitEndorsementBtn_update');
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Failed to update donation with endorsement details.',
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean'
+                }
+            });
+            return;
+        }
+
+        sendEndorsementEmail(donationToEndorse, endorsedGroup);
         modal.style.display = "none";
-        return;
-    }
-
-    const endorsedGroup = {
-        name: selectedRadio.value,
-        email: selectedRadio.getAttribute('data-email')
     };
-
-    // Update the donation record with the endorsed group
-    try {
-        database.ref(`donations/savedDonations/inkind/${firebaseKey}`).update({
-            endorsedTo: endorsedGroup.name,
-            endorsedEmail: endorsedGroup.email,
-            endorsementDate: new Date().toISOString()
-        });
-    } catch (error) {
-        logErrorToFirebase(error, 'submitEndorsementBtn_update');
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'Failed to update donation with endorsement details.',
-            customClass: {
-                popup: 'swal2-popup-error-clean',
-                title: 'swal2-title-error-clean',
-                htmlContainer: 'swal2-text-error-clean'
-            }
-        });
-        return;
-    }
-
-    sendEndorsementEmail(donationToEndorse, endorsedGroup);
-    modal.style.display = "none";
-};
 
     async function openEditModal(firebaseKey) {
         if (!permissions.canEdit) {
@@ -2373,31 +2491,6 @@ submitEndorsementBtn.onclick = () => {
         const errorInputs = editModal.querySelectorAll('.error');
         errorInputs.forEach(input => input.classList.remove('error'));
     }
-
-    document.getElementById("confirmEndorseBtn").addEventListener("click", () => {
-        const modal = document.getElementById("endorseModal");
-        const firebaseKey = modal.dataset.firebaseKey;
-        const selected = document.querySelector("input[name='abvn']:checked");
-        if (!selected) {
-            Swal.fire("Select a group to endorse", "", "warning");
-            return;
-        }
-        const group = selected.value;
-        Swal.fire({
-            icon: 'success',
-            title: 'Endorsed!',
-            html: `Donation with ID ${firebaseKey} endorsed to ${group}`,
-            showConfirmButton: true,
-            confirmButtonText: "Ok",
-            customClass: {
-                popup: 'swal2-popup-success-clean',
-                title: 'swal2-title-success-clean',
-                htmlContainer: 'swal2-text-success-clean',
-                confirmButton: 'my-success-button'
-            }
-        });
-        modal.style.display = "none";
-    });
 
     document.getElementById("cancelEndorseBtn").addEventListener("click", () => {
         document.getElementById("endorseModal").style.display = "none";
