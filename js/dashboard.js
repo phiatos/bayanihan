@@ -1400,45 +1400,74 @@ async function checkNewSubmissions(node, type, location, details) {
 // for bar
 
 function updateReportsByType(reportCounts) {
-  const reportBarsEls = document.querySelectorAll(".data-reports .data-bar");
-  if (!reportBarsEls) return;
+  const chartContainer = document.querySelector(".data-reports .data-mini-chart");
+  if (!chartContainer) return;
+
+  // Clear old bars
+  chartContainer.innerHTML = "";
+
+  const calamities = Object.keys(reportCounts);
+  if (calamities.length === 0) {
+    chartContainer.innerHTML = "<p style='font-size:0.8rem;color:#777;'>No reports yet</p>";
+    return;
+  }
 
   const max = Math.max(...Object.values(reportCounts), 1);
 
-  reportBarsEls.forEach(bar => {
-    const type = bar.getAttribute("title"); 
+  // Define colors for calamities
+  const calamityColors = {
+    "Flood": "var(--blue)",
+    "Fire": "var(--red)",
+    "Landslide": "#8B4513",
+    "Earthquake": "var(--gray)",
+    "Typhoon": "var(--primary-color)",
+    "Tsunami": "#0077b6",
+    "Volcanic Eruption": "#FF5733"
+  };
+
+  // Build bars dynamically
+  calamities.forEach(type => {
     const value = reportCounts[type] || 0;
     const percent = Math.round((value / max) * 100);
 
+    const bar = document.createElement("div");
+    bar.classList.add("data-bar");
     bar.style.height = percent + "%";
-    bar.querySelector("span").textContent = `${type} (${value})`;
+    bar.setAttribute("title", type);
+
+    // Apply color (fallback teal if not in list)
+    bar.style.background = calamityColors[type] || "#007b7b";
+
+    // Add label
+    const label = document.createElement("span");
+    label.textContent = `${type} (${value})`;
+
+    bar.appendChild(label);
+    chartContainer.appendChild(bar);
   });
 }
+
+
 
 
 function fetchApprovedReports() {
   database.ref("reports/approved").on("value", snapshot => {
     const reports = snapshot.val() || {};
-    const counts = { 
-      Flood: 0, 
-      Fire: 0, 
-      Landslide: 0, 
-      Earthquake: 0, 
-      Typhoon: 0, 
-      Tsunami: 0, 
-      "Volcanic Eruption": 0 
-    };
+    const counts = {};
 
+    // Count reports by calamity type
     Object.values(reports).forEach(report => {
       const calamity = report.CalamityType;
-      if (calamity && counts[calamity] !== undefined) {
-        counts[calamity]++;
+      if (calamity) {
+        counts[calamity] = (counts[calamity] || 0) + 1;
       }
     });
 
+    // Update the chart dynamically
     updateReportsByType(counts);
   });
 }
+
 
 
 

@@ -100,58 +100,60 @@
                 </div>
 
                 <!-- Right Sidebar Metrics: Progress Visualizations -->
-                <aside class="metrics-sidebar">
-                    <section class="dashboard-section" aria-label="Progress & Reports">
-                        <h2>Ongoing Progress</h2>
-                        <div class="data-visuals-grid sidebar-metrics">
-                            <div class="data-metric-box data-relief" tabindex="0">
-                                <div class="data-metric-head">
-                                    <i class='bx bx-send'></i>
-                                    <h3>Relief Dispatch</h3>
-                                </div>
-                                <div class="data-metric-body">
-                                    <div class="data-metric-value-row">
-                                        <span class="data-metric-value">80%</span>
-                                        <span class="data-metric-status">On Track</span>
-                                    </div>
-                                    <div class="data-progress-bar">
-                                        <div class="data-progress-fill fill-success" style="width: 80%;"></div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="data-metric-box data-reports" tabindex="0">
-                                <div class="data-metric-head">
-                                    <i class='bx bx-category'></i>
-                                    <h3>Reports by Type</h3>
-                                </div>
-                                <div class="data-metric-body data-mini-chart">
-                                    <div class="data-bar" style="height: 60%;" title="Flood"><span>Flood</span></div>
-                                    <div class="data-bar" style="height: 80%;" title="Fire"><span>Fire</span></div>
-                                    <div class="data-bar" style="height: 40%;" title="Landslide"><span>Landslide</span></div>
-                                    <div class="data-bar" style="height: 30%;" title="Earthquake"><span>Quake</span></div>
-                                    <div class="data-bar" style="height: 0%;" title="Typhoon"><span>Typhoon</span></div>
-                                    <div class="data-bar" style="height: 0%;" title="Tsunami"><span>Tsunami</span></div>
-                                    <div class="data-bar" style="height: 0%;" title="Volcanic Eruption"><span>Volcanic Eruption</span></div>
-                                </div>
-                            </div>
-                            <div class="data-metric-box data-donation" tabindex="0">
-                                <div class="data-metric-head">
-                                    <i class='bx bx-donate-heart'></i>
-                                    <h3>Donation Goal</h3>
-                                </div>
-                                <div class="data-metric-body">
-                                    <div class="data-metric-value-row">
-                                        <span class="data-metric-value">₱750K</span>
-                                        <span class="data-metric-status">75% Reached</span>
-                                    </div>
-                                    <div class="data-progress-bar">
-                                        <div class="data-progress-fill fill-warning" style="width: 75%;"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
-                </aside>
+               <aside class="metrics-sidebar">
+  <section class="dashboard-section" aria-label="Progress & Reports">
+    <h2>Ongoing Progress</h2>
+    <div class="data-visuals-grid sidebar-metrics">
+      
+      <!-- Relief Dispatch box -->
+      <div class="data-metric-box data-relief" tabindex="0">
+        <div class="data-metric-head">
+          <i class='bx bx-send'></i>
+          <h3>Relief Dispatch</h3>
+        </div>
+        <div class="data-metric-body">
+          <div class="data-metric-value-row">
+            <span class="data-metric-value">80%</span>
+            <span class="data-metric-status">On Track</span>
+          </div>
+          <div class="data-progress-bar">
+            <div class="data-progress-fill fill-success" style="width: 80%;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reports by Type (bars will be injected by JS) -->
+      <div class="data-metric-box data-reports" tabindex="0">
+        <div class="data-metric-head">
+          <i class='bx bx-category'></i>
+          <h3>Reports by Type</h3>
+        </div>
+        <div class="data-metric-body data-mini-chart">
+          <!-- JS will insert bars here dynamically -->
+        </div>
+      </div>
+
+      <!-- Donation Goal -->
+      <div class="data-metric-box data-donation" tabindex="0">
+        <div class="data-metric-head">
+          <i class='bx bx-donate-heart'></i>
+          <h3>Donation Goal</h3>
+        </div>
+        <div class="data-metric-body">
+          <div class="data-metric-value-row">
+            <span class="data-metric-value">₱750K</span>
+            <span class="data-metric-status">75% Reached</span>
+          </div>
+          <div class="data-progress-bar">
+            <div class="data-progress-fill fill-warning" style="width: 75%;"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+</aside>
+
 
                 <!-- Bottom Row: Map Overview -->
                 <section class="dashboard-section bottom-row" aria-label="Map Overview">
