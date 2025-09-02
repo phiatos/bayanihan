@@ -451,7 +451,37 @@ function initializeArchivedModal() {
 
 // === Authentication and Initialization ===
 document.addEventListener('DOMContentLoaded', () => {
+    // auth.onAuthStateChanged(async (user) => {
+    //     if (!user) {
+    //         showErrorAlert('Authentication Required', 'Please sign in to access approved applications.', () => {
+    //             window.location.href = '../pages/login.html';
+    //         });
+    //         return;
+    //     }
+
+    //     const permissions = await checkAdminPermissions();
+    //     if (!permissions.canView) {
+    //         showErrorAlert('Access Denied', 'You do not have permission to access this page.', () => {
+    //             window.location.href = '../pages/login.html';
+    //         });
+    //         return;
+    //     }
+
+    //     try {
+    //         const snapshot = await database.ref(`users/${user.uid}`).once('value');
+    //         const userData = snapshot.val();
+    //         currentUserAdminPosition = userData?.adminPosition || null;
+    //         initializePageFunctions(user.uid);
+    //         resetInactivityTimer();
+    //     } catch (error) {
+    //         currentUserAdminPosition = null;
+    //         initializePageFunctions(user.uid);
+    //         resetInactivityTimer();
+    //     }
+    // });
     auth.onAuthStateChanged(async (user) => {
+        console.log(`[${new Date().toISOString()}] Auth state changed:`, user ? { uid: user.uid, email: user.email } : 'No user');
+
         if (!user) {
             showErrorAlert('Authentication Required', 'Please sign in to access approved applications.', () => {
                 window.location.href = '../pages/login.html';
@@ -459,24 +489,62 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const permissions = await checkAdminPermissions();
-        if (!permissions.canView) {
-            showErrorAlert('Access Denied', 'You do not have permission to access this page.', () => {
-                window.location.href = '../pages/login.html';
-            });
-            return;
-        }
-
         try {
-            const snapshot = await database.ref(`users/${user.uid}`).once('value');
-            const userData = snapshot.val();
+            // Check password_needs_reset
+            const userSnapshot = await database.ref(`users/${user.uid}`).once('value');
+            const userData = userSnapshot.val();
+            const passwordNeedsReset = userData ? (userData.password_needs_reset || false) : false;
+
+            if (passwordNeedsReset) {
+                console.log(`[${new Date().toISOString()}] Password change required for user ${user.uid}. Redirecting to profile page.`);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Password Change Required',
+                    text: 'Please change your password. Redirecting to profile.',
+                    allowOutsideClick: false,
+                    timer: 1600,
+                    showConfirmButton: false,
+                    timerProgressBar: true,
+                    customClass: {
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean'
+                    }
+                }).then(() => {
+                    window.location.replace('../pages/profile.html');
+                });
+                return;
+            }
+
+            // Proceed with normal flow
+            const permissions = await checkAdminPermissions();
+            if (!permissions.canView) {
+                showErrorAlert('Access Denied', 'You do not have permission to access this page.', () => {
+                    window.location.href = '../pages/login.html';
+                });
+                return;
+            }
+
             currentUserAdminPosition = userData?.adminPosition || null;
             initializePageFunctions(user.uid);
             resetInactivityTimer();
         } catch (error) {
-            currentUserAdminPosition = null;
-            initializePageFunctions(user.uid);
-            resetInactivityTimer();
+            console.error(`[${new Date().toISOString()}] Error checking user data:`, error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Authentication Error',
+                text: 'Failed to verify account status. Please try logging in again.',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
+                }
+            }).then(() => {
+                window.location.href = '../pages/login.html';
+            });
         }
     });
 });
