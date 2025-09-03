@@ -54,19 +54,92 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         return;
     }
-    auth.onAuthStateChanged(user => {
+
+    // auth.onAuthStateChanged(user => {
+    //     if (!user) {
+    //         Swal.fire({
+    //             icon: 'error',
+    //             title: 'Authentication Required',
+    //             text: 'Please sign in to access report verification.',
+    //         }).then(() => {
+    //             window.location.href = "../pages/login.html";
+    //         });
+    //         return;
+    //     }
+    //     loadReportsFromFirebase();
+    // });
+    auth.onAuthStateChanged(async user => {
+        console.log(`[${new Date().toISOString()}] Auth state changed:`, user ? { uid: user.uid, email: user.email } : 'No user');
+
         if (!user) {
             Swal.fire({
                 icon: 'error',
                 title: 'Authentication Required',
                 text: 'Please sign in to access report verification.',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
+                }
             }).then(() => {
                 window.location.href = "../pages/login.html";
             });
             return;
         }
-        loadReportsFromFirebase();
+
+        try {
+            // Check password_needs_reset
+            const userSnapshot = await database.ref(`users/${user.uid}`).once('value');
+            const userData = userSnapshot.val();
+            const passwordNeedsReset = userData ? (userData.password_needs_reset || false) : false;
+
+            if (passwordNeedsReset) {
+                console.log(`[${new Date().toISOString()}] Password change required for user ${user.uid}. Redirecting to profile page.`);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Password Change Required',
+                    text: 'Please change your password. Redirecting to profile.',
+                    allowOutsideClick: false,
+                    timer: 1600,
+                    showConfirmButton: false,
+                    timerProgressBar: true,
+                    customClass: {
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean'
+                    }
+                }).then(() => {
+                    window.location.replace('../pages/profile.html');
+                });
+                return;
+            }
+
+            // Proceed with normal flow
+            loadReportsFromFirebase();
+            resetInactivityTimer();
+        } catch (error) {
+            console.error(`[${new Date().toISOString()}] Error checking user data:`, error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Authentication Error',
+                text: 'Failed to verify account status. Please try logging in again.',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
+                }
+            }).then(() => {
+                window.location.href = '../pages/login.html';
+            });
+        }
     });
+
     function formatDate(dateStr) {
         const date = new Date(dateStr);
         if (isNaN(date)) return dateStr || "-";
@@ -121,7 +194,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const transformed = {
             firebaseKey: report.firebaseKey,
             ReportID: report.reportID || report.ReportID || "-",
-            VolunteerGroupName: report.organization || report.VolunteerGroupName || "[Unknown Org]",
+            VolunteerGroupName: report.organization || report.VolunteerGroupName || "Admin",
             AreaOfOperation: report.AreaOfOperation || "-",
             TimeOfIntervention: report.timeOfIntervention || report.TimeOfIntervention || "-",
             DateOfReport: report.dateOfReport || report.DateOfReport || "-",
@@ -306,7 +379,7 @@ document.addEventListener('DOMContentLoaded', () => {
             tr.innerHTML = `
                 <td>${displayIndex}</td>
                 <td>${report["ReportID"] || "-"}</td>
-                <td>${report["VolunteerGroupName"] || "[Unknown Org]"}</td>
+                <td>${report["VolunteerGroupName"] || "Admin"}</td>
                 <td>${report["AreaOfOperation"] || "-"}</td>
                 <td>${report["CalamityName"] || "-"}</td>
                 <td>${report["CalamityType"] || "-"}</td>
@@ -385,7 +458,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 database.ref(`users/${userUid}`).once('value')
                     .then(snapshot => {
                         const userData = snapshot.val();
-                        let volunteerGroupName = "[Unknown Org]";
+                        let volunteerGroupName = "Admin";
                         if (userData && userData.organization) {
                             volunteerGroupName = userData.organization;
                             console.log(`Fetched VolunteerGroupName for user ${userUid}: ${volunteerGroupName}`);
@@ -543,7 +616,7 @@ document.addEventListener('DOMContentLoaded', () => {
             tr.innerHTML = `
                 <td>${displayIndex}</td>
                 <td>${report["ReportID"] || "-"}</td>
-                <td>${report["VolunteerGroupName"] || "[Unknown Org]"}</td>
+                <td>${report["VolunteerGroupName"] || "Admin"}</td>
                 <td>${report["AreaOfOperation"] || "-"}</td>
                 <td>${formatDate(report["StartDate"])}</td>
                 <td>${formatDate(report["EndDate"])}</td>

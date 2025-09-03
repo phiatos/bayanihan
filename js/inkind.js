@@ -1015,7 +1015,81 @@ document.addEventListener("DOMContentLoaded", () => {
         searchInput.placeholder = placeholderText;
     };
 
+    // auth.onAuthStateChanged(async user => {
+    //     if (!user) {
+    //         Swal.fire({
+    //             icon: 'error',
+    //             title: 'Authentication Required',
+    //             text: 'Please sign in to access in-kind donations.',
+    //             showConfirmButton: true,
+    //             confirmButtonText: 'OK',
+    //             customClass: {
+    //                 popup: 'swal2-popup-error-clean',
+    //                 title: 'swal2-title-error-clean',
+    //                 htmlContainer: 'swal2-text-error-clean',
+    //                 confirmButton: 'my-error-button'
+    //             }
+    //         }).then(() => {
+    //             window.location.href = "../pages/login.html";
+    //         });
+    //         return;
+    //     }
+    //     permissions = await checkAdminPermissions();
+    //     if (!permissions.canView) {
+    //         Swal.fire({
+    //             icon: 'error',
+    //             title: 'Access Denied',
+    //             text: 'You do not have permission to access this page.',
+    //             showConfirmButton: true,
+    //             confirmButtonText: 'OK',
+    //             customClass: {
+    //                 popup: 'swal2-popup-error-clean',
+    //                 title: 'swal2-title-error-clean',
+    //                 htmlContainer: 'swal2-text-error-clean',
+    //                 confirmButton: 'my-error-button'
+    //             }
+    //         }).then(() => {
+    //             window.location.href = "../pages/login.html";
+    //         });
+    //         return;
+    //     }
+    //     loadDonations(user.uid);
+    //     updateSearchPlaceholder();
+    //     resetInactivityTimer();
+    //     // Move event listener here
+    //     viewArchivedBtn.addEventListener('click', async () => {
+    //         if (!permissions.canRetrieve) {
+    //             Swal.fire({
+    //                 title: 'Access Denied',
+    //                 text: 'You do not have permission to view archived donations.',
+    //                 icon: 'error',
+    //                 timer: 1600,
+    //                 showConfirmButton: false,
+    //                 timerProgressBar: true,
+    //                 allowOutsideClick: false,
+    //                 customClass: {
+    //                     popup: 'swal2-popup-error-clean',
+    //                     title: 'swal2-title-error-clean',
+    //                     htmlContainer: 'swal2-text-error-clean'
+    //                 }   
+    //             });
+    //             return;
+    //         }
+    //         archivedModal.style.display = 'flex';
+    //         fetchArchivedDonations();
+    //     });
+
+    //     if (!permissions.canArchive) {
+    //         document.querySelectorAll('.archiveBtn').forEach(btn => btn.style.display = 'none');
+    //     }
+    //     if (!permissions.canEdit) {
+    //         document.querySelectorAll('.editBtn').forEach(btn => btn.style.display = 'none');
+    //     }
+    // });
+
     auth.onAuthStateChanged(async user => {
+        console.log(`[${new Date().toISOString()}] Auth state changed:`, user ? { uid: user.uid, email: user.email } : 'No user');
+        
         if (!user) {
             Swal.fire({
                 icon: 'error',
@@ -1029,17 +1103,89 @@ document.addEventListener("DOMContentLoaded", () => {
                     htmlContainer: 'swal2-text-error-clean',
                     confirmButton: 'my-error-button'
                 }
-            }).then(() => {
-                window.location.href = "../pages/login.html";
-            });
+            }).then(() => window.location.href = "../pages/login.html");
             return;
         }
-        permissions = await checkAdminPermissions();
-        if (!permissions.canView) {
+
+        try {
+            // Fetch user data to check password_needs_reset
+            const userSnapshot = await database.ref('users/' + user.uid).once('value');
+            const userData = userSnapshot.val();
+            const passwordNeedsReset = userData ? (userData.password_needs_reset || false) : false;
+
+            if (passwordNeedsReset) {
+                console.log(`[${new Date().toISOString()}] Password change required for user ${user.uid}. Redirecting to profile.`);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Password Change Required',
+                    text: 'For security reasons, please change your password.',
+                    allowOutsideClick: false,
+                    timer: 1600,
+                    showConfirmButton: false,
+                    timerProgressBar: true,
+                    customClass: {
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean'
+                    }
+                }).then(() => window.location.replace("../pages/profile.html"));
+                return;
+            }
+
+            // Proceed with normal initialization if no password reset needed
+            permissions = await checkAdminPermissions();
+            if (!permissions.canView) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Access Denied',
+                    text: 'You do not have permission to access this page.',
+                    showConfirmButton: true,
+                    confirmButtonText: 'OK',
+                    customClass: {
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean',
+                        confirmButton: 'my-error-button'
+                    }
+                }).then(() => window.location.href = "../pages/login.html");
+                return;
+            }
+
+            loadDonations(user.uid);
+            updateSearchPlaceholder();
+            resetInactivityTimer();
+
+            viewArchivedBtn.addEventListener('click', async () => {
+                if (!permissions.canRetrieve) {
+                    Swal.fire({
+                        title: 'Access Denied',
+                        text: 'You do not have permission to view archived donations.',
+                        icon: 'error',
+                        timer: 1600,
+                        showConfirmButton: false,
+                        timerProgressBar: true,
+                        allowOutsideClick: false,
+                        customClass: {
+                            popup: 'swal2-popup-error-clean',
+                            title: 'swal2-title-error-clean',
+                            htmlContainer: 'swal2-text-error-clean'
+                        }
+                    });
+                    return;
+                }
+                archivedModal.style.display = 'flex';
+                fetchArchivedDonations();
+            });
+
+            if (!permissions.canArchive) document.querySelectorAll('.archiveBtn').forEach(btn => btn.style.display = 'none');
+            if (!permissions.canEdit) document.querySelectorAll('.editBtn').forEach(btn => btn.style.display = 'none');
+
+        } catch (error) {
+            console.error(`[${new Date().toISOString()}] Error checking user data:`, error);
             Swal.fire({
                 icon: 'error',
-                title: 'Access Denied',
-                text: 'You do not have permission to access this page.',
+                title: 'Authentication Error',
+                text: 'Failed to verify account status. Please try logging in again.',
                 showConfirmButton: true,
                 confirmButtonText: 'OK',
                 customClass: {
@@ -1048,44 +1194,10 @@ document.addEventListener("DOMContentLoaded", () => {
                     htmlContainer: 'swal2-text-error-clean',
                     confirmButton: 'my-error-button'
                 }
-            }).then(() => {
-                window.location.href = "../pages/login.html";
-            });
-            return;
-        }
-        loadDonations(user.uid);
-        updateSearchPlaceholder();
-        resetInactivityTimer();
-        // Move event listener here
-        viewArchivedBtn.addEventListener('click', async () => {
-            if (!permissions.canRetrieve) {
-                Swal.fire({
-                    title: 'Access Denied',
-                    text: 'You do not have permission to view archived donations.',
-                    icon: 'error',
-                    timer: 1600,
-                    showConfirmButton: false,
-                    timerProgressBar: true,
-                    allowOutsideClick: false,
-                    customClass: {
-                        popup: 'swal2-popup-error-clean',
-                        title: 'swal2-title-error-clean',
-                        htmlContainer: 'swal2-text-error-clean'
-                    }   
-                });
-                return;
-            }
-            archivedModal.style.display = 'flex';
-            fetchArchivedDonations();
-        });
-
-        if (!permissions.canArchive) {
-            document.querySelectorAll('.archiveBtn').forEach(btn => btn.style.display = 'none');
-        }
-        if (!permissions.canEdit) {
-            document.querySelectorAll('.editBtn').forEach(btn => btn.style.display = 'none');
+            }).then(() => window.location.href = "../pages/login.html");
         }
     });
+
 
     function loadDonations(userUid) {
     database.ref("donations/savedDonations/inkind").on("value", snapshot => {

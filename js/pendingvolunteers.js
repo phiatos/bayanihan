@@ -192,7 +192,50 @@ function setupInactivityListeners() {
 }
 
 // Authentication Check
-auth.onAuthStateChanged(user => {
+// auth.onAuthStateChanged(user => {
+//     if (!user) {
+//         Swal.fire({
+//             icon: 'error',
+//             title: 'Authentication Required',
+//             text: 'Please sign in to access pending volunteer applications.',
+//             timer: 2000,
+//             showConfirmButton: false,
+//             timerProgressBar: true,
+//             allowOutsideClick: false,
+//             customClass: {
+//                 popup: 'swal2-popup-error-clean',
+//                 title: 'swal2-title-error-clean',
+//                 htmlContainer: 'swal2-text-error-clean'
+//             }
+//         }).then(() => {
+//             window.location.href = "../pages/login.html";
+//         });
+//         return;
+//     }
+
+//     // Fetch user role to determine Super Admin status and permissions
+//     database.ref(`users/${user.uid}`).once('value', snapshot => {
+//         const userData = snapshot.val();
+//         if (userData && userData.adminPosition) {
+//             currentUserAdminPosition = userData.adminPosition;
+//         } else {
+//             currentUserAdminPosition = null;
+//         }
+//         currentUserIsSuperAdmin = userData && userData.isSuperAdmin === true;
+//         initializePageFunctions(user.uid);
+//         setupInactivityListeners();
+//         resetInactivityTimer();
+//     }).catch(error => {
+//         currentUserAdminPosition = null;
+//         currentUserIsSuperAdmin = false;
+//         initializePageFunctions(user.uid);
+//         setupInactivityListeners();
+//         resetInactivityTimer();
+//     });
+// });
+auth.onAuthStateChanged(async (user) => {
+    console.log(`[${new Date().toISOString()}] Auth state changed:`, user ? { uid: user.uid, email: user.email } : 'No user');
+
     if (!user) {
         Swal.fire({
             icon: 'error',
@@ -213,25 +256,57 @@ auth.onAuthStateChanged(user => {
         return;
     }
 
-    // Fetch user role to determine Super Admin status and permissions
-    database.ref(`users/${user.uid}`).once('value', snapshot => {
+    try {
+        // Fetch user data to check password_needs_reset and other properties
+        const snapshot = await database.ref(`users/${user.uid}`).once('value');
         const userData = snapshot.val();
-        if (userData && userData.adminPosition) {
-            currentUserAdminPosition = userData.adminPosition;
-        } else {
-            currentUserAdminPosition = null;
+        const passwordNeedsReset = userData ? (userData.password_needs_reset || false) : false;
+
+        if (passwordNeedsReset) {
+            console.log(`[${new Date().toISOString()}] Password change required for user ${user.uid}. Redirecting to profile page.`);
+            Swal.fire({
+                icon: 'error',
+                title: 'Password Change Required',
+                text: 'Please change your password. Redirecting to profile.',
+                allowOutsideClick: false,
+                timer: 1600,
+                showConfirmButton: false,
+                timerProgressBar: true,
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean'
+                }
+            }).then(() => {
+                window.location.replace('../pages/profile.html');
+            });
+            return;
         }
-        currentUserIsSuperAdmin = userData && userData.isSuperAdmin === true;
+
+        // Proceed with normal flow
+        currentUserAdminPosition = userData?.adminPosition || null;
+        currentUserIsSuperAdmin = userData?.isSuperAdmin === true;
         initializePageFunctions(user.uid);
         setupInactivityListeners();
         resetInactivityTimer();
-    }).catch(error => {
-        currentUserAdminPosition = null;
-        currentUserIsSuperAdmin = false;
-        initializePageFunctions(user.uid);
-        setupInactivityListeners();
-        resetInactivityTimer();
-    });
+    } catch (error) {
+        console.error(`[${new Date().toISOString()}] Error checking user data:`, error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Authentication Error',
+            text: 'Failed to verify account status. Please try logging in again.',
+            showConfirmButton: true,
+            confirmButtonText: 'OK',
+            customClass: {
+                popup: 'swal2-popup-error-clean',
+                title: 'swal2-title-error-clean',
+                htmlContainer: 'swal2-text-error-clean',
+                confirmButton: 'my-error-button'
+            }
+        }).then(() => {
+            window.location.href = '../pages/login.html';
+        });
+    }
 });
 
 function initializePageFunctions(userId) {

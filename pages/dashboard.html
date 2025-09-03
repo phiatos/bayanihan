@@ -21,6 +21,7 @@
             color: #fff;
             border-radius: 50%;
             padding: 2px 6px;
+            text-align: center;
             font-size: 12px;
             top: -5px;
             right: -5px;
@@ -101,63 +102,63 @@
 
                 <!-- Right Sidebar Metrics: Progress Visualizations -->
                <aside class="metrics-sidebar">
-  <section class="dashboard-section" aria-label="Progress & Reports">
-    <h2>Ongoing Progress</h2>
-    <div class="data-visuals-grid sidebar-metrics">
-      
-      <!-- Relief Dispatch box -->
-      <div class="data-metric-box data-relief" tabindex="0">
-        <div class="data-metric-head">
-          <i class='bx bx-send'></i>
-          <h3>Relief Dispatch</h3>
-        </div>
-        <div class="data-metric-body">
-          <div class="data-metric-value-row">
-            <span class="data-metric-value">80%</span>
-            <span class="data-metric-status">On Track</span>
-          </div>
-          <div class="data-progress-bar">
-            <div class="data-progress-fill fill-success" style="width: 80%;"></div>
-          </div>
-        </div>
-      </div>
+                <section class="dashboard-section" aria-label="Progress & Reports">
+                    <h2>Ongoing Progress</h2>
+                    <div class="data-visuals-grid sidebar-metrics">
+                    
+                    <!-- Relief Dispatch box -->
+                    <div class="data-metric-box data-relief" tabindex="0">
+                        <div class="data-metric-head">
+                        <i class='bx bx-send'></i>
+                        <h3>Relief Dispatch</h3>
+                        </div>
+                        <div class="data-metric-body">
+                        <div class="data-metric-value-row">
+                            <span class="data-metric-value">80%</span>
+                            <span class="data-metric-status">On Track</span>
+                        </div>
+                        <div class="data-progress-bar">
+                            <div class="data-progress-fill fill-success" style="width: 80%;"></div>
+                        </div>
+                        </div>
+                    </div>
 
-      <!-- Reports by Type (bars will be injected by JS) -->
-      <div class="data-metric-box data-reports" tabindex="0">
-        <div class="data-metric-head">
-          <i class='bx bx-category'></i>
-          <h3>Reports by Type</h3>
-        </div>
-        <div class="data-metric-body data-mini-chart">
-          <!-- JS will insert bars here dynamically -->
-        </div>
-      </div>
+                    <!-- Reports by Type (bars will be injected by JS) -->
+                    <div class="data-metric-box data-reports" tabindex="0">
+                        <div class="data-metric-head">
+                        <i class='bx bx-category'></i>
+                        <h3>Reports by Type</h3>
+                        </div>
+                        <div class="data-metric-body data-mini-chart">
+                        <!-- JS will insert bars here dynamically -->
+                        </div>
+                    </div>
 
-      <!-- Donation Goal -->
-      <div class="data-metric-box data-donation" tabindex="0">
-        <div class="data-metric-head">
-          <i class='bx bx-donate-heart'></i>
-          <h3>Donation Goal</h3>
-        </div>
-        <div class="data-metric-body">
-          <div class="data-metric-value-row">
-            <span class="data-metric-value">₱750K</span>
-            <span class="data-metric-status">75% Reached</span>
-          </div>
-          <div class="data-progress-bar">
-            <div class="data-progress-fill fill-warning" style="width: 75%;"></div>
-          </div>
-        </div>
-      </div>
+                    <!-- Donation Goal -->
+                    <div class="data-metric-box data-donation" tabindex="0">
+                        <div class="data-metric-head">
+                        <i class='bx bx-donate-heart'></i>
+                        <h3>Donation Goal</h3>
+                        </div>
+                        <div class="data-metric-body">
+                        <div class="data-metric-value-row">
+                            <span class="data-metric-value">₱750K</span>
+                            <span class="data-metric-status">75% Reached</span>
+                        </div>
+                        <div class="data-progress-bar">
+                            <div class="data-progress-fill fill-warning" style="width: 75%;"></div>
+                        </div>
+                        </div>
+                    </div>
 
-    </div>
-  </section>
-</aside>
+                    </div>
+                </section>
+                </aside>
 
 
                 <!-- Bottom Row: Map Overview -->
                 <section class="dashboard-section bottom-row" aria-label="Map Overview">
-                    <h2>Weather Map</h2>
+                     <div class="metrics-title"><h2>Weather Map</h2></div>
 
                     <!-- Search Bar -->
                     <div class="search-container">
@@ -194,46 +195,75 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr>
-                                    <td>ABVN-001</td>
-                                    <td>350</td>
-                                    <td>420</td>
-                                    <td>1,000 L</td>
-                                    <td>25</td>
-                                    <td>₱35,000</td>
-                                    <td>Clothes, Blankets</td>
-                                </tr>
-                                <tr>
-                                    <td>ABVN-002</td>
-                                    <td>500</td>
-                                    <td>300</td>
-                                    <td>1,500 L</td>
-                                    <td>40</td>
-                                    <td>₱50,000</td>
-                                    <td>Medicines, Canned Goods</td>
-                                </tr>
-                                <tr>
-                                    <td>ABVN-003</td>
-                                    <td>280</td>
-                                    <td>200</td>
-                                    <td>750 L</td>
-                                    <td>18</td>
-                                    <td>₱22,500</td>
-                                    <td>Diapers, Bottled Water</td>
-                                </tr>
-                                <tr>
-                                    <td>ABVN-004</td>
-                                    <td>610</td>
-                                    <td>610</td>
-                                    <td>2,200 L</td>
-                                    <td>50</td>
-                                    <td>₱65,000</td>
-                                    <td>Hygiene Kits, Rice</td>
-                                </tr>
                             </tbody>
                         </table>
                     </div>
+                    
+                    <!-- Metrics Toggle -->
+                    <div class="metrics-toggle" style="display: none;">
+                    <div class="metrics-toggle-title">
+                        <h3>Toggle Metrics</h3>
+                    </div>
+
+                    <div class="toggle-group">
+                        <label class="toggle">
+                        <input type="checkbox" data-metric="evacuees" checked>
+                        <span class="slider"></span>
+                        <span class="label-text"><i class='bx bxs-group' aria-hidden="true"></i> Evacuees</span>
+                        </label>
+
+                        <label class="toggle">
+                        <input type="checkbox" data-metric="food-packs" checked>
+                        <span class="slider"></span>
+                        <span class="label-text"><i class='bx bxs-box' aria-hidden="true"></i> Food Packs</span>
+                        </label>
+
+                        <label class="toggle">
+                        <input type="checkbox" data-metric="hot-meals" checked>
+                        <span class="slider"></span>
+                        <span class="label-text"><i class='bx bxs-bowl-hot' aria-hidden="true"></i> Hot Meals</span>
+                        </label>
+
+                        <label class="toggle">
+                        <input type="checkbox" data-metric="water-liters" checked>
+                        <span class="slider"></span>
+                        <span class="label-text"><i class='bx bxs-droplet' aria-hidden="true"></i> Water Liters</span>
+                        </label>
+
+                        <label class="toggle">
+                        <input type="checkbox" data-metric="volunteers" checked>
+                        <span class="slider"></span>
+                        <span class="label-text"><i class='bx bxs-group' aria-hidden="true"></i> Volunteers</span>
+                        </label>
+
+                        <label class="toggle">
+                        <input type="checkbox" data-metric="amount-raised" checked>
+                        <span class="slider"></span>
+                        <span class="label-text"><i class='bx bxs-bank' aria-hidden="true"></i> Monetary Donations</span>
+                        </label>
+
+                        <label class="toggle">
+                        <input type="checkbox" data-metric="inkind-donations" checked>
+                        <span class="slider"></span>
+                        <span class="label-text"><i class='bx bxs-package' aria-hidden="true"></i> In-Kind Donations</span>
+                        </label>
+
+                        <label class="toggle">
+                        <input type="checkbox" data-metric="tentative" checked>
+                        <span class="slider"></span>
+                        <span class="label-text"><i class='bx bxs-cog' aria-hidden="true"></i> Tentative</span>
+                        </label>
+
+                    </div>
+
+                    <button id="saveMetrics">Save</button>
+                    </div>
+
+
                 </section>
+
+                
+
             </div>
         </div>
     </div>

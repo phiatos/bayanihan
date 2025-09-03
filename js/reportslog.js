@@ -81,12 +81,49 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // User Role Check
     let userRole = 'User'; // Default role
+    // auth.onAuthStateChanged(async (user) => {
+    //     if (!user) {
+    //         Swal.fire({
+    //             icon: 'error',
+    //             title: 'Authentication Required',
+    //             text: 'Please sign in to view the reports log.',
+    //         }).then(() => {
+    //             window.location.href = "../pages/login.html";
+    //         });
+    //         return;
+    //     }
+
+    //     try {
+    //         const idTokenResult = await user.getIdTokenResult();
+    //         userRole = idTokenResult.claims.role || 'User';
+    //         console.log("Authenticated user role:", userRole);
+    //     } catch (error) {
+    //         console.error("Error fetching user role:", error);
+    //         Swal.fire({
+    //             icon: 'warning',
+    //             title: 'Role Error',
+    //             text: 'Could not determine user role. Functionality might be limited.',
+    //         });
+    //     }
+
+    //     loadReportsFromFirebase(userRole);
+    // });
     auth.onAuthStateChanged(async (user) => {
+        console.log(`[${new Date().toISOString()}] Auth state changed:`, user ? { uid: user.uid, email: user.email } : 'No user');
+
         if (!user) {
             Swal.fire({
                 icon: 'error',
                 title: 'Authentication Required',
                 text: 'Please sign in to view the reports log.',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
+                }
             }).then(() => {
                 window.location.href = "../pages/login.html";
             });
@@ -94,19 +131,56 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
+            // Check password_needs_reset
+            const userSnapshot = await database.ref(`users/${user.uid}`).once('value');
+            const userData = userSnapshot.val();
+            const passwordNeedsReset = userData ? (userData.password_needs_reset || false) : false;
+
+            if (passwordNeedsReset) {
+                console.log(`[${new Date().toISOString()}] Password change required for user ${user.uid}. Redirecting to profile page.`);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Password Change Required',
+                    text: 'Please change your password. Redirecting to profile.',
+                    allowOutsideClick: false,
+                    timer: 1600,
+                    showConfirmButton: false,
+                    timerProgressBar: true,
+                    customClass: {
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean'
+                    }
+                }).then(() => {
+                    window.location.replace('../pages/profile.html');
+                });
+                return;
+            }
+
+            // Proceed with normal flow
             const idTokenResult = await user.getIdTokenResult();
             userRole = idTokenResult.claims.role || 'User';
             console.log("Authenticated user role:", userRole);
+            loadReportsFromFirebase(userRole);
+            resetInactivityTimer();
         } catch (error) {
-            console.error("Error fetching user role:", error);
+            console.error(`[${new Date().toISOString()}] Error checking user data or role:`, error);
             Swal.fire({
-                icon: 'warning',
-                title: 'Role Error',
-                text: 'Could not determine user role. Functionality might be limited.',
+                icon: 'error',
+                title: 'Authentication Error',
+                text: 'Failed to verify account status or role. Please try logging in again.',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
+                }
+            }).then(() => {
+                window.location.href = '../pages/login.html';
             });
         }
-
-        loadReportsFromFirebase(userRole);
     });
 
     function formatDate(dateStr) {
@@ -165,7 +239,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return {
             firebaseKey: key,
             ReportID: report.reportID || report.ReportID || "-",
-            VolunteerGroupName: report.organization || report.VolunteerGroupName || "[Unknown Org]",
+            VolunteerGroupName: report.organization || report.VolunteerGroupName || "Admin",
             AreaOfOperation: report.AreaOfOperation || "-",
             TimeOfIntervention: report.timeOfIntervention || report.TimeOfIntervention || "-",
             DateOfReport: report.dateOfReport || report.DateOfReport || "-",
@@ -205,7 +279,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     }
                     if (!report.VolunteerGroupName && !report.organization) {
-                        report.VolunteerGroupName = "[Unknown Org]";
+                        report.VolunteerGroupName = "Admin";
                     }
                     const transformedReport = transformReportData(report, key, activationData);
                     archivedReports.push(transformedReport);
@@ -245,7 +319,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                     if (!report.VolunteerGroupName && !report.organization) {
                        
-                        report.VolunteerGroupName = "[Unknown Org]";
+                        report.VolunteerGroupName = "Admin";
                     }
                     const transformedReport = transformReportData(report, key, activationData);
                     reviewedReports.push(transformedReport);
@@ -347,7 +421,7 @@ document.addEventListener('DOMContentLoaded', () => {
             tr.innerHTML = `
                 <td>${displayIndex}</td>
                 <td>${report["ReportID"] || "-"}</td>
-                <td>${report["VolunteerGroupName"] || "[Unknown Org]"}</td>
+                <td>${report["VolunteerGroupName"] || "Admin"}</td>
                 <td>${report["AreaOfOperation"] || "-"}</td>
                 <td>${formatDate(report["StartDate"]) || "-"}</td>
                 <td>${formatDate(report["EndDate"]) || "-"}</td>
@@ -557,7 +631,7 @@ document.addEventListener('DOMContentLoaded', () => {
             tr.innerHTML = `
                 <td>${displayIndex}</td>
                 <td>${report.ReportID || "-"}</td>
-                <td>${report.VolunteerGroupName || "[Unknown Org]"}</td>
+                <td>${report.VolunteerGroupName || "Admin"}</td>
                 <td>${report.AreaOfOperation || "-"}</td>
                 <td>${formatDate(report.StartDate) || "-"}</td>
                 <td>${formatDate(report.EndDate) || "-"}</td>
@@ -864,7 +938,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 doc.setTextColor(0);
                 yPos = addSectionTitle(doc, "Basic Information", yPos);
                 doc.setFontSize(10);
-                yPos = addDetailText(doc, "Volunteer Group", report.VolunteerGroupName || "[Unknown Org]", yPos, contentWidth);
+                yPos = addDetailText(doc, "Volunteer Group", report.VolunteerGroupName || "Admin", yPos, contentWidth);
                 yPos = addDetailText(doc, "Location of Operation", report.AreaOfOperation || "-", yPos, contentWidth);
                 yPos = addDetailText(doc, "Calamity Name", report.CalamityName || "-", yPos, contentWidth);
                 yPos = addDetailText(doc, "Calamity Type", report.CalamityType || "-", yPos, contentWidth);
@@ -967,7 +1041,7 @@ document.addEventListener('DOMContentLoaded', () => {
             y += 10;
             doc.setTextColor(0);
             addDetail("Basic Information", "", true);
-            addDetail("Volunteer Group", report.VolunteerGroupName || "[Unknown Org]");
+            addDetail("Volunteer Group", report.VolunteerGroupName || "Admin");
             addDetail("Location of Operation", report.AreaOfOperation || "-");
             addDetail("Calamity Name", report.CalamityName || "-");
             addDetail("Calamity Type", report.CalamityType || "-");

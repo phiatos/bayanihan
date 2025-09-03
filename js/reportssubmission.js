@@ -269,7 +269,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     let userUid = null;
-    let volunteerGroupName = "[Unknown Org]";
+    let volunteerGroupName = "Admin";
     let activeActivations = [];
     let currentUserRole = null;
 
@@ -332,9 +332,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const userData = snapshot.val();
                 if (userData) {
                     currentUserRole = userData.role;
-                    volunteerGroupName = userData.organization || "Unknown Group";
-                    console.log('User Role:', currentUserRole);
-                    console.log('Volunteer Group Name:', volunteerGroupName);
+                    volunteerGroupName = userData.organization || "Admin";
+                
 
                     if (currentUserRole === 'AB ADMIN') {
                         console.log('AB ADMIN role detected. Allowing access to submit report.');

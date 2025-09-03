@@ -335,6 +335,7 @@ window.initializeDashboard = function () {
                 userRole = userData.role;
                 userEmail = user.email;
                 headerEl.textContent = userRole === "AB ADMIN" ? "Admin Dashboard" : "ABVN Dashboard";
+                
 
                 initializeMap();
                 if (!map) {
@@ -2034,7 +2035,7 @@ async function fetchAndRenderAllMetrics(sectionName) {
     }
 }
 
-// Function to check user role and manage ABVN visibility
+// Function to check user role and manage ABVN + Metrics visibility
 function checkUserRoleAndRender() {
     firebase.auth().onAuthStateChanged((user) => {
         console.log(`[${new Date().toLocaleTimeString()}] Auth state changed, user:`, user);
@@ -2042,11 +2043,11 @@ function checkUserRoleAndRender() {
             database.ref(`users/${user.uid}`).once("value").then((snapshot) => {
                 const userData = snapshot.val();
                 console.log(`[${new Date().toLocaleTimeString()}] User data:`, userData);
-                const isAdmin = userData?.role === "AB ADMIN"; // Updated to match "AB ADMIN"
+                const isAdmin = userData?.role === "AB ADMIN"; 
                 console.log(`[${new Date().toLocaleTimeString()}] Is Admin:`, isAdmin);
 
+                // ===== ABVN section =====
                 const abvnMetricsDiv = document.querySelector('.abvn-metrics');
-                console.log(`[${new Date().toLocaleTimeString()}] ABVN div found:`, abvnMetricsDiv);
                 if (abvnMetricsDiv) {
                     if (!isAdmin) {
                         abvnMetricsDiv.remove();
@@ -2055,24 +2056,43 @@ function checkUserRoleAndRender() {
                         fetchAndRenderAllMetrics("ABVN").catch(err => console.error(`[${new Date().toLocaleTimeString()}] ABVN render failed:`, err));
                         console.log(`[${new Date().toLocaleTimeString()}] ABVN rendering attempted for ADMIN`);
                     }
-                } else {
-                    console.error(`[${new Date().toLocaleTimeString()}] ABVN metrics div not found`);
                 }
 
+                // ===== Metrics Toggle section =====
+                const metricsToggleDiv = document.querySelector('.metrics-toggle');
+                if (metricsToggleDiv) {
+                    if (!isAdmin) {
+                        metricsToggleDiv.remove();
+                        console.log(`[${new Date().toLocaleTimeString()}] Metrics Toggle removed for non-ADMIN`);
+                    } else {
+                        metricsToggleDiv.style.display = "block";
+                        loadMetricsSettings(); // 👈 restore saved toggle states
+                        console.log(`[${new Date().toLocaleTimeString()}] Metrics Toggle visible for ADMIN`);
+                    }
+                }
+
+                // ===== Always-render sections =====
                 fetchAndRenderAllMetrics("PENDING APPROVALS").catch(err => console.error(err));
                 fetchAndRenderAllMetrics("RELIEF OPERATIONS").catch(err => console.error(err));
                 fetchAndRenderAllMetrics("RDANA").catch(err => console.error(err));
+
             }).catch(err => console.error(`[${new Date().toLocaleTimeString()}] User data fetch error:`, err));
         } else {
             console.log(`[${new Date().toLocaleTimeString()}] No user logged in`);
+
             const abvnMetricsDiv = document.querySelector('.abvn-metrics');
             if (abvnMetricsDiv) abvnMetricsDiv.remove();
+
+            const metricsToggleDiv = document.querySelector('.metrics-toggle');
+            if (metricsToggleDiv) metricsToggleDiv.remove();
+
             fetchAndRenderAllMetrics("PENDING APPROVALS").catch(err => console.error(err));
             fetchAndRenderAllMetrics("RELIEF OPERATIONS").catch(err => console.error(err));
             fetchAndRenderAllMetrics("RDANA").catch(err => console.error(err));
         }
     });
 }
+
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
@@ -2277,3 +2297,46 @@ setInterval(cleanupExpiredMarkers, 60 * 60 * 1000); // Runs every hour
 cleanupExpiredMarkers();
 // Initialize dashboard when the page loads
 window.addEventListener("load", initializeDashboard);
+
+document.getElementById("saveMetrics").addEventListener("click", () => {
+  const settings = {};
+  document.querySelectorAll("input[type=checkbox]").forEach(cb => {
+    settings[cb.dataset.metric] = cb.checked;
+  });
+
+  database.ref("settings/metrics").set(settings).then(() => {
+    Swal.fire({
+      title: "Saved!",
+      text: "Your metric settings have been updated.",
+      icon: "success",
+      confirmButtonText: "OK",
+      timer: 2000,
+      showConfirmButton: false
+    });
+  }).catch(error => {
+    Swal.fire({
+      title: "Error",
+      text: "Something went wrong: " + error.message,
+      icon: "error",
+      confirmButtonText: "Retry"
+    });
+  });
+});
+
+function loadMetricsSettings() {
+  database.ref("settings/metrics").once("value").then(snapshot => {
+    const settings = snapshot.val();
+    if (settings) {
+      document.querySelectorAll(".metrics-toggle input[type=checkbox]").forEach(cb => {
+        if (settings.hasOwnProperty(cb.dataset.metric)) {
+          cb.checked = settings[cb.dataset.metric];
+          // Optionally trigger visibility update right away
+          const card = document.querySelector(`.metric-card[data-card="${cb.dataset.metric}"]`);
+          if (card) {
+            card.style.display = cb.checked ? "block" : "none";
+          }
+        }
+      });
+    }
+  }).catch(err => console.error("Error loading metrics:", err));
+}

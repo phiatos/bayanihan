@@ -1923,11 +1923,52 @@ if (editDetailsBtn) {
 
 // Initialize
 document.addEventListener("DOMContentLoaded", () => {
-    
 });
 
-// --- FIX APPLIED HERE: Moved data fetching and rendering inside the auth.onAuthStateChanged .then() block ---
-auth.onAuthStateChanged(user => {
+// auth.onAuthStateChanged(user => {
+//     if (!user) {
+//         Swal.fire({
+//             icon: "warning",
+//             title: "Authentication Required",
+//             text: "Please sign in as an admin to view volunteer groups.",
+//             timer: 2000,
+//             showConfirmButton: false
+//         });
+//         setTimeout(() => {
+//             window.location.replace("../pages/login.html");
+//         }, 2000);
+//         return;
+//     }
+
+//     database.ref('users/' + user.uid).once('value', snapshot => {
+//         const userData = snapshot.val();
+//         if (userData && userData.isSuperAdmin === true) {
+//             isSuperAdmin = true;
+//             if (viewArchivedBtn) {
+//                 viewArchivedBtn.style.display = 'block'; 
+//             }
+//         } else {
+//             isSuperAdmin = false;
+//             if (viewArchivedBtn) {
+//                 viewArchivedBtn.style.display = 'none'; 
+//             }
+//         }
+
+//         fetchAndRenderTable();
+//         fetchAndRenderArchivedTable();
+
+//     }).catch(error => {
+//         isSuperAdmin = false; 
+//         if (viewArchivedBtn) {
+//             viewArchivedBtn.style.display = 'none';
+//         }
+//         fetchAndRenderTable();
+//     });
+// });
+
+auth.onAuthStateChanged(async (user) => {
+    console.log(`[${new Date().toISOString()}] Auth state changed:`, user ? { uid: user.uid, email: user.email } : 'No user');
+
     if (!user) {
         Swal.fire({
             icon: "warning",
@@ -1942,31 +1983,61 @@ auth.onAuthStateChanged(user => {
         return;
     }
 
-    // Fetch user data from database to check isSuperAdmin flag
-    database.ref('users/' + user.uid).once('value', snapshot => {
-        const userData = snapshot.val();
-        if (userData && userData.isSuperAdmin === true) {
-            isSuperAdmin = true;
-            if (viewArchivedBtn) {
-                viewArchivedBtn.style.display = 'block'; // Show if super admin
-            }
-        } else {
-            isSuperAdmin = false;
-            if (viewArchivedBtn) {
-                viewArchivedBtn.style.display = 'none'; // Hide if not super admin
-            }
+    try {
+        const userSnapshot = await database.ref('users/' + user.uid).once('value');
+        const userData = userSnapshot.val();
+        const passwordNeedsReset = userData ? (userData.password_needs_reset || false) : false;
+
+        if (passwordNeedsReset) {
+            console.log(`[${new Date().toISOString()}] Password change required for user ${user.uid}. Redirecting to profile page.`);
+            Swal.fire({
+                icon: 'error',
+                title: 'Password Change Required',
+                text: 'For security reasons, please change your password. You will be redirected to your profile.',
+                allowOutsideClick: false,
+                timer: 1600,
+                showConfirmButton: false,
+                timerProgressBar: true,
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean'
+                }
+            }).then(() => {
+                window.location.replace("../pages/profile.html");
+            });
+            return; 
         }
 
-        // Now that isSuperAdmin is determined, fetch and render tables
+        isSuperAdmin = userData && userData.isSuperAdmin === true;
+        if (viewArchivedBtn) {
+            viewArchivedBtn.style.display = isSuperAdmin ? 'block' : 'none';
+        }
+
+        // Fetch and render tables
         fetchAndRenderTable();
         fetchAndRenderArchivedTable();
 
-    }).catch(error => {
-        isSuperAdmin = false; // Default to not super admin on error
+    } catch (error) {
+        console.error(`[${new Date().toISOString()}] Error checking user data:`, error);
+        isSuperAdmin = false;
         if (viewArchivedBtn) {
             viewArchivedBtn.style.display = 'none';
         }
-        // Still attempt to fetch main table even if role check fails
-        fetchAndRenderTable();
-    });
+        Swal.fire({
+            icon: 'error',
+            title: 'Authentication Error',
+            text: 'Failed to verify account status. Please try logging in again.',
+            showConfirmButton: true,
+            confirmButtonText: 'OK',
+            customClass: {
+                popup: 'swal2-popup-error-clean',
+                title: 'swal2-title-error-clean',
+                htmlContainer: 'swal2-text-error-clean',
+                confirmButton: 'my-error-button'
+            }
+        }).then(() => {
+            window.location.replace("../pages/login.html");
+        });
+    }
 });

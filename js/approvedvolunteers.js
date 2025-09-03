@@ -147,19 +147,99 @@ async function verifySuperAdminPassword() {
     return password; 
 }
 
+// auth.onAuthStateChanged(async user => {
+//     if (!user) {
+//         Swal.fire({
+//             icon: 'error',
+//             title: 'Authentication Required',
+//             text: 'Please sign in to access approved volunteer applications.',
+//         }).then(() => {
+//             window.location.href = "../pages/login.html";
+//         });
+//         return;
+//     }
+//     try {
+//         permissions = await checkAdminPermissions(); // Assign to global permissions
+//         if (!permissions.canView) {
+//             Swal.fire({
+//                 icon: 'error',
+//                 title: 'Access Denied',
+//                 text: 'You do not have permission to access this page.',
+//                 showConfirmButton: true,
+//                 confirmButtonText: 'OK',
+//                 customClass: {
+//                     popup: 'swal2-popup-error-clean',
+//                     title: 'swal2-title-error-clean',
+//                     htmlContainer: 'swal2-text-error-clean',
+//                     confirmButton: 'my-error-button'
+//                 }
+//             }).then(() => {
+//                 window.location.href = "../pages/login.html";
+//             });
+//             return;
+//         }
+//         initializePageFunctions(user.uid);
+//         resetInactivityTimer();
+//     } catch (error) {
+//         Swal.fire({
+//             icon: 'error',
+//             title: 'Error',
+//             text: `Failed to initialize page: ${error.message}`,
+//             confirmButtonText: 'OK'
+//         });
+//     }
+// });
 auth.onAuthStateChanged(async user => {
+    console.log(`[${new Date().toISOString()}] Auth state changed:`, user ? { uid: user.uid, email: user.email } : 'No user');
+
     if (!user) {
         Swal.fire({
             icon: 'error',
             title: 'Authentication Required',
             text: 'Please sign in to access approved volunteer applications.',
+            showConfirmButton: true,
+            confirmButtonText: 'OK',
+            customClass: {
+                popup: 'swal2-popup-error-clean',
+                title: 'swal2-title-error-clean',
+                htmlContainer: 'swal2-text-error-clean',
+                confirmButton: 'my-error-button'
+            }
         }).then(() => {
             window.location.href = "../pages/login.html";
         });
         return;
     }
+
     try {
-        permissions = await checkAdminPermissions(); // Assign to global permissions
+        // Check password_needs_reset
+        const userSnapshot = await database.ref(`users/${user.uid}`).once('value');
+        const userData = userSnapshot.val();
+        const passwordNeedsReset = userData ? (userData.password_needs_reset || false) : false;
+
+        if (passwordNeedsReset) {
+            console.log(`[${new Date().toISOString()}] Password change required for user ${user.uid}. Redirecting to profile page.`);
+            Swal.fire({
+                icon: 'error',
+                title: 'Password Change Required',
+                text: 'Please change your password. Redirecting to profile.',
+                allowOutsideClick: false,
+                timer: 1600,
+                showConfirmButton: false,
+                timerProgressBar: true,
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean'
+                }
+            }).then(() => {
+                window.location.replace('../pages/profile.html');
+            });
+            return;
+        }
+
+        // Proceed with normal flow
+        permissions = await checkAdminPermissions();
         if (!permissions.canView) {
             Swal.fire({
                 icon: 'error',
@@ -178,14 +258,25 @@ auth.onAuthStateChanged(async user => {
             });
             return;
         }
+
         initializePageFunctions(user.uid);
         resetInactivityTimer();
     } catch (error) {
+        console.error(`[${new Date().toISOString()}] Error checking user data:`, error);
         Swal.fire({
             icon: 'error',
-            title: 'Error',
-            text: `Failed to initialize page: ${error.message}`,
-            confirmButtonText: 'OK'
+            title: 'Authentication Error',
+            text: 'Failed to verify account status. Please try logging in again.',
+            showConfirmButton: true,
+            confirmButtonText: 'OK',
+            customClass: {
+                popup: 'swal2-popup-error-clean',
+                title: 'swal2-title-error-clean',
+                htmlContainer: 'swal2-text-error-clean',
+                confirmButton: 'my-error-button'
+            }
+        }).then(() => {
+            window.location.href = '../pages/login.html';
         });
     }
 });

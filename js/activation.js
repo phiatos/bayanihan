@@ -728,29 +728,111 @@ async function notifyABVN(activationId, groupId, reliefAmount, reliefPurpose) {
     }
 }
 
-firebase.auth().onAuthStateChanged(user => {
+// firebase.auth().onAuthStateChanged(user => {
+//     if (user) {
+//         console.log("User is authenticated:", user.uid);
+//         console.log("Anonymous user:", user.isAnonymous);
+//         listenForDataUpdates();
+//         initActivationMap();
+//         resetInactivityTimer();
+//     } else {
+//         console.log("No user is authenticated. Attempting anonymous sign-in...");
+//         firebase.auth().signInAnonymously()
+//             .then(() => {
+//                 console.log("Signed in anonymously successfully.");
+//                 initActivationMap();
+//                 resetInactivityTimer();
+//             })
+//             .catch(error => {
+//                 console.error("Anonymous auth failed:", error.code, error.message);
+//                 Swal.fire({
+//                     icon: 'error',
+//                     title: 'Authentication Error',
+//                     text: `Failed to authenticate: ${error.message}. Please check your network and Firebase configuration.`
+//                 });
+//             });
+//     }
+// });
+
+firebase.auth().onAuthStateChanged(async (user) => {
+    console.log(`[${new Date().toISOString()}] Auth state changed:`, user ? { uid: user.uid, email: user.email } : 'No user');
+
     if (user) {
-        console.log("User is authenticated:", user.uid);
-        console.log("Anonymous user:", user.isAnonymous);
-        listenForDataUpdates();
-        initActivationMap();
-        resetInactivityTimer();
-    } else {
-        console.log("No user is authenticated. Attempting anonymous sign-in...");
-        firebase.auth().signInAnonymously()
-            .then(() => {
-                console.log("Signed in anonymously successfully.");
-                initActivationMap();
-                resetInactivityTimer();
-            })
-            .catch(error => {
-                console.error("Anonymous auth failed:", error.code, error.message);
+        try {
+            // Fetch user data from database to check password_needs_reset
+            const userSnapshot = await database.ref('users/' + user.uid).once('value');
+            const userData = userSnapshot.val();
+            const passwordNeedsReset = userData ? (userData.password_needs_reset || false) : false;
+
+            if (passwordNeedsReset) {
+                console.log(`[${new Date().toISOString()}] Password change required for user ${user.uid}. Redirecting to profile page.`);
                 Swal.fire({
                     icon: 'error',
-                    title: 'Authentication Error',
-                    text: `Failed to authenticate: ${error.message}. Please check your network and Firebase configuration.`
+                    title: 'Password Change Required',
+                    text: 'For security reasons, please change your password. You will be redirected to your profile.',
+                    allowOutsideClick: false,
+                    timer: 1600,
+                    showConfirmButton: false,
+                    timerProgressBar: true,
+                    customClass: {
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean'
+                    }
+                }).then(() => {
+                    window.location.replace("../pages/profile.html");
                 });
+                return; // Stop further execution if password reset is needed
+            }
+
+            // If password does not need reset, proceed with normal initialization
+            console.log("User is authenticated:", user.uid);
+            console.log("Anonymous user:", user.isAnonymous);
+            listenForDataUpdates();
+            initActivationMap();
+            resetInactivityTimer();
+
+        } catch (error) {
+            console.error(`[${new Date().toISOString()}] Error checking user data:`, error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Authentication Error',
+                text: 'Failed to verify account status. Please try logging in again.',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
+                }
+            }).then(() => {
+                window.location.replace("../pages/login.html");
             });
+        }
+    } else {
+        console.log("No user is authenticated. Attempting anonymous sign-in...");
+        try {
+            await firebase.auth().signInAnonymously();
+            console.log("Signed in anonymously successfully.");
+            initActivationMap();
+            resetInactivityTimer();
+        } catch (error) {
+            console.error("Anonymous auth failed:", error.code, error.message);
+            Swal.fire({
+                icon: 'error',
+                title: 'Authentication Error',
+                text: `Failed to authenticate: ${error.message}. Please check your network and Firebase configuration.`,
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
+                }
+            });
+        }
     }
 });
 
