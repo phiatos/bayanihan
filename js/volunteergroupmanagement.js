@@ -1939,35 +1939,35 @@ document.addEventListener("DOMContentLoaded", () => {
 //         return;
 //     }
 
+//     // Fetch user data from database to check adminPosition
 //     database.ref('users/' + user.uid).once('value', snapshot => {
 //         const userData = snapshot.val();
-//         if (userData && userData.isSuperAdmin === true) {
-//             isSuperAdmin = true;
+//         if (userData && userData.adminPosition === 'Super Admin') {
+//             adminPosition = 'Super Admin';
 //             if (viewArchivedBtn) {
-//                 viewArchivedBtn.style.display = 'block'; 
+//                 viewArchivedBtn.style.display = 'block'; // Show if super admin
 //             }
 //         } else {
-//             isSuperAdmin = false;
+//             adminPosition = userData?.adminPosition || null;
 //             if (viewArchivedBtn) {
-//                 viewArchivedBtn.style.display = 'none'; 
+//                 viewArchivedBtn.style.display = 'none'; // Hide if not super admin
 //             }
 //         }
 
+//         // Now that adminPosition is determined, fetch and render tables
 //         fetchAndRenderTable();
 //         fetchAndRenderArchivedTable();
-
 //     }).catch(error => {
-//         isSuperAdmin = false; 
+//         adminPosition = null; // Default to no position on error
 //         if (viewArchivedBtn) {
 //             viewArchivedBtn.style.display = 'none';
 //         }
+//         // Still attempt to fetch main table even if role check fails
 //         fetchAndRenderTable();
 //     });
 // });
 
 auth.onAuthStateChanged(async (user) => {
-    console.log(`[${new Date().toISOString()}] Auth state changed:`, user ? { uid: user.uid, email: user.email } : 'No user');
-
     if (!user) {
         Swal.fire({
             icon: "warning",
@@ -1985,10 +1985,10 @@ auth.onAuthStateChanged(async (user) => {
     try {
         const userSnapshot = await database.ref('users/' + user.uid).once('value');
         const userData = userSnapshot.val();
-        const passwordNeedsReset = userData ? (userData.password_needs_reset || false) : false;
+        adminPosition = userData?.adminPosition || null; // Set adminPosition here
+        const passwordNeedsReset = userData?.password_needs_reset || false;
 
         if (passwordNeedsReset) {
-            console.log(`[${new Date().toISOString()}] Password change required for user ${user.uid}. Redirecting to profile page.`);
             Swal.fire({
                 icon: 'error',
                 title: 'Password Change Required',
@@ -2005,21 +2005,20 @@ auth.onAuthStateChanged(async (user) => {
             }).then(() => {
                 window.location.replace("../pages/profile.html");
             });
-            return; 
+            return;
         }
 
-        isSuperAdmin = userData && userData.isSuperAdmin === true;
-        if (viewArchivedBtn) {
-            viewArchivedBtn.style.display = isSuperAdmin ? 'block' : 'none';
+        if (adminPosition !== 'Super Admin' && viewArchivedBtn) {
+            viewArchivedBtn.style.display = 'none';
+        } else if (viewArchivedBtn) {
+            viewArchivedBtn.style.display = 'block';
         }
 
-        // Fetch and render tables
         fetchAndRenderTable();
         fetchAndRenderArchivedTable();
-
     } catch (error) {
         console.error(`[${new Date().toISOString()}] Error checking user data:`, error);
-        isSuperAdmin = false;
+        adminPosition = null;
         if (viewArchivedBtn) {
             viewArchivedBtn.style.display = 'none';
         }
