@@ -228,7 +228,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 if (!isAdmin && !updatedUser.emailVerified) {
                     try {
                         const actionCodeSettings = {
-                            // absolute url required for email verification kasi naka-firebase auth
+                            // for email verification
 
                             // for vercel host
                             // url: 'https://bayanihan-drrm.vercel.app/pages/login.html', 

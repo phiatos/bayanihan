@@ -69,13 +69,20 @@ function initActivityLogs() {
         userUid = user.uid;
         database.ref(`users/${userUid}`).once("value", snapshot => {
             const userData = snapshot.val();
-            if (!userData || userData.role !== "AB ADMIN") {
+            if (!userData || userData.adminPosition !== "Super Admin") {
                 Swal.fire({
                     icon: "error",
                     title: "Access Denied",
-                    text: "Only AB ADMIN can access this page.",
-                    timer: 2000,
+                    text: "Only Super Admin can access this page.",
+                    timer: 1600,
                     showConfirmButton: false,
+                    timerProgressBar: true,
+                    allowOutsideClick: false,
+                    customClass: {
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean'
+                    }
                 }).then(() => (window.location.href = "../pages/dashboard.html"));
                 return;
             }

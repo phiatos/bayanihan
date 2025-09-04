@@ -2,7 +2,6 @@ console.log = function () {};
 console.error = function () {};
 console.warn = function () {};
 
-
 const firebaseConfig = {
     apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
     authDomain: "bayanihan-5ce7e.firebaseapp.com",
@@ -190,7 +189,7 @@ let editingRowId = null;
 let orgData = null;
 let isProcessing = false;
 let currentEditOrgKey = null;
-let isSuperAdmin = false;
+let adminPosition = null;
 
 // DOM elements
 const tableBody = document.querySelector("#orgTable tbody");
@@ -673,7 +672,7 @@ my_handlers.fill_regions();
 // Event listeners for modals and buttons
 if (addNew) {
     addNew.addEventListener('click', () => {
-        if (!isSuperAdmin) {
+        if (adminPosition !== 'Super Admin') {
             Swal.fire({
                 title: 'Access Denied',
                 text: 'You do not have permission to add volunteer groups.',
@@ -728,7 +727,7 @@ if (addOrgForm) {
     addOrgForm.addEventListener('submit', async e => {
         e.preventDefault();
 
-        if (!isSuperAdmin) {
+        if (adminPosition !== 'Super Admin') {
             Swal.fire({
                 title: 'Access Denied',
                 text: 'You do not have permission to add volunteer groups.',
@@ -1222,7 +1221,7 @@ if (editOrgForm) {
     editOrgForm.addEventListener('submit', async e => {
         e.preventDefault();
 
-        if (!isSuperAdmin) {
+        if (adminPosition !== 'Super Admin') {
             Swal.fire({
                 title: 'Access Denied',
                 text: 'You do not have permission to edit volunteer groups.',
@@ -1487,7 +1486,7 @@ function attachRowHandlers() {
 
     document.querySelectorAll('.deleteBtn').forEach(button => {
         button.addEventListener('click', () => {
-            if (!isSuperAdmin) {
+            if (adminPosition !== 'Super Admin') {
                 Swal.fire({
                     title: 'Access Denied',
                     text: 'You do not have permission to archive volunteer groups.',
@@ -1610,7 +1609,7 @@ function attachRowHandlers() {
 function attachArchivedRowHandlers() {
     document.querySelectorAll('.retrieveBtn').forEach(button => {
         button.addEventListener('click', () => {
-            if (!isSuperAdmin) {
+            if (adminPosition !== 'Super Admin') {
                 Swal.fire({
                     title: 'Access Denied',
                     text: 'Only Super Admins can restore archived groups.',
@@ -1888,7 +1887,7 @@ if (sortSelect) {
 
 if (viewArchivedBtn) {
     viewArchivedBtn.addEventListener('click', () => {
-        if (!isSuperAdmin) {
+        if (adminPosition !== 'Super Admin') {
             Swal.fire('Access Denied', 'You must be a Super Admin to view archived groups.', 'error');
             return;
         }
