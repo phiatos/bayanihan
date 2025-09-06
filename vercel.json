@@ -5,7 +5,7 @@
       "headers": [
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.google-analytics.com;"
+          "value": "default-src 'self' 'unsafe-inline' 'unsafe-eval';"
         },
         {
           "key": "X-Frame-Options",
@@ -24,6 +24,12 @@
           "value": "geolocation=(), camera=()"
         }
       ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "./index.html"
     }
   ]
 }
