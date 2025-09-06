@@ -19,9 +19,6 @@ try {
     Swal.fire('Error', 'Failed to initialize Firebase. Please check your configuration.', 'error');
 }
 
-const GEMINI_API_KEY = "AIzaSyDWv5Yh1VjKzP4pVIhyyr6hu54nlPvx61Y";
-const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent";
-
 let data = [];
 let filteredData = [];
 const ROWS_PER_PAGE = 5;
@@ -87,10 +84,9 @@ function initActivityLogs() {
                 return;
             }
             userRole = userData.role;
-            fetchAndRenderTable();
+            setupRealtimeListeners();
             setupFilters();
             setupUserDataToggle();
-            startContinuousAnalysis();
         });
     });
 }
@@ -102,80 +98,8 @@ function setupUserDataToggle() {
     });
 }
 
-// Analyze User Data
-async function debugUserData(user) {
-    try {
-        const snapshot = await database.ref(`users/${user.uid}`).once("value");
-        const userData = snapshot.val();
-        const prompt = `
-            You are Lenlen, a disaster tracking assistant. Analyze this user data and confirm if the user is set up correctly as an AB ADMIN:
-            - UID: ${user.uid}
-            - Data: ${JSON.stringify(userData)}
-            Check for:
-            - Role is "AB ADMIN"
-            - Presence of name, email, and organization
-            - Any missing or incorrect fields
-            Provide the analysis in a structured format with <p><strong>Key:</strong> Value</p> tags for the summary, and include a detailed section with <p><strong>Detailed Analysis:</strong> [detailed text]</p>.
-        `;
-        const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
-        });
-        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-        const result = await response.json();
-        userDataContent.innerHTML = result.candidates[0].content.parts[0].text;
-    } catch (error) {
-        userDataContent.innerHTML = `<p><strong>Status:</strong> Error - Failed to analyze user data: ${error.message}</p>`;
-    }
-}
-
-// Summarize and Analyze Activities
-async function analyzeActivities(logs) {
-    try {
-        const prompt = `
-            You are Lenlen, a disaster tracking assistant. Analyze the following recent activity logs aggregated from all system nodes and provide a concise summary of all activities performed by AB ADMIN and ABVN users. Include:
-            - Total number of logs: ${logs.length}
-            - Number of logs by AB ADMIN: ${logs.filter(log => log.role === "AB ADMIN").length}
-            - Number of logs by ABVN: ${logs.filter(log => log.role === "ABVN").length}
-            - Most common action: ${getMostCommonAction(logs)}
-            - Most recent activity timestamp: ${new Date(Math.max(...logs.map(log => log.timestamp))).toLocaleString("en-US", { timeZone: "America/Los_Angeles" })}
-            - Current date and time: ${new Date().toLocaleString("en-US", { timeZone: "America/Los_Angeles", hour12: true })}
-            Logs: ${logs.map(log => `- ${log.action} by ${log.userName} (${log.role}) at ${new Date(log.timestamp).toLocaleString("en-US", { timeZone: "America/Los_Angeles" })} with details: ${log.details} from ${log.source}`).join('\n')}
-            Provide the analysis in a structured format with <p><strong>Key:</strong> Value</p> tags and a detailed section with <hr><div class="analysis"><p><strong>Detailed Analysis:</strong> [detailed text]</p>.</div>Highlight any unusual activity patterns or potential issues.
-        `;
-        const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
-        });
-        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-        const result = await response.json();
-        dbSummaryContent.innerHTML = result.candidates[0].content.parts[0].text;
-    } catch (error) {
-        dbSummaryContent.innerHTML = `<p><strong>Status:</strong> Error - Failed to analyze activities: ${error.message}</p>`;
-    }
-}
-
-// Start Continuous Analysis
-function startContinuousAnalysis() {
-    const logsRef = database.ref("activity_logs");
-    logsRef.on("value", async (snapshot) => {
-        const logs = snapshot.val() || {};
-        const logArray = Object.entries(logs).map(([key, log]) => ({ key, ...log, source: "activity_logs" }));
-        logArray.sort((a, b) => b.timestamp - a.timestamp);
-
-        const logsToAnalyze = logArray.slice(0, Math.min(10, logArray.length));
-        if (logsToAnalyze.length > 0) {
-            await analyzeActivities(logsToAnalyze);
-        }
-    }, (error) => {
-        dbSummaryContent.innerHTML = `<p><strong>Status:</strong> Error - Failed to analyze logs: ${error.message}</p>`;
-    });
-}
-
-// Fetch and Render Table Data from All Nodes
-function fetchAndRenderTable() {
+// Setup Realtime Listeners for All Nodes
+function setupRealtimeListeners() {
     const nodesToMonitor = [
         "activity_logs",
         "posts",
@@ -183,8 +107,8 @@ function fetchAndRenderTable() {
         "approvedVolunteerApplications",
         "deletedEndorsedVolunteerApplications",
         "deletedVolunteerGroups",
-        "notifications",
         "deletedDonations",
+        "notifications",
         "donationreports",
         "pendingInkind",
         "rdana",
@@ -193,128 +117,169 @@ function fetchAndRenderTable() {
         "users",
     ];
 
-    data = [];
     nodesToMonitor.forEach(node => {
-        database.ref(node).on("value", async snapshot => {
-            const nodeData = snapshot.val() || {};
-            const logEntries = Object.entries(nodeData).map(async ([key, entry]) => {
-                let action, details, userName, role, userUid, timestamp;
-                try {
-                    switch (node) {
-                        case "activity_logs":
-                            action = entry.action || "N/A";
-                            details = entry.details || "None";
-                            userName = entry.userName || "Unknown";
-                            role = entry.role || "N/A";
-                            userUid = entry.userUid || "";
-                            timestamp = entry.timestamp || 0;
-                            break;
-                        case "posts":
-                            action = entry.isShared ? "Share Post" : "Create Post";
-                            details = `${entry.title || ''} in ${entry.category || 'Uncategorized'}`;
-                            userName = entry.userName || "Unknown";
-                            userUid = entry.userId || "";
-                            role = (await database.ref(`users/${userUid}`).once("value")).val()?.role || "N/A";
-                            timestamp = entry.timestamp || 0;
-                            break;
-                        case "comments":
-                            action = "Comment";
-                            details = entry.text || "No content";
-                            userName = entry.userName || "Unknown";
-                            userUid = entry.userId || "";
-                            role = (await database.ref(`users/${userUid}`).once("value")).val()?.role || "N/A";
-                            timestamp = entry.timestamp || 0;
-                            break;
-                        case "approvedVolunteerApplications":
-                            action = "Approval";
-                            details = `Approved volunteer application for ${entry.contactPerson || 'Unknown'}`;
-                            userName = (await database.ref(`users/${entry.userId}`).once("value")).val()?.contactPerson || "Unknown";
-                            userUid = entry.userId || "";
-                            role = (await database.ref(`users/${userUid}`).once("value")).val()?.role || "N/A";
-                            timestamp = entry.timestamp || 0;
-                            break;
-                        case "deletedEndorsedVolunteerApplications":
-                        case "deletedVolunteerGroups":
-                        case "deletedDonations":
-                            action = "Delete";
-                            details = `Deleted ${node.split("deleted")[1].toLowerCase()} for ${entry.contactPerson || 'Unknown'}`;
-                            userName = (await database.ref(`users/${entry.userId}`).once("value")).val()?.contactPerson || "Unknown";
-                            userUid = entry.userId || "";
-                            role = (await database.ref(`users/${userUid}`).once("value")).val()?.role || "N/A";
-                            timestamp = entry.timestamp || 0;
-                            break;
-                        case "notifications":
-                            action = "Notification";
-                            details = entry.message || "No message";
-                            userName = (await database.ref(`users/${entry.userId}`).once("value")).val()?.contactPerson || "Unknown";
-                            userUid = entry.userId || "";
-                            role = (await database.ref(`users/${userUid}`).once("value")).val()?.role || "N/A";
-                            timestamp = entry.timestamp || 0;
-                            break;
-                        case "donationreports":
-                            action = "Donation Report";
-                            details = `Report by ${entry.contactPerson || 'Unknown'}`;
-                            userName = entry.contactPerson || "Unknown";
-                            userUid = entry.userId || "";
-                            role = (await database.ref(`users/${userUid}`).once("value")).val()?.role || "N/A";
-                            timestamp = entry.timestamp || 0;
-                            break;
-                        case "pendingInkind":
-                            action = "Pending In-kind";
-                            details = `Pending in-kind by ${entry.contactPerson || 'Unknown'}`;
-                            userName = entry.contactPerson || "Unknown";
-                            userUid = entry.userId || "";
-                            role = (await database.ref(`users/${userUid}`).once("value")).val()?.role || "N/A";
-                            timestamp = entry.timestamp || 0;
-                            break;
-                        case "rdana":
-                            action = "RDANA Update";
-                            details = `Update by ${entry.contactPerson || 'Unknown'}`;
-                            userName = entry.contactPerson || "Unknown";
-                            userUid = entry.userId || "";
-                            role = (await database.ref(`users/${userUid}`).once("value")).val()?.role || "N/A";
-                            timestamp = entry.timestamp || 0;
-                            break;
-                        case "reliefRequests":
-                        case "requestRelief":
-                            action = "Relief Request";
-                            details = `Request by ${entry.contactPerson || 'Unknown'}`;
-                            userName = entry.contactPerson || "Unknown";
-                            userUid = entry.userId || "";
-                            role = (await database.ref(`users/${userUid}`).once("value")).val()?.role || "N/A";
-                            timestamp = entry.timestamp || 0;
-                            break;
-                        case "users":
-                            action = entry.lastLogin ? "Login" : entry.lastLogout ? "Logout" : "User Update";
-                            details = `${action === "Login" ? "Last login" : action === "Logout" ? "Last logout" : "Profile update"} at ${new Date(entry.lastLogin || entry.lastLogout || Date.now()).toLocaleString()}`;
-                            userName = entry.contactPerson || "Unknown";
-                            role = entry.role || "N/A";
-                            userUid = key;
-                            timestamp = entry.lastLogin || entry.lastLogout || Date.now();
-                            break;
-                        default:
-                            action = "Unknown Action";
-                            details = "No details available";
-                            userName = "Unknown";
-                            role = "N/A";
-                            userUid = "";
-                            timestamp = Date.now();
-                    }
-                    return { id: key, action, userName, role, timestamp, details, userUid, source: node };
-                } catch (error) {
-                    return null;
-                }
-            });
-            try {
-                const resolvedEntries = await Promise.all(logEntries);
-                data = [...data, ...resolvedEntries.filter(e => e !== null)];
+        const ref = database.ref(node);
+
+        // Handle new entries
+        ref.on("child_added", async (snapshot) => {
+            const entry = snapshot.val();
+            const key = snapshot.key;
+            const log = await processLogEntry(node, key, entry);
+            if (log && !data.some(d => d.id === key && d.source === node)) {
+                data.push(log);
                 data.sort((a, b) => b.timestamp - a.timestamp);
                 applySearchAndSort();
-            } catch (error) {
             }
-        }, error => {
+        });
+
+        // Handle updated entries
+        ref.on("child_changed", async (snapshot) => {
+            const entry = snapshot.val();
+            const key = snapshot.key;
+            const log = await processLogEntry(node, key, entry);
+            if (log) {
+                const index = data.findIndex(d => d.id === key && d.source === node);
+                if (index !== -1) {
+                    data[index] = log;
+                } else {
+                    data.push(log);
+                }
+                data.sort((a, b) => b.timestamp - a.timestamp);
+                applySearchAndSort();
+            }
+        });
+
+        // Handle deleted entries
+        ref.on("child_removed", (snapshot) => {
+            const key = snapshot.key;
+            data = data.filter(d => !(d.id === key && d.source === node));
+            applySearchAndSort();
         });
     });
+}
+
+// Process Log Entry
+async function processLogEntry(node, key, entry) {
+    try {
+        let action, details, userName, role, userUid, timestamp;
+        switch (node) {
+            case "activity_logs":
+                action = entry.action || "N/A";
+                details = entry.details || "None";
+                userName = entry.userName || "Unknown";
+                role = entry.role || "N/A";
+                userUid = entry.userUid || "";
+                timestamp = entry.timestamp || 0;
+                break;
+            case "posts":
+                action = entry.isShared ? "Share Post" : "Create Post";
+                details = `${entry.title || ''} in ${entry.category || 'Uncategorized'}`;
+                userName = entry.userName || "Unknown";
+                userUid = entry.userId || "";
+                role = (await database.ref(`users/${userUid}`).once("value")).val()?.role || "N/A";
+                timestamp = entry.timestamp || 0;
+                break;
+            case "comments":
+                action = "Comment";
+                details = entry.text || "No content";
+                userName = entry.userName || "Unknown";
+                userUid = entry.userId || "";
+                role = (await database.ref(`users/${userUid}`).once("value")).val()?.role || "N/A";
+                timestamp = entry.timestamp || 0;
+                break;
+            case "approvedVolunteerApplications":
+                action = "Approval";
+                details = `Approved volunteer application for ${entry.contactPerson || 'Unknown'}`;
+                const userSnap = await database.ref(`users/${entry.userId}`).once("value");
+                const userData = userSnap.val() || {};
+                userName = userData.contactPerson || `${userData.firstName || ''} ${userData.lastName || ''} ${userData.middleInitial || ''}`.trim() || "Unknown";
+                userUid = entry.userId || "";
+                role = userData.role || "N/A";
+                timestamp = entry.timestamp || 0;
+                break;
+            case "deletedEndorsedVolunteerApplications":
+            case "deletedVolunteerGroups":
+            case "deletedDonations":
+                action = "Delete";
+                details = `Deleted ${node.split("deleted")[1].toLowerCase()} for ${entry.contactPerson || 'Unknown'}`;
+                const delUserSnap = await database.ref(`users/${entry.userId}`).once("value");
+                const delUserData = delUserSnap.val() || {};
+                userName = delUserData.contactPerson || `${delUserData.firstName || ''} ${delUserData.lastName || ''} ${delUserData.middleInitial || ''}`.trim() || "Unknown";
+                userUid = entry.userId || "";
+                role = delUserData.role || "N/A";
+                timestamp = entry.timestamp || 0;
+                break;
+            case "notifications":
+                action = "Notification";
+                details = entry.message || "No message";
+                const notifUserSnap = await database.ref(`users/${entry.userId}`).once("value");
+                const notifUserData = notifUserSnap.val() || {};
+                userName = notifUserData.contactPerson || `${notifUserData.firstName || ''} ${notifUserData.lastName || ''} ${notifUserData.middleInitial || ''}`.trim() || "Unknown";
+                userUid = entry.userId || "";
+                role = notifUserData.role || "N/A";
+                timestamp = entry.timestamp || 0;
+                break;
+            case "donationreports":
+                action = "Donation Report";
+                details = `Report by ${entry.contactPerson || 'Unknown'}`;
+                const donUserSnap = await database.ref(`users/${entry.userId}`).once("value");
+                const donUserData = donUserSnap.val() || {};
+                userName = donUserData.contactPerson || `${donUserData.firstName || ''} ${donUserData.lastName || ''} ${donUserData.middleInitial || ''}`.trim() || "Unknown";
+                userUid = entry.userId || "";
+                role = donUserData.role || "N/A";
+                timestamp = entry.timestamp || 0;
+                break;
+            case "pendingInkind":
+                action = "Pending In-kind";
+                details = `Pending in-kind by ${entry.contactPerson || 'Unknown'}`;
+                const pendUserSnap = await database.ref(`users/${entry.userId}`).once("value");
+                const pendUserData = pendUserSnap.val() || {};
+                userName = pendUserData.contactPerson || `${pendUserData.firstName || ''} ${pendUserData.lastName || ''} ${pendUserData.middleInitial || ''}`.trim() || "Unknown";
+                userUid = entry.userId || "";
+                role = pendUserData.role || "N/A";
+                timestamp = entry.timestamp || 0;
+                break;
+            case "rdana":
+                action = "RDANA Update";
+                details = `Update by ${entry.contactPerson || 'Unknown'}`;
+                const rdanaUserSnap = await database.ref(`users/${entry.userId}`).once("value");
+                const rdanaUserData = rdanaUserSnap.val() || {};
+                userName = rdanaUserData.contactPerson || `${rdanaUserData.firstName || ''} ${rdanaUserData.lastName || ''} ${rdanaUserData.middleInitial || ''}`.trim() || "Unknown";
+                userUid = entry.userId || "";
+                role = rdanaUserData.role || "N/A";
+                timestamp = entry.timestamp || 0;
+                break;
+            case "reliefRequests":
+            case "requestRelief":
+                action = "Relief Request";
+                details = `Request by ${entry.contactPerson || 'Unknown'}`;
+                const relUserSnap = await database.ref(`users/${entry.userId}`).once("value");
+                const relUserData = relUserSnap.val() || {};
+                userName = relUserData.contactPerson || `${relUserData.firstName || ''} ${relUserData.lastName || ''} ${relUserData.middleInitial || ''}`.trim() || "Unknown";
+                userUid = entry.userId || "";
+                role = relUserData.role || "N/A";
+                timestamp = entry.timestamp || 0;
+                break;
+            case "users":
+                action = entry.lastLogin ? "Login" : entry.lastLogout ? "Logout" : "User Update";
+                details = `${action === "Login" ? "Last login" : action === "Logout" ? "Last logout" : "Profile update"} at ${new Date(entry.lastLogin || entry.lastLogout || Date.now()).toLocaleString()}`;
+                userName = entry.contactPerson || `${entry.firstName || ''} ${entry.lastName || ''} ${entry.middleInitial || ''}`.trim() || "Unknown";
+                role = entry.role || "N/A";
+                userUid = key;
+                timestamp = entry.lastLogin || entry.lastLogout || Date.now();
+                break;
+            default:
+                action = "Unknown Action";
+                details = "No details available";
+                userName = "Unknown";
+                role = "N/A";
+                userUid = "";
+                timestamp = Date.now();
+        }
+        return { id: key, action, userName, role, timestamp, details, userUid, source: node };
+    } catch (error) {
+        return null;
+    }
 }
 
 // Render Table
@@ -393,7 +358,7 @@ function applySearchAndSort() {
     if (searchTerm) {
         currentData = currentData.filter(log =>
             [log.action, log.userName, log.role, new Date(log.timestamp).toLocaleString(), log.details]
-                .some(field => field.toLocaleLowerCase().includes(searchTerm))
+                .some(field => field.toString().toLowerCase().includes(searchTerm))
         );
     }
 
@@ -433,42 +398,14 @@ function setupFilters() {
 }
 
 // Display Log Details
-async function showLogDetails(log) {
-    try {
-        const prompt = `
-            You are Lenlen, a disaster tracking assistant. Provide a concise description of the following activity log entry.
-            - Action: ${log.action}
-            - User: ${log.userName} (${log.role})
-            - Timestamp: ${new Date(log.timestamp).toLocaleString("en-US", { timeZone: "America/Los_Angeles" })}
-            - Details: ${log.details}
-            - Source: ${log.source}
-        `;
-        const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
-        });
-        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-        const result = await response.json();
-        const description = result.candidates[0].content.parts[0].text;
-
-        logDetailsContent.innerHTML = `
-            <p><strong>Action:</strong> ${log.action}</p>
-            <p><strong>User:</strong> ${log.userName} (${log.role})</p>
-            <p><strong>Timestamp:</strong> ${new Date(log.timestamp).toLocaleString("en-US", { timeZone: "America/Los_Angeles" })}</p>
-            <p><strong>Details:</strong> ${log.details}</p>
-            <p><strong>Source:</strong> ${log.source}</p>
-            <p><strong>Summary:</strong> ${description}</p>
-        `;
-    } catch (error) {
-        logDetailsContent.innerHTML = `
-            <p><strong>Action:</strong> ${log.action}</p>
-            <p><strong>User:</strong> ${log.userName} (${log.role})</p>
-            <p><strong>Timestamp:</strong> ${new Date(log.timestamp).toLocaleString("en-US", { timeZone: "America/Los_Angeles" })}</p>
-            <p><strong>Details:</strong> ${log.details}</p>
-            <p><strong>Source:</strong> ${log.source}</p>
-        `;
-    }
+function showLogDetails(log) {
+    logDetailsContent.innerHTML = `
+        <p><strong>Action:</strong> ${log.action}</p>
+        <p><strong>User:</strong> ${log.userName} (${log.role})</p>
+        <p><strong>Timestamp:</strong> ${new Date(log.timestamp).toLocaleString("en-US", { timeZone: "America/Los_Angeles" })}</p>
+        <p><strong>Details:</strong> ${log.details}</p>
+        <p><strong>Source:</strong> ${log.source}</p>
+    `;
     logDetailsModal.style.display = "flex";
 }
 
