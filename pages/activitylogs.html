@@ -22,7 +22,6 @@
                     </div>
                     <div class="controls_right">
                         <div class="search-wrapper">
-                            <!-- <i class="fa fa-search"></i> -->
                             <input type="text" placeholder="Search by action, user, or date..." id="searchInput">
                             <button id="clearSearchBtn" class="clear-btn" style="display: none;">
                                 <i class='bx bx-x'></i>
@@ -51,6 +50,13 @@
                             </select>
                             <i class='bx bx-chevron-down'></i>
                         </div>
+                        <!-- 🔽 New User Filter Dropdown -->
+                        <div class="custom-select-wrapper">
+                            <select id="userFilter">
+                                <option value="all">All Users</option>
+                            </select>
+                            <i class='bx bx-chevron-down'></i>
+                        </div>
                     </div>
                 </div>
                 <div class="table-container">
@@ -72,37 +78,26 @@
                     <span id="entriesInfo">Showing 0 to 0 of 0 entries</span>
                     <div id="pagination" class="pagination"></div>
                 </div>
-                <!-- User Data Analysis Section with Toggle -->
-                <div class="user-data-analysis">
-                    <h4 id="userDataToggle">User Data Analysis</h4>
-                    <div id="userDataContent" class="user-data-content" style="display: none;">
-                        <!-- Detailed analysis will be populated here -->
+                <!-- Log Details Modal -->
+                <div class="modal" id="logDetailsModal" style="display: none;">
+                    <div class="modal-content">
+                        <span class="close-button" id="closeLogModalBtn">×</span>
+                        <h4>Log Details</h4>
+                        <div id="logDetailsContent"></div>
                     </div>
-                </div>
-                <!-- Database Summary Section -->
-                <div class="database-summary" id="databaseSummary">
-                    <h4>Database Summary</h4>
-                    <div id="dbSummaryContent" class="db-summary-content">
-                        <p><strong>Status:</strong> Loading database summary...</p>
-                    </div>
-                </div>
-            </div>
-            <!-- Log Details Modal -->
-            <div class="modal" id="logDetailsModal" style="display: none;">
-                <div class="modal-content">
-                    <span class="close-button" id="closeLogModalBtn">×</span>
-                    <h4>Log Details</h4>
-                    <div id="logDetailsContent"></div>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- Load sidebar -->
     <script>
-        // Load sidebar
         fetch('../components/sidebar.html')
             .then(response => response.text())
             .then(data => {
@@ -113,6 +108,8 @@
             })
             .catch(error => console.error('Error loading sidebar:', error));
     </script>
+
+    <!-- Activity Logs Script -->
     <script src="../js/activitylogs.js"></script>
 </body>
 </html>
