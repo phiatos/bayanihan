@@ -113,6 +113,65 @@ function debugLog(step, data) {
     
 }
 
+ // Verify Super Admin password
+async function verifySuperAdminPassword() {
+    const { value: password } = await Swal.fire({
+        title: 'Enter Admin Password',
+        input: 'password',
+        inputPlaceholder: 'Enter password here',
+        inputAttributes: {
+            autocapitalize: 'off',
+            autocorrect: 'off',
+            autocomplete: 'new-password'
+        },
+        showCancelButton: true,
+        confirmButtonText: 'Verify',
+        showLoaderOnConfirm: true,
+        reverseButtons: true,
+        focusCancel: true,
+        preConfirm: async (password) => {
+            try {
+                const user = auth.currentUser;
+                const credential = firebase.auth.EmailAuthProvider.credential(user.email, password);
+                await auth.signInWithCredential(credential);
+                return true;
+            } catch (error) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Verification Failed',
+                    text: 'Invalid admin password.',
+                    timer: 1600,
+                    showConfirmButton: false,
+                    timerProgressBar: true,
+                    allowOutsideClick: false,
+                    customClass: {
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean'
+                    }
+                });
+                return false;
+            }
+        },
+        allowOutsideClick: () => !Swal.isLoading(),
+        customClass: {
+            popup: 'custom-swal-popup',
+            title: 'custom-swal-title',
+            input: 'custom-swal-input',
+            confirmButton: 'custom-confirm-btn',
+            cancelButton: 'custom-cancel-btn'
+        }
+    });
+    if (!password) {
+        isAdminVerified = false; // Set to false if canceled
+        searchInput.value = '';
+        return false;
+    }
+    isAdminVerified = true; // Set to true if verified
+    searchInput.value = '';
+    return true; // Return true if verification succeeds
+}
+
 // Test function to manually save a donation to pending monetary
 async function testSaveToPending() {
     if (!database) {
@@ -426,9 +485,32 @@ function renderTable() {
         button.addEventListener('click', (event) => updateDonationStatus(event.target.dataset.id, filteredMonetaryDonations.find(item => item.id === event.target.dataset.id), 'Approved'));
     });
     document.querySelectorAll('.rejectBtn').forEach(button => {
-        button.addEventListener('click', (event) => updateDonationStatus(event.target.dataset.id, filteredMonetaryDonations.find(item => item.id === event.target.dataset.id), 'Rejected'));
+        button.addEventListener('click', async (event) => {
+            const donation = filteredMonetaryDonations.find(item => item.id === event.target.dataset.id);
+            if (!donation) {
+                Swal.fire('Error', 'Donation not found.', 'error');
+                return;
+            }
+            const verification = await verifySuperAdminPassword(searchInput);
+            if (verification.success) {
+                updateDonationStatus(event.target.dataset.id, donation, 'Rejected');
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Access Denied',
+                    text: 'Admin verification failed. Action not performed.',
+                    timer: 1600,
+                    showConfirmButton: false,
+                    timerProgressBar: true,
+                    customClass: {
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean'
+                    }
+                });
+            }
+        });
     });
-
     const totalEntries = filteredMonetaryDonations.length;
     const showingStart = totalEntries > 0 ? start + 1 : 0;
     const showingEnd = Math.min(end, totalEntries);

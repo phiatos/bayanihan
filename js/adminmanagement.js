@@ -254,7 +254,7 @@ auth.onAuthStateChanged(user => {
         // Fetch user data from database to check isSuperAdmin flag
         database.ref(`users/${user.uid}`).once('value', snapshot => {
             const userData = snapshot.val();
-            if (userData && userData.isSuperAdmin === true) {
+            if (userData && userData.adminPosition === "Super Admin") {
                 currentUserIsSuperAdmin = true;
                 if (addNewAdminButton) {
                     addNewAdminButton.style.display = 'block'; 

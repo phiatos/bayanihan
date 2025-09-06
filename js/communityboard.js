@@ -219,72 +219,72 @@ async function fetchUserData(uid) {
 //   }
 // });
 auth.onAuthStateChanged(async (currentUser) => {
-    user = currentUser;
-    console.log(`[${new Date().toISOString()}] Auth state changed:`, currentUser ? { uid: currentUser.uid, displayName: currentUser.displayName } : 'No user');
+  user = currentUser;
+  console.log(`[${new Date().toISOString()}] Auth state changed:`, currentUser ? { uid: currentUser.uid, displayName: currentUser.displayName } : 'No user');
 
-    if (user) {
-        const profilePage = 'profile.html'; // Assuming your profile page path
+  if (user) {
+      const profilePage = 'profile.html'; 
 
-        try {
-            // Fetch user data from the database to check password_needs_reset status
-            const userSnapshot = await database.ref(`users/${user.uid}`).once("value");
-            const userDataFromDb = userSnapshot.val();
-            const passwordNeedsReset = userDataFromDb ? (userDataFromDb.password_needs_reset || false) : false;
+      try {
+          // Fetch user data from the database to check password_needs_reset status
+          const userSnapshot = await database.ref(`users/${user.uid}`).once("value");
+          const userDataFromDb = userSnapshot.val();
+          const passwordNeedsReset = userDataFromDb ? (userDataFromDb.password_needs_reset || false) : false;
 
-            if (passwordNeedsReset) {
-                console.log(`[${new Date().toISOString()}] Password change required for user ${user.uid}. Redirecting to profile page.`);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Password Change Required',
-                    text: 'For security reasons, please change your password. You will be redirected to your profile.',
-                    allowOutsideClick: false,
-                    timer: 1600,
-                    showConfirmButton: false,
-                    timerProgressBar: true,
-                    customClass: {
-                        popup: 'swal2-popup-error-clean',
-                        title: 'swal2-title-error-clean',
-                        htmlContainer: 'swal2-text-error-clean'
-                    }
-                }).then(() => {
-                    window.location.replace(`../pages/${profilePage}`);
-                });
-                return; // IMPORTANT: Stop further execution if password reset is needed
-            }
-
-            // If password does NOT need reset, proceed with normal community board initialization
-            loadPosts();
-            loadActivityLog();
-            const userData = await fetchUserData(user.uid);
-            updateModalUserInfo(userData);
-            resetInactivityTimer(); 
-        } catch (error) {
-            console.error(`[${new Date().toISOString()}] Error checking password reset status or fetching user data:`, error);
-            Swal.fire({
+          if (passwordNeedsReset) {
+            console.log(`[${new Date().toISOString()}] Password change required for user ${user.uid}. Redirecting to profile page.`);
+              Swal.fire({
                 icon: 'error',
-                title: 'Authentication Error',
-                text: 'Failed to verify account status. Please try logging in again.',
+                title: 'Password Change Required',
+                text: 'For security reasons, please change your password. You will be redirected to your profile.',
+                allowOutsideClick: false,
+                timer: 1600,
+                showConfirmButton: false,
+                timerProgressBar: true,
+                customClass: {
+                  popup: 'swal2-popup-error-clean',
+                  title: 'swal2-title-error-clean',
+                  htmlContainer: 'swal2-text-error-clean'
+                }
             }).then(() => {
-                window.location.replace('../pages/login.html'); // Redirect to login on error
+                window.location.replace(`../pages/${profilePage}`);
             });
-            return;
-        }
+            return; // IMPORTANT: Stop further execution if password reset is needed
+          }
 
-    } else {
-        // No user authenticated
+          // If password does NOT need reset, proceed with normal community board initialization
+          loadPosts();
+          loadActivityLog();
+          const userData = await fetchUserData(user.uid);
+          updateModalUserInfo(userData);
+          resetInactivityTimer(); 
+      } catch (error) {
+        console.error(`[${new Date().toISOString()}] Error checking password reset status or fetching user data:`, error);
         Swal.fire({
-            title: 'Authentication Required',
-            text: 'Please log in to post or view posts.',
-            icon: 'warning',
-            confirmButtonText: 'OK'
+          icon: 'error',
+          title: 'Authentication Error',
+          text: 'Failed to verify account status. Please try logging in again.',
         }).then(() => {
-            window.location.replace('../pages/login.html'); // Ensure redirection to login
+          window.location.replace('../pages/login.html'); // Redirect to login on error
         });
-        const postsContainer = document.getElementById('posts');
-        if (postsContainer) {
-            postsContainer.innerHTML = '<p>Please log in to view posts.</p>';
-        }
+        return;
+      }
+
+  } else {
+    // No user authenticated
+    Swal.fire({
+      title: 'Authentication Required',
+      text: 'Please log in to post or view posts.',
+      icon: 'warning',
+      confirmButtonText: 'OK'
+    }).then(() => {
+      window.location.replace('../pages/login.html'); // Ensure redirection to login
+    });
+    const postsContainer = document.getElementById('posts');
+    if (postsContainer) {
+      postsContainer.innerHTML = '<p>Please log in to view posts.</p>';
     }
+  }
 });
 
 function updateModalUserInfo(userData) {

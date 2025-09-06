@@ -37,6 +37,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const archivedEntriesInfo = document.getElementById("archivedEntriesInfo");
     const viewArchivedBtn = document.getElementById("viewArchived");
     const closeArchivedModalBtn = document.getElementById("closeArchivedModalBtn");
+    // Define isAdminVerified to track super admin verification status
+    let isAdminVerified = false;
     let archivedReports = [];
     let archivedCurrentPage = 1;
     const archivedRowsPerPage = 5;
@@ -108,6 +110,66 @@ document.addEventListener('DOMContentLoaded', () => {
 
     //     loadReportsFromFirebase(userRole);
     // });
+
+    // Verify Super Admin password
+async function verifySuperAdminPassword() {
+    const { value: password } = await Swal.fire({
+        title: 'Enter Admin Password',
+        input: 'password',
+        inputPlaceholder: 'Enter password here',
+        inputAttributes: {
+            autocapitalize: 'off',
+            autocorrect: 'off',
+            autocomplete: 'new-password'
+        },
+        showCancelButton: true,
+        confirmButtonText: 'Verify',
+        showLoaderOnConfirm: true,
+        reverseButtons: true,
+        focusCancel: true,
+        preConfirm: async (password) => {
+            try {
+                const user = auth.currentUser;
+                const credential = firebase.auth.EmailAuthProvider.credential(user.email, password);
+                await auth.signInWithCredential(credential);
+                return true;
+            } catch (error) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Verification Failed',
+                    text: 'Invalid admin password.',
+                    timer: 1600,
+                    showConfirmButton: false,
+                    timerProgressBar: true,
+                    allowOutsideClick: false,
+                    customClass: {
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean'
+                    }
+                });
+                return false;
+            }
+        },
+        allowOutsideClick: () => !Swal.isLoading(),
+        customClass: {
+            popup: 'custom-swal-popup',
+            title: 'custom-swal-title',
+            input: 'custom-swal-input',
+            confirmButton: 'custom-confirm-btn',
+            cancelButton: 'custom-cancel-btn'
+        }
+    });
+    if (!password) {
+        isAdminVerified = false; // Set to false if canceled
+        searchInput.value = '';
+        return false;
+    }
+    isAdminVerified = true; // Set to true if verified
+    searchInput.value = '';
+    return true; // Return true if verification succeeds
+}
+
     auth.onAuthStateChanged(async (user) => {
         console.log(`[${new Date().toISOString()}] Auth state changed:`, user ? { uid: user.uid, email: user.email } : 'No user');
 
@@ -500,6 +562,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (deleteBtn) {
                 deleteBtn.addEventListener('click', async () => {
+                    // Require super admin verification for non-ABVN users
+                    if (userRole !== 'ABVN' && !isAdminVerified) {
+                        const verified = await verifySuperAdminPassword();
+                        if (!verified) {
+                            return; // Stop if verification fails or is canceled
+                        }
+                    }
+
                     const result = await Swal.fire({
                         title: 'Are you sure to archive this report?',
                         text: `You are about to remove Report ID: ${report.ReportID}. This will move it to archive records.`,

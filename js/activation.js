@@ -18,6 +18,114 @@ firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
 const auth = firebase.auth();
 
+let isAdminVerified = false;
+
+// Verify Super Admin password
+async function verifySuperAdminPassword() {
+    if (!auth || !auth.currentUser) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Authentication Error',
+            text: 'No user is currently signed in. Please log in again.',
+            timer: 2000,
+            showConfirmButton: false,
+            timerProgressBar: true,
+            allowOutsideClick: false,
+            customClass: {
+                popup: 'swal2-popup-error-clean',
+                title: 'swal2-title-error-clean',
+                htmlContainer: 'swal2-text-error-clean'
+            }
+        });
+        return false;
+    }
+
+    // Check if user is signed in with email/password provider
+    if (!auth.currentUser.providerData.some(provider => provider.providerId === 'password')) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Authentication Error',
+            text: 'This account does not use email/password authentication.',
+            timer: 2000,
+            showConfirmButton: false,
+            timerProgressBar: true,
+            allowOutsideClick: false,
+            customClass: {
+                popup: 'swal2-popup-error-clean',
+                title: 'swal2-title-error-clean',
+                htmlContainer: 'swal2-text-error-clean'
+            }
+        });
+        return false;
+    }
+
+    const { value: password } = await Swal.fire({
+        title: 'Enter Admin Password',
+        input: 'password',
+        inputPlaceholder: 'Enter password here',
+        inputAttributes: {
+            autocapitalize: 'off',
+            autocorrect: 'off',
+            autocomplete: 'new-password'
+        },
+        showCancelButton: true,
+        confirmButtonText: 'Verify',
+        showLoaderOnConfirm: true,
+        reverseButtons: true,
+        focusCancel: true,
+        inputValidator: (value) => !value && 'Password is required!',
+        preConfirm: async (password) => {
+            try {
+                const user = auth.currentUser;
+                const credential = firebase.auth.EmailAuthProvider.credential(user.email, password.trim());
+                await user.reauthenticateWithCredential(credential);
+                return true;
+            } catch (error) {
+                console.error('Password verification error:', error.code, error.message);
+                let errorMessage = 'Invalid admin password.';
+                if (error.code === 'auth/wrong-password') {
+                    errorMessage = 'Incorrect password. Please try again.';
+                } else if (error.code === 'auth/too-many-requests') {
+                    errorMessage = 'Too many failed attempts. Please try again later.';
+                } else if (error.code === 'auth/invalid-credential') {
+                    errorMessage = 'Invalid credentials. Ensure you are using an email/password account.';
+                }
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Verification Failed',
+                    text: errorMessage,
+                    timer: 2000,
+                    showConfirmButton: false,
+                    timerProgressBar: true,
+                    allowOutsideClick: false,
+                    customClass: {
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean'
+                    }
+                });
+                return false;
+            }
+        },
+        allowOutsideClick: () => !Swal.isLoading(),
+        customClass: {
+            popup: 'custom-swal-popup',
+            title: 'custom-swal-title',
+            input: 'custom-swal-input',
+            confirmButton: 'custom-confirm-btn',
+            cancelButton: 'custom-cancel-btn'
+        }
+    });
+
+    if (!password) {
+        isAdminVerified = false; // Prevent unauthorized actions on cancel
+        return false;
+    }
+
+    isAdminVerified = true;
+    return true;
+}
+
 let allVolunteerGroups = [];
 let currentActiveActivations = [];
 
@@ -1391,91 +1499,176 @@ tableBody.addEventListener("click", e => {
         currentGroupId = groupId;
         openEndorseModal();
     } else if (btn.classList.contains("archiveBtn")) {
-        
-        Swal.fire({
-            title: 'Are you sure?',
-            text: `Do you want to deactivate this specific operation for group ID ${groupId}?`,
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonText: 'Yes, clear it!',
-            cancelButtonText: 'No, keep editing',
-            reverseButtons: true,
-            focusCancel: true,
-            allowOutsideClick: false,
-            customClass: {
-                popup: 'custom-swal-popup-large',
-                title: 'custom-swal-title',
-                htmlContainer: 'custom-swal-content',
-                confirmButton: 'custom-confirm-btn',
-                cancelButton: 'custom-cancel-btn'
-            }
-        }).then((result) => {
-            if (result.isConfirmed) {
-                console.log("User confirmed deactivation. Checking authentication...");
-                const user = firebase.auth().currentUser;
-                if (!user) {
-                    console.error("No authenticated user found.");
-                    Swal.fire({ icon: 'error', title: 'Authentication Error', text: 'User not authenticated.' });
+        // Require password verification if not already verified
+        if (!isAdminVerified) {
+            verifySuperAdminPassword().then(verified => {
+                if (!verified) {
+                    console.log("Password verification failed or was canceled.");
                     return;
                 }
-                
-
-                const activationRef = database.ref(`activations/${activationId}`);
-                
-
-                activationRef.once('value')
-                    .then(snapshot => {
-                        const activationData = snapshot.val();
-                        if (!activationData) {
-                            console.error("No activation data found at the specified path.");
-                            throw new Error('Activation data not found.');
+                Swal.fire({
+                    title: 'Are you sure?',
+                    text: `Do you want to deactivate this specific operation for group ID ${groupId}?`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Yes, clear it!',
+                    cancelButtonText: 'No, keep editing',
+                    reverseButtons: true,
+                    focusCancel: true,
+                    allowOutsideClick: false,
+                    customClass: {
+                        popup: 'custom-swal-popup-large',
+                        title: 'custom-swal-title',
+                        htmlContainer: 'custom-swal-content',
+                        confirmButton: 'custom-confirm-btn',
+                        cancelButton: 'custom-cancel-btn'
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        console.log("User confirmed deactivation. Checking authentication...");
+                        const user = firebase.auth().currentUser;
+                        if (!user) {
+                            console.error("No authenticated user found.");
+                            Swal.fire({ icon: 'error', title: 'Authentication Error', text: 'User not authenticated.' });
+                            return;
                         }
                         
-
-                        const deactivatedActivation = {
-                            ...activationData,
-                            status: "inactive",
-                            deactivationDate: new Date().toISOString()
-                        };
-
-                        const deletedActivationRef = database.ref('deletedactivations').push();
+                        const activationRef = database.ref(`activations/${activationId}`);
                         
+                        activationRef.once('value')
+                            .then(snapshot => {
+                                const activationData = snapshot.val();
+                                if (!activationData) {
+                                    console.error("No activation data found at the specified path.");
+                                    throw new Error('Activation data not found.');
+                                }
+                                
+                                const deactivatedActivation = {
+                                    ...activationData,
+                                    status: "inactive",
+                                    deactivationDate: new Date().toISOString()
+                                };
 
-                        console.log("Performing copy to deletedactivations and remove from activations...");
-                        return Promise.all([
-                            deletedActivationRef.set(deactivatedActivation).then(() => {
-                                console.log("Successfully copied to deletedactivations.");
-                            }),
-                            activationRef.remove().then(() => {
-                                console.log("Successfully removed from activations.");
+                                const deletedActivationRef = database.ref('deletedactivations').push();
+                                
+                                console.log("Performing copy to deletedactivations and remove from activations...");
+                                return Promise.all([
+                                    deletedActivationRef.set(deactivatedActivation).then(() => {
+                                        console.log("Successfully copied to deletedactivations.");
+                                    }),
+                                    activationRef.remove().then(() => {
+                                        console.log("Successfully removed from activations.");
+                                    })
+                                ]);
                             })
-                        ]);
-                    })
-                    .then(() => {
-                        console.log("Deactivation process completed successfully.");
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Deactivated!',
-                            text:  `The activation has been moved to deleted activations.`,
-                            showConfirmButton: true,
-                            confirmButtonText: 'OK',
-                            customClass: {
-                                popup: 'swal2-popup-success-clean',
-                                title: 'swal2-title-success-clean',
-                                htmlContainer: 'swal2-text-success-clean',
-                                confirmButton: 'my-success-button'
+                            .then(() => {
+                                console.log("Deactivation process completed successfully.");
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Deactivated!',
+                                    text:  `The activation has been moved to deleted activations.`,
+                                    showConfirmButton: true,
+                                    confirmButtonText: 'OK',
+                                    customClass: {
+                                        popup: 'swal2-popup-success-clean',
+                                        title: 'swal2-title-success-clean',
+                                        htmlContainer: 'swal2-text-success-clean',
+                                        confirmButton: 'my-success-button'
+                                    }
+                                });
+                                renderTable();
+                            })
+                            .catch(error => {
+                                console.error("Error during deactivation process:", error);
+                                Swal.fire({ icon: 'error', title: 'Error', text: `Failed to deactivate: ${error.message}` });
+                            });
+                    } else {
+                        console.log("User canceled deactivation.");
+                    }
+                });
+            });
+        } else {
+            Swal.fire({
+                title: 'Are you sure?',
+                text: `Do you want to deactivate this specific operation for group ID ${groupId}?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, clear it!',
+                cancelButtonText: 'No, keep editing',
+                reverseButtons: true,
+                focusCancel: true,
+                allowOutsideClick: false,
+                customClass: {
+                    popup: 'custom-swal-popup-large',
+                    title: 'custom-swal-title',
+                    htmlContainer: 'custom-swal-content',
+                    confirmButton: 'custom-confirm-btn',
+                    cancelButton: 'custom-cancel-btn'
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    console.log("User confirmed deactivation. Checking authentication...");
+                    const user = firebase.auth().currentUser;
+                    if (!user) {
+                        console.error("No authenticated user found.");
+                        Swal.fire({ icon: 'error', title: 'Authentication Error', text: 'User not authenticated.' });
+                        return;
+                    }
+                    
+                    const activationRef = database.ref(`activations/${activationId}`);
+                    
+                    activationRef.once('value')
+                        .then(snapshot => {
+                            const activationData = snapshot.val();
+                            if (!activationData) {
+                                console.error("No activation data found at the specified path.");
+                                throw new Error('Activation data not found.');
                             }
+                            
+                            const deactivatedActivation = {
+                                ...activationData,
+                                status: "inactive",
+                                deactivationDate: new Date().toISOString()
+                            };
+
+                            const deletedActivationRef = database.ref('deletedactivations').push();
+                            
+                            console.log("Performing copy to deletedactivations and remove from activations...");
+                            return Promise.all([
+                                deletedActivationRef.set(deactivatedActivation).then(() => {
+                                    console.log("Successfully copied to deletedactivations.");
+                                }),
+                                activationRef.remove().then(() => {
+                                    console.log("Successfully removed from activations.");
+                                })
+                            ]);
+                        })
+                        .then(() => {
+                            console.log("Deactivation process completed successfully.");
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Deactivated!',
+                                text:  `The activation has been moved to deleted activations.`,
+                                showConfirmButton: true,
+                                confirmButtonText: 'OK',
+                                customClass: {
+                                    popup: 'swal2-popup-success-clean',
+                                    title: 'swal2-title-success-clean',
+                                    htmlContainer: 'swal2-text-success-clean',
+                                    confirmButton: 'my-success-button'
+                                }
+                            });
+                            renderTable();
+                        })
+                        .catch(error => {
+                            console.error("Error during deactivation process:", error);
+                            Swal.fire({ icon: 'error', title: 'Error', text: `Failed to deactivate: ${error.message}` });
                         });
-                        renderTable();
-                    })
-                    .catch(error => {
-                        console.error("Error during deactivation process:", error);
-                        Swal.fire({ icon: 'error', title: 'Error', text: `Failed to deactivate: ${error.message}` });
-                    });
-            } else {
-                console.log("User canceled deactivation.");
-            }
-        });
+                } else {
+                    console.log("User canceled deactivation.");
+                }
+            });
+        }
     } else {
         console.log("Clicked element does not match expected buttons:", btn);
     }

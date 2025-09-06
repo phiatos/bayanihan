@@ -243,24 +243,21 @@ function initSidebar() {
 
     if (userRoleElement) userRoleElement.textContent = roleDisplay;
     if (userNameElement)
-      userNameElement.textContent =
-        user.role === "AB ADMIN" && user.firstName && user.lastName
-          ? `${user.firstName} ${user.lastName}`
-          : user.contactPerson || "";
+        userNameElement.textContent =
+          user.role === "AB ADMIN" && user.firstName && user.lastName
+            ? `${user.firstName} ${user.lastName}`
+            : user.contactPerson || "";
 
-    restrictMenuAccess(user.role, user.isSuperAdmin || false);
+    restrictMenuAccess(user.role, user.adminPosition || "");
   }
 
-  // Restrict menu items by role (your original code kept)
-  function restrictMenuAccess(role, isSuperAdmin) {
+  function restrictMenuAccess(role, adminPosition) {
     const menuItems = {
       activitylogs: document.querySelector(".menu-activitylogs"),
       adminmanagement: document.querySelector(".menu-adminmanagement"),
       dashboard: document.querySelector(".menu-dashboard"),
       communityboard: document.querySelector(".menu-communityboard"),
-      volunteergroupmanagement: document.querySelector(
-        ".menu-volunteergroupmanagement"
-      ),
+      volunteergroupmanagement: document.querySelector(".menu-volunteergroupmanagement"),
       activation: document.querySelector(".menu-activation"),
       donationTracksheet: document.querySelector(".menu-donation-tracksheet"),
       inkind: document.querySelector(".menu-inkind"),
@@ -273,9 +270,7 @@ function initSidebar() {
       abvnApplications: document.querySelector(".menu-abvn-applications"),
       pendingABVN: document.querySelector(".menu-pending-abvn"),
       approvedABVN: document.querySelector(".menu-approved-abvn"),
-      volunteerApplications: document.querySelector(
-        ".menu-volunteer-applications"
-      ),
+      volunteerApplications: document.querySelector(".menu-volunteer-applications"),
       pendingVolunteers: document.querySelector(".menu-pending-volunteers"),
       approvedVolunteers: document.querySelector(".menu-approved-volunteers"),
       endorsedVolunteers: document.querySelector(".menu-endorsed-volunteers"),
@@ -293,40 +288,40 @@ function initSidebar() {
 
     if (role === "ABVN") {
       document.querySelectorAll("p.title").forEach((title) => {
-        if (title.textContent.trim() === "Admin") title.style.display = "none";
+          if (title.textContent.trim() === "Admin") title.style.display = "none";
       });
 
       const allowedItems = [
-        menuItems.dashboard,
-        menuItems.communityboard,
-        menuItems.volunteerApplications,
-        menuItems.endorsedVolunteers,
-        menuItems.rdana,
-        menuItems.rdanaMain,
-        menuItems.callfordonation,
-        menuItems.reliefs,
-        menuItems.reliefsRequest,
-        menuItems.reports,
-        menuItems.reportsSubmission,
+          menuItems.dashboard,
+          menuItems.communityboard,
+          menuItems.volunteerApplications,
+          menuItems.endorsedVolunteers,
+          menuItems.rdana,
+          menuItems.rdanaMain,
+          menuItems.callfordonation,
+          menuItems.reliefs,
+          menuItems.reliefsRequest,
+          menuItems.reports,
+          menuItems.reportsSubmission,
       ];
       const restrictedItems = Object.values(menuItems).filter(
-        (i) => !allowedItems.includes(i)
+          (i) => !allowedItems.includes(i)
       );
 
       allowedItems.forEach((i) => i && (i.style.display = "block"));
       restrictedItems.forEach((i) => i && (i.style.display = "none"));
 
       ["rdanaMain", "reliefsRequest", "reportsSubmission"].forEach(
-        (parentKey) => {
-          if (!menuItems[parentKey] || menuItems[parentKey].style.display === "none") {
-            const parent = menuItems[parentKey.replace(/Main|Request|Submission/, "")];
-            if (parent) parent.style.display = "none";
+          (parentKey) => {
+              if (!menuItems[parentKey] || menuItems[parentKey].style.display === "none") {
+                  const parent = menuItems[parentKey.replace(/Main|Request|Submission/, "")];
+                  if (parent) parent.style.display = "none";
+              }
           }
-        }
       );
     } else if (role === "AB ADMIN") {
       Object.values(menuItems).forEach((i) => i && (i.style.display = "block"));
-      if (!isSuperAdmin) {
+      if (adminPosition !== "Super Admin") {
         ["activitylogs", "adminmanagement"].forEach(
           (k) => menuItems[k] && (menuItems[k].style.display = "none")
         );
@@ -350,53 +345,53 @@ function initSidebar() {
 
   // belt & suspenders: if any link appears later, make sure it has a tooltip
   document.addEventListener("mouseover", (e) => {
-    const a = e.target.closest(".menu a");
-    if (a && !a.getAttribute("title")) {
-      const label = a.querySelector(".text")?.textContent?.trim();
-      if (label) {
-        a.setAttribute("title", label);
-        a.setAttribute("aria-label", label);
-        a.dataset.tooltip = label;
+      const a = e.target.closest(".menu a");
+      if (a && !a.getAttribute("title")) {
+        const label = a.querySelector(".text")?.textContent?.trim();
+        if (label) {
+          a.setAttribute("title", label);
+          a.setAttribute("aria-label", label);
+          a.dataset.tooltip = label;
+        }
       }
-    }
-  });
-}
-
-function handleResponsiveSidebar() {
-  const sidebar = document.querySelector(".sidebar");
-  const logoutBtn = document.querySelector("#logout-btn");
-  if (!sidebar) return;
-
-  const mobileWidth = 768; // define breakpoint for mobile
-
-  function updateSidebar() {
-    if (window.innerWidth <= mobileWidth) {
-      // auto-collapse for mobile
-      sidebar.classList.add("active");
-      if (logoutBtn) {
-        const logoutText = logoutBtn.querySelector(".text");
-        if (logoutText) logoutText.style.display = "none";
-      }
-      // hide all submenus
-      document
-        .querySelectorAll(".menu ul li.has-dropdown .sub-menu")
-        .forEach((sub) => (sub.style.display = "none"));
-    } else {
-      // expand for larger screens
-      sidebar.classList.remove("active");
-      if (logoutBtn) {
-        const logoutText = logoutBtn.querySelector(".text");
-        if (logoutText) logoutText.style.display = "inline";
-      }
-    }
+    });
   }
 
-  // initial check
-  updateSidebar();
+  function handleResponsiveSidebar() {
+    const sidebar = document.querySelector(".sidebar");
+    const logoutBtn = document.querySelector("#logout-btn");
+    if (!sidebar) return;
 
-  // update on resize
-  window.addEventListener("resize", updateSidebar);
-}
+    const mobileWidth = 768; // define breakpoint for mobile
 
-initSidebar();
-handleResponsiveSidebar();
+    function updateSidebar() {
+      if (window.innerWidth <= mobileWidth) {
+        // auto-collapse for mobile
+        sidebar.classList.add("active");
+        if (logoutBtn) {
+          const logoutText = logoutBtn.querySelector(".text");
+          if (logoutText) logoutText.style.display = "none";
+        }
+        // hide all submenus
+        document
+          .querySelectorAll(".menu ul li.has-dropdown .sub-menu")
+          .forEach((sub) => (sub.style.display = "none"));
+      } else {
+        // expand for larger screens
+        sidebar.classList.remove("active");
+        if (logoutBtn) {
+          const logoutText = logoutBtn.querySelector(".text");
+          if (logoutText) logoutText.style.display = "inline";
+        }
+      }
+    }
+
+    // initial check
+    updateSidebar();
+
+    // update on resize
+    window.addEventListener("resize", updateSidebar);
+  }
+
+  initSidebar();
+  handleResponsiveSidebar();

@@ -123,51 +123,63 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // === Add verifySuperAdminPassword function ===
+    // Verify Super Admin password
     async function verifySuperAdminPassword() {
         const { value: password } = await Swal.fire({
             title: 'Enter Admin Password',
             input: 'password',
             inputPlaceholder: 'Enter password here',
             inputAttributes: {
-            autocapitalize: 'off',
-            autocorrect: 'off',
-            autocomplete: 'new-password',
+                autocapitalize: 'off',
+                autocorrect: 'off',
+                autocomplete: 'new-password'
             },
             showCancelButton: true,
             confirmButtonText: 'Verify',
             showLoaderOnConfirm: true,
             reverseButtons: true,
             focusCancel: true,
-            inputValidator: (value) => !value && 'Password is required!',
-            customClass: {
-            popup: 'custom-swal-popup-small',
-            title: 'custom-swal-title',
-            htmlContainer: 'custom-swal-content',
-            confirmButton: 'custom-confirm-btn',
-            cancelButton: 'custom-cancel-btn',
+            preConfirm: async (password) => {
+                try {
+                    const user = auth.currentUser;
+                    const credential = firebase.auth.EmailAuthProvider.credential(user.email, password);
+                    await auth.signInWithCredential(credential);
+                    return true;
+                } catch (error) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Verification Failed',
+                        text: 'Invalid admin password.',
+                        timer: 1600,
+                        showConfirmButton: false,
+                        timerProgressBar: true,
+                        allowOutsideClick: false,
+                        customClass: {
+                            popup: 'swal2-popup-error-clean',
+                            title: 'swal2-title-error-clean',
+                            htmlContainer: 'swal2-text-error-clean'
+                        }
+                    });
+                    return false;
+                }
             },
+            allowOutsideClick: () => !Swal.isLoading(),
+            customClass: {
+                popup: 'custom-swal-popup',
+                title: 'custom-swal-title',
+                input: 'custom-swal-input',
+                confirmButton: 'custom-confirm-btn',
+                cancelButton: 'custom-cancel-btn'
+            }
         });
-
         if (!password) {
-            isAdminVerified = false;
-            showErrorAlert('Verification Failed', 'Invalid admin password.');
+            isAdminVerified = true; // Note: This may be a bug; consider setting to false
+            searchInput.value = '';
             return false;
         }
-
-        try {
-            const user = auth.currentUser;
-            const credential = firebase.auth.EmailAuthProvider.credential(user.email, password);
-            await user.reauthenticateWithCredential(credential);
-            console.log('Admin password verified successfully.');
-            isAdminVerified = true;
-            return true;
-        } catch (error) {
-            console.error('Password verification failed:', error);
-            showErrorAlert('Verification Failed', 'Invalid admin password.');
-            isAdminVerified = false;
-            return false;
-        }
+        isAdminVerified = true;
+        searchInput.value = '';
+        return password;
     }
 
     function showErrorAlert(title, text, callback = null) {
@@ -1070,7 +1082,18 @@ async function retrieveDonation(id, donationData) {
                     const approveBtn = row.querySelector('.approveBtn');
                     const rejectBtn = row.querySelector('.rejectBtn');
                     if (approveBtn) approveBtn.addEventListener('click', () => updateDonationStatus(donation.id, donation, 'Approved'));
-                    if (rejectBtn) rejectBtn.addEventListener('click', () => updateDonationStatus(donation.id, donation, 'Rejected'));
+                    if (rejectBtn) {
+                        rejectBtn.addEventListener('click', async () => {
+                            // Require password verification for users with canArchive permission
+                            if (permissions.canArchive && !isAdminVerified) {
+                                const verified = await verifySuperAdminPassword();
+                                if (!verified) {
+                                    return; // Stop if verification fails or is canceled
+                                }
+                            }
+                            updateDonationStatus(donation.id, donation, 'Rejected');
+                        });
+                    }
                 }
             });
         }

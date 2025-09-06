@@ -1,70 +1,36 @@
 # Disaster Relief and Rehabilitation Management Portal
 HTML, CSS, and JavaScript 
 
------
-
-planned system flow: https://docs.google.com/document/d/15CWf6rDFmi5rI86DARh8CFWT9hMMcmGE4y5EN9dF6f0/edit?usp=sharing
-
-## How to Run the Project Locally
-1. Clone or download this repository.
-2. You can run the project from the 'main' branch
-3. cd 'bayanihan'
-4. npm run dev (we used vite)
-5. npm install (if needed)
+🔑 Absolute URLs needed for Firebase Authentication:
+1. forgot password - // Send password reset email
+2. global.js - // for email verification
 
 <!-- // ================================================== // -->
-Test Walkthrough (For Review)
-1. Admin Account
-> Email: sophiakirstentorrenueva@gmail.com
-> Password: NUbulldogs2k25
-- Full page access
-- Can create ABVN accounts in VGM
-- Can activate/deactivate ABVN accounts
-- Activation still in progress.
-
-2. ABVN Account
-> Email: sktorrenueva@gmail.com
-> Password: Phi@2003
-- Fully Working, just a few finalization.
+📌 In Progress:
+1. UI responsiveness improvements
+2. PWA offline functionality (??)
+3. EmailJS – revising templates for uniformity in email format (??) this is a paid subscription.
+4. Code cleanup – removing unnecessary comments and unused code
+5. Chatbot – additional FAQs can still be integrated upon request
 
 <!-- // ================================================== // -->
-📌 Current Progress Overview:
+API used:
 
-ABVN Side: 
-1. Dashboard – Relief reports done; notification section not yet done.
-2. RDANA – Done, but needs UI finalization.
-3. Call for Donations – Done, but needs UI finalization.
-4. Request Relief – Done.
-5. Reports → Operation Reports – Pin location not yet implemented; in progress.
-6. Profile – Done, but needs finalization.
+In dashboard:
+1. OpenWeatherMap API
+🔗 https://openweathermap.org/
+API Key: a98203b9ad890d981c589718b2d6d69d
+Provides real-time weather data.
+2. USGS Earthquake API
+🔗 https://www.usgs.gov/
+Provides earthquake data worldwide from the United States Geological Survey (USGS).
 
-Admin Side:
-1. Dashboard – Overall relief reports done; notification section, mapping, individual calamity dashboards, and activated ABVN list sections not yet done.
-2. Volunteer Group Management – Needs finalization.
-3. Activation – In progress; the entire page will be revised.
-4. Donation Tracksheet:
-    - In-kind donations – Endorsement modal (connected to activation) not yet done.
-    - Monetary donations – Done.
-5. RDANA – Done, but needs finalization.
-    - RDANA Submission - Done, but needs finalization.
-    - RDANA Verification - Done, but needs finalization.
-    - RDANA Logs - Done, but needs finalization.
-6. Call for Donations – Done, but needs finalization.
-7. Relief Requests:
-    - Request a Relief – Done, but needs finalization.
-    - Reliefs Log – Done, but needs finalization.
-8. Relief Operations Reports:
-    - Reports Submission – Pin location not yet implemented; in progress.
-    - Reports Verification – Done, but needs finalization.
-    - Reports Log – Done, but needs finalization.
-9. Profile – Done, but needs finalization.
+In homepage (index), dashboard, activation, relief operations reports, donate near me:
+1. Google Maps API
+🔗 https://developers.google.com/maps
+API Key: AIzaSyAAAu6BeQjIZ7H7beFbAsPWuKuORmh0wrk
 
-Login - done, but needs finalizations.
 
-⚠️ Still in Progress:
-• Organizing CSS and JavaScript functions
-• Overall UI 
-• Service Worker (not updated)
-• Full access control for ABVN accounts
-• Validations and error handling
-• Mapping & notification integration
+Note: These APIs were used for our Capstone project. You may replace them with more suitable or secure alternatives if needed. For the Google Maps API, please use your own key na lang po since you have your own Blaze plan po (naka-free trial lang po kasi kami).
+
+We also removed the AI integration in our code, as the chatbot now uses pre-defined FAQs instead.

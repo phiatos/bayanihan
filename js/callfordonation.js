@@ -152,6 +152,115 @@ document.addEventListener('DOMContentLoaded', () => {
     const userRole = localStorage.getItem('userRole');
     let currentOrganization = 'Unknown Group'; 
 
+    // Define isAdminVerified to track super admin verification status
+    let isAdminVerified = false;
+
+    // Verify Super Admin password
+    async function verifySuperAdminPassword() {
+        if (!auth || !auth.currentUser) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Authentication Error',
+                text: 'No user is currently signed in. Please log in again.',
+                timer: 2000,
+                showConfirmButton: false,
+                timerProgressBar: true,
+                allowOutsideClick: false,
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean'
+                }
+            });
+            return false;
+        }
+
+        // Check if user is signed in with email/password provider
+        if (!auth.currentUser.providerData.some(provider => provider.providerId === 'password')) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Authentication Error',
+                text: 'This account does not use email/password authentication.',
+                timer: 2000,
+                showConfirmButton: false,
+                timerProgressBar: true,
+                allowOutsideClick: false,
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean'
+                }
+            });
+            return false;
+        }
+
+        const { value: password } = await Swal.fire({
+            title: 'Enter Admin Password',
+            input: 'password',
+            inputPlaceholder: 'Enter password here',
+            inputAttributes: {
+                autocapitalize: 'off',
+                autocorrect: 'off',
+                autocomplete: 'new-password'
+            },
+            showCancelButton: true,
+            confirmButtonText: 'Verify',
+            showLoaderOnConfirm: true,
+            reverseButtons: true,
+            focusCancel: true,
+            inputValidator: (value) => !value && 'Password is required!',
+            preConfirm: async (password) => {
+                try {
+                    const user = auth.currentUser;
+                    const credential = firebase.auth.EmailAuthProvider.credential(user.email, password.trim());
+                    await user.reauthenticateWithCredential(credential);
+                    return true;
+                } catch (error) {
+                    console.error('Password verification error:', error.code, error.message);
+                    let errorMessage = 'Invalid admin password.';
+                    if (error.code === 'auth/wrong-password') {
+                        errorMessage = 'Incorrect password. Please try again.';
+                    } else if (error.code === 'auth/too-many-requests') {
+                        errorMessage = 'Too many failed attempts. Please try again later.';
+                    } else if (error.code === 'auth/invalid-credential') {
+                        errorMessage = 'Invalid credentials. Ensure you are using an email/password account.';
+                    }
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Verification Failed',
+                        text: errorMessage,
+                        timer: 2000,
+                        showConfirmButton: false,
+                        timerProgressBar: true,
+                        allowOutsideClick: false,
+                        customClass: {
+                            popup: 'swal2-popup-error-clean',
+                            title: 'swal2-title-error-clean',
+                            htmlContainer: 'swal2-text-error-clean'
+                        }
+                    });
+                    return false;
+                }
+            },
+            allowOutsideClick: () => !Swal.isLoading(),
+            customClass: {
+                popup: 'custom-swal-popup',
+                title: 'custom-swal-title',
+                input: 'custom-swal-input',
+                confirmButton: 'custom-confirm-btn',
+                cancelButton: 'custom-cancel-btn'
+            }
+        });
+
+        if (!password) {
+            isAdminVerified = false; // Prevent unauthorized actions on cancel
+            return false;
+        }
+
+        isAdminVerified = true;
+        return true;
+    }
+
     let archivedCurrentPage = 1;
     let allArchivedDonations = [];
     let filteredAndSortedArchivedDonations = [];
@@ -987,6 +1096,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const deleteBtn = tr.querySelector(".deleteBtn");
         if (deleteBtn) {
             deleteBtn.addEventListener("click", async () => {
+                // Require password verification if not already verified
+                if (!isAdminVerified) {
+                    const verified = await verifySuperAdminPassword();
+                    if (!verified) {
+                        return; // Stop if verification fails or is canceled
+                    }
+                }
                 Swal.fire({
                     title: 'Reject Donation?',
                     text: `Are you sure you want to reject "${r.donationDrive || 'this donation'}"? This will move it to archived records.`,
