@@ -152,6 +152,115 @@ document.addEventListener('DOMContentLoaded', () => {
     const userRole = localStorage.getItem('userRole');
     let currentOrganization = 'Unknown Group'; 
 
+    // Define isAdminVerified to track super admin verification status
+    let isAdminVerified = false;
+
+    // Verify Super Admin password
+    async function verifySuperAdminPassword() {
+        if (!auth || !auth.currentUser) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Authentication Error',
+                text: 'No user is currently signed in. Please log in again.',
+                timer: 2000,
+                showConfirmButton: false,
+                timerProgressBar: true,
+                allowOutsideClick: false,
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean'
+                }
+            });
+            return false;
+        }
+
+        // Check if user is signed in with email/password provider
+        if (!auth.currentUser.providerData.some(provider => provider.providerId === 'password')) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Authentication Error',
+                text: 'This account does not use email/password authentication.',
+                timer: 2000,
+                showConfirmButton: false,
+                timerProgressBar: true,
+                allowOutsideClick: false,
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean'
+                }
+            });
+            return false;
+        }
+
+        const { value: password } = await Swal.fire({
+            title: 'Enter Admin Password',
+            input: 'password',
+            inputPlaceholder: 'Enter password here',
+            inputAttributes: {
+                autocapitalize: 'off',
+                autocorrect: 'off',
+                autocomplete: 'new-password'
+            },
+            showCancelButton: true,
+            confirmButtonText: 'Verify',
+            showLoaderOnConfirm: true,
+            reverseButtons: true,
+            focusCancel: true,
+            inputValidator: (value) => !value && 'Password is required!',
+            preConfirm: async (password) => {
+                try {
+                    const user = auth.currentUser;
+                    const credential = firebase.auth.EmailAuthProvider.credential(user.email, password.trim());
+                    await user.reauthenticateWithCredential(credential);
+                    return true;
+                } catch (error) {
+                    console.error('Password verification error:', error.code, error.message);
+                    let errorMessage = 'Invalid admin password.';
+                    if (error.code === 'auth/wrong-password') {
+                        errorMessage = 'Incorrect password. Please try again.';
+                    } else if (error.code === 'auth/too-many-requests') {
+                        errorMessage = 'Too many failed attempts. Please try again later.';
+                    } else if (error.code === 'auth/invalid-credential') {
+                        errorMessage = 'Invalid credentials. Ensure you are using an email/password account.';
+                    }
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Verification Failed',
+                        text: errorMessage,
+                        timer: 2000,
+                        showConfirmButton: false,
+                        timerProgressBar: true,
+                        allowOutsideClick: false,
+                        customClass: {
+                            popup: 'swal2-popup-error-clean',
+                            title: 'swal2-title-error-clean',
+                            htmlContainer: 'swal2-text-error-clean'
+                        }
+                    });
+                    return false;
+                }
+            },
+            allowOutsideClick: () => !Swal.isLoading(),
+            customClass: {
+                popup: 'custom-swal-popup',
+                title: 'custom-swal-title',
+                input: 'custom-swal-input',
+                confirmButton: 'custom-confirm-btn',
+                cancelButton: 'custom-cancel-btn'
+            }
+        });
+
+        if (!password) {
+            isAdminVerified = false; // Prevent unauthorized actions on cancel
+            return false;
+        }
+
+        isAdminVerified = true;
+        return true;
+    }
+
     let archivedCurrentPage = 1;
     let allArchivedDonations = [];
     let filteredAndSortedArchivedDonations = [];
@@ -849,27 +958,51 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function renderTable() {
-    
-    tableBody.innerHTML = '';
-
-    if (!Array.isArray(filteredAndSortedDonations) || filteredAndSortedDonations.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="9">No donations available</td></tr>';
-        console.log('No valid donations to render');
+    if (!tableBody) {
+        console.error('tableBody is not defined or not found in the DOM');
+        Swal.fire({
+            title: 'Error',
+            text: 'Table body not found in the DOM.',
+            icon: 'error',
+            customClass: {
+                popup: 'swal2-popup-error-clean',
+                title: 'swal2-title-error-clean',
+                htmlContainer: 'swal2-text-error-clean'
+            }
+        });
         return;
     }
-
+    console.log('renderTable called at', new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+    console.log('filteredAndSortedDonations length:', filteredAndSortedDonations.length);
+    tableBody.innerHTML = '<tr><td colspan="9">Loading...</td></tr>'; // Show loading state
+    if (!Array.isArray(filteredAndSortedDonations)) {
+        console.error('filteredAndSortedDonations is not an array:', filteredAndSortedDonations);
+        tableBody.innerHTML = '<tr><td colspan="9">Error: Invalid donation data</td></tr>';
+        updatePaginationInfo();
+        renderPagination(); // Call even on error to ensure pagination is attempted
+        return;
+    }
+    if (filteredAndSortedDonations.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="9">No donations available</td></tr>';
+        console.log('No valid donations to render');
+        updatePaginationInfo();
+        renderPagination(); // Ensure pagination is rendered for empty state
+        return;
+    }
     const startIndex = (currentPage - 1) * rowsPerPage;
-
-    filteredAndSortedDonations.forEach((r, i) => {
+    const endIndex = startIndex + rowsPerPage;
+    const currentPageRows = filteredAndSortedDonations.slice(startIndex, endIndex);
+    console.log('Current page rows length:', currentPageRows.length, 'startIndex:', startIndex, 'endIndex:', endIndex);
+    tableBody.innerHTML = ''; // Clear loading state
+    currentPageRows.forEach((r, i) => {
         if (!r.firebaseKey || !r.donationId) {
+            console.warn('Skipping invalid donation entry:', JSON.stringify(r, null, 2));
             return;
         }
-
-
         const tr = document.createElement('tr');
         const actionButtons = `
-            <button title="View" class="viewBtn"><i class='bx bx-image'></i></button>
-            ${userRole !== 'ABVN' ? '<button title="Archive" class="deleteBtn"><i class="bx bx-x-circle"></i></button>' : ''}
+            <button title="View" class="viewBtn"><i class="bx bx-show-alt"></i></button>
+            ${userRole !== 'ADMIN' ? '<button title="Archive" class="deleteBtn"><i class="bx bx-x-circle"></i></button>' : ''}
             <button title="Save as PDF" class="savePDFBtn"><i class="bx bxs-file-pdf"></i></button>
         `;
         tr.innerHTML = `
@@ -883,156 +1016,187 @@ document.addEventListener('DOMContentLoaded', () => {
             <td><a href="${r.facebookLink || '#'}" target="_blank" rel="noopener noreferrer">${r.facebookLink && r.facebookLink !== 'N/A' ? 'Visit The Page' : 'N/A'}</a></td>
             <td>${actionButtons}</td>
         `;
-
-        tr.querySelector(".viewBtn").addEventListener("click", () => {
-            Swal.fire({
-                html: r?.image ? `<img src="${r.image}" alt="Donation Image" style="max-width: 100%; margin-top: 10px;" />` : 'No image available.',
-                icon: 'info',
-                confirmButtonText: 'Close'
-            });
-        });
-
-        if (userRole !== 'ABVN') {
-            const deleteBtn = tr.querySelector(".deleteBtn");
-            if (deleteBtn) {
-                deleteBtn.addEventListener("click", () => {
-                    Swal.fire({
-                        title: 'Reject Donation?',
-                        text: `Are you sure you want to reject "${r.donationDrive || 'this donation'}"? This will move it to archived records.`,
-                        icon: 'warning',
-                        showCancelButton: true,
-                        confirmButtonText: 'Reject',
-                        cancelButtonText: 'Cancel',
-                        reverseButtons: true,
-                        focusCancel: true,
-                        allowOutsideClick: false,
-                        customClass: {
-                            popup: 'custom-swal-popup-small',
-                            title: 'custom-swal-title',
-                            htmlContainer: 'custom-swal-content',
-                            confirmButton: 'custom-confirm-btn',
-                            cancelButton: 'custom-cancel-btn'
+        const approveBtn = tr.querySelector('.approveBtn');
+        if (approveBtn) {
+            approveBtn.addEventListener('click', async () => {
+                Swal.fire({
+                    title: 'Assign Donation',
+                    html: `
+                        <p>Select an Active Barangay Volunteer Network (ABVN):</p>
+                        <select id="abvnSelect" style="width: 100%; padding: 8px;">
+                            <option value="" disabled selected>Select ABVN</option>
+                        </select>
+                        <input id="abvnEmail" type="email" placeholder="Enter ABVN email (if not provided)" style="width: 100%; padding: 8px; margin-top: 10px;">
+                    `,
+                    showCancelButton: true,
+                    confirmButtonText: 'Approve and Assign',
+                    preConfirm: async () => {
+                        const abvnSelect = document.getElementById('abvnSelect').value;
+                        const abvnEmail = document.getElementById('abvnEmail').value;
+                        if (!abvnSelect && !abvnEmail) {
+                            Swal.showValidationMessage('Please select an ABVN or provide an email.');
+                            return false;
                         }
-                    }).then(async (result) => {
-                        if (result.isConfirmed) {
-                            try {
-                                console.log('Attempting to reject donation with data:', JSON.stringify(r, null, 2));
-
-                                if (!r.firebaseKey || !r.donationId) {
-                                    console.error(`Invalid donation data: Missing firebaseKey or donationId`, {
-                                        firebaseKey: r.firebaseKey,
-                                        donationId: r.donationId
-                                    });
-                                    throw new Error("Cannot reject donation: Missing critical data (ID).");
+                        return { abvnSelect, abvnEmail };
+                    },
+                    didOpen: async () => {
+                        const abvnSelect = document.getElementById('abvnSelect');
+                        const abvnsSnapshot = await firebase.database().ref('activations').once('value');
+                        const abvns = abvnsSnapshot.val();
+                        if (abvns) {
+                            Object.entries(abvns).forEach(([key, abvn]) => {
+                                if (abvn.status === 'active') {
+                                    const option = document.createElement('option');
+                                    option.value = key;
+                                    option.textContent = abvn.organization || 'Unknown';
+                                    option.dataset.email = abvn.email || '';
+                                    abvnSelect.appendChild(option);
                                 }
-
-                                console.log('allDonations before removal:', JSON.stringify(allDonations, null, 2));
-                                console.log('filteredAndSortedDonations before removal:', JSON.stringify(filteredAndSortedDonations, null, 2));
-
-                                const archivedDonation = {
-                                    donationId: r.donationId,
-                                    donationDrive: r.donationDrive ? String(r.donationDrive) : 'Unknown Donation',
-                                    contact: {
-                                        person: r.contact?.person ? String(r.contact.person) : 'N/A',
-                                        number: r.contact?.number ? String(r.contact.number) : 'N/A'
-                                    },
-                                    account: {
-                                        number: r.account?.number ? String(r.account.number) : 'N/A',
-                                        name: r.account?.name ? String(r.account.name) : 'N/A'
-                                    },
-                                    address: {
-                                        region: r.address?.region ? String(r.address.region) : 'N/A',
-                                        province: r.address?.province ? String(r.address.province) : 'N/A',
-                                        city: r.address?.city ? String(r.address.city) : 'N/A',
-                                        barangay: r.address?.barangay ? String(r.address.barangay) : 'N/A',
-                                        street: r.address?.street ? String(r.address.street) : 'N/A',
-                                        fullAddress: r.address?.fullAddress || r.dropOff ? String(r.address?.fullAddress || r.dropOff) : 'N/A'
-                                    },
-                                    facebookLink: r.facebookLink ? String(r.facebookLink) : 'N/A',
-                                    status: 'Rejected',
-                                    dateTime: r.dateTime ? String(r.dateTime) : new Date().toISOString(),
-                                    userUid: r.userUid ? String(r.userUid) : firebase.auth().currentUser?.uid || 'Unknown',
-                                    timestamp: r.timestamp ? Number(r.timestamp) : Date.now(),
-                                    image: r.image ? String(r.image) : '',
-                                    archivedTimestamp: Date.now(),
-                                    archivedBy: userRole ? String(userRole) : 'Unknown',
-                                    archiveReason: 'Rejected by admin'
-                                };
-
-                                console.log(`Archiving donation with ID ${r.donationId}:`, JSON.stringify(archivedDonation, null, 2));
-
-                                const archiveRef = await firebase.database().ref('callfordonation/archivedCallforDonation').push(archivedDonation);
-
-                                const donationRef = firebase.database().ref(`callfordonation/${r.firebaseKey}`);
-                                await donationRef.remove();
-
-                                const verifySnapshot = await donationRef.once('value');
-                                if (verifySnapshot.exists()) {
-                                    throw new Error("Failed to remove donation from the main database.");
-                                }
-
-                                allDonations = allDonations.filter(donation => donation.firebaseKey !== r.firebaseKey);
-                                console.log('allDonations after manual removal:', JSON.stringify(allDonations, null, 2));
-
-                                filteredAndSortedDonations = [...allDonations];
-                                console.log('filteredAndSortedDonations after update:', JSON.stringify(filteredAndSortedDonations, null, 2));
-
-                                tableBody.innerHTML = '';
-                                renderTable();
-
-                                console.log('Table body content after render:', tableBody.innerHTML);
-
-                                const message = `Donation "${r.donationDrive || 'Unknown'}" rejected by ${userRole || 'Unknown'} from ${currentOrganization || 'Unknown'} on ${new Date().toLocaleDateString('en-US')}.`;
-                                await notifyAdmin(
-                                    message,
-                                    null,
-                                    null,
-                                    null,
-                                    r.donationId,
-                                    r.contact?.person || 'Unknown',
-                                    currentOrganization || 'Unknown'
-                                );
-
-                                const senderMessage = `Your donation call "${r.donationDrive || 'Unknown'}" (ID: ${r.donationId}) has been rejected.`;
-                                await notifySender(senderMessage, r.userUid || 'Unknown', r.donationId);
-
-                                Swal.fire({
-                                    title: 'Rejected!',
-                                    text: 'The donation has been rejected and moved to archived records.',
-                                    icon: 'success',
-                                    showConfirmButton: true,
-                                    confirmButtonText: 'OK',
-                                    customClass: {
-                                        popup: 'swal2-popup-success-clean',
-                                        title: 'swal2-title-success-clean',
-                                        htmlContainer: 'swal2-text-success-clean',
-                                        confirmButton: 'my-success-button'
-                                    }
-                                });
-                            } catch (error) {
-                                console.error("Error rejecting donation:", error);
-                                Swal.fire({
-                                    title: 'Error',
-                                    text: `Failed to reject the donation: ${error.message}`,
-                                    icon: 'error',
-                                    customClass: {
-                                        popup: 'swal2-popup-error-clean',
-                                        title: 'swal2-title-error-clean',
-                                        htmlContainer: 'swal2-text-error-clean'
-                                    }
-                                });
-                            }
+                            });
                         }
-                    });
+                    }
+                }).then(async (result) => {
+                    if (result.isConfirmed) {
+                        const { abvnSelect, abvnEmail } = result.value;
+                        const abvnSnapshot = await firebase.database().ref(`activations/${abvnSelect}`).once('value');
+                        const abvn = abvnSnapshot.val();
+                        const email = abvnEmail || abvn.email;
+                        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                            Swal.fire('Error', 'Invalid or missing ABVN email.', 'error');
+                            return;
+                        }
+                        try {
+                            await firebase.database().ref(`callfordonation/${r.firebaseKey}`).update({
+                                status: 'Approved',
+                                assignment: {
+                                    type: 'ABVN',
+                                    id: abvnSelect,
+                                    name: abvn.organization,
+                                    email: email
+                                }
+                            });
+                            await sendEndorsementEmail(r, {
+                                email: email,
+                                name: abvn.organization,
+                                details: abvn.areaOfOperation || 'N/A'
+                            });
+                            allDonations = allDonations.filter(d => d.firebaseKey !== r.firebaseKey);
+                            filteredAndSortedDonations = [...allDonations];
+                            currentPage = Math.min(currentPage, Math.ceil(filteredAndSortedDonations.length / rowsPerPage)) || 1;
+                            console.log('Donation approved, updating table. New filteredAndSortedDonations length:', filteredAndSortedDonations.length);
+                            renderTable(); // Re-render table and pagination
+                        } catch (error) {
+                            console.error('Error approving donation:', error);
+                            Swal.fire('Error', `Failed to approve donation: ${error.message}`, 'error');
+                        }
+                    }
                 });
-            }
+            });
         }
-
-        tr.querySelector(".savePDFBtn").addEventListener("click", () => saveSingleCfdDonationPdf(r));
-
+        const deleteBtn = tr.querySelector(".deleteBtn");
+        if (deleteBtn) {
+            deleteBtn.addEventListener("click", async () => {
+                // Require password verification if not already verified
+                if (!isAdminVerified) {
+                    const verified = await verifySuperAdminPassword();
+                    if (!verified) {
+                        return; // Stop if verification fails or is canceled
+                    }
+                }
+                Swal.fire({
+                    title: 'Reject Donation?',
+                    text: `Are you sure you want to reject "${r.donationDrive || 'this donation'}"? This will move it to archived records.`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Reject',
+                    cancelButtonText: 'Cancel',
+                    reverseButtons: true,
+                    focusCancel: true,
+                    allowOutsideClick: false,
+                    customClass: {
+                        popup: 'custom-swal-popup-small',
+                        title: 'custom-swal-title',
+                        htmlContainer: 'custom-swal-content',
+                        confirmButton: 'custom-confirm-btn',
+                        cancelButton: 'custom-cancel-btn'
+                    }
+                }).then(async (result) => {
+                    if (result.isConfirmed) {
+                        try {
+                            const archivedDonation = {
+                                donationId: r.donationId,
+                                donationDrive: r.donationDrive || 'Unknown Donation',
+                                contact: {
+                                    person: r.contact?.person || 'N/A',
+                                    number: r.contact?.number || 'N/A'
+                                },
+                                account: {
+                                    number: r.account?.number || 'N/A',
+                                    name: r.account?.name || 'N/A'
+                                },
+                                address: {
+                                    region: r.address?.region || 'N/A',
+                                    province: r.address?.province || 'N/A',
+                                    city: r.address?.city || 'N/A',
+                                    barangay: r.address?.barangay || 'N/A',
+                                    street: r.address?.street || 'N/A',
+                                    fullAddress: r.address?.fullAddress || r.dropOff || 'N/A'
+                                },
+                                facebookLink: r.facebookLink || 'N/A',
+                                status: 'Rejected',
+                                dateTime: r.dateTime || new Date().toISOString(),
+                                userUid: r.userUid || firebase.auth().currentUser?.uid || 'Unknown',
+                                timestamp: r.timestamp || Date.now(),
+                                image: r.image || '',
+                                archivedTimestamp: Date.now(),
+                                archivedBy: userRole || 'Unknown',
+                                archiveReason: 'Rejected by admin'
+                            };
+                            await firebase.database().ref('callfordonation/archivedCallforDonation').push(archivedDonation);
+                            await firebase.database().ref(`callfordonation/${r.firebaseKey}`).remove();
+                            allDonations = allDonations.filter(donation => donation.firebaseKey !== r.firebaseKey);
+                            filteredAndSortedDonations = [...allDonations];
+                            currentPage = Math.min(currentPage, Math.ceil(filteredAndSortedDonations.length / rowsPerPage)) || 1;
+                            console.log('Donation archived, updating table. New filteredAndSortedDonations length:', filteredAndSortedDonations.length);
+                            renderTable(); // Re-render table and pagination
+                            const message = `Donation "${r.donationDrive || 'Unknown'}" rejected by ${userRole || 'Unknown'} from ${currentOrganization || 'Unknown'} on ${new Date().toLocaleDateString('en-US')}.`;
+                            await notifyAdmin(message, null, null, null, r.donationId, r.contact?.person || 'Unknown', currentOrganization);
+                            await notifySender(`Your donation call "${r.donationDrive || 'Unknown'}" (ID: ${r.donationId}) has been rejected.`, r.userUid || 'Unknown', r.donationId);
+                            Swal.fire({
+                                title: 'Rejected!',
+                                text: 'The donation has been rejected and moved to archived records.',
+                                icon: 'success',
+                                confirmButtonText: 'OK',
+                                customClass: {
+                                    popup: 'swal2-popup-success-clean',
+                                    title: 'swal2-title-success-clean',
+                                    htmlContainer: 'swal2-text-success-clean',
+                                    confirmButton: 'my-success-button'
+                                }
+                            });
+                        } catch (error) {
+                            console.error("Error rejecting donation:", error);
+                            Swal.fire({
+                                title: 'Error',
+                                text: `Failed to reject the donation: ${error.message}`,
+                                icon: 'error',
+                                customClass: {
+                                    popup: 'swal2-popup-error-clean',
+                                    title: 'swal2-title-error-clean',
+                                    htmlContainer: 'swal2-text-error-clean'
+                                }
+                            });
+                        }
+                    }
+                });
+            });
+        }
+        tr.querySelector(".savePDFBtn")?.addEventListener("click", () => saveSingleCfdDonationPdf(r));
         tableBody.appendChild(tr);
     });
-
+    updatePaginationInfo();
+    renderPagination(); // Ensure pagination is always called
+    console.log('renderPagination called from renderTable');
 }
 
 function renderArchivedTable() {
