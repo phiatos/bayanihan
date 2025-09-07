@@ -323,6 +323,7 @@ header {
   flex-direction: column;
   gap: 0.5rem;
   cursor: default;
+  height: 400px;
 }
 
 /* Metric Box Header */
@@ -359,21 +360,22 @@ header {
 .data-mini-chart {
   display: flex;
   align-items: flex-end;
-  gap: 0.4rem;
-  height: 80px;
+  gap: 0.5rem;
+  height: 100%;
 }
 
 .data-bar {
   background: #007b7b;
-  width: 25%;
+  width: 20%;
   border-radius: 5px 5px 0 0;
   display: flex;
   justify-content: center;
   align-items: flex-end;
   color: white;
-  font-size: 0.7rem;
+  font-size: 0.6rem;
   font-weight: 600;
-  padding-bottom: 0.2rem;
+  padding: 10px;
+  padding-bottom: 0.4rem;
 }
 .data-bar span {
   font-size: 0.6rem;
