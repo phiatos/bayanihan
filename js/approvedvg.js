@@ -1551,57 +1551,163 @@ async function registerVolunteerGroup(applicationData) {
         }
 
         // Enhanced Duplicate Check
-        const registeredSnapshot = await database.ref('abvnApplications/registeredABVN').once('value');
-        const usersSnapshot = await database.ref('users').once('value');
-        const volunteerGroupsSnapshot = await database.ref('volunteerGroups').once('value');
-        let isDuplicate = false;
-        let duplicateReason = '';
+//         const registeredSnapshot = await database.ref('abvnApplications/registeredABVN').once('value');
+//         const usersSnapshot = await database.ref('users').once('value');
+//         const volunteerGroupsSnapshot = await database.ref('volunteerGroups').once('value');
+//         let isDuplicate = false;
+//         let duplicateReason = '';
 
-        if (registeredSnapshot.exists()) {
-            registeredSnapshot.forEach(child => {
-                const data = child.val();
-                if (data.email.trim().toLowerCase() === applicationData.email.trim().toLowerCase() ||
-                    data.mobileNumber === formattedMobile ||
-                    data.organizationName.trim().toLowerCase() === applicationData.organizationName.trim().toLowerCase()) {
-                    isDuplicate = true;
-                    duplicateReason = data.email.trim().toLowerCase() === applicationData.email.trim().toLowerCase() ? 'email' :
-                                     data.mobileNumber === formattedMobile ? 'mobile number' : 'organization name';
-                    return true;
-                }
-            });
-        }
+//         if (registeredSnapshot.exists()) {
+//             registeredSnapshot.forEach(child => {
+//                 const data = child.val();
+//                 if (data.email.trim().toLowerCase() === applicationData.email.trim().toLowerCase() ||
+//                     data.mobileNumber === formattedMobile ||
+//                     data.organizationName.trim().toLowerCase() === applicationData.organizationName.trim().toLowerCase()) {
+//                     isDuplicate = true;
+//                     duplicateReason = data.email.trim().toLowerCase() === applicationData.email.trim().toLowerCase() ? 'email' :
+//                                      data.mobileNumber === formattedMobile ? 'mobile number' : 'organization name';
+//                     return true;
+//                 }
+//             });
+//         }
 
-        if (!isDuplicate && usersSnapshot.exists()) {
-            usersSnapshot.forEach(child => {
-                const data = child.val();
-                const childEmail = data.email?.trim().toLowerCase() ?? '';
-                const childMobile = data.mobile ?? '';
-                const childOrganization = data.organization?.trim().toLowerCase() ?? '';
-                if (childEmail === applicationData.email.trim().toLowerCase() ||
-                    childMobile === formattedMobile ||
-                    childOrganization === applicationData.organizationName.trim().toLowerCase()) {
-                    isDuplicate = true;
-                    duplicateReason = childEmail === applicationData.email.trim().toLowerCase() ? 'email' :
-                                     childMobile === formattedMobile ? 'mobile number' : 'organization name';
-                    return true;
-                }
-            });
-        }
+//         // if (!isDuplicate && usersSnapshot.exists()) {
+//         //     usersSnapshot.forEach(child => {
+//         //         const data = child.val();
+//         //         const childEmail = data.email?.trim().toLowerCase() ?? '';
+//         //         const childMobile = data.mobile ?? '';
+//         //         const childOrganization = data.organization?.trim().toLowerCase() ?? '';
+//         //         if (childEmail === applicationData.email.trim().toLowerCase() ||
+//         //             childMobile === formattedMobile ||
+//         //             childOrganization === applicationData.organizationName.trim().toLowerCase()) {
+//         //             isDuplicate = true;
+//         //             duplicateReason = childEmail === applicationData.email.trim().toLowerCase() ? 'email' :
+//         //                              childMobile === formattedMobile ? 'mobile number' : 'organization name';
+//         //             return true;
+//         //         }
+//         //     });
+//         // }
+//         if (!isDuplicate && usersSnapshot.exists()) {
+//     usersSnapshot.forEach(child => {
+//         const data = child.val();
+//         const childEmail = data.email?.trim().toLowerCase() ?? '';
+//         const childMobile = data.mobile ?? '';
+//         const childOrganization = data.organization?.trim().toLowerCase() ?? '';
+//         if (childEmail === applicationData.email.trim().toLowerCase() ||
+//             childMobile === formattedMobile ||
+//             childOrganization === applicationData.organizationName.trim().toLowerCase()) {
+//             isDuplicate = true;
+//             duplicateReason = childEmail === applicationData.email.trim().toLowerCase() ? 'email' :
+//                              childMobile === formattedMobile ? 'mobile number' : 'organization name';
+//             return true;
+//         }
+//     });
+// }
 
-        if (!isDuplicate && volunteerGroupsSnapshot.exists()) {
-            volunteerGroupsSnapshot.forEach(child => {
-                const data = child.val();
-                if (data.organization.trim().toLowerCase() === applicationData.organizationName.trim().toLowerCase()) {
-                    isDuplicate = true;
-                    duplicateReason = 'organization name';
-                    return true;
-                }
-            });
-        }
+//         if (!isDuplicate && volunteerGroupsSnapshot.exists()) {
+//             volunteerGroupsSnapshot.forEach(child => {
+//                 const data = child.val();
+//                 if (data.organization.trim().toLowerCase() === applicationData.organizationName.trim().toLowerCase()) {
+//                     isDuplicate = true;
+//                     duplicateReason = 'organization name';
+//                     return true;
+//                 }
+//             });
+//         }
 
-        if (isDuplicate) {
-            throw new Error(`An application or user with this ${duplicateReason} already exists. Please use a unique ${duplicateReason}.`);
+//         if (isDuplicate) {
+//             throw new Error(`An application or user with this ${duplicateReason} already exists. Please use a unique ${duplicateReason}.`);
+//         }
+
+// Enhanced Duplicate Check
+console.log(`[${new Date().toISOString()}] Checking duplicates for mobile: ${formattedMobile}, email: ${applicationData.email}, org: ${applicationData.organizationName}`);
+const registeredSnapshot = await database.ref('abvnApplications/registeredABVN').once('value');
+const usersSnapshot = await database.ref('users').once('value');
+const volunteerGroupsSnapshot = await database.ref('volunteerGroups').once('value');
+let isDuplicate = false;
+let duplicateReason = '';
+let duplicateLocation = '';
+
+if (registeredSnapshot.exists()) {
+    registeredSnapshot.forEach(child => {
+        const data = child.val();
+        if (data.email.trim().toLowerCase() === applicationData.email.trim().toLowerCase()) {
+            isDuplicate = true;
+            duplicateReason = 'email';
+            duplicateLocation = `abvnApplications/registeredABVN/${child.key}`;
+            console.log(`[${new Date().toISOString()}] Duplicate found: ${duplicateReason} in ${duplicateLocation}`);
+            return true;
         }
+        if (data.mobileNumber === formattedMobile) {
+            isDuplicate = true;
+            duplicateReason = 'mobile number';
+            duplicateLocation = `abvnApplications/registeredABVN/${child.key}`;
+            console.log(`[${new Date().toISOString()}] Duplicate found: ${duplicateReason} in ${duplicateLocation}`);
+            return true;
+        }
+        if (data.organizationName.trim().toLowerCase() === applicationData.organizationName.trim().toLowerCase()) {
+            isDuplicate = true;
+            duplicateReason = 'organization name';
+            duplicateLocation = `abvnApplications/registeredABVN/${child.key}`;
+            console.log(`[${new Date().toISOString()}] Duplicate found: ${duplicateReason} in ${duplicateLocation}`);
+            return true;
+        }
+    });
+}
+
+if (!isDuplicate && usersSnapshot.exists()) {
+    usersSnapshot.forEach(child => {
+        const data = child.val();
+        const childEmail = data.email?.trim().toLowerCase() ?? '';
+        const childMobile = data.mobile ?? '';
+        const childOrganization = data.organization?.trim().toLowerCase() ?? '';
+        if (childEmail === applicationData.email.trim().toLowerCase()) {
+            isDuplicate = true;
+            duplicateReason = 'email';
+            duplicateLocation = `users/${child.key}`;
+            console.log(`[${new Date().toISOString()}] Duplicate found: ${duplicateReason} in ${duplicateLocation}`);
+            return true;
+        }
+        if (childMobile === formattedMobile) {
+            isDuplicate = true;
+            duplicateReason = 'mobile number';
+            duplicateLocation = `users/${child.key}`;
+            console.log(`[${new Date().toISOString()}] Duplicate found: ${duplicateReason} in ${duplicateLocation}`);
+            return true;
+        }
+        if (childOrganization === applicationData.organizationName.trim().toLowerCase()) {
+            isDuplicate = true;
+            duplicateReason = 'organization name';
+            duplicateLocation = `users/${child.key}`;
+            console.log(`[${new Date().toISOString()}] Duplicate found: ${duplicateReason} in ${duplicateLocation}`);
+            return true;
+        }
+    });
+}
+
+if (!isDuplicate && volunteerGroupsSnapshot.exists()) {
+    volunteerGroupsSnapshot.forEach(child => {
+        const data = child.val();
+        if (data.organization.trim().toLowerCase() === applicationData.organizationName.trim().toLowerCase()) {
+            isDuplicate = true;
+            duplicateReason = 'organization name';
+            duplicateLocation = `volunteerGroups/${child.key}`;
+            console.log(`[${new Date().toISOString()}] Duplicate found: ${duplicateReason} in ${duplicateLocation}`);
+            return true;
+        }
+        if (data.mobileNumber === formattedMobile) {
+            isDuplicate = true;
+            duplicateReason = 'mobile number';
+            duplicateLocation = `volunteerGroups/${child.key}`;
+            console.log(`[${new Date().toISOString()}] Duplicate found: ${duplicateReason} in ${duplicateLocation}`);
+            return true;
+        }
+    });
+}
+
+if (isDuplicate) {
+    throw new Error(`An application or user with this ${duplicateReason} already exists at ${duplicateLocation}. Please use a unique ${duplicateReason}.`);
+}
 
         // Remove the old duplicate check for organization name
         // The new duplicate check above is more comprehensive
