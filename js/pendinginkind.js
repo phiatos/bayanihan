@@ -1,7 +1,3 @@
-console.log = function () {};
-console.error = function () {};
-console.warn = function () {};
-
 document.addEventListener("DOMContentLoaded", () => {
     // Firebase configuration (Note: Consider moving to environment variables for security)
     const firebaseConfig = {
@@ -44,7 +40,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const modalContent = document.getElementById("modalContent");
     const closeModal = document.getElementById("closeModal");
     const viewApprovedBtn = document.getElementById('viewApprovedBtn');
-
     const viewArchivedBtn = document.getElementById("viewArchived");
     const archivedTableBody = document.querySelector('#archivedTable tbody');
     const archivedEntriesInfo = document.getElementById('archivedEntriesInfo');
@@ -82,7 +77,6 @@ document.addEventListener("DOMContentLoaded", () => {
     let permissions = { canView: false, canEdit: false, canArchive: false, canRetrieve: false };
     let isAdminVerified = false;
 
-
     // Check admin permissions
     async function checkAdminPermissions() {
         try {
@@ -96,7 +90,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const userData = snapshot.val();
             
             const adminPosition = userData?.adminPosition || null;
-            console.log('Admin position:', adminPosition); // Debug log
+            console.log('Admin position:', adminPosition);
 
             const permissions = {
                 canView: false,
@@ -115,7 +109,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 permissions.canRetrieve = true;
             }
 
-           
             return permissions;
         } catch (error) {
             console.error('Error checking admin permissions:', error);
@@ -173,7 +166,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
         if (!password) {
-            isAdminVerified = true; // Note: This may be a bug; consider setting to false
+            isAdminVerified = true; // Note: Potential bug; consider setting to false
             searchInput.value = '';
             return false;
         }
@@ -192,9 +185,9 @@ document.addEventListener("DOMContentLoaded", () => {
             timerProgressBar: true,
             allowOutsideClick: false,
             customClass: {
-            popup: 'swal2-popup-error-clean',
-            title: 'swal2-title-error-clean',
-            htmlContainer: 'swal2-text-error-clean',
+                popup: 'swal2-popup-error-clean',
+                title: 'swal2-title-error-clean',
+                htmlContainer: 'swal2-text-error-clean',
             },
         }).then(callback);
     }
@@ -213,16 +206,13 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // Function to validate email format
-        function isValidEmail(email) {
-            return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-        }
+    function isValidEmail(email) {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    }
 
     // Function to send approval email
     function sendApprovalEmail(donationData) {
-        
-
         if (!donationData.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(donationData.email)) {
-            
             Swal.fire('Warning', 'Cannot send approval email: Invalid or missing donor email address.', 'warning');
             logErrorToFirebase(new Error('Invalid or missing donor email'), 'sendApprovalEmail');
             return;
@@ -238,8 +228,6 @@ document.addEventListener("DOMContentLoaded", () => {
             donation_date: donationData.donationDate ? new Date(donationData.donationDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
             assignment: donationData.assignment ? `${donationData.assignment.type}: ${donationData.assignment.name} (${donationData.assignment.details})` : 'Pending manual assignment'
         };
-
-        
 
         emailjs.send('service_mzpjk2a', 'template_owchxrw', templateParams)
             .then(() => {
@@ -269,9 +257,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const serviceID = 'service_mzpjk2a';
         const templateID = 'template_4tks2la';
 
-        // Validate the volunteer group's email
         if (!endorsedGroup.email || !isValidEmail(endorsedGroup.email)) {
-            
             Swal.fire({
                 icon: 'error',
                 title: 'Invalid Email',
@@ -286,25 +272,20 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-       
-       
-
         const templateParams = {
             to_email: endorsedGroup.email,
-            reply_to: 'jldelossantos1101@gmail.com', // Replace with your organization’s email
+            reply_to: 'jldelossantos1101@gmail.com',
             volunteer_group_name: endorsedGroup.name || 'Unknown Group',
             donor_name: donation.name || 'Unknown Donor',
             donation_type: donation.type || 'N/A',
             donation_quantity: parseFloat(donation.valuation || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
             endorsement_date: new Date().toLocaleDateString('en-US'),
-            organization_email: 'jldelossantos1101@gmail.com', // Replace with your organization’s email
-            organization_contact_number: '123-456-7890', // Replace with your organization’s contact number
+            organization_email: 'jldelossantos1101@gmail.com',
+            organization_contact_number: '123-456-7890',
             donor_full_address: donation.address || 'Not specified',
             donor_contact_person: donation.contactPerson || 'Not specified',
             donor_contact_number: donation.number || 'Not specified'
         };
-
-        
 
         Swal.fire({
             title: 'Sending Endorsement...',
@@ -349,13 +330,11 @@ document.addEventListener("DOMContentLoaded", () => {
     // Function to queue donation when no ABVNs or relief requests are available
     async function queueDonation(id, donationData) {
         try {
-            
             const snapshot = await database.ref('donations/pending/inkind/' + id).once('value');
             const queuedDonation = snapshot.val();
             if (!queuedDonation) {
                 throw new Error('Donation data not found in pendingInkind.');
             }
-            
 
             queuedDonation.approvedAt = new Date().toISOString();
             queuedDonation.updatedAt = new Date().toISOString();
@@ -376,155 +355,286 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-async function retrieveDonation(id, donationData) {
-    
-    const permissions = await checkAdminPermissions();
-    
+    // Function to recommend nearby volunteer group based on address
+    function recommendVolunteerGroup(donorAddress) {
+        return new Promise((resolve) => {
+            try {
+                // Validate donor address
+                if (!donorAddress || typeof donorAddress !== 'string' || donorAddress.trim() === '') {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Invalid Donor Address',
+                        text: 'Donor address is invalid or empty. No recommendation available.',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                    logErrorToFirebase(new Error('Invalid or empty donor address'), 'recommendVolunteerGroup');
+                    resolve(null);
+                    return;
+                }
 
-    if (!permissions.canRetrieve) {
-        console.log('Access denied: User lacks retrieve permissions');
-        Swal.fire({
-            title: 'Access Denied',
-            text: 'You do not have permission to retrieve donations.',
-            icon: 'error',
-            timer: 1600,
-            showConfirmButton: false,
-            timerProgressBar: true,
-            allowOutsideClick: false,
-            customClass: {
-                popup: 'swal2-popup-error-clean',
-                title: 'swal2-title-error-clean',
-                htmlContainer: 'swal2-text-error-clean',
-            },
+                // Fetch active ABVNs
+                database.ref('activations').orderByChild('status').equalTo('active').once('value')
+                    .then((abvnSnapshot) => {
+                        const abvns = abvnSnapshot.val();
+
+                        if (!abvns || Object.keys(abvns).length === 0) {
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'No Active Volunteer Groups',
+                                text: 'No active volunteer groups found in database. No recommendation available.',
+                                timer: 2000,
+                                showConfirmButton: false
+                            });
+                            logErrorToFirebase(new Error('No active ABVNs found'), 'recommendVolunteerGroup');
+                            resolve(null);
+                            return;
+                        }
+
+                        // Normalize and extract city from donor address
+                        const donorParts = donorAddress.toLowerCase().split(',').map(part => part.trim().replace(/city|metro|province|ncr/gi, '').trim());
+                        const donorCity = donorParts.length > 1 ? donorParts[donorParts.length - 2] || donorParts[0] : donorParts[0] || '';
+                        const donorFullAddress = donorAddress.toLowerCase().replace(/city|metro|province|ncr/gi, '').trim();
+
+                        if (!donorCity) {
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Invalid City',
+                                text: 'Could not extract city from donor address. No recommendation available.',
+                                timer: 2000,
+                                showConfirmButton: false
+                            });
+                            logErrorToFirebase(new Error('Could not extract city from donor address: ' + donorAddress), 'recommendVolunteerGroup');
+                            resolve(null);
+                            return;
+                        }
+
+                        let bestMatch = null;
+                        let highestSimilarity = 0;
+
+                        // Simple Levenshtein distance for string similarity
+                        function getSimilarity(str1, str2) {
+                            const maxLen = Math.max(str1.length, str2.length);
+                            if (maxLen === 0) return 0;
+                            const distance = Array(str2.length + 1).fill(null).map(() => Array(str1.length + 1).fill(null));
+                            for (let i = 0; i <= str1.length; i++) distance[0][i] = i;
+                            for (let j = 0; j <= str2.length; j++) distance[j][0] = j;
+                            for (let j = 1; j <= str2.length; j++) {
+                                for (let i = 1; i <= str1.length; i++) {
+                                    const indicator = str1[i - 1] === str2[j - 1] ? 0 : 1;
+                                    distance[j][i] = Math.min(
+                                        distance[j][i - 1] + 1,
+                                        distance[j - 1][i] + 1,
+                                        distance[j - 1][i - 1] + indicator
+                                    );
+                                }
+                            }
+                            return 1 - distance[str2.length][str1.length] / maxLen;
+                        }
+
+                        // Iterate through ABVNs for address matching
+                        for (let key in abvns) {
+                            if (abvns.hasOwnProperty(key)) {
+                                const abvn = abvns[key];
+                                if (!abvn.areaOfOperation) {
+                                    continue;
+                                }
+                                const abvnParts = abvn.areaOfOperation.toLowerCase().split(',').map(part => part.trim().replace(/city|metro|province|ncr/gi, '').trim());
+                                const abvnCity = abvnParts.length > 1 ? abvnParts[abvnParts.length - 2] || abvnParts[0] : abvnParts[0] || '';
+                                const abvnFullAddress = abvn.areaOfOperation.toLowerCase().replace(/city|metro|province|ncr/gi, '').trim();
+
+                                if (!abvnCity) {
+                                    continue;
+                                }
+
+                                // Calculate similarity for city and full address
+                                const citySimilarity = getSimilarity(donorCity, abvnCity);
+                                const addressSimilarity = getSimilarity(donorFullAddress, abvnFullAddress);
+
+                                // Prioritize city match, but use full address as tiebreaker
+                                const overallSimilarity = citySimilarity > 0.7 ? citySimilarity : (addressSimilarity > 0.5 ? addressSimilarity : 0);
+
+                                if (overallSimilarity > highestSimilarity) {
+                                    highestSimilarity = overallSimilarity;
+                                    bestMatch = {
+                                        id: key,
+                                        name: abvn.organization || 'Unknown',
+                                        email: abvn.email || 'default@example.com',
+                                        details: abvn.areaOfOperation || 'N/A'
+                                    };
+                                }
+                            }
+                        }
+
+                        // Return best match only if similarity is sufficient
+                        if (bestMatch && highestSimilarity >= 0.5) {
+                            console.log(`[${new Date().toISOString()}] recommendVolunteerGroup: Found match with similarity ${highestSimilarity}:`, bestMatch);
+                            resolve(bestMatch);
+                        } else {
+                            console.log(`[${new Date().toISOString()}] recommendVolunteerGroup: No address match found for donor address: ${donorAddress}`);
+                            resolve(null);
+                        }
+                    })
+                    .catch((error) => {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Database Error',
+                            text: 'Failed to fetch volunteer groups. No recommendation available.',
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                        logErrorToFirebase(error, 'recommendVolunteerGroup');
+                        resolve(null);
+                    });
+            } catch (error) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Recommendation Error',
+                    text: 'Error in recommendation process. No recommendation available.',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+                logErrorToFirebase(error, 'recommendVolunteerGroup');
+                resolve(null);
+            }
         });
-        return;
     }
 
-    // Require password verification for Super Admin
-    if (auth.currentUser?.adminPosition === 'Super Admin' && !isAdminVerified) {
-        const verified = await verifySuperAdminPassword();
-        if (!verified) {
+    async function retrieveDonation(id, donationData) {
+        const permissions = await checkAdminPermissions();
+        if (!permissions.canRetrieve) {
+            console.log('Access denied: User lacks retrieve permissions');
+            Swal.fire({
+                title: 'Access Denied',
+                text: 'You do not have permission to retrieve donations.',
+                icon: 'error',
+                timer: 1600,
+                showConfirmButton: false,
+                timerProgressBar: true,
+                allowOutsideClick: false,
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                },
+            });
             return;
         }
-    }
 
-    Swal.fire({
-        title: 'Retrieve Donation?',
-        text: `This will move the in-kind donation from ${donationData.name || 'Unknown'} back to pending donations.`,
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Retrieve',
-        cancelButtonText: 'Cancel',
-        reverseButtons: true,
-        focusCancel: true,
-        allowOutsideClick: false,
-        customClass: {
-            popup: 'custom-swal-popup-small',
-            title: 'custom-swal-title',
-            htmlContainer: 'custom-swal-content',
-            confirmButton: 'custom-confirm-btn',
-            cancelButton: 'custom-cancel-btn',
-        },
-    }).then(async (result) => {
-        if (result.isConfirmed) {
-            
-            try {
-                if (!navigator.onLine) {
-                    throw new Error("No internet connection. Please check your network.");
-                }
-
-                const archivedRef = database.ref(`donations/pending/archivedDonations/inkind/${id}`);
-                
-                const snapshot = await archivedRef.once('value');
-                const archivedDonation = snapshot.val();
-
-                if (!archivedDonation || !archivedDonation.id) {
-                    throw new Error("Archived donation data not found or invalid.");
-                }
-
-                const { archivedTimestamp, archivedBy, archiveReason, rejectedAt, ...restoredDonation } = archivedDonation;
-                const updatedDonation = {
-                    ...restoredDonation,
-                    status: 'Pending',
-                    retrievedTimestamp: Date.now(),
-                    retrievedBy: auth.currentUser?.adminPosition || 'Unknown',
-                };
-
-                // Move donation to pending/inkind
-                await database.ref(`donations/pending/inkind/${id}`).set(updatedDonation);
-                
-
-                // Remove from archived
-                await archivedRef.remove();
-                console.log('Donation removed from archivedDonations');
-
-                // Verify removal
-                const checkSnapshot = await archivedRef.once('value');
-                if (checkSnapshot.exists()) {
-                    throw new Error("Failed to delete donation from archived donations.");
-                }
-
-                // Log notification
-                const message = `In-kind donation from "${archivedDonation.name || 'Unknown'}" retrieved by ${auth.currentUser?.adminPosition || 'Unknown'} from ${localStorage.getItem('organization') || 'Unknown Group'} on ${new Date().toLocaleDateString('en-US')}. Status reset to pending.`;
-                await database.ref('notifications').push({
-                    message,
-                    userId: auth.currentUser?.uid || null,
-                    userEmail: auth.currentUser?.email || null,
-                    userName: auth.currentUser?.displayName || null,
-                    donationId: id,
-                    donorName: archivedDonation.name || 'Unknown',
-                    organization: localStorage.getItem('organization') || 'Unknown Group',
-                    timestamp: Date.now(),
-                });
-                console.log('Notification pushed for retrieval');
-
-                // Reload donations from Firebase to ensure consistency
-                await loadDonationsFromFirebase();
-                await loadArchivedDonationsFromFirebase();
-
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Retrieved!',
-                    text: 'The donation has been restored to pending in-kind donations with status reset to pending.',
-                    timer: 1600,
-                    showConfirmButton: false,
-                    timerProgressBar: true,
-                    allowOutsideClick: false,
-                    customClass: {
-                        popup: 'swal2-popup-success-clean',
-                        title: 'swal2-title-success-clean',
-                        htmlContainer: 'swal2-text-success-clean',
-                    },
-                });
-
-                // Close archived modal
-                if (document.getElementById('archivedModal')) {
-                    document.getElementById('archivedModal').style.display = 'none';
-                }
-                console.log('Retrieval completed successfully');
-            } catch (error) {
-                console.error("Error retrieving donation:", error);
-                Swal.fire({
-                    title: 'Error',
-                    text: `Failed to retrieve donation: ${error.message}`,
-                    icon: 'error',
-                    confirmButtonText: 'OK',
-                    allowOutsideClick: false,
-                    customClass: {
-                        popup: 'swal2-popup-error-clean',
-                        title: 'swal2-title-error-clean',
-                        htmlContainer: 'swal2-text-error-clean',
-                        confirmButton: 'my-error-button',
-                    },
-                });
-                logErrorToFirebase(error, 'retrieveDonation');
+        if (auth.currentUser?.adminPosition === 'Super Admin' && !isAdminVerified) {
+            const verified = await verifySuperAdminPassword();
+            if (!verified) {
+                return;
             }
         }
-    });
-}
-    
+
+        Swal.fire({
+            title: 'Retrieve Donation?',
+            text: `This will move the in-kind donation from ${donationData.name || 'Unknown'} back to pending donations.`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Retrieve',
+            cancelButtonText: 'Cancel',
+            reverseButtons: true,
+            focusCancel: true,
+            allowOutsideClick: false,
+            customClass: {
+                popup: 'custom-swal-popup-small',
+                title: 'custom-swal-title',
+                htmlContainer: 'custom-swal-content',
+                confirmButton: 'custom-confirm-btn',
+                cancelButton: 'custom-cancel-btn',
+            },
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                try {
+                    if (!navigator.onLine) {
+                        throw new Error("No internet connection. Please check your network.");
+                    }
+
+                    const archivedRef = database.ref(`donations/pending/archivedDonations/inkind/${id}`);
+                    const snapshot = await archivedRef.once('value');
+                    const archivedDonation = snapshot.val();
+
+                    if (!archivedDonation || !archivedDonation.id) {
+                        throw new Error("Archived donation data not found or invalid.");
+                    }
+
+                    const { archivedTimestamp, archivedBy, archiveReason, rejectedAt, ...restoredDonation } = archivedDonation;
+                    const updatedDonation = {
+                        ...restoredDonation,
+                        status: 'Pending',
+                        retrievedTimestamp: Date.now(),
+                        retrievedBy: auth.currentUser?.adminPosition || 'Unknown',
+                    };
+
+                    await database.ref(`donations/pending/inkind/${id}`).set(updatedDonation);
+                    await archivedRef.remove();
+                    console.log('Donation removed from archivedDonations');
+
+                    const checkSnapshot = await archivedRef.once('value');
+                    if (checkSnapshot.exists()) {
+                        throw new Error("Failed to delete donation from archived donations.");
+                    }
+
+                    const message = `In-kind donation from "${archivedDonation.name || 'Unknown'}" retrieved by ${auth.currentUser?.adminPosition || 'Unknown'} from ${localStorage.getItem('organization') || 'Unknown Group'} on ${new Date().toLocaleDateString('en-US')}. Status reset to pending.`;
+                    await database.ref('notifications').push({
+                        message,
+                        userId: auth.currentUser?.uid || null,
+                        userEmail: auth.currentUser?.email || null,
+                        userName: auth.currentUser?.displayName || null,
+                        donationId: id,
+                        donorName: archivedDonation.name || 'Unknown',
+                        organization: localStorage.getItem('organization') || 'Unknown Group',
+                        timestamp: Date.now(),
+                    });
+                    console.log('Notification pushed for retrieval');
+
+                    await loadDonationsFromFirebase();
+                    await loadArchivedDonationsFromFirebase();
+
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Retrieved!',
+                        text: 'The donation has been restored to pending in-kind donations with status reset to pending.',
+                        timer: 1600,
+                        showConfirmButton: false,
+                        timerProgressBar: true,
+                        allowOutsideClick: false,
+                        customClass: {
+                            popup: 'swal2-popup-success-clean',
+                            title: 'swal2-title-success-clean',
+                            htmlContainer: 'swal2-text-success-clean',
+                        },
+                    });
+
+                    if (document.getElementById('archivedModal')) {
+                        document.getElementById('archivedModal').style.display = 'none';
+                    }
+                    console.log('Retrieval completed successfully');
+                } catch (error) {
+                    console.error("Error retrieving donation:", error);
+                    Swal.fire({
+                        title: 'Error',
+                        text: `Failed to retrieve donation: ${error.message}`,
+                        icon: 'error',
+                        confirmButtonText: 'OK',
+                        allowOutsideClick: false,
+                        customClass: {
+                            popup: 'swal2-popup-error-clean',
+                            title: 'swal2-title-error-clean',
+                            htmlContainer: 'swal2-text-error-clean',
+                            confirmButton: 'my-error-button',
+                        },
+                    });
+                    logErrorToFirebase(error, 'retrieveDonation');
+                }
+            }
+        });
+    }
+
     // Updated function to handle donation approval or rejection
-        async function updateDonationStatus(id, donationData, newStatus) {
+    async function updateDonationStatus(id, donationData, newStatus) {
         if (newStatus === 'Rejected') {
             Swal.fire({
                 title: 'Are you sure to reject this application?',
@@ -543,7 +653,6 @@ async function retrieveDonation(id, donationData) {
             }).then(async (result) => {
                 if (result.isConfirmed) {
                     try {
-                        
                         const donationRef = database.ref('donations/pending/inkind/' + id);
                         const snapshot = await donationRef.once('value');
                         const donation = snapshot.val();
@@ -578,12 +687,10 @@ async function retrieveDonation(id, donationData) {
                             timestamp: Date.now()
                         });
 
-                        // Force refresh donations
                         allDonations = allDonations.filter(d => d.id !== id);
                         filteredAndSortedDonations = filteredAndSortedDonations.filter(d => d.id !== id);
                         renderTable();
 
-                        // Update archived donations
                         const archivedSnapshot = await database.ref('donations/pending/archivedDonations/inkind').once('value');
                         const archivedDonationsObject = archivedSnapshot.val();
                         allArchivedDonations = [];
@@ -623,22 +730,26 @@ async function retrieveDonation(id, donationData) {
 
         try {
             if (!auth.currentUser) {
-                console.error('No authenticated user detected.');
+                console.error(`[${new Date().toISOString()}] updateDonationStatus: No authenticated user detected.`);
                 Swal.fire('Error', 'You must be logged in to access ABVNs and relief requests. Please log in and try again.', 'error');
                 window.location.href = '../pages/login.html';
                 return;
             }
-            
 
-            console.log('Fetching active ABVNs from Firebase...');
+            console.log(`[${new Date().toISOString()}] updateDonationStatus: Fetching active ABVNs from Firebase...`);
             const abvnSnapshot = await database.ref('activations').orderByChild('status').equalTo('active').once('value');
             const abvns = abvnSnapshot.val();
-            console.log('ABVN snapshot:', abvns);
+            console.log(`[${new Date().toISOString()}] updateDonationStatus: ABVN snapshot:`, abvns ? Object.keys(abvns).length : 'None');
 
-            console.log('Fetching pending relief requests from Firebase...');
+            console.log(`[${new Date().toISOString()}] updateDonationStatus: Fetching pending relief requests from Firebase...`);
             const reliefSnapshot = await database.ref('requestRelief/requests').orderByChild('status').equalTo('Pending').once('value');
             const reliefRequests = reliefSnapshot.val();
-            
+            console.log(`[${new Date().toISOString()}] updateDonationStatus: Relief requests snapshot:`, reliefRequests ? Object.keys(reliefRequests).length : 'None');
+
+            // Get recommended volunteer group
+            console.log(`[${new Date().toISOString()}] updateDonationStatus: Calling recommendVolunteerGroup with address:`, donationData.address);
+            const recommendedGroup = await recommendVolunteerGroup(donationData.address);
+            console.log(`[${new Date().toISOString()}] updateDonationStatus: Recommended group:`, recommendedGroup);
 
             const options = [];
 
@@ -651,7 +762,7 @@ async function retrieveDonation(id, donationData) {
                             id: key,
                             name: abvn.organization || 'Unknown',
                             details: abvn.areaOfOperation || 'N/A',
-                            email: abvn.email || 'default@example.com', // Ensure email is included
+                            email: abvn.email || 'default@example.com',
                             display: `
                                 <strong>ABVN: ${abvn.organization || 'Unknown'}</strong><br>
                                 <p>Area of Operation: ${abvn.areaOfOperation || 'N/A'}</p>
@@ -665,7 +776,6 @@ async function retrieveDonation(id, donationData) {
                 for (let key in reliefRequests) {
                     if (reliefRequests.hasOwnProperty(key)) {
                         const request = reliefRequests[key];
-                        
                         const itemsList = (request.items || []).map(i => `${i.name} (Qty: ${i.quantity})`).join(', ');
                         options.push({
                             type: 'Relief Request',
@@ -685,13 +795,10 @@ async function retrieveDonation(id, donationData) {
                         });
                     }
                 }
-            } else {
-                console.warn('No relief requests found or access denied.');
             }
-            
 
             if (options.length === 0) {
-                console.error('No active ABVNs or pending relief requests found.');
+                console.error(`[${new Date().toISOString()}] updateDonationStatus: No active ABVNs or pending relief requests found.`);
                 Swal.fire({
                     title: 'No Options Available',
                     text: 'No active volunteer networks or pending relief requests are available. Would you like to queue the donation for manual assignment later?',
@@ -708,96 +815,138 @@ async function retrieveDonation(id, donationData) {
                 });
                 return;
             }
-            options.sort((a, b) => a.name.localeCompare(b.name));
-            
 
-            const selectOptions = options.map(option => {
+            options.sort((a, b) => a.name.localeCompare(b.name));
+            console.log(`[${new Date().toISOString()}] updateDonationStatus: Available options:`, options.length);
+
+            // Create dropdown with recommendation section
+            let selectOptions = '<optgroup label="--Recommendation--">';
+            if (recommendedGroup) {
+                selectOptions += `<option value="ABVN:${recommendedGroup.id}">${recommendedGroup.name} (${recommendedGroup.details})</option>`;
+                console.log(`[${new Date().toISOString()}] updateDonationStatus: Added recommended group to dropdown:`, recommendedGroup);
+            } else {
+                selectOptions += '<option value="" disabled>No recommendation available</option>';
+                console.log(`[${new Date().toISOString()}] updateDonationStatus: No recommended group available.`);
+            }
+            selectOptions += '</optgroup><optgroup label="--Select an Option--">';
+            selectOptions += options.map(option => {
+                if (recommendedGroup && option.type === 'ABVN' && option.id === recommendedGroup.id) {
+                    return ''; // Skip recommended group to avoid duplication
+                }
                 return `<option value="${option.type}:${option.id}">${option.type}: ${option.name} (${option.details})</option>`;
             }).join('');
+            selectOptions += '</optgroup>';
 
             let selectedOptionDisplay = '';
             function updateDetailsDisplay(selectedValue) {
+                console.log(`[${new Date().toISOString()}] updateDetailsDisplay: Selected value:`, selectedValue);
                 if (!selectedValue) {
                     selectedOptionDisplay = '<p>Please select an option to view details.</p>';
                 } else {
                     const [type, selectedId] = selectedValue.split(':');
                     const option = options.find(opt => opt.type === type && opt.id === selectedId);
                     selectedOptionDisplay = option ? option.display : '<p>Details not available for this selection.</p>';
+                    console.log(`[${new Date().toISOString()}] updateDetailsDisplay: Selected option display:`, selectedOptionDisplay);
                 }
                 const detailsElement = document.getElementById('assignmentDetails');
                 if (detailsElement) {
                     detailsElement.innerHTML = selectedOptionDisplay;
                 } else {
-                    console.error('Assignment details element not found in DOM.');
+                    console.error(`[${new Date().toISOString()}] updateDetailsDisplay: Assignment details element not found in DOM.`);
                 }
             }
 
+            console.log(`[${new Date().toISOString()}] updateDonationStatus: Rendering SweetAlert modal...`);
             Swal.fire({
-            title: 'Assign Donation',
-            html: `
-                <p style="font-weight: 500; color: #333;">Select an active volunteer network or pending relief request:</p>
-                <select id="assignmentSelect" style="
-                    width: 100%; 
-                    margin-bottom: 10px;
-                    padding: 10px; 
-                    border-radius: 8px; 
-                    border: 1px solid #ccc; 
-                    font-size: 14px;
-                    background: #fefefe;
-                    box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
-                ">
-                    <option value="" selected>-- Select an option --</option>
-                    ${selectOptions}
-                </select>
-                <div id="assignmentDetails" style="
-                    margin-top: 15px; 
-                    max-height: 200px; 
-                    overflow-y: auto; 
-                    text-align: left; 
-                    background: #f9f9f9; 
-                    padding: 10px; 
-                    border-radius: 8px; 
-                    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-                ">
-                    <p>Please select an option to view details.</p>
-                </div>
-            `,
-            icon: 'info',
-            showCancelButton: true,
-            confirmButtonText: 'Confirm Selection',
-            cancelButtonText: 'Cancel',
-            confirmButtonColor: '#1e88e5',
-            cancelButtonColor: '#e0e0e0',
-            reverseButtons: true,
-            buttonsStyling: true,
-            customClass: {
-                popup: 'swal-popup-modern',
-                title: 'swal-title-modern',
-                content: 'swal-content-modern',
-                confirmButton: 'swal-confirm-modern',
-                cancelButton: 'swal-cancel-modern'
-            },
-            didOpen: () => {
-                const select = document.getElementById('assignmentSelect');
-                if (options.length > 0) {
-                    select.value = `${options[0].type}:${options[0].id}`;
-                    updateDetailsDisplay(select.value);
+                title: 'Assign Donation',
+                html: `
+                    <p style="font-weight: 500; color: #333;">Select an active volunteer network or pending relief request:</p>
+                    ${recommendedGroup ? `
+                        <div style="
+                            margin-top: 15px; 
+                            text-align: left; 
+                            background: #e8f5e9; 
+                            padding: 10px; 
+                            border-radius: 8px; 
+                            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+                        ">
+                            <p><strong>Recommended Volunteer Group (Based on Address):</strong> ${recommendedGroup.name} (${recommendedGroup.details})</p>
+                            <p>Contact: ${recommendedGroup.email}</p>
+                        </div>
+                    ` : '<p>No address-based recommendation available.</p>'}
+                    <select id="assignmentSelect" style="
+                        width: 100%; 
+                        margin-bottom: 10px;
+                        padding: 10px; 
+                        border-radius: 8px; 
+                        border: 1px solid #ccc; 
+                        font-size: 14px;
+                        background: #fefefe;
+                        box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+                    ">
+                        ${selectOptions}
+                    </select>
+                    <div id="assignmentDetails" style="
+                        margin-top: 15px; 
+                        max-height: 200px; 
+                        overflow-y: auto; 
+                        text-align: left; 
+                        background: #f9f9f9; 
+                        padding: 10px; 
+                        border-radius: 8px; 
+                        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+                    ">
+                        <p>Please select an option to view details.</p>
+                    </div>
+                `,
+                icon: 'info',
+                showCancelButton: true,
+                confirmButtonText: 'Confirm Selection',
+                cancelButtonText: 'Cancel',
+                confirmButtonColor: '#1e88e5',
+                cancelButtonColor: '#e0e0e0',
+                reverseButtons: true,
+                buttonsStyling: true,
+                customClass: {
+                    popup: 'swal-popup-modern',
+                    title: 'swal-title-modern',
+                    content: 'swal-content-modern',
+                    confirmButton: 'swal-confirm-modern',
+                    cancelButton: 'swal-cancel-modern'
+                },
+                didOpen: () => {
+                    console.log(`[${new Date().toISOString()}] updateDonationStatus: SweetAlert modal opened`);
+                    const select = document.getElementById('assignmentSelect');
+                    if (recommendedGroup) {
+                        select.value = `ABVN:${recommendedGroup.id}`;
+                        console.log(`[${new Date().toISOString()}] updateDonationStatus: Set default dropdown value to recommended group:`, recommendedGroup.id);
+                        updateDetailsDisplay(select.value);
+                    } else if (options.length > 0) {
+                        select.value = `${options[0].type}:${options[0].id}`;
+                        console.log(`[${new Date().toISOString()}] updateDonationStatus: Set default dropdown value to first option:`, select.value);
+                        updateDetailsDisplay(select.value);
+                    }
+                    select.addEventListener('change', () => {
+                        console.log(`[${new Date().toISOString()}] updateDonationStatus: Dropdown changed to:`, select.value);
+                        updateDetailsDisplay(select.value);
+                    });
+                },
+                preConfirm: () => {
+                    const selectedValue = document.getElementById('assignmentSelect').value;
+                    console.log(`[${new Date().toISOString()}] updateDonationStatus: Confirm button clicked, selected value:`, selectedValue);
+                    if (!selectedValue) {
+                        Swal.showValidationMessage('Please select an option.');
+                        console.warn(`[${new Date().toISOString()}] updateDonationStatus: No option selected in dropdown`);
+                        return false;
+                    }
+                    return selectedValue;
                 }
-                select.addEventListener('change', () => updateDetailsDisplay(select.value));
-            },
-            preConfirm: () => {
-                const selectedValue = document.getElementById('assignmentSelect').value;
-                if (!selectedValue) {
-                    Swal.showValidationMessage('Please select an option.');
-                    return false;
-                }
-                return selectedValue;
-            }
-        }).then(async (result) => {
+            }).then(async (result) => {
                 if (result.isConfirmed) {
+                    console.log(`[${new Date().toISOString()}] updateDonationStatus: User confirmed selection:`, result.value);
                     const [type, selectedId] = result.value.split(':');
                     const selectedOption = options.find(opt => opt.type === type && opt.id === selectedId);
-                    
+                    console.log(`[${new Date().toISOString()}] updateDonationStatus: Selected option:`, selectedOption);
 
                     let reliefDetails = '';
                     if (type === 'Relief Request' && selectedOption.reliefData) {
@@ -822,6 +971,9 @@ async function retrieveDonation(id, donationData) {
                         html: `
                             <p>The donation will be assigned to ${selectedOption.type}: ${selectedOption.name} (${selectedOption.details}). Proceed with approval?</p>
                             ${reliefDetails}
+                            ${recommendedGroup && type === 'ABVN' && selectedId === recommendedGroup.id ? `
+                                <p style="color: #2e7d32; font-weight: bold;">This is the recommended volunteer group based on address proximity.</p>
+                            ` : ''}
                         `,
                         icon: 'question',
                         showCancelButton: true,
@@ -838,104 +990,112 @@ async function retrieveDonation(id, donationData) {
                     });
 
                     if (confirmResult.isConfirmed) {
-    try {
-        const snapshot = await database.ref('donations/pending/inkind/' + id).once('value');
-        const approvedDonation = snapshot.val();
-        if (!approvedDonation) {
-            throw new Error('Donation data not found in donations/pending/inkind.');
-        }
+                        console.log(`[${new Date().toISOString()}] updateDonationStatus: User confirmed approval for:`, selectedOption);
+                        try {
+                            const snapshot = await database.ref('donations/pending/inkind/' + id).once('value');
+                            const approvedDonation = snapshot.val();
+                            if (!approvedDonation) {
+                                throw new Error('Donation data not found in donations/pending/inkind.');
+                            }
 
-        approvedDonation.approvedAt = new Date().toISOString();
-        approvedDonation.updatedAt = new Date().toISOString();
-        approvedDonation.status = 'Approved';
-        approvedDonation.assignment = {
-            type: selectedOption.type,
-            id: selectedId,
-            name: selectedOption.name,
-            details: selectedOption.details,
-            email: selectedOption.email // Add email to assignment
-        };
+                            approvedDonation.approvedAt = new Date().toISOString();
+                            approvedDonation.updatedAt = new Date().toISOString();
+                            approvedDonation.status = 'Approved';
+                            approvedDonation.assignment = {
+                                type: selectedOption.type,
+                                id: selectedId,
+                                name: selectedOption.name,
+                                details: selectedOption.details,
+                                email: selectedOption.email
+                            };
 
-        console.log('Moving donation to donations/savedDonations/inkind and removing from pendingInkind...');
-        await database.ref('donations/savedDonations/inkind/' + id).set(approvedDonation);
-        await database.ref('donations/pending/inkind/' + id).remove();
+                            console.log(`[${new Date().toISOString()}] updateDonationStatus: Moving donation to donations/savedDonations/inkind and removing from pendingInkind...`);
+                            await database.ref('donations/savedDonations/inkind/' + id).set(approvedDonation);
+                            await database.ref('donations/pending/inkind/' + id).remove();
 
-        if (type === 'Relief Request') {
-            await database.ref(`requestRelief/requests/${selectedId}`).update({
-                status: 'Completed',
-                updatedAt: new Date().toISOString()
-            });
-        }
+                            if (type === 'Relief Request') {
+                                console.log(`[${new Date().toISOString()}] updateDonationStatus: Updating relief request status to Completed for ID:`, selectedId);
+                                await database.ref(`requestRelief/requests/${selectedId}`).update({
+                                    status: 'Completed',
+                                    updatedAt: new Date().toISOString()
+                                });
+                            }
 
-        console.log('Triggering approval email...');
-        sendApprovalEmail(approvedDonation);
+                            console.log(`[${new Date().toISOString()}] updateDonationStatus: Triggering approval email...`);
+                            sendApprovalEmail(approvedDonation);
 
-        // Add endorsement email for ABVN
-        if (type === 'ABVN') {
-            console.log('Triggering endorsement email...');
-            await sendEndorsementEmail(approvedDonation, {
-                email: selectedOption.email,
-                name: selectedOption.name,
-                details: selectedOption.details
-            });
-        }
+                            if (type === 'ABVN') {
+                                console.log(`[${new Date().toISOString()}] updateDonationStatus: Triggering endorsement email for:`, selectedOption);
+                                await sendEndorsementEmail(approvedDonation, {
+                                    email: selectedOption.email,
+                                    name: selectedOption.name,
+                                    details: selectedOption.details
+                                });
+                            }
 
-        if (type === 'ABVN') {
-            const abvnNotification = {
-                type: "abvn_endorsed",
-                message: `A donation has been assigned to ${selectedOption.name}.`,
-                abvnGroup: selectedOption.name,
-                timestamp: new Date().toISOString(),
-                read: false,
-                identifier: `abvn_endorsed_${id}_${Date.now()}`
-            };
-            await database.ref("notifications").push(abvnNotification).catch(error => {
-                console.error("Error sending ABVN notification:", error);
-                Swal.fire('Error', `Failed to notify ABVN group. Error: ${error.message}`, 'error');
-                logErrorToFirebase(error, 'sendABVNNotification');
-            });
-        }
+                            if (type === 'ABVN') {
+                                const abvnNotification = {
+                                    type: "abvn_endorsed",
+                                    message: `A donation has been assigned to ${selectedOption.name}.`,
+                                    abvnGroup: selectedOption.name,
+                                    timestamp: new Date().toISOString(),
+                                    read: false,
+                                    identifier: `abvn_endorsed_${id}_${Date.now()}`
+                                };
+                                console.log(`[${new Date().toISOString()}] updateDonationStatus: Sending ABVN notification:`, abvnNotification);
+                                await database.ref("notifications").push(abvnNotification).catch(error => {
+                                    console.error(`[${new Date().toISOString()}] updateDonationStatus: Error sending ABVN notification:`, error);
+                                    Swal.fire('Error', `Failed to notify ABVN group. Error: ${error.message}`, 'error');
+                                    logErrorToFirebase(error, 'sendABVNNotification');
+                                });
+                            }
 
-        const approvalNotification = {
-            type: "donation_approved",
-            message: `The donation from ${approvedDonation.name || 'an anonymous donor'} has been approved and assigned to ${selectedOption.type}: ${selectedOption.name}.`,
-            approverUid: auth.currentUser.uid,
-            timestamp: new Date().toISOString(),
-            read: false,
-            identifier: `donation_approved_${id}_${Date.now()}`
-        };
-        await database.ref("notifications").push(approvalNotification).catch(error => {
-            console.error("Error sending approval notification:", error);
-            Swal.fire('Error', `Failed to notify admin. Error: ${error.message}`, 'error');
-            logErrorToFirebase(error, 'sendApprovalNotification');
-        });
+                            const approvalNotification = {
+                                type: "donation_approved",
+                                message: `The donation from ${approvedDonation.name || 'an anonymous donor'} has been approved and assigned to ${selectedOption.type}: ${selectedOption.name}.`,
+                                approverUid: auth.currentUser.uid,
+                                timestamp: new Date().toISOString(),
+                                read: false,
+                                identifier: `donation_approved_${id}_${Date.now()}`
+                            };
+                            console.log(`[${new Date().toISOString()}] updateDonationStatus: Sending approval notification:`, approvalNotification);
+                            await database.ref("notifications").push(approvalNotification).catch(error => {
+                                console.error(`[${new Date().toISOString()}] updateDonationStatus: Error sending approval notification:`, error);
+                                Swal.fire('Error', `Failed to notify admin. Error: ${error.message}`, 'error');
+                                logErrorToFirebase(error, 'sendApprovalNotification');
+                            });
 
-        Swal.fire({
-            title: 'Approved!',
-            html: `
-                <p>Donation has been approved and assigned to ${selectedOption.type}: ${selectedOption.name}.</p>
-                ${reliefDetails}
-            `,
-            icon: 'success',
-            showConfirmButton: true,
-            confirmButtonText: 'OK',
-            customClass: {
-                popup: 'swal2-popup-success-clean',
-                title: 'swal2-title-success-clean',
-                htmlContainer: 'swal2-text-success-clean',
-                confirmButton: 'my-success-button'
-            }
-        });
-    } catch (error) {
-        console.error('Error approving donation in Firebase:', error);
-        Swal.fire('Error', `Failed to approve donation. Error: ${error.message}`, 'error');
-        logErrorToFirebase(error, 'approveDonation');
-    }
-}
+                            Swal.fire({
+                                title: 'Approved!',
+                                html: `
+                                    <p>Donation has been approved and assigned to ${selectedOption.type}: ${selectedOption.name}.</p>
+                                    ${reliefDetails}
+                                `,
+                                icon: 'success',
+                                showConfirmButton: true,
+                                confirmButtonText: 'OK',
+                                customClass: {
+                                    popup: 'swal2-popup-success-clean',
+                                    title: 'swal2-title-success-clean',
+                                    htmlContainer: 'swal2-text-success-clean',
+                                    confirmButton: 'my-success-button'
+                                }
+                            });
+
+                            // Refresh table after approval
+                            allDonations = allDonations.filter(d => d.id !== id);
+                            filteredAndSortedDonations = filteredAndSortedDonations.filter(d => d.id !== id);
+                            renderTable();
+                        } catch (error) {
+                            console.error(`[${new Date().toISOString()}] updateDonationStatus: Error approving donation:`, error);
+                            Swal.fire('Error', `Failed to approve donation. Error: ${error.message}`, 'error');
+                            logErrorToFirebase(error, 'approveDonation');
+                        }
+                    }
                 }
             });
         } catch (error) {
-            console.error('Error fetching ABVNs or relief requests:', error);
+            console.error(`[${new Date().toISOString()}] updateDonationStatus: Error fetching ABVNs or relief requests:`, error);
             Swal.fire('Error', `Failed to load assignment options. Error: ${error.message}`, 'error');
             logErrorToFirebase(error, 'fetchAssignmentOptions');
         }
@@ -947,7 +1107,6 @@ async function retrieveDonation(id, donationData) {
         database.ref('donations/pending/inkind').on('value', (snapshot) => {
             clearTimeout(debounceTimeout);
             debounceTimeout = setTimeout(() => {
-                
                 allDonations = [];
                 const data = snapshot.val();
                 if (data && typeof data === 'object') {
@@ -970,11 +1129,9 @@ async function retrieveDonation(id, donationData) {
                             donationDate: donation.donationDate || 'N/A',
                             createdAt: donation.createdAt || 'N/A'
                         };
-                        
                         allDonations.push(donationEntry);
                     });
                 }
-                
                 filteredAndSortedDonations = [...allDonations];
                 applySorting(filteredAndSortedDonations, sortSelect?.value || '');
                 renderTable();
@@ -1074,7 +1231,6 @@ async function retrieveDonation(id, donationData) {
                             ` : ''}
                         ` : ''}
                     </td>
-                    
                 `;
                 const viewBtn = row.querySelector('.viewBtn');
                 if (viewBtn) viewBtn.addEventListener('click', () => showPreviewModal(donation));
@@ -1084,11 +1240,10 @@ async function retrieveDonation(id, donationData) {
                     if (approveBtn) approveBtn.addEventListener('click', () => updateDonationStatus(donation.id, donation, 'Approved'));
                     if (rejectBtn) {
                         rejectBtn.addEventListener('click', async () => {
-                            // Require password verification for users with canArchive permission
                             if (permissions.canArchive && !isAdminVerified) {
                                 const verified = await verifySuperAdminPassword();
                                 if (!verified) {
-                                    return; // Stop if verification fails or is canceled
+                                    return;
                                 }
                             }
                             updateDonationStatus(donation.id, donation, 'Rejected');
@@ -1101,64 +1256,63 @@ async function retrieveDonation(id, donationData) {
         renderPagination();
     }
 
-function renderArchivedTable() {
-    if (!archivedTableBody) {
-        console.error("ERROR: 'archivedTableBody' element not found.");
-        return;
-    }
+    function renderArchivedTable() {
+        if (!archivedTableBody) {
+            console.error("ERROR: 'archivedTableBody' element not found.");
+            return;
+        }
 
-    archivedTableBody.innerHTML = '';
-    const start = (archivedCurrentPage - 1) * rowsPerPage;
-    const end = start + rowsPerPage;
-    const paginatedItems = filteredAndSortedArchivedDonations.slice(start, end);
+        archivedTableBody.innerHTML = '';
+        const start = (archivedCurrentPage - 1) * rowsPerPage;
+        const end = start + rowsPerPage;
+        const paginatedItems = filteredAndSortedArchivedDonations.slice(start, end);
 
-    if (paginatedItems.length === 0) {
-        archivedTableBody.innerHTML = '<tr><td colspan="15" style="text-align: center; padding: 20px;">No archived in-kind donations found.</td></tr>';
-    } else {
-        paginatedItems.forEach((donation, index) => {
-            if (!donation.id) {
-                
-                return;
-            }
-            const row = archivedTableBody.insertRow();
-            row.innerHTML = `
-                <td>${start + index + 1}</td>
-                <td>${donation.encoder || 'N/A'}</td>
-                <td>${donation.name || 'N/A'}</td>
-                <td>${donation.type || 'N/A'}</td>
-                <td>${donation.address || 'N/A'}</td>
-                <td>${donation.contactPerson || 'N/A'}</td>
-                <td>${donation.number || 'N/A'}</td>
-                <td>${donation.email || 'N/A'}</td>
-                <td>${donation.assistance || 'N/A'}</td>
-                <td>₱${parseFloat(donation.valuation || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                <td>${donation.additionalnotes || 'N/A'}</td>
-                <td>${donation.staffIncharge || 'N/A'}</td>
-                <td>${donation.donationDate ? new Date(donation.donationDate).toLocaleDateString('en-PH') : 'N/A'}</td>
-                <td><span class="status-${donation.status ? donation.status.toLowerCase() : 'na'}">${donation.status || 'N/A'}</span></td>
-                <td>
-                    ${permissions.canRetrieve ? `
-                        <button class="retrieveBtn" aria-label="Retrieve donation">Retrieve</button>
-                    ` : ''}
-                </td>
-            `;
-            if (permissions.canRetrieve) {
-                const retrieveBtn = row.querySelector('.retrieveBtn');
-                if (retrieveBtn) {
-                    retrieveBtn.addEventListener('click', () => retrieveDonation(donation.id, donation));
+        if (paginatedItems.length === 0) {
+            archivedTableBody.innerHTML = '<tr><td colspan="15" style="text-align: center; padding: 20px;">No archived in-kind donations found.</td></tr>';
+        } else {
+            paginatedItems.forEach((donation, index) => {
+                if (!donation.id) {
+                    return;
                 }
-            }
-        });
-    }
+                const row = archivedTableBody.insertRow();
+                row.innerHTML = `
+                    <td>${start + index + 1}</td>
+                    <td>${donation.encoder || 'N/A'}</td>
+                    <td>${donation.name || 'N/A'}</td>
+                    <td>${donation.type || 'N/A'}</td>
+                    <td>${donation.address || 'N/A'}</td>
+                    <td>${donation.contactPerson || 'N/A'}</td>
+                    <td>${donation.number || 'N/A'}</td>
+                    <td>${donation.email || 'N/A'}</td>
+                    <td>${donation.assistance || 'N/A'}</td>
+                    <td>₱${parseFloat(donation.valuation || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    <td>${donation.additionalnotes || 'N/A'}</td>
+                    <td>${donation.staffIncharge || 'N/A'}</td>
+                    <td>${donation.donationDate ? new Date(donation.donationDate).toLocaleDateString('en-PH') : 'N/A'}</td>
+                    <td><span class="status-${donation.status ? donation.status.toLowerCase() : 'na'}">${donation.status || 'N/A'}</span></td>
+                    <td>
+                        ${permissions.canRetrieve ? `
+                            <button class="retrieveBtn" aria-label="Retrieve donation">Retrieve</button>
+                        ` : ''}
+                    </td>
+                `;
+                if (permissions.canRetrieve) {
+                    const retrieveBtn = row.querySelector('.retrieveBtn');
+                    if (retrieveBtn) {
+                        retrieveBtn.addEventListener('click', () => retrieveDonation(donation.id, donation));
+                    }
+                }
+            });
+        }
 
-    const totalEntries = filteredAndSortedArchivedDonations.length;
-    const showingStart = totalEntries > 0 ? start + 1 : 0;
-    const showingEnd = Math.min(end, totalEntries);
-    if (archivedEntriesInfo) {
-        archivedEntriesInfo.textContent = `Showing ${showingStart} to ${showingEnd} of ${totalEntries} entries`;
+        const totalEntries = filteredAndSortedArchivedDonations.length;
+        const showingStart = totalEntries > 0 ? start + 1 : 0;
+        const showingEnd = Math.min(end, totalEntries);
+        if (archivedEntriesInfo) {
+            archivedEntriesInfo.textContent = `Showing ${showingStart} to ${showingEnd} of ${totalEntries} entries`;
+        }
+        renderArchivedPagination();
     }
-    renderArchivedPagination();
-}
 
     // Update pagination info
     function updatePaginationInfo() {
@@ -1364,7 +1518,6 @@ function renderArchivedTable() {
         }
 
         try {
-            // Check password_needs_reset
             const userSnapshot = await database.ref(`users/${user.uid}`).once('value');
             const userData = userSnapshot.val();
             const passwordNeedsReset = userData ? (userData.password_needs_reset || false) : false;
@@ -1390,7 +1543,6 @@ function renderArchivedTable() {
                 return;
             }
 
-            // Proceed with normal flow
             permissions = await checkAdminPermissions();
             if (!permissions.canView) {
                 Swal.fire({
