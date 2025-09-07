@@ -170,3 +170,8 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 });
+
+ document.getElementById('helpCenterLink').addEventListener('click', function(e) {
+    e.preventDefault(); // prevent default '#' behavior
+    window.location.href = 'askbayanihan.html';
+  });

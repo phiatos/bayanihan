@@ -100,7 +100,7 @@ form{
 .input-box input {
     flex-grow: 1;
     width: 100%;
-    min-width: 300px;        /* ensures it doesn’t shrink too much */
+    min-width: 200px;        /* ensures it doesn’t shrink too much */
     max-width: 100%;         /* prevents overflow outside container */
     padding: 15px 15px;      /* unified padding */
     border-radius: 10px;
@@ -387,6 +387,10 @@ form{
 
     .container.active .toggle-panel.toggle-right{
         bottom: 0;
+    }
+
+    .input-box input{
+        width: 200px;
     }
 
 }
