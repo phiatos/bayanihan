@@ -2305,7 +2305,6 @@ document.addEventListener("DOMContentLoaded", () => {
                                     details.innerHTML = `
                                         <p><strong>Organization:</strong> ${selectedOption.value}</p>
                                         <p><strong>Email:</strong> ${email}</p>
-                                        <p><strong>Activation ID:</strong> ${activationId}</p>
                                     `;
                                 } else {
                                     details.innerHTML = '<p>Please select an option to view details.</p>';

@@ -106,7 +106,6 @@
                     <h4 id="editModalTitle">Add Volunteer Group</h4>
 
                     <form id="addOrgForm">
-
                         <div class="form-group">
                             <label for="organization">Organization</label>
                             <input type="text" name="organization" id="organization" placeholder="Enter Organization" required>
@@ -161,6 +160,26 @@
                             <input type="text" name="socialMedia" id="socialMedia" placeholder="Enter Social Media Link (Optional)">
                         </div>
 
+                        <div class="form-group">
+                            <label for="organizationalBackgroundMission">Mission/Background</label>
+                            <textarea id="organizationalBackgroundMission" name="organizationalBackgroundMission" placeholder="Enter Mission/Background (Optional)"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="areasOfExpertiseFocus">Areas of Expertise/Focus</label>
+                            <textarea id="areasOfExpertiseFocus" name="areasOfExpertiseFocus" placeholder="Enter Areas of Expertise/Focus (Optional)"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="legalStatusRegistration">Legal Status/Registration</label>
+                            <input type="text" id="legalStatusRegistration" name="legalStatusRegistration" placeholder="Enter Legal Status/Registration (Optional)">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="requiredDocumentsLink">Required Documents Link</label>
+                            <input type="text" id="requiredDocumentsLink" name="requiredDocumentsLink" placeholder="Enter Document Link (Optional)">
+                        </div>
+
                         <div style="margin-top: 20px;">
                             <button type="submit">Save Changes</button>
                         </div>
@@ -177,6 +196,14 @@
                         <button type="button" id="editDetailsBtn">Return</button>
                         <button type="button" id="confirmSaveBtn">Confirm</button>
                     </div>
+                </div>
+            </div>
+
+            <!-- Preview Modal -->
+            <div id="previewModal" class="modal" style="display:none;">
+                <div class="modal-content">
+                    <span id="closeModal" class="close">×</span>
+                    <div id="modalContent"></div>
                 </div>
             </div>
 
@@ -237,6 +264,26 @@
                         <div class="form-group">
                             <label for="editSocialMedia">Social Media</label>
                             <input type="text" id="editSocialMedia" name="socialMedia" placeholder="Enter Social Media Link (Optional)">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="editOrganizationalBackgroundMission">Mission/Background</label>
+                            <textarea id="editOrganizationalBackgroundMission" name="organizationalBackgroundMission" placeholder="Enter Mission/Background (Optional)"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="editAreasOfExpertiseFocus">Areas of Expertise/Focus</label>
+                            <textarea id="editAreasOfExpertiseFocus" name="areasOfExpertiseFocus" placeholder="Enter Areas of Expertise/Focus (Optional)"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="editLegalStatusRegistration">Legal Status/Registration</label>
+                            <input type="text" id="editLegalStatusRegistration" name="legalStatusRegistration" placeholder="Enter Legal Status/Registration (Optional)">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="editRequiredDocumentsLink">Required Documents Link</label>
+                            <input type="text" id="editRequiredDocumentsLink" name="requiredDocumentsLink" placeholder="Enter Document Link (Optional)">
                         </div>
 
                         <div style="margin-top: 20px;">

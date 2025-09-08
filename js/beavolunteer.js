@@ -40,7 +40,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Email validation
     function isValidEmail(email) {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        const validDomains = ['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'icloud.com', 'protonmail.com'];
+        const validDomains = ['gmail.com'];
+        // const validDomains = ['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'icloud.com', 'protonmail.com'];
         const domain = email.split('@')[1]?.toLowerCase();
         return emailRegex.test(email) && validDomains.includes(domain);
     }
@@ -113,7 +114,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 showError(input, `${fieldConfig.label} should only contain letters and spaces.`);
             }
             if (fieldConfig.isEmail && !isValidEmail(input.value.trim())) {
-                showError(input, `Please enter a valid email address from an allowed domain.`);
+                showError(input, `Please enter a valid Gmail address (e.g., example@gmail.com).`);
             }
             if (fieldConfig.isMobile && !isValidMobile(input.value)) {
                 showError(input, `Mobile number must be 11 digits starting with "09".`);
@@ -362,8 +363,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     isValid = false;
                 }
                 if (isEmail && !isValidEmail(input.value.trim())) {
-                    showError(input, `Please enter a valid email address from an allowed domain.`);
-                    errors.push(`Please enter a valid email address from an allowed domain.`);
+                    showError(input, `Please enter a valid Gmail address (e.g., example@gmail.com).`);
+                    errors.push(`Please enter a valid Gmail address (e.g., example@gmail.com).`);
                     isValid = false;
                 }
                 if (isMobile && !isValidMobile(input.value)) {

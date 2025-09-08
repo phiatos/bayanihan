@@ -23,14 +23,11 @@ try {
 const auth = firebase.auth();
 const database = firebase.database();
 
-// Initialize secondary Firebase app for creating users
 try {
     firebase.initializeApp(firebaseConfig, "SecondaryApp");
-} catch (error) {
-}
+} catch (error) {}
 const secondaryAuth = firebase.auth(firebase.app("SecondaryApp"));
 
-// Initialize EmailJS with updated public key
 try {
     emailjs.init('ULA8rmn7VM-3fZ7ik');
 } catch (error) {}
@@ -104,7 +101,8 @@ function generateTempPassword() {
 // Function to validate email format 
 function isValidEmail(email) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const validDomains = ['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'icloud.com', 'protonmail.com'];
+    const validDomains = ['gmail.com'];
+    // const validDomains = ['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'icloud.com', 'protonmail.com'];
     const domain = email.split('@')[1]?.toLowerCase();
     return emailRegex.test(email) && validDomains.includes(domain);
 }
@@ -612,7 +610,7 @@ if (addAdminForm) {
             Swal.fire({
                 icon: 'error',
                 title: 'Invalid Email',
-                text: 'Please enter a valid email address from an allowed domain.',
+                text: 'Please enter a valid Gmail address (e.g., example@gmail.com).',
                 showConfirmButton: true,
                 confirmButtonText: 'OK',
                 allowOutsideClick: false,
@@ -888,7 +886,7 @@ if (editAdminForm) {
             Swal.fire({
                 icon: 'error',
                 title: 'Invalid Email',
-                text: 'Please enter a valid email address.',
+                text: 'Please enter a valid Gmail address (e.g., example@gmail.com).',
                 showConfirmButton: true,
                 confirmButtonText: 'OK',
                 allowOutsideClick: false,

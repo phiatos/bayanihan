@@ -51,7 +51,8 @@ function generateTempPassword() {
 // Function to validate email format
 function isValidEmail(email) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const validDomains = ['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'icloud.com', 'protonmail.com'];
+    const validDomains = ['gmail.com'];
+    // const validDomains = ['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'icloud.com', 'protonmail.com'];
     const domain = email.split('@')[1]?.toLowerCase();
     return emailRegex.test(email) && validDomains.includes(domain);
 }
@@ -251,6 +252,42 @@ function clearAInputs() {
 }
 
 // Fetch and render table data
+// function fetchAndRenderTable() {
+//     database.ref("volunteerGroups").on("value", snapshot => {
+//         const fetchedData = snapshot.val();
+//         if (!fetchedData) {
+//             data = [];
+//             filteredData = [];
+//             applySearchAndSort();
+//             Swal.fire({
+//                 icon: "info",
+//                 title: "No Data",
+//                 text: "No active volunteer groups found in the database.",
+//                 toast: true,
+//                 position: 'top-end',
+//                 showConfirmButton: false,
+//                 timer: 3000
+//             });
+//             return;
+//         }
+//         data = Object.entries(fetchedData).map(([key, entry]) => ({
+//             id: key,
+//             organization: entry.organization || "N/A",
+//             contactPerson: entry.contactPerson || "N/A",
+//             email: entry.email || "N/A",
+//             mobileNumber: entry.mobileNumber || "N/A",
+//             socialMedia: entry.socialMedia || "N/A",
+//             address: {
+//                 region: entry.address?.region || "N/A",
+//                 province: entry.address?.province || "N/A",
+//                 city: entry.address?.city || "N/A",
+//                 barangay: entry.address?.barangay || "N/A",
+//                 streetAddress: entry.address?.streetAddress || "N/A"
+//             }
+//         }));
+//         applySearchAndSort();
+//     });
+// }
 function fetchAndRenderTable() {
     database.ref("volunteerGroups").on("value", snapshot => {
         const fetchedData = snapshot.val();
@@ -282,7 +319,13 @@ function fetchAndRenderTable() {
                 city: entry.address?.city || "N/A",
                 barangay: entry.address?.barangay || "N/A",
                 streetAddress: entry.address?.streetAddress || "N/A"
-            }
+            },
+            organizationalBackgroundMission: entry.organizationalBackgroundMission || "N/A",
+            areasOfExpertiseFocus: entry.areasOfExpertiseFocus || "N/A",
+            legalStatusRegistration: entry.legalStatusRegistration || "N/A",
+            requiredDocumentsLink: entry.requiredDocumentsLink || "N/A",
+            timestamp: entry.timestamp || "N/A",
+            userId: entry.userId || "N/A"
         }));
         applySearchAndSort();
     });
@@ -318,6 +361,83 @@ function fetchAndRenderArchivedTable() {
     });
 }
 
+// === View Modal ===
+// function showPreviewModal(orgData) {
+//     const modalContentDiv = document.getElementById('modalContent');
+//     const formattedTimestamp = orgData.timestamp ? new Date(orgData.timestamp).toLocaleString('en-US', {
+//         year: 'numeric', month: 'short', day: 'numeric',
+//         hour: '2-digit', minute: '2-digit', second: '2-digit'
+//     }) : 'N/A';
+
+//     modalContentDiv.innerHTML = `
+//         <div class="modal-content-inner" style="padding: 20px;">
+//             <h2>Organization Details:</h2>
+//             <p><strong>Organization Name:</strong> ${orgData.organization || 'N/A'}</p>
+//             <p><strong>Contact Person:</strong> ${orgData.contactPerson || 'N/A'}</p>
+//             <p><strong>Email:</strong> ${orgData.email || 'N/A'}</p>
+//             <p><strong>Mobile Number:</strong> ${orgData.mobileNumber || 'N/A'}</p>
+//             <p><strong>Social Media Link:</strong> ${orgData.socialMedia && orgData.socialMedia !== 'N/A' ? `<a href="${orgData.socialMedia}" target="_blank" rel="noopener noreferrer">${orgData.socialMedia}</a>` : 'N/A'}</p>
+//             <hr>
+//             <h2>Address:</h2>
+//             <div style="margin-left: 15px;">
+//                 <p><strong>Region:</strong> ${orgData.address?.region || 'N/A'}</p>
+//                 <p><strong>Province:</strong> ${orgData.address?.province || 'N/A'}</p>
+//                 <p><strong>City:</strong> ${orgData.address?.city || 'N/A'}</p>
+//                 <p><strong>Barangay:</strong> ${orgData.address?.barangay || 'N/A'}</p>
+//                 <p><strong>Street Address:</strong> ${orgData.address?.streetAddress || 'N/A'}</p>
+//             </div>
+//             <hr>
+//             <p style="margin-top: 20px; font-size: 0.9em; color: #555;"><strong>Created At:</strong> ${formattedTimestamp}</p>
+//         </div>
+//     `;
+//     document.getElementById('previewModal').style.display = 'flex';
+// }
+function showPreviewModal(orgData) {
+    const modalContentDiv = document.getElementById('modalContent');
+    const formattedTimestamp = orgData.timestamp ? new Date(orgData.timestamp).toLocaleString('en-US', {
+        year: 'numeric', month: 'short', day: 'numeric',
+        hour: '2-digit', minute: '2-digit', second: '2-digit'
+    }) : 'N/A';
+
+    modalContentDiv.innerHTML = `
+        <div class="modal-content-inner" style="padding: 20px;">
+            <h2>Organization Details:</h2>
+            <p><strong>Organization Name:</strong> ${orgData.organization || 'N/A'}</p>
+            <p><strong>Contact Person:</strong> ${orgData.contactPerson || 'N/A'}</p>
+            <p><strong>Email:</strong> ${orgData.email || 'N/A'}</p>
+            <p><strong>Mobile Number:</strong> ${orgData.mobileNumber || 'N/A'}</p>
+            <p><strong>Social Media Link:</strong> ${orgData.socialMedia && orgData.socialMedia !== 'N/A' ? `<a href="${orgData.socialMedia}" target="_blank" rel="noopener noreferrer">${orgData.socialMedia}</a>` : 'N/A'}</p>
+            <hr>
+            <h2>Address:</h2>
+            <div style="margin-left: 15px;">
+                <p><strong>Region:</strong> ${orgData.address?.region || 'N/A'}</p>
+                <p><strong>Province:</strong> ${orgData.address?.province || 'N/A'}</p>
+                <p><strong>City:</strong> ${orgData.address?.city || 'N/A'}</p>
+                <p><strong>Barangay:</strong> ${orgData.address?.barangay || 'N/A'}</p>
+                <p><strong>Street Address:</strong> ${orgData.address?.streetAddress || 'N/A'}</p>
+            </div>
+            <hr>
+            <h2>Organizational Background:</h2>
+            <p><strong>Mission/Background:</strong> ${orgData.organizationalBackgroundMission || 'N/A'}</p>
+            <p><strong>Areas of Expertise/Focus:</strong> ${orgData.areasOfExpertiseFocus || 'N/A'}</p>
+            <hr>
+            <h2>Legal & Documents:</h2>
+            <p><strong>Legal Status/Registration:</strong> ${orgData.legalStatusRegistration || 'N/A'}</p>
+            <p><strong>Required Documents:</strong> ${orgData.requiredDocumentsLink ? `<a href="${orgData.requiredDocumentsLink}" target="_blank" rel="noopener noreferrer">View Document</a>` : 'N/A'}</p>
+            <hr>
+            <p style="margin-top: 20px; font-size: 0.9em; color: #555;"><strong>Created At:</strong> ${formattedTimestamp}</p>
+        </div>
+    `;
+    document.getElementById('previewModal').style.display = 'flex';
+}
+
+function hidePreviewModal() {
+    const previewModal = document.getElementById('previewModal');
+    const modalContentDiv = document.getElementById('modalContent');
+    previewModal.style.display = 'none';
+    modalContentDiv.innerHTML = '';
+}
+
 // Render table
 function renderTable(dataToRender = filteredData) {
     if (!tableBody) return;
@@ -350,6 +470,7 @@ function renderTable(dataToRender = filteredData) {
             <td>${row.address?.barangay || 'N/A'}</td>
             <td>${row.address?.streetAddress || 'N/A'}</td>
             <td>
+                <button title="View" class="viewBtn" data-id="${row.id}"><i class='bx bx-show'></i></button>
                 <button title="Edit" class="editBtn" data-id="${row.id}"><i class='bx bx-edit'></i></button>
                 <button title="Archive" class="deleteBtn" data-id="${row.id}"><i class="bx bx-x-circle"></i></button>
             </td>
@@ -780,7 +901,7 @@ if (addOrgForm) {
             Swal.fire({
                 icon: 'error',
                 title: 'Invalid Email',
-                text: 'Please enter a valid email address from an allowed domain.',
+                text: 'Please enter a valid Gmail address (e.g., example@gmail.com).',
                 showConfirmButton: true,
                 confirmButtonText: 'OK',
                 customClass: {
@@ -1033,6 +1154,39 @@ window.addEventListener('click', (event) => {
 });
 
 // Function to populate and open the edit modal
+// function openEditModal(orgId) {
+//     const orgToEdit = data.find(org => org.id === orgId);
+//     if (!orgToEdit) {
+//         Swal.fire({
+//             icon: 'error',
+//             title: 'Error',
+//             text: 'Volunteer group not found.',
+//             showConfirmButton: true,
+//             confirmButtonText: 'OK',
+//             customClass: {
+//                 popup: 'swal2-popup-suerrorccess-clean',
+//                 title: 'swal2-title-error-clean',
+//                 htmlContainer: 'swal2-text-error-clean',
+//                 confirmButton: 'my-error-button'
+//             }
+//         });
+//         return;
+//     }
+
+//     currentEditOrgKey = orgId;
+//     editOrgFirebaseKeyInput.value = orgId;
+
+//     document.getElementById('editOrganization').value = orgToEdit.organization;
+//     document.getElementById('editContactPerson').value = orgToEdit.contactPerson;
+//     document.getElementById('editEmail').value = orgToEdit.email;
+//     document.getElementById('editMobileNumber').value = orgToEdit.mobileNumber;
+//     document.getElementById('editSocialMedia').value = orgToEdit.socialMedia === "N/A" ? "" : orgToEdit.socialMedia;
+//     document.getElementById('editStreetAddress').value = orgToEdit.address.streetAddress === "N/A" ? "" : orgToEdit.address.streetAddress;
+
+//     populateEditLocationDropdowns(orgToEdit.address.region, orgToEdit.address.province, orgToEdit.address.city, orgToEdit.address.barangay);
+
+//     editOrgModal.style.display = 'flex';
+// }
 function openEditModal(orgId) {
     const orgToEdit = data.find(org => org.id === orgId);
     if (!orgToEdit) {
@@ -1043,7 +1197,7 @@ function openEditModal(orgId) {
             showConfirmButton: true,
             confirmButtonText: 'OK',
             customClass: {
-                popup: 'swal2-popup-suerrorccess-clean',
+                popup: 'swal2-popup-error-clean',
                 title: 'swal2-title-error-clean',
                 htmlContainer: 'swal2-text-error-clean',
                 confirmButton: 'my-error-button'
@@ -1061,6 +1215,10 @@ function openEditModal(orgId) {
     document.getElementById('editMobileNumber').value = orgToEdit.mobileNumber;
     document.getElementById('editSocialMedia').value = orgToEdit.socialMedia === "N/A" ? "" : orgToEdit.socialMedia;
     document.getElementById('editStreetAddress').value = orgToEdit.address.streetAddress === "N/A" ? "" : orgToEdit.address.streetAddress;
+    document.getElementById('editOrganizationalBackgroundMission').value = orgToEdit.organizationalBackgroundMission || "";
+    document.getElementById('editAreasOfExpertiseFocus').value = orgToEdit.areasOfExpertiseFocus || "";
+    document.getElementById('editLegalStatusRegistration').value = orgToEdit.legalStatusRegistration || "";
+    document.getElementById('editRequiredDocumentsLink').value = orgToEdit.requiredDocumentsLink || "";
 
     populateEditLocationDropdowns(orgToEdit.address.region, orgToEdit.address.province, orgToEdit.address.city, orgToEdit.address.barangay);
 
@@ -1068,6 +1226,91 @@ function openEditModal(orgId) {
 }
 
 // Function to populate edit modal location dropdowns
+// async function populateEditLocationDropdowns(selectedRegion, selectedProvince, selectedCity, selectedBarangay) {
+//     editRegionSelect.innerHTML = '<option value="" selected="true" disabled>Choose Region</option>';
+//     editProvinceSelect.innerHTML = '<option value="" selected="true" disabled>Choose Province</option>';
+//     editCitySelect.innerHTML = '<option value="" selected="true" disabled>Choose City / Municipality</option>';
+//     editBarangaySelect.innerHTML = '<option value="" selected="true" disabled>Choose Barangay</option>';
+
+//     try {
+//         const regionResponse = await fetch('../json/region.json');
+//         if (!regionResponse.ok) throw new Error(`HTTP error! Status: ${regionResponse.status}`);
+//         const regions = await regionResponse.json();
+//         regions.sort((a, b) => a.region_name.localeCompare(b.region_name));
+//         regions.forEach(entry => {
+//             const opt = document.createElement('option');
+//             opt.value = entry.region_code;
+//             opt.textContent = entry.region_name;
+//             editRegionSelect.appendChild(opt);
+//         });
+//         const regionFound = regions.find(r => r.region_name === selectedRegion);
+//         if (regionFound) {
+//             editRegionSelect.value = regionFound.region_code;
+//         }
+
+//         const provinceResponse = await fetch('../json/province.json');
+//         if (!provinceResponse.ok) throw new Error(`HTTP error! Status: ${provinceResponse.status}`);
+//         const provinces = await provinceResponse.json();
+//         const filteredProvinces = provinces.filter(p => p.region_code === editRegionSelect.value);
+//         filteredProvinces.sort((a, b) => a.province_name.localeCompare(b.province_name));
+//         filteredProvinces.forEach(entry => {
+//             const opt = document.createElement('option');
+//             opt.value = entry.province_code;
+//             opt.textContent = entry.province_name;
+//             editProvinceSelect.appendChild(opt);
+//         });
+//         const provinceFound = filteredProvinces.find(p => p.province_name === selectedProvince);
+//         if (provinceFound) {
+//             editProvinceSelect.value = provinceFound.province_code;
+//         }
+
+//         const cityResponse = await fetch('../json/city.json');
+//         if (!cityResponse.ok) throw new Error(`HTTP error! Status: ${cityResponse.status}`);
+//         const cities = await cityResponse.json();
+//         const filteredCities = cities.filter(c => c.province_code === editProvinceSelect.value);
+//         filteredCities.sort((a, b) => a.city_name.localeCompare(b.city_name));
+//         filteredCities.forEach(entry => {
+//             const opt = document.createElement('option');
+//             opt.value = entry.city_code;
+//             opt.textContent = entry.city_name;
+//             editCitySelect.appendChild(opt);
+//         });
+//         const cityFound = filteredCities.find(c => c.city_name === selectedCity);
+//         if (cityFound) {
+//             editCitySelect.value = cityFound.city_code;
+//         }
+
+//         const barangayResponse = await fetch('../json/barangay.json');
+//         if (!barangayResponse.ok) throw new Error(`HTTP error! Status: ${barangayResponse.status}`);
+//         const barangays = await barangayResponse.json();
+//         const filteredBarangays = barangays.filter(b => b.city_code === editCitySelect.value);
+//         filteredBarangays.sort((a, b) => a.brgy_name.localeCompare(b.brgy_name));
+//         filteredBarangays.forEach(entry => {
+//             const opt = document.createElement('option');
+//             opt.value = entry.brgy_code;
+//             opt.textContent = entry.brgy_name;
+//             editBarangaySelect.appendChild(opt);
+//         });
+//         const barangayFound = filteredBarangays.find(b => b.brgy_name === selectedBarangay);
+//         if (barangayFound) {
+//             editBarangaySelect.value = barangayFound.brgy_code;
+//         }
+//     } catch (error) {
+//         Swal.fire({
+//             icon: 'error',
+//             title: 'Failed to Load Location Data',
+//             text: `Unable to load location data for editing: ${error.message}.`,
+//             showConfirmButton: true,
+//             confirmButtonText: 'OK',
+//             customClass: {
+//                 popup: 'swal2-popup-error-clean',
+//                 title: 'swal2-title-error-clean',
+//                 htmlContainer: 'swal2-text-error-clean',
+//                 confirmButton: 'my-error-button'
+//             }
+//         });
+//     }
+// }
 async function populateEditLocationDropdowns(selectedRegion, selectedProvince, selectedCity, selectedBarangay) {
     editRegionSelect.innerHTML = '<option value="" selected="true" disabled>Choose Region</option>';
     editProvinceSelect.innerHTML = '<option value="" selected="true" disabled>Choose Province</option>';
@@ -1136,6 +1379,15 @@ async function populateEditLocationDropdowns(selectedRegion, selectedProvince, s
         const barangayFound = filteredBarangays.find(b => b.brgy_name === selectedBarangay);
         if (barangayFound) {
             editBarangaySelect.value = barangayFound.brgy_code;
+        }
+
+        // Populate new fields
+        const orgToEdit = data.find(org => org.id === currentEditOrgKey);
+        if (orgToEdit) {
+            document.getElementById('editOrganizationalBackgroundMission').value = orgToEdit.organizationalBackgroundMission || '';
+            document.getElementById('editAreasOfExpertiseFocus').value = orgToEdit.areasOfExpertiseFocus || '';
+            document.getElementById('editLegalStatusRegistration').value = orgToEdit.legalStatusRegistration || '';
+            document.getElementById('editRequiredDocumentsLink').value = orgToEdit.requiredDocumentsLink || '';
         }
     } catch (error) {
         Swal.fire({
@@ -1217,6 +1469,263 @@ editCitySelect.addEventListener('change', async () => {
     }
 });
 
+// if (editOrgForm) {
+//     editOrgForm.addEventListener('submit', async e => {
+//         e.preventDefault();
+
+//         if (adminPosition !== 'Super Admin') {
+//             Swal.fire({
+//                 title: 'Access Denied',
+//                 text: 'You do not have permission to edit volunteer groups.',
+//                 icon: 'error',
+//                 timer: 2000,
+//                 showConfirmButton: false,
+//                 timerProgressBar: true,
+//                 allowOutsideClick: false,
+//                 customClass: {
+//                     popup: 'swal2-popup-error-clean',
+//                     title: 'swal2-title-error-clean',
+//                     htmlContainer: 'swal2-text-error-clean'
+//                 }
+//             });
+//             return;
+//         }
+
+//         const orgId = editOrgFirebaseKeyInput.value;
+//         if (!orgId) {
+//             Swal.fire({
+//                 icon: 'error',
+//                 title: 'Error',
+//                 text: 'No organization ID found for editing.',
+//                 showConfirmButton: true,
+//                 confirmButtonText: 'OK',
+//                 customClass: {
+//                     popup: 'swal2-popup-error-clean',
+//                     title: 'swal2-title-error-clean',
+//                     htmlContainer: 'swal2-text-error-clean',
+//                     confirmButton: 'my-error-button'
+//                 }
+//             });
+//             return;
+//         }
+
+//         const updatedOrganization = document.getElementById('editOrganization').value.trim();
+//         const updatedContactPerson = document.getElementById('editContactPerson').value.trim();
+//         const updatedEmail = document.getElementById('editEmail').value.trim();
+//         const updatedMobileNumber = document.getElementById('editMobileNumber').value.trim();
+//         const updatedSocialMedia = document.getElementById('editSocialMedia').value.trim();
+//         const updatedStreetAddress = document.getElementById('editStreetAddress').value.trim();
+
+//         const updatedRegionText = editRegionSelect.options[editRegionSelect.selectedIndex]?.textContent || '';
+//         const updatedProvinceText = editProvinceSelect.options[editProvinceSelect.selectedIndex]?.textContent || '';
+//         const updatedCityText = editCitySelect.options[editCitySelect.selectedIndex]?.textContent || '';
+//         const updatedBarangayText = editBarangaySelect.options[editBarangaySelect.selectedIndex]?.textContent || ''; 
+
+//         // Validation Checks
+//         if (!updatedOrganization || !updatedContactPerson || !updatedEmail || !updatedMobileNumber ||
+//             !updatedRegionText || !updatedProvinceText || !updatedCityText || !updatedBarangayText) {
+//             Swal.fire({
+//                 icon: 'error',
+//                 title: 'Missing Fields',
+//                 text: 'Please fill in all required fields (Organization, Contact Person, Email, Mobile Number, and Full Address).',
+//                 showConfirmButton: true,
+//                 confirmButtonText: 'OK',
+//                 customClass: {
+//                     popup: 'swal2-popup-error-clean',
+//                     title: 'swal2-title-error-clean',
+//                     htmlContainer: 'swal2-text-error-clean',
+//                     confirmButton: 'my-error-button'
+//                 }
+//             });
+//             return;
+//         }
+
+//         if (!isValidEmail(updatedEmail)) {
+//             Swal.fire({
+//                 icon: 'error',
+//                 title: 'Invalid Email',
+//                 text: 'Please enter a valid email address from an allowed domain.',
+//                 showConfirmButton: true,
+//                 confirmButtonText: 'OK',
+//                 customClass: {
+//                     popup: 'swal2-popup-error-clean',
+//                     title: 'swal2-title-error-clean',
+//                     htmlContainer: 'swal2-text-error-clean',
+//                     confirmButton: 'my-error-button'
+//                 }
+//             });
+//             return;
+//         }
+
+//         if (!isValidMobile(updatedMobileNumber)) {
+//             Swal.fire({
+//                 icon: 'error',
+//                 title: 'Invalid Mobile Number',
+//                 text: 'Mobile number must be 11 digits starting with "09"',
+//                 showConfirmButton: true,
+//                 confirmButtonText: 'OK',
+//                 customClass: {
+//                     popup: 'swal2-popup-error-clean',
+//                     title: 'swal2-title-error-clean',
+//                     htmlContainer: 'swal2-text-error-clean',
+//                     confirmButton: 'my-error-button'
+//                 }
+//             });
+//             return;
+//         }
+
+//         const updatedData = {
+//             organization: updatedOrganization,
+//             contactPerson: updatedContactPerson,
+//             email: updatedEmail,
+//             mobileNumber: updatedMobileNumber,
+//             socialMedia: updatedSocialMedia || "N/A",
+//             address: {
+//                 region: updatedRegionText,
+//                 province: updatedProvinceText,
+//                 city: updatedCityText,
+//                 barangay: updatedBarangayText,
+//                 streetAddress: updatedStreetAddress || "N/A"
+//             }
+//         };
+
+//         // Fetch the userId from volunteerGroups to use in isMobileNumberInUse and isEmailInUse
+//         let userId;
+//         try {
+//             const snapshot = await database.ref(`volunteerGroups/${orgId}`).once('value');
+//             const orgData = snapshot.val();
+//             if (!orgData || !orgData.userId) {
+//                 Swal.fire({
+//                     icon: 'error',
+//                     title: 'Error',
+//                     text: 'Unable to find user ID for this organization.',
+//                     showConfirmButton: true,
+//                     confirmButtonText: 'OK',
+//                     customClass: {
+//                         popup: 'swal2-popup-error-clean',
+//                         title: 'swal2-title-error-clean',
+//                         htmlContainer: 'swal2-text-error-clean',
+//                         confirmButton: 'my-error-button'
+//                     }
+//                 });
+//                 return;
+//             }
+//             userId = orgData.userId;
+//         } catch (error) {
+//             Swal.fire({
+//                 icon: 'error',
+//                 title: 'Error',
+//                 text: `Failed to fetch organization data: ${error.message}`,
+//                 showConfirmButton: true,
+//                 confirmButtonText: 'OK',
+//                 customClass: {
+//                     popup: 'swal2-popup-success-clean',
+//                     title: 'swal2-title-success-clean',
+//                     htmlContainer: 'swal2-text-success-clean',
+//                     confirmButton: 'my-success-button'
+//                 }
+//             });
+//             return;
+//         }
+
+//         // Check for unchanged data first
+//         const unchanged = await isDataUnchanged(orgId, updatedData);
+//         if (unchanged) {
+//             Swal.fire({
+//                 icon: 'info',
+//                 title: 'No Changes Detected',
+//                 text: 'No changes were made to the volunteer group details.',
+//                 showConfirmButton: true,
+//                 confirmButtonText: 'OK',
+//                 customClass: {
+//                     popup: 'swal2-popup-success-clean',
+//                     title: 'swal2-title-success-clean',
+//                     htmlContainer: 'swal2-text-success-clean',
+//                     confirmButton: 'my-success-button'
+//                 }
+//             });
+//             editOrgModal.style.display = 'none';
+//             return;
+//         }
+
+//         // Check if mobile number is in use (using userId instead of orgId)
+//         const mobileInUse = await isMobileNumberInUse(updatedMobileNumber, userId);
+//         if (mobileInUse) {
+//             Swal.fire({
+//                 icon: 'error',
+//                 title: 'Mobile Number In Use',
+//                 text: 'The mobile number is already in use by another account.',
+//                 showConfirmButton: true,
+//                 confirmButtonText: 'OK',
+//                 customClass: {
+//                     popup: 'swal2-popup-success-clean',
+//                     title: 'swal2-title-success-clean',
+//                     htmlContainer: 'swal2-text-success-clean',
+//                     confirmButton: 'my-success-button'
+//                 }
+//             });
+//             return;
+//         }
+
+//         // Check if email is in use (using userId instead of orgId)
+//         const emailInUse = await isEmailInUse(updatedEmail, userId);
+//         if (emailInUse) {
+//             Swal.fire({
+//                 icon: 'error',
+//                 title: 'Email In Use',
+//                 text: 'The email address is already in use by another account.',
+//                 showConfirmButton: true,
+//                 confirmButtonText: 'OK',
+//                 customClass: {
+//                     popup: 'swal2-popup-success-clean',
+//                     title: 'swal2-title-success-clean',
+//                     htmlContainer: 'swal2-text-success-clean',
+//                     confirmButton: 'my-success-button'
+//                 }
+//             });
+//             return;
+//         }
+
+//         const passwordVerified = await verifySuperAdminPassword();
+//         if (!passwordVerified) {
+//             return;
+//         }
+
+//         try {
+//             await database.ref(`volunteerGroups/${orgId}`).update(updatedData);
+//             Swal.fire({
+//                 icon: 'success',
+//                 title: 'Success',
+//                 text: 'The volunteer group has been updated.',
+//                 showConfirmButton: true,
+//                 confirmButtonText: 'OK',
+//                 customClass: {
+//                     popup: 'swal2-popup-success-clean',
+//                     title: 'swal2-title-success-clean',
+//                     htmlContainer: 'swal2-text-success-clean',
+//                     confirmButton: 'my-success-button'
+//                 }
+//             });
+//             editOrgModal.style.display = 'none';
+//             editOrgForm.reset();
+//             fetchAndRenderTable();
+//         } catch (error) {
+//             Swal.fire({
+//                 icon: 'error',
+//                 title: 'Error',
+//                 text: `Failed to update volunteer group: ${error.message}`,
+//                 showConfirmButton: true,
+//                 confirmButtonText: 'OK',
+//                 customClass: {
+//                     popup: 'swal2-popup-success-clean',
+//                     title: 'swal2-title-success-clean',
+//                     htmlContainer: 'swal2-text-success-clean',
+//                     confirmButton: 'my-success-button'
+//                 }
+//             });
+//         }
+//     });
+// }
 if (editOrgForm) {
     editOrgForm.addEventListener('submit', async e => {
         e.preventDefault();
@@ -1263,11 +1772,15 @@ if (editOrgForm) {
         const updatedMobileNumber = document.getElementById('editMobileNumber').value.trim();
         const updatedSocialMedia = document.getElementById('editSocialMedia').value.trim();
         const updatedStreetAddress = document.getElementById('editStreetAddress').value.trim();
+        const updatedOrganizationalBackgroundMission = document.getElementById('editOrganizationalBackgroundMission').value.trim();
+        const updatedAreasOfExpertiseFocus = document.getElementById('editAreasOfExpertiseFocus').value.trim();
+        const updatedLegalStatusRegistration = document.getElementById('editLegalStatusRegistration').value.trim();
+        const updatedRequiredDocumentsLink = document.getElementById('editRequiredDocumentsLink').value.trim();
 
         const updatedRegionText = editRegionSelect.options[editRegionSelect.selectedIndex]?.textContent || '';
         const updatedProvinceText = editProvinceSelect.options[editProvinceSelect.selectedIndex]?.textContent || '';
         const updatedCityText = editCitySelect.options[editCitySelect.selectedIndex]?.textContent || '';
-        const updatedBarangayText = editBarangaySelect.options[editBarangaySelect.selectedIndex]?.textContent || ''; // Fixed barangay index bug
+        const updatedBarangayText = editBarangaySelect.options[editBarangaySelect.selectedIndex]?.textContent || '';
 
         // Validation Checks
         if (!updatedOrganization || !updatedContactPerson || !updatedEmail || !updatedMobileNumber ||
@@ -1292,7 +1805,7 @@ if (editOrgForm) {
             Swal.fire({
                 icon: 'error',
                 title: 'Invalid Email',
-                text: 'Please enter a valid email address from an allowed domain.',
+                text: 'Please enter a valid Gmail address (e.g., example@gmail.com).',
                 showConfirmButton: true,
                 confirmButtonText: 'OK',
                 customClass: {
@@ -1322,27 +1835,12 @@ if (editOrgForm) {
             return;
         }
 
-        const updatedData = {
-            organization: updatedOrganization,
-            contactPerson: updatedContactPerson,
-            email: updatedEmail,
-            mobileNumber: updatedMobileNumber,
-            socialMedia: updatedSocialMedia || "N/A",
-            address: {
-                region: updatedRegionText,
-                province: updatedProvinceText,
-                city: updatedCityText,
-                barangay: updatedBarangayText,
-                streetAddress: updatedStreetAddress || "N/A"
-            }
-        };
-
-        // Fetch the userId from volunteerGroups to use in isMobileNumberInUse and isEmailInUse
-        let userId;
+        // Fetch the userId and existing data from volunteerGroups
+        let userId, existingData;
         try {
             const snapshot = await database.ref(`volunteerGroups/${orgId}`).once('value');
-            const orgData = snapshot.val();
-            if (!orgData || !orgData.userId) {
+            existingData = snapshot.val();
+            if (!existingData || !existingData.userId) {
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
@@ -1358,7 +1856,7 @@ if (editOrgForm) {
                 });
                 return;
             }
-            userId = orgData.userId;
+            userId = existingData.userId;
         } catch (error) {
             Swal.fire({
                 icon: 'error',
@@ -1367,18 +1865,37 @@ if (editOrgForm) {
                 showConfirmButton: true,
                 confirmButtonText: 'OK',
                 customClass: {
-                    popup: 'swal2-popup-success-clean',
-                    title: 'swal2-title-success-clean',
-                    htmlContainer: 'swal2-text-success-clean',
-                    confirmButton: 'my-success-button'
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
                 }
             });
             return;
         }
 
-        // Check for unchanged data first
-        const unchanged = await isDataUnchanged(orgId, updatedData);
-        if (unchanged) {
+        // Check for unchanged data
+        const updatedDataForComparison = {
+            organization: updatedOrganization,
+            contactPerson: updatedContactPerson,
+            email: updatedEmail,
+            mobileNumber: updatedMobileNumber,
+            socialMedia: updatedSocialMedia || "N/A",
+            address: {
+                region: updatedRegionText,
+                province: updatedProvinceText,
+                city: updatedCityText,
+                barangay: updatedBarangayText,
+                streetAddress: updatedStreetAddress || "N/A"
+            }
+        };
+
+        const unchanged = await isDataUnchanged(orgId, updatedDataForComparison);
+        if (unchanged && 
+            existingData.organizationalBackgroundMission === (updatedOrganizationalBackgroundMission || "N/A") &&
+            existingData.areasOfExpertiseFocus === (updatedAreasOfExpertiseFocus || "N/A") &&
+            existingData.legalStatusRegistration === (updatedLegalStatusRegistration || "N/A") &&
+            existingData.requiredDocumentsLink === (updatedRequiredDocumentsLink || "N/A")) {
             Swal.fire({
                 icon: 'info',
                 title: 'No Changes Detected',
@@ -1396,7 +1913,7 @@ if (editOrgForm) {
             return;
         }
 
-        // Check if mobile number is in use (using userId instead of orgId)
+        // Check if mobile number is in use
         const mobileInUse = await isMobileNumberInUse(updatedMobileNumber, userId);
         if (mobileInUse) {
             Swal.fire({
@@ -1406,16 +1923,16 @@ if (editOrgForm) {
                 showConfirmButton: true,
                 confirmButtonText: 'OK',
                 customClass: {
-                    popup: 'swal2-popup-success-clean',
-                    title: 'swal2-title-success-clean',
-                    htmlContainer: 'swal2-text-success-clean',
-                    confirmButton: 'my-success-button'
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
                 }
             });
             return;
         }
 
-        // Check if email is in use (using userId instead of orgId)
+        // Check if email is in use
         const emailInUse = await isEmailInUse(updatedEmail, userId);
         if (emailInUse) {
             Swal.fire({
@@ -1425,10 +1942,10 @@ if (editOrgForm) {
                 showConfirmButton: true,
                 confirmButtonText: 'OK',
                 customClass: {
-                    popup: 'swal2-popup-success-clean',
-                    title: 'swal2-title-success-clean',
-                    htmlContainer: 'swal2-text-success-clean',
-                    confirmButton: 'my-success-button'
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
                 }
             });
             return;
@@ -1440,21 +1957,45 @@ if (editOrgForm) {
         }
 
         try {
+            const updatedData = {
+                organization: updatedOrganization,
+                contactPerson: updatedContactPerson,
+                email: updatedEmail,
+                mobileNumber: updatedMobileNumber,
+                socialMedia: updatedSocialMedia || "N/A",
+                address: {
+                    region: updatedRegionText,
+                    province: updatedProvinceText,
+                    city: updatedCityText,
+                    barangay: updatedBarangayText,
+                    streetAddress: updatedStreetAddress || "N/A"
+                },
+                organizationalBackgroundMission: updatedOrganizationalBackgroundMission || "N/A",
+                areasOfExpertiseFocus: updatedAreasOfExpertiseFocus || "N/A",
+                legalStatusRegistration: updatedLegalStatusRegistration || "N/A",
+                requiredDocumentsLink: updatedRequiredDocumentsLink || "N/A",
+                lastUpdatedBy: auth.currentUser.uid,
+                lastUpdatedAt: new Date().toISOString(),
+                timestamp: existingData.timestamp, // Preserve original
+                userId: existingData.userId // Preserve original
+            };
+
             await database.ref(`volunteerGroups/${orgId}`).update(updatedData);
             Swal.fire({
                 icon: 'success',
-                title: 'Success',
+                title: 'Updated!',
                 text: 'The volunteer group has been updated.',
-                showConfirmButton: true,
-                confirmButtonText: 'OK',
+                timer: 1600,
+                showConfirmButton: false,
+                timerProgressBar: true,
+                allowOutsideClick: false,
                 customClass: {
                     popup: 'swal2-popup-success-clean',
                     title: 'swal2-title-success-clean',
-                    htmlContainer: 'swal2-text-success-clean',
-                    confirmButton: 'my-success-button'
+                    htmlContainer: 'swal2-text-success-clean'
                 }
             });
-            editOrgModal.style.display = 'none';
+            document.getElementById('editOrgModal').style.display = 'none';
             editOrgForm.reset();
             fetchAndRenderTable();
         } catch (error) {
@@ -1465,10 +2006,10 @@ if (editOrgForm) {
                 showConfirmButton: true,
                 confirmButtonText: 'OK',
                 customClass: {
-                    popup: 'swal2-popup-success-clean',
-                    title: 'swal2-title-success-clean',
-                    htmlContainer: 'swal2-text-success-clean',
-                    confirmButton: 'my-success-button'
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
                 }
             });
         }
@@ -1477,6 +2018,30 @@ if (editOrgForm) {
 
 // Function to attach handlers to dynamically created table rows
 function attachRowHandlers() {
+    document.querySelectorAll('.viewBtn').forEach(button => {
+        button.onclick = (e) => {
+            const orgId = e.target.dataset.id || e.target.closest('button').dataset.id;
+            const orgData = data.find(org => org.id === orgId);
+            if (orgData) {
+                showPreviewModal(orgData);
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Volunteer group not found.',
+                    showConfirmButton: true,
+                    confirmButtonText: 'OK',
+                    customClass: {
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean',
+                        confirmButton: 'my-error-button'
+                    }
+                });
+            }
+        };
+    });
+
     document.querySelectorAll('.editBtn').forEach(button => {
         button.onclick = (e) => {
             const orgId = e.target.dataset.id;
@@ -1595,7 +2160,7 @@ function attachRowHandlers() {
                                     popup: 'swal2-popup-error-clean',
                                     title: 'swal2-title-error-clean',
                                     htmlContainer: 'swal2-text-error-clean',
-                                    confirmButton: 'my-error-buttonn'
+                                    confirmButton: 'my-error-button'
                                 }
                             });
                         }
@@ -1910,6 +2475,16 @@ if (closeArchivedModalBtn) {
         }
     });
 }
+
+// Add event listener for closing the preview modal
+document.getElementById('closeModal').addEventListener('click', hidePreviewModal);
+
+// Add event listener for clicking outside the modal content to close it
+window.addEventListener('click', (event) => {
+    if (event.target === document.getElementById('previewModal')) {
+        hidePreviewModal();
+    }
+});
 
 const editDetailsBtn = document.getElementById('editDetailsBtn');
 if (editDetailsBtn) {
