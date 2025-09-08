@@ -437,8 +437,7 @@ function renderAdminTable(data) {
         const actionsCell = row.insertCell(6);
         // Disable buttons for specific email
         const protectedEmails = [
-            'sophiakirstentorrenueva@gmail.com',
-            'kimrazel4@gmail.com'
+            'sophiakirstentorrenueva@gmail.com'
         ];
         const isProtectedEmail = protectedEmails.includes(admin.email);
         actionsCell.innerHTML = `

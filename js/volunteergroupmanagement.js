@@ -793,7 +793,7 @@ my_handlers.fill_regions();
 // Event listeners for modals and buttons
 if (addNew) {
     addNew.addEventListener('click', () => {
-        if (adminPosition !== 'Super Admin') {
+        if (!['Super Admin', 'position-one', 'position-two'].includes(adminPosition)) {
             Swal.fire({
                 title: 'Access Denied',
                 text: 'You do not have permission to add volunteer groups.',
@@ -848,7 +848,7 @@ if (addOrgForm) {
     addOrgForm.addEventListener('submit', async e => {
         e.preventDefault();
 
-        if (adminPosition !== 'Super Admin') {
+        if (!['Super Admin', 'position-one', 'position-two'].includes(adminPosition)) {
             Swal.fire({
                 title: 'Access Denied',
                 text: 'You do not have permission to add volunteer groups.',
@@ -872,6 +872,10 @@ if (addOrgForm) {
         const mobileNumber = document.getElementById('mobileNumber').value.trim();
         const socialMedia = document.getElementById('socialMedia').value.trim();
         const streetAddress = document.getElementById('streetAddress')?.value.trim() || '';
+        const organizationalBackgroundMission = document.getElementById('organizationalBackgroundMission')?.value.trim() || '';
+        const areasOfExpertiseFocus = document.getElementById('areasOfExpertiseFocus')?.value.trim() || '';
+        const legalStatusRegistration = document.getElementById('legalStatusRegistration')?.value.trim() || '';
+        const requiredDocumentsLink = document.getElementById('requiredDocumentsLink')?.value.trim() || '';
 
         const selectedRegionText = regionSelect.options[regionSelect.selectedIndex]?.textContent || '';
         const selectedProvinceText = provinceSelect.options[provinceSelect.selectedIndex]?.textContent || '';
@@ -980,6 +984,10 @@ if (addOrgForm) {
                 barangay: selectedBarangayText,
                 streetAddress: streetAddress || "N/A"
             },
+            organizationalBackgroundMission: organizationalBackgroundMission || "N/A",
+            areasOfExpertiseFocus: areasOfExpertiseFocus || "N/A",
+            legalStatusRegistration: legalStatusRegistration || "N/A",
+            requiredDocumentsLink: requiredDocumentsLink || "N/A",
             timestamp: new Date().toISOString()
         };
 
@@ -993,6 +1001,10 @@ if (addOrgForm) {
                 <p><strong>Email:</strong> ${orgData.email}</p>
                 <p><strong>Mobile:</strong> ${orgData.mobileNumber}</p>
                 <p><strong>Social Media:</strong> ${orgData.socialMedia}</p>
+                <p><strong>Mission/Background:</strong> ${orgData.organizationalBackgroundMission}</p>
+                <p><strong>Areas of Expertise/Focus:</strong> ${orgData.areasOfExpertiseFocus}</p>
+                <p><strong>Legal Status/Registration:</strong> ${orgData.legalStatusRegistration}</p>
+                <p><strong>Required Documents:</strong> ${orgData.requiredDocumentsLink}</p>
             `;
         }
 
@@ -1041,6 +1053,10 @@ if (confirmSaveBtn) {
                 barangay: orgData.address.barangay,
                 streetAddress: orgData.address.streetAddress
             },
+            organizationalBackgroundMission: orgData.organizationalBackgroundMission,
+            areasOfExpertiseFocus: orgData.areasOfExpertiseFocus,
+            legalStatusRegistration: orgData.legalStatusRegistration,
+            requiredDocumentsLink: orgData.requiredDocumentsLink,
             timestamp: orgData.timestamp
         };
 
@@ -1075,6 +1091,10 @@ if (confirmSaveBtn) {
                     barangay: orgData.address.barangay,
                     streetAddress: orgData.address.streetAddress
                 },
+                organizationalBackgroundMission: orgData.organizationalBackgroundMission,
+                areasOfExpertiseFocus: orgData.areasOfExpertiseFocus,
+                legalStatusRegistration: orgData.legalStatusRegistration,
+                requiredDocumentsLink: orgData.requiredDocumentsLink,
                 createdAt: new Date().toISOString(),
                 isFirstLogin: true,
                 emailVerified: false,
@@ -1469,268 +1489,11 @@ editCitySelect.addEventListener('change', async () => {
     }
 });
 
-// if (editOrgForm) {
-//     editOrgForm.addEventListener('submit', async e => {
-//         e.preventDefault();
-
-//         if (adminPosition !== 'Super Admin') {
-//             Swal.fire({
-//                 title: 'Access Denied',
-//                 text: 'You do not have permission to edit volunteer groups.',
-//                 icon: 'error',
-//                 timer: 2000,
-//                 showConfirmButton: false,
-//                 timerProgressBar: true,
-//                 allowOutsideClick: false,
-//                 customClass: {
-//                     popup: 'swal2-popup-error-clean',
-//                     title: 'swal2-title-error-clean',
-//                     htmlContainer: 'swal2-text-error-clean'
-//                 }
-//             });
-//             return;
-//         }
-
-//         const orgId = editOrgFirebaseKeyInput.value;
-//         if (!orgId) {
-//             Swal.fire({
-//                 icon: 'error',
-//                 title: 'Error',
-//                 text: 'No organization ID found for editing.',
-//                 showConfirmButton: true,
-//                 confirmButtonText: 'OK',
-//                 customClass: {
-//                     popup: 'swal2-popup-error-clean',
-//                     title: 'swal2-title-error-clean',
-//                     htmlContainer: 'swal2-text-error-clean',
-//                     confirmButton: 'my-error-button'
-//                 }
-//             });
-//             return;
-//         }
-
-//         const updatedOrganization = document.getElementById('editOrganization').value.trim();
-//         const updatedContactPerson = document.getElementById('editContactPerson').value.trim();
-//         const updatedEmail = document.getElementById('editEmail').value.trim();
-//         const updatedMobileNumber = document.getElementById('editMobileNumber').value.trim();
-//         const updatedSocialMedia = document.getElementById('editSocialMedia').value.trim();
-//         const updatedStreetAddress = document.getElementById('editStreetAddress').value.trim();
-
-//         const updatedRegionText = editRegionSelect.options[editRegionSelect.selectedIndex]?.textContent || '';
-//         const updatedProvinceText = editProvinceSelect.options[editProvinceSelect.selectedIndex]?.textContent || '';
-//         const updatedCityText = editCitySelect.options[editCitySelect.selectedIndex]?.textContent || '';
-//         const updatedBarangayText = editBarangaySelect.options[editBarangaySelect.selectedIndex]?.textContent || ''; 
-
-//         // Validation Checks
-//         if (!updatedOrganization || !updatedContactPerson || !updatedEmail || !updatedMobileNumber ||
-//             !updatedRegionText || !updatedProvinceText || !updatedCityText || !updatedBarangayText) {
-//             Swal.fire({
-//                 icon: 'error',
-//                 title: 'Missing Fields',
-//                 text: 'Please fill in all required fields (Organization, Contact Person, Email, Mobile Number, and Full Address).',
-//                 showConfirmButton: true,
-//                 confirmButtonText: 'OK',
-//                 customClass: {
-//                     popup: 'swal2-popup-error-clean',
-//                     title: 'swal2-title-error-clean',
-//                     htmlContainer: 'swal2-text-error-clean',
-//                     confirmButton: 'my-error-button'
-//                 }
-//             });
-//             return;
-//         }
-
-//         if (!isValidEmail(updatedEmail)) {
-//             Swal.fire({
-//                 icon: 'error',
-//                 title: 'Invalid Email',
-//                 text: 'Please enter a valid email address from an allowed domain.',
-//                 showConfirmButton: true,
-//                 confirmButtonText: 'OK',
-//                 customClass: {
-//                     popup: 'swal2-popup-error-clean',
-//                     title: 'swal2-title-error-clean',
-//                     htmlContainer: 'swal2-text-error-clean',
-//                     confirmButton: 'my-error-button'
-//                 }
-//             });
-//             return;
-//         }
-
-//         if (!isValidMobile(updatedMobileNumber)) {
-//             Swal.fire({
-//                 icon: 'error',
-//                 title: 'Invalid Mobile Number',
-//                 text: 'Mobile number must be 11 digits starting with "09"',
-//                 showConfirmButton: true,
-//                 confirmButtonText: 'OK',
-//                 customClass: {
-//                     popup: 'swal2-popup-error-clean',
-//                     title: 'swal2-title-error-clean',
-//                     htmlContainer: 'swal2-text-error-clean',
-//                     confirmButton: 'my-error-button'
-//                 }
-//             });
-//             return;
-//         }
-
-//         const updatedData = {
-//             organization: updatedOrganization,
-//             contactPerson: updatedContactPerson,
-//             email: updatedEmail,
-//             mobileNumber: updatedMobileNumber,
-//             socialMedia: updatedSocialMedia || "N/A",
-//             address: {
-//                 region: updatedRegionText,
-//                 province: updatedProvinceText,
-//                 city: updatedCityText,
-//                 barangay: updatedBarangayText,
-//                 streetAddress: updatedStreetAddress || "N/A"
-//             }
-//         };
-
-//         // Fetch the userId from volunteerGroups to use in isMobileNumberInUse and isEmailInUse
-//         let userId;
-//         try {
-//             const snapshot = await database.ref(`volunteerGroups/${orgId}`).once('value');
-//             const orgData = snapshot.val();
-//             if (!orgData || !orgData.userId) {
-//                 Swal.fire({
-//                     icon: 'error',
-//                     title: 'Error',
-//                     text: 'Unable to find user ID for this organization.',
-//                     showConfirmButton: true,
-//                     confirmButtonText: 'OK',
-//                     customClass: {
-//                         popup: 'swal2-popup-error-clean',
-//                         title: 'swal2-title-error-clean',
-//                         htmlContainer: 'swal2-text-error-clean',
-//                         confirmButton: 'my-error-button'
-//                     }
-//                 });
-//                 return;
-//             }
-//             userId = orgData.userId;
-//         } catch (error) {
-//             Swal.fire({
-//                 icon: 'error',
-//                 title: 'Error',
-//                 text: `Failed to fetch organization data: ${error.message}`,
-//                 showConfirmButton: true,
-//                 confirmButtonText: 'OK',
-//                 customClass: {
-//                     popup: 'swal2-popup-success-clean',
-//                     title: 'swal2-title-success-clean',
-//                     htmlContainer: 'swal2-text-success-clean',
-//                     confirmButton: 'my-success-button'
-//                 }
-//             });
-//             return;
-//         }
-
-//         // Check for unchanged data first
-//         const unchanged = await isDataUnchanged(orgId, updatedData);
-//         if (unchanged) {
-//             Swal.fire({
-//                 icon: 'info',
-//                 title: 'No Changes Detected',
-//                 text: 'No changes were made to the volunteer group details.',
-//                 showConfirmButton: true,
-//                 confirmButtonText: 'OK',
-//                 customClass: {
-//                     popup: 'swal2-popup-success-clean',
-//                     title: 'swal2-title-success-clean',
-//                     htmlContainer: 'swal2-text-success-clean',
-//                     confirmButton: 'my-success-button'
-//                 }
-//             });
-//             editOrgModal.style.display = 'none';
-//             return;
-//         }
-
-//         // Check if mobile number is in use (using userId instead of orgId)
-//         const mobileInUse = await isMobileNumberInUse(updatedMobileNumber, userId);
-//         if (mobileInUse) {
-//             Swal.fire({
-//                 icon: 'error',
-//                 title: 'Mobile Number In Use',
-//                 text: 'The mobile number is already in use by another account.',
-//                 showConfirmButton: true,
-//                 confirmButtonText: 'OK',
-//                 customClass: {
-//                     popup: 'swal2-popup-success-clean',
-//                     title: 'swal2-title-success-clean',
-//                     htmlContainer: 'swal2-text-success-clean',
-//                     confirmButton: 'my-success-button'
-//                 }
-//             });
-//             return;
-//         }
-
-//         // Check if email is in use (using userId instead of orgId)
-//         const emailInUse = await isEmailInUse(updatedEmail, userId);
-//         if (emailInUse) {
-//             Swal.fire({
-//                 icon: 'error',
-//                 title: 'Email In Use',
-//                 text: 'The email address is already in use by another account.',
-//                 showConfirmButton: true,
-//                 confirmButtonText: 'OK',
-//                 customClass: {
-//                     popup: 'swal2-popup-success-clean',
-//                     title: 'swal2-title-success-clean',
-//                     htmlContainer: 'swal2-text-success-clean',
-//                     confirmButton: 'my-success-button'
-//                 }
-//             });
-//             return;
-//         }
-
-//         const passwordVerified = await verifySuperAdminPassword();
-//         if (!passwordVerified) {
-//             return;
-//         }
-
-//         try {
-//             await database.ref(`volunteerGroups/${orgId}`).update(updatedData);
-//             Swal.fire({
-//                 icon: 'success',
-//                 title: 'Success',
-//                 text: 'The volunteer group has been updated.',
-//                 showConfirmButton: true,
-//                 confirmButtonText: 'OK',
-//                 customClass: {
-//                     popup: 'swal2-popup-success-clean',
-//                     title: 'swal2-title-success-clean',
-//                     htmlContainer: 'swal2-text-success-clean',
-//                     confirmButton: 'my-success-button'
-//                 }
-//             });
-//             editOrgModal.style.display = 'none';
-//             editOrgForm.reset();
-//             fetchAndRenderTable();
-//         } catch (error) {
-//             Swal.fire({
-//                 icon: 'error',
-//                 title: 'Error',
-//                 text: `Failed to update volunteer group: ${error.message}`,
-//                 showConfirmButton: true,
-//                 confirmButtonText: 'OK',
-//                 customClass: {
-//                     popup: 'swal2-popup-success-clean',
-//                     title: 'swal2-title-success-clean',
-//                     htmlContainer: 'swal2-text-success-clean',
-//                     confirmButton: 'my-success-button'
-//                 }
-//             });
-//         }
-//     });
-// }
 if (editOrgForm) {
     editOrgForm.addEventListener('submit', async e => {
         e.preventDefault();
 
-        if (adminPosition !== 'Super Admin') {
+        if (!['Super Admin', 'position-one', 'position-two'].includes(adminPosition)) {
             Swal.fire({
                 title: 'Access Denied',
                 text: 'You do not have permission to edit volunteer groups.',
@@ -1976,11 +1739,32 @@ if (editOrgForm) {
                 requiredDocumentsLink: updatedRequiredDocumentsLink || "N/A",
                 lastUpdatedBy: auth.currentUser.uid,
                 lastUpdatedAt: new Date().toISOString(),
-                timestamp: existingData.timestamp, // Preserve original
-                userId: existingData.userId // Preserve original
+                timestamp: existingData.timestamp,
+                userId: existingData.userId
             };
 
+            // Update volunteerGroups
             await database.ref(`volunteerGroups/${orgId}`).update(updatedData);
+
+            // Update users node to reflect changes
+            await database.ref(`users/${userId}`).update({
+                email: updatedEmail,
+                mobile: updatedMobileNumber,
+                organization: updatedOrganization,
+                contactPerson: updatedContactPerson,
+                address: {
+                    region: updatedRegionText,
+                    province: updatedProvinceText,
+                    city: updatedCityText,
+                    barangay: updatedBarangayText,
+                    streetAddress: updatedStreetAddress || "N/A"
+                },
+                organizationalBackgroundMission: updatedOrganizationalBackgroundMission || "N/A",
+                areasOfExpertiseFocus: updatedAreasOfExpertiseFocus || "N/A",
+                legalStatusRegistration: updatedLegalStatusRegistration || "N/A",
+                requiredDocumentsLink: updatedRequiredDocumentsLink || "N/A"
+            });
+
             Swal.fire({
                 icon: 'success',
                 title: 'Updated!',
@@ -2051,7 +1835,7 @@ function attachRowHandlers() {
 
     document.querySelectorAll('.deleteBtn').forEach(button => {
         button.addEventListener('click', () => {
-            if (adminPosition !== 'Super Admin') {
+            if (!['Super Admin', 'position-one'].includes(adminPosition)) {
                 Swal.fire({
                     title: 'Access Denied',
                     text: 'You do not have permission to archive volunteer groups.',
@@ -2117,10 +1901,10 @@ function attachRowHandlers() {
                                     showConfirmButton: true,
                                     confirmButtonText: 'OK',
                                     customClass: {
-                                        popup: 'swal2-popup-success-clean',
-                                        title: 'swal2-title-success-clean',
-                                        htmlContainer: 'swal2-text-success-clean',
-                                        confirmButton: 'my-success-button'
+                                        popup: 'swal2-popup-error-clean',
+                                        title: 'swal2-title-error-clean',
+                                        htmlContainer: 'swal2-text-error-clean',
+                                        confirmButton: 'my-error-button'
                                     }
                                 });
                                 return;
@@ -2145,8 +1929,8 @@ function attachRowHandlers() {
                                     htmlContainer: 'swal2-text-success-clean'
                                 }
                             }).then(() => {
-                            fetchAndRenderTable();
-                            fetchAndRenderArchivedTable();
+                                fetchAndRenderTable();
+                                fetchAndRenderArchivedTable();
                             });
                         } catch (error) {
                             Swal.close();
@@ -2171,109 +1955,109 @@ function attachRowHandlers() {
     });
 }
 
-function attachArchivedRowHandlers() {
-    document.querySelectorAll('.retrieveBtn').forEach(button => {
-        button.addEventListener('click', () => {
-            if (adminPosition !== 'Super Admin') {
+    function attachArchivedRowHandlers() {
+        document.querySelectorAll('.retrieveBtn').forEach(button => {
+            button.addEventListener('click', () => {
+                if (!['Super Admin', 'position-one'].includes(adminPosition)) {
+                    Swal.fire({
+                        title: 'Access Denied',
+                        text: 'Only Super Admins and position-one can restore archived groups.',
+                        icon: 'error',
+                        timer: 2000,
+                        showConfirmButton: false,
+                        timerProgressBar: true,
+                        allowOutsideClick: false,
+                        customClass: {
+                            popup: 'swal2-popup-error-clean',
+                            title: 'swal2-title-error-clean',
+                            htmlContainer: 'swal2-text-error-clean'
+                        }
+                    });
+                    return;
+                }
+
+                const rowId = button.getAttribute('data-id');
+                const orgToRestore = archivedData.find(item => item.id === rowId);
+                const orgName = orgToRestore ? orgToRestore.organization : 'N/A';
+
                 Swal.fire({
-                    title: 'Access Denied',
-                    text: 'Only Super Admins can restore archived groups.',
-                    icon: 'error',
-                    timer: 2000,
-                    showConfirmButton: false,
-                    timerProgressBar: true,
+                    title: `Restore "${orgName}"?`,
+                    text: 'This will move the volunteer group back to the active list.',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Restore',
+                    cancelButtonText: 'Cancel',
+                    reverseButtons: true,
+                    focusCancel: true,
                     allowOutsideClick: false,
                     customClass: {
-                        popup: 'swal2-popup-error-clean',
-                        title: 'swal2-title-error-clean',
-                        htmlContainer: 'swal2-text-error-clean'
+                        popup: 'custom-swal-popup',
+                        title: 'custom-swal-title',
+                        confirmButton: 'custom-confirm-btn',
+                        cancelButton: 'custom-cancel-btn'
+                    }
+                }).then(async (result) => {
+                    if (result.isConfirmed) {
+                        if (!orgToRestore) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: 'Volunteer group data not found for restoration.',
+                                showConfirmButton: true,
+                                confirmButtonText: 'OK',
+                                customClass: {
+                                    popup: 'swal2-popup-error-clean',
+                                    title: 'swal2-title-error-clean',
+                                    htmlContainer: 'swal2-text-error-clean',
+                                    confirmButton: 'my-error-button'
+                                }
+                            });
+                            return;
+                        }
+
+                        try {
+                            const { deletedAt, ...restoredData } = orgToRestore;
+
+                            await database.ref(`volunteerGroups/${rowId}`).set(restoredData);
+                            await database.ref(`deletedVolunteerGroups/${rowId}`).remove();
+
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Retrieved!',
+                                text: `Volunteer group "${orgName}" has been restored to the active list.`,
+                                timer: 1600,
+                                showConfirmButton: false,
+                                timerProgressBar: true,
+                                allowOutsideClick: false,
+                                customClass: {
+                                    popup: 'swal2-popup-success-clean',
+                                    title: 'swal2-title-success-clean',
+                                    htmlContainer: 'swal2-text-success-clean'
+                                }
+                            });
+
+                            fetchAndRenderTable();
+                            fetchAndRenderArchivedTable();
+                        } catch (error) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Restoration Error',
+                                text: `Failed to restore volunteer group: ${error.message}.`,
+                                showConfirmButton: true,
+                                confirmButtonText: 'OK',
+                                customClass: {
+                                    popup: 'swal2-popup-error-clean',
+                                    title: 'swal2-title-error-clean',
+                                    htmlContainer: 'swal2-text-error-clean',
+                                    confirmButton: 'my-error-button'
+                                }
+                            });
+                        }
                     }
                 });
-                return;
-            }
-
-            const rowId = button.getAttribute('data-id');
-            const orgToRestore = archivedData.find(item => item.id === rowId);
-            const orgName = orgToRestore ? orgToRestore.organization : 'N/A';
-
-            Swal.fire({
-                title: `Restore "${orgName}"?`,
-                text: 'This will move the volunteer group back to the active list.',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: 'Restore',
-                cancelButtonText: 'Cancel',
-                reverseButtons: true,
-                focusCancel: true,
-                allowOutsideClick: false,
-                customClass: {
-                    popup: 'custom-swal-popup',
-                    title: 'custom-swal-title',
-                    confirmButton: 'custom-confirm-btn',
-                    cancelButton: 'custom-cancel-btn'
-                }
-            }).then(async (result) => {
-                if (result.isConfirmed) {
-                    if (!orgToRestore) {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: 'Volunteer group data not found for restoration.',
-                            showConfirmButton: true,
-                            confirmButtonText: 'OK',
-                            customClass: {
-                                popup: 'swal2-popup-error-clean',
-                                title: 'swal2-title-error-clean',
-                                htmlContainer: 'swal2-text-error-clean',
-                                confirmButton: 'my-error-button'
-                            }
-                        });
-                        return;
-                    }
-
-                    try {
-                        const { deletedAt, ...restoredData } = orgToRestore;
-
-                        await database.ref(`volunteerGroups/${rowId}`).set(restoredData);
-                        await database.ref(`deletedVolunteerGroups/${rowId}`).remove();
-
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Retrieved!',
-                            text: `Volunteer group "${orgName}" has been restored to the active list.`,
-                            timer: 1600,
-                            showConfirmButton: false,
-                            timerProgressBar: true,
-                            allowOutsideClick: false,
-                            customClass: {
-                                popup: 'swal2-popup-success-clean',
-                                title: 'swal2-title-success-clean',
-                                htmlContainer: 'swal2-text-success-clean'
-                            }
-                        });
-
-                        fetchAndRenderTable();
-                        fetchAndRenderArchivedTable();
-                    } catch (error) {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Restoration Error',
-                            text: `Failed to restore volunteer group: ${error.message}.`,
-                            showConfirmButton: true,
-                            confirmButtonText: 'OK',
-                            customClass: {
-                                popup: 'swal2-popup-error-clean',
-                                title: 'swal2-title-error-clean',
-                                htmlContainer: 'swal2-text-error-clean',
-                                confirmButton: 'my-error-button'
-                            }
-                        });
-                    }
-                }
             });
         });
-    });
-}
+    }
 
 function updateEntriesInfo(totalItems) {
     const startIndex = (currentPage - 1) * rowsPerPage;
@@ -2452,8 +2236,21 @@ if (sortSelect) {
 
 if (viewArchivedBtn) {
     viewArchivedBtn.addEventListener('click', () => {
-        if (adminPosition !== 'Super Admin') {
-            Swal.fire('Access Denied', 'You must be a Super Admin to view archived groups.', 'error');
+        if (!['Super Admin', 'position-one'].includes(adminPosition)) {
+            Swal.fire({
+                title: 'Access Denied',
+                text: 'You must be a Super Admin or position-one to view archived groups.',
+                icon: 'error',
+                timer: 2000,
+                showConfirmButton: false,
+                timerProgressBar: true,
+                allowOutsideClick: false,
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean'
+                }
+            });
             return;
         }
         if (archivedModal) {
@@ -2499,49 +2296,6 @@ if (editDetailsBtn) {
 document.addEventListener("DOMContentLoaded", () => {
 });
 
-// auth.onAuthStateChanged(user => {
-//     if (!user) {
-//         Swal.fire({
-//             icon: "warning",
-//             title: "Authentication Required",
-//             text: "Please sign in as an admin to view volunteer groups.",
-//             timer: 2000,
-//             showConfirmButton: false
-//         });
-//         setTimeout(() => {
-//             window.location.replace("../pages/login.html");
-//         }, 2000);
-//         return;
-//     }
-
-//     // Fetch user data from database to check adminPosition
-//     database.ref('users/' + user.uid).once('value', snapshot => {
-//         const userData = snapshot.val();
-//         if (userData && userData.adminPosition === 'Super Admin') {
-//             adminPosition = 'Super Admin';
-//             if (viewArchivedBtn) {
-//                 viewArchivedBtn.style.display = 'block'; // Show if super admin
-//             }
-//         } else {
-//             adminPosition = userData?.adminPosition || null;
-//             if (viewArchivedBtn) {
-//                 viewArchivedBtn.style.display = 'none'; // Hide if not super admin
-//             }
-//         }
-
-//         // Now that adminPosition is determined, fetch and render tables
-//         fetchAndRenderTable();
-//         fetchAndRenderArchivedTable();
-//     }).catch(error => {
-//         adminPosition = null; // Default to no position on error
-//         if (viewArchivedBtn) {
-//             viewArchivedBtn.style.display = 'none';
-//         }
-//         // Still attempt to fetch main table even if role check fails
-//         fetchAndRenderTable();
-//     });
-// });
-
 auth.onAuthStateChanged(async (user) => {
     if (!user) {
         Swal.fire({
@@ -2583,10 +2337,10 @@ auth.onAuthStateChanged(async (user) => {
             return;
         }
 
-        if (adminPosition !== 'Super Admin' && viewArchivedBtn) {
-            viewArchivedBtn.style.display = 'none';
-        } else if (viewArchivedBtn) {
-            viewArchivedBtn.style.display = 'block';
+        if (['Super Admin', 'position-one'].includes(adminPosition)) {
+            if (viewArchivedBtn) viewArchivedBtn.style.display = 'block';
+        } else {
+            if (viewArchivedBtn) viewArchivedBtn.style.display = 'none';
         }
 
         fetchAndRenderTable();
@@ -2594,9 +2348,7 @@ auth.onAuthStateChanged(async (user) => {
     } catch (error) {
         console.error(`[${new Date().toISOString()}] Error checking user data:`, error);
         adminPosition = null;
-        if (viewArchivedBtn) {
-            viewArchivedBtn.style.display = 'none';
-        }
+        if (viewArchivedBtn) viewArchivedBtn.style.display = 'none';
         Swal.fire({
             icon: 'error',
             title: 'Authentication Error',

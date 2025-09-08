@@ -1015,78 +1015,6 @@ document.addEventListener("DOMContentLoaded", () => {
         searchInput.placeholder = placeholderText;
     };
 
-    // auth.onAuthStateChanged(async user => {
-    //     if (!user) {
-    //         Swal.fire({
-    //             icon: 'error',
-    //             title: 'Authentication Required',
-    //             text: 'Please sign in to access in-kind donations.',
-    //             showConfirmButton: true,
-    //             confirmButtonText: 'OK',
-    //             customClass: {
-    //                 popup: 'swal2-popup-error-clean',
-    //                 title: 'swal2-title-error-clean',
-    //                 htmlContainer: 'swal2-text-error-clean',
-    //                 confirmButton: 'my-error-button'
-    //             }
-    //         }).then(() => {
-    //             window.location.href = "../pages/login.html";
-    //         });
-    //         return;
-    //     }
-    //     permissions = await checkAdminPermissions();
-    //     if (!permissions.canView) {
-    //         Swal.fire({
-    //             icon: 'error',
-    //             title: 'Access Denied',
-    //             text: 'You do not have permission to access this page.',
-    //             showConfirmButton: true,
-    //             confirmButtonText: 'OK',
-    //             customClass: {
-    //                 popup: 'swal2-popup-error-clean',
-    //                 title: 'swal2-title-error-clean',
-    //                 htmlContainer: 'swal2-text-error-clean',
-    //                 confirmButton: 'my-error-button'
-    //             }
-    //         }).then(() => {
-    //             window.location.href = "../pages/login.html";
-    //         });
-    //         return;
-    //     }
-    //     loadDonations(user.uid);
-    //     updateSearchPlaceholder();
-    //     resetInactivityTimer();
-    //     // Move event listener here
-    //     viewArchivedBtn.addEventListener('click', async () => {
-    //         if (!permissions.canRetrieve) {
-    //             Swal.fire({
-    //                 title: 'Access Denied',
-    //                 text: 'You do not have permission to view archived donations.',
-    //                 icon: 'error',
-    //                 timer: 1600,
-    //                 showConfirmButton: false,
-    //                 timerProgressBar: true,
-    //                 allowOutsideClick: false,
-    //                 customClass: {
-    //                     popup: 'swal2-popup-error-clean',
-    //                     title: 'swal2-title-error-clean',
-    //                     htmlContainer: 'swal2-text-error-clean'
-    //                 }   
-    //             });
-    //             return;
-    //         }
-    //         archivedModal.style.display = 'flex';
-    //         fetchArchivedDonations();
-    //     });
-
-    //     if (!permissions.canArchive) {
-    //         document.querySelectorAll('.archiveBtn').forEach(btn => btn.style.display = 'none');
-    //     }
-    //     if (!permissions.canEdit) {
-    //         document.querySelectorAll('.editBtn').forEach(btn => btn.style.display = 'none');
-    //     }
-    // });
-
     auth.onAuthStateChanged(async user => {
         console.log(`[${new Date().toISOString()}] Auth state changed:`, user ? { uid: user.uid, email: user.email } : 'No user');
         
@@ -2305,6 +2233,7 @@ document.addEventListener("DOMContentLoaded", () => {
                                     details.innerHTML = `
                                         <p><strong>Organization:</strong> ${selectedOption.value}</p>
                                         <p><strong>Email:</strong> ${email}</p>
+                                        <p><strong>Activation ID:</strong> ${activationId}</p>
                                     `;
                                 } else {
                                     details.innerHTML = '<p>Please select an option to view details.</p>';
