@@ -113,64 +113,64 @@ function debugLog(step, data) {
     
 }
 
- // Verify Super Admin password
-async function verifySuperAdminPassword() {
-    const { value: password } = await Swal.fire({
-        title: 'Enter Admin Password',
-        input: 'password',
-        inputPlaceholder: 'Enter password here',
-        inputAttributes: {
-            autocapitalize: 'off',
-            autocorrect: 'off',
-            autocomplete: 'new-password'
-        },
-        showCancelButton: true,
-        confirmButtonText: 'Verify',
-        showLoaderOnConfirm: true,
-        reverseButtons: true,
-        focusCancel: true,
-        preConfirm: async (password) => {
-            try {
-                const user = auth.currentUser;
-                const credential = firebase.auth.EmailAuthProvider.credential(user.email, password);
-                await auth.signInWithCredential(credential);
-                return true;
-            } catch (error) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Verification Failed',
-                    text: 'Invalid admin password.',
-                    timer: 1600,
-                    showConfirmButton: false,
-                    timerProgressBar: true,
-                    allowOutsideClick: false,
-                    customClass: {
-                        popup: 'swal2-popup-error-clean',
-                        title: 'swal2-title-error-clean',
-                        htmlContainer: 'swal2-text-error-clean'
-                    }
-                });
-                return false;
-            }
-        },
-        allowOutsideClick: () => !Swal.isLoading(),
-        customClass: {
-            popup: 'custom-swal-popup',
-            title: 'custom-swal-title',
-            input: 'custom-swal-input',
-            confirmButton: 'custom-confirm-btn',
-            cancelButton: 'custom-cancel-btn'
-        }
-    });
-    if (!password) {
-        isAdminVerified = false; // Set to false if canceled
-        searchInput.value = '';
-        return false;
-    }
-    isAdminVerified = true; // Set to true if verified
-    searchInput.value = '';
-    return true; // Return true if verification succeeds
-}
+// Verify Super Admin password
+// async function verifySuperAdminPassword() {
+//     const { value: password } = await Swal.fire({
+//         title: 'Enter Admin Password',
+//         input: 'password',
+//         inputPlaceholder: 'Enter password here',
+//         inputAttributes: {
+//             autocapitalize: 'off',
+//             autocorrect: 'off',
+//             autocomplete: 'new-password'
+//         },
+//         showCancelButton: true,
+//         confirmButtonText: 'Verify',
+//         showLoaderOnConfirm: true,
+//         reverseButtons: true,
+//         focusCancel: true,
+//         preConfirm: async (password) => {
+//             try {
+//                 const user = auth.currentUser;
+//                 const credential = firebase.auth.EmailAuthProvider.credential(user.email, password);
+//                 await auth.signInWithCredential(credential);
+//                 return true;
+//             } catch (error) {
+//                 Swal.fire({
+//                     icon: 'error',
+//                     title: 'Verification Failed',
+//                     text: 'Invalid admin password.',
+//                     timer: 1600,
+//                     showConfirmButton: false,
+//                     timerProgressBar: true,
+//                     allowOutsideClick: false,
+//                     customClass: {
+//                         popup: 'swal2-popup-error-clean',
+//                         title: 'swal2-title-error-clean',
+//                         htmlContainer: 'swal2-text-error-clean'
+//                     }
+//                 });
+//                 return false;
+//             }
+//         },
+//         allowOutsideClick: () => !Swal.isLoading(),
+//         customClass: {
+//             popup: 'custom-swal-popup',
+//             title: 'custom-swal-title',
+//             input: 'custom-swal-input',
+//             confirmButton: 'custom-confirm-btn',
+//             cancelButton: 'custom-cancel-btn'
+//         }
+//     });
+//     if (!password) {
+//         isAdminVerified = false; // Set to false if canceled
+//         searchInput.value = '';
+//         return false;
+//     }
+//     isAdminVerified = true; // Set to true if verified
+//     searchInput.value = '';
+//     return true; // Return true if verification succeeds
+// }
 
 // Test function to manually save a donation to pending monetary
 async function testSaveToPending() {
@@ -240,8 +240,8 @@ document.addEventListener('DOMContentLoaded', function() {
     auth.onAuthStateChanged((user) => {
         if (user) {
             console.log('User is authenticated:', user.uid);
-            resetInactivityTimer(); // Start inactivity timer
-            loadMonetaryDonationsFromFirebase(); // Load data only if authenticated
+            resetInactivityTimer(); 
+            loadMonetaryDonationsFromFirebase(); 
         } else {
             console.error('No authenticated user found.');
             Swal.fire({
@@ -259,7 +259,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
     });
-    
+
     // Get references to DOM elements
     const donationTableBody = document.getElementById('donationTableBody');
     const searchInput = document.getElementById('searchInput');
@@ -508,33 +508,44 @@ function renderTable() {
     document.querySelectorAll('.approveBtn').forEach(button => {
         button.addEventListener('click', (event) => updateDonationStatus(event.target.dataset.id, filteredMonetaryDonations.find(item => item.id === event.target.dataset.id), 'Approved'));
     });
+    // document.querySelectorAll('.rejectBtn').forEach(button => {
+    //     button.addEventListener('click', async (event) => {
+    //         const donation = filteredMonetaryDonations.find(item => item.id === event.target.dataset.id);
+    //         if (!donation) {
+    //             Swal.fire('Error', 'Donation not found.', 'error');
+    //             return;
+    //         }
+    //         const verification = await verifySuperAdminPassword(searchInput);
+    //         if (verification.success) {
+    //             updateDonationStatus(event.target.dataset.id, donation, 'Rejected');
+    //         } else {
+    //             Swal.fire({
+    //                 icon: 'error',
+    //                 title: 'Access Denied',
+    //                 text: 'Admin verification failed. Action not performed.',
+    //                 timer: 1600,
+    //                 showConfirmButton: false,
+    //                 timerProgressBar: true,
+    //                 customClass: {
+    //                     popup: 'swal2-popup-error-clean',
+    //                     title: 'swal2-title-error-clean',
+    //                     htmlContainer: 'swal2-text-error-clean'
+    //                 }
+    //             });
+    //         }
+    //     });
+    // });
     document.querySelectorAll('.rejectBtn').forEach(button => {
-        button.addEventListener('click', async (event) => {
+        button.addEventListener('click', (event) => {
             const donation = filteredMonetaryDonations.find(item => item.id === event.target.dataset.id);
             if (!donation) {
                 Swal.fire('Error', 'Donation not found.', 'error');
                 return;
             }
-            const verification = await verifySuperAdminPassword(searchInput);
-            if (verification.success) {
-                updateDonationStatus(event.target.dataset.id, donation, 'Rejected');
-            } else {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Access Denied',
-                    text: 'Admin verification failed. Action not performed.',
-                    timer: 1600,
-                    showConfirmButton: false,
-                    timerProgressBar: true,
-                    customClass: {
-                        popup: 'swal2-popup-error-clean',
-                        title: 'swal2-title-error-clean',
-                        htmlContainer: 'swal2-text-error-clean'
-                    }
-                });
-            }
+            updateDonationStatus(event.target.dataset.id, donation, 'Rejected');
         });
     });
+
     const totalEntries = filteredMonetaryDonations.length;
     const showingStart = totalEntries > 0 ? start + 1 : 0;
     const showingEnd = Math.min(end, totalEntries);
@@ -858,32 +869,11 @@ function renderArchivedTable() {
         const actionCell = row.insertCell();
         actionCell.classList.add('action-buttons');
         actionCell.innerHTML = `
-            <button class="viewBtn" data-id="${donation.id}" title="View"><i class='bx bx-show-alt'></i></button>
-            <button class="action-button restore-button" data-id="${donation.id}" title="Retrieve"><i class='bx bxs-download'></i></button>
+            <button class="retrieveBtn" data-id="${donation.id}" title="Retrieve">Retrieve</button>
         `;
     });
 
-    document.querySelectorAll('.viewBtn').forEach(button => {
-        button.addEventListener('click', (event) => {
-            const donation = filteredArchivedDonations.find(item => item.id === event.target.dataset.id);
-            if (donation) {
-                showViewModal(donation);
-            } else {
-                Swal.fire({
-                    title: 'Error',
-                    text: 'Archived donation details not found.',
-                    icon: 'error',
-                    customClass: {
-                        popup: 'swal2-popup-error-clean',
-                        title: 'swal2-title-error-clean',
-                        htmlContainer: 'swal2-text-error-clean'
-                    }
-                });
-            }
-        });
-    });
-
-    document.querySelectorAll('.restore-button').forEach(button => {
+    document.querySelectorAll('.retrieveBtn').forEach(button => {
         button.addEventListener('click', (event) => restoreDonation(event.target.dataset.id, filteredArchivedDonations.find(item => item.id === event.target.dataset.id)));
     });
 
