@@ -422,14 +422,14 @@ function showSuccessAlert(title, text, callback = null) {
     title,
     text,
     icon: 'success',
-    timer: 1600,
-    showConfirmButton: false,
-    timerProgressBar: true,
+    showConfirmButton: true,
+    confirmButtonText: 'OK',
     allowOutsideClick: false,
     customClass: {
       popup: 'swal2-popup-success-clean',
       title: 'swal2-title-success-clean',
       htmlContainer: 'swal2-text-success-clean',
+      confirmButton: 'my-success-button',
     },
   }).then(callback);
 }

@@ -1093,6 +1093,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             });
         }
+        
         const deleteBtn = tr.querySelector(".deleteBtn");
         if (deleteBtn) {
             deleteBtn.addEventListener("click", async () => {
@@ -1192,10 +1193,66 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
         tr.querySelector(".savePDFBtn")?.addEventListener("click", () => saveSingleCfdDonationPdf(r));
+        const viewBtn = tr.querySelector(".viewBtn");
+        if (viewBtn) {
+            viewBtn.addEventListener("click", () => {
+                const formattedTimestamp = r.dateTime ? new Date(r.dateTime).toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }) : 'N/A';
+                const modalContent = document.getElementById('modalContent');
+                const previewModal = document.getElementById('previewModal');
+                if (!modalContent || !previewModal) {
+                    console.error('Modal content or preview modal not found in the DOM');
+                    Swal.fire({
+                        title: 'Error',
+                        text: 'Preview modal not found in the DOM.',
+                        icon: 'error',
+                        customClass: {
+                            popup: 'swal2-popup-error-clean',
+                            title: 'swal2-title-error-clean',
+                            htmlContainer: 'swal2-text-error-clean'
+                        }
+                    });
+                    return;
+                }
+                modalContent.innerHTML = `
+                    <div class="modal-content-inner" style="padding: 20px;">
+                        <h2>Donation Details:</h2>
+                        <p><strong>Donation ID:</strong> ${r.donationId || 'N/A'}</p>
+                        <p><strong>Donation Drive:</strong> ${r.donationDrive || 'N/A'}</p>
+                        <p><strong>Contact Person:</strong> ${r.contact?.person || 'N/A'}</p>
+                        <p><strong>Contact Number:</strong> ${r.contact?.number || 'N/A'}</p>
+                        <p><strong>Account Name:</strong> ${r.account?.name || 'N/A'}</p>
+                        <p><strong>Account Number:</strong> ${r.account?.number || 'N/A'}</p>
+                        <p><strong>Facebook Link:</strong> 
+                            ${r.facebookLink && r.facebookLink !== 'N/A' 
+                                ? `<a href="${r.facebookLink}" target="_blank" rel="noopener noreferrer">${r.facebookLink}</a>` 
+                                : 'N/A'}
+                        </p>
+                        <p><strong>Status:</strong> ${r.status || 'N/A'}</p>
+                        <hr>
+                        <h2>Drop-Off Address:</h2>
+                        <div style="margin-left: 15px;">
+                            <p><strong>Region:</strong> ${r.address?.region || 'N/A'}</p>
+                            <p><strong>Province:</strong> ${r.address?.province || 'N/A'}</p>
+                            <p><strong>City:</strong> ${r.address?.city || 'N/A'}</p>
+                            <p><strong>Barangay:</strong> ${r.address?.barangay || 'N/A'}</p>
+                            <p><strong>Street Address:</strong> ${r.address?.street || 'N/A'}</p>
+                        </div>
+                        <hr>
+                        ${r.image ? `
+                            <h2>Attached Image:</h2>
+                            <img src="${r.image}" alt="Donation Image" style="max-width: 100%; max-height: 250px; border-radius: 5px; margin-top: 10px;" />
+                            <hr>
+                        ` : ''}
+                        <p style="margin-top: 20px; font-size: 0.9em; color: #555;"><strong>Submitted At:</strong> ${formattedTimestamp}</p>
+                    </div>
+                `;
+                previewModal.style.display = 'flex';
+            });
+        }
         tableBody.appendChild(tr);
     });
     updatePaginationInfo();
-    renderPagination(); // Ensure pagination is always called
+    renderPagination(); 
     console.log('renderPagination called from renderTable');
 }
 
@@ -1536,6 +1593,21 @@ if (closeArchivedModalBtn) {
     });
 } else {
     console.error('closeArchivedModalBtn not found in the DOM');
+}
+
+// Add close button handler for previewModal
+const closeModalBtn = document.getElementById('closeModal');
+if (closeModalBtn) {
+    closeModalBtn.addEventListener('click', () => {
+        console.log('closeModalBtn clicked at', new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+        const previewModal = document.getElementById('previewModal');
+        if (previewModal) {
+            previewModal.style.display = 'none';
+            console.log('Set previewModal display to none');
+        }
+    });
+} else {
+    console.error('closeModalBtn not found in the DOM');
 }
 
     const createPaginationButton = (label, page, disabled = false, isActive = false) => {

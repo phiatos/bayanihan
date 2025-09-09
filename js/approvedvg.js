@@ -197,8 +197,8 @@ function generateTempPassword() {
 }
 
 function isValidMobile(mobile) {
-    const mobileRegex = /^09\d{9}$/;
-    return mobileRegex.test(mobile);
+  const mobileRegex = /^09[0-9]{9}$/;
+  return mobileRegex.test(mobile);
 }
 
 function isValidEmail(email) {
@@ -308,27 +308,27 @@ function validateInputInRealTime(input, fieldConfig) {
 }
 
 async function verifyUserPassword(password) {
-    Swal.showLoading();
-    try {
-        const user = auth.currentUser;
-        if (!user) {
-            throw new Error("No user is currently logged in.");
-        }
-        const credential = firebase.auth.EmailAuthProvider.credential(user.email, password);
-        await user.reauthenticateWithCredential(credential);
-        Swal.hideLoading();
-        return true;
-    } catch (error) {
-        Swal.hideLoading();
-        if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-            Swal.showValidationMessage('Incorrect password.');
-        } else if (error.code === 'auth/user-not-found') {
-            Swal.showValidationMessage('User not found. Please log in again.');
-        } else {
-            Swal.showValidationMessage(`Authentication error: ${error.message}`);
-        }
-        return false;
+  Swal.showLoading();
+  try {
+    const user = auth.currentUser;
+    if (!user) {
+      throw new Error("No user is currently logged in.");
     }
+    const credential = firebase.auth.EmailAuthProvider.credential(user.email, password);
+    await user.reauthenticateWithCredential(credential);
+    Swal.hideLoading();
+    return true;
+  } catch (error) {
+    Swal.hideLoading();
+    if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+      Swal.showValidationMessage('Incorrect password.');
+    } else if (error.code === 'auth/user-not-found') {
+      Swal.showValidationMessage('User not found. Please log in again.');
+    } else {
+      Swal.showValidationMessage(`Authentication error: ${error.message}`);
+    }
+    return false;
+  }
 }
 
 // async function checkDuplicates(email, mobileNumber, organizationName) {
@@ -339,22 +339,26 @@ async function verifyUserPassword(password) {
 //         database.ref('abvnApplications/registeredABVN').once('value')
 //     ]);
 
-//     if (emailSnapshot.exists()) {
-//         return { isDuplicate: true, reason: 'email', location: `users/${Object.keys(emailSnapshot.val())[0]}` };
-//     }
-//     if (mobileSnapshot.exists()) {
-//         return { isDuplicate: true, reason: 'mobile number', location: `users/${Object.keys(mobileSnapshot.val())[0]}` };
-//     }
+//     // Check organization name first (strict uniqueness)
 //     if (orgSnapshot.exists()) {
 //         return { isDuplicate: true, reason: 'organization name', location: `volunteerGroups/${Object.keys(orgSnapshot.val())[0]}` };
 //     }
+//     // Check mobile number
+//     if (mobileSnapshot.exists()) {
+//         return { isDuplicate: true, reason: 'mobile number', location: `users/${Object.keys(mobileSnapshot.val())[0]}` };
+//     }
+//     // Check email
+//     if (emailSnapshot.exists()) {
+//         return { isDuplicate: true, reason: 'email', location: `users/${Object.keys(emailSnapshot.val())[0]}` };
+//     }
+//     // Check registeredABVN for any matches
 //     if (registeredSnapshot.exists()) {
 //         let duplicateReason = '';
 //         let duplicateLocation = '';
 //         registeredSnapshot.forEach(child => {
 //             const data = child.val();
-//             if (data.email.trim().toLowerCase() === email.toLowerCase()) {
-//                 duplicateReason = 'email';
+//             if (data.organizationName.trim().toLowerCase() === organizationName.toLowerCase()) {
+//                 duplicateReason = 'organization name';
 //                 duplicateLocation = `abvnApplications/registeredABVN/${child.key}`;
 //                 return true;
 //             }
@@ -363,8 +367,8 @@ async function verifyUserPassword(password) {
 //                 duplicateLocation = `abvnApplications/registeredABVN/${child.key}`;
 //                 return true;
 //             }
-//             if (data.organizationName.trim().toLowerCase() === organizationName.toLowerCase()) {
-//                 duplicateReason = 'organization name';
+//             if (data.email.trim().toLowerCase() === email.toLowerCase()) {
+//                 duplicateReason = 'email';
 //                 duplicateLocation = `abvnApplications/registeredABVN/${child.key}`;
 //                 return true;
 //             }
@@ -375,52 +379,72 @@ async function verifyUserPassword(password) {
 //     }
 //     return { isDuplicate: false };
 // }
+// === Enhanced Duplicate Check ===
 async function checkDuplicates(email, mobileNumber, organizationName) {
-    const [emailSnapshot, mobileSnapshot, orgSnapshot, registeredSnapshot] = await Promise.all([
-        database.ref('users').orderByChild('email').equalTo(email.toLowerCase()).once('value'),
-        database.ref('users').orderByChild('mobile').equalTo(mobileNumber).once('value'),
-        database.ref('volunteerGroups').orderByChild('organization').equalTo(organizationName.toLowerCase()).once('value'),
+    const [userSnapshot, volunteerGroupSnapshot, registeredSnapshot] = await Promise.all([
+        database.ref('users').once('value'),
+        database.ref('volunteerGroups').once('value'),
         database.ref('abvnApplications/registeredABVN').once('value')
     ]);
 
-    // Check organization name first (strict uniqueness)
-    if (orgSnapshot.exists()) {
-        return { isDuplicate: true, reason: 'organization name', location: `volunteerGroups/${Object.keys(orgSnapshot.val())[0]}` };
-    }
-    // Check mobile number
-    if (mobileSnapshot.exists()) {
-        return { isDuplicate: true, reason: 'mobile number', location: `users/${Object.keys(mobileSnapshot.val())[0]}` };
-    }
-    // Check email
-    if (emailSnapshot.exists()) {
-        return { isDuplicate: true, reason: 'email', location: `users/${Object.keys(emailSnapshot.val())[0]}` };
-    }
-    // Check registeredABVN for any matches
-    if (registeredSnapshot.exists()) {
+    const emailLower = email.toLowerCase().trim();
+    const mobile = mobileNumber.trim();
+    const orgNameLower = organizationName.toLowerCase().trim();
+
+    // Helper function to check if a combination exists
+    const checkCombination = (data, path) => {
         let duplicateReason = '';
         let duplicateLocation = '';
-        registeredSnapshot.forEach(child => {
-            const data = child.val();
-            if (data.organizationName.trim().toLowerCase() === organizationName.toLowerCase()) {
-                duplicateReason = 'organization name';
-                duplicateLocation = `abvnApplications/registeredABVN/${child.key}`;
-                return true;
-            }
-            if (data.mobileNumber === mobileNumber) {
-                duplicateReason = 'mobile number';
-                duplicateLocation = `abvnApplications/registeredABVN/${child.key}`;
-                return true;
-            }
-            if (data.email.trim().toLowerCase() === email.toLowerCase()) {
+        for (const [key, value] of Object.entries(data || {})) {
+            const existingEmail = value.email?.toLowerCase().trim();
+            const existingMobile = value.mobileNumber || value.mobile;
+            const existingOrgName = value.organizationName?.toLowerCase().trim() || value.organization?.toLowerCase().trim();
+
+            // Individual duplicate checks
+            if (existingEmail === emailLower) {
                 duplicateReason = 'email';
-                duplicateLocation = `abvnApplications/registeredABVN/${child.key}`;
-                return true;
+                duplicateLocation = `${path}/${key}`;
+                return { isDuplicate: true, reason: duplicateReason, location: duplicateLocation };
             }
-        });
-        if (duplicateReason) {
-            return { isDuplicate: true, reason: duplicateReason, location: duplicateLocation };
+            if (existingMobile === mobile) {
+                duplicateReason = 'mobile number';
+                duplicateLocation = `${path}/${key}`;
+                return { isDuplicate: true, reason: duplicateReason, location: duplicateLocation };
+            }
+            if (existingOrgName === orgNameLower) {
+                duplicateReason = 'organization name';
+                duplicateLocation = `${path}/${key}`;
+                return { isDuplicate: true, reason: duplicateReason, location: duplicateLocation };
+            }
+
+            // Combination check
+            if (existingEmail === emailLower && existingMobile === mobile && existingOrgName === orgNameLower) {
+                duplicateReason = 'combination of email, mobile number, and organization name';
+                duplicateLocation = `${path}/${key}`;
+                return { isDuplicate: true, reason: duplicateReason, location: duplicateLocation };
+            }
         }
+        return { isDuplicate: false };
+    };
+
+    // Check users
+    if (userSnapshot.exists()) {
+        const result = checkCombination(userSnapshot.val(), 'users');
+        if (result.isDuplicate) return result;
     }
+
+    // Check volunteerGroups
+    if (volunteerGroupSnapshot.exists()) {
+        const result = checkCombination(volunteerGroupSnapshot.val(), 'volunteerGroups');
+        if (result.isDuplicate) return result;
+    }
+
+    // Check registeredABVN
+    if (registeredSnapshot.exists()) {
+        const result = checkCombination(registeredSnapshot.val(), 'abvnApplications/registeredABVN');
+        if (result.isDuplicate) return result;
+    }
+
     return { isDuplicate: false };
 }
 

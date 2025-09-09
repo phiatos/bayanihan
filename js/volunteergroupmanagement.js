@@ -362,36 +362,6 @@ function fetchAndRenderArchivedTable() {
 }
 
 // === View Modal ===
-// function showPreviewModal(orgData) {
-//     const modalContentDiv = document.getElementById('modalContent');
-//     const formattedTimestamp = orgData.timestamp ? new Date(orgData.timestamp).toLocaleString('en-US', {
-//         year: 'numeric', month: 'short', day: 'numeric',
-//         hour: '2-digit', minute: '2-digit', second: '2-digit'
-//     }) : 'N/A';
-
-//     modalContentDiv.innerHTML = `
-//         <div class="modal-content-inner" style="padding: 20px;">
-//             <h2>Organization Details:</h2>
-//             <p><strong>Organization Name:</strong> ${orgData.organization || 'N/A'}</p>
-//             <p><strong>Contact Person:</strong> ${orgData.contactPerson || 'N/A'}</p>
-//             <p><strong>Email:</strong> ${orgData.email || 'N/A'}</p>
-//             <p><strong>Mobile Number:</strong> ${orgData.mobileNumber || 'N/A'}</p>
-//             <p><strong>Social Media Link:</strong> ${orgData.socialMedia && orgData.socialMedia !== 'N/A' ? `<a href="${orgData.socialMedia}" target="_blank" rel="noopener noreferrer">${orgData.socialMedia}</a>` : 'N/A'}</p>
-//             <hr>
-//             <h2>Address:</h2>
-//             <div style="margin-left: 15px;">
-//                 <p><strong>Region:</strong> ${orgData.address?.region || 'N/A'}</p>
-//                 <p><strong>Province:</strong> ${orgData.address?.province || 'N/A'}</p>
-//                 <p><strong>City:</strong> ${orgData.address?.city || 'N/A'}</p>
-//                 <p><strong>Barangay:</strong> ${orgData.address?.barangay || 'N/A'}</p>
-//                 <p><strong>Street Address:</strong> ${orgData.address?.streetAddress || 'N/A'}</p>
-//             </div>
-//             <hr>
-//             <p style="margin-top: 20px; font-size: 0.9em; color: #555;"><strong>Created At:</strong> ${formattedTimestamp}</p>
-//         </div>
-//     `;
-//     document.getElementById('previewModal').style.display = 'flex';
-// }
 function showPreviewModal(orgData) {
     const modalContentDiv = document.getElementById('modalContent');
     const formattedTimestamp = orgData.timestamp ? new Date(orgData.timestamp).toLocaleString('en-US', {
@@ -1739,7 +1709,7 @@ if (editOrgForm) {
                 requiredDocumentsLink: updatedRequiredDocumentsLink || "N/A",
                 lastUpdatedBy: auth.currentUser.uid,
                 lastUpdatedAt: new Date().toISOString(),
-                timestamp: existingData.timestamp,
+                timestamp: existingData.timestamp || new Date().toISOString(), // Ensure timestamp is defined
                 userId: existingData.userId
             };
 
