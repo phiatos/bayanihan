@@ -236,6 +236,30 @@ async function testSaveToArchived() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Check authentication state before loading data
+    auth.onAuthStateChanged((user) => {
+        if (user) {
+            console.log('User is authenticated:', user.uid);
+            resetInactivityTimer(); // Start inactivity timer
+            loadMonetaryDonationsFromFirebase(); // Load data only if authenticated
+        } else {
+            console.error('No authenticated user found.');
+            Swal.fire({
+                title: 'Error',
+                text: 'You must be logged in to access this page.',
+                icon: 'error',
+                confirmButtonText: 'Go to Login',
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean'
+                }
+            }).then(() => {
+                window.location.href = '../pages/login.html';
+            });
+        }
+    });
+    
     // Get references to DOM elements
     const donationTableBody = document.getElementById('donationTableBody');
     const searchInput = document.getElementById('searchInput');
