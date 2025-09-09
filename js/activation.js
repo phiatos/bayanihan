@@ -806,6 +806,59 @@ async function notifyABVN(activationId, groupId, reliefAmount, reliefPurpose) {
     }
 }
 
+async function notifyABVNActivation(activationId, groupId) {
+    try {
+        const user = firebase.auth().currentUser;
+        if (!user) {
+            throw new Error("User not authenticated.");
+        }
+
+        const group = allVolunteerGroups.find(g => g.no === parseInt(groupId));
+        if (!group) {
+            throw new Error(`Volunteer group not found for groupId: ${groupId}`);
+        }
+
+        const activationSnapshot = await database.ref(`activations/${activationId}`).once("value");
+        const activation = activationSnapshot.val();
+        if (!activation) {
+            throw new Error(`Activation not found for activationId: ${activationId}`);
+        }
+
+        let abvnUserUid = null;
+        const usersSnapshot = await database.ref("users").orderByChild("organization").equalTo(group.organization).once("value");
+        if (usersSnapshot.exists()) {
+            usersSnapshot.forEach(child => {
+                const userData = child.val();
+                if (userData.role === "ABVN") {
+                    abvnUserUid = child.key;
+                }
+            });
+        }
+
+        console.log(`ABVN user lookup for organization ${group.organization}: userUid=${abvnUserUid || 'none'}`);
+
+        const notification = {
+            groupId: groupId,
+            organization: group.organization,
+            activationId: activationId,
+            timestamp: new Date().toISOString(),
+            read: false,
+            type: "activation",
+            userUid: abvnUserUid || null,
+            message: `${group.organization} has been activated for ${activation.calamityName} (${activation.calamityType}) in ${activation.areaOfOperation}.`,
+            identifier: `activation_${activationId}_${groupId}_${Date.now()}`
+        };
+
+        const newNotificationRef = await database.ref("notifications").push(notification);
+        console.log(`Activation notification created for ${group.organization}:`, notification);
+
+        return newNotificationRef.key;
+    } catch (error) {
+        console.error("Error creating activation notification:", error);
+        throw error;
+    }
+}
+
 firebase.auth().onAuthStateChanged(async (user) => {
     console.log(`[${new Date().toISOString()}] Auth state changed:`, user ? { uid: user.uid, email: user.email } : 'No user');
 
@@ -1286,6 +1339,7 @@ modalActivateSubmitBtn.addEventListener("click", async () => {
         newActivationRecord.activationId = activationId;
 
         await newActivationRef.set(newActivationRecord);
+        await notifyABVNActivation(activationId, selectedGroupForActivation.no);
         console.log("Added new activation record:", { ...newActivationRecord, activationId });
 
         Swal.fire({

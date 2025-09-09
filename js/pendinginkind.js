@@ -908,7 +908,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 reverseButtons: true,
                 buttonsStyling: true,
                 customClass: {
-                    popup: 'swal-popup-modern',
+                    popup: 'custom-swal-popup-large',
                     title: 'swal-title-modern',
                     content: 'swal-content-modern',
                     confirmButton: 'swal-confirm-modern',
