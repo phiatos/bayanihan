@@ -302,10 +302,21 @@ document.addEventListener("DOMContentLoaded", () => {
                 const receivedDate = new Date(input.value);
                 if (isNaN(receivedDate.getTime())) {
                     showError(input, `${fieldConfig.label} is not a valid date.`);
-                } else if (receivedDate.setHours(0, 0, 0, 0) > new Date().setHours(0, 0, 0, 0)) {
-                    showError(input, `${fieldConfig.label} cannot be a future date.`);
                 }
             }
+            // if (fieldConfig.isDate) {
+            //     const receivedDate = new Date(input.value);
+            //     const oneWeekFromNow = new Date();
+            //     oneWeekFromNow.setDate(oneWeekFromNow.getDate() + 7);
+            //     oneWeekFromNow.setHours(0, 0, 0, 0);
+            //     const normalizedReceivedDate = new Date(receivedDate);
+            //     normalizedReceivedDate.setHours(0, 0, 0, 0);
+            //     if (isNaN(receivedDate.getTime())) {
+            //         showError(input, `${fieldConfig.label} is not a valid date.`);
+            //     } else if (normalizedReceivedDate.getTime() > oneWeekFromNow.getTime()) {
+            //         showError(input, `${fieldConfig.label} cannot be more than one week in the future.`);
+            //     }
+            // }
         }
     }
 
@@ -1261,11 +1272,23 @@ document.addEventListener("DOMContentLoaded", () => {
                     if (isNaN(donationDate.getTime())) {
                         showError(input, `${label} is not a valid date`);
                         isValid = false;
-                    } else if (donationDate.setHours(0, 0, 0, 0) > today.getTime()) {
-                        showError(input, `${label} cannot be a future date`);
-                        isValid = false;
                     }
                 }
+                // if (isDate) {
+                //     const donationDate = new Date(sanitizedValue);
+                //     const oneWeekFromNow = new Date();
+                //     oneWeekFromNow.setDate(oneWeekFromNow.getDate() + 7);
+                //     oneWeekFromNow.setHours(0, 0, 0, 0);
+                //     const normalizedDonationDate = new Date(donationDate);
+                //     normalizedDonationDate.setHours(0, 0, 0, 0);
+                //     if (isNaN(donationDate.getTime())) {
+                //         showError(input, `${label} is not a valid date`);
+                //         isValid = false;
+                //     } else if (normalizedDonationDate.getTime() > oneWeekFromNow.getTime()) {
+                //         showError(input, `${label} cannot be more than one week in the future`);
+                //         isValid = false;
+                //     }
+                // }
             }
             input.value = sanitizedValue;
         }
@@ -1472,6 +1495,20 @@ document.addEventListener("DOMContentLoaded", () => {
                 });
             }
         } else {
+            Swal.fire({
+                title: 'Validation Error',
+                text: 'Please correct the errors in the form before submitting.',
+                icon: 'error',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
+                }
+            });
+            return;
         }
     });
 
@@ -2328,76 +2365,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // // Add event listener for the new endorsement button
-    // const submitEndorsementBtn = document.getElementById("confirmEndorseBtn");
-    // submitEndorsementBtn.onclick = () => {
-    //     const modal = document.getElementById("endorseModal");
-    //     const selectedRadio = document.querySelector('input[name="abvn"]:checked');
-
-    //     if (!selectedRadio) {
-    //         Swal.fire({
-    //             icon: 'warning',
-    //             title: 'No Group Selected',
-    //             text: 'Please select a volunteer group to endorse this donation.',
-    //             confirmButtonText: 'OK',
-    //             customClass: {
-    //                 popup: 'swal2-popup-warning-clean',
-    //                 title: 'swal2-title-warning-clean',
-    //                 htmlContainer: 'swal2-text-warning-clean'
-    //             }
-    //         });
-    //         return;
-    //     }
-
-    //     const firebaseKey = modal.dataset.firebaseKey;
-    //     const donationToEndorse = allDonations.find(d => d.firebaseKey === firebaseKey);
-
-    //     if (!donationToEndorse) {
-    //         Swal.fire({
-    //             icon: 'error',
-    //             title: 'Error',
-    //             text: 'Donation not found for endorsement.',
-    //             customClass: {
-    //                 popup: 'swal2-popup-error-clean',
-    //                 title: 'swal2-title-error-clean',
-    //                 htmlContainer: 'swal2-text-error-clean'
-    //             }
-    //         });
-    //         modal.style.display = "none";
-    //         return;
-    //     }
-
-    //     const endorsedGroup = {
-    //         name: selectedRadio.value,
-    //         email: selectedRadio.getAttribute('data-email')
-    //     };
-
-    //     // Update the donation record with the endorsed group
-    //     try {
-    //         database.ref(`donations/savedDonations/inkind/${firebaseKey}`).update({
-    //             endorsedTo: endorsedGroup.name,
-    //             endorsedEmail: endorsedGroup.email,
-    //             endorsementDate: new Date().toISOString()
-    //         });
-    //     } catch (error) {
-    //         logErrorToFirebase(error, 'submitEndorsementBtn_update');
-    //         Swal.fire({
-    //             icon: 'error',
-    //             title: 'Error',
-    //             text: 'Failed to update donation with endorsement details.',
-    //             customClass: {
-    //                 popup: 'swal2-popup-error-clean',
-    //                 title: 'swal2-title-error-clean',
-    //                 htmlContainer: 'swal2-text-error-clean'
-    //             }
-    //         });
-    //         return;
-    //     }
-
-    //     sendEndorsementEmail(donationToEndorse, endorsedGroup);
-    //     modal.style.display = "none";
-    // };
-
     async function openEditModal(firebaseKey) {
         if (!permissions.canEdit) {
             Swal.fire('Error', 'You do not have permission to edit donations.', 'error');
@@ -2509,6 +2476,20 @@ document.addEventListener("DOMContentLoaded", () => {
                 });
             }
         } else {
+            Swal.fire({
+                title: 'Validation Error',
+                text: 'Please correct the errors in the form before saving.',
+                icon: 'error',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
+                }
+            });
+            return;
         }
     });
 
