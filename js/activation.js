@@ -2,7 +2,6 @@ console.log = function () {};
 console.error = function () {};
 console.warn = function () {};
 
-
 const firebaseConfig = {
     apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
     authDomain: "bayanihan-5ce7e.firebaseapp.com",
@@ -20,7 +19,6 @@ const auth = firebase.auth();
 
 let isAdminVerified = false;
 
-// Verify Super Admin password
 async function verifySuperAdminPassword() {
     if (!auth || !auth.currentUser) {
         Swal.fire({
@@ -40,7 +38,6 @@ async function verifySuperAdminPassword() {
         return false;
     }
 
-    // Check if user is signed in with email/password provider
     if (!auth.currentUser.providerData.some(provider => provider.providerId === 'password')) {
         Swal.fire({
             icon: 'error',
@@ -118,7 +115,7 @@ async function verifySuperAdminPassword() {
     });
 
     if (!password) {
-        isAdminVerified = false; // Prevent unauthorized actions on cancel
+        isAdminVerified = false;
         return false;
     }
 
@@ -166,7 +163,7 @@ const modalAreaInput = document.getElementById("modalAreaInput");
 const modalLatitudeInput = document.getElementById("modalLatitudeInput");
 const modalLongitudeInput = document.getElementById("modalLongitudeInput");
 const modalCalamitySelect = document.getElementById("modalCalamitySelect");
-const modalTyphoonNameInput = document.getElementById("modalTyphoonNameInput");
+const modalCalamityNameInput = document.getElementById("modalCalamityNameInput");
 const modalActivateSubmitBtn = document.getElementById("modalActivateSubmitBtn");
 const modalPrevStepBtn = document.getElementById("modalPrevStepBtn");
 const pinLocationBtn = document.getElementById("pinLocationBtn");
@@ -481,7 +478,6 @@ function addMarkersForActiveActivations() {
 
         Object.entries(activations).forEach(([key, activation]) => {
             if (!activation.latitude || !activation.longitude) {
-                
                 return;
             }
 
@@ -560,7 +556,7 @@ function createInfoWindow(marker, activation, logoUrl) {
                     <i class='bx bx-cloud-lightning'></i>
                     <div class="info-text">
                         <span class="label">Calamity</span>
-                        <span class="value">${activation.calamityType}${activation.typhoonName ? ` (${activation.typhoonName})` : ''}</span>
+                        <span class="value">${activation.calamityName} (${activation.calamityType})</span>
                     </div>
                 </div>
             </div>
@@ -675,7 +671,6 @@ function createInfoWindow(marker, activation, logoUrl) {
         if (currentInfoWindow === marker) {
             singleInfoWindow.close();
             currentInfoWindow = null;
-            
         }
     });
 
@@ -685,13 +680,11 @@ function createInfoWindow(marker, activation, logoUrl) {
         singleInfoWindow.open(activationMap, marker);
         currentInfoWindow = marker;
         isInfoWindowClicked = true;
-        
     });
 
     singleInfoWindow?.addListener("closeclick", () => {
         isInfoWindowClicked = false;
         currentInfoWindow = null;
-        
     });
 }
 
@@ -758,29 +751,6 @@ function getGeolocationErrorMessage(error) {
     }
 }
 
-function generateCalamityName(calamityType, areaOfOperation, activationDate) {
-    if (calamityType === "Typhoon") {
-        return modalTyphoonNameInput.value.trim();
-    }
-    
-    let location = areaOfOperation.split(',').map(part => part.trim())[0] || "Unknown";
-    location = location.replace(/\s+/g, '_');
-    
-    const year = new Date(activationDate).getFullYear();
-    
-    const calamityCodes = {
-        Earthquake: "EQ",
-        Flood: "FLD",
-        "Volcanic Eruption": "VOLC",
-        Landslide: "LS",
-        Tsunami: "TSU"
-    };
-    
-    const code = calamityCodes[calamityType] || "UNK";
-    return `${location}_${year}_${code}`;
-}
-
-// Send Relief Notification to ABVN Group
 async function notifyABVN(activationId, groupId, reliefAmount, reliefPurpose) {
     try {
         const user = firebase.auth().currentUser;
@@ -822,7 +792,7 @@ async function notifyABVN(activationId, groupId, reliefAmount, reliefPurpose) {
             read: false,
             type: "relief",
             userUid: abvnUserUid || null,
-            message: `Relief assistance of ₱${parseFloat(reliefAmount).toLocaleString()} Relief Purpose "${reliefPurpose}" has been sent to ${group.organization} for ${activation.calamityType}${activation.calamityName ? ` (${activation.calamityName})` : ''} in ${activation.areaOfOperation}.`,
+            message: `Relief assistance of ₱${parseFloat(reliefAmount).toLocaleString()} for "${reliefPurpose}" has been sent to ${group.organization} for ${activation.calamityName} (${activation.calamityType}) in ${activation.areaOfOperation}.`,
             identifier: `relief_${activationId}_${groupId}_${Date.now()}`
         };
 
@@ -836,38 +806,11 @@ async function notifyABVN(activationId, groupId, reliefAmount, reliefPurpose) {
     }
 }
 
-// firebase.auth().onAuthStateChanged(user => {
-//     if (user) {
-//         console.log("User is authenticated:", user.uid);
-//         console.log("Anonymous user:", user.isAnonymous);
-//         listenForDataUpdates();
-//         initActivationMap();
-//         resetInactivityTimer();
-//     } else {
-//         console.log("No user is authenticated. Attempting anonymous sign-in...");
-//         firebase.auth().signInAnonymously()
-//             .then(() => {
-//                 console.log("Signed in anonymously successfully.");
-//                 initActivationMap();
-//                 resetInactivityTimer();
-//             })
-//             .catch(error => {
-//                 console.error("Anonymous auth failed:", error.code, error.message);
-//                 Swal.fire({
-//                     icon: 'error',
-//                     title: 'Authentication Error',
-//                     text: `Failed to authenticate: ${error.message}. Please check your network and Firebase configuration.`
-//                 });
-//             });
-//     }
-// });
-
 firebase.auth().onAuthStateChanged(async (user) => {
     console.log(`[${new Date().toISOString()}] Auth state changed:`, user ? { uid: user.uid, email: user.email } : 'No user');
 
     if (user) {
         try {
-            // Fetch user data from database to check password_needs_reset
             const userSnapshot = await database.ref('users/' + user.uid).once('value');
             const userData = userSnapshot.val();
             const passwordNeedsReset = userData ? (userData.password_needs_reset || false) : false;
@@ -890,10 +833,9 @@ firebase.auth().onAuthStateChanged(async (user) => {
                 }).then(() => {
                     window.location.replace("../pages/profile.html");
                 });
-                return; // Stop further execution if password reset is needed
+                return;
             }
 
-            // If password does not need reset, proceed with normal initialization
             console.log("User is authenticated:", user.uid);
             console.log("Anonymous user:", user.isAnonymous);
             listenForDataUpdates();
@@ -949,7 +891,6 @@ function listenForDataUpdates() {
     database.ref("volunteerGroups").on("value", snapshot => {
         const fetchedGroups = snapshot.val();
         
-
         allVolunteerGroups = [];
         if (fetchedGroups) {
             for (let key in fetchedGroups) {
@@ -1005,7 +946,6 @@ function listenForDataUpdates() {
     database.ref("activations").orderByChild("activationDate").on("value", snapshot => {
         const fetchedActivations = snapshot.val();
         
-
         currentActiveActivations = [];
         if (fetchedActivations) {
             for (let key in fetchedActivations) {
@@ -1021,8 +961,7 @@ function listenForDataUpdates() {
                         hq: volunteerGroup ? volunteerGroup.hq : "Not specified",
                         areaOfOperation: activation.areaOfOperation || "Not specified",
                         calamityType: activation.calamityType || "Typhoon",
-                        calamityName: activation.calamityName || "",
-                        typhoonName: activation.typhoonName || "",
+                        calamityName: activation.calamityName || "Unknown",
                         status: activation.status,
                         activationDate: activation.activationDate,
                         contactPerson: volunteerGroup ? volunteerGroup.contactPerson : "N/A",
@@ -1033,7 +972,6 @@ function listenForDataUpdates() {
                     });
                 }
             }
-           
             currentActiveActivations.sort((a, b) => {
                 const dateA = new Date(a.activationDate);
                 const dateB = new Date(b.activationDate);
@@ -1073,7 +1011,6 @@ function populateGroupDropdown() {
 }
 
 function renderTable(filteredData = currentActiveActivations) {
-    
     tableBody.innerHTML = "";
     const start = (currentPage - 1) * rowsPerPage;
     const end = start + rowsPerPage;
@@ -1092,10 +1029,6 @@ function renderTable(filteredData = currentActiveActivations) {
     pageData.forEach((row, index) => {
         const displayNumber = start + index + 1;
         const tr = document.createElement("tr");
-        let calamityDisplay = row.calamityType;
-        if (row.calamityName) {
-            calamityDisplay += ` (${row.calamityName})`;
-        }
 
         tr.innerHTML = `
             <td>${displayNumber}</td>
@@ -1105,7 +1038,7 @@ function renderTable(filteredData = currentActiveActivations) {
             <td>${row.contactPerson || 'N/A'}</td>
             <td>${row.email || 'N/A'}</td>
             <td>${row.mobileNumber || 'N/A'}</td>
-            <td>${calamityDisplay || 'N/A'}</td>
+            <td>${row.calamityName} (${row.calamityType})</td>
             <td><span class="status-circle ${row.status === "active" ? "green" : "red"}"></span> ${row.status}</td>
             <td>
                 <button title="Endorse" class="endorseBtn" data-id="${row.id}" data-group-id="${row.groupId}"><i class='bx bx-mail-send'></i></button>
@@ -1153,8 +1086,7 @@ function resetModalStep2Fields() {
             return `<option value="${opt}">${opt}</option>`;
         })
         .join("");
-    modalTyphoonNameInput.style.display = "none";
-    modalTyphoonNameInput.value = "";
+    modalCalamityNameInput.value = "";
 }
 
 function showStep1() {
@@ -1189,11 +1121,7 @@ function showStep2() {
             return `<option value="${opt}">${opt}</option>`;
         })
         .join("");
-    modalTyphoonNameInput.style.display = "none";
-    modalTyphoonNameInput.value = "";
-    modalAreaInput.value = "";
-    modalLatitudeInput.value = "";
-    modalLongitudeInput.value = "";
+    modalCalamityNameInput.value = "";
 }
 
 function closeActivationModal() {
@@ -1236,15 +1164,6 @@ selectGroupDropdown.addEventListener("change", (e) => {
 modalNextStepBtn.addEventListener("click", showStep2);
 modalPrevStepBtn.addEventListener("click", showStep1);
 
-modalCalamitySelect.addEventListener("change", () => {
-    if (modalCalamitySelect.value === "Typhoon") {
-        modalTyphoonNameInput.style.display = "inline-block";
-    } else {
-        modalTyphoonNameInput.style.display = "none";
-        modalTyphoonNameInput.value = "";
-    }
-});
-
 pinLocationBtn.addEventListener("click", openMapModal);
 
 saveLocationBtn.addEventListener("click", () => {
@@ -1286,14 +1205,13 @@ modalActivateSubmitBtn.addEventListener("click", async () => {
 
     const areaOfOperation = modalAreaInput.value.trim();
     const calamityType = modalCalamitySelect.value;
-    const typhoonName = (calamityType === "Typhoon") ? modalTyphoonNameInput.value.trim() : "";
+    const calamityName = modalCalamityNameInput.value.trim();
     const latitude = modalLatitudeInput.value;
     const longitude = modalLongitudeInput.value;
     const activationDate = new Date().toISOString();
-    const calamityName = generateCalamityName(calamityType, areaOfOperation, activationDate);
 
-    if (!areaOfOperation && !calamityType) {
-        Swal.fire({ icon: 'warning', title: 'Missing Fields', text: 'Please supply missing fields.' });
+    if (!areaOfOperation || !calamityType || !calamityName) {
+        Swal.fire({ icon: 'warning', title: 'Missing Fields', text: 'Please supply all required fields.' });
         return;
     }
     if (!areaOfOperation) {
@@ -1304,8 +1222,8 @@ modalActivateSubmitBtn.addEventListener("click", async () => {
         Swal.fire({ icon: 'warning', title: 'Missing Field', text: 'Please select a Calamity Type.' });
         return;
     }
-    if (calamityType === "Typhoon" && !typhoonName) {
-        Swal.fire({ icon: 'warning', title: 'Missing Field', text: 'Please enter the Typhoon Name.' });
+    if (!calamityName) {
+        Swal.fire({ icon: 'warning', title: 'Missing Field', text: 'Please enter a Calamity Name.' });
         return;
     }
     if (!latitude || !longitude) {
@@ -1356,18 +1274,16 @@ modalActivateSubmitBtn.addEventListener("click", async () => {
             areaOfOperation: areaOfOperation,
             calamityType: calamityType,
             calamityName: calamityName,
-            typhoonName: typhoonName,
             status: "active",
             activationDate: activationDate,
             latitude: parseFloat(latitude) || null,
             longitude: parseFloat(longitude) || null,
-            activationId: null // Placeholder, updated after push
+            activationId: null
         };
 
-        // Push to Firebase and get the push key
         const newActivationRef = database.ref("activations").push();
-        const activationId = newActivationRef.key; // e.g., -OZ284dKzhiYVc7Pagsf
-        newActivationRecord.activationId = activationId; // Add activationId to record
+        const activationId = newActivationRef.key;
+        newActivationRecord.activationId = activationId;
 
         await newActivationRef.set(newActivationRecord);
         console.log("Added new activation record:", { ...newActivationRecord, activationId });
@@ -1375,7 +1291,7 @@ modalActivateSubmitBtn.addEventListener("click", async () => {
         Swal.fire({
             icon: 'success',
             title: 'Activated!',
-            text: `${selectedGroupForActivation.organization} has been activated for ${calamityType}${calamityName ? ` (${calamityName})` : ''} in ${areaOfOperation}.`, // Removed activationId
+            text: `${selectedGroupForActivation.organization} has been activated for ${calamityName} (${calamityType}) in ${areaOfOperation}.`,
             showConfirmButton: true,
             confirmButtonText: 'OK',
             customClass: {
@@ -1456,7 +1372,6 @@ document.getElementById("submitReliefBtn").addEventListener("click", async () =>
 
         await database.ref("reliefAssistance").push(reliefRecord);
         
-
         Swal.fire({
             icon: 'success',
             title: 'Relief Assistance Sent!',
@@ -1494,12 +1409,10 @@ tableBody.addEventListener("click", e => {
     const groupId = btn.getAttribute('data-group-id');
 
     if (btn.classList.contains("endorseBtn")) {
-        
         currentActivationId = activationId;
         currentGroupId = groupId;
         openEndorseModal();
     } else if (btn.classList.contains("archiveBtn")) {
-        // Require password verification if not already verified
         if (!isAdminVerified) {
             verifySuperAdminPassword().then(verified => {
                 if (!verified) {
@@ -1566,7 +1479,7 @@ tableBody.addEventListener("click", e => {
                                 Swal.fire({
                                     icon: 'success',
                                     title: 'Deactivated!',
-                                    text:  `The activation has been moved to deleted activations.`,
+                                    text: `The activation has been moved to deleted activations.`,
                                     showConfirmButton: true,
                                     confirmButtonText: 'OK',
                                     customClass: {
@@ -1648,7 +1561,7 @@ tableBody.addEventListener("click", e => {
                             Swal.fire({
                                 icon: 'success',
                                 title: 'Deactivated!',
-                                text:  `The activation has been moved to deleted activations.`,
+                                text: `The activation has been moved to deleted activations.`,
                                 showConfirmButton: true,
                                 confirmButtonText: 'OK',
                                 customClass: {
@@ -1732,7 +1645,7 @@ function filterAndSort() {
                 const statusOrder = { 'active': 1, 'inactive': 2 };
                 return statusOrder[a.status] - statusOrder[b.status];
             } else if (sortSelect.value === 'calamity') {
-                return a.calamityType.localeCompare(b.calamityType);
+                return a.calamityName.localeCompare(b.calamityName);
             }
             return 0;
         });
