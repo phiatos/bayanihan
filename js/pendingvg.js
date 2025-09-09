@@ -1008,7 +1008,7 @@ async function handleTableActions(event) {
             Swal.fire({
               icon: 'error',
               title: 'Duplicate Found',
-              html: 'This application already exists in the Approved Applications.<br><br>Please check the approved list before proceeding.',
+              html: `This application already exists in the Approved Applications.<br><br>Please check the approved list before proceeding.`,
               confirmButtonText: 'OK',
               allowOutsideClick: false,
               customClass: {
@@ -1210,25 +1210,72 @@ function validateExcelRow(row, headers, columnMap, existingRecords) {
     }
   });
 
-  // Validate required fields
-  if (!record.organizationName || record.organizationName.trim() === '') {
-    isValidRecord = false;
-    rowErrors.push('Missing Organization Name');
-  }
-  if (!record.email || record.email.trim() === '' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(record.email)) {
-    isValidRecord = false;
-    rowErrors.push('Invalid or Missing Email');
-  }
-  if (!record.contactPerson || record.contactPerson.trim() === '') {
-    isValidRecord = false;
-    rowErrors.push('Missing Contact Person');
-  }
-  if (!record.mobileNumber || record.mobileNumber.trim() === '') {
-    isValidRecord = false;
-    rowErrors.push('Missing Mobile Number');
-  }
+  const isEmpty = (value) => value === undefined || value === null || value.toString().trim() === '';
+  const isLettersOnly = (value) => /^[a-zA-Z\s]+$/.test(value);
+  const isValidEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const validDomains = ['gmail.com'];
+    const domain = email?.split('@')[1]?.toLowerCase();
+    return emailRegex.test(email) && validDomains.includes(domain);
+  };
+  const isValidMobile = (mobile) => /^09\d{9}$/.test(mobile);
+  const isValidUrl = (url) => {
+    try {
+      new URL(url);
+      return true;
+    } catch {
+      return false;
+    }
+  };
 
-  // Check for duplicates
+  const fieldsToCheck = [
+    { key: 'organizationName', label: 'Organization Name', lettersOnly: true },
+    { key: 'contactPerson', label: 'Contact Person', lettersOnly: true },
+    { key: 'email', label: 'Email', isEmail: true },
+    { key: 'mobileNumber', label: 'Mobile Number', isMobile: true },
+    { key: 'socialMediaLink', label: 'Social Media', isUrl: true, required: false },
+    { key: 'headquarters.streetAddress', label: 'Street Address' },
+    { key: 'headquarters.region', label: 'Region' },
+    { key: 'headquarters.province', label: 'Province' },
+    { key: 'headquarters.city', label: 'City' },
+    { key: 'headquarters.barangay', label: 'Barangay' },
+    { key: 'organizationalBackgroundMission', label: 'Organizational Background/Mission', minLength: 20 },
+    { key: 'areasOfExpertiseFocus', label: 'Areas of Expertise/Focus', minLength: 20 },
+    { key: 'legalStatusRegistration', label: 'Legal Status/Registration' },
+    { key: 'requiredDocumentsLink', label: 'Required Documents Link', isUrl: true },
+  ];
+
+  fieldsToCheck.forEach(({ key, label, lettersOnly, isEmail, isMobile, isUrl, required = true, minLength }) => {
+    let value = key.includes('.') ? record[key.split('.')[0]]?.[key.split('.')[1]] : record[key];
+    value = value?.toString().trim();
+
+    if (required && isEmpty(value)) {
+      isValidRecord = false;
+      rowErrors.push(`${label} is required`);
+    } else if (!isEmpty(value)) {
+      if (lettersOnly && !isLettersOnly(value)) {
+        isValidRecord = false;
+        rowErrors.push(`${label} should only contain letters and spaces`);
+      }
+      if (isEmail && !isValidEmail(value)) {
+        isValidRecord = false;
+        rowErrors.push(`Please enter a valid Gmail address for ${label} (e.g., example@gmail.com)`);
+      }
+      if (isMobile && !isValidMobile(value)) {
+        isValidRecord = false;
+        rowErrors.push(`${label} must be 11 digits starting with "09"`);
+      }
+      if (isUrl && !isValidUrl(value)) {
+        isValidRecord = false;
+        rowErrors.push(`${label} must be a valid URL (e.g., https://facebook.com/yourpage)`);
+      }
+      if (minLength && value.length < minLength) {
+        isValidRecord = false;
+        rowErrors.push(`${label} must be at least ${minLength} characters long`);
+      }
+    }
+  });
+
   const orgNameLower = record.organizationName ? record.organizationName.trim().toLowerCase() : '';
   const emailLower = record.email ? record.email.trim().toLowerCase() : '';
   const contactPersonLower = record.contactPerson ? record.contactPerson.trim().toLowerCase() : '';
@@ -1256,10 +1303,10 @@ function validateExcelRow(row, headers, columnMap, existingRecords) {
     rowErrors.push('Duplicate Street Address');
   }
 
-  // Automatically set application date
   record.applicationDateandTime = new Date().toISOString();
   record.status = 'Pending';
   record.appliedAt = new Date().toISOString();
+  record.recaptchaResponse = 'N/A'; 
 
   return { record, isValidRecord, rowErrors };
 }
@@ -1464,44 +1511,44 @@ async function handleExcelFileSelect(event) {
 function downloadExcelTemplate() {
   const templateData = [
     [
-      'Areas of Expertise/Focus',
+      'Organization Name',
       'Contact Person',
       'Email',
-      'Barangay',
-      'City',
-      'Province',
-      'Region',
-      'Street Address',
-      'Legal Status/Registration',
       'Mobile Number',
-      'Organization Name',
-      'Organizational Background/Mission',
-      'Required Documents Link',
       'Social Media',
+      'Region',
+      'Province',
+      'City',
+      'Barangay',
+      'Street Address',
+      'Organizational Background/Mission',
+      'Areas of Expertise/Focus',
+      'Legal Status/Registration',
+      'Required Documents Link',
     ],
-    // Example row for reference
+    // Example row aligned with validation rules
     [
-      'Education, Health',
+      'Example Organization', 
       'John Doe',
-      'example@org.com',
-      'Barangay Example',
-      'Quezon City',
-      'Metro Manila',
+      'example@gmail.com', 
+      '09123456789', 
+      'https://facebook.com/exampleorg', 
       'NCR',
-      '123 Example St.',
+      'Metro Manila',
+      'Quezon City',
+      'Barangay Example',
+      '123 Example Street',
+      'Promoting education and community development through innovative programs and partnerships.', 
+      'Education and Community Development Programs', 
       'Registered Non-Profit',
-      '09123456789',
-      'Example Org',
-      'A brief description of the organization mission',
-      'https://example.com/documents',
-      'https://socialmedia.com',
+      'https://drive.google.com/file/d/example', 
     ],
   ];
 
   const ws = XLSX.utils.aoa_to_sheet(templateData);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Template');
-  XLSX.writeFile(wb, 'volunteer_group_template.xlsx');
+  XLSX.writeFile(wb, 'pending_abvn_application_template.xlsx');
   showSuccessAlert('Template Downloaded!', 'Excel template has been downloaded successfully.');
 }
 

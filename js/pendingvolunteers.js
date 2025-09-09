@@ -366,10 +366,24 @@ function initializePageFunctions(userId) {
     exportBtn.addEventListener('click', exportToExcel);
     savePdfBtn.addEventListener('click', exportToPDF);
 
-    function showError(input, message) {}
+    function showError(input, message) {
+        const errorElement = document.createElement('div');
+        errorElement.className = 'error-message';
+        errorElement.innerText = message;
+        input.parentElement.appendChild(errorElement);
+    }
 
     async function validateVolunteerForm(inputs) {
         let isValid = true;
+        const now = new Date();
+        now.setSeconds(0);
+        now.setMilliseconds(0);
+        const MINIMUM_FUTURE_TIME = 60 * 60 * 1000; // 1 hour
+        const MAXIMUM_FUTURE_TIME = 6 * 30 * 24 * 60 * 60 * 1000; // 6 months
+        const operationalStartHour = 8; // 8 AM
+        const operationalEndHour = 17; // 5 PM
+
+        // Existing validations
         if (!inputs.name.value || inputs.name.value.trim() === '') {
             showError(inputs.name, 'Full Name is required.');
             isValid = false;
@@ -409,37 +423,69 @@ function initializePageFunctions(userId) {
                 if (!date || !time || !/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{1,2}:\d{2}\s(AM|PM)$/.test(time)) {
                     showError(inputs.specificDateTimeSlots, 'Date/Time Availability must be in format YYYY-MM-DD at HH:MM AM/PM');
                     isValid = false;
+                    continue;
+                }
+                // Add date restrictions
+                const slotDateTime = new Date(`${date} ${time.replace(' AM', ':00 AM').replace(' PM', ':00 PM')}`);
+                if (isNaN(slotDateTime.getTime())) {
+                    showError(inputs.specificDateTimeSlots, `Invalid date/time: ${slot}`);
+                    isValid = false;
+                    continue;
+                }
+                slotDateTime.setSeconds(0);
+                slotDateTime.setMilliseconds(0);
+                if (slotDateTime <= now) {
+                    showError(inputs.specificDateTimeSlots, `Date/time cannot be in the past: ${slot}`);
+                    isValid = false;
+                    continue;
+                }
+                if (slotDateTime.getTime() < now.getTime() + MINIMUM_FUTURE_TIME) {
+                    showError(inputs.specificDateTimeSlots, `Date/time must be at least 1 hour in the future: ${slot}`);
+                    isValid = false;
+                    continue;
+                }
+                if (slotDateTime.getTime() > now.getTime() + MAXIMUM_FUTURE_TIME) {
+                    showError(inputs.specificDateTimeSlots, `Date/time cannot be more than 6 months in the future: ${slot}`);
+                    isValid = false;
+                    continue;
+                }
+                if (!inputs.isEmergencyResponse.value.includes('Yes')) {
+                    const slotHour = slotDateTime.getHours();
+                    if (slotHour < operationalStartHour || slotHour >= operationalEndHour) {
+                        showError(inputs.specificDateTimeSlots, `Time must be between 8 AM and 5 PM for non-emergency volunteers: ${slot}`);
+                        isValid = false;
+                    }
                 }
             }
         }
         return isValid;
     }
 
-async function checkForDuplicate(mobileNumber, email, name) {
-    const duplicates = { all: false, email: false, number: false, name: false };
-    try {
-        const snapshot = await database.ref('pendingVolunteer').once('value');
-        if (snapshot.exists()) {
-            snapshot.forEach(childSnapshot => {
-                const volunteer = childSnapshot.val();
-                if (volunteer.email && email && volunteer.email.toLowerCase() === email.toLowerCase()) {
-                    duplicates.email = true;
-                }
-                if (volunteer.mobileNumber && mobileNumber && volunteer.mobileNumber === mobileNumber) {
-                    duplicates.number = true;
-                }
-                if (volunteer.name && name && volunteer.name.toLowerCase() === name.toLowerCase()) {
-                    duplicates.name = true;
-                }
-                if (duplicates.email && duplicates.number && duplicates.name) {
-                    duplicates.all = true;
-                }
-            });
+    async function checkForDuplicate(mobileNumber, email, name) {
+        const duplicates = { all: false, email: false, number: false, name: false };
+        try {
+            const snapshot = await database.ref('pendingVolunteer').once('value');
+            if (snapshot.exists()) {
+                snapshot.forEach(childSnapshot => {
+                    const volunteer = childSnapshot.val();
+                    if (volunteer.email && email && volunteer.email.toLowerCase() === email.toLowerCase()) {
+                        duplicates.email = true;
+                    }
+                    if (volunteer.mobileNumber && mobileNumber && volunteer.mobileNumber === mobileNumber) {
+                        duplicates.number = true;
+                    }
+                    if (volunteer.name && name && volunteer.name.toLowerCase() === name.toLowerCase()) {
+                        duplicates.name = true;
+                    }
+                    if (duplicates.email && duplicates.number && duplicates.name) {
+                        duplicates.all = true;
+                    }
+                });
+            }
+        } catch (error) {
         }
-    } catch (error) {
+        return duplicates;
     }
-    return duplicates;
-}
 
     // Event listener for import button
     importExcelBtn.addEventListener("click", () => {
@@ -506,7 +552,7 @@ async function checkForDuplicate(mobileNumber, email, name) {
         "Age": 25,
         "Social Media": "Facebook: JaneDoe",
         "Other Skills": "First Aid Training",
-        "Emergency Response": "Yes (24/7)",
+        "Emergency Response": "Yes (24/7) or No",
         "Date/Time Availability": "2025-08-20 at 10:00 AM, 2025-08-21 at 02:00 PM",
         "Street Address": "123 Main St",
         "Region": "NCR",
@@ -530,7 +576,7 @@ async function checkForDuplicate(mobileNumber, email, name) {
     const month = String(today.getMonth() + 1).padStart(2, '0');
     const day = String(today.getDate()).padStart(2, '0');
     const formattedDate = `${year}-${month}-${day}`;
-    const filename = `volunteer_template_${formattedDate}.xlsx`;
+    const filename = `pending_volunteer_template_${formattedDate}.xlsx`;
     XLSX.writeFile(wb, filename);
     Swal.fire({
         title: 'Template Downloaded!',
@@ -548,280 +594,31 @@ async function checkForDuplicate(mobileNumber, email, name) {
 }
 
     // Add Excel import handling
-    excelFileInput.addEventListener("change", (event) => {
-        const file = event.target.files[0];
-        if (!file) return;
+excelFileInput.addEventListener("change", async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
 
-        showImportStatusModal("Reading file...");
+    showImportStatusModal("Reading file...");
 
-        const reader = new FileReader();
-        reader.onload = async function(e) {
-            try {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
-                const firstSheetName = workbook.SheetNames[0];
-                const worksheet = workbook.Sheets[firstSheetName];
-                const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
-                const headers = json[0];
-                const requiredHeaders = ["Full Name", "Email", "Mobile Number", "Age", "Region", "Province", "City", "Barangay"];
-                const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
-                if (missingHeaders.length > 0) {
-                    importErrorList.innerHTML = `<li>Missing required columns: ${missingHeaders.join(', ')}</li>`;
-                    updateImportStatus(0, "Import failed due to missing columns.");
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: `Missing required columns: ${missingHeaders.join(', ')}`,
-                        showConfirmButton: true,
-                        confirmButtonText: 'OK',
-                        customClass: {
-                            popup: 'swal2-popup-error-clean',
-                            title: 'swal2-title-error-clean',
-                            htmlContainer: 'swal2-text-error-clean',
-                            confirmButton: 'my-error-button'
-                        }
-                    });
-                    importStatusModal.style.display = 'flex';
-                    return;
-                }
-
-                const rows = json.slice(1);
-                const volunteersToImport = [];
-                const potentialDuplicates = [];
-                const importErrors = [];
-                const totalRows = rows.length;
-                let processedRows = 0;
-
-                for (let i = 0; i < totalRows; i++) {
-                    const row = rows[i];
-                    if (!row || row.every(cell => !cell || cell.toString().trim() === '')) {
-                        importErrors.push(`Row ${i + 2}: Empty row skipped.`);
-                        continue;
-                    }
-                    processedRows++;
-                    const progress = (processedRows / totalRows) * 100;
-                    updateImportStatus(progress, `Processing row ${processedRows} of ${totalRows}...`);
-
-                    // Inside the excelFileInput event listener, replace the mockInputs creation with this:
-                    const fullName = String(row[headers.indexOf("Full Name")] || '').trim();
-                    if (!fullName) {
-                        importErrors.push(`Row ${i + 2}: Full Name is missing or invalid.`);
-                        continue;
-                    }
-
-                    const volunteer = {
-                        firstName: fullName.split(' ')[0] || 'Unknown',
-                        lastName: fullName.split(' ').slice(-1)[0] || 'Unknown',
-                        middleInitial: String(row[headers.indexOf("Middle Initial")] || '').trim(),
-                        nameExtension: String(row[headers.indexOf("Name Extension")] || '').trim(),
-                        email: String(row[headers.indexOf("Email")] || '').trim(),
-                        mobileNumber: String(row[headers.indexOf("Mobile Number")] || '').trim().replace(/\D/g, ''),
-                        age: parseInt(row[headers.indexOf("Age")] || 0),
-                        socialMediaLink: String(row[headers.indexOf("Social Media")] || '').trim(),
-                        otherSkillComments: String(row[headers.indexOf("Other Skills")] || '').trim(),
-                        isEmergencyResponse: String(row[headers.indexOf("Emergency Response")] || '').trim() === 'Yes (24/7)',
-                        availability: String(row[headers.indexOf("Date/Time Availability")] || '').trim()
-                            ? {
-                                specificDateTimeSlots: String(row[headers.indexOf("Date/Time Availability")] || '')
-                                    .trim()
-                                    .split(',')
-                                    .map(slot => {
-                                        const [date, time] = slot.trim().split(' at ');
-                                        return { date: date || '', time: time || '' };
-                                    })
-                                    .filter(slot => slot.date && slot.time)
-                            }
-                            : null,
-                        address: {
-                            streetAddress: String(row[headers.indexOf("Street Address")] || '').trim(),
-                            region: String(row[headers.indexOf("Region")] || '').trim(),
-                            province: String(row[headers.indexOf("Province")] || '').trim(),
-                            city: String(row[headers.indexOf("City")] || '').trim(),
-                            barangay: String(row[headers.indexOf("Barangay")] || '').trim()
-                        },
-                        skills: String(row[headers.indexOf("Skills")] || '').trim().split(',').map(skill => skill.trim()).filter(skill => skill),
-                        status: String(row[headers.indexOf("Status Notes")] || 'Pending').trim(),
-                        statusNotes: String(row[headers.indexOf("Status Notes")] || '').trim(),
-                        applicationDateandTime: new Date().toISOString(),
-                        lastStatusUpdate: Date.now(),
-                        recaptchaResponse: null
-                    };
-
-                    // Normalize mobile number
-                    if (volunteer.mobileNumber && volunteer.mobileNumber.length === 10 && volunteer.mobileNumber.startsWith('9')) {
-                        volunteer.mobileNumber = '0' + volunteer.mobileNumber;
-                    }
-
-                    // Create mock inputs, adding the `name` field
-                    const mockInputs = {
-                        name: { value: fullName, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null }, // Add name field
-                        firstName: { value: volunteer.firstName, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
-                        lastName: { value: volunteer.lastName, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
-                        middleInitial: { value: volunteer.middleInitial, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
-                        nameExtension: { value: volunteer.nameExtension, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
-                        email: { value: volunteer.email, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
-                        mobileNumber: { value: volunteer.mobileNumber, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
-                        age: { value: volunteer.age.toString(), classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
-                        socialMediaLink: { value: volunteer.socialMediaLink, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
-                        otherSkillComments: { value: volunteer.otherSkillComments, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
-                        isEmergencyResponse: { value: volunteer.isEmergencyResponse ? 'Yes (24/7)' : 'No', classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
-                        specificDateTimeSlots: { value: volunteer.availability ? volunteer.availability.specificDateTimeSlots.map(slot => `${slot.date} at ${slot.time}`).join(',') : '', classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
-                        streetAddress: { value: volunteer.address.streetAddress, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
-                        region: { value: volunteer.address.region, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
-                        province: { value: volunteer.address.province, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
-                        city: { value: volunteer.address.city, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
-                        barangay: { value: volunteer.address.barangay, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
-                        skills: { value: volunteer.skills.join(','), classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
-                        status: { value: volunteer.status, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
-                        statusNotes: { value: volunteer.statusNotes, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null }
-                    };
-
-                    // Override showError to collect errors
-                    const originalShowError = showError;
-                    const rowErrors = [];
-                    showError = (input, message) => {
-                        rowErrors.push(`Row ${i + 2}: ${message}`);
-                    };
-
-                    // Validate with try-catch to catch the error
-                    let isValidRow = false;
-                    try {
-                        isValidRow = await validateVolunteerForm(mockInputs);
-                    } catch (error) {
-                        importErrors.push(`Row ${i + 2}: Validation error - ${error.message}`);
-                    }
-
-                    // Restore original showError
-                    showError = originalShowError;
-
-                    if (!isValidRow) {
-                        if (rowErrors.length > 0) {
-                            importErrors.push(...rowErrors);
-                        }
-                        continue;
-                    }
-
-                    // Check for duplicates
-                    const duplicates = await checkForDuplicate(volunteer.mobileNumber, volunteer.email, volunteer.firstName + ' ' + volunteer.lastName);
-                    if (duplicates.all || duplicates.email || duplicates.number || duplicates.name) {
-                        const duplicateMessages = [];
-                        if (duplicates.all) {
-                            duplicateMessages.push(`Row ${i + 2}: Same name, mobile number, and email already exist.`);
-                        } else {
-                            if (duplicates.email) duplicateMessages.push(`Row ${i + 2}: Email already used.`);
-                            if (duplicates.number) duplicateMessages.push(`Row ${i + 2}: Mobile number already used.`);
-                            if (duplicates.name) duplicateMessages.push(`Row ${i + 2}: Name already used.`);
-                        }
-                        potentialDuplicates.push({
-                            rowIndex: i + 2,
-                            volunteer,
-                            duplicateMessages
-                        });
-                    } else {
-                        volunteersToImport.push(volunteer);
-                    }
-
-                    await new Promise(resolve => setTimeout(resolve, 10));
-                }
-
-                // Handle potential duplicates with confirmation
-                if (potentialDuplicates.length > 0) {
-                    const duplicateMessages = potentialDuplicates.map(d => d.duplicateMessages.join('<br>')).join('<br>');
-                    const result = await Swal.fire({
-                        title: 'Potential Duplicate Volunteers Detected',
-                        html: `${duplicateMessages}<br><br>Do you want to proceed with importing these records?`,
-                        icon: 'warning',
-                        showCancelButton: true,
-                        confirmButtonText: 'Proceed Anyway',
-                        cancelButtonText: 'Skip Duplicates',
-                        reverseButtons: true,
-                        customClass: {
-                            popup: 'custom-swal-popup-large',
-                            title: 'custom-swal-title',
-                            htmlContainer: 'custom-swal-content',
-                            confirmButton: 'custom-confirm-btn',
-                            cancelButton: 'custom-cancel-btn'
-                        }
-                    });
-
-                    if (result.isConfirmed) {
-                        potentialDuplicates.forEach(d => volunteersToImport.push(d.volunteer));
-                    } else {
-                        potentialDuplicates.forEach(d => {
-                            importErrors.push(d.duplicateMessages.join(''));
-                        });
-                    }
-                }
-
-                if (volunteersToImport.length > 0) {
-                    updateImportStatus(100, `Importing ${volunteersToImport.length} records to Firebase...`);
-                    const updates = {};
-                    volunteersToImport.forEach(volunteer => {
-                        const newKey = database.ref().child('volunteerApplications/pendingVolunteer').push().key;
-                        updates[`volunteerApplications/pendingVolunteer/${newKey}`] = volunteer;
-                    });
-
-                    await database.ref().update(updates);
-                    updateImportStatus(100, `Import complete! ${volunteersToImport.length} records added.`);
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Success!',
-                        text: `${volunteersToImport.length} volunteer records imported successfully.`,
-                        showConfirmButton: true,
-                        confirmButtonText: 'OK',
-                        customClass: {
-                            popup: 'swal2-popup-success-clean',
-                            title: 'swal2-title-success-clean',
-                            htmlContainer: 'swal2-text-success-clean',
-                            confirmButton: 'my-success-button'
-                        }
-                    }).then(() => {
-                        if (importErrors.length === 0) {
-                            closeImportStatusModal();
-                        }
-                    });
-                } else {
-                    updateImportStatus(100, "Import failed. No valid records found.");
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: 'No valid records found in the Excel file. Please check the data format.',
-                        showConfirmButton: true,
-                        confirmButtonText: 'OK',
-                        customClass: {
-                            popup: 'swal2-popup-error-clean',
-                            title: 'swal2-title-error-clean',
-                            htmlContainer: 'swal2-text-error-clean',
-                            confirmButton: 'my-error-button'
-                        }
-                    });
-                    importStatusModal.style.display = 'flex';
-                }
-
-                if (importErrors.length > 0) {
-                    importErrorList.innerHTML = '<li>Errors:</li>' + importErrors.map(err => `<li>${err}</li>`).join('');
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'Warning',
-                        text: 'Some records were not imported due to errors. Check the status modal for details.',
-                        showConfirmButton: true,
-                        confirmButtonText: 'OK',
-                        customClass: {
-                            popup: 'swal2-popup-warning-clean',
-                            title: 'swal2-title-warning-clean',
-                            htmlContainer: 'swal2-text-warning-clean',
-                            confirmButton: 'my-warning-button'
-                        }
-                    });
-                    importStatusModal.style.display = 'flex';
-                }
-            } catch (error) {
-                importErrorList.innerHTML = `<li>Error: ${error.message}</li>`;
+            const headers = json[0];
+            const requiredHeaders = ["Full Name", "Email", "Mobile Number", "Age", "Region", "Province", "City", "Barangay"];
+            const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
+            if (missingHeaders.length > 0) {
+                importErrorList.innerHTML = `<li>Missing required columns: ${missingHeaders.join(', ')}</li>`;
+                updateImportStatus(0, "Import failed due to missing columns.");
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
-                    text: 'An error occurred while importing the Excel file: ' + error.message,
+                    text: `Missing required columns: ${missingHeaders.join(', ')}`,
                     showConfirmButton: true,
                     confirmButtonText: 'OK',
                     customClass: {
@@ -829,14 +626,331 @@ async function checkForDuplicate(mobileNumber, email, name) {
                         title: 'swal2-title-error-clean',
                         htmlContainer: 'swal2-text-error-clean',
                         confirmButton: 'my-error-button'
+                    }
+                });
+                importStatusModal.style.display = 'flex';
+                return;
+            }
+
+            const rows = json.slice(1);
+            const volunteersToImport = [];
+            const potentialDuplicates = [];
+            const importErrors = [];
+            const totalRows = rows.length;
+            let processedRows = 0;
+
+            for (let i = 0; i < totalRows; i++) {
+                const row = rows[i];
+                if (!row || row.every(cell => !cell || cell.toString().trim() === '')) {
+                    importErrors.push(`Row ${i + 2}: Empty row skipped.`);
+                    continue;
+                }
+                processedRows++;
+                const progress = (processedRows / totalRows) * 100;
+                updateImportStatus(progress, `Processing row ${processedRows} of ${totalRows}...`);
+
+                const fullName = String(row[headers.indexOf("Full Name")] || '').trim();
+                if (!fullName) {
+                    importErrors.push(`Row ${i + 2}: Full Name is missing or invalid.`);
+                    continue;
+                }
+
+                const volunteer = {
+                    firstName: fullName.split(' ')[0] || 'Unknown',
+                    lastName: fullName.split(' ').slice(-1)[0] || 'Unknown',
+                    middleInitial: String(row[headers.indexOf("Middle Initial")] || '').trim(),
+                    nameExtension: String(row[headers.indexOf("Name Extension")] || '').trim(),
+                    email: String(row[headers.indexOf("Email")] || '').trim(),
+                    mobileNumber: String(row[headers.indexOf("Mobile Number")] || '').trim().replace(/\D/g, ''),
+                    age: parseInt(row[headers.indexOf("Age")] || 0),
+                    socialMediaLink: String(row[headers.indexOf("Social Media")] || '').trim(),
+                    otherSkillComments: String(row[headers.indexOf("Other Skills")] || '').trim(),
+                    isEmergencyResponse: String(row[headers.indexOf("Emergency Response")] || '').trim() === 'Yes (24/7)',
+                    availability: String(row[headers.indexOf("Date/Time Availability")] || '').trim()
+                        ? {
+                            specificDateTimeSlots: String(row[headers.indexOf("Date/Time Availability")] || '')
+                                .trim()
+                                .split(',')
+                                .map(slot => {
+                                    const [date, time] = slot.trim().split(' at ');
+                                    return { date: date || '', time: time || '' };
+                                })
+                                .filter(slot => slot.date && slot.time)
+                        }
+                        : null,
+                    address: {
+                        streetAddress: String(row[headers.indexOf("Street Address")] || '').trim(),
+                        region: String(row[headers.indexOf("Region")] || '').trim(),
+                        province: String(row[headers.indexOf("Province")] || '').trim(),
+                        city: String(row[headers.indexOf("City")] || '').trim(),
+                        barangay: String(row[headers.indexOf("Barangay")] || '').trim()
+                    },
+                    skills: String(row[headers.indexOf("Skills")] || '').trim().split(',').map(skill => skill.trim()).filter(skill => skill),
+                    status: String(row[headers.indexOf("Status Notes")] || 'Pending').trim(),
+                    statusNotes: String(row[headers.indexOf("Status Notes")] || '').trim(),
+                    applicationDateandTime: new Date().toISOString(),
+                    lastStatusUpdate: Date.now(),
+                    recaptchaResponse: null
+                };
+
+                // Normalize mobile number
+                if (volunteer.mobileNumber && volunteer.mobileNumber.length === 10 && volunteer.mobileNumber.startsWith('9')) {
+                    volunteer.mobileNumber = '0' + volunteer.mobileNumber;
+                }
+
+                // Create mock inputs for validation
+                const mockInputs = {
+                    name: { value: fullName, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                    firstName: { value: volunteer.firstName, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                    lastName: { value: volunteer.lastName, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                    middleInitial: { value: volunteer.middleInitial, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                    nameExtension: { value: volunteer.nameExtension, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                    email: { value: volunteer.email, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                    mobileNumber: { value: volunteer.mobileNumber, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                    age: { value: volunteer.age.toString(), classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                    socialMediaLink: { value: volunteer.socialMediaLink, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                    otherSkillComments: { value: volunteer.otherSkillComments, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                    isEmergencyResponse: { value: volunteer.isEmergencyResponse ? 'Yes (24/7)' : 'No', classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                    specificDateTimeSlots: { value: volunteer.availability ? volunteer.availability.specificDateTimeSlots.map(slot => `${slot.date} at ${slot.time}`).join(',') : '', classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                    streetAddress: { value: volunteer.address.streetAddress, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                    region: { value: volunteer.address.region, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                    province: { value: volunteer.address.province, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                    city: { value: volunteer.address.city, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                    barangay: { value: volunteer.address.barangay, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                    skills: { value: volunteer.skills.join(','), classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                    status: { value: volunteer.status, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                    statusNotes: { value: volunteer.statusNotes, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null }
+                };
+
+                // Override showError to collect errors
+                const originalShowError = showError;
+                const rowErrors = [];
+                showError = (input, message) => {
+                    rowErrors.push(`Row ${i + 2}: ${message}`);
+                };
+
+                // Validate
+                let isValidRow = false;
+                try {
+                    isValidRow = await validateVolunteerForm(mockInputs);
+                } catch (error) {
+                    importErrors.push(`Row ${i + 2}: Validation error - ${error.message}`);
+                }
+
+                // Restore original showError
+                showError = originalShowError;
+
+                if (!isValidRow) {
+                    if (rowErrors.length > 0) {
+                        importErrors.push(...rowErrors);
+                    }
+                    continue;
+                }
+
+                // Check for duplicates in pendingVolunteer, approvedVolunteer, and volunteerGroups/endorsedVolunteers
+                const duplicates = await checkForDuplicate(volunteer.mobileNumber, volunteer.email, fullName);
+                let isDuplicate = false;
+                const duplicateMessages = [];
+
+                // Check pendingVolunteer duplicates
+                if (duplicates.all || duplicates.email || duplicates.number || duplicates.name) {
+                    isDuplicate = true;
+                    if (duplicates.all) {
+                        duplicateMessages.push(`Row ${i + 2}: Same name, mobile number, and email already exist in pending volunteers.`);
+                    } else {
+                        if (duplicates.email) duplicateMessages.push(`Row ${i + 2}: Email already used in pending volunteers.`);
+                        if (duplicates.number) duplicateMessages.push(`Row ${i + 2}: Mobile number already used in pending volunteers.`);
+                        if (duplicates.name) duplicateMessages.push(`Row ${i + 2}: Name already used in pending volunteers.`);
+                    }
+                }
+
+                // Check approvedVolunteer duplicates
+                const approvedVolunteersRef = database.ref('volunteerApplications/approvedVolunteer');
+                if (volunteer.email) {
+                    const emailSnapshot = await approvedVolunteersRef.orderByChild('email').equalTo(volunteer.email).once('value');
+                    if (emailSnapshot.exists()) {
+                        isDuplicate = true;
+                        duplicateMessages.push(`Row ${i + 2}: Email already used in approved volunteers.`);
+                    }
+                }
+                if (volunteer.mobileNumber) {
+                    const mobileSnapshot = await approvedVolunteersRef.orderByChild('mobileNumber').equalTo(volunteer.mobileNumber).once('value');
+                    if (mobileSnapshot.exists()) {
+                        isDuplicate = true;
+                        duplicateMessages.push(`Row ${i + 2}: Mobile number already used in approved volunteers.`);
+                    }
+                }
+                if (fullName) {
+                    const nameSnapshot = await approvedVolunteersRef.once('value');
+                    let nameExists = false;
+                    if (nameSnapshot.exists()) {
+                        nameSnapshot.forEach(childSnapshot => {
+                            const approvedVolunteer = childSnapshot.val();
+                            const approvedFullName = `${approvedVolunteer.firstName || ''} ${approvedVolunteer.lastName || ''}`.trim().toLowerCase();
+                            if (approvedFullName === fullName.toLowerCase()) {
+                                nameExists = true;
+                                return true;
+                            }
+                        });
+                    }
+                    if (nameExists) {
+                        isDuplicate = true;
+                        duplicateMessages.push(`Row ${i + 2}: Name already used in approved volunteers.`);
+                    }
+                }
+
+                // Check volunteerGroups/endorsedVolunteers duplicates
+                const abvnGroupsRef = database.ref('volunteerGroups');
+                const abvnSnapshot = await abvnGroupsRef.once('value');
+                if (abvnSnapshot.exists()) {
+                    abvnSnapshot.forEach(groupSnapshot => {
+                        const endorsedVolunteers = groupSnapshot.child('endorsedVolunteers').val();
+                        if (endorsedVolunteers) {
+                            for (const volKey in endorsedVolunteers) {
+                                const endorsedVolunteer = endorsedVolunteers[volKey];
+                                const groupName = groupSnapshot.val().organization || groupSnapshot.key;
+                                if (volunteer.email && endorsedVolunteer.email && volunteer.email.toLowerCase() === endorsedVolunteer.email.toLowerCase()) {
+                                    isDuplicate = true;
+                                    duplicateMessages.push(`Row ${i + 2}: Email already used in ABVN group: ${groupName}.`);
+                                }
+                                if (volunteer.mobileNumber && endorsedVolunteer.mobileNumber && volunteer.mobileNumber === endorsedVolunteer.mobileNumber) {
+                                    isDuplicate = true;
+                                    duplicateMessages.push(`Row ${i + 2}: Mobile number already used in ABVN group: ${groupName}.`);
+                                }
+                                const endorsedFullName = `${endorsedVolunteer.firstName || ''} ${endorsedVolunteer.lastName || ''}`.trim().toLowerCase();
+                                if (fullName.toLowerCase() === endorsedFullName) {
+                                    isDuplicate = true;
+                                    duplicateMessages.push(`Row ${i + 2}: Name already used in ABVN group: ${groupName}.`);
+                                }
+                            }
                         }
                     });
-                    importStatusModal.style.display = 'flex';
                 }
-            };
-        reader.readAsArrayBuffer(file);
-    });
 
+                if (isDuplicate) {
+                    potentialDuplicates.push({
+                        rowIndex: i + 2,
+                        volunteer,
+                        duplicateMessages
+                    });
+                } else {
+                    volunteersToImport.push(volunteer);
+                }
+
+                await new Promise(resolve => setTimeout(resolve, 10));
+            }
+
+            // Handle potential duplicates with confirmation
+            if (potentialDuplicates.length > 0) {
+                const duplicateMessagesHtml = potentialDuplicates.map(d => d.duplicateMessages.join('<br>')).join('<br>');
+                const result = await Swal.fire({
+                    title: 'Potential Duplicate Volunteers Detected',
+                    html: `${duplicateMessagesHtml}<br><br>Do you want to proceed with importing these records?`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Proceed Anyway',
+                    cancelButtonText: 'Skip Duplicates',
+                    reverseButtons: true,
+                    customClass: {
+                        popup: 'custom-swal-popup-large',
+                        title: 'custom-swal-title',
+                        htmlContainer: 'custom-swal-content',
+                        confirmButton: 'custom-confirm-btn',
+                        cancelButton: 'custom-cancel-btn'
+                    }
+                });
+
+                if (result.isConfirmed) {
+                    potentialDuplicates.forEach(d => volunteersToImport.push(d.volunteer));
+                } else {
+                    potentialDuplicates.forEach(d => {
+                        importErrors.push(...d.duplicateMessages);
+                    });
+                }
+            }
+
+            if (volunteersToImport.length > 0) {
+                updateImportStatus(100, `Importing ${volunteersToImport.length} records to Firebase...`);
+                const updates = {};
+                volunteersToImport.forEach(volunteer => {
+                    const newKey = database.ref().child('volunteerApplications/pendingVolunteer').push().key;
+                    updates[`volunteerApplications/pendingVolunteer/${newKey}`] = volunteer;
+                });
+
+                await database.ref().update(updates);
+                updateImportStatus(100, `Import complete! ${volunteersToImport.length} records added.`);
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success!',
+                    text: `${volunteersToImport.length} volunteer records imported successfully.`,
+                    showConfirmButton: true,
+                    confirmButtonText: 'OK',
+                    customClass: {
+                        popup: 'swal2-popup-success-clean',
+                        title: 'swal2-title-success-clean',
+                        htmlContainer: 'swal2-text-success-clean',
+                        confirmButton: 'my-success-button'
+                    }
+                }).then(() => {
+                    if (importErrors.length === 0) {
+                        closeImportStatusModal();
+                    }
+                });
+            } else {
+                updateImportStatus(100, "Import failed. No valid records found.");
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'No valid records found in the Excel file. Please check the data format.',
+                    showConfirmButton: true,
+                    confirmButtonText: 'OK',
+                    customClass: {
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean',
+                        confirmButton: 'my-error-button'
+                    }
+                });
+                importStatusModal.style.display = 'flex';
+            }
+
+            if (importErrors.length > 0) {
+                importErrorList.innerHTML = '<li>Errors:</li>' + importErrors.map(err => `<li>${err}</li>`).join('');
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Warning',
+                    text: 'Some records were not imported due to errors. Check the status modal for details.',
+                    showConfirmButton: true,
+                    confirmButtonText: 'OK',
+                    customClass: {
+                        popup: 'swal2-popup-warning-clean',
+                        title: 'swal2-title-warning-clean',
+                        htmlContainer: 'swal2-text-warning-clean',
+                        confirmButton: 'my-warning-button'
+                    }
+                });
+                importStatusModal.style.display = 'flex';
+            }
+        } catch (error) {
+            importErrorList.innerHTML = `<li>Error: ${error.message}</li>`;
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'An error occurred while importing the Excel file: ' + error.message,
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
+                }
+            });
+            importStatusModal.style.display = 'flex';
+        }
+    };
+    reader.readAsArrayBuffer(file);
+});
 
     // Add event listener for download template button
     document.getElementById("downloadTemplateBtn").addEventListener("click", downloadExcelTemplate);
@@ -2821,14 +2935,14 @@ async function checkForDuplicate(mobileNumber, email, name) {
                         title: 'Endorsed!',
                         text: 'Volunteer has been endorsed to the selected ABVN group, and an endorsement email sent.',
                         icon: 'success',
-                        timer: 2000,
-                        showConfirmButton: false,
-                        timerProgressBar: true,
+                        showConfirmButton: true,
+                        confirmButtonText: 'Ok',
                         allowOutsideClick: false,
                         customClass: {
                             popup: 'swal2-popup-success-clean',
                             title: 'swal2-title-success-clean',
-                            htmlContainer: 'swal2-text-success-clean'
+                            htmlContainer: 'swal2-text-success-clean',
+                            confirmButton: 'my-success-button'
                         }
                     });
                     hideEndorseABVNModal();
