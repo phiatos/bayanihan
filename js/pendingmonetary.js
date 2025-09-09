@@ -107,70 +107,12 @@ let allArchivedDonations = [];
 let filteredArchivedDonations = [];
 let archivedCurrentPage = 1;
 const archivedRowsPerPage = 10;
+let permissions = { canView: false, canEdit: false, canArchive: false, canRetrieve: false };
 
 // Debug function to log data at each step
 function debugLog(step, data) {
     
 }
-
-// Verify Super Admin password
-// async function verifySuperAdminPassword() {
-//     const { value: password } = await Swal.fire({
-//         title: 'Enter Admin Password',
-//         input: 'password',
-//         inputPlaceholder: 'Enter password here',
-//         inputAttributes: {
-//             autocapitalize: 'off',
-//             autocorrect: 'off',
-//             autocomplete: 'new-password'
-//         },
-//         showCancelButton: true,
-//         confirmButtonText: 'Verify',
-//         showLoaderOnConfirm: true,
-//         reverseButtons: true,
-//         focusCancel: true,
-//         preConfirm: async (password) => {
-//             try {
-//                 const user = auth.currentUser;
-//                 const credential = firebase.auth.EmailAuthProvider.credential(user.email, password);
-//                 await auth.signInWithCredential(credential);
-//                 return true;
-//             } catch (error) {
-//                 Swal.fire({
-//                     icon: 'error',
-//                     title: 'Verification Failed',
-//                     text: 'Invalid admin password.',
-//                     timer: 1600,
-//                     showConfirmButton: false,
-//                     timerProgressBar: true,
-//                     allowOutsideClick: false,
-//                     customClass: {
-//                         popup: 'swal2-popup-error-clean',
-//                         title: 'swal2-title-error-clean',
-//                         htmlContainer: 'swal2-text-error-clean'
-//                     }
-//                 });
-//                 return false;
-//             }
-//         },
-//         allowOutsideClick: () => !Swal.isLoading(),
-//         customClass: {
-//             popup: 'custom-swal-popup',
-//             title: 'custom-swal-title',
-//             input: 'custom-swal-input',
-//             confirmButton: 'custom-confirm-btn',
-//             cancelButton: 'custom-cancel-btn'
-//         }
-//     });
-//     if (!password) {
-//         isAdminVerified = false; // Set to false if canceled
-//         searchInput.value = '';
-//         return false;
-//     }
-//     isAdminVerified = true; // Set to true if verified
-//     searchInput.value = '';
-//     return true; // Return true if verification succeeds
-// }
 
 // Test function to manually save a donation to pending monetary
 async function testSaveToPending() {
@@ -236,12 +178,113 @@ async function testSaveToArchived() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Check authentication state before loading data
-    auth.onAuthStateChanged((user) => {
+    async function checkAdminPermissions() {
+        try {
+            const user = auth.currentUser;
+            if (!user) {
+                console.log('No authenticated user found');
+                return { canView: false, canEdit: false, canArchive: false, canRetrieve: false };
+            }
+            
+            const snapshot = await database.ref(`users/${user.uid}`).once('value');
+            const userData = snapshot.val();
+            
+            const adminPosition = userData?.adminPosition || null;
+            console.log('Admin position:', adminPosition);
+
+            const permissions = {
+                canView: false,
+                canEdit: false,
+                canArchive: false,
+                canRetrieve: false,
+            };
+
+            if (['Super Admin', 'position-one', 'position-two'].includes(adminPosition)) {
+                permissions.canView = true;
+                permissions.canEdit = true;
+            }
+
+            if (['Super Admin', 'position-one'].includes(adminPosition)) {
+                permissions.canArchive = true;
+                permissions.canRetrieve = true;
+            }
+
+            return permissions;
+        } catch (error) {
+            console.error('Error checking admin permissions:', error);
+            return { canView: false, canEdit: false, canArchive: false, canRetrieve: false };
+        }
+    }
+
+    auth.onAuthStateChanged(async (user) => {        
         if (user) {
             console.log('User is authenticated:', user.uid);
-            resetInactivityTimer(); 
-            loadMonetaryDonationsFromFirebase(); 
+            try {
+                const userSnapshot = await database.ref(`users/${user.uid}`).once('value');
+                const userData = userSnapshot.val();
+                const passwordNeedsReset = userData ? (userData.password_needs_reset || false) : false;
+
+                if (passwordNeedsReset) {
+                    console.log(`[${new Date().toISOString()}] Password change required for user ${user.uid}. Redirecting to profile page.`);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Password Change Required',
+                        text: 'Please change your password. Redirecting to profile.',
+                        allowOutsideClick: false,
+                        timer: 1600,
+                        showConfirmButton: false,
+                        timerProgressBar: true,
+                        customClass: {
+                            popup: 'swal2-popup-error-clean',
+                            title: 'swal2-title-error-clean',
+                            htmlContainer: 'swal2-text-error-clean'
+                        }
+                    }).then(() => {
+                        window.location.replace('../pages/profile.html');
+                    });
+                    return;
+                }
+
+                permissions = await checkAdminPermissions();
+                if (!permissions.canView) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Access Denied',
+                        text: 'You do not have permission to access this page.',
+                        showConfirmButton: true,
+                        confirmButtonText: 'OK',
+                        customClass: {
+                            popup: 'swal2-popup-error-clean',
+                            title: 'swal2-title-error-clean',
+                            htmlContainer: 'swal2-text-error-clean',
+                            confirmButton: 'my-error-button'
+                        }
+                    }).then(() => {
+                        window.location.href = '../pages/login.html';
+                    });
+                    return;
+                }
+
+                resetInactivityTimer();
+                loadMonetaryDonationsFromFirebase();
+            } catch (error) {
+                console.error(`[${new Date().toISOString()}] Error checking user data:`, error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Authentication Error',
+                    text: 'Failed to verify account status. Please try logging in again.',
+                    showConfirmButton: true,
+                    confirmButtonText: 'OK',
+                    customClass: {
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean',
+                        confirmButton: 'my-error-button'
+                    }
+                }).then(() => {
+                    window.location.href = '../pages/login.html';
+                });
+            }
         } else {
             console.error('No authenticated user found.');
             Swal.fire({
@@ -260,6 +303,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    
     // Get references to DOM elements
     const donationTableBody = document.getElementById('donationTableBody');
     const searchInput = document.getElementById('searchInput');
