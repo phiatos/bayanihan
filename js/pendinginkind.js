@@ -175,6 +175,52 @@ document.addEventListener("DOMContentLoaded", () => {
         return password;
     }
 
+    async function notifyABVNEndorsement(donationId, groupId, donationData, endorsedGroup) {
+        try {
+            const user = firebase.auth().currentUser;
+            if (!user) {
+                throw new Error("User not authenticated.");
+            }
+
+            const group = endorsedGroup;
+            if (!group) {
+                throw new Error(`Volunteer group not found for groupId: ${groupId}`);
+            }
+
+            let abvnUserUid = null;
+            const usersSnapshot = await database.ref("users").orderByChild("organization").equalTo(group.name).once("value");
+            if (usersSnapshot.exists()) {
+                usersSnapshot.forEach(child => {
+                    const userData = child.val();
+                    if (userData.role === "ABVN") {
+                        abvnUserUid = child.key;
+                    }
+                });
+            }
+
+            const notification = {
+                groupId: groupId,
+                organization: group.name,
+                donationId: donationId,
+                timestamp: new Date().toISOString(),
+                read: false,
+                type: "endorsement",
+                userUid: abvnUserUid || null,
+                message: `A donation from ${donationData.name || 'an anonymous donor'} has been endorsed to ${group.name} for ${donationData.type || 'N/A'} in ${group.details || 'N/A'}.`,
+                identifier: `endorsement_${donationId}_${groupId}_${Date.now()}`
+            };
+
+            const newNotificationRef = await database.ref("notifications").push(notification);
+            console.log(`Endorsement notification created for ${group.name}:`, notification);
+
+            return newNotificationRef.key;
+        } catch (error) {
+            console.error("Error creating endorsement notification:", error);
+            logErrorToFirebase(error, 'notifyABVNEndorsement');
+            throw error;
+        }
+    }
+
     function showErrorAlert(title, text, callback = null) {
         Swal.fire({
             icon: 'error',
@@ -1024,13 +1070,28 @@ document.addEventListener("DOMContentLoaded", () => {
                             console.log(`[${new Date().toISOString()}] updateDonationStatus: Triggering approval email...`);
                             sendApprovalEmail(approvedDonation);
 
+                            // if (type === 'ABVN') {
+                            //     console.log(`[${new Date().toISOString()}] updateDonationStatus: Triggering endorsement email for:`, selectedOption);
+                            //     await sendEndorsementEmail(approvedDonation, {
+                            //         email: selectedOption.email,
+                            //         name: selectedOption.name,
+                            //         details: selectedOption.details
+                            //     });
+                            // }
                             if (type === 'ABVN') {
-                                console.log(`[${new Date().toISOString()}] updateDonationStatus: Triggering endorsement email for:`, selectedOption);
-                                await sendEndorsementEmail(approvedDonation, {
-                                    email: selectedOption.email,
-                                    name: selectedOption.name,
-                                    details: selectedOption.details
-                                });
+                                console.log(`[${new Date().toISOString()}] updateDonationStatus: Triggering endorsement email and notification for:`, selectedOption);
+                                await Promise.all([
+                                    sendEndorsementEmail(approvedDonation, {
+                                        email: selectedOption.email,
+                                        name: selectedOption.name,
+                                        details: selectedOption.details
+                                    }),
+                                    notifyABVNEndorsement(id, selectedId, approvedDonation, {
+                                        email: selectedOption.email,
+                                        name: selectedOption.name,
+                                        details: selectedOption.details
+                                    })
+                                ]);
                             }
 
                             if (type === 'ABVN') {
