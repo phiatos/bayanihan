@@ -175,6 +175,53 @@ document.addEventListener("DOMContentLoaded", () => {
         return password;
     }
 
+    // async function notifyABVNEndorsement(donationId, groupId, donationData, endorsedGroup) {
+    //     try {
+    //         const user = firebase.auth().currentUser;
+    //         if (!user) {
+    //             throw new Error("User not authenticated.");
+    //         }
+
+    //         const group = endorsedGroup;
+    //         if (!group) {
+    //             throw new Error(`Volunteer group not found for groupId: ${groupId}`);
+    //         }
+
+    //         let abvnUserUid = null;
+    //         const usersSnapshot = await database.ref("users").orderByChild("organization").equalTo(group.name).once("value");
+    //         if (usersSnapshot.exists()) {
+    //             usersSnapshot.forEach(child => {
+    //                 const userData = child.val();
+    //                 if (userData.role === "ABVN") {
+    //                     abvnUserUid = child.key;
+    //                 }
+    //             });
+    //         }
+
+    //         const notification = {
+    //             groupId: groupId,
+    //             organization: group.name,
+    //             donationId: donationId,
+    //             timestamp: new Date().toISOString(),
+    //             read: false,
+    //             type: "endorsement",
+    //             userUid: abvnUserUid || null,
+    //             message: `A donation from ${donationData.name || 'an anonymous donor'} has been endorsed to ${group.name} for ${donationData.type || 'N/A'} in ${group.details || 'N/A'}.`,
+    //             identifier: `endorsement_${donationId}_${groupId}_${Date.now()}`
+    //         };
+
+    //         const newNotificationRef = await database.ref("notifications").push(notification);
+    //         console.log(`Endorsement notification created for ${group.name}:`, notification);
+
+    //         return newNotificationRef.key;
+    //     } catch (error) {
+    //         console.error("Error creating endorsement notification:", error);
+    //         logErrorToFirebase(error, 'notifyABVNEndorsement');
+    //         throw error;
+    //     }
+    // }
+    
+    // Replace the existing notifyABVNEndorsement function with this updated version
     async function notifyABVNEndorsement(donationId, groupId, donationData, endorsedGroup) {
         try {
             const user = firebase.auth().currentUser;
@@ -198,6 +245,18 @@ document.addEventListener("DOMContentLoaded", () => {
                 });
             }
 
+            const donationDetails = `
+                Donor Name: ${donationData.name || 'Unknown Donor'},
+                Donation Type: ${donationData.type || 'N/A'},
+                Donation Quantity: ${parseFloat(donationData.valuation || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })},
+                Endorsement Date: ${new Date().toLocaleDateString('en-US')},
+                Organization Email: ${endorsedGroup.email || 'Not specified'},
+                Organization Contact Number: ${endorsedGroup.contactNumber || 'Not specified'},
+                Donor Full Address: ${donationData.address || 'Not specified'},
+                Donor Contact Person: ${donationData.contactPerson || 'Not specified'},
+                Donor Contact Number: ${donationData.number || 'Not specified'}
+            `;
+
             const notification = {
                 groupId: groupId,
                 organization: group.name,
@@ -206,7 +265,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 read: false,
                 type: "endorsement",
                 userUid: abvnUserUid || null,
-                message: `A donation from ${donationData.name || 'an anonymous donor'} has been endorsed to ${group.name} for ${donationData.type || 'N/A'} in ${group.details || 'N/A'}.`,
+                message: `A donation has been endorsed to ${group.name}. Donation Details: ${donationDetails}`,
                 identifier: `endorsement_${donationId}_${groupId}_${Date.now()}`
             };
 
@@ -220,6 +279,7 @@ document.addEventListener("DOMContentLoaded", () => {
             throw error;
         }
     }
+
 
     function showErrorAlert(title, text, callback = null) {
         Swal.fire({
@@ -326,8 +386,8 @@ document.addEventListener("DOMContentLoaded", () => {
             donation_type: donation.type || 'N/A',
             donation_quantity: parseFloat(donation.valuation || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
             endorsement_date: new Date().toLocaleDateString('en-US'),
-            organization_email: 'jldelossantos1101@gmail.com',
-            organization_contact_number: '123-456-7890',
+            organization_email: endorsedGroup.email,
+            organization_contact_number: endorsedGroup.contactNumber || 'Not specified',
             donor_full_address: donation.address || 'Not specified',
             donor_contact_person: donation.contactPerson || 'Not specified',
             donor_contact_number: donation.number || 'Not specified'
