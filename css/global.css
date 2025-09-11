@@ -537,6 +537,7 @@ hr {
 .modal-content input[type="tel"],
 .modal-content input[type="date"],
 .modal-content input[type="url"],
+.modal-content input[type="datetime-local"],
 .modal-content textarea,
 .modal-content select {
   width: 100%;

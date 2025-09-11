@@ -8,15 +8,12 @@
     <link rel="stylesheet" href="../css/global.css" />
     <link rel='stylesheet' href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css'/>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
-    
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAAAu6BeQjIZ7H7beFbAsPWuKuORmh0wrk&libraries=places"></script>
     <title>Bayanihan | Angat Buhay Disaster Relief Portal</title>
 </head>
 <body>
@@ -45,18 +42,12 @@
                                     <option value="email-desc">Email (Z-A)</option>
                                     <option value="mobileNumber-asc">Mobile Number (Ascending)</option>
                                     <option value="mobileNumber-desc">Mobile Number (Descending)</option>
-                                    </optgroup>
-                                <optgroup label="Location">
-                                    <option value="region-asc">Region (A-Z)</option>
-                                    <option value="region-desc">Region (Z-A)</option>
-                                    <option value="province-asc">Province (A-Z)</option>
-                                    <option value="province-desc">Province (Z-A)</option>
-                                    <option value="city-asc">City (A-Z)</option>
-                                    <option value="city-desc">City (Z-A)</option>
-                                    <option value="barangay-asc">Barangay (A-Z)</option>
-                                    <option value="barangay-desc">Barangay (Z-A)</option>
                                 </optgroup>
-                                </select>
+                                <optgroup label="Location">
+                                    <option value="formattedAddress-asc">Formatted Address (A-Z)</option>
+                                    <option value="formattedAddress-desc">Formatted Address (Z-A)</option>
+                                </optgroup>
+                            </select>
                             <i class='bx bx-chevron-down'></i>
                         </div>
                         <button id="viewArchived" aria-label="View Archived Admins">
@@ -66,35 +57,28 @@
                 </div>
 
                 <div class="table-container">
-
-                <table id="orgTable">
-                    <thead>
-                        <tr>
-                            <th>No.</th>
-                            <th>Organization Name</th>
-                            <th>Contact Person</th>
-                            <th>Email</th>
-                            <th>Mobile Number</th>
-                            <th>Social Media</th>
-                            <th>Region</th>
-                            <th>Province</th>
-                            <th>City</th>
-                            <th>Barangay</th>
-                            <th>Street Address</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        </tbody>
-                </table>
-
+                    <table id="orgTable">
+                        <thead>
+                            <tr>
+                                <th>No.</th>
+                                <th>Organization Name</th>
+                                <th>Contact Person</th>
+                                <th>Email</th>
+                                <th>Mobile Number</th>
+                                <th>Social Media</th>
+                                <th>Formatted Address</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
                 </div>
-                    <button id="addNew" aria-label="Add New Volunteer Group">
-                      <i class='bx bx-plus' style="color: white; font-size: 30px;"></i>
-                    </button>
-                    
-                    <div class="pagination-info">
-                        <span id="entriesInfo">Showing 0 to 0 of 0 entries</span>
+                <button id="addNew" aria-label="Add New Volunteer Group">
+                    <i class='bx bx-plus' style="color: white; font-size: 30px;"></i>
+                </button>
+                
+                <div class="pagination-info">
+                    <span id="entriesInfo">Showing 0 to 0 of 0 entries</span>
                     <div id="pagination" class="pagination"></div>
                 </div>
             </div> 
@@ -104,82 +88,62 @@
                 <div class="modal-content">
                     <span class="close-button" id="closeModalBtn">×</span>
                     <h4 id="editModalTitle">Add Volunteer Group</h4>
-
                     <form id="addOrgForm">
                         <div class="form-group">
                             <label for="organization">Organization</label>
                             <input type="text" name="organization" id="organization" placeholder="Enter Organization" required>
                         </div>
-
                         <div class="form-group">
-                            <label for="region">Region</label>
-                            <select id="region" name="region" required></select>
-                            <input type="hidden" id="region-text" name="hq-region-text"/>
+                            <label for="formattedAddress">Address</label>
+                            <input type="text" name="formattedAddress" id="formattedAddress" placeholder="Enter address" required>
+                            <div id="map" style="height: 300px; width: 100%; margin-top: 10px;"></div>
+                            <input type="hidden" id="latitude" name="latitude">
+                            <input type="hidden" id="longitude" name="longitude">
                         </div>
-
-                        <div class="form-group">
-                            <label for="province">Province</label>
-                            <select id="province" name="province" required></select>
-                            <input type="hidden" id="province-text" name="hq-province-text"/>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="city">City/Municipality</label>
-                            <select id="city" name="city" required></select>
-                            <input type="hidden" id="city-text" name="hq-city" />
-                        </div>
-
-                        <div class="form-group">
-                            <label for="barangay">Barangay</label>
-                            <select id="barangay" name="barangay" required></select>
-                            <input type="hidden" id="barangay-text" name="hq-barangay-text"/>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="streetAddress">Block/Lot/Unit Number and Street</label>
-                            <input type="text" name="streetAddress" id="streetAddress" placeholder="Enter Block/Lot/Unit Number and Street" required>
-                        </div>
-
                         <div class="form-group">
                             <label for="contactPerson">Contact Person</label>
                             <input type="text" name="contactPerson" id="contactPerson" placeholder="Enter Contact Person" required>
                         </div>
-
                         <div class="form-group">
                             <label for="email">Email</label>
-                            <input type="email" name="email" id="email" placeholder="Enter the email of the organization of the Contact Person" required>
+                            <input type="email" name="email" id="email" placeholder="Enter the email of the organization or Contact Person" required>
                         </div>
-                        
                         <div class="form-group">
                             <label for="mobileNumber">Mobile Number</label>
                             <input type="number" name="mobileNumber" id="mobileNumber" placeholder="Enter the mobile number of the Contact Person" required>
                         </div>
-
                         <div class="form-group">
                             <label for="socialMedia">Social Media</label>
                             <input type="text" name="socialMedia" id="socialMedia" placeholder="Enter Social Media Link (Optional)">
                         </div>
-
                         <div class="form-group">
                             <label for="organizationalBackgroundMission">Mission/Background</label>
                             <textarea id="organizationalBackgroundMission" name="organizationalBackgroundMission" placeholder="Enter Mission/Background (Optional)"></textarea>
                         </div>
-
                         <div class="form-group">
                             <label for="areasOfExpertiseFocus">Areas of Expertise/Focus</label>
                             <textarea id="areasOfExpertiseFocus" name="areasOfExpertiseFocus" placeholder="Enter Areas of Expertise/Focus (Optional)"></textarea>
                         </div>
-
                         <div class="form-group">
                             <label for="legalStatusRegistration">Legal Status/Registration</label>
                             <input type="text" id="legalStatusRegistration" name="legalStatusRegistration" placeholder="Enter Legal Status/Registration (Optional)">
                         </div>
-
                         <div class="form-group">
                             <label for="requiredDocumentsLink">Required Documents Link</label>
                             <input type="text" id="requiredDocumentsLink" name="requiredDocumentsLink" placeholder="Enter Document Link (Optional)">
                         </div>
-
+                        <div class="form-group">
+                            <label for="applicationDateandTime">Application Date and Time</label>
+                            <input type="datetime-local" id="applicationDateandTime" name="applicationDateandTime" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="approvedApplicationDate">Approved Application Date</label>
+                            <input type="date" id="approvedApplicationDate" name="approvedApplicationDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="recaptchaResponse">reCAPTCHA Response</label>
+                            <input type="text" id="recaptchaResponse" name="recaptchaResponse" placeholder="Enter reCAPTCHA Response (Optional)">
+                        </div>
                         <div style="margin-top: 20px;">
                             <button type="submit">Save Changes</button>
                         </div>
@@ -212,80 +176,63 @@
                 <div class="modal-content">
                     <span class="close-button" id="closeEditModalBtn">×</span>
                     <h4 id="editModalTitle">Edit Volunteer Group</h4>
-
                     <form id="editOrgForm">
                         <input type="hidden" id="editOrgFirebaseKey">
-
                         <div class="form-group">
                             <label for="editOrganization">Organization</label>
                             <input type="text" id="editOrganization" name="organization" placeholder="Enter Organization" required>
                         </div>
-
                         <div class="form-group">
-                            <label for="editRegion">Region</label>
-                            <select id="editRegion" name="region" required></select>
+                            <label for="editFormattedAddress">Address</label>
+                            <input type="text" id="editFormattedAddress" name="formattedAddress" placeholder="Enter address" required>
+                            <div id="editMap" style="height: 300px; width: 100%; margin-top: 10px;"></div>
+                            <input type="hidden" id="editLatitude" name="latitude">
+                            <input type="hidden" id="editLongitude" name="longitude">
                         </div>
-
-                        <div class="form-group">
-                            <label for="editProvince">Province</label>
-                            <select id="editProvince" name="province" required></select>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="editCity">City/Municipality</label>
-                            <select id="editCity" name="city" required></select>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="editBarangay">Barangay</label>
-                            <select id="editBarangay" name="barangay" required></select>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="editStreetAddress">Block/Lot/Unit Number and Street</label>
-                            <input type="text" id="editStreetAddress" name="streetAddress" placeholder="Enter Address" required>
-                        </div>
-
                         <div class="form-group">
                             <label for="editContactPerson">Contact Person</label>
                             <input type="text" id="editContactPerson" name="contactPerson" placeholder="Enter Contact Person" required>
                         </div>
-
                         <div class="form-group">
                             <label for="editEmail">Email</label>
                             <input type="email" id="editEmail" name="email" placeholder="Enter Email" required>
                         </div>
-
                         <div class="form-group">
                             <label for="editMobileNumber">Mobile Number</label>
                             <input type="number" id="editMobileNumber" name="mobileNumber" placeholder="Enter Mobile Number" required>
                         </div>
-
                         <div class="form-group">
                             <label for="editSocialMedia">Social Media</label>
                             <input type="text" id="editSocialMedia" name="socialMedia" placeholder="Enter Social Media Link (Optional)">
                         </div>
-
                         <div class="form-group">
                             <label for="editOrganizationalBackgroundMission">Mission/Background</label>
                             <textarea id="editOrganizationalBackgroundMission" name="organizationalBackgroundMission" placeholder="Enter Mission/Background (Optional)"></textarea>
                         </div>
-
                         <div class="form-group">
                             <label for="editAreasOfExpertiseFocus">Areas of Expertise/Focus</label>
                             <textarea id="editAreasOfExpertiseFocus" name="areasOfExpertiseFocus" placeholder="Enter Areas of Expertise/Focus (Optional)"></textarea>
                         </div>
-
                         <div class="form-group">
                             <label for="editLegalStatusRegistration">Legal Status/Registration</label>
                             <input type="text" id="editLegalStatusRegistration" name="legalStatusRegistration" placeholder="Enter Legal Status/Registration (Optional)">
                         </div>
-
                         <div class="form-group">
                             <label for="editRequiredDocumentsLink">Required Documents Link</label>
                             <input type="text" id="editRequiredDocumentsLink" name="requiredDocumentsLink" placeholder="Enter Document Link (Optional)">
                         </div>
-
+                        <div class="form-group">
+                            <label for="editApplicationDateandTime">Application Date and Time</label>
+                            <input type="datetime-local" id="editApplicationDateandTime" name="applicationDateandTime" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editApprovedApplicationDate">Approved Application Date</label>
+                            <input type="date" id="editApprovedApplicationDate" name="approvedApplicationDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editRecaptchaResponse">reCAPTCHA Response</label>
+                            <input type="text" id="editRecaptchaResponse" name="recaptchaResponse" placeholder="Enter reCAPTCHA Response (Optional)">
+                        </div>
                         <div style="margin-top: 20px;">
                             <button type="submit">Save Changes</button>
                         </div>
@@ -309,8 +256,7 @@
                                     <th>Actions</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                </tbody>
+                            <tbody></tbody>
                         </table>
                     </div>
                     <div class="pagination-info" style="margin-top: 15px;">

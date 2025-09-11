@@ -14,8 +14,12 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
   <script src="../js/navbar.js"></script> 
-
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://unpkg.com/@googlemaps/js-api-loader@1.16.2/dist/index.min.js"></script>
+  <script type="module" src="../js/map-loader.js"></script>
+  <!-- <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAAAu6BeQjIZ7H7beFbAsPWuKuORmh0wrk&libraries=places,marker"></script> -->
+  <script src="https://unpkg.com/@googlemaps/js-api-loader@1.16.2/dist/index.min.js"></script>
+  <script type="module" src="../js/map-loader.js"></script>
 </head>
 <body class="no-header-line">
 
@@ -90,32 +94,12 @@
           <legend>Volunteer Location</legend>
 
           <div class="form-group">
-            <label for="region">Region</label>
-            <select id="region" name="region" required></select>
-            <input type="hidden" id="region-text" name="hq-region-text"/>
-          </div>
-
-          <div class="form-group">
-            <label for="province">Province</label>
-            <select id="province" name="province" required></select>
-            <input type="hidden" id="province-text" name="hq-province-text"/>
-          </div>
-
-          <div class="form-group">
-            <label for="city">City/Municipality</label>
-            <select id="city" name="city" required></select>
-            <input type="hidden" id="city-text" name="hq-city-text" />
-          </div>
-
-          <div class="form-group">
-            <label for="barangay">Barangay</label>
-            <select id="barangay" name="barangay" required></select>
-            <input type="hidden" id="barangay-text" name="hq-barangay-text"/>
-          </div>
-
-          <div class="form-group">
-            <label for="streetAddress">Block/Lot/Unit Number and Street</label>
-            <input type="text" id="streetAddress" name="streetAddress" placeholder="e.g. Blk 1 Lot 2, Main St." required />
+            <label for="location">Pin Your Location</label>
+            <input type="text" id="location" name="location" placeholder="Search for your location" required />
+            <div id="map" style="height: 400px; width: 100%; margin-top: 10px;"></div>
+            <input type="hidden" id="latitude" name="latitude" />
+            <input type="hidden" id="longitude" name="longitude" />
+            <input type="hidden" id="formatted-address" name="formatted-address" />
           </div>
         </fieldset>
 
@@ -250,7 +234,6 @@
         </div>
         <div id="agreementMessage" style="color: red; display: none;">Please agree to the Terms and Conditions and Privacy Policy to proceed.</div>
         
-        <!-- Submit -->
         <div class="form-group submit-group">
           <div class="g-recaptcha" data-sitekey="6LeVTVkrAAAAAMPE8sdxhmnAjaETxWrtiEY4KWqC"></div>
         </div>

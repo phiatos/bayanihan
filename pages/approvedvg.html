@@ -24,7 +24,29 @@
     
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
     
+    <!-- Google Maps API Loader -->
+    <script src="https://unpkg.com/@googlemaps/js-api-loader@1.16.2/dist/index.min.js"></script>
+    <script type="module" src="../js/map-loader.js"></script>
+
     <title>Bayanihan | Angat Buhay DRRM</title>
+    <style>
+        #map {
+            height: 300px;
+            width: 100%;
+            margin-top: 10px;
+            border: 1px solid #ccc;
+        }
+        #pac-input {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+        }
+        .modal-content {
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+    </style>
 </head>
 <body>
     <div class="main-container">
@@ -58,16 +80,8 @@
                                 <option value="organizationalBackgroundMission-desc">Organizational Background/Mission (Z-A)</option>
                             </optgroup>
                             <optgroup label="Location">
-                                <option value="region-asc">Region (A-Z)</option>
-                                <option value="region-desc">Region (Z-A)</option>
-                                <option value="province-asc">Province (A-Z)</option>
-                                <option value="province-desc">Province (Z-A)</option>
-                                <option value="city-asc">City (A-Z)</option>
-                                <option value="city-desc">City (Z-A)</option>
-                                <option value="barangay-asc">Barangay (A-Z)</option>
-                                <option value="barangay-desc">Barangay (Z-A)</option>
-                                <option value="streetAddress-asc">Street Address (A-Z)</option>
-                                <option value="streetAddress-desc">Street Address (Z-A)</option>
+                                <option value="formattedAddress-asc">Address (A-Z)</option>
+                                <option value="formattedAddress-desc">Address (Z-A)</option>
                             </optgroup>
                             <optgroup label="Application Details">
                                 <option value="applicationDateandTime-asc">Application Date (Oldest First)</option>
@@ -123,11 +137,7 @@
                             <th>Email</th>
                             <th>Mobile Number</th>
                             <th>Social Media</th>
-                            <th>Region</th>
-                            <th>Province</th>
-                            <th>City</th>
-                            <th>Barangay</th>
-                            <th>Street Address</th>
+                            <th>Address</th>
                             <th>Application Date/Time</th>
                             <th>Actions</th>
                         </tr>
@@ -170,32 +180,12 @@
                 </div>
                 
                 <div class="form-group">
-                    <label for="editRegion">Region</label>
-                    <select id="editRegion" name="region" required></select>
-                    <input type="hidden" id="editRegion-text" name="region-text"/> 
-                </div>
-
-                <div class="form-group">
-                    <label for="editProvince">Province</label>
-                    <select id="editProvince" name="province" required></select>
-                    <input type="hidden" id="editProvince-text" name="province-text"/>
-                </div>
-
-                <div class="form-group">
-                    <label for="editCity">City/Municipality</label>
-                    <select id="editCity" name="city" required></select>
-                    <input type="hidden" id="editCity-text" name="city-text"/> 
-                </div>
-
-                <div class="form-group">
-                    <label for="editBarangay">Barangay</label>
-                    <select id="editBarangay" name="barangay" required></select>
-                    <input type="hidden" id="editBarangay-text" name="barangay-text"/> 
-                </div>
-
-                <div class="form-group">
-                    <label>Block/Lot/Unit Number and Street</label>
-                    <input type="text" name="streetAddress" id="editStreetAddress" placeholder="Enter Block/Lot/Unit Number and Street" required>
+                    <label>Location</label>
+                    <input type="text" id="pac-input" placeholder="Search for a place" />
+                    <div id="map"></div>
+                    <input type="hidden" id="editFormattedAddress" name="editFormattedAddress">
+                    <input type="hidden" id="editLatitude" name="editLatitude">
+                    <input type="hidden" id="editLongitude" name="editLongitude">
                 </div>
 
                 <div class="form-group">
@@ -205,7 +195,7 @@
 
                 <div class="form-group">
                     <label>Email</label>
-                    <input type="email" name="email" id="editEmail" placeholder="Enter the email of the organization of the Contact Person" required>
+                    <input type="email" name="email" id="editEmail" placeholder="Enter the email of the organization or Contact Person" required>
                 </div>
 
                 <div class="form-group">
@@ -258,7 +248,7 @@
                             <th>Contact Person</th>
                             <th>Email</th>
                             <th>Mobile Number</th>
-                            <th>Region</th>
+                            <th>Address</th>
                             <th>Archived At</th>
                             <th>Actions</th>
                         </tr>
@@ -291,6 +281,97 @@
             document.getElementById('searchInput').value = '';
             applySearchAndSort();
         }
+
+        // Initialize Google Map in Edit Modal
+        window.initMap = function() {
+            const mapElement = document.getElementById('map');
+            if (!mapElement) return;
+
+            const map = new google.maps.Map(mapElement, {
+                center: { lat: 14.5995, lng: 120.9842 }, // Default to Manila, Philippines
+                zoom: 10,
+                mapTypeControl: false,
+            });
+
+            const input = document.getElementById('pac-input');
+            const autocomplete = new google.maps.places.Autocomplete(input, {
+                types: ['geocode'],
+                componentRestrictions: { country: 'ph' } // Restrict to Philippines
+            });
+
+            const marker = new google.maps.Marker({
+                map: map,
+                anchorPoint: new google.maps.Point(0, -29)
+            });
+
+            autocomplete.bindTo('bounds', map);
+
+            autocomplete.addListener('place_changed', () => {
+                marker.setVisible(false);
+                const place = autocomplete.getPlace();
+
+                if (!place.geometry || !place.geometry.location) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Invalid Location',
+                        text: 'Please select a valid location from the suggestions.',
+                        confirmButtonText: 'OK',
+                        customClass: {
+                            popup: 'swal2-popup-error-clean',
+                            title: 'swal2-title-error-clean',
+                            htmlContainer: 'swal2-text-error-clean',
+                            confirmButton: 'my-error-button'
+                        }
+                    });
+                    return;
+                }
+
+                if (place.geometry.viewport) {
+                    map.fitBounds(place.geometry.viewport);
+                } else {
+                    map.setCenter(place.geometry.location);
+                    map.setZoom(17);
+                }
+
+                marker.setPosition(place.geometry.location);
+                marker.setVisible(true);
+
+                document.getElementById('editFormattedAddress').value = place.formatted_address || '';
+                document.getElementById('editLatitude').value = place.geometry.location.lat();
+                document.getElementById('editLongitude').value = place.geometry.location.lng();
+            });
+
+            // Allow clicking on the map to set a marker and get coordinates
+            map.addListener('click', (event) => {
+                const geocoder = new google.maps.Geocoder();
+                const latlng = event.latLng;
+
+                marker.setPosition(latlng);
+                marker.setVisible(true);
+
+                geocoder.geocode({ location: latlng }, (results, status) => {
+                    if (status === 'OK' && results[0]) {
+                        document.getElementById('editFormattedAddress').value = results[0].formatted_address;
+                        document.getElementById('editLatitude').value = latlng.lat();
+                        document.getElementById('editLongitude').value = latlng.lng();
+                        input.value = results[0].formatted_address;
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Geocoding Failed',
+                            text: 'Unable to retrieve address for this location.',
+                            confirmButtonText: 'OK',
+                            customClass: {
+                                popup: 'swal2-popup-error-clean',
+                                title: 'swal2-title-error-clean',
+                                htmlContainer: 'swal2-text-error-clean',
+                                confirmButton: 'my-error-button'
+                            }
+                        });
+                    }
+                });
+            });
+        };
     </script>
     
     <script src="../js/inactivity-detector.js"></script> 
