@@ -53,9 +53,17 @@ function isValidEmail(email) {
 }
 
 function isValidMobile(mobile) {
+    mobile = mobile.replace(/\D/g, '');
     const mobileRegex = /^09[0-9]{9}$/;
     return mobileRegex.test(mobile);
 }
+
+document.getElementById('mobileNumber').addEventListener('input', (e) => {
+    e.target.value = e.target.value.replace(/\D/g, '');
+});
+document.getElementById('editMobileNumber').addEventListener('input', (e) => {
+    e.target.value = e.target.value.replace(/\D/g, '');
+});
 
 async function isMobileNumberInUse(mobile, excludeUid) {
     try {
@@ -272,7 +280,7 @@ function fetchAndRenderTable() {
 }
 
 function fetchAndRenderArchivedTable() {
-    database.ref("deletedVolunteerGroups").on("value", snapshot => {
+    database.ref("deleted/deletedVolunteerGroups").on("value", snapshot => {
         const fetchedArchivedData = snapshot.val();
         if (!fetchedArchivedData) {
             archivedData = [];
@@ -337,7 +345,6 @@ function showPreviewModal(orgData) {
             <h2>Legal & Documents:</h2>
             <p><strong>Legal Status/Registration:</strong> ${orgData.legalStatusRegistration || 'N/A'}</p>
             <p><strong>Required Documents:</strong> ${orgData.requiredDocumentsLink ? `<a href="${orgData.requiredDocumentsLink}" target="_blank" rel="noopener noreferrer">View Document</a>` : 'N/A'}</p>
-            <p><strong>reCAPTCHA Response:</strong> ${orgData.recaptchaResponse || 'N/A'}</p>
             <hr>
             <h2>Dates:</h2>
             <p><strong>Application Date and Time:</strong> ${formattedAppDateTime}</p>
@@ -430,13 +437,27 @@ let map, marker, editMap, editMarker;
 
 function initializeMap() {
     const mapDiv = document.getElementById('map');
+    const philippinesBounds = {
+        north: 21.121, // Northernmost point
+        south: 4.643,  // Southernmost point
+        west: 116.929, // Westernmost point
+        east: 126.604  // Easternmost point
+    };
     map = new google.maps.Map(mapDiv, {
-        center: { lat: 14.5995, lng: 120.9842 }, // Default to Manila, Philippines
-        zoom: 12
+        center: { lat: 14.5995, lng: 120.9842 }, // Manila
+        zoom: 6,
+        restriction: {
+            latLngBounds: philippinesBounds,
+            strictBounds: true
+        }
     });
 
     const input = document.getElementById('formattedAddress');
-    const autocomplete = new google.maps.places.Autocomplete(input);
+    const autocomplete = new google.maps.places.Autocomplete(input, {
+        bounds: philippinesBounds,
+        strictBounds: true,
+        componentRestrictions: { country: 'PH' }
+    });
     autocomplete.bindTo('bounds', map);
 
     marker = new google.maps.Marker({
@@ -450,7 +471,18 @@ function initializeMap() {
             Swal.fire({
                 icon: 'error',
                 title: 'Invalid Address',
-                text: 'Please select a valid address from the suggestions.'
+                text: 'Please select a valid address within the Philippines.'
+            });
+            return;
+        }
+        if (!philippinesBounds.north >= place.geometry.location.lat() ||
+            place.geometry.location.lat() < philippinesBounds.south ||
+            philippinesBounds.east < place.geometry.location.lng() ||
+            place.geometry.location.lng() < philippinesBounds.west) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Invalid Location',
+                text: 'Selected location must be within the Philippines.'
             });
             return;
         }
@@ -463,25 +495,66 @@ function initializeMap() {
     });
 
     marker.addListener('dragend', () => {
-        const geocoder = new google.maps.Geocoder();
         const latlng = marker.getPosition();
+        if (!philippinesBounds.north >= latlng.lat() ||
+            latlng.lat() < philippinesBounds.south ||
+            philippinesBounds.east < latlng.lng() ||
+            latlng.lng() < philippinesBounds.west) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Invalid Location',
+                text: 'Selected location must be within the Philippines.'
+            });
+            marker.setPosition(map.getCenter());
+            return;
+        }
+        const geocoder = new google.maps.Geocoder();
         geocoder.geocode({ location: latlng }, (results, status) => {
             if (status === 'OK' && results[0]) {
-                input.value = results[0].formatted_address;
-                document.getElementById('latitude').value = latlng.lat();
-                document.getElementById('longitude').value = latlng.lng();
+                if (results[0].address_components.some(comp => comp.short_name === 'PH')) {
+                    input.value = results[0].formatted_address;
+                    document.getElementById('latitude').value = latlng.lat();
+                    document.getElementById('longitude').value = latlng.lng();
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Invalid Location',
+                        text: 'Selected location must be within the Philippines.'
+                    });
+                    marker.setPosition(map.getCenter());
+                }
             }
         });
     });
 
     map.addListener('click', (e) => {
+        if (!philippinesBounds.north >= e.latLng.lat() ||
+            e.latLng.lat() < philippinesBounds.south ||
+            philippinesBounds.east < e.latLng.lng() ||
+            e.latLng.lng() < philippinesBounds.west) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Invalid Location',
+                text: 'Selected location must be within the Philippines.'
+            });
+            return;
+        }
         marker.setPosition(e.latLng);
         const geocoder = new google.maps.Geocoder();
         geocoder.geocode({ location: e.latLng }, (results, status) => {
             if (status === 'OK' && results[0]) {
-                input.value = results[0].formatted_address;
-                document.getElementById('latitude').value = e.latLng.lat();
-                document.getElementById('longitude').value = e.latLng.lng();
+                if (results[0].address_components.some(comp => comp.short_name === 'PH')) {
+                    input.value = results[0].formatted_address;
+                    document.getElementById('latitude').value = e.latLng.lat();
+                    document.getElementById('longitude').value = e.latLng.lng();
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Invalid Location',
+                        text: 'Selected location must be within the Philippines.'
+                    });
+                    marker.setPosition(map.getCenter());
+                }
             }
         });
     });
@@ -489,13 +562,27 @@ function initializeMap() {
 
 function initializeEditMap(lat = 14.5995, lng = 120.9842) {
     const editMapDiv = document.getElementById('editMap');
+    const philippinesBounds = {
+        north: 21.121,
+        south: 4.643,
+        west: 116.929,
+        east: 126.604
+    };
     editMap = new google.maps.Map(editMapDiv, {
         center: { lat: lat, lng: lng },
-        zoom: 12
+        zoom: 6,
+        restriction: {
+            latLngBounds: philippinesBounds,
+            strictBounds: true
+        }
     });
 
     const editInput = document.getElementById('editFormattedAddress');
-    const autocomplete = new google.maps.places.Autocomplete(editInput);
+    const autocomplete = new google.maps.places.Autocomplete(editInput, {
+        bounds: philippinesBounds,
+        strictBounds: true,
+        componentRestrictions: { country: 'PH' }
+    });
     autocomplete.bindTo('bounds', editMap);
 
     editMarker = new google.maps.Marker({
@@ -510,7 +597,18 @@ function initializeEditMap(lat = 14.5995, lng = 120.9842) {
             Swal.fire({
                 icon: 'error',
                 title: 'Invalid Address',
-                text: 'Please select a valid address from the suggestions.'
+                text: 'Please select a valid address within the Philippines.'
+            });
+            return;
+        }
+        if (!philippinesBounds.north >= place.geometry.location.lat() ||
+            place.geometry.location.lat() < philippinesBounds.south ||
+            philippinesBounds.east < place.geometry.location.lng() ||
+            place.geometry.location.lng() < philippinesBounds.west) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Invalid Location',
+                text: 'Selected location must be within the Philippines.'
             });
             return;
         }
@@ -523,25 +621,66 @@ function initializeEditMap(lat = 14.5995, lng = 120.9842) {
     });
 
     editMarker.addListener('dragend', () => {
-        const geocoder = new google.maps.Geocoder();
         const latlng = editMarker.getPosition();
+        if (!philippinesBounds.north >= latlng.lat() ||
+            latlng.lat() < philippinesBounds.south ||
+            philippinesBounds.east < latlng.lng() ||
+            latlng.lng() < philippinesBounds.west) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Invalid Location',
+                text: 'Selected location must be within the Philippines.'
+            });
+            editMarker.setPosition(editMap.getCenter());
+            return;
+        }
+        const geocoder = new google.maps.Geocoder();
         geocoder.geocode({ location: latlng }, (results, status) => {
             if (status === 'OK' && results[0]) {
-                editInput.value = results[0].formatted_address;
-                document.getElementById('editLatitude').value = latlng.lat();
-                document.getElementById('editLongitude').value = latlng.lng();
+                if (results[0].address_components.some(comp => comp.short_name === 'PH')) {
+                    editInput.value = results[0].formatted_address;
+                    document.getElementById('editLatitude').value = latlng.lat();
+                    document.getElementById('editLongitude').value = latlng.lng();
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Invalid Location',
+                        text: 'Selected location must be within the Philippines.'
+                    });
+                    editMarker.setPosition(editMap.getCenter());
+                }
             }
         });
     });
 
     editMap.addListener('click', (e) => {
+        if (!philippinesBounds.north >= e.latLng.lat() ||
+            e.latLng.lat() < philippinesBounds.south ||
+            philippinesBounds.east < e.latLng.lng() ||
+            e.latLng.lng() < philippinesBounds.west) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Invalid Location',
+                text: 'Selected location must be within the Philippines.'
+            });
+            return;
+        }
         editMarker.setPosition(e.latLng);
         const geocoder = new google.maps.Geocoder();
         geocoder.geocode({ location: e.latLng }, (results, status) => {
             if (status === 'OK' && results[0]) {
-                editInput.value = results[0].formatted_address;
-                document.getElementById('editLatitude').value = e.latLng.lat();
-                document.getElementById('editLongitude').value = e.latLng.lng();
+                if (results[0].address_components.some(comp => comp.short_name === 'PH')) {
+                    editInput.value = results[0].formatted_address;
+                    document.getElementById('editLatitude').value = e.latLng.lat();
+                    document.getElementById('editLongitude').value = e.latLng.lng();
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Invalid Location',
+                        text: 'Selected location must be within the Philippines.'
+                    });
+                    editMarker.setPosition(editMap.getCenter());
+                }
             }
         });
     });
@@ -626,7 +765,7 @@ if (addOrgForm) {
         const longitude = document.getElementById('longitude').value.trim();
         const contactPerson = document.getElementById('contactPerson').value.trim();
         const email = document.getElementById('email').value.trim();
-        const mobileNumber = document.getElementById('mobileNumber').value.trim();
+        const mobileNumber = document.getElementById('mobileNumber').value;
         const socialMedia = document.getElementById('socialMedia').value.trim();
         const organizationalBackgroundMission = document.getElementById('organizationalBackgroundMission').value.trim();
         const areasOfExpertiseFocus = document.getElementById('areasOfExpertiseFocus').value.trim();
@@ -635,6 +774,27 @@ if (addOrgForm) {
         const applicationDateandTime = document.getElementById('applicationDateandTime').value.trim();
         const approvedApplicationDate = document.getElementById('approvedApplicationDate').value.trim();
         const recaptchaResponse = document.getElementById('recaptchaResponse').value.trim();
+
+        const appDateTime = new Date(applicationDateandTime);
+        const approvedDate = new Date(approvedApplicationDate);
+        const appDateOnly = new Date(appDateTime.getFullYear(), appDateTime.getMonth(), appDateTime.getDate());
+        const approvedDateOnly = new Date(approvedDate.getFullYear(), approvedDate.getMonth(), approvedDate.getDate());
+        if (appDateOnly > approvedDateOnly) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Invalid Dates',
+                text: 'Application Date cannot be after Approved Application Date.',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
+                }
+            });
+            return;
+        }
 
         if (!organization || !formattedAddress || !latitude || !longitude || !contactPerson || !email || !mobileNumber || !applicationDateandTime || !approvedApplicationDate) {
             Swal.fire({
@@ -763,7 +923,6 @@ if (addOrgForm) {
                 <p><strong>Required Documents:</strong> ${orgData.requiredDocumentsLink}</p>
                 <p><strong>Application Date and Time:</strong> ${orgData.applicationDateandTime}</p>
                 <p><strong>Approved Application Date:</strong> ${orgData.approvedApplicationDate}</p>
-                <p><strong>reCAPTCHA Response:</strong> ${orgData.recaptchaResponse}</p>
             `;
         }
 
@@ -799,27 +958,49 @@ if (confirmSaveBtn) {
             return;
         }
 
+        // Validate numeric fields to prevent NaN
+        const lat = parseFloat(orgData.address.latitude);
+        const lon = parseFloat(orgData.address.longitude);
+        if (isNaN(lat) || isNaN(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Invalid Coordinates',
+                text: 'Latitude or longitude is invalid. Please check the address.',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
+                }
+            });
+            isProcessing = false;
+            confirmSaveBtn.disabled = false;
+            return;
+        }
+
         const newVolunteerGroup = {
             organization: orgData.organization,
             contactPerson: orgData.contactPerson,
             email: orgData.email,
             mobileNumber: orgData.mobileNumber,
-            socialMedia: orgData.socialMedia,
+            socialMedia: orgData.socialMedia || "N/A",
             address: {
                 formattedAddress: orgData.address.formattedAddress,
-                latitude: orgData.address.latitude,
-                longitude: orgData.address.longitude
+                latitude: lat,
+                longitude: lon
             },
-            organizationalBackgroundMission: orgData.organizationalBackgroundMission,
-            areasOfExpertiseFocus: orgData.areasOfExpertiseFocus,
-            legalStatusRegistration: orgData.legalStatusRegistration,
-            requiredDocumentsLink: orgData.requiredDocumentsLink,
+            organizationalBackgroundMission: orgData.organizationalBackgroundMission || "N/A",
+            areasOfExpertiseFocus: orgData.areasOfExpertiseFocus || "N/A",
+            legalStatusRegistration: orgData.legalStatusRegistration || "N/A",
+            requiredDocumentsLink: orgData.requiredDocumentsLink || "N/A",
             applicationDateandTime: orgData.applicationDateandTime,
             approvedApplicationDate: orgData.approvedApplicationDate,
-            recaptchaResponse: orgData.recaptchaResponse,
-            timestamp: orgData.timestamp,
-            lastUpdatedBy: orgData.lastUpdatedBy,
-            lastUpdatedAt: orgData.lastUpdatedAt
+            recaptchaResponse: orgData.recaptchaResponse || "N/A",
+            timestamp: orgData.timestamp || new Date().toISOString(),
+            lastUpdatedBy: auth.currentUser?.uid || "N/A",
+            lastUpdatedAt: new Date().toISOString()
         };
 
         try {
@@ -840,6 +1021,11 @@ if (confirmSaveBtn) {
             }
             const newUser = userCredential.user;
 
+            if (!newUser.uid) {
+                throw new Error("Failed to generate a valid user ID.");
+            }
+
+            // Save to users
             await database.ref(`users/${newUser.uid}`).set({
                 role: "ABVN",
                 email: orgData.email,
@@ -848,31 +1034,37 @@ if (confirmSaveBtn) {
                 contactPerson: orgData.contactPerson,
                 address: {
                     formattedAddress: orgData.address.formattedAddress,
-                    latitude: orgData.address.latitude,
-                    longitude: orgData.address.longitude
+                    latitude: lat,
+                    longitude: lon
                 },
-                organizationalBackgroundMission: orgData.organizationalBackgroundMission,
-                areasOfExpertiseFocus: orgData.areasOfExpertiseFocus,
-                legalStatusRegistration: orgData.legalStatusRegistration,
-                requiredDocumentsLink: orgData.requiredDocumentsLink,
+                organizationalBackgroundMission: orgData.organizationalBackgroundMission || "N/A",
+                areasOfExpertiseFocus: orgData.areasOfExpertiseFocus || "N/A",
+                legalStatusRegistration: orgData.legalStatusRegistration || "N/A",
+                requiredDocumentsLink: orgData.requiredDocumentsLink || "N/A",
                 applicationDateandTime: orgData.applicationDateandTime,
                 approvedApplicationDate: orgData.approvedApplicationDate,
-                recaptchaResponse: orgData.recaptchaResponse,
+                recaptchaResponse: orgData.recaptchaResponse || "N/A",
                 createdAt: new Date().toISOString(),
                 isFirstLogin: true,
                 emailVerified: false,
                 password_needs_reset: true,
-                lastUpdatedBy: orgData.lastUpdatedBy,
-                lastUpdatedAt: orgData.lastUpdatedAt
+                lastUpdatedBy: adminUser.uid,
+                lastUpdatedAt: new Date().toISOString()
             });
 
-            const snapshot = await database.ref('volunteerGroups').once('value');
-            const groups = snapshot.val();
-            const nextKey = groups ? Math.max(...Object.keys(groups).map(Number)) + 1 : 1;
-
-            await database.ref(`volunteerGroups/${nextKey}`).set({
+            // Save to volunteerGroups with UID as key
+            await database.ref(`volunteerGroups/${newUser.uid}`).set({
                 ...newVolunteerGroup,
                 userId: newUser.uid
+            });
+
+            // Optionally save to abvnApplications/registeredABVN to sync with approvedvg.js
+            await database.ref(`abvnApplications/registeredABVN/${newUser.uid}`).set({
+                ...newVolunteerGroup,
+                registeredBy: adminUser.uid,
+                registeredAt: new Date().toISOString(),
+                volunteerGroupKey: newUser.uid, // Ensure volunteerGroupKey is the UID
+                authUserId: newUser.uid
             });
 
             await emailjs.send('service_g5f0erj', 'template_0yk865p', {
@@ -966,14 +1158,20 @@ function openEditModal(orgId) {
     document.getElementById('editLongitude').value = orgToEdit.address.longitude || '';
     document.getElementById('editContactPerson').value = orgToEdit.contactPerson;
     document.getElementById('editEmail').value = orgToEdit.email;
-    document.getElementById('editMobileNumber').value = orgToEdit.mobileNumber;
+    document.getElementById('editMobileNumber').value = orgToEdit.mobileNumber || "";
     document.getElementById('editSocialMedia').value = orgToEdit.socialMedia === "N/A" ? "" : orgToEdit.socialMedia;
     document.getElementById('editOrganizationalBackgroundMission').value = orgToEdit.organizationalBackgroundMission || "";
     document.getElementById('editAreasOfExpertiseFocus').value = orgToEdit.areasOfExpertiseFocus || "";
     document.getElementById('editLegalStatusRegistration').value = orgToEdit.legalStatusRegistration || "";
     document.getElementById('editRequiredDocumentsLink').value = orgToEdit.requiredDocumentsLink || "";
-    document.getElementById('editApplicationDateandTime').value = orgToEdit.applicationDateandTime ? new Date(orgToEdit.applicationDateandTime).toISOString().slice(0, 16) : "";
-    document.getElementById('editApprovedApplicationDate').value = orgToEdit.approvedApplicationDate || "";
+    document.getElementById('editApplicationDateandTime').value = 
+        orgToEdit.applicationDateandTime && !isNaN(new Date(orgToEdit.applicationDateandTime).getTime()) 
+        ? new Date(orgToEdit.applicationDateandTime).toISOString().slice(0, 16) 
+        : "";
+    document.getElementById('editApprovedApplicationDate').value = 
+        orgToEdit.approvedApplicationDate && !isNaN(new Date(orgToEdit.approvedApplicationDate).getTime()) 
+        ? new Date(orgToEdit.approvedApplicationDate).toISOString().slice(0, 10) 
+        : "";
     document.getElementById('editRecaptchaResponse').value = orgToEdit.recaptchaResponse || "";
 
     initializeEditMap(
@@ -1030,7 +1228,7 @@ if (editOrgForm) {
         const updatedLongitude = document.getElementById('editLongitude').value.trim();
         const updatedContactPerson = document.getElementById('editContactPerson').value.trim();
         const updatedEmail = document.getElementById('editEmail').value.trim();
-        const updatedMobileNumber = document.getElementById('editMobileNumber').value.trim();
+        const updatedMobileNumber = document.getElementById('editMobileNumber').value;
         const updatedSocialMedia = document.getElementById('editSocialMedia').value.trim();
         const updatedOrganizationalBackgroundMission = document.getElementById('editOrganizationalBackgroundMission').value.trim();
         const updatedAreasOfExpertiseFocus = document.getElementById('editAreasOfExpertiseFocus').value.trim();
@@ -1039,6 +1237,27 @@ if (editOrgForm) {
         const updatedApplicationDateandTime = document.getElementById('editApplicationDateandTime').value.trim();
         const updatedApprovedApplicationDate = document.getElementById('editApprovedApplicationDate').value.trim();
         const updatedRecaptchaResponse = document.getElementById('editRecaptchaResponse').value.trim();
+
+        const appDateTime = new Date(updatedApplicationDateandTime);
+        const approvedDate = new Date(updatedApprovedApplicationDate);
+        const appDateOnly = new Date(appDateTime.getFullYear(), appDateTime.getMonth(), appDateTime.getDate());
+        const approvedDateOnly = new Date(approvedDate.getFullYear(), approvedDate.getMonth(), approvedDate.getDate());
+        if (appDateOnly > approvedDateOnly) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Invalid Dates',
+                text: 'Application Date cannot be after Approved Application Date.',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
+                }
+            });
+            return;
+        }
 
         if (!updatedOrganization || !updatedFormattedAddress || !updatedLatitude || !updatedLongitude || !updatedContactPerson || !updatedEmail || !updatedMobileNumber || !updatedApplicationDateandTime || !updatedApprovedApplicationDate) {
             Swal.fire({
@@ -1079,6 +1298,40 @@ if (editOrgForm) {
                 icon: 'error',
                 title: 'Invalid Mobile Number',
                 text: 'Mobile number must be 11 digits starting with "09"',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
+                }
+            });
+            return;
+        }
+
+        if (!updatedApplicationDateandTime || isNaN(new Date(updatedApplicationDateandTime).getTime())) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Invalid Application Date',
+                text: 'Please enter a valid application date and time.',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
+                }
+            });
+            return;
+        }
+
+        if (!updatedApprovedApplicationDate || isNaN(new Date(updatedApprovedApplicationDate).getTime())) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Invalid Approved Application Date',
+                text: 'Please enter a valid approved application date.',
                 showConfirmButton: true,
                 confirmButtonText: 'OK',
                 customClass: {
@@ -1204,11 +1457,6 @@ if (editOrgForm) {
             return;
         }
 
-        const passwordVerified = await verifySuperAdminPassword();
-        if (!passwordVerified) {
-            return;
-        }
-
         try {
             const updatedData = {
                 organization: updatedOrganization,
@@ -1261,14 +1509,13 @@ if (editOrgForm) {
                 icon: 'success',
                 title: 'Updated!',
                 text: 'The volunteer group has been updated.',
-                timer: 1600,
-                showConfirmButton: false,
-                timerProgressBar: true,
                 allowOutsideClick: false,
+                confirmButtonText: 'OK',
                 customClass: {
                     popup: 'swal2-popup-success-clean',
                     title: 'swal2-title-success-clean',
-                    htmlContainer: 'swal2-text-success-clean'
+                    htmlContainer: 'swal2-text-success-clean',
+                    confirmButton: 'my-success-button'  
                 }
             });
             document.getElementById('editOrgModal').style.display = 'none';
@@ -1344,7 +1591,7 @@ function attachRowHandlers() {
                 return;
             }
 
-            const rowId = button.getAttribute('data-id');
+            const orgId = button.getAttribute('data-id');
             const orgName = button.closest('tr').children[1].textContent;
 
             verifySuperAdminPassword().then((passwordVerified) => {
@@ -1381,8 +1628,8 @@ function attachRowHandlers() {
                         });
 
                         try {
-                            const snapshot = await database.ref(`volunteerGroups/${rowId}`).once('value');
-                            const groupData = snapshot.val();
+                            const groupSnapshot = await database.ref(`volunteerGroups/${orgId}`).once('value');
+                            const groupData = groupSnapshot.val();
                             if (!groupData) {
                                 Swal.fire({
                                     icon: 'error',
@@ -1400,9 +1647,34 @@ function attachRowHandlers() {
                                 return;
                             }
 
+                            const userId = groupData.userId;
+                            const userSnapshot = await database.ref(`users/${userId}`).once('value');
+                            const userData = userSnapshot.val();
+                            if (!userData) {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error',
+                                    text: 'User data not found for archiving.',
+                                    showConfirmButton: true,
+                                    confirmButtonText: 'OK',
+                                    customClass: {
+                                        popup: 'swal2-popup-error-clean',
+                                        title: 'swal2-title-error-clean',
+                                        htmlContainer: 'swal2-text-error-clean',
+                                        confirmButton: 'my-error-button'
+                                    }
+                                });
+                                return;
+                            }
+
                             groupData.deletedAt = new Date().toISOString();
-                            await database.ref(`deletedVolunteerGroups/${rowId}`).set(groupData);
-                            await database.ref(`volunteerGroups/${rowId}`).remove();
+                            userData.deletedAt = new Date().toISOString();
+
+                            await database.ref(`deleted/deletedVolunteerGroups/${orgId}`).set(groupData);
+                            await database.ref(`deleted/deletedUsers/${orgId}`).set(userData);
+
+                            await database.ref(`volunteerGroups/${orgId}`).remove();
+                            await database.ref(`users/${userId}`).remove();
 
                             Swal.close();
                             Swal.fire({
@@ -1435,8 +1707,8 @@ function attachRowHandlers() {
                                     title: 'swal2-title-error-clean',
                                     htmlContainer: 'swal2-text-error-clean',
                                     confirmButton: 'my-error-button'
-                                    }
-                                });
+                                }
+                            });
                         }
                     }
                 });
@@ -1466,21 +1738,16 @@ function attachArchivedRowHandlers() {
                 return;
             }
 
-            const rowId = button.getAttribute('data-id');
-            const orgToRestore = archivedData.find(item => item.id === rowId);
+            const orgId = button.getAttribute('data-id');
+            const orgToRestore = archivedData.find(item => item.id === orgId);
             const orgName = orgToRestore ? orgToRestore.organization : 'N/A';
 
-            const passwordVerified = await verifySuperAdminPassword();
-            if (!passwordVerified) {
-                return;
-            }
-
             Swal.fire({
-                title: `Restore "${orgName}"?`,
+                title: `Retrieve "${orgName}"?`,
                 text: 'This will move the volunteer group back to the active list.',
                 icon: 'question',
                 showCancelButton: true,
-                confirmButtonText: 'Restore',
+                confirmButtonText: 'Retrieve',
                 cancelButtonText: 'Cancel',
                 reverseButtons: true,
                 focusCancel: true,
@@ -1494,23 +1761,6 @@ function attachArchivedRowHandlers() {
                 }
             }).then(async (result) => {
                 if (result.isConfirmed) {
-                    if (!orgToRestore) {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: 'Volunteer group data not found for restoration.',
-                            showConfirmButton: true,
-                            confirmButtonText: 'OK',
-                            customClass: {
-                                popup: 'swal2-popup-error-clean',
-                                title: 'swal2-title-error-clean',
-                                htmlContainer: 'swal2-text-error-clean',
-                                confirmButton: 'my-error-button'
-                            }
-                        });
-                        return;
-                    }
-
                     try {
                         Swal.fire({
                             title: 'Restoring Volunteer Group...',
@@ -1521,20 +1771,71 @@ function attachArchivedRowHandlers() {
                             }
                         });
 
-                        const { deletedAt, ...restoredData } = orgToRestore;
-                        await database.ref(`volunteerGroups/${rowId}`).set({
-                            ...restoredData,
+                        // Fetch full data from deleted nodes
+                        const groupSnapshot = await database.ref(`deleted/deletedVolunteerGroups/${orgId}`).once('value');
+                        const groupData = groupSnapshot.val();
+                        if (!groupData) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: 'Volunteer group data not found for restoration.',
+                                showConfirmButton: true,
+                                confirmButtonText: 'OK',
+                                customClass: {
+                                    popup: 'swal2-popup-error-clean',
+                                    title: 'swal2-title-error-clean',
+                                    htmlContainer: 'swal2-text-error-clean',
+                                    confirmButton: 'my-error-button'
+                                }
+                            });
+                            return;
+                        }
+
+                        const userSnapshot = await database.ref(`deleted/deletedUsers/${orgId}`).once('value');
+                        const userData = userSnapshot.val();
+                        if (!userData) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: 'User data not found for restoration.',
+                                showConfirmButton: true,
+                                confirmButtonText: 'OK',
+                                customClass: {
+                                    popup: 'swal2-popup-error-clean',
+                                    title: 'swal2-title-error-clean',
+                                    htmlContainer: 'swal2-text-error-clean',
+                                    confirmButton: 'my-error-button'
+                                }
+                            });
+                            return;
+                        }
+
+                        // Remove deletedAt and restore all fields
+                        const { deletedAt, ...restoredGroupData } = groupData;
+                        const { deletedAt: userDeletedAt, ...restoredUserData } = userData;
+
+                        // Restore to volunteerGroups and users with updated timestamps
+                        await database.ref(`volunteerGroups/${orgId}`).set({
+                            ...restoredGroupData,
                             lastUpdatedBy: auth.currentUser?.uid || 'N/A',
                             lastUpdatedAt: new Date().toISOString()
                         });
-                        await database.ref(`deletedVolunteerGroups/${rowId}`).remove();
+                        await database.ref(`users/${restoredGroupData.userId}`).set({
+                            ...restoredUserData,
+                            lastUpdatedBy: auth.currentUser?.uid || 'N/A',
+                            lastUpdatedAt: new Date().toISOString()
+                        });
+
+                        // Remove from deleted nodes
+                        await database.ref(`deleted/deletedVolunteerGroups/${orgId}`).remove();
+                        await database.ref(`deleted/deletedUsers/${orgId}`).remove();
 
                         Swal.close();
                         Swal.fire({
                             icon: 'success',
-                            title: 'Restored!',
-                            text: `Volunteer group "${orgName}" has been restored to the active list.`,
-                            timer: 1600,
+                            title: 'Retrieved!',
+                            text: `Volunteer group "${orgName}" has been retrieved from the archive.`,
+                            
                             showConfirmButton: false,
                             timerProgressBar: true,
                             allowOutsideClick: false,
@@ -1759,11 +2060,6 @@ if (viewArchivedBtn) {
                     htmlContainer: 'swal2-text-error-clean'
                 }
             });
-            return;
-        }
-
-        const passwordVerified = await verifySuperAdminPassword();
-        if (!passwordVerified) {
             return;
         }
 

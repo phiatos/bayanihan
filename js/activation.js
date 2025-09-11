@@ -1516,12 +1516,12 @@ tableBody.addEventListener("click", e => {
                                     deactivationDate: new Date().toISOString()
                                 };
 
-                                const deletedActivationRef = database.ref('deletedactivations').push();
-                                
-                                console.log("Performing copy to deletedactivations and remove from activations...");
+                                const deletedActivationRef = database.ref('deleted/deletedActivations').push();
+
+                                console.log("Performing copy to deletedActivations and remove from activations...");
                                 return Promise.all([
                                     deletedActivationRef.set(deactivatedActivation).then(() => {
-                                        console.log("Successfully copied to deletedactivations.");
+                                        console.log("Successfully copied to deletedActivations.");
                                     }),
                                     activationRef.remove().then(() => {
                                         console.log("Successfully removed from activations.");
@@ -1598,12 +1598,12 @@ tableBody.addEventListener("click", e => {
                                 deactivationDate: new Date().toISOString()
                             };
 
-                            const deletedActivationRef = database.ref('deletedactivations').push();
-                            
-                            console.log("Performing copy to deletedactivations and remove from activations...");
+                            const deletedActivationRef = database.ref('deleted/deletedActivations').push();
+
+                            console.log("Performing copy to deletedActivations and remove from activations...");
                             return Promise.all([
                                 deletedActivationRef.set(deactivatedActivation).then(() => {
-                                    console.log("Successfully copied to deletedactivations.");
+                                    console.log("Successfully copied to deletedActivations.");
                                 }),
                                 activationRef.remove().then(() => {
                                     console.log("Successfully removed from activations.");

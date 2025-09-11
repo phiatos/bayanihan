@@ -1071,10 +1071,10 @@ async function handleTableActions(event) {
             showAccessDeniedAlert('register volunteer groups');
             return;
         }
-        if (!isAdminVerified) {
-            const isVerified = await verifySuperAdminPassword();
-            if (!isVerified) return;
-        }
+        // if (!isAdminVerified) {
+        //     const isVerified = await verifySuperAdminPassword();
+        //     if (!isVerified) return;
+        // }
         const application = allApplications.find(app => app.key === appKey);
         if (application) registerVolunteerGroup(application);
     } else if (target.classList.contains('archiveBtn')) {
@@ -1387,7 +1387,6 @@ async function handleEditFormSubmission() {
     }
 }
 
-// === Register Volunteer Group ===
 async function registerVolunteerGroup(applicationData) {
     const result = await Swal.fire({
         title: 'Confirm Registration',
@@ -1498,33 +1497,6 @@ async function registerVolunteerGroup(applicationData) {
             });
         }
 
-        const currentVolunteerGroupsSnapshot = await database.ref('volunteerGroups').once('value');
-        const currentGroups = currentVolunteerGroupsSnapshot.val();
-
-        let groupKeyToSave = null;
-        let groupAlreadyExists = false;
-
-        if (currentGroups) {
-            for (const key in currentGroups) {
-                if (currentGroups[key].userId === newUserAuthId || currentGroups[key].email === applicationData.email) {
-                    groupKeyToSave = key;
-                    groupAlreadyExists = true;
-                    break;
-                }
-            }
-        }
-
-        if (!groupAlreadyExists) {
-            let nextKey = 1;
-            if (currentGroups) {
-                const keys = Object.keys(currentGroups).map(Number);
-                if (keys.length > 0) {
-                    nextKey = Math.max(...keys) + 1;
-                }
-            }
-            groupKeyToSave = nextKey;
-        }
-
         const volunteerGroupData = {
             organization: applicationData.organizationName,
             contactPerson: applicationData.contactPerson,
@@ -1550,17 +1522,14 @@ async function registerVolunteerGroup(applicationData) {
         };
 
         try {
-            if (groupAlreadyExists) {
-                await database.ref(`volunteerGroups/${groupKeyToSave}`).update(volunteerGroupData);
-            } else {
-                await database.ref(`volunteerGroups/${groupKeyToSave}`).set(volunteerGroupData);
-            }
+            // Use newUserAuthId as the key for volunteerGroups, consistent with vgm.js
+            await database.ref(`volunteerGroups/${newUserAuthId}`).set(volunteerGroupData);
 
             await database.ref(`abvnApplications/registeredABVN/${applicationData.key}`).set({
                 ...applicationData,
                 registeredBy: adminUser.uid,
                 registeredAt: new Date().toISOString(),
-                volunteerGroupKey: groupKeyToSave,
+                volunteerGroupKey: newUserAuthId, // Use newUserAuthId instead of groupKeyToSave
                 authUserId: newUserAuthId,
                 recaptchaResponse: applicationData.recaptchaResponse || "N/A"
             });
@@ -1579,8 +1548,8 @@ async function registerVolunteerGroup(applicationData) {
 
             Swal.fire({
                 icon: 'success',
-                title: groupAlreadyExists ? 'Group Updated!' : 'Successfully Registered!',
-                text: `${applicationData.organizationName} has been ${groupAlreadyExists ? 'updated in' : 'added to'} Volunteer Groups. ${tempPassword ? 'Login credentials sent via email.' : ''}`,
+                title: 'Successfully Registered!',
+                text: `${applicationData.organizationName} has been added to Volunteer Groups. ${tempPassword ? 'Login credentials sent via email.' : ''}`,
                 confirmButtonText: 'OK',
                 showConfirmButton: true,
                 allowOutsideClick: false,
