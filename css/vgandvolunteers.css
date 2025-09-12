@@ -1,3 +1,102 @@
+/* Modal Content Styling */
+#endorseABVNModal .modal-content {
+    max-width: 500px;
+    width: 100%;
+    border-radius: 16px;
+    padding: 20px;
+    background-color: var(--light-bg);
+    box-shadow: 0px 6px 18px rgba(0,0,0,0.15);
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+/* Volunteer Summary Block */
+.volunteer-summary {
+    background-color: var(--light-bg, #FFF9F0);
+    border: 1px solid var(--gray, #ddd);
+    border-radius: 12px;
+    padding: 12px 15px;
+    margin-bottom: 15px;
+}
+
+.volunteer-summary h4 {
+    margin: 0 0 6px 0;
+    color: var(--accent-color, #FA3B99);
+    font-size: 1rem;
+}
+
+.volunteer-summary p {
+    font-size: 0.85rem;
+    margin: 3px 0;
+    color: var(--black, #121212);
+}
+
+/* ABVN Card */
+.abvn-card {
+    border: 1px solid var(--gray, #ddd);
+    border-radius: 12px;
+    padding: 12px 15px;
+    margin-bottom: 12px;
+    background-color: var(--white, #FFFFFF);
+    box-shadow: 0 1px 5px rgba(0,0,0,0.08);
+    transition: box-shadow 0.2s ease;
+}
+
+.abvn-card:hover {
+    box-shadow: 0 3px 10px rgba(0,0,0,0.12);
+    background-color: #fafafa;
+}
+
+.abvn-card h4 {
+    margin: 0 0 8px 0;
+    font-size: 1rem;
+    color: var(--primary-color, #14AEBB);
+}
+
+.abvn-card .info-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 4px 0;
+    font-size: 0.85rem;
+    color: var(--black, #121212);
+}
+
+.abvn-card .info-row i {
+    font-size: 14px;
+    color: var(--primary-color, #14AEBB);
+}
+
+/* Skills Badges */
+.skills-match {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 6px;
+}
+
+.skills-match span {
+    font-size: 0.75rem;
+    padding: 3px 7px;
+    border-radius: 6px;
+    background-color: rgba(20,174,187,0.12);
+    color: var(--primary-color, #14AEBB);
+    font-weight: 500;
+}
+
+.skills-match span.unmatched {
+    background-color: rgba(250,59,153,0.12);
+    color: var(--accent-color, #FA3B99);
+}
+
+/* Match Score */
+.abvn-card .score {
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-top: 6px;
+    text-align: right;
+    color: var(--primary-color, #14AEBB);
+}
+
 #addOrgForm {
     width: 100%;
 }

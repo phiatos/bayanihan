@@ -46,14 +46,8 @@
                                 <option value="ApplicationDateTime-desc">Application Date & Time (Newest First)</option>
                             </optgroup>
                             <optgroup label="Location">
-                                <option value="Region-asc">Region (A–Z)</option>
-                                <option value="Region-desc">Region (Z–A)</option>
-                                <option value="Province-asc">Province (A–Z)</option>
-                                <option value="Province-desc">Province (Z–A)</option>
-                                <option value="City-asc">City (A–Z)</option>
-                                <option value="City-desc">City (Z–A)</option>
-                                <option value="Barangay-asc">Barangay (A–Z)</option>
-                                <option value="Barangay-desc">Barangay (Z–A)</option>
+                                <option value="address-asc">Address (A–Z)</option>
+                                <option value="address-desc">Address (Z–A)</option>
                             </optgroup>
                             <optgroup label="Volunteer Details">
                                 <option value="Name-asc">Full Name (A–Z)</option>
@@ -128,10 +122,7 @@
                             <th>Additional Skills Info</th>
                             <th>Emergency Response</th>
                             <th>Date/Time Availability</th>
-                            <th>Region</th>
-                            <th>Province</th>
-                            <th>City</th>
-                            <th>Barangay</th>
+                            <th>Address</th>
                             <th>Skills</th>
                             <th>Status Notes</th> 
                             <th>Actions</th>
@@ -182,15 +173,12 @@
                     <input type="text" id="abvnSearchInput" placeholder="Search by organization name or location">
                     <select id="regionFilter">
                         <option value="">All Regions</option>
-                        <!-- Populated dynamically -->
                     </select>
                     <select id="provinceFilter">
                         <option value="">All Provinces</option>
-                        <!-- Populated dynamically -->
                     </select>
                     <select id="cityFilter">
                         <option value="">All Cities</option>
-                        <!-- Populated dynamically -->
                     </select>
                     <button type="button" id="clearFiltersBtn">Clear Filters</button>
                 </div>

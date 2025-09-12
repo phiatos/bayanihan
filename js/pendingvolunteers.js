@@ -191,48 +191,6 @@ function setupInactivityListeners() {
     });
 }
 
-// Authentication Check
-// auth.onAuthStateChanged(user => {
-//     if (!user) {
-//         Swal.fire({
-//             icon: 'error',
-//             title: 'Authentication Required',
-//             text: 'Please sign in to access pending volunteer applications.',
-//             timer: 2000,
-//             showConfirmButton: false,
-//             timerProgressBar: true,
-//             allowOutsideClick: false,
-//             customClass: {
-//                 popup: 'swal2-popup-error-clean',
-//                 title: 'swal2-title-error-clean',
-//                 htmlContainer: 'swal2-text-error-clean'
-//             }
-//         }).then(() => {
-//             window.location.href = "../pages/login.html";
-//         });
-//         return;
-//     }
-
-//     // Fetch user role to determine Super Admin status and permissions
-//     database.ref(`users/${user.uid}`).once('value', snapshot => {
-//         const userData = snapshot.val();
-//         if (userData && userData.adminPosition) {
-//             currentUserAdminPosition = userData.adminPosition;
-//         } else {
-//             currentUserAdminPosition = null;
-//         }
-//         currentUserIsSuperAdmin = userData && userData.isSuperAdmin === true;
-//         initializePageFunctions(user.uid);
-//         setupInactivityListeners();
-//         resetInactivityTimer();
-//     }).catch(error => {
-//         currentUserAdminPosition = null;
-//         currentUserIsSuperAdmin = false;
-//         initializePageFunctions(user.uid);
-//         setupInactivityListeners();
-//         resetInactivityTimer();
-//     });
-// });
 auth.onAuthStateChanged(async (user) => {
     console.log(`[${new Date().toISOString()}] Auth state changed:`, user ? { uid: user.uid, email: user.email } : 'No user');
 
@@ -1040,11 +998,9 @@ excelFileInput.addEventListener("change", async (event) => {
                 <hr>
                 <h2>Address Information:</h2>
                 <div style="margin-left: 15px;">
-                    <p><strong>Region:</strong> ${volunteer.address?.region || 'N/A'}</p>
-                    <p><strong>Province:</strong> ${volunteer.address?.province || 'N/A'}</p>
-                    <p><strong>City:</strong> ${volunteer.address?.city || 'N/A'}</p>
-                    <p><strong>Barangay:</strong> ${volunteer.address?.barangay || 'N/A'}</p>
-                    <p><strong>Street Address:</strong> ${volunteer.address?.streetAddress || 'N/A'}</p>
+                    <p><strong>Address:</strong> ${volunteer.address?.formattedAddress || 'N/A'}</p>
+                    <p><strong>Latitude:</strong> ${volunteer.address?.latitude || 'N/A'}</p>
+                    <p><strong>Longitude:</strong> ${volunteer.address?.longitude || 'N/A'}</p>
                 </div>
                 <hr>
                 <h2>Availability:</h2>
@@ -1097,12 +1053,14 @@ excelFileInput.addEventListener("change", async (event) => {
         resetCurrentVolunteer();
     }
 
+    // Function to show the endorse ABVN modal
     function showEndorseABVNModal() {
         if (!restrictAction('endorseToABVN')) return;
         endorseABVNModal.style.display = 'flex';
         fetchABVNs();
     }
 
+    // Function to hide the endorse ABVN modal
     function hideEndorseABVNModal() {
         endorseABVNModal.style.display = 'none';
         abvnListContainer.innerHTML = '<p>Loading ABVN locations...</p>';
@@ -1159,84 +1117,190 @@ excelFileInput.addEventListener("change", async (event) => {
     // Cache for ABVN data
     let abvnCache = null;
 
-    function calculateLocationScore(volunteerLocation, groupAddress) {
-        if (!volunteerLocation || !groupAddress) return 0;
-        const scores = {
-            barangay: 50,
-            city: 30,
-            province: 20,
-            region: 10
+    function calculateDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371; // Earth's radius in km
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a =
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * Math.PI / 180) *
+            Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c; // distance in km
+    }
+
+    // Function to calculate location score for matching volunteers to ABVN groups
+    function calculateMatchScore(volunteer, group) {
+        let locationScore = 0;
+        let skillsScore = 0;
+
+        // --- LOCATION scoring ---
+        if (volunteer.address?.latitude && volunteer.address?.longitude &&
+            group.address?.latitude && group.address?.longitude) {
+
+            const distance = calculateDistance(
+                volunteer.address.latitude, volunteer.address.longitude,
+                group.address.latitude, group.address.longitude
+            );
+
+            if (distance <= 5) {
+                locationScore += 50; // very near
+            } else if (distance <= 20) {
+                locationScore += 40; // near
+            } else if (distance <= 50) {
+                locationScore += 30; // somewhat near
+            } else if (distance <= 100) {
+                locationScore += 20; // same province-ish
+            } else {
+                locationScore += 10; // still in PH, but far
+            }
+        }
+
+        // --- SKILLS scoring ---
+        if (volunteer.skills && group.volunteerNeeds) {
+            const groupNeeds = Object.values(group.volunteerNeeds);
+            const requiredSkills = groupNeeds.flatMap(n => n.skills || []);
+
+            volunteer.skills.forEach(skill => {
+                if (requiredSkills.map(s => s.toLowerCase()).includes(skill.toLowerCase())) {
+                    skillsScore += 20; // weight per exact skill match
+                }
+            });
+
+            // Check comments for extra matches
+            if (volunteer.otherSkillComments) {
+                groupNeeds.forEach(n => {
+                    if (n.otherSkillComments &&
+                        n.otherSkillComments.toLowerCase().includes(volunteer.otherSkillComments.toLowerCase())) {
+                        skillsScore += 10;
+                    }
+                });
+            }
+        }
+
+        return {
+            total: locationScore + skillsScore,
+            location: locationScore,
+            skills: skillsScore
         };
-        let score = 0;
-        if (volunteerLocation.barangay?.toLowerCase() && groupAddress.barangay?.toLowerCase() &&
-            volunteerLocation.barangay.toLowerCase() === groupAddress.barangay.toLowerCase()) {
-            score += scores.barangay;
-        }
-        if (volunteerLocation.city?.toLowerCase() && groupAddress.city?.toLowerCase() &&
-            volunteerLocation.city.toLowerCase() === groupAddress.city.toLowerCase()) {
-            score += scores.city;
-        }
-        if (volunteerLocation.province?.toLowerCase() && groupAddress.province?.toLowerCase() &&
-            volunteerLocation.province.toLowerCase() === groupAddress.province.toLowerCase()) {
-            score += scores.province;
-        }
-        if (volunteerLocation.region?.toLowerCase() && groupAddress.region?.toLowerCase() &&
-            volunteerLocation.region.toLowerCase() === groupAddress.region.toLowerCase()) {
-            score += scores.region;
-        }
-        return score;
     }
 
     function populateFilterDropdowns(groups) {
         const regionFilter = document.getElementById('regionFilter');
         const provinceFilter = document.getElementById('provinceFilter');
         const cityFilter = document.getElementById('cityFilter');
+        const skillFilter = document.getElementById('skillFilter'); // new dropdown in modal
+
         const regions = [...new Set(groups.map(g => g.address?.region).filter(Boolean))].sort();
         const provinces = [...new Set(groups.map(g => g.address?.province).filter(Boolean))].sort();
         const cities = [...new Set(groups.map(g => g.address?.city).filter(Boolean))].sort();
+
+        // Collect all unique skills from ABVN needs
+        const skills = [...new Set(
+            groups.flatMap(g =>
+                g.volunteerNeeds
+                    ? Object.values(g.volunteerNeeds).flatMap(n => n.skills || [])
+                    : []
+            )
+        )].sort();
+
         regionFilter.innerHTML = '<option value="">All Regions</option>' +
             regions.map(region => `<option value="${region}">${region}</option>`).join('');
         provinceFilter.innerHTML = '<option value="">All Provinces</option>' +
             provinces.map(province => `<option value="${province}">${province}</option>`).join('');
         cityFilter.innerHTML = '<option value="">All Cities</option>' +
             cities.map(city => `<option value="${city}">${city}</option>`).join('');
+
+        if (skillFilter) {
+            skillFilter.innerHTML = '<option value="">All Skills</option>' +
+                skills.map(s => `<option value="${s}">${s}</option>`).join('');
+        }
     }
 
-    function renderABVNOptions(groups, volunteerLocation) {
-        const abvnListContainer = document.getElementById('abvnListContainer');
-        const filterResultsInfo = document.getElementById('filterResultsInfo');
-        const endorseABVNSubmitBtn = document.getElementById('endorseABVNSubmitBtn');
-        abvnListContainer.innerHTML = '';
-        if (groups.length === 0) {
-            abvnListContainer.innerHTML = '<p>No ABVN groups match the filters.</p>';
-            filterResultsInfo.textContent = 'Showing 0 ABVN groups';
-            endorseABVNSubmitBtn.disabled = true;
-            return;
+    function renderABVNOptions(groups, volunteer) {
+        const abvnListContainer = document.getElementById("abvnListContainer");
+        abvnListContainer.innerHTML = ""; // Clear existing list
+
+        // --- Volunteer Info Summary
+        if (volunteer) {
+            const volunteerSummary = document.createElement("div");
+            volunteerSummary.classList.add("volunteer-summary");
+            volunteerSummary.innerHTML = `
+                <h4>Volunteer Details</h4>
+                <p><strong>Name:</strong> ${getFullName(volunteer)}</p>
+                <p><strong>Location:</strong> ${volunteer.address?.formattedAddress || "N/A"}</p>
+                <div class="skills-match">
+                    ${(volunteer.skills || []).map(s => `<span>${s}</span>`).join("") || "N/A"}
+                </div>
+            `;
+            abvnListContainer.appendChild(volunteerSummary);
         }
-        groups.forEach((group, index) => {
-            const radioDiv = document.createElement('div');
-            radioDiv.classList.add('abvn-option');
-            const radioInput = document.createElement('input');
-            radioInput.type = 'radio';
-            radioInput.name = 'selectedABVN';
+
+        // --- ABVN Group Cards
+        groups.forEach(group => {
+            const radioDiv = document.createElement("div");
+            radioDiv.classList.add("abvn-card");
+
+            const radioInput = document.createElement("input");
+            radioInput.type = "radio";
+            radioInput.name = "selectedABVN";
             radioInput.value = group.key;
             radioInput.id = `group-${group.key}`;
-            radioInput.dataset.name = group.organization || 'Unknown Organization';
-            const locationParts = [group.address?.barangay, group.address?.city, group.address?.province].filter(Boolean);
-            radioInput.dataset.location = locationParts.join(', ');
-            if (groups.length === 1 && group.score >= 50) {
-                radioInput.checked = true;
-                endorseABVNSubmitBtn.disabled = false;
+            radioInput.dataset.name = group.organization || "Unknown Organization";
+
+            const locationDisplay = group.address?.formattedAddress || "N/A";
+            radioInput.dataset.location = locationDisplay;
+
+            // Skills matching
+            const groupNeeds = group.volunteerNeeds
+                ? Object.values(group.volunteerNeeds).flatMap(n => n.skills || [])
+                : [];
+            const matchedSkills = (volunteer.skills || []).filter(skill =>
+                groupNeeds.map(s => s.toLowerCase()).includes(skill.toLowerCase())
+            );
+            const unmatchedSkills = (volunteer.skills || []).filter(skill =>
+                !groupNeeds.map(s => s.toLowerCase()).includes(skill.toLowerCase())
+            );
+
+            // Distance calculation
+            let distanceDisplay = "";
+            if (volunteer.address?.latitude && group.address?.latitude) {
+                const distance = calculateDistance(
+                    volunteer.address.latitude, volunteer.address.longitude,
+                    group.address.latitude, group.address.longitude
+                );
+
+                let distanceLabel = `<span style="color:red">Far</span>`;
+                if (distance <= 10) distanceLabel = `<span style="color:green">Near</span>`;
+                else if (distance <= 30) distanceLabel = `<span style="color:orange">Medium</span>`;
+
+                distanceDisplay = `<div class="info-row"><i class="fas fa-ruler"></i> ${distance.toFixed(1)} km (${distanceLabel})</div>`;
             }
-            const label = document.createElement('label');
+
+            // Build card content
+            const label = document.createElement("label");
             label.htmlFor = `group-${group.key}`;
-            label.innerHTML = `<strong>${group.organization || 'N/A'}</strong> <br> (${radioInput.dataset.location || 'N/A'}${group.score > 0 ? ` - Match Score: ${group.score}%` : ''})`;
+            label.innerHTML = `
+                <h4>${group.organization || "N/A"}</h4>
+                <div class="info-row"><i class="fas fa-map-marker-alt"></i> ${locationDisplay}</div>
+                ${distanceDisplay}
+                <div class="info-row"><i class="fas fa-tools"></i> Needed Skills:</div>
+                <div class="skills-match">
+                    ${matchedSkills.map(s => `<span>${s}</span>`).join("")}
+                    ${unmatchedSkills.map(s => `<span class="unmatched">${s}</span>`).join("")}
+                </div>
+                <div class="score">Match Score: ${group.score}%</div>
+            `;
+
             radioDiv.appendChild(radioInput);
             radioDiv.appendChild(label);
             abvnListContainer.appendChild(radioDiv);
         });
-        filterResultsInfo.textContent = `Showing ${groups.length} ABVN group${groups.length !== 1 ? 's' : ''}`;
-        endorseABVNSubmitBtn.disabled = groups.length === 0 || !document.querySelector('input[name="selectedABVN"]:checked');
+
+        // --- Update results count
+        document.getElementById("filterResultsInfo").textContent = `Showing ${groups.length} ABVN group(s)`;
     }
 
     async function fetchABVNs() {
@@ -1245,6 +1309,7 @@ excelFileInput.addEventListener("change", async (event) => {
         const filterResultsInfo = document.getElementById('filterResultsInfo');
         abvnListContainer.innerHTML = '<div class="spinner">Loading...</div>';
         endorseABVNSubmitBtn.disabled = true;
+
         try {
             if (!abvnCache) {
                 const snapshot = await database.ref('volunteerGroups').once('value');
@@ -1255,53 +1320,48 @@ excelFileInput.addEventListener("change", async (event) => {
                     });
                 }
             }
+
             if (abvnCache.length === 0) {
                 abvnListContainer.innerHTML = '<p>No volunteer groups found.</p>';
                 filterResultsInfo.textContent = 'Showing 0 ABVN groups';
                 return;
             }
-            const volunteerLocation = currentVolunteerData?.address;
-            let matchedGroups = abvnCache.map(group => ({
-                ...group,
-                score: calculateLocationScore(volunteerLocation, group.address || {})
-            }));
-            matchedGroups.sort((a, b) => {
-                if (b.score === a.score) {
-                    return (a.organization || '').localeCompare(b.organization || '');
-                }
-                return b.score - a.score;
+
+            const volunteer = currentVolunteerData;
+            let matchedGroups = abvnCache.map(group => {
+                const match = calculateMatchScore(volunteer, group);
+                return {
+                    ...group,
+                    score: match.total,
+                    scoreBreakdown: match
+                };
             });
+
+            matchedGroups.sort((a, b) => b.score - a.score);
             matchedGroups = matchedGroups.slice(0, 10);
+
             populateFilterDropdowns(abvnCache);
-            renderABVNOptions(matchedGroups, volunteerLocation);
+            renderABVNOptions(matchedGroups, volunteer);
+
             abvnListContainer.addEventListener('change', (event) => {
                 if (event.target.name === 'selectedABVN') {
                     endorseABVNSubmitBtn.disabled = false;
                 }
             });
-            setupFilterListeners(volunteerLocation);
+
+            setupFilterListeners(volunteer);
         } catch (error) {
             abvnListContainer.innerHTML = '<p style="color: red;">Failed to load ABVN locations.</p>';
             filterResultsInfo.textContent = 'Showing 0 ABVN groups';
-            Swal.fire({
-                title: 'Error',
-                text: 'Failed to load ABVN groups. Please try again.',
-                icon: 'error',
-                customClass: {
-                    popup: 'swal2-popup-error-clean',
-                    title: 'swal2-title-error-clean',
-                    htmlContainer: 'swal2-text-error-clean',
-                    confirmButton: 'my-error-button'
-                }
-            });
         }
     }
 
-    function setupFilterListeners(volunteerLocation) {
+    function setupFilterListeners(volunteer) {
         const abvnSearchInput = document.getElementById('abvnSearchInput');
         const regionFilter = document.getElementById('regionFilter');
         const provinceFilter = document.getElementById('provinceFilter');
         const cityFilter = document.getElementById('cityFilter');
+        const skillFilter = document.getElementById('skillFilter'); // new
         const clearFiltersBtn = document.getElementById('clearFiltersBtn');
 
         function applyFilters() {
@@ -1309,10 +1369,13 @@ excelFileInput.addEventListener("change", async (event) => {
             const selectedRegion = regionFilter.value;
             const selectedProvince = provinceFilter.value;
             const selectedCity = cityFilter.value;
-            let filteredGroups = abvnCache.map(group => ({
-                ...group,
-                score: calculateLocationScore(volunteerLocation, group.address || {})
-            }));
+            const selectedSkill = skillFilter ? skillFilter.value : '';
+
+            let filteredGroups = abvnCache.map(group => {
+                const match = calculateMatchScore(volunteer, group);
+                return { ...group, score: match.total, scoreBreakdown: match };
+            });
+
             if (searchTerm) {
                 filteredGroups = filteredGroups.filter(group => {
                     const orgName = (group.organization || '').toLowerCase();
@@ -1329,25 +1392,32 @@ excelFileInput.addEventListener("change", async (event) => {
             if (selectedCity) {
                 filteredGroups = filteredGroups.filter(group => group.address?.city === selectedCity);
             }
-            filteredGroups.sort((a, b) => {
-                if (b.score === a.score) {
-                    return (a.organization || '').localeCompare(b.organization || '');
-                }
-                return b.score - a.score;
-            });
+            if (selectedSkill) {
+                filteredGroups = filteredGroups.filter(group =>
+                    group.volunteerNeeds &&
+                    Object.values(group.volunteerNeeds).some(n =>
+                        (n.skills || []).includes(selectedSkill)
+                    )
+                );
+            }
+
+            filteredGroups.sort((a, b) => b.score - a.score);
             filteredGroups = filteredGroups.slice(0, 10);
-            renderABVNOptions(filteredGroups, volunteerLocation);
+
+            renderABVNOptions(filteredGroups, volunteer);
         }
 
         abvnSearchInput.addEventListener('input', applyFilters);
         regionFilter.addEventListener('change', applyFilters);
         provinceFilter.addEventListener('change', applyFilters);
         cityFilter.addEventListener('change', applyFilters);
+        if (skillFilter) skillFilter.addEventListener('change', applyFilters);
         clearFiltersBtn.addEventListener('click', () => {
             abvnSearchInput.value = '';
             regionFilter.value = '';
             provinceFilter.value = '';
             cityFilter.value = '';
+            if (skillFilter) skillFilter.value = '';
             applyFilters();
         });
     }
@@ -1355,86 +1425,85 @@ excelFileInput.addEventListener("change", async (event) => {
     // Export Excel 
     function exportToExcel() {
         if (!restrictAction('view')) return;
-            if (filteredApplications.length === 0) {
-                Swal.fire({
-                    title: 'Error',
-                    text: 'No data to export!',
-                    icon: 'error',
-                    timer: 1600,
-                    showConfirmButton: false,
-                    timerProgressBar: true,
-                    allowOutsideClick: false,
-                    customClass: {
-                        popup: 'swal2-popup-error-clean',
-                        title: 'swal2-title-error-clean',
-                        htmlContainer: 'swal2-text-error-clean',
-                        confirmButton: 'my-error-button'
-                    }
-                });
-                return;
-            }
-            const dataForExport = filteredApplications.map((volunteer, i) => {
-                const applicationDateTime = formatDate(volunteer.applicationDateandTime);
-                if (applicationDateTime === 'N/A') {}
-                let skillsDisplay = 'None';
-                if (volunteer.skills && Array.isArray(volunteer.skills) && volunteer.skills.length > 0) {
-                    skillsDisplay = volunteer.skills.map(skill => 
-                        skill === 'Other' && volunteer.otherSkillComments ? 
-                        `${skill} (${volunteer.otherSkillComments})` : skill
-                    ).join('; ');
-                }
-                return {
-                    "No.": i + 1,
-                    "Full Name": getFullName(volunteer) || 'N/A',
-                    "Email": volunteer.email || 'N/A',
-                    "Mobile Number": String(volunteer.mobileNumber || 'N/A'),
-                    "Age": volunteer.age || 'N/A',
-                    "Social Media": volunteer.socialMediaLink || 'N/A',
-                    "Additional Info": volunteer.otherSkillComments || 'N/A',
-                    "Emergency Response": volunteer.isEmergencyResponse ? 'Yes (24/7)' : 'No',
-                    "Date/Time Availability": volunteer.availability?.specificDateTimeSlots?.map(slot => `${slot.date} at ${slot.time}`).join('; ') || 'N/A',
-                    "Region": volunteer.address?.region || 'N/A',
-                    "Province": volunteer.address?.province || 'N/A',
-                    "City": volunteer.address?.city || 'N/A',
-                    "Barangay": volunteer.address?.barangay || 'N/A',
-                    "Skills": skillsDisplay,
-                    "Application Date/Time": applicationDateTime,
-                    "Status Notes": typeof volunteer.statusNotes === 'string' ? volunteer.statusNotes : (Array.isArray(volunteer.statusNotes) && volunteer.statusNotes.length > 0 ? volunteer.statusNotes[volunteer.statusNotes.length - 1].note : '-')
-                };
-            });
-            const ws = XLSX.utils.json_to_sheet(dataForExport);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Pending Volunteer Applications");
-            const today = new Date();
-            const year = today.getFullYear();
-            const month = String(today.getMonth() + 1).padStart(2, '0');
-            const day = String(today.getDate()).padStart(2, '0');
-            const hours = String(today.getHours()).padStart(2, '0');
-            const minutes = String(today.getMinutes()).padStart(2, '0');
-            const seconds = String(today.getSeconds()).padStart(2, '0');
-            const formattedDateTime = `${year}-${month}-${day}_${hours}${minutes}${seconds}`;
-            const filename = `pending-volunteer-applications_${formattedDateTime}.xlsx`;
-            XLSX.writeFile(wb, filename);
+        if (filteredApplications.length === 0) {
             Swal.fire({
-                title: 'Export Successful!',
-                text: `Volunteer application details have been exported to Excel "${filename}".`,
-                icon: 'success',
-                showConfirmButton: true,
-                confirmButtonText: 'OK',
+                title: 'Error',
+                text: 'No data to export!',
+                icon: 'error',
+                timer: 1600,
+                showConfirmButton: false,
+                timerProgressBar: true,
+                allowOutsideClick: false,
                 customClass: {
-                    popup: 'swal2-popup-success-clean',
-                    title: 'swal2-title-success-clean',
-                    htmlContainer: 'swal2-text-success-clean',
-                    confirmButton: 'my-success-button'
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
                 }
             });
+            return;
+        }
+        const dataForExport = filteredApplications.map((volunteer, i) => {
+            const applicationDateTime = formatDate(volunteer.applicationDateandTime);
+            if (applicationDateTime === 'N/A') {}
+            let skillsDisplay = 'None';
+            if (volunteer.skills && Array.isArray(volunteer.skills) && volunteer.skills.length > 0) {
+                skillsDisplay = volunteer.skills.map(skill => 
+                    skill === 'Other' && volunteer.otherSkillComments ? 
+                    `${skill} (${volunteer.otherSkillComments})` : skill
+                ).join('; ');
+            }
+            return {
+                "No.": i + 1,
+                "Full Name": getFullName(volunteer) || 'N/A',
+                "Email": volunteer.email || 'N/A',
+                "Mobile Number": String(volunteer.mobileNumber || 'N/A'),
+                "Age": volunteer.age || 'N/A',
+                "Social Media": volunteer.socialMediaLink || 'N/A',
+                "Additional Info": volunteer.otherSkillComments || 'N/A',
+                "Emergency Response": volunteer.isEmergencyResponse ? 'Yes (24/7)' : 'No',
+                "Date/Time Availability": volunteer.availability?.specificDateTimeSlots?.map(slot => `${slot.date} at ${slot.time}`).join('; ') || 'N/A',
+                "Address": volunteer.address?.formattedAddress || 'N/A',
+                "Latitude": volunteer.address?.latitude || 'N/A',
+                "Longitude": volunteer.address?.longitude || 'N/A',
+                "Skills": skillsDisplay,
+                "Application Date/Time": applicationDateTime,
+                "Status Notes": typeof volunteer.statusNotes === 'string' ? volunteer.statusNotes : (Array.isArray(volunteer.statusNotes) && volunteer.statusNotes.length > 0 ? volunteer.statusNotes[volunteer.statusNotes.length - 1].note : '-')
+            };
+        });
+        const ws = XLSX.utils.json_to_sheet(dataForExport);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Pending Volunteer Applications");
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        const hours = String(today.getHours()).padStart(2, '0');
+        const minutes = String(today.getMinutes()).padStart(2, '0');
+        const seconds = String(today.getSeconds()).padStart(2, '0');
+        const formattedDateTime = `${year}-${month}-${day}_${hours}${minutes}${seconds}`;
+        const filename = `pending-volunteer-applications_${formattedDateTime}.xlsx`;
+        XLSX.writeFile(wb, filename);
+        Swal.fire({
+            title: 'Export Successful!',
+            text: `Volunteer application details have been exported to Excel "${filename}".`,
+            icon: 'success',
+            showConfirmButton: true,
+            confirmButtonText: 'OK',
+            customClass: {
+                popup: 'swal2-popup-success-clean',
+                title: 'swal2-title-success-clean',
+                htmlContainer: 'swal2-text-success-clean',
+                confirmButton: 'my-success-button'
+            }
+        });
     }
 
     // Export PDF all
     function exportToPDF() {
         if (!restrictAction('view')) return;
         if (filteredApplications.length === 0) {
-             Swal.fire({
+            Swal.fire({
                 title: 'Error',
                 text: 'No data to PDF!',
                 icon: 'error',
@@ -1455,6 +1524,11 @@ excelFileInput.addEventListener("change", async (event) => {
             title: 'Generating PDF',
             text: 'Please wait while your PDF is being generated...',
             allowOutsideClick: false,
+            customClass: {
+                popup: 'swal2-popup-success-clean',
+                title: 'swal2-title-success-clean',
+                htmlContainer: 'swal2-text-success-clean',
+            },
             didOpen: () => {
                 Swal.showLoading();
             }
@@ -1484,8 +1558,8 @@ excelFileInput.addEventListener("change", async (event) => {
             yOffset += 15;
             const head = [[
                 "No.", "Full Name", "Email", "Mobile Number", "Age", "Social Media",
-                "Region", "Province", "City", "Barangay", "Additional Info",
-                "Skills", "Date/Time Availability", "Application Date/Time", "Status Notes"
+                "Address", "Latitude", "Longitude", "Additional Info",
+                "Skills", "Emergency Response", "Date/Time Availability", "Application Date/Time", "Status Notes"
             ]];
             const body = filteredApplications.map((volunteer, i) => {
                 const applicationDateTime = formatDate(volunteer.applicationDateandTime);
@@ -1504,10 +1578,9 @@ excelFileInput.addEventListener("change", async (event) => {
                     String(volunteer.mobileNumber || 'N/A'),
                     volunteer.age || 'N/A',
                     volunteer.socialMediaLink || 'N/A',
-                    volunteer.address?.region || 'N/A',
-                    volunteer.address?.province || 'N/A',
-                    volunteer.address?.city || 'N/A',
-                    volunteer.address?.barangay || 'N/A',
+                    volunteer.address?.formattedAddress || 'N/A',
+                    volunteer.address?.latitude || 'N/A',
+                    volunteer.address?.longitude || 'N/A',
                     volunteer.otherSkillComments || 'N/A',
                     skillsDisplay,
                     volunteer.isEmergencyResponse ? 'Yes (24/7)' : 'No',
@@ -1529,6 +1602,23 @@ excelFileInput.addEventListener("change", async (event) => {
                 styles: {
                     fontSize: 8,
                     cellPadding: 2
+                },
+                columnStyles: {
+                    0: { cellWidth: 20 }, // No.
+                    1: { cellWidth: 20 }, // Full Name
+                    2: { cellWidth: 20 }, // Email
+                    3: { cellWidth: 25 }, // Mobile Number
+                    4: { cellWidth: 10 }, // Age
+                    5: { cellWidth: 20 }, // Social Media
+                    6: { cellWidth: 30 }, // Address
+                    7: { cellWidth: 10 }, // Latitude
+                    8: { cellWidth: 10 }, // Longitude
+                    9: { cellWidth: 10 }, // Additional Info
+                    10: { cellWidth: 20 }, // Skills
+                    11: { cellWidth: 20 }, // Emergency Response
+                    12: { cellWidth: 20 }, // Date/Time Availability
+                    13: { cellWidth: 20 }, // Application Date/Time
+                    14: { cellWidth: 20 }  // Status Notes
                 },
                 didDrawPage: function(data) {
                     doc.setFontSize(8);
@@ -1624,11 +1714,9 @@ excelFileInput.addEventListener("change", async (event) => {
             y = addDetail("Mobile Number", String(volunteer.mobileNumber));
             y = addDetail("Age", volunteer.age);
             y = addDetail("Social Media Link", volunteer.socialMediaLink);
-            y = addDetail("Region", volunteer.address?.region);
-            y = addDetail("Province", volunteer.address?.province);
-            y = addDetail("City", volunteer.address?.city);
-            y = addDetail("Barangay", volunteer.address?.barangay);
-            y = addDetail("Street Address", volunteer.address?.streetAddress);
+            y = addDetail("Address", volunteer.address?.formattedAddress);
+            y = addDetail("Latitude", volunteer.address?.latitude);
+            y = addDetail("Longitude", volunteer.address?.longitude);
             y = addDetail("Additional Info", volunteer.otherSkillComments);
             let skillsDisplay = 'None';
             if (volunteer.skills && Array.isArray(volunteer.skills) && volunteer.skills.length > 0) {
@@ -1740,13 +1828,10 @@ excelFileInput.addEventListener("change", async (event) => {
                 <td>${volunteer.mobileNumber || 'N/A'}</td>
                 <td>${volunteer.age || 'N/A'}</td>
                 <td>${socialMediaDisplay}</td>
-                <td>${volunteer.otherSkillComments || 'N/A'}</td>
+                <td>${volunteer.otherSkillComments || '-'}</td>
                 <td>${volunteer.isEmergencyResponse ? 'Yes (24/7)' : 'No'}</td>
                 <td>${specificSlotsHtml}</td>
-                <td>${volunteer.address?.region || 'N/A'}</td>
-                <td>${volunteer.address?.province || 'N/A'}</td>
-                <td>${volunteer.address?.city || 'N/A'}</td>
-                <td>${volunteer.address?.barangay || 'N/A'}</td>
+                <td>${volunteer.address?.formattedAddress || 'N/A'}</td>
                 <td>${skillsHtml}</td>
                 <td>${displayStatusNotes}</td>
                 ${hasActionPermissions ? `
@@ -2230,13 +2315,14 @@ excelFileInput.addEventListener("change", async (event) => {
                                 title: 'Success!',
                                 text: 'Volunteer status updated to Stalled with notes.',
                                 icon: 'success',
-                                timer: 2000,
-                                showConfirmButton: false,
-                                timerProgressBar: true,
+                                showConfirmButton: true,
+                                confirmButtonText: 'Ok',
+                                allowOutsideClick: false,
                                 customClass: {
                                     popup: 'swal2-popup-success-clean',
                                     title: 'swal2-title-success-clean',
-                                    htmlContainer: 'swal2-text-success-clean'
+                                    htmlContainer: 'swal2-text-success-clean',
+                                    confirmButton: 'my-success-button'
                                 }
                             });
                             fetchPendingVolunteers();
@@ -2304,14 +2390,14 @@ excelFileInput.addEventListener("change", async (event) => {
                                     title: 'Archived!',
                                     text: 'Volunteer application has been archived.',
                                     icon: 'success',
-                                    timer: 1600,
-                                    showConfirmButton: false,
-                                    timerProgressBar: true,
+                                    showConfirmButton: true,
+                                    confirmButtonText: 'Ok',
                                     allowOutsideClick: false,
                                     customClass: {
                                         popup: 'swal2-popup-success-clean',
                                         title: 'swal2-title-success-clean',
-                                        htmlContainer: 'swal2-text-success-clean'
+                                        htmlContainer: 'swal2-text-success-clean',
+                                        confirmButton: 'my-success-button'
                                     }
                                 });
                                 fetchPendingVolunteers();
@@ -2402,14 +2488,14 @@ excelFileInput.addEventListener("change", async (event) => {
                             title: 'Retrieved!',
                             text: 'Volunteer has been retrieved to pending applications.',
                             icon: 'success',
-                            timer: 1600,
-                            showConfirmButton: false,
-                            timerProgressBar: true,
+                            showConfirmButton: true,
+                            confirmButtonText: 'Ok',
                             allowOutsideClick: false,
                             customClass: {
                                 popup: 'swal2-popup-success-clean',
                                 title: 'swal2-title-success-clean',
                                 htmlContainer: 'swal2-text-success-clean',
+                                confirmButton: 'my-success-button'
                             }
                         });
                         fetchArchivedApplications();
@@ -2693,19 +2779,6 @@ excelFileInput.addEventListener("change", async (event) => {
                 });
                 return;
             }
-            // let isMatchingAvailability = false;
-            // if (currentVolunteerData?.availability?.specificDateTimeSlots?.length > 0) {
-            //     const selectedDateTime = new Date(scheduledDateTime);
-            //     const selectedDateStr = selectedDateTime.toISOString().split('T')[0];
-            //     const selectedTime24Hr = formatTimeTo24Hr(selectedDateTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }));
-                
-            //     isMatchingAvailability = currentVolunteerData.availability.specificDateTimeSlots.some(slot => {
-            //         if (!slot.date || !slot.time) return false;
-            //         const slotDate = slot.date;
-            //         const slotTime = slot.time;
-            //         return slotDate === selectedDateStr && slotTime === selectedDateTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-            //     });
-            // }
             let isMatchingAvailability = false;
             if (currentVolunteerData?.availability?.specificDateTimeSlots?.length > 0) {
                 const selectedDateTime = new Date(scheduledDateTime);
@@ -2814,14 +2887,14 @@ excelFileInput.addEventListener("change", async (event) => {
                         title: 'Success!',
                         text: 'Volunteer scheduled and approved successfully.',
                         icon: 'success',
-                        timer: 1600,
-                        showConfirmButton: false,
-                        timerProgressBar: true,
+                        showConfirmButton: true,
+                        confirmButtonText: 'Ok',
                         allowOutsideClick: false,
                         customClass: {
                             popup: 'swal2-popup-success-clean',
                             title: 'swal2-title-success-clean',
                             htmlContainer: 'swal2-text-success-clean',
+                            confirmButton: 'my-success-button'
                         }
                     });
                     hideScheduleModal();
@@ -2846,6 +2919,7 @@ excelFileInput.addEventListener("change", async (event) => {
         });
     }
 
+    // Event listener for submitting the endorsement form
     endorseABVNForm.addEventListener('submit', async (event) => {
         event.preventDefault();
         if (!restrictAction('endorseToABVN')) {
@@ -2921,9 +2995,9 @@ excelFileInput.addEventListener("change", async (event) => {
                         });
                         return;
                     }
-                    await database.ref(`volunteerGroups/${abvnKey}/endorsedVolunteers/${currentVolunteerKey}`).set({
+                    await database.ref(`volunteerEndorsements/${abvnKey}/endorsedVolunteers/${currentVolunteerKey}`).set({
                         ...currentVolunteerData,
-                        status: 'directedToABVN',
+                        status: 'endorsedToABVN',
                         endorsedToABVNKey: abvnKey,
                         endorsedToABVNName: abvnName,
                         endorsedToABVNLocation: abvnLocation,
@@ -2966,6 +3040,7 @@ excelFileInput.addEventListener("change", async (event) => {
         });
     });
 
+    // Function to handle the endorsement process with duplicate checks
     async function handleEndorsementProcess() {
         if (!restrictAction('endorseToABVN')) return;
         const volunteerEmail = currentVolunteerData.email;
@@ -3164,14 +3239,14 @@ excelFileInput.addEventListener("change", async (event) => {
                 title: 'Email Sent!',
                 text: 'Confirmation email has been sent to the volunteer.',
                 icon: 'success',
-                timer: 2000,
-                showConfirmButton: false,
-                timerProgressBar: true,
+                showConfirmButton: true,
+                confirmButtonText: 'Ok',
                 allowOutsideClick: false,
                 customClass: {
                     popup: 'swal2-popup-success-clean',
                     title: 'swal2-title-success-clean',
-                    htmlContainer: 'swal2-text-success-clean'
+                    htmlContainer: 'swal2-text-success-clean',
+                    confirmButton: 'my-success-button'
                 }
             });
         } catch (error) {
@@ -3227,6 +3302,9 @@ excelFileInput.addEventListener("change", async (event) => {
                 title: 'Endorsement Sent!',
                 text: 'Endorsement email has been sent to the ABVN group.',
                 icon: 'success',
+                showConfirmButton: true,
+                confirmButtonText: 'Ok',
+                allowOutsideClick: false,
                 customClass: {
                     popup: 'swal2-popup-success-clean',
                     title: 'swal2-title-success-clean',

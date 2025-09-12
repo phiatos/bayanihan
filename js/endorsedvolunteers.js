@@ -1,6 +1,3 @@
-console.log = function () {};
-console.error = function () {};
-console.warn = function () {};
 const firebaseConfig = {
     apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ", 
     authDomain: "bayanihan-5ce7e.firebaseapp.com",
@@ -116,22 +113,6 @@ viewApprovedBtn.addEventListener('click', () => {
     window.location.href = '../pages/approvedvolunteers.html';
 });
 
-// Permission check function
-// async function checkAdminPermissions() {
-//     const user = auth.currentUser;
-//     if (!user) {
-//         Swal.fire('Error', 'User not authenticated.', 'error');
-//         return { canView: false, canArchive: false, canRetrieve: false };
-//     }
-//     const snapshot = await database.ref(`users/${user.uid}`).once('value');
-//     const userData = snapshot.val();
-//     const adminPosition = userData?.adminPosition || '';
-//     return {
-//         canView: ['Super Admin', 'position-one', 'position-two'].includes(adminPosition),
-//         canArchive: ['Super Admin', 'position-one'].includes(adminPosition),
-//         canRetrieve: ['Super Admin', 'position-one'].includes(adminPosition)
-//     };
-// }
 async function checkAdminPermissions() {
     const user = auth.currentUser;
     if (!user) {
@@ -204,6 +185,64 @@ async function verifySuperAdminPassword() {
     return password; 
 }
 
+function setupRealTimeListener(userUid) {
+    const userSnapshot = database.ref(`users/${userUid}`).once('value').then(snapshot => {
+        const userData = snapshot.val();
+        const userRole = userData?.role || 'ABVN';
+
+        if (userRole === 'ABVN') {
+            const volunteerGroupsRef = database.ref('volunteerGroups');
+            volunteerGroupsRef.orderByChild('userId').equalTo(userUid).once('value').then(querySnapshot => {
+                let foundAbvnKey = null;
+                querySnapshot.forEach(childSnapshot => {
+                    foundAbvnKey = childSnapshot.key;
+                    return true;
+                });
+                if (foundAbvnKey) {
+                    const endorsedVolunteersRef = database.ref(`volunteerEndorsements/${foundAbvnKey}/endorsedVolunteers`);
+                    endorsedVolunteersRef.on('value', (snapshot) => {
+                        const tempEndorsedVolunteers = [];
+                        const endorsedData = snapshot.val();
+                        if (endorsedData) {
+                            for (const volunteerKey in endorsedData) {
+                                tempEndorsedVolunteers.push({
+                                    key: volunteerKey,
+                                    sourceAbvnKey: foundAbvnKey,
+                                    ...endorsedData[volunteerKey]
+                                });
+                            }
+                        }
+                        allEndorsedVolunteers = tempEndorsedVolunteers;
+                        applyFiltersAndSort();
+                    });
+                }
+            });
+        } else if (permissions.canView) {
+            const volunteerEndorsementsRef = database.ref('volunteerEndorsements');
+            volunteerEndorsementsRef.on('value', (snapshot) => {
+                const tempEndorsedVolunteers = [];
+                const groupsData = snapshot.val();
+                if (groupsData) {
+                    for (const abvnKey in groupsData) {
+                        const endorsedData = groupsData[abvnKey].endorsedVolunteers;
+                        if (endorsedData) {
+                            for (const volunteerKey in endorsedData) {
+                                tempEndorsedVolunteers.push({
+                                    key: volunteerKey,
+                                    sourceAbvnKey: abvnKey,
+                                    ...endorsedData[volunteerKey]
+                                });
+                            }
+                        }
+                    }
+                }
+                allEndorsedVolunteers = tempEndorsedVolunteers;
+                applyFiltersAndSort();
+            });
+        }
+    });
+}
+
 function getFullName(volunteer) {
     return `${volunteer.firstName} ${volunteer.lastName}`;
 }
@@ -226,6 +265,14 @@ function getSocialMediaLink(socialMediaLink) {
     } catch (e) {
         return socialMediaLink;
     }
+}
+
+function getAdditionalInfo(volunteer) {
+    let info = volunteer.additionalInfo || '';
+    if (volunteer.otherSkillComments?.trim()) {
+        info += (info ? ' ' : '') + `(Other Skills: ${volunteer.otherSkillComments})`;
+    }
+    return info || 'N/A';
 }
 
 // Export to Excel
@@ -254,11 +301,8 @@ function exportToExcel() {
             "Mobile Number": String(volunteer.mobileNumber || 'N/A'),
             "Age": volunteer.age || 'N/A',
             "Social Media": volunteer.socialMediaLink || 'N/A',
-            "Region": volunteer.address?.region || 'N/A',
-            "Province": volunteer.address?.province || 'N/A',
-            "City": volunteer.address?.city || 'N/A',
-            "Barangay": volunteer.address?.barangay || 'N/A',
-            "Additional Info": volunteer.additionalInfo || 'N/A',
+            "Address": volunteer.address?.formattedAddress || 'N/A',
+            "Additional Info": getAdditionalInfo(volunteer),
             "Emergency Response": volunteer.emergencyResponse ? "Yes (24/7)" : "No",
             "Date and Time Availability": dateTimeAvailability,
             "Skills": skillsList,
@@ -338,7 +382,7 @@ function exportToPDF() {
         yOffset += 15;
         const head = [[
             "No.", "Full Name", "Email", "Mobile Number", "Age", "Social Media",
-            "Region", "Province", "City", "Barangay", "Additional Info",
+            "Address", "Additional Info",
             "Emergency Response", "Date and Time Availability", "Skills", "Endorsed To ABVN", "Endorsement Date"
         ]];
         const body = filteredVolunteers.map((volunteer, i) => {
@@ -361,11 +405,8 @@ function exportToPDF() {
                 String(volunteer.mobileNumber || 'N/A'),
                 volunteer.age || 'N/A',
                 volunteer.socialMediaLink || 'N/A',
-                volunteer.address?.region || 'N/A',
-                volunteer.address?.province || 'N/A',
-                volunteer.address?.city || 'N/A',
-                volunteer.address?.barangay || 'N/A',
-                volunteer.additionalInfo || 'N/A',
+                volunteer.address?.formattedAddress || 'N/A',
+                getAdditionalInfo(volunteer),
                 volunteer.emergencyResponse ? "Yes (24/7)" : "No",
                 dateTimeAvailability,
                 skillsList,
@@ -391,20 +432,17 @@ function exportToPDF() {
             columnStyles: {
                 0: { cellWidth: 10 },  // No. 
                 1: { cellWidth: 20 },  // Full Name
-                2: { cellWidth: 20 },  // Email
+                2: { cellWidth: 25 },  // Email
                 3: { cellWidth: 20 },  // Mobile Number 
                 4: { cellWidth: 10 },  // Age 
                 5: { cellWidth: 20 },  // Social Media 
-                6: { cellWidth: 15 },  // Region 
-                7: { cellWidth: 15 },  // Province 
-                8: { cellWidth: 15 },  // City 
-                9: { cellWidth: 15 },  // Barangay 
-                10: { cellWidth: 15 }, // Additional Info 
-                11: { cellWidth: 10 }, // Emergency Response 
-                12: { cellWidth: 20 }, // Date and Time Availability 
-                13: { cellWidth: 25 }, // Skills 
-                14: { cellWidth: 25 }, // Endorsed To ABVN 
-                15: { cellWidth: 20 }  // Endorsement Date
+                6: { cellWidth: 30 },  // Address 
+                7: { cellWidth: 20 },  // Additional Info 
+                8: { cellWidth: 15 },  // Emergency Response 
+                9: { cellWidth: 25 },  // Date and Time Availability 
+                10: { cellWidth: 30 }, // Skills 
+                11: { cellWidth: 20 }, // Endorsed To ABVN 
+                12: { cellWidth: 20 }  // Endorsement Date
             },
             didDrawPage: function(data) {
                 doc.setFontSize(8);
@@ -489,7 +527,7 @@ function saveSingleVolunteerPdf(volunteer) {
         y = addDetail("Mobile Number", String(volunteer.mobileNumber));
         y = addDetail("Age", volunteer.age);
         y = addDetail("Social Media Link", volunteer.socialMediaLink);
-        y = addDetail("Additional Info", volunteer.additionalInfo);
+        y = addDetail("Additional Info", getAdditionalInfo(volunteer));
         y = addDetail("Emergency Response", volunteer.emergencyResponse ? "Yes (24/7)" : "No");
         const dateTimeAvailability = volunteer.availability?.specificDateTimeSlots && Array.isArray(volunteer.availability.specificDateTimeSlots)
             ? volunteer.availability.specificDateTimeSlots
@@ -501,10 +539,7 @@ function saveSingleVolunteerPdf(volunteer) {
             ? volunteer.skills.join("; ")
             : "None";
         y = addDetail("Skills", skillsList);
-        y = addDetail("Region", volunteer.address?.region);
-        y = addDetail("Province", volunteer.address?.province);
-        y = addDetail("City", volunteer.address?.city);
-        y = addDetail("Barangay", volunteer.address?.barangay);
+        y = addDetail("Address", volunteer.address?.formattedAddress);
         y = addDetail("Endorsed To ABVN", volunteer.endorsedToABVNName ? `${volunteer.endorsedToABVNName} (${volunteer.endorsedToABVNLocation})` : 'N/A');
         const endorsementDate = formatDate(volunteer.endorsementDate);
         if (endorsementDate === 'N/A') {
@@ -582,7 +617,8 @@ async function fetchEndorsedVolunteers(userUid) {
                 return;
             }
 
-            const endorsedVolunteersRef = database.ref(`volunteerGroups/${foundAbvnKey}/endorsedVolunteers`);
+            // Fetch volunteers endorsed to this specific ABVN group
+            const endorsedVolunteersRef = database.ref(`volunteerEndorsements/${foundAbvnKey}/endorsedVolunteers`);
             const snapshot = await endorsedVolunteersRef.once('value');
             const endorsedData = snapshot.val();
 
@@ -598,15 +634,13 @@ async function fetchEndorsedVolunteers(userUid) {
             }
         } else if (permissions.canView) {
             // For admins with view permission, fetch all endorsed volunteers
-            const volunteerGroupsRef = database.ref('volunteerGroups');
-            const groupsSnapshot = await volunteerGroupsRef.once('value');
+            const volunteerEndorsementsRef = database.ref('volunteerEndorsements');
+            const groupsSnapshot = await volunteerEndorsementsRef.once('value');
             const groupsData = groupsSnapshot.val();
 
             if (groupsData) {
                 for (const abvnKey in groupsData) {
-                    const group = groupsData[abvnKey];
-                    const endorsedData = group.endorsedVolunteers;
-
+                    const endorsedData = groupsData[abvnKey].endorsedVolunteers;
                     if (endorsedData) {
                         for (const volunteerKey in endorsedData) {
                             const volunteerData = endorsedData[volunteerKey];
@@ -706,8 +740,8 @@ async function archiveVolunteer(volunteer) {
                 return;
             }
 
-            sourcePath = `volunteerGroups/${abvnKeyToOperateOn}/endorsedVolunteers/${volunteer.key}`;
-            const destinationPath = `volunteerApplications/archivedEndorsedVolunteer/${volunteer.key}`;
+            sourcePath = `volunteerEndorsements/${abvnKeyToOperateOn}/endorsedVolunteers/${volunteer.key}`;
+            const destinationPath = `deleted/deletedEndorsedVolunteer/${volunteer.key}`;
 
             try {
                 const volunteerRef = database.ref(sourcePath);
@@ -721,13 +755,13 @@ async function archiveVolunteer(volunteer) {
                     return;
                 }
 
-                dataToArchive.sourceAbvnKey = abvnKeyToOperateOn; 
+                dataToArchive.sourceAbvnKey = abvnKeyToOperateOn;
                 dataToArchive.archivedAt = new Date().toISOString();
-                dataToArchive.archivedBy = currentUserId; 
+                dataToArchive.archivedBy = currentUserId;
                 dataToArchive.archivedByRole = currentUserRole;
 
-                await deletedRef.set(dataToArchive); 
-                await volunteerRef.remove(); 
+                await deletedRef.set(dataToArchive);
+                await volunteerRef.remove();
 
                 Swal.fire({
                     title: 'Archived!',
@@ -740,13 +774,12 @@ async function archiveVolunteer(volunteer) {
                     customClass: {
                         popup: 'swal2-popup-success-clean',
                         title: 'swal2-title-success-clean',
-                        htmlContainer: 'swal2-text-success-clean',
+                        htmlContainer: 'swal2-text-success-clean'
                     }
                 });
 
                 allEndorsedVolunteers = allEndorsedVolunteers.filter(v => v.key !== volunteer.key);
                 applyFiltersAndSort();
-
             } catch (error) {
                 Swal.fire('Error', 'Failed to archive volunteer application. Please try again.', 'error');
             }
@@ -776,11 +809,11 @@ async function retrieveVolunteer(volunteer) {
             htmlContainer: 'custom-swal-content',
             confirmButton: 'custom-confirm-btn',
             cancelButton: 'custom-cancel-btn'
-        },
+        }
     }).then(async (result) => {
         if (result.isConfirmed) {
-            const sourcePath = `volunteerApplications/archivedEndorsedVolunteer/${volunteer.key}`;
-            const destinationPath = `volunteerGroups/${volunteer.sourceAbvnKey}/endorsedVolunteers/${volunteer.key}`;
+            const sourcePath = `deleted/deletedEndorsedVolunteer/${volunteer.key}`;
+            const destinationPath = `volunteerEndorsements/${volunteer.sourceAbvnKey}/endorsedVolunteers/${volunteer.key}`;
 
             if (!volunteer.sourceAbvnKey) {
                 Swal.fire('Error', 'Cannot retrieve: Original ABVN group information is missing.', 'error');
@@ -803,8 +836,8 @@ async function retrieveVolunteer(volunteer) {
                 delete dataToRetrieve.archivedBy;
                 delete dataToRetrieve.archivedByRole;
 
-                await activeRef.set(dataToRetrieve); 
-                await archivedRef.remove();        
+                await activeRef.set(dataToRetrieve);
+                await archivedRef.remove();
 
                 Swal.fire({
                     title: 'Retrieved!',
@@ -817,7 +850,7 @@ async function retrieveVolunteer(volunteer) {
                     customClass: {
                         popup: 'swal2-popup-success-clean',
                         title: 'swal2-title-success-clean',
-                        htmlContainer: 'swal2-text-success-clean',
+                        htmlContainer: 'swal2-text-success-clean'
                     }
                 });
 
@@ -869,13 +902,10 @@ function renderVolunteersTable() {
             <td>${volunteer.mobileNumber || 'N/A'}</td>
             <td>${volunteer.age || 'N/A'}</td>
             <td>${getSocialMediaLink(volunteer.socialMediaLink)}</td>
-            <td>${volunteer.additionalInfo || 'N/A'}</td>
+            <td>${volunteer.additionalInfo || '-'}</td>
             <td>${volunteer.emergencyResponse ? "Yes (24/7)" : "No"}</td>
             <td>${dateTimeAvailability}</td>
-            <td>${volunteer.address?.region || 'N/A'}</td>
-            <td>${volunteer.address?.province || 'N/A'}</td>
-            <td>${volunteer.address?.city || 'N/A'}</td>
-            <td>${volunteer.address?.barangay || 'N/A'}</td>
+            <td>${volunteer.address?.formattedAddress || 'N/A'}</td>
             <td>${skillsList}</td>
             <td>${volunteer.endorsedToABVNName ? `${volunteer.endorsedToABVNName} (${volunteer.endorsedToABVNLocation})` : 'N/A'}</td>
             <td>${formatDate(volunteer.endorsementDate)}</td>
@@ -901,6 +931,17 @@ function applyFiltersAndSort() {
     const searchTerm = searchInput.value.toLowerCase().trim();
     const sortValue = sortSelect.value;
 
+    // Helper to get searchable strings
+    function getSkillsString(volunteer) {
+        return Array.isArray(volunteer.skills) ? volunteer.skills.join(' ').toLowerCase() : '';
+    }
+
+    function getAvailabilityString(volunteer) {
+        return volunteer.availability?.specificDateTimeSlots && Array.isArray(volunteer.availability.specificDateTimeSlots)
+            ? volunteer.availability.specificDateTimeSlots.map(slot => `${slot.date || ''} ${slot.time || ''}`).join(' ').toLowerCase()
+            : '';
+    }
+
     // Apply search filter
     if (searchTerm) {
         if (sortValue && sortValue !== 'All-asc' && sortValue !== 'All-desc') {
@@ -908,8 +949,8 @@ function applyFiltersAndSort() {
             currentVolunteers = currentVolunteers.filter(volunteer => {
                 let fieldValue;
                 switch (sortBy) {
-                    case 'Location':
-                        fieldValue = `${volunteer.address?.region || ''} ${volunteer.address?.province || ''} ${volunteer.address?.city || ''} ${volunteer.address?.barangay || ''}`.toLowerCase();
+                    case 'Address':
+                        fieldValue = volunteer.address?.formattedAddress.toLowerCase();
                         break;
                     case 'Name':
                         fieldValue = getFullName(volunteer).toLowerCase();
@@ -929,11 +970,20 @@ function applyFiltersAndSort() {
                     case 'AdditionalInfo':
                         fieldValue = (volunteer.additionalInfo || '').toLowerCase();
                         break;
+                    case 'Location':
+                        fieldValue = volunteer.address?.formattedAddress.toLowerCase();  // Or whatever Location field is
+                        break;
                     case 'EndorsedToABVN':
                         fieldValue = `${volunteer.endorsedToABVNName || ''} ${volunteer.endorsedToABVNLocation || ''}`.toLowerCase();
                         break;
                     case 'EndorsementDate':
                         fieldValue = formatDate(volunteer.endorsementDate).toLowerCase();
+                        break;
+                    case 'Skills':
+                        fieldValue = getSkillsString(volunteer);
+                        break;
+                    case 'Availability':
+                        fieldValue = getAvailabilityString(volunteer);
                         break;
                     default:
                         return false;
@@ -946,14 +996,13 @@ function applyFiltersAndSort() {
                     getFullName(volunteer).toLowerCase().includes(searchTerm) ||
                     (volunteer.email || '').toLowerCase().includes(searchTerm) ||
                     (volunteer.mobileNumber || '').toLowerCase().includes(searchTerm) ||
-                    (volunteer.address?.region || '').toLowerCase().includes(searchTerm) ||
-                    (volunteer.address?.province || '').toLowerCase().includes(searchTerm) ||
-                    (volunteer.address?.city || '').toLowerCase().includes(searchTerm) ||
-                    (volunteer.address?.barangay || '').toLowerCase().includes(searchTerm) ||
+                    (volunteer.address?.formattedAddress || '').toLowerCase().includes(searchTerm) ||
                     (volunteer.socialMediaLink || '').toLowerCase().includes(searchTerm) ||
                     (volunteer.additionalInfo || '').toLowerCase().includes(searchTerm) ||
                     (volunteer.endorsedToABVNName || '').toLowerCase().includes(searchTerm) ||
-                    (volunteer.endorsedToABVNLocation || '').toLowerCase().includes(searchTerm)
+                    (volunteer.endorsedToABVNLocation || '').toLowerCase().includes(searchTerm) ||
+                    getSkillsString(volunteer).includes(searchTerm) ||
+                    getAvailabilityString(volunteer).includes(searchTerm)
                 );
             });
         }
@@ -965,9 +1014,9 @@ function applyFiltersAndSort() {
         currentVolunteers.sort((a, b) => {
             let valA, valB;
             switch (sortBy) {
-                case 'Location':
-                    valA = `${a.address?.region || ''} ${a.address?.province || ''} ${a.address?.city || ''} ${a.address?.barangay || ''}`.toLowerCase();
-                    valB = `${b.address?.region || ''} ${b.address?.province || ''} ${b.address?.city || ''} ${b.address?.barangay || ''}`.toLowerCase();
+                case 'Address':
+                    valA = a.address?.formattedAddress.toLowerCase();
+                    valB = b.address?.formattedAddress.toLowerCase();
                     break;
                 case 'Name':
                     valA = getFullName(a).toLowerCase();
@@ -993,6 +1042,10 @@ function applyFiltersAndSort() {
                     valA = (a.additionalInfo || '').toLowerCase();
                     valB = (b.additionalInfo || '').toLowerCase();
                     break;
+                case 'Location':
+                    valA = a.address?.formattedAddress.toLowerCase();
+                    valB = b.address?.formattedAddress.toLowerCase();
+                    break;
                 case 'EndorsedToABVN':
                     valA = `${a.endorsedToABVNName || ''} ${a.endorsedToABVNLocation || ''}`.toLowerCase();
                     valB = `${b.endorsedToABVNName || ''} ${b.endorsedToABVNLocation || ''}`.toLowerCase();
@@ -1000,6 +1053,14 @@ function applyFiltersAndSort() {
                 case 'EndorsementDate':
                     valA = new Date(a.endorsementDate || 0).getTime();
                     valB = new Date(b.endorsementDate || 0).getTime();
+                    break;
+                case 'Skills':
+                    valA = Array.isArray(a.skills) ? a.skills[0]?.toLowerCase() || '' : '';
+                    valB = Array.isArray(b.skills) ? b.skills[0]?.toLowerCase() || '' : '';
+                    break;
+                case 'Availability':
+                    valA = a.availability?.specificDateTimeSlots?.[0]?.date ? new Date(a.availability.specificDateTimeSlots[0].date).getTime() : Infinity;
+                    valB = b.availability?.specificDateTimeSlots?.[0]?.date ? new Date(b.availability.specificDateTimeSlots[0].date).getTime() : Infinity;
                     break;
                 case 'All':
                 default:
@@ -1123,7 +1184,7 @@ async function fetchArchivedVolunteers() {
     }
     
     try {
-        const archivedRef = database.ref('volunteerApplications/archivedEndorsedVolunteer');
+        const archivedRef = database.ref('deleted/deletedEndorsedVolunteer');
         const snapshot = await archivedRef.once('value');
         const archivedData = snapshot.val();
         
@@ -1162,6 +1223,12 @@ function renderArchivedVolunteerApplications() {
         row.setAttribute('data-key', volunteer.key);
         const fullName = getFullName(volunteer);
         const socialMediaDisplay = volunteer.socialMediaLink ? `<a href="${volunteer.socialMediaLink}" target="_blank" rel="noopener noreferrer">Link</a>` : 'N/A';
+        const skillsList = Array.isArray(volunteer.skills)
+            ? `<ol>${volunteer.skills
+                .map((skill) => `<li>${skill}</li>`)
+                .join("")}</ol>`
+            : "None";
+
         row.innerHTML = `
             <td>${i++}</td>
             <td>${fullName}</td>
@@ -1169,13 +1236,12 @@ function renderArchivedVolunteerApplications() {
             <td>${volunteer.mobileNumber || 'N/A'}</td>
             <td>${volunteer.age || 'N/A'}</td>
             <td>${socialMediaDisplay}</td>
-            <td>${volunteer.additionalInfo || 'N/A'}</td>
-            <td>${volunteer.address?.region || 'N/A'}</td>
-            <td>${volunteer.address?.province || 'N/A'}</td>
-            <td>${volunteer.address?.city || 'N/A'}</td>
-            <td>${volunteer.address?.barangay || 'N/A'}</td>
+            <td>${volunteer.additionalInfo || '-'}</td>
+            <td>${volunteer.emergencyResponse ? "Yes (24/7)" : "No"}</td>
+            <td>${volunteer.availability?.specificDateTimeSlots && Array.isArray(volunteer.availability.specificDateTimeSlots) ? `<ol>${volunteer.availability.specificDateTimeSlots.map(slot => `<li>${slot.date || 'N/A'} at ${slot.time || 'N/A'}</li>`).join('')}</ol>` : 'N/A'}</td>
+            <td>${volunteer.address?.formattedAddress || 'N/A'}</td>
+            <td>${skillsList}</td>
             <td>${volunteer.endorsedToABVNName ? `${volunteer.endorsedToABVNName} (${volunteer.endorsedToABVNLocation})` : 'N/A'}</td>
-            <td>${formatDate(volunteer.endorsementDate)}</td>
             <td>${formatDate(volunteer.archivedAt)}</td>
             <td>
                 ${permissions.canRetrieve ? `<button class="retrieveBtn" data-key="${volunteer.key}">Retrieve</button>` : ''}
@@ -1274,26 +1340,31 @@ function hideArchivedModal() {
 }
 
 function showVolunteerDetails(volunteer) {
-    let socialMediaHtml = getSocialMediaLink(volunteer.socialMediaLink);
-    
+    // Safely handle social media link
+    const socialMediaHtml = volunteer.socialMediaLink
+        ? `<a href="${volunteer.socialMediaLink}" target="_blank" rel="noopener noreferrer">${volunteer.socialMediaLink}</a>`
+        : 'N/A';
+
+    // Handle availability slots
     let specificSlotsHtml = '';
-    if (volunteer.availability && volunteer.availability.specificDateTimeSlots && volunteer.availability.specificDateTimeSlots.length > 0) {
+    if (volunteer.availability?.specificDateTimeSlots?.length > 0) {
         specificSlotsHtml = `<h5 style="margin-bottom: 10px; color: #14AEBB;">Date/Time Availability:</h5><div style="margin-left: 15px;"><ol style="padding-left: 20px; margin-top: 5px;">`;
         volunteer.availability.specificDateTimeSlots.forEach(slot => {
-            if (slot.date && slot.time) {
-                specificSlotsHtml += `<li>${slot.date} at ${slot.time}</li>`;
-            }
+            const date = slot?.date || 'N/A';
+            const time = slot?.time || 'N/A';
+            specificSlotsHtml += `<li>${date} at ${time}</li>`;
         });
         specificSlotsHtml += `</ol></div>`;
     } else {
         specificSlotsHtml = `<p><strong>Date/Time Availability:</strong> N/A</p>`;
     }
 
+    // Handle skills
     let skillsHtml = '';
-    if (volunteer.skills && Array.isArray(volunteer.skills) && volunteer.skills.length > 0) {
+    if (Array.isArray(volunteer.skills) && volunteer.skills.length > 0) {
         skillsHtml = `<h5 style="margin-bottom: 10px; color: #14AEBB;">Selected Skills:</h5><div style="margin-left: 15px;"><ol style="padding-left: 20px; margin-top: 5px;">`;
         volunteer.skills.forEach(skill => {
-            if (skill === 'Other' && volunteer.otherSkillComments && volunteer.otherSkillComments.trim()) {
+            if (skill === 'Other' && volunteer.otherSkillComments?.trim()) {
                 skillsHtml += `<li>${skill} (${volunteer.otherSkillComments})</li>`;
             } else {
                 skillsHtml += `<li>${skill}</li>`;
@@ -1304,26 +1375,37 @@ function showVolunteerDetails(volunteer) {
         skillsHtml = `<p><strong>Skills:</strong> None selected</p>`;
     }
 
+    // Handle address (aligned with showPreviewModal)
+    const address = volunteer.address || {};
+    const formattedAddress = address.formattedAddress || 'N/A';
+    const latitude = address.latitude || 'N/A';
+    const longitude = address.longitude || 'N/A';
+
+    // Include status for admins only
+    const statusHtml = permissions.canView
+        ? `<p><strong>Status:</strong> ${volunteer.status || 'N/A'}</p>`
+        : '';
+
     modalContentDiv.innerHTML = `
         <div class="modal-content-inner" style="padding: 20px;">
             <h2>Endorsed Volunteer Details:</h2>
-            <p><strong>Full Name:</strong> ${getFullName(volunteer)}</p>
+            <p><strong>Full Name:</strong> ${getFullName(volunteer) || 'N/A'}</p>
             <p><strong>Email:</strong> ${volunteer.email || 'N/A'}</p>
             <p><strong>Mobile Number:</strong> ${volunteer.mobileNumber || 'N/A'}</p>
             <p><strong>Age:</strong> ${volunteer.age || 'N/A'}</p>
-            <p><strong>Social Media:</strong><br>${socialMediaHtml}</p>
-            <p><strong>Additional Info:</strong> ${volunteer.additionalInfo || 'N/A'}</p>
+            <p><strong>Social Media:</strong> ${socialMediaHtml}</p>
+            <p><strong>Additional Info:</strong> ${volunteer.additionalInfo || volunteer.otherSkillComments || 'N/A'}</p>
+            ${statusHtml}
             <hr>
             <h2>Address Information:</h2>
             <div style="margin-left: 15px;">
-                <p><strong>Region:</strong> ${volunteer.address?.region || 'N/A'}</p>
-                <p><strong>Province:</strong> ${volunteer.address?.province || 'N/A'}</p>
-                <p><strong>City:</strong> ${volunteer.address?.city || 'N/A'}</p>
-                <p><strong>Barangay:</strong> ${volunteer.address?.barangay || 'N/A'}</p>
+                <p><strong>Address:</strong> ${formattedAddress}</p>
+                <p><strong>Latitude:</strong> ${latitude}</p>
+                <p><strong>Longitude:</strong> ${longitude}</p>
             </div>
             <hr>
             <h2>Availability:</h2>
-            <p><strong>Emergency Response:</strong> ${volunteer.emergencyResponse ? "Yes (24/7)" : "No"}</p>
+            <p><strong>Emergency Response:</strong> ${volunteer.emergencyResponse ? 'Yes (24/7)' : 'No'}</p>
             ${specificSlotsHtml}
             <hr>
             <h2>Skills:</h2>
@@ -1408,6 +1490,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
                 fetchEndorsedVolunteers(user.uid);
+                setupRealTimeListener(user.uid);
                 setupInactivityListeners();
                 resetInactivityTimer();
             } catch (error) {

@@ -1,0 +1,104 @@
+/* -------------------- Checkbox Styles -------------------- */
+.checkbox-group input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--primary-color);
+  border-radius: 4px;
+  margin-right: 0.7rem;
+  position: relative;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.checkbox-group input[type="checkbox"]:checked {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.checkbox-group input[type="checkbox"]:checked::after {
+  content: '✔';
+  color: var(--white);
+  font-size: 14px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.checkbox-group input[type="checkbox"]:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(20, 174, 187, 0.3);
+}
+
+/* -------------------- Form Layout -------------------- */
+fieldset {
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* two equal columns */
+  gap: 2rem;
+  border: none;
+  margin-top: 1rem;
+}
+
+.skills-group {
+  background: #f9fafb;
+  padding: 1rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+/* -------------------- Section Labels -------------------- */
+.skills-group label {
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin-bottom: 0.8rem;
+  display: block;
+  border-bottom: 2px solid var(--primary-color);
+  padding-bottom: 0.3rem;
+}
+
+/* -------------------- Textarea -------------------- */
+.skills-group textarea {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 0.6rem;
+  font-size: 0.95rem;
+  resize: vertical;
+}
+
+.skills-group textarea:focus {
+  border-color: #2563eb;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+/* Make "Other Skills" span both columns */
+.skills-group:last-child {
+  grid-column: span 2;
+}
+
+/* -------------------- Submit Button -------------------- */
+.submit-group {
+  text-align: right;
+  grid-column: span 2; /* button also spans full width */
+}
+
+.btn-primary {
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.7rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.btn-primary:hover {
+  background: #1e40af;
+}
