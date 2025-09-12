@@ -22,98 +22,191 @@
     <div id="form-main-content">
       <header>Rapid Damage Assessment and Need Analysis Page</header>
 
+      <!-- Stepper Navigation -->
+      <div id="progressBar">
+        <span class="step active" data-step="form-page-1">Step 1</span>
+        <span class="step" data-step="form-page-2">Step 2</span>
+        <span class="step" data-step="form-page-3">Step 3</span>
+        <span class="step" data-step="form-page-4">Step 4</span>
+        <span class="step" data-step="form-page-5">Review & Submit</span>
+      </div>
+
+
+
       <!-- Page 1 -->
-      <form id="form-page-1">
-        <div class="form first">
-          <div class="form-container-1">
+    <form id="disasterForm">
+        <div id="form-page-1" class="form first form-page">
+
+          <div class="form-container-1 disaster-profile">
             <span class="title">Profile of the Disaster</span>
             <div class="fields">
-              <div class="input-field">
-                <label>Site Location/Address (Barangay)</label>
-                <input type="text" id="affectedBarangayInput" maxlength="50" placeholder="Enter Affected Barangay" required/>
-              </div>
-              <div class="input-field">
-                <label>Site Location/Address (City/Municipality)</label>
-                <input type="text" placeholder="Enter Affected City/Municipality" maxlength="50" required/>
-              </div>
+
+            <!-- Top Group (first 4 fields) -->
+            <div class="disaster-fields top-fields">
               <div class="input-field">
                 <label>Site Location/Address (Province)</label>
-                <input type="text" placeholder="Enter Affected Province" maxlength="50" required/>
+                <select id="profileProvince" required name="profileProvince">
+                  <option value="">Select Province</option>
+                </select>
               </div>
+
+              <div class="input-field">
+                <label>Site Location/Address (City/Municipality)</label>
+                <select id="profileCity" required name="profileMunicipality">
+                  <option value="">Select City/Municipality</option>
+                </select>
+              </div>
+
+              <div class="input-field">
+                <label>Site Location/Address (Barangay)</label>
+                <select id="profileBarangay" required name="profileBarangay">
+                  <option value="">Select Barangay</option>
+                </select>
+              </div>
+
+              <div class="input-field">
+                <label>Date and Time of Information Gathered</label>
+                <input type="datetime-local" id="infoGatheredDate" name="dateInput" maxlength="60" required name="datetimeInformation"/>
+              </div>
+            </div>
+             
+            <!-- Bottom Group (last 2 fields) -->
+            <div class="disaster-fields bottom-fields">
               <div class="input-field">
                 <label>Local Authorities/Persons Contacted for Information</label>
-                <input type="text" placeholder="Enter Name" maxlength="50" required/>
+                <input type="text" id="authorityInput" placeholder="Enter Name" maxlength="50" required name="authorityInput"/>
+                <button type="button" class="add-another" id="addAuthorityBtn">+ Add Another</button>
               </div>
+
               <div class="input-field">
-                <label>Date of Information Gathered</label>
-                <input type="date" id="infoGatheredDate" name="dateInput" maxlength="60" required/>
+                <label>Name of the Organization(s) Involved</label>
+                <input type="text"  id="organizationInput" placeholder="Enter Organization Name" maxlength="50" required name="organizationInput"/>
+                <button type="button" class="add-another" id="addOrganizationBtn">+ Add Another</button>
               </div>
-              <div class="input-field">
-                <label>Time of Information Gathered</label>
-                <input type="time" id="infoGatheredTime" name="timeInput" required/>
-              </div>
-              <div class="input-field">
-                <label>Name of the Organization's Involved</label>
-                <input type="text" placeholder="Enter Organization Name" required/>
-              </div>
+            </div>
+
+            <!-- Placeholder for preview table -->
+            <div id="Profilepreview-table" class="Profilepreview-table">
+              <table id="Profilepreviewdata-table" class="required-table">
+                <thead>
+                  <tr>
+                    <th>Authorities/Persons</th>
+                    <th>Organizations Involved</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr class="no-entries">
+                    <td colspan="3" style="text-align:center; color:#888;">No Entries Yet</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
             </div>
           </div>
 
           <div class="form-container-2">
             <span class="title">Modality</span>
             <div class="fields">
-              <div class="input-field">
-                <label>Locations and Areas Affected (Barangay)</label>
-                <input type="text" id="affectedBarangayInput" placeholder="Enter Affected Barangay" maxlength="50" required/>
+
+              <!-- First Group: Locations -->
+              <div class="form-section">
+                <h3>Locations and Areas Affected</h3>
+                <div class="input-row">
+                 
+                  <div class="input-field">
+                    <label>Province</label>
+                    <select id="AffectedProvince" required name="AffectedProvince" disabled>
+                      <option value="">Select Province</option>
+                    </select>
+                  </div>
+
+                  <div class="input-field">
+                    <label>City/Municipality</label>
+                    <select id="AffectedCity" required name="AffectedCity">
+                      <option value="">Select City/Municipality</option>
+                    </select>
+                  </div>
+
+                   <div class="input-field">
+                    <label>Barangay</label>
+                    <select id="AffectedBarangay" required name="AffectedBarangay">
+                      <option value="">Select Barangay</option>
+                    </select>
+                  </div>
+
+                </div>
+
+                <button type="button" class="add-another" id="addLocationBtn" disabled>+ Add Another</button>
+
+                <!-- Preview Table -->
+                <div id="Locationspreview-table" class="Locationspreview-table">
+                  <table id="Locationspreviewdata-table" class="required-table">
+                    <thead>
+                      <tr>
+                        <th>Province</th>
+                        <th>City/Municipality</th>
+                        <th>Barangay</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr class="no-entries">
+                        <td colspan="4" style="text-align:center; color:#888;">No Entries Yet</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
               </div>
-              <div class="input-field">
-                <label>Locations and Areas Affected (City/Municipality)</label>
-                <input type="text" placeholder="Enter Affected City/Municipality" maxlength="50" required/>
+
+              <!-- Second Group: Disaster Details -->
+              <div class="form-section">
+                <h3>Disaster Details</h3>
+                <div class="input-row">
+                  <div class="input-field">
+                    <label>Type of Disaster</label>
+                    <select id="disasterType" required name="disasterType">
+                      <option value="" disabled selected>Type of Disaster</option>
+                      <option value="Flood">Flood</option>
+                      <option value="Earthquake">Earthquake</option>
+                      <option value="Typhoon">Typhoon</option>
+                      <option value="Landslide">Landslide</option>
+                      <option value="Fire">Fire</option>
+                      <option value="Volcanic Eruption">Volcanic Eruption</option>
+                      <option value="Pandemic">Pandemic</option>
+                      <option value="Others">Others</option>
+                    </select>
+                  </div>
+
+                  <div class="input-field">
+                    <label>Date and Time of Occurrence</label>
+                    <input type="datetime-local" id="occurrenceDate" required name="occurrenceDate"/>
+                  </div>
+                </div>
+
+                <div class="input-field">
+                  <label>Summary of Disaster/Incident (optional):</label>
+                  <textarea id="summaryInput" rows="6" placeholder="Enter Summary"></textarea>
+                </div>
               </div>
-              <div class="input-field">
-                <label>Locations and Areas Affected (Province)</label>
-                <input type="text" placeholder="Enter Affected Province" maxlength="50" required/>
-              </div>
-              <div class="input-field">
-                <label>Type of Disaster</label>
-                <select required>
-                  <option value="" disabled selected>Type of Disaster</option>
-                  <option value="Flood">Flood</option>
-                  <option value="Earthquake">Earthquake</option>
-                  <option value="Typhoon">Typhoon</option>
-                  <option value="Landslide">Landslide</option>
-                  <option value="Fire">Fire</option>
-                  <option value="Volcanic Eruption">Volcanic Eruption</option>
-                  <option value="Pandemic">Pandemic</option>
-                  <option value="Others">Others</option>
-                </select>
-              </div>
-              <div class="input-field">
-                <label>Date of Occurrence</label>
-                <input type="date" id="occurrenceDate" placeholder="MM/DD/YY" required/>
-              </div>
-              <div class="input-field">
-                <label>Time of Occurrence</label>
-                <input type="time" id="occurrenceTime" placeholder="Enter Time" required/>
-              </div>
+        
+
             </div>
 
             <button type="button" class="next-btn" id="nextBtn1">Proceed</button>
           </div>
         </div>
-      </form>
+      
 
       <!-- Page 2 -->
-      <form id="form-page-2" style="display: none;">
+      <div id="form-page-2" class="form-page" >
         <div class="form-container-1">
-          <span class="title">Summary of Disaster/Incident (optional):</span>
-          <textarea rows="6" cols="100" placeholder="Enter Summary"></textarea>
-
-         
           <div style="overflow-x: auto; margin-top: 10px;">
             <span class="title required">Initial Effects</span>
             <div class="table-container">
-            <table id="disasterprofile-table">
+
+            <table id="disasterprofile-table" class="required-table">
               <thead>
                 <tr>
                   <th>Affected Municipalities/Communities</th>
@@ -131,16 +224,20 @@
               </thead>
               <tbody id="tableBody">
                 <tr>
-                <td><input type="text" placeholder="Enter Municipalities/Communities" required maxlength="50"/></td>
-                <td><input type="text" class="number-input" placeholder="Enter Total Population" required/></td>
-                <td><input type="text" class="number-input" placeholder="Enter Affected Population" required/></td>
-                <td><input type="text" class="number-input" placeholder="No. of Deaths" required/></td>
-                <td><input type="text" class="number-input" placeholder="No. of Injured" required/></td>
-                <td><input type="text" class="number-input" placeholder="No. of Missing" required/></td>
-                <td><input type="text" class="number-input" placeholder="No. of Children" required/></td>
-                <td><input type="text" class="number-input" placeholder="No. of Women" required/></td>
-                <td><input type="text" class="number-input"placeholder="No. of Senior Citizens" required/></td>
-                <td><input type="text" class="number-input" placeholder="No. of PWD" required/></td>
+                <td>
+                  <select class="IE-city" required name="IE-city">
+                    <option value="">Select City/Municipality</option>
+                  </select>
+                </td>
+                <td><input type="text" class="number-input" placeholder="Enter Total Population" required name="total-pop"/></td>
+                <td><input type="text" class="number-input" placeholder="Enter Affected Population" required name="affected-pop"/></td>
+                <td><input type="text" class="number-input" placeholder="No. of Deaths" required name="num-deaths"/></td>
+                <td><input type="text" class="number-input" placeholder="No. of Injured" required name="num-injured"/></td>
+                <td><input type="text" class="number-input" placeholder="No. of Missing" required name="num-missing"/></td>
+                <td><input type="text" class="number-input" placeholder="No. of Children" required name="num-children"/></td>
+                <td><input type="text" class="number-input" placeholder="No. of Women" required name="num-women"/></td>
+                <td><input type="text" class="number-input"placeholder="No. of Senior Citizens" required name="num-seniors"/></td>
+                <td><input type="text" class="number-input" placeholder="No. of PWD" required name="num-pwds"/></td>
 
                   <td><button type="reset" class="removeRowBtn">Clear</button></td>
                 </tr>
@@ -149,16 +246,18 @@
           </div>
           </div>
           <button type="button" class="bayanihanBtn" id="addRowBtn" style="margin-top: 10px;">Add Row</button>
-        </div>
-        
+
         <div class="button-group">
           <button type="button" class="next-btn" id="backBtn2">Back</button>
           <button type="button" class="next-btn" id="nextBtn2">Proceed</button>
         </div>
-      </form>
+
+        </div>
+      </div>
+      
 
       <!-- Page 3 -->
-      <form id="form-page-3" style="display: none;">
+      <div id="form-page-3" class="form-page" >
         <div class="form-container-1">
           <span class="title">Status of Lifelines, Social Structure, and Critical Facilities (optional)</span>
           <div style="overflow-x: hidden; margin-top: 10px;">
@@ -256,16 +355,17 @@
               </tbody>
             </table>
           </div>
-        </div>
 
         <div class="button-group">
           <button type="button" class="next-btn" id="backBtn3">Back</button>
           <button type="button" class="next-btn" id="nextBtn3">Proceed</button>
         </div>
-      </form>
+
+        </div>
+      </div>
 
       <!-- Page 4 -->
-      <form id="form-page-4" style="display: none;">
+      <div id="form-page-4" class="form-page" >
         <div class="form first">
           <div class="form-container-1">
             <span class="title">Initial Needs Assessment Checklist (optional)</span>
@@ -306,33 +406,83 @@
               </table>
             </div>
 
+            <!--Other Immediate Needs Section-->
+    
             <div class="fields">
               <div class="input-field">
                 <label>Other Immediate Needs:</label>
-                <input type="text" placeholder="Enter items" maxlength="50"/>
+                <input type="text" id="needInput" placeholder="Enter items" maxlength="50"/>
               </div>
+
               <div class="input-field">
                 <label>Estimated Quantity:</label>
-                <input type="text" class="number-input" placeholder="Estimated No. of Families to Benefit"/>
+                <input type="text" id="qtyInput" class="number-input" placeholder="Estimated No. of Families to Benefit"/>
               </div>
+
+              <button type="button" class="add-another" id="addImmediateNeedsBtn" disabled>+ Add Another</button>
+
+              <!-- Preview Table -->
+                <div id="ImmediateNeedspreview-table" class="ImmediateNeedspreview-table">
+                  <table id="ImmediateNeedspreviewdata-table" >
+                    <thead>
+                      <tr>
+                        <th>Immediate Needs</th>
+                        <th>Estimated No. of Families to Benefit</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr class="no-entries">
+                        <td colspan="4" style="text-align:center; color:#888;">No Entries Yet</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
             </div>
+        
           </div>
 
           <div class="form-container-2">
             <span class="title">Initial Response Actions</span>
             <div class="fields">
+
               <div class="input-field">
                 <label>Response Groups Involved:</label>
-                <input type="text" placeholder="Enter Name of Organization/s" maxlength="50" required/>
+                <input type="text" id="responseGroupInput" placeholder="Enter Name of Organization/s" maxlength="50" required name="responseGroupInput"/>
               </div>
+
               <div class="input-field">
                 <label>Relief Assistance Deployed:</label>
-                <input type="text" placeholder="Enter Relief Assistance" maxlength="50" required/>
+                <input type="text" id="assistanceInput" placeholder="Enter Relief Assistance" maxlength="50" required name="assistanceInput"/>
               </div>
+
               <div class="input-field">
                 <label>Number of Families Served:</label>
-                <input type="text" class="number-input" placeholder="Enter number of families" required/>
+                <input type="text" id="familiesInput" class="number-input" placeholder="Enter number of families" required name="familiesInput"/>
               </div>
+
+              <button type="button" class="add-another" id="addInitialResponseBtn" disabled>+ Add Another</button>
+
+              <!-- Preview Table -->
+                <div id="InitialResponsepreview-table" class="InitialResponsepreview-table">
+                  <table id="InitialResponsepreviewdata-table" class="required-table">
+                    <thead>
+                      <tr>
+                        <th>Response Groups</th>
+                        <th>Relief Assistance Deployed</th>
+                        <th>Number of Families Served</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr class="no-entries">
+                        <td colspan="4" style="text-align:center; color:#888;">No Entries Yet</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
             </div>
 
             <div class="button-group">
@@ -341,10 +491,11 @@
             </div>
           </div>
         </div>
-      </form>
+        </div>
+     
 
       <!-- Page 5 - Submission Preview -->
-      <form id="form-page-5" style="display: none;">
+      <div id="form-page-5" class="form-page">
         <div class="form-container-1">
           <div id="preview-data"></div> <!-- This is where the preview will be injected -->
           
@@ -353,6 +504,8 @@
             <button type="submit" class="next-btn" id="submitReportBtn">Submit Report</button>
           </div>
         </div>
+      </div>
+
       </form>
 
     </div>
