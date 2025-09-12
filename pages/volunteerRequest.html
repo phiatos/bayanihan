@@ -17,11 +17,21 @@
     <div class="main-container">
         <div class="sidebar-placeholder"></div>
         <div id="main-content">
-            <header>Volunteer Requests</header>
+            <header>Volunteer Request Form</header>
             <div class="container">
                 <form id="abvn-needs-form">
                     <fieldset>
                     <legend>Skills Needed</legend>
+
+                    <div class="form-group">
+                        <label for="taskName">Task Name</label>
+                        <input type="text" id="taskName" name="taskName" placeholder="e.g., Relief Goods Packing" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="volunteersNeeded">Number of Volunteers Needed</label>
+                        <input type="number" id="volunteersNeeded" name="volunteersNeeded" placeholder="e.g., 10" min="1" required>
+                    </div>
 
                     <div class="skills-group">
                         <label>Disaster Response Skills</label>

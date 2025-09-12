@@ -19,10 +19,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const submitButton = document.querySelector('.btn-primary');
     let isSubmitting = false;
 
-    // Check if input is empty
     const isEmpty = (value) => value.trim() === "";
 
-    // Show error message below input field
     function showError(inputField, message) {
         const errorDiv = inputField.nextElementSibling;
         if (!errorDiv || !errorDiv.classList.contains('error-message')) {
@@ -36,7 +34,6 @@ document.addEventListener('DOMContentLoaded', () => {
         inputField.classList.add('error');
     }
 
-    // Clear error message from input field
     function clearError(inputField) {
         const errorDiv = inputField.nextElementSibling;
         if (errorDiv && errorDiv.classList.contains('error-message')) {
@@ -45,7 +42,6 @@ document.addEventListener('DOMContentLoaded', () => {
         inputField.classList.remove('error');
     }
 
-    // Real-time validation for otherNeededSkills textarea
     function validateInputInRealTime(input) {
         clearError(input);
         if (!isEmpty(input.value) && input.value.length > 500) {
@@ -53,19 +49,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Apply real-time validation to otherNeededSkills
     if (otherSkillsTextarea) {
         otherSkillsTextarea.addEventListener('input', () => {
             validateInputInRealTime(otherSkillsTextarea);
         });
     }
 
-    // Validate form before submission
     async function validateFormForSubmission() {
         let isValid = true;
         const errors = [];
-        
-        // Check skills
+
         const skillCheckboxes = document.querySelectorAll('input[name="neededSkills"]:checked');
         const selectedSkills = Array.from(skillCheckboxes).map(checkbox => checkbox.value);
         if (selectedSkills.length < 1 && isEmpty(otherSkillsTextarea.value)) {
@@ -73,7 +66,6 @@ document.addEventListener('DOMContentLoaded', () => {
             isValid = false;
         }
 
-        // Validate otherSkillsTextarea
         if (!isEmpty(otherSkillsTextarea.value)) {
             if (otherSkillsTextarea.value.length > 500) {
                 showError(otherSkillsTextarea, 'Other Skills description must not exceed 500 characters.');
@@ -82,7 +74,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // Check for duplicate skill requests within the same volunteer group
         const user = auth.currentUser;
         if (user) {
             const skillRequestsRef = database.ref(`volunteerGroups/${user.uid}/volunteerNeeds`);
@@ -110,7 +101,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return { isValid, errors };
     }
 
-    // Form submission
     if (needsForm) {
         needsForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -131,13 +121,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         title: 'Authentication Required',
                         text: 'Please log in to submit volunteer needs.',
                         showConfirmButton: true,
-                        confirmButtonText: 'OK',
-                        customClass: {
-                            popup: 'swal2-popup-error-clean',
-                            title: 'swal2-title-error-clean',
-                            htmlContainer: 'swal2-text-error-clean',
-                            confirmButton: 'my-error-button'
-                        }
+                        confirmButtonText: 'OK'
                     });
                     submitButton.disabled = false;
                     submitButton.textContent = 'Save Needs';
@@ -152,13 +136,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         title: 'Invalid Input',
                         html: errors.join('<br>'),
                         showConfirmButton: true,
-                        confirmButtonText: 'OK',
-                        customClass: {
-                            popup: 'swal2-popup-error-clean',
-                            title: 'swal2-title-error-clean',
-                            htmlContainer: 'swal2-text-error-clean',
-                            confirmButton: 'my-error-button'
-                        }
+                        confirmButtonText: 'OK'
                     });
                     submitButton.disabled = false;
                     submitButton.textContent = 'Save Needs';
@@ -166,27 +144,44 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
+                // Collect request data
+                const taskNameInput = document.getElementById("taskName");
+                const volunteersNeededInput = document.getElementById("volunteersNeeded");
+
                 const needsData = {
-                    skills: Array.from(document.querySelectorAll('input[name="neededSkills"]:checked')).map(checkbox => checkbox.value),
+                    taskName: taskNameInput.value.trim(), // <- add taskName
+                    volunteersNeeded: Number(volunteersNeededInput.value), // <- add volunteersNeeded
+                    skills: Array.from(document.querySelectorAll('input[name="neededSkills"]:checked')).map(cb => cb.value),
                     otherSkillComments: otherSkillsTextarea.value.trim(),
                     submittedBy: user.uid,
-                    submissionDateTime: new Date().toISOString()
+                    submissionDateTime: new Date().toISOString(),
+                    assigned: 0, // initialize assigned volunteers
+                    status: "Pending"
                 };
 
-                await database.ref(`volunteerGroups/${user.uid}/volunteerNeeds`).push(needsData);
+                // Get ABVN Name from volunteerGroups
+                const abvnSnapshot = await database.ref(`volunteerGroups/${user.uid}/organization`).once("value");
+                const abvnName = abvnSnapshot.exists() ? abvnSnapshot.val() : "Unknown ABVN";
+
+                // Generate a shared key for both nodes
+                const newRequestRef = database.ref(`volunteerGroups/${user.uid}/volunteerNeeds`).push();
+                const requestId = newRequestRef.key;
+
+                // Save under volunteerGroups
+                await newRequestRef.set(needsData);
+
+                // Save under global volunteerRequests with same ID
+                await database.ref(`volunteerRequests/${requestId}`).set({
+                    abvnId: user.uid,
+                    abvnName,
+                    ...needsData
+                });
 
                 Swal.fire({
                     title: 'Success!',
                     text: 'Volunteer needs submitted successfully!',
                     icon: 'success',
-                    showConfirmButton: true,
-                    confirmButtonText: 'OK',
-                    customClass: {
-                        popup: 'swal2-popup-success-clean',
-                        title: 'swal2-title-success-clean',
-                        htmlContainer: 'swal2-text-success-clean',
-                        confirmButton: 'my-success-button'
-                    }
+                    confirmButtonText: 'OK'
                 });
 
                 needsForm.reset();
@@ -199,14 +194,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     icon: 'error',
                     title: 'Error',
                     text: 'There was an error submitting your request. Please try again.',
-                    showConfirmButton: true,
-                    confirmButtonText: 'OK',
-                    customClass: {
-                        popup: 'swal2-popup-error-clean',
-                        title: 'swal2-title-error-clean',
-                        htmlContainer: 'swal2-text-error-clean',
-                        confirmButton: 'my-error-button'
-                    }
+                    confirmButtonText: 'OK'
                 });
             } finally {
                 submitButton.disabled = false;

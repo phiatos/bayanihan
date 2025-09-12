@@ -200,14 +200,18 @@ function initSidebar() {
     }
 
     const abvnRestrictedPages = [
+      "activitylogs.html",
+      "adminmanagement.html",
+      "activation.html",
       "volunteergroupmanagement.html",
+      "inkind.html",
+      "monetary.html",
+      "volunteerRequestOverview.html",
       "reportsVerification.html",
       "rdanaVerification.html",
       "activation.html",
       "reliefsLog.html",
       "rdanaLog.html",
-      "inkind.html",
-      "monetary.html",
       "reportsLog.html",
     ];
 
@@ -274,7 +278,7 @@ function initSidebar() {
       pendingVolunteers: document.querySelector(".menu-pending-volunteers"),
       approvedVolunteers: document.querySelector(".menu-approved-volunteers"),
       endorsedVolunteers: document.querySelector(".menu-endorsed-volunteers"),
-      volunteerRequests: document.querySelector(".menu-volunteer-requests"),
+      volunteerRequestsOverview: document.querySelector(".menu-volunteer-request-overview"),
       pendingDonations: document.querySelector(".menu-pending-donations"),
       pendingInkind: document.querySelector(".menu-pending-inkind"),
       pendingMonetary: document.querySelector(".menu-pending-monetary"),
