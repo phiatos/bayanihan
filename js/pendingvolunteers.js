@@ -956,9 +956,10 @@ function initializePageFunctions(userId) {
     function showPreviewModal(volunteer) {
         if (!restrictAction('view')) return;
         const fullName = getFullName(volunteer);
-        let specificSlotsHtml = '';
 
-        if (volunteer.availability && volunteer.availability.specificDateTimeSlots && volunteer.availability.specificDateTimeSlots.length > 0) {
+        // Availability
+        let specificSlotsHtml = '';
+        if (volunteer.availability?.specificDateTimeSlots?.length > 0) {
             specificSlotsHtml = `<h5 style="margin-bottom: 10px; color: #14AEBB;">Date/Time Availability:</h5><div style="margin-left: 15px;"><ol style="padding-left: 20px; margin-top: 5px;">`;
             volunteer.availability.specificDateTimeSlots.forEach(slot => {
                 if (slot.date && slot.time) {
@@ -970,11 +971,12 @@ function initializePageFunctions(userId) {
             specificSlotsHtml = `<p><strong>Date/Time Availability:</strong> N/A</p>`;
         }
 
+        // Skills
         let skillsHtml = '';
-        if (volunteer.skills && Array.isArray(volunteer.skills) && volunteer.skills.length > 0) {
+        if (volunteer.skills?.length > 0) {
             skillsHtml = `<h5 style="margin-bottom: 10px; color: #14AEBB;">Selected Skills:</h5><div style="margin-left: 15px;"><ol style="padding-left: 20px; margin-top: 5px;">`;
             volunteer.skills.forEach(skill => {
-                if (skill === 'Other' && volunteer.otherSkillComments && volunteer.otherSkillComments.trim()) {
+                if (skill === 'Other' && volunteer.otherSkillComments?.trim()) {
                     skillsHtml += `<li>${skill} (${volunteer.otherSkillComments})</li>`;
                 } else {
                     skillsHtml += `<li>${skill}</li>`;
@@ -983,6 +985,25 @@ function initializePageFunctions(userId) {
             skillsHtml += `</ol></div>`;
         } else {
             skillsHtml = `<p><strong>Skills:</strong> None selected</p>`;
+        }
+
+        // Rejection info
+        let rejectionHtml = '';
+        if (volunteer.rejected) {
+            const rejectedAt = volunteer.rejected.at ? formatDate(volunteer.rejected.at) : 'N/A';
+            const abvnName = volunteer.rejected.byABVN || 'Unknown ABVN';
+            const reason = volunteer.rejected.reason || 'No reason provided';
+            
+            rejectionHtml = `
+                <hr>
+                <h2>Rejection Information:</h2>
+                <div style="margin-left: 15px;">
+                    <p><strong>Rejected By ABVN:</strong> ${volunteer.rejectionDetails?.rejectedByABVN || '-'}</p>
+                    <p><strong>Rejection Date/Time:</strong> ${volunteer.rejectionDetails?.rejectedAt || '-'}</p>
+                    <p><strong>Task Name:</strong> ${volunteer.endorsedDetails?.taskName || '-'}</p>
+                    <p><strong>Reason:</strong> ${volunteer.rejectionDetails?.reason || '-'}</p>
+                </div>
+            `;
         }
 
         modalContent.innerHTML = `
@@ -994,7 +1015,7 @@ function initializePageFunctions(userId) {
                 <p><strong>Mobile Number:</strong> ${volunteer.mobileNumber || 'N/A'}</p>
                 <p><strong>Age:</strong> ${volunteer.age || 'N/A'}</p>
                 <p><strong>Social Media:</strong> ${volunteer.socialMediaLink ? `<a href="${volunteer.socialMediaLink}" target="_blank" rel="noopener noreferrer">${volunteer.socialMediaLink}</a>` : 'N/A'}</p>
-                <p><strong>Additional Info:</strong> ${volunteer.otherSkillComments || 'N/A'}</p>
+                <p><strong>Additional Info:</strong> ${volunteer.otherSkillComments || '-'}</p>
                 <hr>
                 <h2>Address Information:</h2>
                 <div style="margin-left: 15px;">
@@ -1009,6 +1030,7 @@ function initializePageFunctions(userId) {
                 <hr>
                 <h2>Skills:</h2>
                 ${skillsHtml}
+                ${rejectionHtml}
             </div>
         `;
         previewModal.style.display = 'flex';
@@ -1851,10 +1873,10 @@ function initializePageFunctions(userId) {
             }
             
             let rejectionTag = '';
-            if (volunteer.rejectedBy) {
-                const abvnName = volunteer.rejectedByName || volunteer.rejectedBy; // optional: map ID -> name if you store it
-                const reason = volunteer.rejectionReason ? ` - Reason: ${volunteer.rejectionReason}` : '';
-                rejectionTag = `<span class="rejected-tag">Rejected by ${abvnName}${reason}</span>`;
+            if (volunteer.rejected) {
+                const abvnName = volunteer.rejected.byABVN || volunteer.rejected.byId || 'Unknown ABVN';
+                // const reason = volunteer.rejected.reason ? ` - Reason: ${volunteer.rejected.reason}` : '';
+                rejectionTag = `<span class="rejected-tag">Rejected by ${abvnName}</span>`;
             }
 
             let specificSlotsHtml = 'N/A';
@@ -2402,12 +2424,13 @@ function initializePageFunctions(userId) {
                         Swal.fire({
                             title: 'Cancelled',
                             text: 'No notes entered. Status remains unchanged.',
-                            icon: 'info',
+                            icon: 'warning',
+                            confirmButtonText: 'OK',
                             customClass: {
-                                popup: 'swal2-popup-info-clean',
-                                title: 'swal2-title-info-clean',
-                                htmlContainer: 'swal2-text-info-clean',
-                                confirmButton: 'my-info-button'
+                                popup: 'swal2-popup-warning-clean',
+                                title: 'swal2-title-warning-clean',
+                                htmlContainer: 'swal2-text-warning-clean',
+                                confirmButton: 'my-warning-button'
                             }
                         });
                     }
@@ -3055,12 +3078,15 @@ function initializePageFunctions(userId) {
                 // --- Endorse the volunteer ---
                 await database.ref(`volunteerEndorsements/${abvnKey}/endorsedVolunteers/${currentVolunteerKey}`).set({
                     ...currentVolunteerData,
-                    status: 'endorsedToABVN',
-                    endorsedToABVNKey: abvnKey,
-                    endorsedToABVNName: abvnName,
-                    endorsedToABVNLocation: abvnLocation,
                     requestId: requestId,
-                    endorsementDate: new Date().toISOString()
+                    endorsedDetails: {
+                        status: 'endorsedToABVN',
+                        taskName: requestData.taskName || "N/A",
+                        endorsedToABVNKey: abvnKey,
+                        endorsedToABVNName: abvnName,
+                        endorsedToABVNLocation: abvnLocation,
+                        endorsementDate: new Date().toISOString(),
+                    }
                 });
 
                 // Remove from pending
@@ -3069,7 +3095,20 @@ function initializePageFunctions(userId) {
                 // Send email
                 await sendEndorsementEmail(currentVolunteerData, abvnData);
 
-                Swal.fire({ title: 'Endorsed!', text: 'Volunteer successfully endorsed.', icon: 'success' });
+                Swal.fire({
+                    title: 'Endorsed!',
+                    text: 'Volunteer successfully endorsed.',
+                    icon: 'success',
+                    showConfirmButton: true,
+                    confirmButtonText: 'OK',
+                    customClass: {
+                        popup: 'swal2-popup-success-clean',
+                        title: 'swal2-title-success-clean',
+                        htmlContainer: 'swal2-text-success-clean',
+                        confirmButton: 'my-success-button'
+                    }
+                });
+
                 hideEndorseABVNModal();
 
             } catch (error) {
@@ -3153,14 +3192,12 @@ function initializePageFunctions(userId) {
                             title: 'Cancelled',
                             text: 'Endorsement cancelled for review.',
                             icon: 'error',
-                            timer: 2000,
-                            showConfirmButton: false,
-                            timerProgressBar: true,
-                            allowOutsideClick: false,
+                            confirmButtonText: 'OK',
                             customClass: {
                                 popup: 'swal2-popup-error-clean',
                                 title: 'swal2-title-error-clean',
-                                htmlContainer: 'swal2-text-error-clean'
+                                htmlContainer: 'swal2-text-error-clean',
+                                confirmButton: 'my-error-button'
                             }
                         });
                         hideEndorseABVNModal();
@@ -3219,14 +3256,12 @@ function initializePageFunctions(userId) {
                             title: 'Cancelled',
                             text: 'Endorsement cancelled for review.',
                             icon: 'error',
-                            timer: 2000,
-                            showConfirmButton: false,
-                            timerProgressBar: true,
-                            allowOutsideClick: false,
+                            confirmButtonText: 'OK',
                             customClass: {
                                 popup: 'swal2-popup-error-clean',
                                 title: 'swal2-title-error-clean',
-                                htmlContainer: 'swal2-text-error-clean'
+                                htmlContainer: 'swal2-text-error-clean',
+                                confirmButton: 'my-error-button'
                             }
                         });
                         hideEndorseABVNModal();

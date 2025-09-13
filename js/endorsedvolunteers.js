@@ -307,8 +307,10 @@ function exportToExcel() {
             "Emergency Response": volunteer.emergencyResponse ? "Yes (24/7)" : "No",
             "Date and Time Availability": dateTimeAvailability,
             "Skills": skillsList,
-            "Endorsed To ABVN": volunteer.endorsedToABVNName ? `${volunteer.endorsedToABVNName} (${volunteer.endorsedToABVNLocation})` : 'N/A',
-            "Endorsement Date": endorsementDate
+            "Endorsed To ABVN": volunteer.endorsedDetails?.endorsedToABVNName 
+                ? `${volunteer.endorsedDetails.endorsedToABVNName} (${volunteer.endorsedDetails.endorsedToABVNLocation})` 
+                : 'N/A',
+            "Endorsement Date": volunteer.endorsedDetails?.endorsementDate || 'N/A'
         };
     });
     const ws = XLSX.utils.json_to_sheet(dataForExport);
@@ -411,8 +413,10 @@ function exportToPDF() {
                 volunteer.emergencyResponse ? "Yes (24/7)" : "No",
                 dateTimeAvailability,
                 skillsList,
-                volunteer.endorsedToABVNName ? `${volunteer.endorsedToABVNName} (${volunteer.endorsedToABVNLocation})` : 'N/A',
-                endorsementDate
+                volunteer.endorsedDetails?.endorsedToABVNName
+                    ? `${volunteer.endorsedDetails.endorsedToABVNName} (${volunteer.endorsedDetails.endorsedToABVNLocation})`
+                    : 'N/A',
+                volunteer.endorsedDetails?.endorsementDate || 'N/A'
             ];
         });
         doc.autoTable({
@@ -541,11 +545,18 @@ function saveSingleVolunteerPdf(volunteer) {
             : "None";
         y = addDetail("Skills", skillsList);
         y = addDetail("Address", volunteer.address?.formattedAddress);
-        y = addDetail("Endorsed To ABVN", volunteer.endorsedToABVNName ? `${volunteer.endorsedToABVNName} (${volunteer.endorsedToABVNLocation})` : 'N/A');
-        const endorsementDate = formatDate(volunteer.endorsementDate);
+        y = addDetail(
+            "Endorsed To ABVN",
+            volunteer.endorsedDetails?.endorsedToABVNName
+                ? `${volunteer.endorsedDetails.endorsedToABVNName} (${volunteer.endorsedDetails.endorsedToABVNLocation})`
+                : 'N/A'
+        );
+
+        const endorsementDate = formatDate(volunteer.endorsedDetails?.endorsementDate);
         if (endorsementDate === 'N/A') {
-            console.warn(`Missing or invalid endorsementDate for volunteer ${volunteer.key}:`, volunteer.endorsementDate);
+            console.warn(`Missing or invalid endorsementDate for volunteer ${volunteer.key}:`, volunteer.endorsedDetails?.endorsementDate);
         }
+
         y = addDetail("Endorsement Date", endorsementDate);
         doc.setFontSize(8);
         const footerY = doc.internal.pageSize.height - 10;
@@ -905,13 +916,16 @@ function renderVolunteersTable() {
             <td>${dateTimeAvailability}</td>
             <td>${volunteer.address?.formattedAddress || 'N/A'}</td>
             <td>${skillsList}</td>
-            <td>${volunteer.endorsedToABVNName ? `${volunteer.endorsedToABVNName} (${volunteer.endorsedToABVNLocation})` : 'N/A'}</td>
-            <td>${formatDate(volunteer.endorsementDate)}</td>
+            <td>${volunteer.endorsedDetails?.endorsedToABVNName 
+                ? `${volunteer.endorsedDetails.endorsedToABVNName} (${volunteer.endorsedDetails.endorsedToABVNLocation})` 
+                : 'N/A'}</td>
+            <td>${volunteer.endorsedDetails?.taskName}</td>
+            <td>${formatDate(volunteer.endorsedDetails?.endorsementDate)}</td>
             <td>
                 <button title="View" class="viewBtn"><i class='bx bx-show-alt'></i></button>
                 ${permissions.canArchive ? `<button title="Archive" class="archiveBtn"><i class='bx bx-x-circle'></i></button>` : ''}
                 <button title="Save as PDF" class="saveSinglePdfBtn"><i class='bx bxs-file-pdf'></i></button>
-                ${permissions.canArchive ? `<button class="rejectBtn" data-key="${volunteer.key}"><i class='bx bx-x'></i></button>` : ''}
+                ${permissions.canView ? `<button title="Reject" class="rejectBtn" data-key="${volunteer.key}"><i class='bx bx-block'></i></button>` : ''}
             </td>
         `;
 
@@ -927,7 +941,7 @@ function renderVolunteersTable() {
         // PDF button
         row.querySelector('.saveSinglePdfBtn').onclick = () => saveSingleVolunteerPdf(volunteer);
 
-        // Reject button (fixed)
+        // Reject button 
         const rejectBtn = row.querySelector('.rejectBtn');
         if (rejectBtn) {
             rejectBtn.addEventListener('click', async (e) => {
@@ -935,17 +949,42 @@ function renderVolunteersTable() {
                 const volunteerToReject = allEndorsedVolunteers.find(v => v.key === key);
                 if (!volunteerToReject) return;
 
-                const { value: reason } = await Swal.fire({
-                    title: 'Reject Volunteer',
-                    input: 'text',
-                    inputLabel: 'Optional Rejection Reason',
-                    inputPlaceholder: 'Enter reason (optional)',
-                    showCancelButton: true
-                });
+                try {
+                    const result = await Swal.fire({
+                        title: 'Reject Volunteer',
+                        input: 'text',
+                        inputLabel: 'Optional Rejection Reason',
+                        inputPlaceholder: 'Enter reason (optional)',
+                        inputAttributes: {
+                            'aria-label': 'Enter notes here'
+                        },
+                        showCancelButton: true,
+                        confirmButtonText: 'Confirm',
+                        cancelButtonText: 'Cancel',
+                        allowOutsideClick: false,
+                        reverseButtons: true,
+                        customClass: {
+                            popup: 'custom-swal-popup-large',
+                            title: 'custom-swal-title',
+                            inputLabel: 'custom-swal-content',
+                            confirmButton: 'custom-confirm-btn',
+                            cancelButton: 'custom-cancel-btn'
+                        }
+                    });
 
-                rejectVolunteer(volunteerToReject, reason || '');
+                    // Only proceed if user clicked Confirm
+                    if (result.isConfirmed) {
+                        const reason = result.value || '';
+                        await rejectVolunteer(volunteerToReject, reason);
+                    }
+
+                } catch (error) {
+                    console.error('Error handling volunteer rejection:', error);
+                    Swal.fire('Error', 'Something went wrong. Please try again.', 'error');
+                }
             });
         }
+
     });
 
     renderPagination();
@@ -953,23 +992,51 @@ function renderVolunteersTable() {
 
 async function rejectVolunteer(volunteer, reason = '') {
     try {
-        const abvnId = currentUserId; // the ABVN rejecting
+        const abvnId = volunteer.sourceAbvnKey; 
+        const abvnName = volunteer.endorsedDetails?.endorsedToABVNName || 'Unknown ABVN';
         const timestamp = Date.now();
 
-        // 1. Move volunteer back to Pending
+        // 1. Move volunteer back to Pending with a "rejected" node
         await database.ref(`volunteerApplications/pendingVolunteer/${volunteer.key}`).set({
             ...volunteer,
-            rejectedBy: abvnId,
-            rejectionReason: reason,
-            rejectedAt: timestamp
+            rejected: {
+                byABVN: abvnName,        
+                byId: abvnId,            
+                reason: reason || '',     
+                at: timestamp            
+            }
         });
 
-        // 2. Remove from Endorsed
-        await database.ref(`endorsedVolunteers/${volunteer.key}`).remove();
+        // 2. Remove volunteer from ABVN's endorsed list
+        await database.ref(`volunteerEndorsements/${abvnId}/endorsedVolunteers/${volunteer.key}`).remove();
 
-        Swal.fire('Rejected!', 'Volunteer has been moved back to pending.', 'success');
+        // 3. Remove associated requestId from the volunteer's data (if it exists)
+        if (volunteer.requestId) {
+            await database.ref(`volunteerGroups/${abvnId}/volunteerNeeds/${volunteer.requestId}/assigned`).transaction(current => {
+                return (current || 1) - 1; // decrement the assigned count
+            });
 
-        // 3. Refresh endorsed table only
+            await database.ref(`volunteerRequests/${volunteer.requestId}/assigned`).transaction(current => {
+                return (current || 1) - 1; // decrement global assigned count
+            });
+        }
+
+        Swal.fire({
+            title: 'Rejected!',
+            text: 'Volunteer has been moved back to pending.',
+            icon: 'success',
+            showConfirmButton: true,
+            confirmButtonText: 'Ok',
+            allowOutsideClick: false,
+            customClass: {
+                popup: 'swal2-popup-success-clean',
+                title: 'swal2-title-success-clean',
+                htmlContainer: 'swal2-text-success-clean',
+                confirmButton: 'my-success-button'
+            }
+        });
+
+        // 4. Refresh endorsed table only
         fetchEndorsedVolunteers(currentUserId);
 
     } catch (error) {
@@ -1026,10 +1093,10 @@ function applyFiltersAndSort() {
                         fieldValue = volunteer.address?.formattedAddress.toLowerCase();  // Or whatever Location field is
                         break;
                     case 'EndorsedToABVN':
-                        fieldValue = `${volunteer.endorsedToABVNName || ''} ${volunteer.endorsedToABVNLocation || ''}`.toLowerCase();
+                        fieldValue = `${volunteer.endorsedDetails?.endorsedToABVNName || ''} ${volunteer.endorsedDetails?.endorsedToABVNLocation || ''}`.toLowerCase();
                         break;
                     case 'EndorsementDate':
-                        fieldValue = formatDate(volunteer.endorsementDate).toLowerCase();
+                        fieldValue = formatDate(volunteer.endorsedDetails?.endorsementDate).toLowerCase();
                         break;
                     case 'Skills':
                         fieldValue = getSkillsString(volunteer);
@@ -1051,7 +1118,7 @@ function applyFiltersAndSort() {
                     (volunteer.address?.formattedAddress || '').toLowerCase().includes(searchTerm) ||
                     (volunteer.socialMediaLink || '').toLowerCase().includes(searchTerm) ||
                     (volunteer.additionalInfo || '').toLowerCase().includes(searchTerm) ||
-                    (volunteer.endorsedToABVNName || '').toLowerCase().includes(searchTerm) ||
+                    (volunteer.endorsedDetails?.endorsedToABVNName || '').toLowerCase().includes(searchTerm) ||
                     (volunteer.endorsedToABVNLocation || '').toLowerCase().includes(searchTerm) ||
                     getSkillsString(volunteer).includes(searchTerm) ||
                     getAvailabilityString(volunteer).includes(searchTerm)
@@ -1099,12 +1166,12 @@ function applyFiltersAndSort() {
                     valB = b.address?.formattedAddress.toLowerCase();
                     break;
                 case 'EndorsedToABVN':
-                    valA = `${a.endorsedToABVNName || ''} ${a.endorsedToABVNLocation || ''}`.toLowerCase();
-                    valB = `${b.endorsedToABVNName || ''} ${b.endorsedToABVNLocation || ''}`.toLowerCase();
+                    valA = `${a.endorsedDetails?.endorsedToABVNName || ''} ${a.endorsedDetails?.endorsedToABVNLocation || ''}`.toLowerCase();
+                    valB = `${b.endorsedDetails?.endorsedToABVNName || ''} ${b.endorsedDetails?.endorsedToABVNLocation || ''}`.toLowerCase();
                     break;
                 case 'EndorsementDate':
-                    valA = new Date(a.endorsementDate || 0).getTime();
-                    valB = new Date(b.endorsementDate || 0).getTime();
+                    valA = new Date(a.endorsedDetails?.endorsementDate || 0).getTime();
+                    valB = new Date(b.endorsedDetails?.endorsementDate || 0).getTime();
                     break;
                 case 'Skills':
                     valA = Array.isArray(a.skills) ? a.skills[0]?.toLowerCase() || '' : '';
@@ -1293,7 +1360,8 @@ function renderArchivedVolunteerApplications() {
             <td>${volunteer.availability?.specificDateTimeSlots && Array.isArray(volunteer.availability.specificDateTimeSlots) ? `<ol>${volunteer.availability.specificDateTimeSlots.map(slot => `<li>${slot.date || 'N/A'} at ${slot.time || 'N/A'}</li>`).join('')}</ol>` : 'N/A'}</td>
             <td>${volunteer.address?.formattedAddress || 'N/A'}</td>
             <td>${skillsList}</td>
-            <td>${volunteer.endorsedToABVNName ? `${volunteer.endorsedToABVNName} (${volunteer.endorsedToABVNLocation})` : 'N/A'}</td>
+            <td>${volunteer.endorsedDetails?.endorsedToABVNName ? `${volunteer.endorsedDetails?.endorsedToABVNName} (${volunteer.endorsedDetails?.endorsedToABVNLocation})` : 'N/A'}</td>
+            <td>${volunteer.endorsedDetails?.taskName}</td>
             <td>${formatDate(volunteer.archivedAt)}</td>
             <td>
                 ${permissions.canRetrieve ? `<button class="retrieveBtn" data-key="${volunteer.key}">Retrieve</button>` : ''}
@@ -1435,7 +1503,7 @@ function showVolunteerDetails(volunteer) {
 
     // Include status for admins only
     const statusHtml = permissions.canView
-        ? `<p><strong>Status:</strong> ${volunteer.status || 'N/A'}</p>`
+        ? `<p><strong>Status:</strong> ${volunteer.endorsedDetails?.status || 'N/A'}</p>`
         : '';
 
     modalContentDiv.innerHTML = `
@@ -1446,8 +1514,9 @@ function showVolunteerDetails(volunteer) {
             <p><strong>Mobile Number:</strong> ${volunteer.mobileNumber || 'N/A'}</p>
             <p><strong>Age:</strong> ${volunteer.age || 'N/A'}</p>
             <p><strong>Social Media:</strong> ${socialMediaHtml}</p>
-            <p><strong>Additional Info:</strong> ${volunteer.additionalInfo || volunteer.otherSkillComments || 'N/A'}</p>
+            <p><strong>Additional Info:</strong> ${volunteer.additionalInfo || volunteer.otherSkillComments || '-'}</p>
             ${statusHtml}
+            <p><strong>Task Name:</strong> ${volunteer.endorsedDetails?.taskName}</p>
             <hr>
             <h2>Address Information:</h2>
             <div style="margin-left: 15px;">
@@ -1464,8 +1533,8 @@ function showVolunteerDetails(volunteer) {
             ${skillsHtml}
             <hr>
             <h2>Endorsement Details:</h2>
-            <p><strong>Endorsed To ABVN:</strong> ${volunteer.endorsedToABVNName ? `${volunteer.endorsedToABVNName} (${volunteer.endorsedToABVNLocation})` : 'N/A'}</p>
-            <p><strong>Endorsement Date:</strong> ${formatDate(volunteer.endorsementDate)}</p>
+            <p><strong>Endorsed To ABVN:</strong> ${volunteer.endorsedDetails?.endorsedToABVNName ? `${volunteer.endorsedDetails?.endorsedToABVNName} (${volunteer.endorsedDetails?.endorsedToABVNLocation})` : 'N/A'}</p>
+            <p><strong>Endorsement Date:</strong> ${formatDate(volunteer.endorsedDetails?.endorsementDate)}</p>
         </div>
     `;
     previewModal.style.display = 'flex';
