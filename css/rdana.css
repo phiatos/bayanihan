@@ -326,12 +326,13 @@ label:has(+ textarea[required])::after {
 
 #disasterprofile-table {
   width: 100%;
-  border-collapse: separate;
+  border-collapse: collapse;
   border-spacing: 0;
   border: 1px solid #ffffff;
   border-radius: 10px;
   overflow: hidden;
   margin-top: 15px;
+  margin-bottom: 15px;
   font-family: Arial, sans-serif;
   font-size: 12px;
   color: #333;
@@ -453,11 +454,20 @@ textarea:focus {
 }
 
 /* General table styling */
-.preview-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin: 20px 0;
+.table-wrapper {
+  max-height: 300px;      /* vertical scroll limit */
+  overflow-y: auto;       /* allow vertical scrolling */
+  overflow-x: auto;       /* allow horizontal scrolling */
+  margin: 10px 0;
+  border: 1px solid #ddd; /* optional, makes it clearer */
 }
+
+.preview-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 600px;       /* force horizontal scroll if table is wider */
+}
+
 
 /* Table header and cell styling */
 .preview-table th, .preview-table td {
@@ -493,9 +503,22 @@ textarea:focus {
     background-color: #f2f2f2;
 }
 
-#form-page-1, #form-page-2, #form-page-3, 
+#form-page-1, #form-page-3, 
 #form-page-4, #form-page-5{
   max-height: max-content;
+}
+
+#form-main-content {
+  min-height: 750px;       /* ensures it at least fills the viewport */
+  max-height: 500px;       /* prevents it from growing beyond viewport */
+  overflow-y: auto;        /* scroll only if content exceeds */
+}
+
+
+#form-page-2 .form-container-1 {
+  display: flex;
+  flex-direction: column;
+  max-height: max-content;   /* adjust depending on your layout */
 }
 
 #form-page-5 .form-container-1 {
@@ -503,6 +526,8 @@ textarea:focus {
   flex-direction: column;
   max-height: 600px;   /* adjust depending on your layout */
 }
+
+
 
 #preview-data {
   flex: 1;             /* take up available space */
@@ -651,6 +676,489 @@ textarea:focus {
     font-size: 10px;
   }
   }
+
+#progressBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 30px auto;
+  max-width: 100%;
+  position: relative;
+}
+
+.step {
+  position: relative;
+  flex: 1;
+  text-align: center;
+  font-weight: 600;
+  color: #9ca3af; /* gray-400 */
+  transition: 0.3s;
+}
+
+.step::before {
+  content: "";
+  display: block;
+  margin: 0 auto 10px auto;
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  background-color: #d1d5db; 
+  line-height: 35px;
+  font-size: 16px;
+  color: white;
+  z-index: 1;
+  transition: 0.3s;
+}
+
+.step.active {
+  color: var(--accent-color); 
+}
+
+.step.active::before {
+  background-color: var(--accent-color);
+}
+
+.step.completed {
+  color: #10b981; /* green-500 */
+}
+
+.step.completed::before {
+  background-color: #10b981; /* green-500 */
+  content: "✔";
+  font-size: 18px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Connecting lines */
+#progressBar::before {
+  content: "";
+  position: absolute;
+  top: 17px; /* center of circles */
+  left: 0;
+  right: 0;
+  height: 4px;
+  background-color: #d1d5db; /* gray-300 */
+  z-index: 0;
+}
+
+#progressBar .step.active ~ .step::before {
+  background-color: #d1d5db;
+}
+
+/* Scope everything under .disaster-profile to avoid conflicts */
+.disaster-profile .disaster-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.disaster-profile .disaster-fields label{
+  width: 550px;
+}
+
+.disaster-profile .top-fields .input-field,
+.disaster-profile .bottom-fields .input-field {
+  flex: 1 1 45%; /* two per row on larger screens */
+  min-width: 250px;
+}
+
+.disaster-profile .add-another {
+  margin-top: 0.5rem;
+  padding: 6px;
+  font-size: 0.85rem;
+  width: 500px;
+  font-weight: 500;
+  text-align: center;
+  color: #fff;
+  background-color: var(--accent-color);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+  user-select: none;
+}
+
+.disaster-profile .add-another:hover {
+  background-color: var( --accent-hover-color);
+  transform: translateY(-1px);
+}
+
+.disaster-profile .add-another:active {
+  background-color: #9f2462;
+  transform: translateY(0);
+}
+
+.Profilepreview-table {
+  display: flex;
+  justify-content: center;  /* Centers table horizontally */
+  margin-top: 5px;        /* Add spacing above */
+  width: 100%;
+}
+
+.Profilepreview-table table {
+  border-collapse: collapse;     
+  text-align: left;
+  background: #fff;         /* Optional: make it look distinct */
+  border: 1px solid #ddd;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.Profilepreview-table th,
+.Profilepreview-table td {
+  border: 1px solid #ddd;
+  padding: 8px;
+}
+
+.Profilepreview-table th {
+  background: #f4f4f4;
+}
+
+.add-another {
+  margin-top: 0.5rem;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #fff;
+  background-color: #007bff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.add-another:hover {
+  background-color: #0056b3;
+}
+
+.Profilepreview-table button {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.close-preview {
+  background: transparent;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  color: #666;
+}
+
+.close-preview:hover {
+  color: #d9534f;
+}
+
+/* Form Section Styling */
+.form-section {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  border: 2px dashed #ffffff;
+  border-radius: 10px;
+  background: #fafafa4f;
+  width: 100%;
+}
+
+/* Input Row (flexbox layout for grouping) */
+.input-row {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.input-field {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.input-field label {
+  font-weight: 600;
+  margin-bottom: 5px;
+  color: #444;
+}
+
+.input-field input,
+.input-field select {
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  outline: none;
+}
+
+.input-field textarea {
+  display: block;
+  width: 100%;
+  min-width: 980px;
+  max-width: 100%;
+  height: auto;
+  min-height: 200px; /* consistent default height */
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+  padding: 0.6rem;
+  outline: none;
+  resize: vertical; /* allow only vertical resizing */
+  box-sizing: border-box; /* ensures padding is included in width */
+}
+
+
+.input-field input:focus,
+.input-field select:focus,
+.input-field textarea:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 4px rgba(0, 123, 255, 0.3);
+}
+
+/* Full width textarea */
+.input-field.full-width {
+  flex: 100%;
+  width: 100%;
+}
+
+/* Add Another Button */
+.add-another {
+  display: inline-block;
+  margin-top: 0.5rem;
+  width: 100%;
+  padding: 0.6rem 1.2rem;
+  border: none;
+  border-radius: 6px;
+  background: #007bff;
+  color: white;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.add-another:disabled {
+  background: #bbb;
+  cursor: not-allowed;
+}
+
+.add-another:hover:not(:disabled) {
+  background: #0056b3;
+}
+
+/* Table Styling */
+.Locationspreview-table {
+  margin-top: 1rem;
+  overflow-x: auto;
+}
+
+#data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+#data-table th,
+#data-table td {
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  text-align: center;
+}
+
+#data-table th {
+  background: #f1f1f1;
+  font-weight: 600;
+}
+
+#data-table .no-entries td {
+  font-style: italic;
+  color: #888;
+}
+
+input.error, select.error, textarea.error {
+  border: 2px solid red;
+  background-color: #ffecec;
+}
+
+.form-page {
+  display: none; /* hidden by default */
+}
+
+.form-page.active {
+  display: block; /* only active page is shown */
+}
+
+#addRowBtn{
+  margin-top: 20px;
+  width: 100%;
+}
+
+.ImmediateNeedspreview-table, .InitialResponsepreview-table{
+  width: 100%;
+  display: block;       /* allows scrolling */
+  overflow-x: auto;     /* horizontal scroll if too wide */
+  overflow-y: auto;     /* vertical scroll if too tall */
+  max-height: 200px;    /* adjust height for vertical scroll */
+  border: 1px solid #ddd; /* optional for clarity */
+}
+
+.error-border {
+  border: 1px solid #dc2626 !important;
+  border-radius: 4px;
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.15);
+}
+
+.error-row td {
+  background: #fff5f5;
+  color: #7f1d1d;
+  padding: 8px 12px;
+  font-size: 13px;
+  border-top: 2px solid #fecaca;
+}
+
+.error-item {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.error-field {
+  font-weight: 600;
+  margin-right: 6px;
+}
+
+.error-text {
+  color: #7f1d1d;
+}
+
+/* ===== Preview Styles ===== */
+.preview-section {
+  margin-bottom: 25px;
+  padding: 15px;
+  border: 1px solid #14adbb;
+  border-radius: 8px;
+  background: #f9fdfd;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.preview-section h3,
+.preview-section h4 {
+  margin-bottom: 10px;
+  color: #0c7d87;
+  font-weight: 600;
+}
+
+.preview-section p {
+  margin: 3px 0;
+  font-size: 14px;
+  color: #333;
+}
+
+.preview-section ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.preview-section ul li {
+  font-size: 14px;
+  margin-bottom: 3px;
+  color: #444;
+}
+
+/* ===== Preview Table Styles ===== */
+.preview-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+  font-size: 14px;
+  background: #fff;
+}
+
+.preview-table th {
+  background: #14adbb;
+  color: #fff;
+  padding: 8px;
+  text-align: left;
+  font-weight: 600;
+}
+
+.preview-table td {
+  border: 1px solid #ddd;
+  padding: 6px 8px;
+  color: #333;
+}
+
+.preview-table tr:nth-child(even) {
+  background: #f4fafa;
+}
+
+.preview-table tr:hover {
+  background: #eaf8f9;
+}
+
+.badge {
+  display: inline-block;
+  background: #14adbb;
+  color: white;
+  padding: 4px 10px;
+  margin: 3px;
+  border-radius: 12px;
+  font-size: 13px;
+}
+.checklist-container {
+  margin: 6px 0 12px;
+}
+
+/* Generic scrollable container for all preview tables */
+.preview-section,
+#checklist-table,
+#data-table {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 15px 0;
+  border: 1px solid #14adbb;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+/* Tables inside preview sections */
+.preview-section table,
+#checklist-table,
+#data-table {
+  width: 100%;
+  min-width: 800px; /* Wider for tables with many columns */
+  border-collapse: collapse;
+  font-size: 14px;
+  color: #333;
+}
+
+/* Table header + cells */
+.preview-section th,
+.preview-section td,
+#checklist-table th,
+#checklist-table td,
+#data-table th,
+#data-table td {
+  border: 1px solid #14adbb;
+  padding: 8px 10px;
+  text-align: center;
+  white-space: nowrap; /* Prevents column text from breaking */
+}
+
+/* Sticky headers for better readability */
+.preview-section th,
+#checklist-table th,
+#data-table th {
+  position: sticky;
+  top: 0;
+  background: var(--primary-color);
+  z-index: 2;
+}
+
+
+
+   
+
+
   
   
   
