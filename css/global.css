@@ -659,54 +659,42 @@ hr {
 }
 
 /* ==========================================================================
-  Table Styling (reliefslog, reportslog, activation)
+  Table Styling
 ========================================================================== */
 .table-container {
   width: 100%;
   min-height: 100px;
-  max-height: 540px;
+  max-height: 500px;
   overflow-x: auto;
   overflow-y: auto;
 }
 
 table {
-  width: 100%;
-  min-width: 400px;   
-  max-width: 1200px; 
+  width: 90%;              
+  min-width: 300px;       
+  max-width: 900px;       
   margin: 0 auto;    
-  
   border-collapse: collapse;
   border-spacing: 0;
   background-color: #fff;
-  
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border-radius: 6px;
   overflow: hidden;
 }
 
-
 /* Table header and body */
 th, td {
-  padding: 10px 8px;       /* reduced padding for a tighter look */
-  font-size: 12px;         /* smaller but readable font */
+  padding: 6px 8px;      
+  font-size: clamp(10px, 2vw, 13px);      
   text-align: center;
   vertical-align: middle;
   align-content: center;
   color: #333;
   border-bottom: 1px solid #f0f0f0;
   word-break: break-word;
-  min-width: 120px;         /* slightly smaller min width */
-  max-width: 300px;        /* reduced max width */
-  white-space: normal;     /* allow wrapping */
-}
-
-td {
-  font-size: 11px;         /* smaller font for data cells */
-  vertical-align: top;
-  padding: 8px 8px;
-  white-space: nowrap;       /* keep text on one line */
-  overflow: hidden;
-  text-overflow: ellipsis;   /* add "..." when too long */
+  min-width: clamp(80px, 12vw, 125px);   
+  max-width: 200px;        
+  white-space: normal;    
 }
 
 th {
@@ -718,21 +706,27 @@ th {
   font-size: 12px;
   letter-spacing: 0.05em;
   color: #555;
-  padding: 12px 10px;
+  padding: 8px 6px;
   border-bottom: 2px solid #ddd;
   z-index: 10;
 
-  white-space: normal;       /* allow wrapping */
-  word-break: break-word;    /* break long words */
-  hyphens: auto;             /* add hyphenation */
+  white-space: normal;       
+  word-break: break-word;   
+  hyphens: auto;             
   text-align: center;
-  
-  box-shadow: inset 0 -1px 0 #ccc;  /* subtle underline effect */
-  user-select: none;          /* prevent accidental text selection */
-  cursor: default;            /* indicate non-interactive header */
+
+  box-shadow: inset 0 -1px 0 #ccc;  
+  user-select: none;         
+  cursor: default;           
   transition: background-color 0.3s ease;
 }
 
+td {
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  /* text-overflow: ellipsis; */
+}
 
 /* Row hover effect */
 tr:hover {
@@ -746,11 +740,11 @@ td input[type="email"],
 td input[type="number"],
 td select {
   width: 100%;
-  padding: 10px 12px; /* slightly more padding for comfort */
-  font-size: 14px; /* match table font size */
-  background-color: #f9fafb; /* lighter, modern shade */
+  padding: 8px 6px; 
+  font-size: 11px;
+  background-color: #f9fafb; 
   border: 1px solid #d0d5da;
-  border-radius: 6px; /* slightly rounder for a softer feel */
+  border-radius: 6px;
   box-sizing: border-box;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
@@ -1216,33 +1210,6 @@ button[type="submit"]:hover,
   margin-left: 20px;
 }
 
-/* td:has(.viewBtn, .approveBtn, .rejectBtn, .editBtn, .registerBtn) {
-  display: flex;
-  gap: 5px;
-  justify-content: center;
-  align-items: center;
-  padding: 8px;
-}
-
-.viewBtn, .approveBtn, .rejectBtn, .editBtn, .registerBtn {
-  width: 40px;
-  height: 40px;
-  padding: 0;
-  font-size: 20px;
-  border-radius: 50%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.viewBtn:hover, .approveBtn:hover, .rejectBtn:hover, 
-.editBtn:hover, .registerBtn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-} */
-
 /* ==========================================================================
  Pagination
 ========================================================================== */
@@ -1442,25 +1409,25 @@ button[type="submit"]:hover,
 /* Buttons */
 .form-page-container form .next-btn, .next-btn,
 .form-page-container form .backBtn, .back-btn, .activate-btn{
-    width: 200px;
-    padding: 8px 0; /* a bit more vertical padding for comfort */
-    background-color: var(--primary-color);
-    color: var(--white);
-    box-sizing: border-box;
-    border: none;
-    border-radius: 10px; /* slightly rounder for modern feel */
-    cursor: pointer;
-    font-size: 14px; /* slightly larger for readability */
-    letter-spacing: 0.5px;
-    display: inline-block;
-    text-align: center;
-    margin-top: 10px;
-    margin-bottom: 25px;
-    transition: 
-      background-color 0.3s ease, 
-      box-shadow 0.3s ease, 
-      transform 0.2s ease;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  width: 200px;
+  padding: 8px 0; /* a bit more vertical padding for comfort */
+  background-color: var(--primary-color);
+  color: var(--white);
+  box-sizing: border-box;
+  border: none;
+  border-radius: 10px; /* slightly rounder for modern feel */
+  cursor: pointer;
+  font-size: 14px; /* slightly larger for readability */
+  letter-spacing: 0.5px;
+  display: inline-block;
+  text-align: center;
+  margin-top: 10px;
+  margin-bottom: 25px;
+  transition: 
+    background-color 0.3s ease, 
+    box-shadow 0.3s ease, 
+    transform 0.2s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
 }
 
 .cancel-btn{
@@ -2015,6 +1982,37 @@ label:has(+ textarea[required])::after {
   #sortSelect, #roleFilter, #actionFilter {
     width: 100%;
     max-width: 100%;
+  }
+}
+
+/* Base (mobile-first) */
+th, td {
+  font-size: clamp(10px, 2vw, 13px);
+  padding: 6px 8px;
+  min-width: clamp(80px, 15vw, 125px);
+}
+
+table {
+  width: 100%;
+  min-width: unset;
+}
+
+/* Tablet screens (≥600px) */
+@media (min-width: 600px) {
+  table {
+    min-width: 480px;
+  }
+  th, td {
+    padding: 10px 8px;
+  }
+}
+
+/* Larger screens (≥900px) */
+@media (min-width: 900px) {
+  table {
+    width: 90%;
+    max-width: 900px;
+    margin: 0 auto;
   }
 }
 

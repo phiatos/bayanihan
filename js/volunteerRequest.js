@@ -1,3 +1,4 @@
+//volunteerRequest.js
 const firebaseConfig = {
     apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
     authDomain: "bayanihan-5ce7e.firebaseapp.com",
@@ -55,6 +56,48 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // --- NEW: Date & Time Real-time Validation ---
+    const taskStartDateInput = document.getElementById("taskStartDate");
+    const taskEndDateInput = document.getElementById("taskEndDate");
+    const taskTimeStartInput = document.getElementById("taskTimeStart");
+    const taskTimeEndInput = document.getElementById("taskTimeEnd");
+
+    function validateDatesAndTimes() {
+        let isValid = true;
+        const today = new Date();
+        today.setHours(0,0,0,0);
+
+        const startDate = new Date(taskStartDateInput.value);
+        const endDate = new Date(taskEndDateInput.value);
+
+        clearError(taskStartDateInput);
+        clearError(taskEndDateInput);
+        clearError(taskTimeStartInput);
+        clearError(taskTimeEndInput);
+
+        if (startDate < today) {
+            showError(taskStartDateInput, "Start date cannot be in the past.");
+            isValid = false;
+        }
+
+        if (endDate < startDate) {
+            showError(taskEndDateInput, "End date cannot be before start date.");
+            isValid = false;
+        }
+
+        if (taskStartDateInput.value === taskEndDateInput.value && taskTimeEndInput.value <= taskTimeStartInput.value) {
+            showError(taskTimeEndInput, "End time must be after start time for same-day tasks.");
+            isValid = false;
+        }
+
+        return isValid;
+    }
+
+    [taskStartDateInput, taskEndDateInput, taskTimeStartInput, taskTimeEndInput].forEach(input => {
+        input.addEventListener("input", validateDatesAndTimes);
+    });
+
+    // ------------------- Existing validateFormForSubmission -------------------
     async function validateFormForSubmission() {
         let isValid = true;
         const errors = [];
@@ -66,12 +109,15 @@ document.addEventListener('DOMContentLoaded', () => {
             isValid = false;
         }
 
-        if (!isEmpty(otherSkillsTextarea.value)) {
-            if (otherSkillsTextarea.value.length > 500) {
-                showError(otherSkillsTextarea, 'Other Skills description must not exceed 500 characters.');
-                errors.push('Other Skills description must not exceed 500 characters.');
-                isValid = false;
-            }
+        if (!isEmpty(otherSkillsTextarea.value) && otherSkillsTextarea.value.length > 500) {
+            showError(otherSkillsTextarea, 'Other Skills description must not exceed 500 characters.');
+            errors.push('Other Skills description must not exceed 500 characters.');
+            isValid = false;
+        }
+
+        if (!validateDatesAndTimes()) {
+            errors.push('Please fix the date/time errors.');
+            isValid = false;
         }
 
         const user = auth.currentUser;
@@ -87,9 +133,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const isSameSkills = selectedSkills.length === existingSkills.length &&
                     selectedSkills.every(skill => existingSkills.includes(skill)) &&
                     otherSkillsTextarea.value.trim() === existingOtherSkills;
-                if (isSameSkills) {
-                    skillsAlreadyRequested = true;
-                }
+                if (isSameSkills) skillsAlreadyRequested = true;
             });
 
             if (skillsAlreadyRequested) {
@@ -101,13 +145,60 @@ document.addEventListener('DOMContentLoaded', () => {
         return { isValid, errors };
     }
 
+    // ------------------- Existing isVolunteerAvailableForTask & findMatchingVolunteers -------------------
+    function isVolunteerAvailableForTask(volunteerAvailability, taskStartDate, taskEndDate, taskTimeStart, taskTimeEnd) {
+        let currentDate = new Date(taskStartDate);
+        const endDate = new Date(taskEndDate);
+
+        while (currentDate <= endDate) {
+            const dateStr = currentDate.toISOString().split('T')[0];
+            const availableToday = volunteerAvailability.some(slot =>
+                slot.date === dateStr &&
+                slot.startTime <= taskTimeStart &&
+                slot.endTime >= taskTimeEnd
+            );
+
+            if (!availableToday) return false;
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+
+        return true;
+    }
+
+    async function findMatchingVolunteers(needsData) {
+        const volunteersRef = database.ref('volunteers'); 
+        const snapshot = await volunteersRef.once('value');
+        const matchingVolunteers = [];
+
+        snapshot.forEach(childSnapshot => {
+            const volunteer = childSnapshot.val();
+            const volunteerSkills = volunteer.skills || [];
+            const volunteerAvailability = volunteer.availability || []; 
+
+            const skillMatch = needsData.skills.some(skill => volunteerSkills.includes(skill)) ||
+                               (needsData.otherSkillComments && volunteerSkills.includes(needsData.otherSkillComments));
+
+            if (!skillMatch) return;
+
+            const isAvailable = isVolunteerAvailableForTask(
+                volunteerAvailability,
+                needsData.taskStartDate,
+                needsData.taskEndDate,
+                needsData.taskTimeStart,
+                needsData.taskTimeEnd
+            );
+
+            if (isAvailable) matchingVolunteers.push({ id: childSnapshot.key, ...volunteer });
+        });
+
+        return matchingVolunteers;
+    }
+
+    // ------------------- Existing form submit listener -------------------
     if (needsForm) {
         needsForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-
-            if (isSubmitting) {
-                return;
-            }
+            if (isSubmitting) return;
 
             submitButton.disabled = true;
             submitButton.textContent = 'Submitting...';
@@ -116,13 +207,7 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const user = auth.currentUser;
                 if (!user) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Authentication Required',
-                        text: 'Please log in to submit volunteer needs.',
-                        showConfirmButton: true,
-                        confirmButtonText: 'OK'
-                    });
+                    Swal.fire({ icon: 'error', title: 'Authentication Required', text: 'Please log in to submit volunteer needs.', showConfirmButton: true, confirmButtonText: 'OK' });
                     submitButton.disabled = false;
                     submitButton.textContent = 'Save Needs';
                     isSubmitting = false;
@@ -131,57 +216,55 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const { isValid, errors } = await validateFormForSubmission();
                 if (!isValid) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Invalid Input',
-                        html: errors.join('<br>'),
-                        showConfirmButton: true,
-                        confirmButtonText: 'OK'
-                    });
+                    Swal.fire({ icon: 'error', title: 'Invalid Input', html: errors.join('<br>'), showConfirmButton: true, confirmButtonText: 'OK' });
                     submitButton.disabled = false;
                     submitButton.textContent = 'Save Needs';
                     isSubmitting = false;
                     return;
                 }
 
-                // Collect request data
                 const taskNameInput = document.getElementById("taskName");
                 const volunteersNeededInput = document.getElementById("volunteersNeeded");
 
                 const needsData = {
-                    taskName: taskNameInput.value.trim(), // <- add taskName
-                    volunteersNeeded: Number(volunteersNeededInput.value), // <- add volunteersNeeded
+                    taskName: taskNameInput.value.trim(),
+                    volunteersNeeded: Number(volunteersNeededInput.value),
                     skills: Array.from(document.querySelectorAll('input[name="neededSkills"]:checked')).map(cb => cb.value),
                     otherSkillComments: otherSkillsTextarea.value.trim(),
+                    taskStartDate: taskStartDateInput.value,
+                    taskEndDate: taskEndDateInput.value,
+                    taskTimeStart: taskTimeStartInput.value,
+                    taskTimeEnd: taskTimeEndInput.value,
                     submittedBy: user.uid,
                     submissionDateTime: new Date().toISOString(),
-                    assigned: 0, // initialize assigned volunteers
+                    assigned: 0,
                     status: "Pending"
                 };
 
-                // Get ABVN Name from volunteerGroups
                 const abvnSnapshot = await database.ref(`volunteerGroups/${user.uid}/organization`).once("value");
                 const abvnName = abvnSnapshot.exists() ? abvnSnapshot.val() : "Unknown ABVN";
 
-                // Generate a shared key for both nodes
                 const newRequestRef = database.ref(`volunteerGroups/${user.uid}/volunteerNeeds`).push();
                 const requestId = newRequestRef.key;
 
-                // Save under volunteerGroups
                 await newRequestRef.set(needsData);
+                await database.ref(`volunteerRequests/${requestId}`).set({ abvnId: user.uid, abvnName, ...needsData });
 
-                // Save under global volunteerRequests with same ID
-                await database.ref(`volunteerRequests/${requestId}`).set({
-                    abvnId: user.uid,
-                    abvnName,
-                    ...needsData
-                });
+                const matchingVolunteers = await findMatchingVolunteers(needsData);
+                console.log("Matching Volunteers:", matchingVolunteers);
 
                 Swal.fire({
                     title: 'Success!',
                     text: 'Volunteer needs submitted successfully!',
                     icon: 'success',
-                    confirmButtonText: 'OK'
+                    showConfirmButton: true,
+                    confirmButtonText: 'OK',
+                    customClass: {
+                        popup: 'swal2-popup-success-clean',
+                        title: 'swal2-title-success-clean',
+                        htmlContainer: 'swal2-text-success-clean',
+                        confirmButton: 'my-success-button'
+                    }
                 });
 
                 needsForm.reset();
@@ -190,12 +273,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             } catch (error) {
                 console.error("Error adding volunteer needs to Realtime Database: ", error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'There was an error submitting your request. Please try again.',
-                    confirmButtonText: 'OK'
-                });
+                Swal.fire({ icon: 'error', title: 'Error', text: 'There was an error submitting your request. Please try again.', confirmButtonText: 'OK' });
             } finally {
                 submitButton.disabled = false;
                 submitButton.textContent = 'Save Needs';

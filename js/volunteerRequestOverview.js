@@ -11,9 +11,8 @@ const firebaseConfig = {
 };
 
 firebase.initializeApp(firebaseConfig);
-const database = firebase.database();
+    const database = firebase.database();
 
-document.addEventListener("DOMContentLoaded", () => {
     const tableBody = document.getElementById("requests-table");
     const totalRequestsEl = document.getElementById("total-requests");
     const totalVolunteersEl = document.getElementById("total-volunteers");
@@ -41,12 +40,22 @@ document.addEventListener("DOMContentLoaded", () => {
                 Object.entries(groupData.volunteerNeeds).forEach(([reqId, reqData]) => {
                     const skills = reqData.skills || [];
                     const otherSkills = reqData.otherSkillComments || "";
-                    const status = reqData.status || "Pending";
                     const volunteersNeeded = reqData.volunteersNeeded || 0;
                     const assigned = reqData.assigned || 0;
                     const taskName = reqData.taskName || "—";
-                    
-                    // Collect skills for filter
+
+                    // Auto status
+                    let status = getAutoStatus({ volunteersNeeded, assigned });
+
+                    // Update Firebase if different
+                    if (status !== reqData.status) {
+                        const updates = {};
+                        updates[`volunteerGroups/${groupSnap.key}/volunteerNeeds/${reqId}/status`] = status;
+                        updates[`volunteerRequests/${reqId}/status`] = status;
+                        database.ref().update(updates);
+                    }
+
+                    // Collect skills
                     skills.forEach(skill => allSkills.add(skill));
 
                     allRequests.push({
@@ -66,7 +75,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
 
         populateSkillsFilter();
-        renderTable();
+        await renderTable();
         updateDashboard();
     }
 
@@ -81,59 +90,98 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
+    // Determine correct status automatically
+    function getAutoStatus(req) {
+        const remaining = (req.volunteersNeeded || 0) - (req.assigned || 0);
+        if (remaining <= 0) return "Completed";
+        if (req.assigned > 0) return "In Progress";
+        return "Pending";
+    }
+
     // Render requests in the table
-    function renderTable() {
+    async function renderTable() {
         tableBody.innerHTML = "";
 
         const searchTerm = searchInput.value.toLowerCase();
         const statusValue = statusFilter.value;
         const skillValue = skillsFilter.value;
 
-        const filtered = allRequests.filter(req => {
-            const matchesSearch =
-                req.abvnName.toLowerCase().includes(searchTerm) ||
-                req.skills.join(", ").toLowerCase().includes(searchTerm) ||
-                req.taskName.toLowerCase().includes(searchTerm);
+        // Define status order
+        const statusOrder = { "Pending": 1, "In Progress": 2, "Completed": 3 };
 
-            const matchesStatus = statusValue === "" || req.status === statusValue;
-            const matchesSkill = skillValue === "" || req.skills.includes(skillValue);
+        const filtered = allRequests
+            .filter(req => {
+                const matchesSearch =
+                    req.abvnName.toLowerCase().includes(searchTerm) ||
+                    req.skills.join(", ").toLowerCase().includes(searchTerm) ||
+                    req.taskName.toLowerCase().includes(searchTerm);
 
-            return matchesSearch && matchesStatus && matchesSkill;
-        });
+                const matchesStatus = statusValue === "" || req.status === statusValue;
+                const matchesSkill = skillValue === "" || req.skills.includes(skillValue);
 
-        filtered.forEach(req => {
+                return matchesSearch && matchesStatus && matchesSkill;
+            })
+            .sort((a, b) => {
+                // sort by status hierarchy first
+                const statusDiff = statusOrder[a.status] - statusOrder[b.status];
+                if (statusDiff !== 0) return statusDiff;
+
+                // optional secondary sort by submission date (latest first)
+                return new Date(b.submissionDate) - new Date(a.submissionDate);
+            });
+
+        // Helper function to return colored badge HTML
+        function getStatusBadge(status) {
+            let color;
+            switch (status) {
+                case "Completed":
+                    color = "green";
+                    break;
+                case "In Progress":
+                    color = "orange";
+                    break;
+                case "Pending":
+                default:
+                    color = "red";
+            }
+            return `<span class="status ${status.replace(" ", "")}">${status}</span>`;
+        }
+
+        // Loop with index for numbering
+        for (const [index, req] of filtered.entries()) {
+            const remaining = Math.max(req.volunteersNeeded - req.assigned, 0);
+
             const row = document.createElement("tr");
-
-            const remaining = Math.max(req.volunteersNeeded - req.assigned, 0); // Remaining volunteers needed
-
             row.innerHTML = `
+                <td>${index + 1}</td>
                 <td>${req.abvnName}</td>
                 <td>${req.taskName}</td>
                 <td>${req.skills.join(", ") || "—"}</td>
-                <td>${remaining}</td>  <!-- Remaining volunteers needed -->
-                <td>${req.assigned}</td> <!-- Already assigned -->
-                <td>
-                    <select class="status-dropdown" data-id="${req.abvnId}_${req.id}">
+                <td>${remaining}</td>
+                <td>${req.assigned}</td>
+                <td class="status-cell">
+                    ${getStatusBadge(req.status)}
+                    <select class="status-dropdown" data-id="${req.abvnId}_${req.id}" ${req.status === "Completed" ? "disabled" : ""}>
                         <option value="Pending" ${req.status === "Pending" ? "selected" : ""}>Pending</option>
                         <option value="In Progress" ${req.status === "In Progress" ? "selected" : ""}>In Progress</option>
                         <option value="Completed" ${req.status === "Completed" ? "selected" : ""}>Completed</option>
                     </select>
                 </td>
                 <td>
-                    <button class="view-btn" data-id="${req.abvnId}_${req.id}">View</button>
+                    <button class="viewBtn" data-id="${req.abvnId}_${req.id}"><i class='bx bx-show-alt'></i></button>
                 </td>
             `;
-
             tableBody.appendChild(row);
-        });
+        }
 
         attachActions();
     }
 
+
     // Attach button + dropdown actions
     function attachActions() {
         // View modal
-        document.querySelectorAll(".view-btn").forEach(btn => {
+        document.querySelectorAll(".viewBtn").forEach(btn => {
             btn.addEventListener("click", () => {
                 const [abvnId, reqId] = btn.dataset.id.split("_");
                 const request = allRequests.find(r => r.abvnId === abvnId && r.id === reqId);
@@ -146,6 +194,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         <p><strong>Other Skills:</strong> ${request.otherSkills || "—"}</p>
                         <p><strong>Volunteers Needed:</strong> ${request.volunteersNeeded}</p>
                         <p><strong>Assigned Volunteers:</strong> ${request.assigned}</p>
+                        <p><strong>Remaining:</strong> ${Math.max(request.volunteersNeeded - request.assigned, 0)}</p>
                         <p><strong>Status:</strong> ${request.status}</p>
                         <p><strong>Submitted:</strong> ${request.submissionDate ? new Date(request.submissionDate).toLocaleString() : "—"}</p>
                     `,
@@ -184,13 +233,19 @@ document.addEventListener("DOMContentLoaded", () => {
         requestsCompletedEl.textContent = allRequests.filter(r => r.status === "Completed").length;
         requestsPendingEl.textContent = allRequests.filter(r => r.status === "Pending").length;
 
-        // New: Total Assigned Volunteers
+        // In Progress count
+        const requestsInProgressEl = document.getElementById("requests-inprogress");
+        if (requestsInProgressEl) {
+            requestsInProgressEl.textContent = allRequests.filter(r => r.status === "In Progress").length;
+        }
+
+        // Assigned Volunteers
         const totalAssignedEl = document.getElementById("total-assigned");
         if (totalAssignedEl) {
             totalAssignedEl.textContent = allRequests.reduce((sum, r) => sum + (r.assigned || 0), 0);
         }
 
-        // Optional: Total Remaining Volunteers Needed
+        // Remaining Volunteers
         const remainingEl = document.getElementById("total-remaining");
         if (remainingEl) {
             remainingEl.textContent = allRequests.reduce(
@@ -207,4 +262,4 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Initial load
     fetchRequests();
-});
+

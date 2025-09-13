@@ -1219,6 +1219,21 @@ function initializePageFunctions(userId) {
             abvnListContainer.appendChild(volunteerSummary);
         }
 
+        // --- Calculate distance for each group
+        groups.forEach(group => {
+            if (volunteer.address?.latitude && group.address?.latitude) {
+                group.distance = calculateDistance(
+                    volunteer.address.latitude, volunteer.address.longitude,
+                    group.address.latitude, group.address.longitude
+                );
+            } else {
+                group.distance = Infinity; // Push groups without location to the end
+            }
+        });
+
+        // --- Sort ABVN groups by distance (nearest first)
+        groups.sort((a, b) => a.distance - b.distance);
+
         // --- ABVN Group Cards
         groups.forEach(group => {
             const abvnCard = document.createElement("div");
@@ -1226,17 +1241,13 @@ function initializePageFunctions(userId) {
 
             const locationDisplay = group.address?.formattedAddress || "N/A";
 
-            // Distance calculation
+            // Distance display
             let distanceDisplay = "";
-            if (volunteer.address?.latitude && group.address?.latitude) {
-                const distance = calculateDistance(
-                    volunteer.address.latitude, volunteer.address.longitude,
-                    group.address.latitude, group.address.longitude
-                );
+            if (group.distance !== Infinity) {
                 let distanceLabel = `<span style="color:red">Far</span>`;
-                if (distance <= 10) distanceLabel = `<span style="color:green">Near</span>`;
-                else if (distance <= 30) distanceLabel = `<span style="color:orange">Medium</span>`;
-                distanceDisplay = `<div class="info-row"><i class="fas fa-ruler"></i> ${distance.toFixed(1)} km (${distanceLabel})</div>`;
+                if (group.distance <= 10) distanceLabel = `<span style="color:green">Near</span>`;
+                else if (group.distance <= 30) distanceLabel = `<span style="color:orange">Medium</span>`;
+                distanceDisplay = `<div class="info-row"><i class="fas fa-ruler"></i> ${group.distance.toFixed(1)} km (${distanceLabel})</div>`;
             }
 
             // Card header
@@ -1244,6 +1255,9 @@ function initializePageFunctions(userId) {
                 <h4>${group.organization || "N/A"}</h4>
                 <div class="info-row"><i class="fas fa-map-marker-alt"></i> ${locationDisplay}</div>
                 ${distanceDisplay}
+                <div class="info-row"><strong>Match Score:</strong> ${group.score} 
+                    (Location: ${group.scoreBreakdown.location})
+                </div>
             `;
 
             // --- Requests per ABVN
@@ -1255,22 +1269,56 @@ function initializePageFunctions(userId) {
 
                 const remaining = Math.max((reqData.volunteersNeeded || 0) - (reqData.assigned || 0), 0);
 
+                const missingSkills = (reqData.skills || []).filter(skill =>
+                    !(volunteer.skills || []).map(s => s.toLowerCase()).includes(skill.toLowerCase())
+                );
+
+                const isUrgent = remaining <= 2 && remaining > 0;
+
                 const requestDiv = document.createElement("div");
-                requestDiv.classList.add("abvn-request-card"); // new card style
+                requestDiv.classList.add("abvn-request-card");
                 requestDiv.innerHTML = `
                     <div class="request-header">
                         <input type="radio" name="selectedABVN" value="${group.key}" data-request-id="${reqId}" id="group-${group.key}-req-${reqId}" ${remaining === 0 ? "disabled" : ""}>
-                        <label for="group-${group.key}-req-${reqId}"><strong>Task:</strong> ${reqData.taskName || "N/A"}</label>
-                        <span class="remaining-slots ${remaining === 0 ? 'full' : ''}">${remaining} slot(s) remaining</span>
+                        <label for="group-${group.key}-req-${reqId}">
+                            <strong>Task:</strong> ${reqData.taskName || "N/A"} 
+                            ${isUrgent ? '<span class="urgent-task">URGENT</span>' : ''}
+                        </label>
+                        <span class="remaining-slots ${remaining === 0 ? 'full' : isUrgent ? 'urgent' : ''}">
+                            ${remaining} slot(s) remaining
+                        </span>
                     </div>
                     <div class="request-details">
                         <p><strong>Needed Skills:</strong> ${reqData.skills?.join(', ') || "N/A"}</p>
                         <p><strong>Matched Skills:</strong> ${matchedSkills.length ? matchedSkills.join(', ') : "None"}</p>
+                        <p><strong>Skill Gaps:</strong> ${missingSkills.length ? missingSkills.map(s => `<span class="missing-skill">${s}</span>`).join(', ') : "None"}</p>
+                    </div>
+                    <div class="top-volunteers">
+                        <strong>Top Suggested Volunteers:</strong>
+                        <ul id="top-volunteers-${group.key}-${reqId}"><li>Loading...</li></ul>
                     </div>
                 `;
-                abvnCard.appendChild(requestDiv);
-            });
 
+                abvnCard.appendChild(requestDiv);
+
+                // --- Populate Top Suggested Volunteers
+                const topVolList = requestDiv.querySelector(`#top-volunteers-${group.key}-${reqId}`);
+                if (group.pendingVolunteers) {
+                    const suggestions = group.pendingVolunteers
+                        .map(v => ({
+                            ...v,
+                            matchScore: calculateMatchScore(v, reqData).total
+                        }))
+                        .sort((a,b) => b.matchScore - a.matchScore)
+                        .slice(0, 3);
+
+                    topVolList.innerHTML = suggestions.length
+                        ? suggestions.map(v => `<li>${v.firstName} ${v.lastName} (Score: ${v.matchScore})</li>`).join('')
+                        : '<li>No volunteers available</li>';
+                } else {
+                    topVolList.innerHTML = '<li>No volunteers available</li>';
+                }
+            });
 
             abvnListContainer.appendChild(abvnCard);
         });

@@ -21,8 +21,6 @@
             <div class="container">
                 <form id="abvn-needs-form">
                     <fieldset>
-                    <legend>Skills Needed</legend>
-
                     <div class="form-group">
                         <label for="taskName">Task Name</label>
                         <input type="text" id="taskName" name="taskName" placeholder="e.g., Relief Goods Packing" required>
@@ -31,6 +29,26 @@
                     <div class="form-group">
                         <label for="volunteersNeeded">Number of Volunteers Needed</label>
                         <input type="number" id="volunteersNeeded" name="volunteersNeeded" placeholder="e.g., 10" min="1" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="taskStartDate">Task Start Date</label>
+                        <input type="date" id="taskStartDate" name="taskStartDate" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="taskEndDate">Task End Date</label>
+                        <input type="date" id="taskEndDate" name="taskEndDate" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="taskTimeStart">Start Time</label>
+                        <input type="time" id="taskTimeStart" name="taskTimeStart" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="taskTimeEnd">End Time</label>
+                        <input type="time" id="taskTimeEnd" name="taskTimeEnd" required>
                     </div>
 
                     <div class="skills-group">
@@ -48,7 +66,7 @@
                         <div><input type="checkbox" name="neededSkills" value="Transport Coordination"> Transport Coordination</div>
                         <div><input type="checkbox" name="neededSkills" value="Truck Driving"> Truck Driving</div>
                         <div><input type="checkbox" name="neededSkills" value="Bus Driving"> Bus Driving</div>
-                        <div><input type="checkbox" name="neededSkills" value="Van and Shuttle Driving"> Van and Shuttle Driving</div>
+                        <div><input type="checkbox" name="neededSkills" value="Van and Shuttle Driving"> Van / Shuttle Driving</div>
                         <div><input type="checkbox" name="neededSkills" value="Motorcycle Delivery"> Motorcycle Delivery</div>
                         <div><input type="checkbox" name="neededSkills" value="Forklift Operation"> Forklift Operation</div>
                     </div>
@@ -59,7 +77,7 @@
                         <div><input type="checkbox" name="neededSkills" value="Pediatrics"> Pediatrics</div>
                         <div><input type="checkbox" name="neededSkills" value="Psychology / Mental Health"> Psychology / Mental Health</div>
                         <div><input type="checkbox" name="neededSkills" value="Nursing"> Nursing</div>
-                        <div><input type="checkbox" name="neededSkills" value="Paramedic / EMT"> Paramedic / EMT</div>
+                        <div><input type="checkbox" name="neededSkills" value="Paramedic / EMT"> Paramedic / Emergency Medical Technician</div>
                         <div><input type="checkbox" name="neededSkills" value="Pharmacy"> Pharmacy </div>
                     </div>
 
@@ -82,7 +100,7 @@
                     <button type="submit" class="btn-primary">Save Needs</button>
                     </div>
                 </form>
-                </div>
+            </div>
         </div>  
     </div>
 
