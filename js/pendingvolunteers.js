@@ -1135,6 +1135,8 @@ function initializePageFunctions(userId) {
     function calculateMatchScore(volunteer, request) {
         let locationScore = 0;
         let skillsScore = 0;
+        let availabilityScore = 0;
+        let urgencyScore = 0;
 
         // --- LOCATION scoring ---
         if (volunteer.address?.latitude && volunteer.address?.longitude &&
@@ -1145,11 +1147,11 @@ function initializePageFunctions(userId) {
                 request.address.latitude, request.address.longitude
             );
 
-            if (distance <= 5) locationScore += 50;
-            else if (distance <= 20) locationScore += 40;
-            else if (distance <= 50) locationScore += 30;
-            else if (distance <= 100) locationScore += 20;
-            else locationScore += 10;
+            if (distance <= 5) locationScore = 50;
+            else if (distance <= 20) locationScore = 40;
+            else if (distance <= 50) locationScore = 30;
+            else if (distance <= 100) locationScore = 20;
+            else locationScore = 10;
         }
 
         // --- SKILLS scoring ---
@@ -1166,10 +1168,40 @@ function initializePageFunctions(userId) {
             }
         }
 
+        // --- AVAILABILITY scoring ---
+        if (volunteer.availability) {
+            const start = new Date(request.taskStartDate);
+            const end = new Date(request.taskEndDate);
+            let availableAllDays = true;
+
+            for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                const dateStr = d.toISOString().split("T")[0];
+                const availableToday = volunteer.availability.some(slot =>
+                    slot.date === dateStr &&
+                    slot.startTime <= request.taskTimeStart &&
+                    slot.endTime >= request.taskTimeEnd
+                );
+                if (!availableToday) {
+                    availableAllDays = false;
+                    break;
+                }
+            }
+            if (availableAllDays) availabilityScore = 20;
+        }
+
+        // --- URGENCY scoring ---
+        const today = new Date();
+        const taskStartDate = new Date(request.taskStartDate);
+        const daysDiff = (taskStartDate - today) / (1000 * 60 * 60 * 24);
+        if (daysDiff <= 2) urgencyScore = 20;
+        else if (daysDiff <= 7) urgencyScore = 10;
+
         return {
-            total: locationScore + skillsScore,
+            total: locationScore + skillsScore + availabilityScore + urgencyScore,
             location: locationScore,
-            skills: skillsScore
+            skills: skillsScore,
+            availability: availabilityScore,
+            urgency: urgencyScore
         };
     }
 
@@ -1202,9 +1234,9 @@ function initializePageFunctions(userId) {
 
     function renderABVNOptions(groups, volunteer) {
         const abvnListContainer = document.getElementById("abvnListContainer");
-        abvnListContainer.innerHTML = ""; // Clear existing list
+        abvnListContainer.innerHTML = "";
 
-        // --- Volunteer Info Summary
+        // --- Volunteer Info Summary ---
         if (volunteer) {
             const volunteerSummary = document.createElement("div");
             volunteerSummary.classList.add("volunteer-summary");
@@ -1212,6 +1244,15 @@ function initializePageFunctions(userId) {
                 <h4>Volunteer Details</h4>
                 <p><strong>Name:</strong> ${getFullName(volunteer)}</p>
                 <p><strong>Location:</strong> ${volunteer.address?.formattedAddress || "N/A"}</p>
+                <p><strong>Date and Time Availability:</strong><br>
+                ${
+                volunteer.availability?.specificDateTimeSlots
+                    ? Object.values(volunteer.availability.specificDateTimeSlots)
+                        .map(slot => `${slot.date || "N/A"}: ${slot.time || "N/A"}`)
+                        .join('<br>')
+                    : "N/A"
+                }
+                </p>
                 <div class="skills-match">
                     ${(volunteer.skills || []).map(s => `<span>${s}</span>`).join("") || "N/A"}
                 </div>
@@ -1219,7 +1260,7 @@ function initializePageFunctions(userId) {
             abvnListContainer.appendChild(volunteerSummary);
         }
 
-        // --- Calculate distance for each group
+        // --- Calculate distance for each group ---
         groups.forEach(group => {
             if (volunteer.address?.latitude && group.address?.latitude) {
                 group.distance = calculateDistance(
@@ -1227,21 +1268,16 @@ function initializePageFunctions(userId) {
                     group.address.latitude, group.address.longitude
                 );
             } else {
-                group.distance = Infinity; // Push groups without location to the end
+                group.distance = Infinity;
             }
         });
 
-        // --- Sort ABVN groups by distance (nearest first)
-        groups.sort((a, b) => a.distance - b.distance);
-
-        // --- ABVN Group Cards
+        // --- ABVN Group Cards ---
         groups.forEach(group => {
             const abvnCard = document.createElement("div");
             abvnCard.classList.add("abvn-card");
 
             const locationDisplay = group.address?.formattedAddress || "N/A";
-
-            // Distance display
             let distanceDisplay = "";
             if (group.distance !== Infinity) {
                 let distanceLabel = `<span style="color:red">Far</span>`;
@@ -1250,82 +1286,60 @@ function initializePageFunctions(userId) {
                 distanceDisplay = `<div class="info-row"><i class="fas fa-ruler"></i> ${group.distance.toFixed(1)} km (${distanceLabel})</div>`;
             }
 
-            // Card header
             abvnCard.innerHTML = `
                 <h4>${group.organization || "N/A"}</h4>
                 <div class="info-row"><i class="fas fa-map-marker-alt"></i> ${locationDisplay}</div>
                 ${distanceDisplay}
                 <div class="info-row"><strong>Match Score:</strong> ${group.score} 
-                    (Location: ${group.scoreBreakdown.location})
+                    (Loc: ${group.scoreBreakdown.location}, Skills: ${group.scoreBreakdown.skills}, Avail: ${group.scoreBreakdown.availability}, Urg: ${group.scoreBreakdown.urgency})
                 </div>
             `;
 
-            // --- Requests per ABVN
             const requests = group.volunteerNeeds ? Object.entries(group.volunteerNeeds) : [];
-            requests.forEach(([reqId, reqData]) => {
-                const matchedSkills = (volunteer.skills || []).filter(skill =>
-                    (reqData.skills || []).map(s => s.toLowerCase()).includes(skill.toLowerCase())
-                );
-
+            requests
+            .filter(([reqId, reqData]) => {
                 const remaining = Math.max((reqData.volunteersNeeded || 0) - (reqData.assigned || 0), 0);
-
-                const missingSkills = (reqData.skills || []).filter(skill =>
-                    !(volunteer.skills || []).map(s => s.toLowerCase()).includes(skill.toLowerCase())
+                return remaining > 0; 
+            })
+            .forEach(([reqId, reqData]) => {
+                const matchedSkills = (volunteer.skills || []).filter(skill =>
+                (reqData.skills || []).map(s => s.toLowerCase()).includes(skill.toLowerCase())
                 );
-
+                const remaining = Math.max((reqData.volunteersNeeded || 0) - (reqData.assigned || 0), 0);
+                const missingSkills = (reqData.skills || []).filter(skill =>
+                !(volunteer.skills || []).map(s => s.toLowerCase()).includes(skill.toLowerCase())
+                );
                 const isUrgent = remaining <= 2 && remaining > 0;
 
                 const requestDiv = document.createElement("div");
                 requestDiv.classList.add("abvn-request-card");
                 requestDiv.innerHTML = `
-                    <div class="request-header">
-                        <input type="radio" name="selectedABVN" value="${group.key}" data-request-id="${reqId}" id="group-${group.key}-req-${reqId}" ${remaining === 0 ? "disabled" : ""}>
-                        <label for="group-${group.key}-req-${reqId}">
-                            <strong>Task:</strong> ${reqData.taskName || "N/A"} 
-                            ${isUrgent ? '<span class="urgent-task">URGENT</span>' : ''}
-                        </label>
-                        <span class="remaining-slots ${remaining === 0 ? 'full' : isUrgent ? 'urgent' : ''}">
-                            ${remaining} slot(s) remaining
-                        </span>
-                    </div>
-                    <div class="request-details">
-                        <p><strong>Needed Skills:</strong> ${reqData.skills?.join(', ') || "N/A"}</p>
-                        <p><strong>Matched Skills:</strong> ${matchedSkills.length ? matchedSkills.join(', ') : "None"}</p>
-                        <p><strong>Skill Gaps:</strong> ${missingSkills.length ? missingSkills.map(s => `<span class="missing-skill">${s}</span>`).join(', ') : "None"}</p>
-                    </div>
-                    <div class="top-volunteers">
-                        <strong>Top Suggested Volunteers:</strong>
-                        <ul id="top-volunteers-${group.key}-${reqId}"><li>Loading...</li></ul>
-                    </div>
+                <div class="request-header">
+                    <input type="radio" name="selectedABVN" value="${group.key}" data-request-id="${reqId}" id="group-${group.key}-req-${reqId}">
+                    <label for="group-${group.key}-req-${reqId}">
+                        <strong>Task:</strong> ${reqData.taskName || "N/A"} 
+                        ${isUrgent ? '<span class="urgent-task">URGENT</span>' : ''}
+                    </label>
+                    <span class="remaining-slots ${isUrgent ? 'urgent' : ''}">
+                        ${remaining} slot(s) remaining
+                    </span>
+                </div>
+                <div class="request-details">
+                    <p><strong>Needed Skills:</strong> ${reqData.skills?.join(', ') || "N/A"}</p>
+                    <p><strong>Matched Skills:</strong> ${matchedSkills.length ? matchedSkills.join(', ') : "None"}</p>
+                    <p><strong>Skill Gaps:</strong> ${missingSkills.length ? missingSkills.map(s => `<span class="missing-skill">${s}</span>`).join(', ') : "None"}</p>
+                    <p><strong>Submitted By ABVN:</strong> ${reqData.submissionDateTime ? new Date(reqData.submissionDateTime).toLocaleString() : "N/A"}</p>
+                </div>
                 `;
 
                 abvnCard.appendChild(requestDiv);
-
-                // --- Populate Top Suggested Volunteers
-                const topVolList = requestDiv.querySelector(`#top-volunteers-${group.key}-${reqId}`);
-                if (group.pendingVolunteers) {
-                    const suggestions = group.pendingVolunteers
-                        .map(v => ({
-                            ...v,
-                            matchScore: calculateMatchScore(v, reqData).total
-                        }))
-                        .sort((a,b) => b.matchScore - a.matchScore)
-                        .slice(0, 3);
-
-                    topVolList.innerHTML = suggestions.length
-                        ? suggestions.map(v => `<li>${v.firstName} ${v.lastName} (Score: ${v.matchScore})</li>`).join('')
-                        : '<li>No volunteers available</li>';
-                } else {
-                    topVolList.innerHTML = '<li>No volunteers available</li>';
-                }
             });
+
 
             abvnListContainer.appendChild(abvnCard);
         });
 
         document.getElementById("filterResultsInfo").textContent = `Showing ${groups.length} ABVN group(s)`;
-
-        // --- Enable submit when a request is selected
         abvnListContainer.addEventListener('change', (event) => {
             if (event.target.name === 'selectedABVN') {
                 document.getElementById('endorseABVNSubmitBtn').disabled = false;
@@ -1342,41 +1356,66 @@ function initializePageFunctions(userId) {
         endorseABVNSubmitBtn.disabled = true;
 
         try {
+            // --- Fetch ABVN data once ---
             if (!abvnCache) {
                 const snapshot = await database.ref('volunteerGroups').once('value');
                 abvnCache = [];
                 if (snapshot.exists()) {
-                    snapshot.forEach(childSnapshot => {
-                        abvnCache.push({ key: childSnapshot.key, ...childSnapshot.val() });
+                    snapshot.forEach(childSnap => {
+                        abvnCache.push({ key: childSnap.key, ...childSnap.val() });
                     });
                 }
             }
 
-            if (abvnCache.length === 0) {
+            if (!abvnCache.length) {
                 abvnListContainer.innerHTML = '<p>No volunteer groups found.</p>';
                 filterResultsInfo.textContent = 'Showing 0 ABVN groups';
                 return;
             }
 
             const volunteer = currentVolunteerData;
+            if (!volunteer) return;
 
-            // Map ABVNs with match scores
-            let matchedGroups = abvnCache.map(group => {
+            // --- Calculate scores and distance for each group ---
+            let scoredGroups = abvnCache.map(group => {
                 const match = calculateMatchScore(volunteer, group);
-                return { ...group, score: match.total, scoreBreakdown: match };
+                const distance = (volunteer.address?.latitude && group.address?.latitude)
+                    ? calculateDistance(volunteer.address.latitude, volunteer.address.longitude,
+                                        group.address.latitude, group.address.longitude)
+                    : Infinity;
+
+                return { 
+                    ...group, 
+                    score: match.total || 0, 
+                    scoreBreakdown: {
+                        location: match.location || 0,
+                        skills: match.skills || 0,
+                        availability: match.availability || 0,
+                        urgency: match.urgency || 0
+                    }, 
+                    distance 
+                };
             });
 
-            // Limit to top 10
-            matchedGroups = matchedGroups.slice(0, 10);
-
-            renderABVNOptions(matchedGroups, volunteer);
-
-            abvnListContainer.addEventListener('change', (event) => {
-                if (event.target.name === 'selectedABVN') {
-                    endorseABVNSubmitBtn.disabled = false;
+            // --- Sort by admin selection ---
+            const sortOption = document.getElementById('matchSortBy').value || 'distance';
+            scoredGroups.sort((a, b) => {
+                switch (sortOption) {
+                    case "skills": return b.scoreBreakdown.skills - a.scoreBreakdown.skills;
+                    case "availability": return b.scoreBreakdown.availability - a.scoreBreakdown.availability;
+                    case "urgency": return b.scoreBreakdown.urgency - a.scoreBreakdown.urgency;
+                    case "overall": return b.score - a.score;
+                    case "distance":
+                    default: return a.distance - b.distance;
                 }
             });
 
+            // --- Limit top 10 ---
+            const topGroups = scoredGroups.slice(0, 10);
+
+            renderABVNOptions(topGroups, volunteer);
+
+            // --- Setup search listener ---
             setupSearchListener(volunteer);
 
         } catch (error) {
@@ -1395,7 +1434,14 @@ function initializePageFunctions(userId) {
 
             let filteredGroups = abvnCache.map(group => {
                 const match = calculateMatchScore(volunteer, group);
-                return { ...group, score: match.total, scoreBreakdown: match };
+                let distance = Infinity;
+                if (volunteer.address?.latitude && group.address?.latitude) {
+                    distance = calculateDistance(
+                        volunteer.address.latitude, volunteer.address.longitude,
+                        group.address.latitude, group.address.longitude
+                    );
+                }
+                return { ...group, score: match.total, scoreBreakdown: match, distance };
             });
 
             if (searchTerm) {
@@ -1406,10 +1452,25 @@ function initializePageFunctions(userId) {
                 });
             }
 
-            filteredGroups = filteredGroups.slice(0, 10);
-            renderABVNOptions(filteredGroups, volunteer);
+            // Sort by current selection
+            const sortOption = document.getElementById('matchSortBy').value || 'distance';
+            filteredGroups.sort((a, b) => {
+                switch (sortOption) {
+                    case "skills": return b.scoreBreakdown.skills - a.scoreBreakdown.skills;
+                    case "availability": return b.scoreBreakdown.availability - a.scoreBreakdown.availability;
+                    case "urgency": return b.scoreBreakdown.urgency - a.scoreBreakdown.urgency;
+                    case "overall": return b.score - a.score;
+                    case "distance":
+                    default: return a.distance - b.distance;
+                }
+            });
+
+            renderABVNOptions(filteredGroups.slice(0, 10), volunteer);
         });
     }
+
+    // --- Listen to sort change ---
+    document.getElementById('matchSortBy').addEventListener('change', fetchABVNs);
 
     // Export Excel 
     function exportToExcel() {
@@ -2954,8 +3015,16 @@ function initializePageFunctions(userId) {
             html: `Endorse <strong>${getFullName(currentVolunteerData)}</strong> to <strong>${abvnName}</strong> in ${abvnLocation} for task <strong>${requestData.taskName || "N/A"}</strong>?`,
             icon: 'question',
             showCancelButton: true,
+            reverseButtons: true,
             confirmButtonText: 'Endorse',
             cancelButtonText: 'Cancel',
+            customClass: {
+                popup: 'swal2-endorse-popup',
+                title: 'swal2-endorse-title',
+                html: 'swal2-endorse-content',
+                confirmButton: 'swal2-endorse-confirm-btn',
+                cancelButton: 'swal2-endorse-cancel-btn'
+            }
         }).then(async (result) => {
             if (!result.isConfirmed) return;
 

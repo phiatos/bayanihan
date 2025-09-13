@@ -171,6 +171,13 @@
             <form id="endorseABVNForm">
                 <div class="filter-controls">
                     <input type="text" id="abvnSearchInput" placeholder="Search by organization name or location">
+                    <label>Sort By:</label>
+                    <select id="matchSortBy">
+                        <option value="distance">Distance</option>
+                        <option value="skills">Skills Match</option>
+                        <option value="availability">Availability</option>
+                        <option value="overall">Overall Score</option>
+                    </select>
                 </div>
                 <div class="abvn-radio-group" id="abvnListContainer">
                     <p>Loading ABVN locations...</p>

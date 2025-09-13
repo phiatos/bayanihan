@@ -44,6 +44,20 @@ firebase.initializeApp(firebaseConfig);
                     const assigned = reqData.assigned || 0;
                     const taskName = reqData.taskName || "—";
 
+                    // Format dates and times in human-friendly style
+                    const taskStartDate = reqData.taskStartDate 
+                        ? new Date(reqData.taskStartDate).toLocaleDateString() 
+                        : "—";
+                    const taskEndDate = reqData.taskEndDate 
+                        ? new Date(reqData.taskEndDate).toLocaleDateString() 
+                        : "—";
+                    const taskTimeStart = reqData.taskTimeStart 
+                        ? new Date(`1970-01-01T${reqData.taskTimeStart}`).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
+                        : "—";
+                    const taskTimeEnd = reqData.taskTimeEnd 
+                        ? new Date(`1970-01-01T${reqData.taskTimeEnd}`).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
+                        : "—";
+
                     // Auto status
                     let status = getAutoStatus({ volunteersNeeded, assigned });
 
@@ -68,7 +82,13 @@ firebase.initializeApp(firebaseConfig);
                         assigned,
                         status,
                         taskName,
-                        submissionDate: reqData.submissionDateTime || ""
+                        taskStartDate,
+                        taskEndDate,
+                        taskTimeStart,
+                        taskTimeEnd,
+                        submissionDate: reqData.submissionDateTime 
+                            ? new Date(reqData.submissionDateTime).toLocaleString() 
+                            : "—"
                     });
                 });
             }
@@ -122,15 +142,11 @@ firebase.initializeApp(firebaseConfig);
                 return matchesSearch && matchesStatus && matchesSkill;
             })
             .sort((a, b) => {
-                // sort by status hierarchy first
                 const statusDiff = statusOrder[a.status] - statusOrder[b.status];
                 if (statusDiff !== 0) return statusDiff;
-
-                // optional secondary sort by submission date (latest first)
                 return new Date(b.submissionDate) - new Date(a.submissionDate);
             });
 
-        // Helper function to return colored badge HTML
         function getStatusBadge(status) {
             let color;
             switch (status) {
@@ -147,7 +163,6 @@ firebase.initializeApp(firebaseConfig);
             return `<span class="status ${status.replace(" ", "")}">${status}</span>`;
         }
 
-        // Loop with index for numbering
         for (const [index, req] of filtered.entries()) {
             const remaining = Math.max(req.volunteersNeeded - req.assigned, 0);
 
@@ -156,9 +171,11 @@ firebase.initializeApp(firebaseConfig);
                 <td>${index + 1}</td>
                 <td>${req.abvnName}</td>
                 <td>${req.taskName}</td>
-                <td>${req.skills.join(", ") || "—"}</td>
-                <td>${remaining}</td>
+                <td>${req.skills.join(", ") || "—"}${req.otherSkills ? " (Other: " + req.otherSkills + ")" : ""}</td>
+                <td>${req.volunteersNeeded}</td>
                 <td>${req.assigned}</td>
+                <td>${req.taskStartDate} to ${req.taskEndDate}</td>
+                <td>${req.taskTimeStart} - ${req.taskTimeEnd}</td>
                 <td class="status-cell">
                     ${getStatusBadge(req.status)}
                     <select class="status-dropdown" data-id="${req.abvnId}_${req.id}" ${req.status === "Completed" ? "disabled" : ""}>
@@ -177,10 +194,8 @@ firebase.initializeApp(firebaseConfig);
         attachActions();
     }
 
-
     // Attach button + dropdown actions
     function attachActions() {
-        // View modal
         document.querySelectorAll(".viewBtn").forEach(btn => {
             btn.addEventListener("click", () => {
                 const [abvnId, reqId] = btn.dataset.id.split("_");
@@ -195,6 +210,8 @@ firebase.initializeApp(firebaseConfig);
                         <p><strong>Volunteers Needed:</strong> ${request.volunteersNeeded}</p>
                         <p><strong>Assigned Volunteers:</strong> ${request.assigned}</p>
                         <p><strong>Remaining:</strong> ${Math.max(request.volunteersNeeded - request.assigned, 0)}</p>
+                        <p><strong>Task Dates:</strong> ${request.taskStartDate} to ${request.taskEndDate}</p>
+                        <p><strong>Task Times:</strong> ${request.taskTimeStart} - ${request.taskTimeEnd}</p>
                         <p><strong>Status:</strong> ${request.status}</p>
                         <p><strong>Submitted:</strong> ${request.submissionDate ? new Date(request.submissionDate).toLocaleString() : "—"}</p>
                     `,
@@ -203,7 +220,6 @@ firebase.initializeApp(firebaseConfig);
             });
         });
 
-        // Dropdown status change
         document.querySelectorAll(".status-dropdown").forEach(dropdown => {
             dropdown.addEventListener("change", async (e) => {
                 const [abvnId, reqId] = dropdown.dataset.id.split("_");

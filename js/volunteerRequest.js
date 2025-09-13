@@ -56,7 +56,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- NEW: Date & Time Real-time Validation ---
     const taskStartDateInput = document.getElementById("taskStartDate");
     const taskEndDateInput = document.getElementById("taskEndDate");
     const taskTimeStartInput = document.getElementById("taskTimeStart");
@@ -145,7 +144,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return { isValid, errors };
     }
 
-    // ------------------- Existing isVolunteerAvailableForTask & findMatchingVolunteers -------------------
     function isVolunteerAvailableForTask(volunteerAvailability, taskStartDate, taskEndDate, taskTimeStart, taskTimeEnd) {
         let currentDate = new Date(taskStartDate);
         const endDate = new Date(taskEndDate);
@@ -194,7 +192,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return matchingVolunteers;
     }
 
-    // ------------------- Existing form submit listener -------------------
     if (needsForm) {
         needsForm.addEventListener('submit', async (e) => {
             e.preventDefault();
