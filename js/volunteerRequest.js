@@ -20,6 +20,101 @@ document.addEventListener('DOMContentLoaded', () => {
     const submitButton = document.querySelector('.btn-primary');
     let isSubmitting = false;
 
+    // =================== TAB SWITCHING ===================
+const tabButtons = document.querySelectorAll('.tab-btn');
+const tabContent = document.getElementById('tab-content');
+
+function loadTabContent(tab) {
+    tabContent.innerHTML = ''; // Clear previous content
+
+    if (tab === 'submit-request') {
+        const template = document.getElementById('submit-request-template').innerHTML;
+        tabContent.innerHTML = template;
+
+        // Re-attach form event listener if needed
+        const needsForm = document.getElementById('abvn-needs-form');
+        if (needsForm) {
+            needsForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                // You already have form submission logic above
+                // Optionally, you can call a function like submitVolunteerRequest()
+            });
+        }
+
+    } else if (tab === 'my-requests') {
+        const template = document.getElementById('my-requests-template').innerHTML;
+        tabContent.innerHTML = template;
+
+        // Load volunteer requests for current ABVN
+        const user = auth.currentUser;
+        if (!user) return;
+
+        const requestsList = document.getElementById('abvn-requests-list');
+        database.ref(`volunteerGroups/${user.uid}/volunteerNeeds`).once('value').then(snapshot => {
+            requestsList.innerHTML = '';
+            snapshot.forEach(childSnapshot => {
+                const req = childSnapshot.val();
+                const reqId = childSnapshot.key;
+
+                const div = document.createElement('div');
+                div.className = 'request-item';
+                div.innerHTML = `
+                    <h4>${req.taskName}</h4>
+                    <p>Volunteers Needed: ${req.volunteersNeeded}</p>
+                    <p>Dates: ${req.taskStartDate} to ${req.taskEndDate}</p>
+                    <p>Skills: ${req.skills.join(', ')} ${req.otherSkillComments ? ', ' + req.otherSkillComments : ''}</p>
+                    <p>Status: ${req.status}</p>
+                    <button class="cancel-request-btn" data-id="${reqId}">Cancel Request</button>
+                    <hr>
+                `;
+                requestsList.appendChild(div);
+            });
+
+            // Attach cancel button listeners
+            const cancelButtons = document.querySelectorAll('.cancel-request-btn');
+            cancelButtons.forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const requestId = btn.dataset.id;
+                    const confirmResult = await Swal.fire({
+                        title: 'Are you sure?',
+                        text: "This will cancel your volunteer request.",
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#3085d6',
+                        cancelButtonColor: '#d33',
+                        confirmButtonText: 'Yes, cancel it!'
+                    });
+
+                    if (confirmResult.isConfirmed) {
+                        try {
+                            await database.ref(`volunteerGroups/${user.uid}/volunteerNeeds/${requestId}`).remove();
+                            await database.ref(`volunteerRequests/${requestId}`).remove();
+                            Swal.fire('Cancelled!', 'Your volunteer request has been cancelled.', 'success');
+                            loadTabContent('my-requests'); // Refresh list
+                        } catch (error) {
+                            console.error(error);
+                            Swal.fire('Error', 'Failed to cancel request. Try again.', 'error');
+                        }
+                    }
+                });
+            });
+        });
+    }
+}
+
+// Initial load
+loadTabContent('submit-request');
+
+// Tab button click listener
+tabButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+        tabButtons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        loadTabContent(btn.dataset.tab);
+    });
+});
+
+
     const isEmpty = (value) => value.trim() === "";
 
     function showError(inputField, message) {
@@ -96,7 +191,6 @@ document.addEventListener('DOMContentLoaded', () => {
         input.addEventListener("input", validateDatesAndTimes);
     });
 
-    // ------------------- Existing validateFormForSubmission -------------------
     async function validateFormForSubmission() {
         let isValid = true;
         const errors = [];

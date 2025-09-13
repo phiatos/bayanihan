@@ -1,9 +1,13 @@
 const tabContent = document.getElementById("tab-content");
-const dashboardContainer = document.getElementById("dashboard-container"); // ⬅️ id na nilagay mo sa dashboard div
+const dashboardContainer = document.getElementById("dashboard-container");
 
 document.querySelectorAll(".tab-btn").forEach(btn => {
   btn.addEventListener("click", async () => {
     const tab = btn.dataset.tab;
+
+    // Remove .active from all tabs and add to the clicked tab
+    document.querySelectorAll(".tab-btn").forEach(t => t.classList.remove("active"));
+    btn.classList.add("active");
 
     if (tab === "volunteers") {
       // Hide dashboard
@@ -19,7 +23,7 @@ document.querySelectorAll(".tab-btn").forEach(btn => {
 
       tabContent.innerHTML = bodyContent;
 
-      // ✅ Attach CSS (only once)
+      // Attach CSS (only once)
       if (!document.querySelector('link[href="../css/volunteerRequest.css"]')) {
         const link = document.createElement("link");
         link.rel = "stylesheet";
@@ -27,7 +31,7 @@ document.querySelectorAll(".tab-btn").forEach(btn => {
         document.head.appendChild(link);
       }
 
-      // ✅ Force reload volunteer JS every time
+      // Force reload volunteer JS every time
       try {
         const jsRes = await fetch("../js/volunteerRequestOverview.js");
         const jsCode = await jsRes.text();
@@ -35,16 +39,11 @@ document.querySelectorAll(".tab-btn").forEach(btn => {
       } catch (err) {
         console.error("Failed to load volunteerRequestOverview.js", err);
       }
-    } 
-    
-    else if (tab === "activation") {
+    } else if (tab === "activation") {
       // Hide dashboard
       dashboardContainer.style.display = "none";
-
       tabContent.innerHTML = `<h2>Activation content goes here...</h2>`;
-    } 
-    
-    else {
+    } else {
       // Default tab → show dashboard again
       dashboardContainer.style.display = "block";
       tabContent.innerHTML = "";
@@ -52,9 +51,8 @@ document.querySelectorAll(".tab-btn").forEach(btn => {
   });
 });
 
-// ✅ Auto-load Default tab
+// Auto-load Default tab
 document.querySelector(".tab-btn[data-tab='default']").click();
-
 
 // dashboard.js
 // Global variables

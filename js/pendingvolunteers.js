@@ -1849,6 +1849,12 @@ function initializePageFunctions(userId) {
             } else if (Array.isArray(volunteer.statusNotes) && volunteer.statusNotes.length > 0) {
                 displayStatusNotes = volunteer.statusNotes[volunteer.statusNotes.length - 1].note;
             }
+            let rejectionTag = '';
+            if (volunteer.rejectedBy) {
+                const abvnName = volunteer.rejectedByName || volunteer.rejectedBy;
+                const reason = volunteer.rejectionReason ? ` - Reason: ${volunteer.rejectionReason}` : '';
+                rejectionTag = `<span class="rejected-tag">Rejected by ${abvnName}${reason}</span>`;
+            }
             let specificSlotsHtml = 'N/A';
             if (volunteer.availability && volunteer.availability.specificDateTimeSlots && volunteer.availability.specificDateTimeSlots.length > 0) {
                 specificSlotsHtml = '<ol>';

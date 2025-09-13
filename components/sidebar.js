@@ -289,48 +289,67 @@ function initSidebar() {
       reliefsRequest: document.querySelector(".menu-reliefs-request"),
       reports: document.querySelector(".menu-reports"),
       reportsSubmission: document.querySelector(".menu-reports-submission"),
+      volunteerRequests: document.querySelector(".menu-volunteer-requests"),
     };
 
     if (role === "ABVN") {
       document.querySelectorAll("p.title").forEach((title) => {
-          if (title.textContent.trim() === "Admin") title.style.display = "none";
+        if (title.textContent.trim() === "Admin") title.style.display = "none";
       });
 
       const allowedItems = [
-          menuItems.dashboard,
-          menuItems.communityboard,
-          menuItems.volunteerApplications,
-          menuItems.endorsedVolunteers,
-          menuItems.volunteerRequests,
-          menuItems.rdana,
-          menuItems.rdanaMain,
-          menuItems.callfordonation,
-          menuItems.reliefs,
-          menuItems.reliefsRequest,
-          menuItems.reports,
-          menuItems.reportsSubmission,
+        menuItems.dashboard,
+        menuItems.communityboard,
+        menuItems.volunteerApplications,
+        menuItems.endorsedVolunteers,
+        menuItems.volunteerRequests,
+        menuItems.rdana,
+        menuItems.rdanaMain,
+        menuItems.callfordonation,
+        menuItems.reliefs,
+        menuItems.reliefsRequest,
+        menuItems.reports,
+        menuItems.reportsSubmission,
       ];
       const restrictedItems = Object.values(menuItems).filter(
-          (i) => !allowedItems.includes(i)
+        (i) => !allowedItems.includes(i)
       );
 
       allowedItems.forEach((i) => i && (i.style.display = "block"));
       restrictedItems.forEach((i) => i && (i.style.display = "none"));
 
       ["rdanaMain", "reliefsRequest", "reportsSubmission"].forEach(
-          (parentKey) => {
-              if (!menuItems[parentKey] || menuItems[parentKey].style.display === "none") {
-                  const parent = menuItems[parentKey.replace(/Main|Request|Submission/, "")];
-                  if (parent) parent.style.display = "none";
-              }
+        (parentKey) => {
+          if (!menuItems[parentKey] || menuItems[parentKey].style.display === "none") {
+            const parent = menuItems[parentKey.replace(/Main|Request|Submission/, "")];
+            if (parent) parent.style.display = "none";
           }
+        }
       );
     } else if (role === "AB ADMIN") {
       Object.values(menuItems).forEach((i) => i && (i.style.display = "block"));
+      // Explicitly hide volunteerRequests for all AB ADMIN users
+      if (menuItems.volunteerRequests) {
+        menuItems.volunteerRequests.style.display = "none";
+      }
       if (adminPosition !== "Super Admin") {
         ["activitylogs", "adminmanagement"].forEach(
           (k) => menuItems[k] && (menuItems[k].style.display = "none")
         );
+      }
+      // Check if all sub-menu items under volunteerApplications are hidden
+      const volunteerSubMenus = [
+        menuItems.pendingVolunteers,
+        menuItems.approvedVolunteers,
+        menuItems.endorsedVolunteers,
+        menuItems.volunteerRequestsOverview,
+        menuItems.volunteerRequests,
+      ];
+      const allSubMenusHidden = volunteerSubMenus.every(
+        (item) => !item || item.style.display === "none"
+      );
+      if (allSubMenusHidden && menuItems.volunteerApplications) {
+        menuItems.volunteerApplications.style.display = "none";
       }
     } else {
       Object.values(menuItems).forEach((i) => i && (i.style.display = "none"));

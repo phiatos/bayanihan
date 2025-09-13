@@ -16,91 +16,104 @@
 <body>
     <div class="main-container">
         <div class="sidebar-placeholder"></div>
-        <div id="main-content">
-            <header>Volunteer Request Form</header>
-            <div class="container">
+        <div class="container" id="main-content">
+            <div class="dashboard-tabs">
+                <button class="tab-btn active" data-tab="submit-request">Submit New Request</button>
+                <button class="tab-btn" data-tab="my-requests">My Requests</button>
+            </div>
+           <div id="tab-content"></div>
+
+            <!-- Hidden Templates -->
+            <div id="submit-request-template" style="display:none;">
                 <form id="abvn-needs-form">
                     <fieldset>
-                    <div class="form-group">
-                        <label for="taskName">Task Name</label>
-                        <input type="text" id="taskName" name="taskName" placeholder="e.g., Relief Goods Packing" required>
-                    </div>
+                        <div class="form-group">
+                            <label for="taskName">Task Name</label>
+                            <input type="text" id="taskName" name="taskName" placeholder="e.g., Relief Goods Packing" required>
+                        </div>
 
-                    <div class="form-group">
-                        <label for="volunteersNeeded">Number of Volunteers Needed</label>
-                        <input type="number" id="volunteersNeeded" name="volunteersNeeded" placeholder="e.g., 10" min="1" required>
-                    </div>
+                        <div class="form-group">
+                            <label for="volunteersNeeded">Number of Volunteers Needed</label>
+                            <input type="number" id="volunteersNeeded" name="volunteersNeeded" placeholder="e.g., 10" min="1" required>
+                        </div>
 
-                    <div class="form-group">
-                        <label for="taskStartDate">Task Start Date</label>
-                        <input type="date" id="taskStartDate" name="taskStartDate" required>
-                    </div>
+                        <div class="form-group">
+                            <label for="taskStartDate">Task Start Date</label>
+                            <input type="date" id="taskStartDate" name="taskStartDate" required>
+                        </div>
 
-                    <div class="form-group">
-                        <label for="taskEndDate">Task End Date</label>
-                        <input type="date" id="taskEndDate" name="taskEndDate" required>
-                    </div>
+                        <div class="form-group">
+                            <label for="taskEndDate">Task End Date</label>
+                            <input type="date" id="taskEndDate" name="taskEndDate" required>
+                        </div>
 
-                    <div class="form-group">
-                        <label for="taskTimeStart">Start Time</label>
-                        <input type="time" id="taskTimeStart" name="taskTimeStart" required>
-                    </div>
+                        <div class="form-group">
+                            <label for="taskTimeStart">Start Time</label>
+                            <input type="time" id="taskTimeStart" name="taskTimeStart" required>
+                        </div>
 
-                    <div class="form-group">
-                        <label for="taskTimeEnd">End Time</label>
-                        <input type="time" id="taskTimeEnd" name="taskTimeEnd" required>
-                    </div>
+                        <div class="form-group">
+                            <label for="taskTimeEnd">End Time</label>
+                            <input type="time" id="taskTimeEnd" name="taskTimeEnd" required>
+                        </div>
 
-                    <div class="skills-group">
-                        <label>Disaster Response Skills</label>
-                        <div><input type="checkbox" name="neededSkills" value="First Aid & Basic Life Support"> First Aid & Basic Life Support</div>
-                        <div><input type="checkbox" name="neededSkills" value="Search & Rescue"> Search & Rescue</div>
-                        <div><input type="checkbox" name="neededSkills" value="Evacuation Assistance"> Evacuation Assistance</div>
-                        <div><input type="checkbox" name="neededSkills" value="Relief Goods Distribution"> Relief Goods Distribution</div>
-                        <div><input type="checkbox" name="neededSkills" value="On-the-ground responders"> On-the-ground responders</div>
-                    </div>
+                        <!-- Skills Groups (same as your original) -->
+                        <div class="skills-group">
+                            <label>Disaster Response Skills</label>
+                            <div><input type="checkbox" name="neededSkills" value="First Aid & Basic Life Support"> First Aid & Basic Life Support</div>
+                            <div><input type="checkbox" name="neededSkills" value="Search & Rescue"> Search & Rescue</div>
+                            <div><input type="checkbox" name="neededSkills" value="Evacuation Assistance"> Evacuation Assistance</div>
+                            <div><input type="checkbox" name="neededSkills" value="Relief Goods Distribution"> Relief Goods Distribution</div>
+                            <div><input type="checkbox" name="neededSkills" value="On-the-ground responders"> On-the-ground responders</div>
+                        </div>
 
-                    <div class="skills-group">
-                        <label>Transportation & Logistics Skills</label>
-                        <div><input type="checkbox" name="neededSkills" value="Logistics & Supply Chain Management"> Logistics & Supply Chain Management</div>
-                        <div><input type="checkbox" name="neededSkills" value="Transport Coordination"> Transport Coordination</div>
-                        <div><input type="checkbox" name="neededSkills" value="Truck Driving"> Truck Driving</div>
-                        <div><input type="checkbox" name="neededSkills" value="Bus Driving"> Bus Driving</div>
-                        <div><input type="checkbox" name="neededSkills" value="Van and Shuttle Driving"> Van / Shuttle Driving</div>
-                        <div><input type="checkbox" name="neededSkills" value="Motorcycle Delivery"> Motorcycle Delivery</div>
-                        <div><input type="checkbox" name="neededSkills" value="Forklift Operation"> Forklift Operation</div>
-                    </div>
+                        <div class="skills-group">
+                            <label>Transportation & Logistics Skills</label>
+                            <div><input type="checkbox" name="neededSkills" value="Logistics & Supply Chain Management"> Logistics & Supply Chain Management</div>
+                            <div><input type="checkbox" name="neededSkills" value="Transport Coordination"> Transport Coordination</div>
+                            <div><input type="checkbox" name="neededSkills" value="Truck Driving"> Truck Driving</div>
+                            <div><input type="checkbox" name="neededSkills" value="Bus Driving"> Bus Driving</div>
+                            <div><input type="checkbox" name="neededSkills" value="Van and Shuttle Driving"> Van / Shuttle Driving</div>
+                            <div><input type="checkbox" name="neededSkills" value="Motorcycle Delivery"> Motorcycle Delivery</div>
+                            <div><input type="checkbox" name="neededSkills" value="Forklift Operation"> Forklift Operation</div>
+                        </div>
 
-                    <div class="skills-group">
-                        <label>Medical Skills</label>
-                        <div><input type="checkbox" name="neededSkills" value="General Medicine"> General Medicine</div>
-                        <div><input type="checkbox" name="neededSkills" value="Pediatrics"> Pediatrics</div>
-                        <div><input type="checkbox" name="neededSkills" value="Psychology / Mental Health"> Psychology / Mental Health</div>
-                        <div><input type="checkbox" name="neededSkills" value="Nursing"> Nursing</div>
-                        <div><input type="checkbox" name="neededSkills" value="Paramedic / EMT"> Paramedic / Emergency Medical Technician</div>
-                        <div><input type="checkbox" name="neededSkills" value="Pharmacy"> Pharmacy </div>
-                    </div>
+                        <div class="skills-group">
+                            <label>Medical Skills</label>
+                            <div><input type="checkbox" name="neededSkills" value="General Medicine"> General Medicine</div>
+                            <div><input type="checkbox" name="neededSkills" value="Pediatrics"> Pediatrics</div>
+                            <div><input type="checkbox" name="neededSkills" value="Psychology / Mental Health"> Psychology / Mental Health</div>
+                            <div><input type="checkbox" name="neededSkills" value="Nursing"> Nursing</div>
+                            <div><input type="checkbox" name="neededSkills" value="Paramedic / EMT"> Paramedic / Emergency Medical Technician</div>
+                            <div><input type="checkbox" name="neededSkills" value="Pharmacy"> Pharmacy </div>
+                        </div>
 
-                    <div class="skills-group">
-                        <label>Specialized Skills</label>
-                        <div><input type="checkbox" name="neededSkills" value="Engineering / Construction"> Engineering / Construction</div>
-                        <div><input type="checkbox" name="neededSkills" value="Water, Sanitation & Hygiene"> Water, Sanitation & Hygiene</div>
-                        <div><input type="checkbox" name="neededSkills" value="Agricultural Recovery"> Agricultural Recovery</div>
-                        <div><input type="checkbox" name="neededSkills" value="Animal Rescue & Care"> Animal Rescue & Care</div>
-                        <div><input type="checkbox" name="neededSkills" value="Information Technology"> Information Technology</div>
-                    </div>
+                        <div class="skills-group">
+                            <label>Specialized Skills</label>
+                            <div><input type="checkbox" name="neededSkills" value="Engineering / Construction"> Engineering / Construction</div>
+                            <div><input type="checkbox" name="neededSkills" value="Water, Sanitation & Hygiene"> Water, Sanitation & Hygiene</div>
+                            <div><input type="checkbox" name="neededSkills" value="Agricultural Recovery"> Agricultural Recovery</div>
+                            <div><input type="checkbox" name="neededSkills" value="Animal Rescue & Care"> Animal Rescue & Care</div>
+                            <div><input type="checkbox" name="neededSkills" value="Information Technology"> Information Technology</div>
+                        </div>
 
-                    <div class="skills-group">
-                        <label>Other Skills</label>
-                        <textarea id="otherNeededSkills" name="otherNeededSkills" placeholder="Please specify other skills needed" rows="3"></textarea>
-                    </div>
+                        <div class="skills-group">
+                            <label>Other Skills</label>
+                            <textarea id="otherNeededSkills" name="otherNeededSkills" placeholder="Please specify other skills needed" rows="3"></textarea>
+                        </div>
+
                     </fieldset>
 
                     <div class="form-group submit-group">
-                    <button type="submit" class="btn-primary">Save Needs</button>
+                        <button type="submit" class="btn-primary">Save Needs</button>
                     </div>
                 </form>
             </div>
+
+            <div id="my-requests-template" style="display:none;">
+                <div id="abvn-requests-list"></div>
+            </div>
+
         </div>  
     </div>
 
@@ -109,10 +122,8 @@
             .then(response => response.text())
             .then(data => {
                 document.querySelector('.sidebar-placeholder').innerHTML = data;
-
                 const sidebarScript = document.createElement('script');
                 sidebarScript.src = '../components/sidebar.js'; 
-
                 document.querySelector('.sidebar-placeholder').appendChild(sidebarScript);
             })
             .catch(error => {
@@ -120,6 +131,6 @@
             });
     </script>
     
-    <script src="../js/volunteerRequest.js"  type="module"></script>
+    <script src="../js/volunteerRequest.js" type="module"></script>
 </body>
 </html>

@@ -1,3 +1,4 @@
+//endorsevolunteers.js
 const firebaseConfig = {
     apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ", 
     authDomain: "bayanihan-5ce7e.firebaseapp.com",
@@ -882,7 +883,6 @@ function renderVolunteersTable() {
         const row = volunteersContainer.insertRow();
         const rowNum = startEntry + index;
 
-        // Handle the nested availability.specificDateTimeSlots structure
         const dateTimeAvailability = volunteer.availability?.specificDateTimeSlots && Array.isArray(volunteer.availability.specificDateTimeSlots)
             ? `<ol>${volunteer.availability.specificDateTimeSlots
                 .map((slot) => `<li>${slot.date || 'N/A'} at ${slot.time || 'N/A'}</li>`)
@@ -890,9 +890,7 @@ function renderVolunteersTable() {
             : "N/A";
 
         const skillsList = Array.isArray(volunteer.skills)
-            ? `<ol>${volunteer.skills
-                .map((skill) => `<li>${skill}</li>`)
-                .join("")}</ol>`
+            ? `<ol>${volunteer.skills.map((skill) => `<li>${skill}</li>`).join("")}</ol>`
             : "None";
 
         row.innerHTML = `
@@ -913,17 +911,71 @@ function renderVolunteersTable() {
                 <button title="View" class="viewBtn"><i class='bx bx-show-alt'></i></button>
                 ${permissions.canArchive ? `<button title="Archive" class="archiveBtn"><i class='bx bx-x-circle'></i></button>` : ''}
                 <button title="Save as PDF" class="saveSinglePdfBtn"><i class='bx bxs-file-pdf'></i></button>
+                ${permissions.canArchive ? `<button class="rejectBtn" data-key="${volunteer.key}"><i class='bx bx-x'></i></button>` : ''}
             </td>
         `;
 
+        // View button
         row.querySelector('.viewBtn').onclick = () => showVolunteerDetails(volunteer);
+
+        // Archive button
         if (permissions.canArchive) {
-            row.querySelector('.archiveBtn').onclick = () => archiveVolunteer(volunteer);
+            const archiveBtn = row.querySelector('.archiveBtn');
+            if (archiveBtn) archiveBtn.onclick = () => archiveVolunteer(volunteer);
         }
+
+        // PDF button
         row.querySelector('.saveSinglePdfBtn').onclick = () => saveSingleVolunteerPdf(volunteer);
+
+        // Reject button (fixed)
+        const rejectBtn = row.querySelector('.rejectBtn');
+        if (rejectBtn) {
+            rejectBtn.addEventListener('click', async (e) => {
+                const key = e.currentTarget.dataset.key; // use currentTarget
+                const volunteerToReject = allEndorsedVolunteers.find(v => v.key === key);
+                if (!volunteerToReject) return;
+
+                const { value: reason } = await Swal.fire({
+                    title: 'Reject Volunteer',
+                    input: 'text',
+                    inputLabel: 'Optional Rejection Reason',
+                    inputPlaceholder: 'Enter reason (optional)',
+                    showCancelButton: true
+                });
+
+                rejectVolunteer(volunteerToReject, reason || '');
+            });
+        }
     });
 
     renderPagination();
+}
+
+async function rejectVolunteer(volunteer, reason = '') {
+    try {
+        const abvnId = currentUserId; // the ABVN rejecting
+        const timestamp = Date.now();
+
+        // 1. Move volunteer back to Pending
+        await database.ref(`volunteerApplications/pendingVolunteer/${volunteer.key}`).set({
+            ...volunteer,
+            rejectedBy: abvnId,
+            rejectionReason: reason,
+            rejectedAt: timestamp
+        });
+
+        // 2. Remove from Endorsed
+        await database.ref(`endorsedVolunteers/${volunteer.key}`).remove();
+
+        Swal.fire('Rejected!', 'Volunteer has been moved back to pending.', 'success');
+
+        // 3. Refresh endorsed table only
+        fetchEndorsedVolunteers(currentUserId);
+
+    } catch (error) {
+        Swal.fire('Error', 'Failed to reject volunteer.', 'error');
+        console.error(error);
+    }
 }
 
 function applyFiltersAndSort() {
