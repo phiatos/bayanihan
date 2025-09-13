@@ -386,31 +386,6 @@ if (checklist.length > 0) {
     });
   }
 
-  // Input Validations
-  function validatePageInputs(pageSelector) {
-    const inputs = document.querySelectorAll(`${pageSelector} input[required], ${pageSelector} select[required], ${pageSelector} textarea[required]`);
-    let isValid = true;
-
-    inputs.forEach(input => {
-      const errorMessage = input.nextElementSibling;
-      if (!input.value.trim()) {
-        isValid = false;
-        input.classList.add("input-error");
-        if (errorMessage && errorMessage.classList.contains("error-message")) {
-          errorMessage.textContent = "This field is required.";
-          errorMessage.style.display = "block";
-        }
-      } else {
-        input.classList.remove("input-error");
-        if (errorMessage && errorMessage.classList.contains("error-message")) {
-          errorMessage.style.display = "none";
-        }
-      }
-    });
-
-    return isValid;
-  }
-
   // Attach event listeners to detect user activity
   ['mousemove', 'keydown', 'scroll', 'click'].forEach(eventType => {
     document.addEventListener(eventType, resetInactivityTimer);
@@ -484,51 +459,47 @@ if (checklist.length > 0) {
       let currentPageIndex = 0;
 
       // Function to show a page based on index and update stepper
-    window.showPage = function(index) {
-    pages.forEach((page, i) => {
-      const isVisible = i === index;
-      page.style.display = isVisible ? "block" : "none";
+window.showPage = function(index) {
+  pages.forEach((page, i) => {
+    const isVisible = i === index;
+    page.style.display = isVisible ? "block" : "none";
 
-      page.querySelectorAll("input, select, textarea").forEach(el => {
-        if (isVisible) el.removeAttribute("disabled");
-        else el.setAttribute("disabled", "disabled");
-      });
+    page.querySelectorAll("input, select, textarea").forEach(el => {
+      if (isVisible) el.removeAttribute("disabled");
+      else el.setAttribute("disabled", "disabled");
     });
+  });
 
-    currentPageIndex = index;
+  currentPageIndex = index;
 
-    steps.forEach((step, i) => {
-      step.classList.toggle("active", i === index);
-    });
-  }
+  steps.forEach((step, i) => {
+    step.classList.toggle("active", i === index);
+  });
+};
 
 
-      // Initialize first page
-      showPage(0);
+// Initialize first page
+showPage(0);
 
-      // Next buttons
-      // Next buttons with validation
+// Next buttons
 document.querySelectorAll("[id^='nextBtn']").forEach(btn => {
   btn.addEventListener("click", () => {
-    const currentPage = pages[currentPageIndex];
-    const currentPageId = currentPage.id;
+    const currentPageId = pages[currentPageIndex].id;
 
-    // Validate the current page before proceeding
-    if (!validatePage(currentPageId)) return;
+    if (validatePage(currentPageId)) {
       if (currentPageIndex < pages.length - 1) {
-          showPage(currentPageIndex + 1);
-        }
-      });
-    });
+        showPage(currentPageIndex + 1);
+      }
+    }
+  });
+});
 
-    // Back buttons remain the same
-    document.querySelectorAll("[id^='backBtn']").forEach(btn => {
-      btn.addEventListener("click", () => {
-        if (currentPageIndex > 0) {
-          showPage(currentPageIndex - 1);
-        }
-      });
-    });
+// Back buttons
+document.querySelectorAll("[id^='backBtn']").forEach(btn => {
+  btn.addEventListener("click", () => {
+    if (currentPageIndex > 0) showPage(currentPageIndex - 1);
+  });
+});
 
     // Optional: allow clicking steps only if you want
     steps.forEach((step, i) => {
@@ -723,11 +694,28 @@ document.querySelectorAll("[id^='nextBtn']").forEach(btn => {
             window.showPage(0);
           }
           });
-        // Optional: reset form and tables
+        // Reset all form inputs
         document.querySelectorAll("input, select, textarea").forEach(input => {
-          if (input.type === "checkbox") input.checked = false;
-          else input.value = "";
+          if (input.type === "checkbox" || input.type === "radio") {
+            input.checked = false;
+          } else {
+            input.value = "";
+          }
         });
+
+        // Clear all preview tables
+        document.querySelectorAll("table.required-table, table").forEach(table => {
+          const tbody = table.querySelector("tbody");
+          if (!tbody) return;
+
+          // Remove all rows except the placeholder row (class="no-entries")
+          tbody.querySelectorAll("tr:not(.no-entries)").forEach(row => row.remove());
+
+          // Restore the placeholder row if it exists
+          const placeholder = tbody.querySelector(".no-entries");
+          if (placeholder) placeholder.style.display = "";
+        });
+
         document.getElementById("preview-data").innerHTML = "";
       } catch (error) {
         Swal.fire({
@@ -820,15 +808,54 @@ document.getElementById("tableBody").addEventListener("input", (e) => {
   }
 });
 
+const pageValidations = {
+  "form-page-1": {
+    staticInputs: [
+      "profileProvince",
+      "profileCity",
+      "profileBarangay",
+      "infoGatheredDate",
+      "disasterType",
+      "occurrenceDate"
+    ],
+    tables: ["Profilepreviewdata-table", "Locationspreviewdata-table"]
+  },
+   "form-page-2": {
+    staticInputs: [], // no standalone inputs
+    tables: [
+      { id: "disasterprofile-table", optionalIfFilled: false } // require at least one entry
+    ]
+  },
+  "form-page-3": {
+    staticInputs: [], // all optional, no required inputs
+    tables: []
+  },
+  "form-page-4": {
+  staticInputs: ["responseGroupInput", "assistanceInput", "familiesInput"],
+  tables: [
+    {
+      id: "InitialResponsepreviewdata-table",
+      optionalIfFilled: true // <-- allows table to satisfy requirement
+    }
+  ]
+}
+};
+
+
 function validatePage(pageId) {
   const page = document.getElementById(pageId);
   if (!page) return false;
 
+  const rules = pageValidations[pageId];
+  if (!rules) return true; // no rules, always valid
+
   let isValid = true;
 
-  // 1️⃣ Normal required inputs
-  const normalInputs = page.querySelectorAll("input[required], select[required], textarea[required]");
-  normalInputs.forEach(input => {
+  // 1. Validate static inputs
+  rules.staticInputs?.forEach(inputId => {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+
     if (!input.value || (input.type === "checkbox" && !input.checked)) {
       isValid = false;
       input.classList.add("input-error");
@@ -837,29 +864,137 @@ function validatePage(pageId) {
     }
   });
 
-  // 2️⃣ Table-based inputs: check that at least one row exists
-  const tables = page.querySelectorAll("table.required-table"); // add this class to tables that need entries
-  tables.forEach(table => {
+  // 2. Special 48-hour check for page 1
+  if (pageId === "form-page-1") {
+    const infoInput = document.getElementById("infoGatheredDate");
+    const occInput = document.getElementById("occurrenceDate");
+    const infoDate = infoInput.value;
+    const occDate = occInput.value;
+
+    if (infoDate && occDate) {
+      const diffMs = new Date(infoDate) - new Date(occDate);
+      const maxMs = 48 * 60 * 60 * 1000; // 48 hours
+
+      if (diffMs < 0 || diffMs > maxMs) {
+        isValid = false;
+        infoInput.classList.add("input-error");
+        occInput.classList.add("input-error");
+
+        Swal.fire({
+          icon: "error",
+          title: "Invalid Dates",
+          text: "The report must be submitted within 48 hours after the disaster."
+        });
+      } else {
+        infoInput.classList.remove("input-error");
+        occInput.classList.remove("input-error");
+      }
+    }
+  }
+
+  // 3. Page 2 table validation (at least one complete row)
+  if (pageId === "form-page-2") {
+    const table = document.getElementById("disasterprofile-table");
     const rows = table.querySelectorAll("tbody tr");
-    if (rows.length === 0) {
+    let tableValid = false;
+
+    rows.forEach(row => {
+      const inputs = row.querySelectorAll("input[required], select[required]");
+      let rowValid = true;
+
+      inputs.forEach(input => {
+        if (!input.value) {
+          rowValid = false;
+          input.classList.add("input-error");
+        } else {
+          input.classList.remove("input-error");
+        }
+      });
+
+      if (rowValid) tableValid = true; // at least one complete row
+    });
+
+    if (!tableValid) {
       isValid = false;
-      table.classList.add("table-error"); // optional styling
+      Swal.fire({
+        icon: "error",
+        title: "Incomplete Data",
+        text: "Please fill in at least one complete row in the Initial Effects table."
+      });
+    }
+  }
+
+  // 4. Page 4: static inputs OR table filled
+  if (pageId === "form-page-4") {
+    const table = document.getElementById("InitialResponsepreviewdata-table");
+    const rows = table.querySelectorAll("tbody tr:not(.no-entries)");
+    const tableValid = rows.length > 0;
+
+    const staticValid = rules.staticInputs.every(id => {
+      const input = document.getElementById(id);
+      if (!input) return false;
+      if (!input.value) {
+        input.classList.add("input-error");
+        return false;
+      } else {
+        input.classList.remove("input-error");
+        return true;
+      }
+    });
+
+    if (!tableValid && !staticValid) {
+      isValid = false;
+      Swal.fire({
+        icon: "error",
+        title: "Incomplete Data",
+        text: "Please fill out all required fields or add at least one entry in the Initial Response table."
+      });
     } else {
-      table.classList.remove("table-error");
+      isValid = true; // either table has row or static inputs filled
+    }
+  }
+
+  // 5. General table validations for other pages
+  rules.tables?.forEach(tableRule => {
+    let tableId, optionalIfFilled = false;
+
+    if (typeof tableRule === "string") tableId = tableRule;
+    else {
+      tableId = tableRule.id;
+      optionalIfFilled = tableRule.optionalIfFilled || false;
+    }
+
+    const table = document.getElementById(tableId);
+    if (!table) return;
+
+    const hasData = table.querySelectorAll("tbody tr:not(.no-entries)").length > 0;
+
+    if (!hasData && !optionalIfFilled) {
+      isValid = false;
+      table.classList.add("input-error");
+    } else {
+      table.classList.remove("input-error");
     }
   });
 
-  // Show alert if invalid
-  if (!isValid) {
+  // 6. Show general error if still invalid
+  if (!isValid && pageId !== "form-page-2" && pageId !== "form-page-1" && pageId !== "form-page-4") {
     Swal.fire({
       icon: "error",
       title: "Incomplete Data",
-      text: "Please fill out all required fields and add entries to all required tables before continuing."
+      text: "Please fill out all required fields and add at least one entry in the table(s) before continuing."
     });
   }
 
   return isValid;
 }
+
+
+
+
+
+
+
 
 
 

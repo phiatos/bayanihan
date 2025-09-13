@@ -1154,6 +1154,28 @@ input.error, select.error, textarea.error {
   z-index: 2;
 }
 
+.input-error {
+  border: 2px solid red !important; /* force highlight */
+  animation: shake 0.2s;
+}
+
+.table-error tbody {
+  border: 2px solid red;
+}
+
+.table-error td {
+  border: 1px solid red !important;
+}
+
+
+@keyframes shake {
+  0% { transform: translateX(0); }
+  25% { transform: translateX(-3px); }
+  50% { transform: translateX(3px); }
+  75% { transform: translateX(-3px); }
+  100% { transform: translateX(0); }
+}
+
 
 
    
