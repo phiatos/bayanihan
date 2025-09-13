@@ -1849,12 +1849,14 @@ function initializePageFunctions(userId) {
             } else if (Array.isArray(volunteer.statusNotes) && volunteer.statusNotes.length > 0) {
                 displayStatusNotes = volunteer.statusNotes[volunteer.statusNotes.length - 1].note;
             }
+            
             let rejectionTag = '';
             if (volunteer.rejectedBy) {
-                const abvnName = volunteer.rejectedByName || volunteer.rejectedBy;
+                const abvnName = volunteer.rejectedByName || volunteer.rejectedBy; // optional: map ID -> name if you store it
                 const reason = volunteer.rejectionReason ? ` - Reason: ${volunteer.rejectionReason}` : '';
                 rejectionTag = `<span class="rejected-tag">Rejected by ${abvnName}${reason}</span>`;
             }
+
             let specificSlotsHtml = 'N/A';
             if (volunteer.availability && volunteer.availability.specificDateTimeSlots && volunteer.availability.specificDateTimeSlots.length > 0) {
                 specificSlotsHtml = '<ol>';
@@ -1890,6 +1892,7 @@ function initializePageFunctions(userId) {
                 <td>${volunteer.address?.formattedAddress || 'N/A'}</td>
                 <td>${skillsHtml}</td>
                 <td>${displayStatusNotes}</td>
+                ${rejectionTag ? `<td>${rejectionTag}</td>` : '<td></td>'}
                 ${hasActionPermissions ? `
                     <td>
                         <button title="Actions" class="actionBtn" data-key="${volunteer.key}"><i class='bx bx-dots-vertical-rounded'></i></button>

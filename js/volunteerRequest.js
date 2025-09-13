@@ -1,4 +1,3 @@
-//volunteerRequest.js
 const firebaseConfig = {
     apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
     authDomain: "bayanihan-5ce7e.firebaseapp.com",
@@ -15,278 +14,189 @@ const database = firebase.database();
 const auth = firebase.auth();
 
 document.addEventListener('DOMContentLoaded', () => {
-    const needsForm = document.getElementById('abvn-needs-form');
-    const otherSkillsTextarea = document.getElementById('otherNeededSkills');
-    const submitButton = document.querySelector('.btn-primary');
     let isSubmitting = false;
 
     // =================== TAB SWITCHING ===================
-const tabButtons = document.querySelectorAll('.tab-btn');
-const tabContent = document.getElementById('tab-content');
+    const tabButtons = document.querySelectorAll('.tab-btn');
+    const tabContent = document.getElementById('tab-content');
 
-function loadTabContent(tab) {
-    tabContent.innerHTML = ''; // Clear previous content
-
-    if (tab === 'submit-request') {
-        const template = document.getElementById('submit-request-template').innerHTML;
-        tabContent.innerHTML = template;
-
-        // Re-attach form event listener if needed
+    function attachSubmitListener() {
         const needsForm = document.getElementById('abvn-needs-form');
-        if (needsForm) {
-            needsForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                // You already have form submission logic above
-                // Optionally, you can call a function like submitVolunteerRequest()
-            });
+        if (!needsForm) return;
+
+        const submitButton = needsForm.querySelector('.btn-primary');
+        const otherSkillsTextarea = document.getElementById('otherNeededSkills');
+        const taskStartDateInput = document.getElementById("taskStartDate");
+        const taskEndDateInput = document.getElementById("taskEndDate");
+        const taskTimeStartInput = document.getElementById("taskTimeStart");
+        const taskTimeEndInput = document.getElementById("taskTimeEnd");
+
+        const isEmpty = (value) => value.trim() === "";
+
+        function showError(inputField, message) {
+            const errorDiv = inputField.nextElementSibling;
+            if (!errorDiv || !errorDiv.classList.contains('error-message')) {
+                const newErrorDiv = document.createElement('div');
+                newErrorDiv.className = 'error-message';
+                inputField.parentNode.insertBefore(newErrorDiv, inputField.nextSibling);
+                newErrorDiv.textContent = message;
+            } else {
+                errorDiv.textContent = message;
+            }
+            inputField.classList.add('error');
         }
 
-    } else if (tab === 'my-requests') {
-        const template = document.getElementById('my-requests-template').innerHTML;
-        tabContent.innerHTML = template;
-
-        // Load volunteer requests for current ABVN
-        const user = auth.currentUser;
-        if (!user) return;
-
-        const requestsList = document.getElementById('abvn-requests-list');
-        database.ref(`volunteerGroups/${user.uid}/volunteerNeeds`).once('value').then(snapshot => {
-            requestsList.innerHTML = '';
-            snapshot.forEach(childSnapshot => {
-                const req = childSnapshot.val();
-                const reqId = childSnapshot.key;
-
-                const div = document.createElement('div');
-                div.className = 'request-item';
-                div.innerHTML = `
-                    <h4>${req.taskName}</h4>
-                    <p>Volunteers Needed: ${req.volunteersNeeded}</p>
-                    <p>Dates: ${req.taskStartDate} to ${req.taskEndDate}</p>
-                    <p>Skills: ${req.skills.join(', ')} ${req.otherSkillComments ? ', ' + req.otherSkillComments : ''}</p>
-                    <p>Status: ${req.status}</p>
-                    <button class="cancel-request-btn" data-id="${reqId}">Cancel Request</button>
-                    <hr>
-                `;
-                requestsList.appendChild(div);
-            });
-
-            // Attach cancel button listeners
-            const cancelButtons = document.querySelectorAll('.cancel-request-btn');
-            cancelButtons.forEach(btn => {
-                btn.addEventListener('click', async () => {
-                    const requestId = btn.dataset.id;
-                    const confirmResult = await Swal.fire({
-                        title: 'Are you sure?',
-                        text: "This will cancel your volunteer request.",
-                        icon: 'warning',
-                        showCancelButton: true,
-                        confirmButtonColor: '#3085d6',
-                        cancelButtonColor: '#d33',
-                        confirmButtonText: 'Yes, cancel it!'
-                    });
-
-                    if (confirmResult.isConfirmed) {
-                        try {
-                            await database.ref(`volunteerGroups/${user.uid}/volunteerNeeds/${requestId}`).remove();
-                            await database.ref(`volunteerRequests/${requestId}`).remove();
-                            Swal.fire('Cancelled!', 'Your volunteer request has been cancelled.', 'success');
-                            loadTabContent('my-requests'); // Refresh list
-                        } catch (error) {
-                            console.error(error);
-                            Swal.fire('Error', 'Failed to cancel request. Try again.', 'error');
-                        }
-                    }
-                });
-            });
-        });
-    }
-}
-
-// Initial load
-loadTabContent('submit-request');
-
-// Tab button click listener
-tabButtons.forEach(btn => {
-    btn.addEventListener('click', () => {
-        tabButtons.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        loadTabContent(btn.dataset.tab);
-    });
-});
-
-
-    const isEmpty = (value) => value.trim() === "";
-
-    function showError(inputField, message) {
-        const errorDiv = inputField.nextElementSibling;
-        if (!errorDiv || !errorDiv.classList.contains('error-message')) {
-            const newErrorDiv = document.createElement('div');
-            newErrorDiv.className = 'error-message';
-            inputField.parentNode.insertBefore(newErrorDiv, inputField.nextSibling);
-            newErrorDiv.textContent = message;
-        } else {
-            errorDiv.textContent = message;
-        }
-        inputField.classList.add('error');
-    }
-
-    function clearError(inputField) {
-        const errorDiv = inputField.nextElementSibling;
-        if (errorDiv && errorDiv.classList.contains('error-message')) {
-            errorDiv.textContent = '';
-        }
-        inputField.classList.remove('error');
-    }
-
-    function validateInputInRealTime(input) {
-        clearError(input);
-        if (!isEmpty(input.value) && input.value.length > 500) {
-            showError(input, 'Other Skills description must not exceed 500 characters.');
-        }
-    }
-
-    if (otherSkillsTextarea) {
-        otherSkillsTextarea.addEventListener('input', () => {
-            validateInputInRealTime(otherSkillsTextarea);
-        });
-    }
-
-    const taskStartDateInput = document.getElementById("taskStartDate");
-    const taskEndDateInput = document.getElementById("taskEndDate");
-    const taskTimeStartInput = document.getElementById("taskTimeStart");
-    const taskTimeEndInput = document.getElementById("taskTimeEnd");
-
-    function validateDatesAndTimes() {
-        let isValid = true;
-        const today = new Date();
-        today.setHours(0,0,0,0);
-
-        const startDate = new Date(taskStartDateInput.value);
-        const endDate = new Date(taskEndDateInput.value);
-
-        clearError(taskStartDateInput);
-        clearError(taskEndDateInput);
-        clearError(taskTimeStartInput);
-        clearError(taskTimeEndInput);
-
-        if (startDate < today) {
-            showError(taskStartDateInput, "Start date cannot be in the past.");
-            isValid = false;
+        function clearError(inputField) {
+            const errorDiv = inputField.nextElementSibling;
+            if (errorDiv && errorDiv.classList.contains('error-message')) {
+                errorDiv.textContent = '';
+            }
+            inputField.classList.remove('error');
         }
 
-        if (endDate < startDate) {
-            showError(taskEndDateInput, "End date cannot be before start date.");
-            isValid = false;
-        }
-
-        if (taskStartDateInput.value === taskEndDateInput.value && taskTimeEndInput.value <= taskTimeStartInput.value) {
-            showError(taskTimeEndInput, "End time must be after start time for same-day tasks.");
-            isValid = false;
-        }
-
-        return isValid;
-    }
-
-    [taskStartDateInput, taskEndDateInput, taskTimeStartInput, taskTimeEndInput].forEach(input => {
-        input.addEventListener("input", validateDatesAndTimes);
-    });
-
-    async function validateFormForSubmission() {
-        let isValid = true;
-        const errors = [];
-
-        const skillCheckboxes = document.querySelectorAll('input[name="neededSkills"]:checked');
-        const selectedSkills = Array.from(skillCheckboxes).map(checkbox => checkbox.value);
-        if (selectedSkills.length < 1 && isEmpty(otherSkillsTextarea.value)) {
-            errors.push('Please select at least one skill or specify other skills.');
-            isValid = false;
-        }
-
-        if (!isEmpty(otherSkillsTextarea.value) && otherSkillsTextarea.value.length > 500) {
-            showError(otherSkillsTextarea, 'Other Skills description must not exceed 500 characters.');
-            errors.push('Other Skills description must not exceed 500 characters.');
-            isValid = false;
-        }
-
-        if (!validateDatesAndTimes()) {
-            errors.push('Please fix the date/time errors.');
-            isValid = false;
-        }
-
-        const user = auth.currentUser;
-        if (user) {
-            const skillRequestsRef = database.ref(`volunteerGroups/${user.uid}/volunteerNeeds`);
-            const snapshot = await skillRequestsRef.once('value');
-            let skillsAlreadyRequested = false;
-
-            snapshot.forEach(childSnapshot => {
-                const request = childSnapshot.val();
-                const existingSkills = request.skills || [];
-                const existingOtherSkills = request.otherSkillComments || '';
-                const isSameSkills = selectedSkills.length === existingSkills.length &&
-                    selectedSkills.every(skill => existingSkills.includes(skill)) &&
-                    otherSkillsTextarea.value.trim() === existingOtherSkills;
-                if (isSameSkills) skillsAlreadyRequested = true;
-            });
-
-            if (skillsAlreadyRequested) {
-                errors.push('This exact combination of skills has already been requested by your group.');
-                isValid = false;
+        function validateInputInRealTime(input) {
+            clearError(input);
+            if (!isEmpty(input.value) && input.value.length > 500) {
+                showError(input, 'Other Skills description must not exceed 500 characters.');
             }
         }
 
-        return { isValid, errors };
-    }
-
-    function isVolunteerAvailableForTask(volunteerAvailability, taskStartDate, taskEndDate, taskTimeStart, taskTimeEnd) {
-        let currentDate = new Date(taskStartDate);
-        const endDate = new Date(taskEndDate);
-
-        while (currentDate <= endDate) {
-            const dateStr = currentDate.toISOString().split('T')[0];
-            const availableToday = volunteerAvailability.some(slot =>
-                slot.date === dateStr &&
-                slot.startTime <= taskTimeStart &&
-                slot.endTime >= taskTimeEnd
-            );
-
-            if (!availableToday) return false;
-            currentDate.setDate(currentDate.getDate() + 1);
+        if (otherSkillsTextarea) {
+            otherSkillsTextarea.addEventListener('input', () => {
+                validateInputInRealTime(otherSkillsTextarea);
+            });
         }
 
-        return true;
-    }
+        function validateDatesAndTimes() {
+            let isValid = true;
+            const today = new Date();
+            today.setHours(0,0,0,0);
 
-    async function findMatchingVolunteers(needsData) {
-        const volunteersRef = database.ref('volunteers'); 
-        const snapshot = await volunteersRef.once('value');
-        const matchingVolunteers = [];
+            const startDate = new Date(taskStartDateInput.value);
+            const endDate = new Date(taskEndDateInput.value);
 
-        snapshot.forEach(childSnapshot => {
-            const volunteer = childSnapshot.val();
-            const volunteerSkills = volunteer.skills || [];
-            const volunteerAvailability = volunteer.availability || []; 
+            clearError(taskStartDateInput);
+            clearError(taskEndDateInput);
+            clearError(taskTimeStartInput);
+            clearError(taskTimeEndInput);
 
-            const skillMatch = needsData.skills.some(skill => volunteerSkills.includes(skill)) ||
-                               (needsData.otherSkillComments && volunteerSkills.includes(needsData.otherSkillComments));
+            if (startDate < today) {
+                showError(taskStartDateInput, "Start date cannot be in the past.");
+                isValid = false;
+            }
 
-            if (!skillMatch) return;
+            if (endDate < startDate) {
+                showError(taskEndDateInput, "End date cannot be before start date.");
+                isValid = false;
+            }
 
-            const isAvailable = isVolunteerAvailableForTask(
-                volunteerAvailability,
-                needsData.taskStartDate,
-                needsData.taskEndDate,
-                needsData.taskTimeStart,
-                needsData.taskTimeEnd
-            );
+            if (taskStartDateInput.value === taskEndDateInput.value && taskTimeEndInput.value <= taskTimeStartInput.value) {
+                showError(taskTimeEndInput, "End time must be after start time for same-day tasks.");
+                isValid = false;
+            }
 
-            if (isAvailable) matchingVolunteers.push({ id: childSnapshot.key, ...volunteer });
+            return isValid;
+        }
+
+        [taskStartDateInput, taskEndDateInput, taskTimeStartInput, taskTimeEndInput].forEach(input => {
+            input.addEventListener("input", validateDatesAndTimes);
         });
 
-        return matchingVolunteers;
-    }
+        async function validateFormForSubmission() {
+            let isValid = true;
+            const errors = [];
 
-    if (needsForm) {
+            const skillCheckboxes = document.querySelectorAll('input[name="neededSkills"]:checked');
+            const selectedSkills = Array.from(skillCheckboxes).map(cb => cb.value);
+            if (selectedSkills.length < 1 && isEmpty(otherSkillsTextarea.value)) {
+                errors.push('Please select at least one skill or specify other skills.');
+                isValid = false;
+            }
+
+            if (!isEmpty(otherSkillsTextarea.value) && otherSkillsTextarea.value.length > 500) {
+                showError(otherSkillsTextarea, 'Other Skills description must not exceed 500 characters.');
+                errors.push('Other Skills description must not exceed 500 characters.');
+                isValid = false;
+            }
+
+            if (!validateDatesAndTimes()) {
+                errors.push('Please fix the date/time errors.');
+                isValid = false;
+            }
+
+            const user = auth.currentUser;
+            if (user) {
+                const skillRequestsRef = database.ref(`volunteerGroups/${user.uid}/volunteerNeeds`);
+                const snapshot = await skillRequestsRef.once('value');
+                let skillsAlreadyRequested = false;
+
+                snapshot.forEach(childSnapshot => {
+                    const request = childSnapshot.val();
+                    const existingSkills = request.skills || [];
+                    const existingOtherSkills = request.otherSkillComments || '';
+                    const isSameSkills = selectedSkills.length === existingSkills.length &&
+                        selectedSkills.every(skill => existingSkills.includes(skill)) &&
+                        otherSkillsTextarea.value.trim() === existingOtherSkills;
+                    if (isSameSkills) skillsAlreadyRequested = true;
+                });
+
+                if (skillsAlreadyRequested) {
+                    errors.push('This exact combination of skills has already been requested by your group.');
+                    isValid = false;
+                }
+            }
+
+            return { isValid, errors };
+        }
+
+        function isVolunteerAvailableForTask(volunteerAvailability, taskStartDate, taskEndDate, taskTimeStart, taskTimeEnd) {
+            let currentDate = new Date(taskStartDate);
+            const endDate = new Date(taskEndDate);
+
+            while (currentDate <= endDate) {
+                const dateStr = currentDate.toISOString().split('T')[0];
+                const availableToday = volunteerAvailability.some(slot =>
+                    slot.date === dateStr &&
+                    slot.startTime <= taskTimeStart &&
+                    slot.endTime >= taskTimeEnd
+                );
+
+                if (!availableToday) return false;
+                currentDate.setDate(currentDate.getDate() + 1);
+            }
+
+            return true;
+        }
+
+        async function findMatchingVolunteers(needsData) {
+            const volunteersRef = database.ref('volunteers'); 
+            const snapshot = await volunteersRef.once('value');
+            const matchingVolunteers = [];
+
+            snapshot.forEach(childSnapshot => {
+                const volunteer = childSnapshot.val();
+                const volunteerSkills = volunteer.skills || [];
+                const volunteerAvailability = volunteer.availability || []; 
+
+                const skillMatch = needsData.skills.some(skill => volunteerSkills.includes(skill)) ||
+                                   (needsData.otherSkillComments && volunteerSkills.includes(needsData.otherSkillComments));
+
+                if (!skillMatch) return;
+
+                const isAvailable = isVolunteerAvailableForTask(
+                    volunteerAvailability,
+                    needsData.taskStartDate,
+                    needsData.taskEndDate,
+                    needsData.taskTimeStart,
+                    needsData.taskTimeEnd
+                );
+
+                if (isAvailable) matchingVolunteers.push({ id: childSnapshot.key, ...volunteer });
+            });
+
+            return matchingVolunteers;
+        }
+
         needsForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             if (isSubmitting) return;
@@ -298,7 +208,7 @@ tabButtons.forEach(btn => {
             try {
                 const user = auth.currentUser;
                 if (!user) {
-                    Swal.fire({ icon: 'error', title: 'Authentication Required', text: 'Please log in to submit volunteer needs.', showConfirmButton: true, confirmButtonText: 'OK' });
+                    Swal.fire({ icon: 'error', title: 'Authentication Required', text: 'Please log in to submit volunteer needs.' });
                     submitButton.disabled = false;
                     submitButton.textContent = 'Save Needs';
                     isSubmitting = false;
@@ -307,7 +217,7 @@ tabButtons.forEach(btn => {
 
                 const { isValid, errors } = await validateFormForSubmission();
                 if (!isValid) {
-                    Swal.fire({ icon: 'error', title: 'Invalid Input', html: errors.join('<br>'), showConfirmButton: true, confirmButtonText: 'OK' });
+                    Swal.fire({ icon: 'error', title: 'Invalid Input', html: errors.join('<br>') });
                     submitButton.disabled = false;
                     submitButton.textContent = 'Save Needs';
                     isSubmitting = false;
@@ -363,8 +273,8 @@ tabButtons.forEach(btn => {
                 Array.from(needsForm.querySelectorAll('.error')).forEach(input => input.classList.remove('error'));
 
             } catch (error) {
-                console.error("Error adding volunteer needs to Realtime Database: ", error);
-                Swal.fire({ icon: 'error', title: 'Error', text: 'There was an error submitting your request. Please try again.', confirmButtonText: 'OK' });
+                console.error("Error adding volunteer needs: ", error);
+                Swal.fire({ icon: 'error', title: 'Error', text: 'There was an error submitting your request.' });
             } finally {
                 submitButton.disabled = false;
                 submitButton.textContent = 'Save Needs';
@@ -372,4 +282,81 @@ tabButtons.forEach(btn => {
             }
         });
     }
+
+    function loadTabContent(tab) {
+        tabContent.innerHTML = '';
+
+        if (tab === 'submit-request') {
+            tabContent.innerHTML = document.getElementById('submit-request-template').innerHTML;
+            attachSubmitListener(); // Attach listener after DOM injection
+        } else if (tab === 'my-requests') {
+            tabContent.innerHTML = document.getElementById('my-requests-template').innerHTML;
+
+            const user = auth.currentUser;
+            if (!user) return;
+
+            const requestsList = document.getElementById('abvn-requests-list');
+            database.ref(`volunteerGroups/${user.uid}/volunteerNeeds`).once('value').then(snapshot => {
+                requestsList.innerHTML = '';
+                snapshot.forEach(childSnapshot => {
+                    const req = childSnapshot.val();
+                    const reqId = childSnapshot.key;
+
+                    const div = document.createElement('div');
+                    div.className = 'request-item';
+                    div.innerHTML = `
+                        <h4>${req.taskName}</h4>
+                        <p>Volunteers Needed: ${req.volunteersNeeded}</p>
+                        <p>Dates: ${req.taskStartDate} to ${req.taskEndDate}</p>
+                        <p>Skills: ${req.skills.join(', ')} ${req.otherSkillComments ? ', ' + req.otherSkillComments : ''}</p>
+                        <p>Status: ${req.status}</p>
+                        <button class="cancel-request-btn" data-id="${reqId}">Cancel Request</button>
+                        <hr>
+                    `;
+                    requestsList.appendChild(div);
+                });
+
+                // Cancel button listeners
+                const cancelButtons = document.querySelectorAll('.cancel-request-btn');
+                cancelButtons.forEach(btn => {
+                    btn.addEventListener('click', async () => {
+                        const requestId = btn.dataset.id;
+                        const confirmResult = await Swal.fire({
+                            title: 'Are you sure?',
+                            text: "This will cancel your volunteer request.",
+                            icon: 'warning',
+                            showCancelButton: true,
+                            confirmButtonColor: '#3085d6',
+                            cancelButtonColor: '#d33',
+                            confirmButtonText: 'Yes, cancel it!'
+                        });
+
+                        if (confirmResult.isConfirmed) {
+                            try {
+                                await database.ref(`volunteerGroups/${user.uid}/volunteerNeeds/${requestId}`).remove();
+                                await database.ref(`volunteerRequests/${requestId}`).remove();
+                                Swal.fire('Cancelled!', 'Your volunteer request has been cancelled.', 'success');
+                                loadTabContent('my-requests'); // Refresh list
+                            } catch (error) {
+                                console.error(error);
+                                Swal.fire('Error', 'Failed to cancel request.', 'error');
+                            }
+                        }
+                    });
+                });
+            });
+        }
+    }
+
+    // Initial load
+    loadTabContent('submit-request');
+
+    // Tab buttons
+    tabButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            tabButtons.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            loadTabContent(btn.dataset.tab);
+        });
+    });
 });
