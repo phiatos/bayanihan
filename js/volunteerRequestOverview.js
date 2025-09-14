@@ -209,15 +209,6 @@ async function renderTable() {
         });
 
     function getStatusBadge(status) {
-        let color;
-        switch (status) {
-            case "Completed": color = "green"; break;
-            case "In Progress": color = "orange"; break;
-            case "Pending": color = "red"; break;
-            case "Incomplete": color = "purple"; break; 
-            case "Rejected": color = "gray"; break; 
-            default: color = "red";
-        }
         return `<span class="status ${status.replace(" ", "")}">${status}</span>`;
     }
 

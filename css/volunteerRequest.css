@@ -72,41 +72,6 @@
   color: #555;
 }
 
-.edit-request-btn {
-  background-color: var(--primary-color); /* blue */
-  color: #fff;
-  border: none;
-  padding: 0.5rem 0.9rem;
-  border-radius: 6px;
-  font-weight: 600;
-  cursor: pointer;
-  margin-top: 0.5rem;
-  margin-left: 0.5rem; /* spacing from cancel button */
-  transition: background-color 0.3s ease, transform 0.2s ease;
-}
-
-.edit-request-btn:hover {
-  background-color: #1976d2; /* darker blue */
-  transform: translateY(-1px);
-}
-
-.cancel-request-btn {
-  background-color: #f44336; /* red */
-  color: #fff;
-  border: none;
-  padding: 0.5rem 0.9rem;
-  border-radius: 6px;
-  font-weight: 600;
-  cursor: pointer;
-  margin-top: 0.5rem;
-  transition: background-color 0.3s ease, transform 0.2s ease;
-}
-
-.cancel-request-btn:hover {
-  background-color: #d32f2f;
-  transform: translateY(-1px);
-}
-
 .request-item hr {
   border: none;
   border-top: 1px solid #eee;
@@ -287,24 +252,6 @@ fieldset {
 }
 
 /* ===================================================== */
-/* ==================== BUTTONS ======================= */
-/* ===================================================== */
-.container button[type="submit"],
-.container button[type="button"],
-.btn-primary {
-  padding: 14px;
-  width: 100%;
-  background-color: var(--primary-color);
-  color: #ffffff;
-  font-size: 16px;
-  font-weight: 600;
-  border: none;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: background-color 0.2s ease, transform 0.2s ease;
-}
-
-/* ===================================================== */
 /* ==================== RESPONSIVE ==================== */
 /* ===================================================== */
 @media (max-width: 768px) {
@@ -391,6 +338,8 @@ fieldset {
 .status.Pending { background-color: #f0ad4e; }
 .status.InProgress { background-color: #5bc0de; }
 .status.Completed { background-color: #5cb85c; }
+.status.Incomplete { background-color: #9370DB; } 
+.status.Rejected { background-color: #6c757d; } 
 
 /* Action buttons */
 .actions button {
@@ -472,23 +421,6 @@ fieldset {
   margin: 0.2rem 0;
   font-size: 0.95rem;
   color: #555;
-}
-
-.cancel-request-btn {
-  background-color: #f44336; /* red */
-  color: #fff;
-  border: none;
-  padding: 0.5rem 0.9rem;
-  border-radius: 6px;
-  font-weight: 600;
-  cursor: pointer;
-  margin-top: 0.5rem;
-  transition: background-color 0.3s ease, transform 0.2s ease;
-}
-
-.cancel-request-btn:hover {
-  background-color: #d32f2f;
-  transform: translateY(-1px);
 }
 
 .request-item hr {

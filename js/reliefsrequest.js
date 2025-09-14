@@ -188,30 +188,31 @@ document.addEventListener('DOMContentLoaded', () => {
                 <span class="card-status status-${data.status || 'Submitted'}">${data.status || 'SUBMITTED'}</span>
             </div>
             <div class="card-body">
-                <div class="card-body-wrapper">
-                    <div class="left-column">
-                        <div class="contact-info">
-                            <h4>Contact Details</h4>
-                            <p><strong>Contact Person:</strong> <span class="contact-name">${data.contactPerson}</span></p>
-                            <p><strong>Organization:</strong> <span class="contact-org">${data.volunteerOrganization || 'N/A'}</span></p>
-                            <p><strong>Contact Number:</strong> <span class="contact-number">${data.contactNumber}</span></p>
-                            <p><strong>Email:</strong> <span class="contact-email">${data.email}</span></p>
-                        </div>
-                        <div class="address-info">
-                            <h4>Drop-off Location</h4>
-                            <p><strong>Address:</strong> <span class="address-text">${data.address?.formattedAddress}</span></p>
-                            <p><strong>Submitted On:</strong> <span class="timestamp-text">${timestamp}</span></p>
-                        </div>
-                    </div>
-                    <div class="right-column">
-                        <div class="items-info">
-                            <h4>Requested Items</h4>
-                            <ul class="items-list">
-                                ${itemsHtml}
-                            </ul>
-                        </div>
-                    </div>
+              <div class="card-body-wrapper">
+                <div class="left-column">
+                  <div class="contact-info">
+                    <h4>Contact Details</h4>
+                    <p><strong>Contact Person:</strong> <span class="contact-name">${data.contactPerson}</span></p>
+                    <p><strong>Organization:</strong> <span class="contact-org">${data.volunteerOrganization || 'N/A'}</span></p>
+                    <p><strong>Contact Number:</strong> <span class="contact-number">${data.contactNumber}</span></p>
+                    <p><strong>Email:</strong> <span class="contact-email">${data.email}</span></p>
+                  </div>
+                  <div class="address-info">
+                    <h4>Drop-off Location</h4>
+                    <p><strong>Address:</strong> <span class="address-text">${data.address?.formattedAddress}</span></p>
+                    <p><strong>Submitted On:</strong> <span class="timestamp-text">${timestamp}</span></p>
+                  </div>
+                  <div class="items-info">
+                    <h4>Requested Items</h4>
+                    <ul class="items-list">
+                      ${itemsHtml}
+                    </ul>
+                  </div>
                 </div>
+                <div class="right-column">
+                    
+                </div>
+              </div>
             </div>
             
         `;
