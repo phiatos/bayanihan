@@ -808,19 +808,27 @@ async function notifyABVN(activationId, groupId, reliefAmount, reliefPurpose) {
 
 async function notifyABVNActivation(activationId, groupId) {
     try {
+        console.log("notifyABVNActivation called with activationId:", activationId, "groupId:", groupId);
+        console.log("selectedGroupForActivation:", selectedGroupForActivation);
+        console.log("allVolunteerGroups IDs:", allVolunteerGroups.map(g => g.no));
+
         const user = firebase.auth().currentUser;
         if (!user) {
+            console.error("User not authenticated.");
             throw new Error("User not authenticated.");
         }
 
-        const group = allVolunteerGroups.find(g => g.no === parseInt(groupId));
-        if (!group) {
-            throw new Error(`Volunteer group not found for groupId: ${groupId}`);
+        if (!selectedGroupForActivation || selectedGroupForActivation.no !== groupId) {
+            console.error("Invalid or mismatched selectedGroupForActivation:", selectedGroupForActivation, "Expected groupId:", groupId);
+            throw new Error(`Invalid group selection for groupId: ${groupId}`);
         }
+
+        const group = selectedGroupForActivation;
 
         const activationSnapshot = await database.ref(`activations/${activationId}`).once("value");
         const activation = activationSnapshot.val();
         if (!activation) {
+            console.error("Activation not found for activationId:", activationId);
             throw new Error(`Activation not found for activationId: ${activationId}`);
         }
 
@@ -854,7 +862,7 @@ async function notifyABVNActivation(activationId, groupId) {
 
         return newNotificationRef.key;
     } catch (error) {
-        console.error("Error creating activation notification:", error);
+        console.error("Error creating activation notification:", error.message);
         throw error;
     }
 }
@@ -940,54 +948,45 @@ firebase.auth().onAuthStateChanged(async (user) => {
 });
 
 function listenForDataUpdates() {
-    console.log("Setting up real-time listener for volunteerGroups...");
+    console.log("Starting listenForDataUpdates at", new Date().toISOString());
     database.ref("volunteerGroups").on("value", snapshot => {
-        const fetchedGroups = snapshot.val();
-        
+        console.log("VolunteerGroups snapshot received:", snapshot.val());
         allVolunteerGroups = [];
+        const fetchedGroups = snapshot.val();
         if (fetchedGroups) {
             for (let key in fetchedGroups) {
                 const groupData = fetchedGroups[key];
-                const addressData = groupData.address;
-
-                let combinedAddress = "Not specified";
-
-                if (addressData) {
+                console.log("Processing group with key:", key);
+                const addressData = groupData.address || {};
+                // Use formattedAddress if available, otherwise build combinedAddress
+                let combinedAddress = addressData.formattedAddress || "Not specified";
+                if (!addressData.formattedAddress && addressData) {
                     const addressParts = [];
-
-                    if (addressData.region && addressData.region.trim() !== '') {
-                        addressParts.push(addressData.region.trim());
-                    }
-                    if (addressData.province && addressData.province.trim() !== '') {
-                        addressParts.push(addressData.province.trim());
-                    }
-                    if (addressData.city && addressData.city.trim() !== '') {
-                        addressParts.push(addressData.city.trim());
-                    }
-                    if (addressData.streetAddress && addressData.streetAddress.trim() !== '') {
-                        addressParts.push(addressData.streetAddress.trim());
-                    }
-
-                    if (addressParts.length > 0) {
-                        combinedAddress = addressParts.join(', ');
-                    }
+                    if (addressData.region && addressData.region.trim() !== '') addressParts.push(addressData.region.trim());
+                    if (addressData.province && addressData.province.trim() !== '') addressParts.push(addressData.province.trim());
+                    if (addressData.city && addressData.city.trim() !== '') addressParts.push(addressData.city.trim());
+                    if (addressData.streetAddress && addressData.streetAddress.trim() !== '') addressParts.push(addressData.streetAddress.trim());
+                    if (addressParts.length > 0) combinedAddress = addressParts.join(', ');
                 }
-
                 allVolunteerGroups.push({
-                    no: parseInt(key),
+                    no: key,
                     organization: groupData.organization || "Unknown",
                     hq: combinedAddress,
-                    address: groupData.address || "N/A",
+                    address: addressData,
                     contactPerson: groupData.contactPerson || "Unknown",
                     email: groupData.email || "Not specified",
                     mobileNumber: groupData.mobileNumber || "Not specified",
                 });
             }
-            allVolunteerGroups.sort((a, b) => a.no - b.no);
+            allVolunteerGroups.sort((a, b) => a.no.localeCompare(b.no));
+            console.log("Processed allVolunteerGroups:", allVolunteerGroups.map(g => ({ no: g.no, organization: g.organization, hq: g.hq })));
+            console.log("Group IDs in allVolunteerGroups:", allVolunteerGroups.map(g => g.no));
+        } else {
+            console.warn("No volunteerGroups data found.");
         }
         populateGroupDropdown();
     }, error => {
-        console.error("Error listening for volunteerGroups:", error.code, error.message);
+        console.error("Error fetching volunteerGroups:", error.code, error.message);
         Swal.fire({
             icon: 'error',
             title: 'Error',
@@ -998,14 +997,12 @@ function listenForDataUpdates() {
     console.log("Setting up real-time listener for activations...");
     database.ref("activations").orderByChild("activationDate").on("value", snapshot => {
         const fetchedActivations = snapshot.val();
-        
         currentActiveActivations = [];
         if (fetchedActivations) {
             for (let key in fetchedActivations) {
                 const activation = fetchedActivations[key];
                 if (activation.status === 'active') {
-                    const volunteerGroup = allVolunteerGroups.find(group => group.no === activation.groupId);
-
+                    const volunteerGroup = allVolunteerGroups.find(group => group.no === String(activation.groupId));
                     currentActiveActivations.push({
                         id: key,
                         no: activation.no || 0,
@@ -1045,22 +1042,21 @@ function listenForDataUpdates() {
 }
 
 function populateGroupDropdown() {
+    console.log("Populating selectGroupDropdown with groups:", allVolunteerGroups);
     selectGroupDropdown.innerHTML = '<option value="">-- Select an Organization --</option>';
     allVolunteerGroups.forEach(group => {
         const option = document.createElement("option");
         option.value = group.no;
-
         let locationToDisplay = 'N/A';
-
         if (group.address && group.address.city && group.address.city.trim() !== '') {
             locationToDisplay = group.address.city;
         } else if (group.hq && group.hq.trim() !== '') {
             locationToDisplay = group.hq;
         }
-
         option.textContent = `${group.organization} (${locationToDisplay})`;
         selectGroupDropdown.appendChild(option);
     });
+    console.log("Dropdown populated, options count:", selectGroupDropdown.options.length);
 }
 
 function renderTable(filteredData = currentActiveActivations) {
@@ -1154,7 +1150,9 @@ function showStep1() {
 }
 
 function showStep2() {
+    console.log("showStep2 called, selectedGroupForActivation:", selectedGroupForActivation);
     if (!selectedGroupForActivation) {
+        console.log("No group selected, showing warning.");
         Swal.fire({
             icon: 'warning',
             title: 'No Group Selected',
@@ -1162,10 +1160,10 @@ function showStep2() {
         });
         return;
     }
+    console.log("Transitioning to Step 2");
     modalStep1.classList.remove('active');
     modalStep2.classList.add('active');
     selectedOrgName.textContent = selectedGroupForActivation.organization;
-
     modalCalamitySelect.innerHTML = calamityOptions
         .map((opt, index) => {
             if (index === 0) {
@@ -1175,6 +1173,7 @@ function showStep2() {
         })
         .join("");
     modalCalamityNameInput.value = "";
+    console.log("Step 2 displayed, selectedOrgName:", selectedOrgName.textContent);
 }
 
 function closeActivationModal() {
@@ -1209,12 +1208,18 @@ window.addEventListener("click", (event) => {
 });
 
 selectGroupDropdown.addEventListener("change", (e) => {
-    const selectedId = parseInt(e.target.value);
+    const selectedId = e.target.value;
+    console.log("selectGroupDropdown changed, selectedId:", selectedId);
     selectedGroupForActivation = allVolunteerGroups.find(group => group.no === selectedId) || null;
+    console.log("Selected group:", selectedGroupForActivation);
     modalNextStepBtn.disabled = !selectedGroupForActivation;
+    console.log("Next button disabled state:", modalNextStepBtn.disabled);
 });
 
-modalNextStepBtn.addEventListener("click", showStep2);
+modalNextStepBtn.addEventListener("click", () => {
+    console.log("Next button clicked");
+    showStep2();
+});
 modalPrevStepBtn.addEventListener("click", showStep1);
 
 pinLocationBtn.addEventListener("click", openMapModal);
@@ -1251,7 +1256,10 @@ async function getNextActivationNumber() {
 }
 
 modalActivateSubmitBtn.addEventListener("click", async () => {
-    if (!selectedGroupForActivation) {
+    console.log("modalActivateSubmitBtn clicked, selectedGroupForActivation:", selectedGroupForActivation);
+    console.log("allVolunteerGroups IDs:", allVolunteerGroups.map(g => g.no));
+    if (!selectedGroupForActivation || !selectedGroupForActivation.no) {
+        console.error("No valid organization selected.");
         Swal.fire({ icon: 'error', title: 'Error', text: 'No organization selected for activation.' });
         return;
     }
@@ -1264,28 +1272,19 @@ modalActivateSubmitBtn.addEventListener("click", async () => {
     const activationDate = new Date().toISOString();
 
     if (!areaOfOperation || !calamityType || !calamityName) {
+        console.log("Missing fields:", { areaOfOperation, calamityType, calamityName });
         Swal.fire({ icon: 'warning', title: 'Missing Fields', text: 'Please supply all required fields.' });
         return;
     }
-    if (!areaOfOperation) {
-        Swal.fire({ icon: 'warning', title: 'Missing Field', text: 'Please enter an Area of Operations.' });
-        return;
-    }
-    if (!calamityType || calamityType === "Select Calamity") {
-        Swal.fire({ icon: 'warning', title: 'Missing Field', text: 'Please select a Calamity Type.' });
-        return;
-    }
-    if (!calamityName) {
-        Swal.fire({ icon: 'warning', title: 'Missing Field', text: 'Please enter a Calamity Name.' });
-        return;
-    }
     if (!latitude || !longitude) {
+        console.log("Missing location:", { latitude, longitude });
         Swal.fire({ icon: 'warning', title: 'Missing Location', text: 'Please pin a location on the map.' });
         return;
     }
 
     const user = firebase.auth().currentUser;
     if (!user) {
+        console.error("User not authenticated.");
         Swal.fire({ icon: 'error', title: 'Authentication Error', text: 'User not authenticated. Please refresh the page and try again.' });
         return;
     }
@@ -1295,6 +1294,7 @@ modalActivateSubmitBtn.addEventListener("click", async () => {
         .equalTo(selectedGroupForActivation.no);
 
     try {
+        console.log("Checking for existing activations with groupId:", selectedGroupForActivation.no);
         const snapshot = await existingActiveQuery.once("value");
         let alreadyActiveInAreaForCalamity = false;
 
@@ -1309,6 +1309,7 @@ modalActivateSubmitBtn.addEventListener("click", async () => {
         });
 
         if (alreadyActiveInAreaForCalamity) {
+            console.log("Activation conflict detected:", { organization: selectedGroupForActivation.organization, calamityType, areaOfOperation });
             Swal.fire({
                 icon: 'warning',
                 title: 'Activation Conflict',
@@ -1318,10 +1319,11 @@ modalActivateSubmitBtn.addEventListener("click", async () => {
         }
 
         const nextNo = await getNextActivationNumber();
+        console.log("Next activation number:", nextNo);
 
         const newActivationRecord = {
             no: nextNo,
-            groupId: selectedGroupForActivation.no,
+            groupId: String(selectedGroupForActivation.no),
             organization: selectedGroupForActivation.organization,
             hq: selectedGroupForActivation.hq,
             areaOfOperation: areaOfOperation,
@@ -1338,7 +1340,9 @@ modalActivateSubmitBtn.addEventListener("click", async () => {
         const activationId = newActivationRef.key;
         newActivationRecord.activationId = activationId;
 
+        console.log("Creating activation with ID:", activationId, "groupId:", newActivationRecord.groupId);
         await newActivationRef.set(newActivationRecord);
+        console.log("Activation created, notifying ABVN with groupId:", selectedGroupForActivation.no);
         await notifyABVNActivation(activationId, selectedGroupForActivation.no);
         console.log("Added new activation record:", { ...newActivationRecord, activationId });
 
@@ -1359,7 +1363,7 @@ modalActivateSubmitBtn.addEventListener("click", async () => {
         currentPage = 1;
         renderTable();
     } catch (error) {
-        console.error("Error adding activation:", error);
+        console.error("Error adding activation:", error.message);
         Swal.fire({
             icon: 'error',
             title: 'Error',
