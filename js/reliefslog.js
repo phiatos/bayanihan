@@ -515,6 +515,26 @@ function attachStatusListeners() {
     });
     }
 
+function fetchDonations() {
+    return database.ref('donations/pending/inkind').once('value')
+        .then(snapshot => {
+            const data = snapshot.val();
+            if (!data) return [];
+            return Object.values(data).map(d => ({
+                id: d.id,
+                name: d.name,
+                assistance: d.assistance,
+                lat: d.latitude,
+                lng: d.longitude,
+                address: d.address,
+                donationDate: d.donationDate,
+                status: d.status,
+                type: d.type,
+            }));
+        });
+}
+
+
 // Haversine Formula (distance in km)
 function calculateDistance(lat1, lng1, lat2, lng2) {
   const R = 6371; // Earth radius in km
@@ -549,44 +569,39 @@ function findNearestDonations(request, donations) {
 
 // Open modal with matches
 function openMatchModal(request) {
-  console.log("Request object passed to modal:", request);
+    console.log("Request object passed to modal:", request);
 
-  // Dummy donations for testing
-  const donations = [
-    { name: "Donor A", assistance: "Rice", lat: 14.6505, lng: 121.0300, address: "Quezon City" },
-    { name: "Donor B", assistance: "Rice", lat: 14.6250, lng: 121.1200, address: "Antipolo" },
-    { name: "Donor C", assistance: "Rice", lat: 13.7563, lng: 121.0583, address: "Batangas" }
-  ];
+    fetchDonations().then(donations => {
+        const matches = findNearestDonations(request, donations);
 
-  const matches = findNearestDonations(request, donations);
+        const reliefIdEl = document.getElementById("modalReliefId");
+        const categoryEl = document.getElementById("modalReliefCategory");
+        const addressEl = document.getElementById("modalReliefAddress");
+        const donationMatches = document.getElementById("donationMatches");
 
-  // Get elements
-  const reliefIdEl = document.getElementById("modalReliefId");
-  const categoryEl = document.getElementById("modalReliefCategory");
-  const addressEl = document.getElementById("modalReliefAddress");
-  const donationMatches = document.getElementById("donationMatches");
+        if (reliefIdEl) reliefIdEl.textContent = request.id || "N/A";
+        if (categoryEl) categoryEl.textContent = request.category || "N/A";
+        if (addressEl)  addressEl.textContent = request.address?.formattedAddress || "N/A";
 
-  // Fill modal info
-  if (reliefIdEl) reliefIdEl.textContent = request.id || "N/A";
-  if (categoryEl) categoryEl.textContent = request.category || "N/A";
-  if (addressEl)  addressEl.textContent = request.address?.formattedAddress || "N/A";
+        donationMatches.innerHTML = "";
+        matches.forEach(match => {
+            const div = document.createElement("div");
+            div.innerHTML = `
+                <p><strong>${match.name}</strong> - ${match.assistance}</p>
+                <p>📍 ${match.address}</p>
+                <p>🛣️ ${match.distance.toFixed(2)} km away</p>
+                <hr>
+            `;
+            donationMatches.appendChild(div);
+        });
 
-  // Render donation matches
-  donationMatches.innerHTML = "";
-  matches.forEach(match => {
-    const div = document.createElement("div");
-    div.innerHTML = `
-      <p><strong>${match.name}</strong> - ${match.assistance}</p>
-      <p>📍 ${match.address}</p>
-      <p>🛣️ ${match.distance.toFixed(2)} km away</p>
-      <hr>
-    `;
-    donationMatches.appendChild(div);
-  });
-
-  // Show modal
-  document.getElementById("matchModal").style.display = "flex";
+        document.getElementById("matchModal").style.display = "flex";
+    }).catch(error => {
+        console.error("Error fetching donations:", error);
+        alert("Failed to fetch donations for matching.");
+    });
 }
+
 
 // Close modal
 document.querySelector(".closeBtn").addEventListener("click", () => {

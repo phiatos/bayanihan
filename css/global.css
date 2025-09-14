@@ -90,13 +90,13 @@
 /* =====================
   Dashboard Tabs
 ===================== */
-.dashboard-tabs {
+.dashboard-tabs, .tabs-container {
   display: flex;
   gap: 0.5rem;
   margin-bottom: 1.5rem;
 }
 
-.tab-btn {
+.tab-btn, .tab-button {
   flex: 1 !important;
   padding: 0.8rem 1.2rem !important;
   background: transparent;
@@ -110,12 +110,12 @@
   position: relative;
 }
 
-.tab-btn:hover {
+.tab-btn:hover, .tab-button:hover {
   color: var(--primary-color) !important;
   background: rgba(20, 174, 187, 0.08) !important;
 }
 
-.tab-btn.active {
+.tab-btn.active, .tab-button.active {
   color: var(--accent-color) !important;
   background: rgba(250, 63, 153, 0.08) !important;
   border-bottom: 3px solid var(--accent-color) !important;
