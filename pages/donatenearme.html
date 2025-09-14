@@ -9,21 +9,17 @@
   <link rel="stylesheet" href="../css/application.css" />
   <link rel="stylesheet" href="../css/global.css" />
   <link rel="icon" href="../assets/images/logox192.png" />
-
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-
-  <script src="../js/navbar.js"></script> 
-
+  <script src="../js/navbar.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script> <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAAAu6BeQjIZ7H7beFbAsPWuKuORmh0wrk&libraries=places,marker"></script>
-
 </head>
 <body class="no-header-line">
-
   <header class="navbar">
     <div class="navbar-container">
       <div class="logo">
@@ -55,49 +51,146 @@
       <form id="inKindDonationForm">
         <fieldset>
           <legend>In Kind Donation Information</legend>
+          <div class="form-group">
+            <label for="inKindDonorType">Donor Type:</label>
+            <select id="inKindDonorType" name="inKindDonorType" required>
+              <option> -- Select Type -- </option>
+              <option value="Individual">Individual</option>
+              <option value="Anonymous">Anonymous</option>
+              <option value="Corporate">Corporate</option>
+              <option value="Foundation">Foundation</option>
+            </select>
+          </div>
 
           <div class="form-group-hidden">
-            <label for="inKindEncoder" id="encoder">Encoder:</label>
+            <label for="inKindEncoder">Encoder:</label>
             <input type="text" id="inKindEncoder" name="encoder" value="Donor" disabled>
           </div>
+
+          <!-- Individual Fields -->
+          <div id="individualFields" class="donor-specific-fields" style="display: none;">
+            <div class="form-group">
+              <label for="individualFullName">Full Name:</label>
+              <input type="text" id="individualFullName" name="individualFullName" placeholder="Enter your full name" required>
+            </div>
+            <div class="form-group">
+              <label for="individualAddress">Address:</label>
+              <input type="text" id="individualAddress" name="individualAddress" placeholder="Enter your address" required disabled>
+              <button id="individualPinBtn" type="button">
+                <i class='bx bx-map-pin'></i> Pin Location
+              </button>
+            </div>
+            <div class="form-group">
+              <label for="individualMobileNumber">Mobile Number:</span></label>
+              <input type="tel" id="individualMobileNumber" name="individualMobileNumber" placeholder="Enter your mobile number (e.g., 09171234567)" required>
+            </div>
+            <div class="form-group">
+              <label for="individualEmail">Email:</label>
+              <input type="email" id="individualEmail" name="individualEmail" placeholder="Enter your email address" required>
+            </div>
+          </div>
+
+          <!-- Anonymous Fields -->
+          <div id="anonymousFields" class="donor-specific-fields" style="display: none;">
+            <div class="form-group">
+              <label for="anonymousAddress">Address:</label>
+              <input type="text" id="anonymousAddress" name="anonymousAddress" placeholder="Enter your address" required disabled>
+              <button id="anonymousPinBtn" type="button">
+                <i class='bx bx-map-pin'></i> Pin Location
+              </button>
+            </div>
+            <div class="form-group">
+              <label for="anonymousMobileNumber">Mobile Number: </label>
+              <input type="tel" id="anonymousMobileNumber" name="anonymousMobileNumber" placeholder="Enter your mobile number (e.g., 09171234567)" required>
+            </div>
+            <div class="form-group">
+              <label for="anonymousEmail">Email: </label>
+              <input type="email" id="anonymousEmail" name="anonymousEmail" placeholder="Enter your email address" required>
+            </div>
+            <div class="form-group">
+              <label for="anonymousNote">Anonymous Donation Note: <span class="optional-note">(Optional)</span></label>
+              <textarea id="anonymousNote" class="desc-txtarea" name="anonymousNote" placeholder="Enter any additional notes"></textarea>
+            </div>
+          </div>
+
+          <!-- Corporate Fields -->
+          <div id="corporateFields" class="donor-specific-fields" style="display: none;">
+            <div class="form-group">
+              <label for="corporateCompanyName">Company Name:</label>
+              <input type="text" id="corporateCompanyName" name="corporateCompanyName" placeholder="Enter company name" required>
+            </div>
+            <div class="form-group">
+              <label for="corporateAddress">Address:</label>
+              <input type="text" id="corporateAddress" name="corporateAddress" placeholder="Enter company address" required disabled>
+              <button id="corporatePinBtn" type="button">
+                <i class='bx bx-map-pin'></i> Pin Location
+              </button>
+            </div>
+            <div class="form-group">
+              <label for="corporateContactPerson">Contact Person: <span class="optional-note">(Optional)</span></label>
+              <input type="text" id="corporateContactPerson" name="corporateContactPerson" placeholder="Enter contact person's name">
+            </div>
+            <div class="form-group">
+              <label for="corporateMobileNumber">Mobile Number: </label>
+              <input type="tel" id="corporateMobileNumber" name="corporateMobileNumber" placeholder="Enter mobile number (e.g., 09171234567)" required>
+            </div>
+            <div class="form-group">
+              <label for="corporateEmail">Email:</label>
+              <input type="email" id="corporateEmail" name="corporateEmail" placeholder="Enter company email" required>
+            </div>
+          </div>
+
+          <!-- Foundation Fields -->
+          <div id="foundationFields" class="donor-specific-fields" style="display: none;">
+            <div class="form-group">
+              <label for="foundationName">Foundation Name:</label>
+              <input type="text" id="foundationName" name="foundationName" placeholder="Enter foundation name" required>
+            </div>
+            <div class="form-group">
+              <label for="foundationAddress">Address:</label>
+              <input type="text" id="foundationAddress" name="foundationAddress" placeholder="Enter foundation address" required disabled>
+              <button id="foundationPinBtn" type="button">
+                <i class='bx bx-map-pin'></i> Pin Location
+              </button>
+            </div>
+            <div class="form-group">
+              <label for="foundationContactPerson">Contact Person: <span class="optional-note">(Optional)</span></label>
+              <input type="text" id="foundationContactPerson" name="foundationContactPerson" placeholder="Enter contact person's name">
+            </div>
+            <div class="form-group">
+              <label for="foundationMobileNumber">Mobile Number: </label>
+              <input type="tel" id="foundationMobileNumber" name="foundationMobileNumber" placeholder="Enter mobile number (e.g., 09171234567)" required>
+            </div>
+            <div class="form-group">
+              <label for="foundationEmail">Email:</label>
+              <input type="email" id="foundationEmail" name="foundationEmail" placeholder="Enter foundation email" required>
+            </div>
+          </div>
+
+          <!-- Common Fields for All Donor Types -->
           <div class="form-group">
-            <label for="inKindDonorName">Partner/Donor Name:</label>
-            <input type="text" id="inKindDonorName" name="name" placeholder="Enter your name or company name" required>
+            <label for="assistanceType">Donation Category:</label>
+            <select id="assistanceType" name="assistance[]" required>
+              <option> -- Select Category -- </option>
+              <option value="Relief Packs">Relief Packs</option>
+              <option value="Hot Meals">Hot Meals</option>
+              <option value="Hygiene Kits">Hygiene Kits</option>
+              <option value="Drinking Water">Drinking Water</option>
+              <option value="Rice Packs">Rice Packs</option>
+              <option value="Others">Other Essentials(Specify)</option>
+            </select>
           </div>
           <div class="form-group">
-            <label for="inKindDonorType">Partner/Donor Type:</label>
-            <input type="text" id="inKindDonorType" name="type" placeholder="Enter Type (e.g., restaurant, NGO, individual)">
+            <label for="valuation">Valuation:</label>
+            <input type="text" id="valuation" name="valuation" placeholder="Enter the value of the items (e.g., 10000)" required>
           </div>
           <div class="form-group">
-            <label for="inKindDonorAddress">Address:</label>
-            <input type="text" id="inKindDonorAddress" name="address" placeholder="Enter your address" disabled>
-            <button id="pinBtn" type="button">
-              <i class='bx bx-map-pin'></i> Pin Location
-            </button>
+            <label for="description">Description: <span class="optional-note">(Optional)</span></label>
+            <textarea id="description" class="desc-txtarea" name="description" placeholder="Enter additional notes (optional)"></textarea>
           </div>
           <div class="form-group">
-            <label for="inKindContactPerson">Contact Person:</label>
-            <input type="text" id="inKindContactPerson" name="contactPerson" placeholder="Enter the contact person" required>
-          </div>
-          <div class="form-group">
-            <label for="inKindContactNumber">Number:</label>
-            <input type="number" id="inKindContactNumber" name="number" placeholder="Enter your mobile number (e.g 09XXXXXXXXX)" required>
-          </div>
-          <div class="form-group">
-            <label for="inKindDonorEmail">Email:</label>
-            <input type="email" id="inKindDonorEmail" name="email" placeholder="Enter your email address" required>
-          </div>
-          <div class="form-group">
-            <label for="itemType">Type of Assistance:</label>
-            <input type="text" id="itemType" name="assistance" placeholder="Enter the type of assistance (e.g., food, medical, shelter)" required>
-          </div>
-          <div class="form-group">
-            <label for="value">Valuation:</label>
-            <input type="text" id="valuation" name="valuation" placeholder="Enter the value of the items" required>
-          </div>
-          <div class="form-group">
-            <label for="description">Description:</label>
-            <textarea id="description" class="desc-txtarea" name="additionalnotes" placeholder="Enter additional note (optional)"></textarea>
+            <label for="donationDate">Donation Date:</label>
+            <input type="date" id="donationDate" name="donationDate" required>
           </div>
           <div class="form-group-hidden">
             <label for="status">Status:</label>
@@ -107,11 +200,21 @@
             <label for="staffIncharge">Staff-In Charge:</label>
             <input type="text" id="staffIncharge" name="staffIncharge" value="Not Applicable" disabled>
           </div>
-          <div class="form-group">
-            <label for="donationDate">Donation Date:</label>
-            <input type="date" id="donationDate" name="donationDate" placeholder="Enter the donation date" required>
-          </div>
           <div class="form-actions">
+            <div class="form-group terms-conditions-container">
+              <input type="checkbox" id="urgentNeedInKind" name="urgentNeedInKind">
+              <label for="urgentNeedInKind">Mark as Urgent Need</label>
+            </div>
+           
+            <div class="form-group terms-conditions-container">
+              <input type="checkbox" id="agreeToTerms" name="agreeToTerms" required>
+              <label for="agreeToTerms">
+                I have read and agree to the
+                <a href="#" id="openTerms" role="button">Terms and Conditions</a>
+                and the
+                <a href="#" id="openPrivacy" role="button">Privacy Policy</a>.
+              </label>
+            </div>
             <input type="submit" id="submitInKindBtn" value="Submit In Kind Donation">
             <input type="reset" value="Reset Form">
           </div>
@@ -125,27 +228,25 @@
             <button type="button" id="gcashDetails" class="gcash-btn">GCASH</button>
             <button type="button" id="bankDetails" class="banktrans-btn">Bank Transfer</button>
           </div>
-            <p style="text-align: center;">Angat Buhay operates with authorization from the Department of Social Welfare and <br>
-            Development (DSWD), bearing Solicitation Permit No. DSWD-SB-PSP-S-2025-000049.</p>
-          
-          <div id="gcashDiv" display="none">
+          <p style="text-align: center;">Angat Buhay operates with authorization from the Department of Social Welfare and <br>
+          Development (DSWD), bearing Solicitation Permit No. DSWD-SB-PSP-S-2025-000049.</p>
+
+          <div id="gcashDiv" style="display: none;">
             <h3 style="text-align: center; margin: 15px;">GCash QR Code</h3>
             <img src="https://www.angatbuhay.ph/wp-content/uploads/2024/09/QR-code-2048x2048.png" 
-              alt="AB QR Code" 
-              width="400" 
-              height="400" 
-              style="display: block; margin: 0 auto;">
+                alt="AB QR Code" 
+                width="400" 
+                height="400" 
+                style="display: block; margin: 0 auto;">
           </div>
 
           <div id="bankDiv" style="display: none;" class="bank-section">
             <h3>Bank Details</h3>
-
             <div class="bank-info">
               <h4>Banco De Oro (BDO)</h4>
               <p><strong>Account Name:</strong> Angat Pinas, Inc.</p>
               <p><strong>Account Number:</strong> 00 277 801 6986</p>
             </div>
-
             <div class="bank-info">
               <h4>Bank of the Philippine Islands (BPI)</h4>
               <p><strong>Account Name:</strong> Angat Pinas, Inc.</p>
@@ -153,57 +254,131 @@
             </div>
           </div>
 
+          <div class="form-group">
+            <label for="monetaryDonorType">Donor Type:</label>
+            <select id="monetaryDonorType" name="monetaryDonorType" required>
+              <option> -- Select Type --</option>
+              <option value="Individual">Individual</option>
+              <option value="Anonymous">Anonymous</option>
+              <option value="Corporate">Corporate</option>
+              <option value="Foundation">Foundation</option>
+            </select>
+          </div>
 
-          <div class="form-group">
-            <label for="monetaryEncoder">Encoder:</label>
-            <input type="text" value="Donor" id="monetaryEncoder" name="monetaryEncoder" disabled>
+          <!-- Individual Fields -->
+          <div id="monetaryIndividualFields" class="monetary-donor-specific-fields" style="display: none;">
+            <div class="form-group">
+              <label for="monetaryIndividualName">Full Name:</label>
+              <input type="text" id="monetaryIndividualName" name="monetaryIndividualName" placeholder="Enter your full name" required>
+            </div>
+            <div class="form-group">
+              <label for="monetaryIndividualMobileNumber">Mobile Number:</label>
+              <input type="tel" id="monetaryIndividualMobileNumber" name="monetaryIndividualMobileNumber" placeholder="Enter your mobile number (e.g., 09171234567)" required>
+            </div>
+            <div class="form-group">
+              <label for="monetaryIndividualEmail">Email:</label>
+              <input type="email" id="monetaryIndividualEmail" name="monetaryIndividualEmail" placeholder="Enter your email address" required>
+            </div>
           </div>
-          <div class="form-group">
-            <label for="monetaryDonorName">Name/Company:</label>
-            <input type="text" id="monetaryDonorName" name="monetaryDonorName" placeholder="Enter your name or company name" required>
+
+          <!-- Anonymous Fields -->
+          <div id="monetaryAnonymousFields" class="monetary-donor-specific-fields" style="display: none;">
+            <div class="form-group">
+              <label for="monetaryAnonymousMobileNumber">Mobile Number:</label>
+              <input type="tel" id="monetaryAnonymousMobileNumber" name="monetaryAnonymousMobileNumber" placeholder="Enter your mobile number (e.g., 09171234567)" required>
+            </div>
+            <div class="form-group">
+              <label for="monetaryAnonymousEmail">Email:</label>
+              <input type="email" id="monetaryAnonymousEmail" name="monetaryAnonymousEmail" placeholder="Enter your email address" required>
+            </div>
+            <div class="form-group">
+              <label for="monetaryAnonymousNote">Anonymous Donation Note: <span class="optional-note">(Optional)</span></label>
+              <textarea id="monetaryAnonymousNote" class="desc-txtarea" name="monetaryAnonymousNote" placeholder="Enter any additional notes"></textarea>
+            </div>
           </div>
-          <div class="form-group">
-            <label for="monetaryLocation">Location (at least City Address):</label>
-            <input type="text" id="monetaryLocation" name="monetaryLocation" placeholder="Enter your address" required>
+
+          <!-- Corporate Fields -->
+          <div id="monetaryCorporateFields" class="monetary-donor-specific-fields" style="display: none;">
+            <div class="form-group">
+              <label for="monetaryCorporateName">Company Name:</label>
+              <input type="text" id="monetaryCorporateName" name="monetaryCorporateName" placeholder="Enter company name" required>
+            </div>
+            <div class="form-group">
+              <label for="monetaryCorporateContactPerson">Contact Person: <span class="optional-note">(Optional)</span></label>
+              <input type="text" id="monetaryCorporateContactPerson" name="monetaryCorporateContactPerson" placeholder="Enter contact person's name">
+            </div>
+            <div class="form-group">
+              <label for="monetaryCorporateMobileNumber">Mobile Number:</label>
+              <input type="tel" id="monetaryCorporateMobileNumber" name="monetaryCorporateMobileNumber" placeholder="Enter mobile number (e.g., 09171234567)" required>
+            </div>
+            <div class="form-group">
+              <label for="monetaryCorporateEmail">Email:</label>
+              <input type="email" id="monetaryCorporateEmail" name="monetaryCorporateEmail" placeholder="Enter company email" required>
+            </div>
           </div>
-          <div class="form-group">
-            <label for="monetaryNumber">Number:</label>
-            <input type="number" minlength="11" maxlength="11" id="monetaryNumber" name="monetaryNumber" placeholder="Enter your Mobile (e.g 09XXXXXXXXX)" required>
+
+          <!-- Foundation Fields -->
+          <div id="monetaryFoundationFields" class="monetary-donor-specific-fields" style="display: none;">
+            <div class="form-group">
+              <label for="monetaryFoundationName">Foundation Name:</label>
+              <input type="text" id="monetaryFoundationName" name="monetaryFoundationName" placeholder="Enter foundation name" required>
+            </div>
+            <div class="form-group">
+              <label for="monetaryFoundationContactPerson">Contact Person: <span class="optional-note">(Optional)</span></label>
+              <input type="text" id="monetaryFoundationContactPerson" name="monetaryFoundationContactPerson" placeholder="Enter contact person's name">
+            </div>
+            <div class="form-group">
+              <label for="monetaryFoundationMobileNumber">Mobile Number:</label>
+              <input type="tel" id="monetaryFoundationMobileNumber" name="monetaryFoundationMobileNumber" placeholder="Enter mobile number (e.g., 09171234567)" required>
+            </div>
+            <div class="form-group">
+              <label for="monetaryFoundationEmail">Email:</label>
+              <input type="email" id="monetaryFoundationEmail" name="monetaryFoundationEmail" placeholder="Enter foundation email" required>
+            </div>
           </div>
+
+          <!-- Common Fields for All Donor Types -->
           <div class="form-group">
             <label for="amountDonated">Amount Donated:</label>
-            <input type="text" id="amountDonated" name="amountDonated" placeholder="Enter the amount (e.g 100,000)" required>
+            <input type="text" id="amountDonated" name="amountDonated" placeholder="Enter the amount (e.g., 100000)" required>
           </div>
           <div class="form-group-hidden">
             <label for="cashInvoice">Cash Invoice #:</label>
             <input type="text" id="cashInvoice" name="cashInvoice">
           </div>
           <div class="form-group">
-            <label for="monetaryDonationDate">Date Send:</label>
+            <label for="monetaryDonationDate">Date Sent:</label>
             <input type="date" id="monetaryDonationDate" name="monetaryDonationDate" required>
           </div>
           <div class="form-group">
-            <label for="monetaryEmail">Email:</label>
-            <input type="email" id="monetaryEmail" name="monetaryEmail" placeholder="Enter your email (e.g juandelacruz@gmail.com)" required>
-          </div>
-          <div class="form-group">
-            <label for="bank">Bank or E-Wallet</label>
-            <select id="bank" name="bank" required class="bank-select">  <option value="">Select Bank or E-Wallet</option>
+            <label for="bank">Bank or E-Wallet:</label>
+            <select id="bank" name="bank" required class="bank-select">
+              <option value="">Select Bank or E-Wallet</option>
               <option value="gcash">GCash</option>
               <option value="BDO">Banco De Oro (BDO)</option>
               <option value="BPI">Bank of the Philippine Islands (BPI)</option>
-              <option value="others">others</option>
+              <option value="others">Others</option>
             </select>
           </div>
           <div class="form-group">
-            <label for="referenceNumber">Reference Number</label>
-            <input type="text" id="referenceNumber" name="referenceNumber" placeholder="Enter the referenceNumber (e.g 150312668)" required>
+            <label for="referenceNumber">Reference Number:</label>
+            <input type="text" id="referenceNumber" name="referenceNumber" placeholder="Enter the reference number (e.g., 150312668)" required>
           </div>
           <div class="form-group">
-            <label for="proofofTransfer">Proof of Transfer: (Google Drive Link of Image)</label>
-            <input type="text" id="proofofTransfer" name="proofofTransfer" placeholder="Enter the Link" required>
+            <label for="proofOfTransferLink">Proof of Transfer (Google Drive Link)</label>
+            <input type="url" id="proofOfTransferLink" name="proofOfTransferLink" placeholder="e.g., https://drive.google.com/file/d/..." required>
+            <small>Please upload your proof of transfer (JPEG, PNG, or PDF) to Google Drive, set the sharing to "Anyone with the link," and paste the link here.</small>
           </div>
           <div class="form-actions">
+            <div class="form-group terms-conditions-container">
+              <input type="checkbox" id="agreeToTerms" name="agreeToTerms" required>
+              <label for="agreeToTerms">
+                I have read and agree to the
+                <a href="#" id="openTerms" role="button">Terms and Conditions</a>
+                and the
+                <a href="#" id="openPrivacy" role="button">Privacy Policy</a>.
+              </label>
+            </div>
             <input type="submit" id="submitMonetaryBtn" value="Submit Monetary Donation">
             <input type="reset" value="Reset Form">
           </div>
@@ -212,24 +387,100 @@
     </div>
   </main>
 
+  <div id="termsContent" style="display: none;">
+    <div class="terms-container">
+      <h2>Terms and Conditions</h2>
+      <p><strong>Last Updated: July 11, 2025</strong></p>
+      
+      <h3>1. Introduction</h3>
+      <p>Welcome to Bayanihan, a platform connecting volunteer organizations with communities in need. By submitting an application to become an Accredited Bayanihan Volunteer Network (ABVN) member, you agree to comply with and be bound by the following Terms and Conditions.</p>
+      
+      <h3>2. Eligibility</h3>
+      <p>To apply, your organization must:
+        <ul>
+          <li>Be a legally registered entity or a recognized community group.</li>
+          <li>Provide accurate and complete information during the application process.</li>
+          <li>Agree to abide by Bayanihan’s code of conduct and operational guidelines.</li>
+        </ul>
+      </p>
+        
+        <h3>3. Application Process</h3>
+        <p>Your application will be reviewed by the Bayanihan team. Submission does not guarantee approval. You agree to provide any additional documentation requested during the review process.</p>
+        
+        <h3>4. Data Usage</h3>
+        <p>By submitting this application, you consent to the collection, storage, and processing of your organization’s data as outlined in our <a href="#" id="openPrivacyFromTerms">Privacy Policy</a>.</p>
+        
+        <h3>5. Responsibilities</h3>
+        <p>Approved organizations must:
+          <ul>
+            <li>Maintain accurate contact and operational information.</li>
+            <li>Comply with all applicable laws and regulations.</li>
+            <li>Notify Bayanihan of any changes to legal status or operations.</li>
+          </ul>
+        </p>
+        
+        <h3>6. Termination</h3>
+        <p>Bayanihan reserves the right to terminate your ABVN membership if you violate these terms or engage in activities that harm the platform or its community.</p>
+        
+        <h3>7. Changes to Terms</h3>
+        <p>We may update these Terms and Conditions from time to time. You will be notified of significant changes via email or through the platform.</p>
+        
+        <h3>8. Contact Us</h3>
+        <p>If you have any questions about these Terms and Conditions, please contact us at <a href="mailto:support@bayanihan.org">support@bayanihan.org</a>.</p>
+    </div>
+  </div>
+
+  <div id="privacyContent" style="display: none;">
+    <div class="terms-container">
+      <h2>Privacy Policy</h2>
+      <p><strong>Last Updated: July 11, 2025</strong></p>
+
+      <p>This Privacy Policy describes Our policies and procedures on the collection, use and disclosure of Your information when You use the Service and tells You about Your privacy rights and how the law protects You.</p>
+
+      <h3>1. Data Collection</h3>
+      <p>We collect personal data such as your organization name, contact person, email, mobile number, social media links, and location details when you register as a volunteer organization. We also collect information about your organizational background, areas of expertise, and legal status.</p>
+      
+      <h3>2. Use of Your Personal Data</h3>
+      <p>The Company may use Personal Data for the following purposes:</p>
+      <ul>
+        <li>To provide and maintain our Service, including to monitor the usage of our Service.</li>
+        <li>To manage Your Account: to manage Your registration as a user of the Service. The Personal Data You provide can give You access to different functionalities of the Service that are available to You as a registered user.</li>
+        <li>To contact You: To contact You by email, telephone calls, SMS, or other equivalent forms of electronic communication, such as a mobile application's push notifications regarding updates or informative communications related to the functionalities, products or contracted services, including the security updates, when necessary or reasonable for their implementation.</li>
+        <li>To manage Your requests: To attend and manage Your requests to Us.</li>
+      </ul>
+
+      <h3>3. Sharing Your Personal Data</h3>
+      <p>We may share Your personal information with service providers to monitor and analyze the use of our Service, or to contact You.</p>
+      
+      <h3>4. Retention of Your Personal Data</h3>
+      <p>The Company will retain Your Personal Data only for as long as is necessary for the purposes set out in this Privacy Policy. We will retain and use Your Personal Data to the extent necessary to comply with our legal obligations (for example, if we are required to retain your data to comply with applicable laws), resolve disputes, and enforce our legal agreements and policies.</p>
+
+      <h3>5. Security of Your Personal Data</h3>
+      <p>The security of Your Personal Data is important to Us, but remember that no method of transmission over the Internet, or method of electronic storage is 100% secure. While We strive to use commercially acceptable means to protect Your Personal Data, We cannot guarantee its absolute security.</p>
+
+      <h3>6. Your Rights (Data Privacy Act of 2012, Philippines)</h3>
+      <p>Under the Data Privacy Act of 2012, you have rights as a data subject, including the right to be informed, object, access, rectification, erasure or blocking, damages, and to lodge a complaint.</p>
+
+      <h3>7. Changes to this Privacy Policy</h3>
+      <p>We may update Our Privacy Policy from time to time. We will notify You of any changes by posting the new Privacy Policy on this page.</p>
+    </div>
+  </div>
+
   <footer class="footer">
     <div class="container">
       <p>© 2025 Bayanihan | Angat Pinas Inc. All rights reserved. | Powered by Appvance</p>
     </div>
   </footer>
 
-    <!-- Map Modal with Search Bar -->
   <div id="mapModal" class="map-modal">
-      <div class="modal-content">
-          <span class="closeBtn">&times;</span>
-          <h2>Select Area of Operation</h2>
-          <input type="text" class="search-bar" id="search-input" placeholder="Search for a location...">
-          <div id="mapContainer"></div>
-      </div>
+    <div class="modal-content">
+      <span class="closeBtn">&times;</span>
+      <h2>Select Area of Operation</h2>
+      <input type="text" class="search-bar" id="search-input" placeholder="Search for a location...">
+      <div id="mapContainer"></div>
+    </div>
   </div>
 
-  <script src="../js/inactivity-detector.js"></script> 
   <script src="../js/donatenearme.js"></script>
-
 </body>
 </html>
