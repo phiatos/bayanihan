@@ -10,6 +10,9 @@ const firebaseConfig = {
     measurementId: "G-ZTQ9VXXVV0",
 };
 
+// Use global variable if set by dashboard.js
+let highlightedRequestId = window.highlightedRequestId || null;
+
 firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
 
@@ -166,6 +169,7 @@ firebase.initializeApp(firebaseConfig);
         for (const [index, req] of filtered.entries()) {
             const remaining = Math.max(req.volunteersNeeded - req.assigned, 0);
 
+            // Main request row
             const row = document.createElement("tr");
             row.innerHTML = `
                 <td>${index + 1}</td>
@@ -186,16 +190,92 @@ firebase.initializeApp(firebaseConfig);
                 </td>
                 <td>
                     <button class="viewBtn" data-id="${req.abvnId}_${req.id}"><i class='bx bx-show-alt'></i></button>
+                    <button class="expandBtn" data-id="${req.id}">+</button>
                 </td>
             `;
             tableBody.appendChild(row);
+
+            // Assigned volunteers expandable row
+            const expandRow = document.createElement("tr");
+            expandRow.classList.add("assigned-volunteers");
+            expandRow.style.display = "none";
+            expandRow.id = `assigned-${req.id}`;
+            expandRow.innerHTML = `
+                <td colspan="10">
+                    <table class="nested-table">
+                        <thead>
+                            <tr>
+                                <th>No.</th>
+                                <th>Full Name</th>
+                                <th>Age</th>
+                                <th>Email</th>
+                                <th>Address</th>
+                                <th>Skills</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            <tr><td colspan="4" style="text-align:center">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </td>
+            `;
+            tableBody.appendChild(expandRow);
         }
 
         attachActions();
     }
 
-    // Attach button + dropdown actions
+    // Fetch assigned volunteers for a specific request
+    async function fetchAssignedVolunteers(reqId) {
+        const snapshot = await database.ref("volunteerEndorsements").once("value");
+        const volunteers = [];
+
+        snapshot.forEach(abvnSnap => {
+            const abvnVols = abvnSnap.child("endorsedVolunteers");
+            abvnVols.forEach(volSnap => {
+                const data = volSnap.val();
+                if (data.requestId === reqId) {
+                    volunteers.push({
+                        fullName: `${data.firstName || ""} ${data.middleInitial || ""} ${data.lastName || ""} ${data.nameExtension || ""}`.replace(/\s+/g, ' ').trim(),
+                        age: data.age || "—",
+                        email: data.email || "—",
+                        address: data.address?.formattedAddress || "—",
+                        skills: data.skills || [],
+                        status: data.endorsedDetails?.status || "Assigned"
+                    });
+                }
+            });
+        });
+
+        return volunteers;
+    }
+
     function attachActions() {
+        // Status dropdowns
+        document.querySelectorAll(".status-dropdown").forEach(dropdown => {
+            dropdown.addEventListener("change", async (e) => {
+                const [abvnId, reqId] = dropdown.dataset.id.split("_");
+                const newStatus = e.target.value;
+
+                const updates = {};
+                updates[`volunteerGroups/${abvnId}/volunteerNeeds/${reqId}/status`] = newStatus;
+                updates[`volunteerRequests/${reqId}/status`] = newStatus;
+
+                await database.ref().update(updates);
+
+                Swal.fire({
+                    icon: "success",
+                    title: "Status Updated",
+                    text: `Request marked as "${newStatus}".`
+                });
+
+                fetchRequests();
+            });
+        });
+
+        // View buttons (for modal with request details)
         document.querySelectorAll(".viewBtn").forEach(btn => {
             btn.addEventListener("click", () => {
                 const [abvnId, reqId] = btn.dataset.id.split("_");
@@ -220,24 +300,36 @@ firebase.initializeApp(firebaseConfig);
             });
         });
 
-        document.querySelectorAll(".status-dropdown").forEach(dropdown => {
-            dropdown.addEventListener("change", async (e) => {
-                const [abvnId, reqId] = dropdown.dataset.id.split("_");
-                const newStatus = e.target.value;
+        // Expand/collapse assigned volunteers
+        document.querySelectorAll(".expandBtn").forEach(btn => {
+            btn.addEventListener("click", async () => {
+                const reqId = btn.dataset.id;
+                const row = document.getElementById(`assigned-${reqId}`);
+                const tbody = row.querySelector("tbody");
 
-                const updates = {};
-                updates[`volunteerGroups/${abvnId}/volunteerNeeds/${reqId}/status`] = newStatus;
-                updates[`volunteerRequests/${reqId}/status`] = newStatus;
-
-                await database.ref().update(updates);
-
-                Swal.fire({
-                    icon: "success",
-                    title: "Status Updated",
-                    text: `Request marked as "${newStatus}".`
-                });
-
-                fetchRequests();
+                if (row.style.display === "none") {
+                    const volunteers = await fetchAssignedVolunteers(reqId);
+                    if (volunteers.length === 0) {
+                        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center">No volunteers assigned yet</td></tr>`;
+                    } else {
+                        tbody.innerHTML = volunteers.map((v, i) => `
+                            <tr>
+                                <td>${i + 1}</td>
+                                <td>${v.fullName}</td>
+                                <td>${v.age}</td>
+                                <td>${v.email}</td>
+                                <td>${v.address}</td>
+                                <td>${v.skills.join(", ")}</td>
+                                <td>${v.status}</td>
+                            </tr>
+                        `).join("");
+                    }
+                    row.style.display = "table-row";
+                    btn.textContent = "-";
+                } else {
+                    row.style.display = "none";
+                    btn.textContent = "+";
+                }
             });
         });
     }

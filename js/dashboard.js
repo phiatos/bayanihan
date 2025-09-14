@@ -1781,6 +1781,18 @@ content += `<span class="timestamp">${timestamp.toLocaleString("en-US", {
 
             // Handle navigation for admin notifications
             if (notification.type === "admin" && userRole === "AB ADMIN") {
+                
+                // ===== Volunteer Request Redirect =====
+                document.querySelector(".tab-btn[data-tab='volunteers']").click();
+                window.highlightedRequestId = notification.requestId;
+                setTimeout(() => {
+                    if (window.highlightedRequestId === undefined) window.highlightedRequestId = notification.requestId;
+                    if (typeof renderTable === "function") {
+                        renderTable();
+                    }
+                }, 500); 
+                // ===== Volunteer Request Redirect =====
+
                 let targetPage = "";
                 let reportIdToUse = "";
 
