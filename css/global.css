@@ -36,6 +36,20 @@
   --swal-error-title: #b71c1c;
   --swal-error-text: #c62828;
   --swal-error-btn-bg: #c62828;
+
+  --highlight-color: rgba(20, 174, 187, 0.2); /* semi-transparent version of primary-color */
+}
+
+.nested-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 5px;
+  background-color: #f9f9f9;
+}
+.nested-table th, .nested-table td {
+  border: 1px solid #ccc;
+  padding: 5px;
+  text-align: left;
 }
 
 * {
@@ -88,13 +102,13 @@
 /* =====================
    Dashboard Tabs
 ===================== */
-.dashboard-tabs, .tabs-container {
+.dashboard-tabs {
   display: flex;
   gap: 0.5rem;
   margin-bottom: 1.5rem;
 }
 
-.tab-btn, .tab-button {
+.tab-btn {
   flex: 1 !important;
   padding: 0.8rem 1.2rem !important;
   background: transparent;
@@ -108,12 +122,12 @@
   position: relative;
 }
 
-.tab-btn:hover, .tab-button:hover {
+.tab-btn:hover {
   color: var(--primary-color) !important;
   background: rgba(20, 174, 187, 0.08) !important;
 }
 
-.tab-btn.active, .tab-button.active  {
+.tab-btn.active {
   color: var(--accent-color) !important;
   background: rgba(250, 63, 153, 0.08) !important;
   border-bottom: 3px solid var(--accent-color) !important;
@@ -919,7 +933,7 @@ button:disabled {
 
 
 /* Table Cell Styling for Action Buttons */
-td:has(.viewBtn, .editBtn, 
+td:has(.viewBtn, .expandBtn, .editBtn, 
 .approveBtn, .registerBtn, 
 .saveSinglePdfBtn, .savePDFBtn,
 .actionBtn, .endorseBtn,
@@ -934,7 +948,7 @@ td:has(.viewBtn, .editBtn,
 }
 
 /* Refined Action Buttons (Circular) */
-.viewBtn, .editBtn, 
+.viewBtn, .expandBtn, .editBtn, 
 .approveBtn, .registerBtn,
 .saveSinglePdfBtn, .savePDFBtn,
 .actionBtn, .endorseBtn,
@@ -955,7 +969,7 @@ td:has(.viewBtn, .editBtn,
   transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.viewBtn:hover, .editBtn:hover,
+.viewBtn:hover, .expandBtn:hover, .editBtn:hover,
 .approveBtn:hover, .registerBtn:hover,
 .saveSinglePdfBtn:hover, .savePDFBtn:hover,
 .rejectBtn:hover, .deleteBtn:hover, .archiveBtn:hover,
@@ -966,41 +980,29 @@ td:has(.viewBtn, .editBtn,
 }
 
 /* Button Icons */
-.viewBtn i,
-.editBtn i,
-.approveBtn i,
-.registerBtn i,
-.saveSinglePdfBtn i,
-.savePDFBtn i,
-.actionBtn i,
-.endorseBtn i,
-.deleteBtn i,
-.rejectBtn i,
-.archiveBtn i,
-.rescheduleBtn i,
-.saveBtn i,
+.viewBtn i, .editBtn i,
+.approveBtn i, .registerBtn i,
+.saveSinglePdfBtn i, .savePDFBtn i,
+.actionBtn i, .endorseBtn i,
+.deleteBtn i, .rejectBtn i,
+.archiveBtn i, .rescheduleBtn i,
+.saveBtn i, .expandBtn i,
 .action-button-endorse-button i, .action-button i {
   display: inline-flex;
   justify-content: center;
   align-items: center;
   width: 100%;
   height: 100%;
-  pointer-events: none; /* Let the button handle the clicks */
+  pointer-events: none; 
 }
 
-.viewBtn,
-.editBtn,
-.approveBtn,
-.registerBtn,
-.saveSinglePdfBtn,
-.savePDFBtn,
-.actionBtn,
-.endorseBtn,
-.deleteBtn,
-.rejectBtn,
-.archiveBtn,
-.rescheduleBtn,
-.saveBtn,
+.viewBtn, .editBtn,
+.approveBtn, .registerBtn,
+.saveSinglePdfBtn, .savePDFBtn,
+.actionBtn, .endorseBtn,
+.deleteBtn, .rejectBtn,
+.archiveBtn, .rescheduleBtn,
+.saveBtn, .expandBtn,
 .action-button-endorse-button, .action-button {
   pointer-events: auto;
 }

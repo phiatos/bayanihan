@@ -26,6 +26,42 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     
     <title>Bayanihan | Angat Buhay Disaster Relief Portal</title>
+    <style>
+        .donor-type-buttons {
+            display:block;
+            border-bottom: 2px solid #ddd;
+            margin-bottom: 20px;
+        }
+        .donor-type-buttons button {
+            padding: 10px 85px 10px 20px; /* Top, Right, Bottom, Left */
+            border: none;
+            background: #14AEBB;
+            cursor: pointer;
+            font-size: 12px;
+            margin-right: 5px;
+            border-radius: 5px 5px 0 0;
+        }
+        .donor-type-buttons button.active {
+            background: #FA3B99;
+            color: white;
+        }
+        .donor-type-buttons button:hover {
+            background: #0E7781;
+        }
+        .urgent-row {
+            border: 3px solid red !important; /* Temporary to test visibility */
+        }
+        .urgent-row td {
+            border-color: #ff9999; /* Slightly darker red for cell borders */
+        }
+        table tbody tr.urgent-row {
+            background-color: #ffcccc !important;
+            color: #333;
+        }
+        table tbody tr.urgent-row td {
+            border-color: #ff9999;
+        }
+    </style>
 </head>
 <body>
     <div class="main-container">
@@ -77,30 +113,97 @@
                         <i class='bx bx-show' style="font-size: 1.2rem;"></i>View Monetary Donation
                     </button>
                 </div>
+
+                <div class="donor-type-buttons">
+                    <button id="individualBtn" class="donor-btn active">Individual</button>
+                    <button id="anonymousBtn" class="donor-btn">Anonymous</button>
+                    <button id="corporateBtn" class="donor-btn">Corporate</button>
+                    <button id="foundationBtn" class="donor-btn">Foundation</button>
+                </div>
                 
-                <div class="table-container">
-                    <table id="donationTable">
+                <div id="individualTableContainer" class="table-container">
+                    <table id="individualTable" class="table table-bordered">
                         <thead>
                             <tr>
                                 <th>No.</th>
-                                <th>Encoder</th>
-                                <th>Name</th>
-                                <th>Type</th>
+                                <th>Full Name</th>
+                                <th>Donor Type</th>
                                 <th>Address</th>
-                                <th>Contact Person</th>
-                                <th>Number</th>
+                                <th>Mobile Number</th>
                                 <th>Email</th>
-                                <th>Type of Assistance</th>
+                                <th>Donation Category</th>
                                 <th>Valuation</th>
-                                <th>Additional Notes</th>
-                                <th>Staff-In Charge</th>
+                                <th>Description</th>
                                 <th>Donation Date</th>
                                 <th>Status</th>
-                                <th>Action</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
-                        <tbody id="donationTableBody">
-                        </tbody> 
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div id="anonymousTableContainer" class="table-container" style="display: none;">
+                    <table id="anonymousTable" class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>No.</th>
+                                <th>Address</th>
+                                <th>Mobile Number</th>
+                                <th>Email</th>
+                                <th>Donation Note</th>
+                                <th>Donation Category</th>
+                                <th>Valuation</th>
+                                <th>Donor Type</th>
+                                <th>Valuation</th>
+                                <th>Description</th>
+                                <th>Donation Date</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div id="corporateTableContainer" class="table-container" style="display: none;">
+                    <table id="corporateTable" class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>No.</th>
+                                <th>Company Name</th>
+                                <th>Address</th>
+                                <th>Mobile Number</th>
+                                <th>Email</th>
+                                <th>Donation Note</th>
+                                <th>Donation Category</th>
+                                <th>Valuation</th>
+                                <th>Description</th>
+                                <th>Donation Date</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div id="foundationTableContainer" class="table-container" style="display: none;">
+                    <table id="foundationTable" class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>No.</th>
+                                <th>Foundation Name</th>
+                                <th>Address</th>
+                                <th>Contact Person</th>
+                                <th>Mobile Number</th>
+                                <th>Email</th>
+                                <th>Donation Category</th>
+                                <th>Valuation</th>
+                                <th>Description</th>
+                                <th>Donation Date</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
                     </table>
                 </div>
                 
@@ -148,11 +251,17 @@
                 </div>
             </div>
 
-             <!-- Archived Modal -->
+            <!-- Archived Modal -->
             <div class="modal" id="archivedModal" style="display: none;">
                 <div class="modal-content">
                     <span class="close-button" id="closeArchivedModalBtn">×</span>
                     <h2>Archived In-Kind Donations</h2>
+                    <div class="tab-nav">
+                        <button class="tab-button active" data-tab="individual">Individual</button>
+                        <button class="tab-button" data-tab="anonymous">Anonymous</button>
+                        <button class="tab-button" data-tab="corporation">Corporation</button>
+                        <button class="tab-button" data-tab="foundation">Foundation</button>
+                    </div>
                     <div class="table-container" style="max-height: 400px; overflow-y: auto;">
                         <table id="archivedTable">
                             <thead>
@@ -175,14 +284,13 @@
                             </thead>
                             <tbody id="archivedTableBody"></tbody>
                         </table>
-                    </div>
-                    <div class="pagination-info" style="margin-top: 15px;">
-                        <span id="archivedEntriesInfo">Showing 0 to 0 of 0 entries</span>
-                        <div id="archivedPagination" class="pagination"></div>
+                        <div class="pagination-info" style="margin-top: 15px;">
+                            <span id="archivedEntriesInfo">Showing 0 to 0 of 0 entries</span>
+                            <div id="archivedPagination" class="pagination"></div>
+                        </div>
                     </div>
                 </div>
             </div>
-
         </div>
     </div>
 
@@ -196,6 +304,20 @@
                 document.querySelector('.sidebar-placeholder').appendChild(script);
             })
             .catch(err => console.error('Error loading sidebar:', err));
+
+        // Tab navigation logic
+        document.querySelectorAll('.tab-button').forEach(button => {
+            button.addEventListener('click', () => {
+                // Remove active class from all buttons
+                document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+                // Add active class to clicked button
+                button.classList.add('active');
+                // Load data for the selected tab
+                const tabType = button.getAttribute('data-tab');
+                // Call a function to update the table based on tabType (to be implemented in pendinginkind.js)
+                updateTableData(tabType);
+            });
+        });
     </script>
 
     <script src="../js/inactivity-detector.js"></script> 
