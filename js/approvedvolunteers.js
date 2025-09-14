@@ -399,15 +399,13 @@ function initializePageFunctions(userId) {
                 <p><strong>Mobile Number:</strong> ${volunteer.mobileNumber || 'N/A'}</p>
                 <p><strong>Age:</strong> ${volunteer.age || 'N/A'}</p>
                 <p><strong>Social Media:</strong> ${volunteer.socialMediaLink ? `<a href="${volunteer.socialMediaLink}" target="_blank">${volunteer.socialMediaLink}</a>` : 'N/A'}</p>
-                <p><strong>Additional Info:</strong> ${volunteer.additionalInfo || 'N/A'}</p>
+                <p><strong>Additional Info:</strong> ${volunteer.additionalInfo || '-'}</p>
                 <hr>
                 <h2>Address Information:</h2>
                 <div style="margin-left: 15px;">
-                    <p><strong>Region:</strong> ${volunteer.address?.region || 'N/A'}</p>
-                    <p><strong>Province:</strong> ${volunteer.address?.province || 'N/A'}</p>
-                    <p><strong>City:</strong> ${volunteer.address?.city || 'N/A'}</p>
-                    <p><strong>Barangay:</strong> ${volunteer.address?.barangay || 'N/A'}</p>
-                    <p><strong>Street Address:</strong> ${volunteer.address?.streetAddress || 'N/A'}</p>
+                    <p><strong>Address:</strong> ${volunteer.address?.formattedAddress || 'N/A'}</p>
+                    <p><strong>Latitude:</strong> ${volunteer.address?.latitude || 'N/A'}</p>
+                    <p><strong>Longitude:</strong> ${volunteer.address?.longitude || 'N/A'}</p>
                 </div>
                 <hr>
                 <h2>Availability:</h2>
@@ -459,10 +457,9 @@ function initializePageFunctions(userId) {
                 "Additional Info": volunteer.otherSkillComments || 'N/A',
                 "Emergency Response": volunteer.isEmergencyResponse ? 'Yes (24/7)' : 'No' || 'N/A',
                 "Date/Time Availability": volunteer.availability?.specificDateTimeSlots?.map(slot => `${slot.date} at ${slot.time}`).join('; ') || 'N/A',
-                "Region": volunteer.address?.region || 'N/A',
-                "Province": volunteer.address?.province || 'N/A',
-                "City": volunteer.address?.city || 'N/A',
-                "Barangay": volunteer.address?.barangay || 'N/A',
+                "Address": volunteer.address?.formattedAddress || 'N/A',
+                "Latitude": volunteer.address?.latitude || 'N/A',
+                "Longitude": volunteer.address?.longitude || 'N/A',
                 "Skills": skillsDisplay,
                 "Scheduled Date/Time": formatDate(volunteer.scheduledDateTime || volunteer.applicationDateandTime)
             };
@@ -554,7 +551,7 @@ function initializePageFunctions(userId) {
             const head = [[
                 "No.", "Full Name", "Email", "Mobile Number", "Age", "Social Media",
                 "Additional Info", "Emergency Response", "Date/Time Availability",
-                "Region", "Province", "City", "Barangay", "Skills", "Scheduled Date/Time"
+                "Address", "Latitude", "Longitude", "Skills", "Scheduled Date/Time"
             ]];
             const body = filteredApprovedApplications.map((volunteer, i) => {
                 let skillsDisplay = 'None';
@@ -574,10 +571,9 @@ function initializePageFunctions(userId) {
                     volunteer.otherSkillComments || 'N/A',
                     volunteer.isEmergencyResponse ? 'Yes (24/7)' : 'No',
                     volunteer.availability?.specificDateTimeSlots?.map(slot => `${slot.date} at ${slot.time}`).join('; ') || 'N/A',
-                    volunteer.address?.region || 'N/A',
-                    volunteer.address?.province || 'N/A',
-                    volunteer.address?.city || 'N/A',
-                    volunteer.address?.barangay || 'N/A',
+                    volunteer.address?.formattedAddress || 'N/A',
+                    volunteer.address?.latitude || 'N/A',
+                    volunteer.address?.longitude || 'N/A',
                     skillsDisplay,
                     formatDate(volunteer.scheduledDateTime || volunteer.applicationDateandTime)
                 ];
@@ -597,21 +593,20 @@ function initializePageFunctions(userId) {
                     cellPadding: 2
                 },
                 columnStyles: {
-                    0: { cellWidth: 10 }, // No.
+                    0: { cellWidth: 20 }, // No.
                     1: { cellWidth: 20 }, // Full Name
                     2: { cellWidth: 25 }, // Email
                     3: { cellWidth: 25 }, // Mobile Number
                     4: { cellWidth: 10 }, // Age
                     5: { cellWidth: 20 }, // Social Media
-                    6: { cellWidth: 10 }, // Additional Info
-                    7: { cellWidth: 10 }, // Emergency Response
+                    6: { cellWidth: 30 }, // Additional Info
+                    7: { cellWidth: 20 }, // Emergency Response
                     8: { cellWidth: 20 }, // Date/Time Availability
-                    9: { cellWidth: 20 }, // Region
-                    10: { cellWidth: 20 }, // Province
-                    11: { cellWidth: 20 }, // City
-                    12: { cellWidth: 20 }, // Barangay
-                    13: { cellWidth: 20 }, // Skills
-                    14: { cellWidth: 20 }  // Scheduled Date/Time
+                    9: { cellWidth: 20 }, // Address
+                    10: { cellWidth: 10 }, // Latitude
+                    11: { cellWidth: 10 }, // Longitude
+                    12: { cellWidth: 20 }, // Skills
+                    13: { cellWidth: 20 }  // Scheduled Date/Time
                 },
                 didDrawPage: function(data) {
                     doc.setFontSize(8);
@@ -661,7 +656,7 @@ function initializePageFunctions(userId) {
             return;
         }
         const { jsPDF } = window.jspdf;
-        const doc = new jsPDF('landscape'); // Use landscape to match exportToPDF
+        const doc = new jsPDF('landscape'); 
         const logo = new Image();
         logo.src = '../assets/images/AB_logo.png';
         logo.onload = function() {
@@ -1055,13 +1050,10 @@ function initializePageFunctions(userId) {
                 <td>${volunteer.mobileNumber || 'N/A'}</td>
                 <td>${volunteer.age || 'N/A'}</td>
                 <td>${socialMediaDisplay}</td>
-                <td>${volunteer.otherSkillComments || 'N/A'}</td>
+                <td>${volunteer.otherSkillComments || '-'}</td>
                 <td>${volunteer.isEmergencyResponse ? 'Yes (24/7)' : 'No'}</td>
                 <td>${specificSlotsHtml}</td>
-                <td>${volunteer.address?.region || 'N/A'}</td>
-                <td>${volunteer.address?.province || 'N/A'}</td>
-                <td>${volunteer.address?.city || 'N/A'}</td>
-                <td>${volunteer.address?.barangay || 'N/A'}</td>
+                <td>${volunteer.address?.formattedAddress || 'N/A'}</td>
                 <td>${skillsHtml}</td>
                 <td>${scheduledDateTimeDisplay}</td>
                 <td>
@@ -1094,7 +1086,13 @@ function initializePageFunctions(userId) {
                             fieldValue = formatDate(volunteer.scheduledDateTime || volunteer.timestamp || '').toLowerCase();
                             break;
                         case 'Location':
-                            fieldValue = `${volunteer.address?.region || ''} ${volunteer.address?.province || ''} ${volunteer.address?.city || ''} ${volunteer.address?.barangay || ''}`.toLowerCase();
+                            fieldValue = (volunteer.address?.formattedAddress || '').toLowerCase();
+                            break;
+                        case 'Latitude':
+                            fieldValue = (volunteer.address?.latitude || '').toString().toLowerCase();
+                            break;
+                        case 'Longitude':
+                            fieldValue = (volunteer.address?.longitude || '').toString().toLowerCase();
                             break;
                         case 'Name':
                             fieldValue = getFullName(volunteer).toLowerCase();
@@ -1132,10 +1130,9 @@ function initializePageFunctions(userId) {
                         getFullName(volunteer).toLowerCase().includes(searchTerm) ||
                         (volunteer.email || '').toLowerCase().includes(searchTerm) ||
                         (volunteer.mobileNumber || '').toLowerCase().includes(searchTerm) ||
-                        (volunteer.address?.region || '').toLowerCase().includes(searchTerm) ||
-                        (volunteer.address?.province || '').toLowerCase().includes(searchTerm) ||
-                        (volunteer.address?.city || '').toLowerCase().includes(searchTerm) ||
-                        (volunteer.address?.barangay || '').toLowerCase().includes(searchTerm) ||
+                        (volunteer.address?.formattedAddress || '').toLowerCase().includes(searchTerm) ||
+                        (volunteer.address?.latitude || '').toString().toLowerCase().includes(searchTerm) ||
+                        (volunteer.address?.longitude || '').toString().toLowerCase().includes(searchTerm) ||
                         (volunteer.otherSkillComments || '').toLowerCase().includes(searchTerm) ||
                         (volunteer.availability?.specificDateTimeSlots || [])
                             .map(slot => `${slot.date} at ${slot.time}`).join(' ').toLowerCase().includes(searchTerm) ||
@@ -1156,8 +1153,16 @@ function initializePageFunctions(userId) {
                         valB = new Date(b.scheduledDateTime || b.timestamp || 0).getTime();
                         break;
                     case 'Location':
-                        valA = `${a.address?.region || ''} ${a.address?.province || ''} ${a.address?.city || ''} ${a.address?.barangay || ''}`.toLowerCase();
-                        valB = `${b.address?.region || ''} ${b.address?.province || ''} ${b.address?.city || ''} ${b.address?.barangay || ''}`.toLowerCase();
+                        valA = (a.address?.formattedAddress || '').toLowerCase();
+                        valB = (b.address?.formattedAddress || '').toLowerCase();
+                        break;
+                    case 'Latitude':
+                        valA = parseFloat(a.address?.latitude || 0);
+                        valB = parseFloat(b.address?.latitude || 0);
+                        break;
+                    case 'Longitude':
+                        valA = parseFloat(a.address?.longitude || 0);
+                        valB = parseFloat(b.address?.longitude || 0);
                         break;
                     case 'Name':
                         valA = getFullName(a).toLowerCase();
@@ -1204,7 +1209,7 @@ function initializePageFunctions(userId) {
                 if (typeof valA === 'number' && typeof valB === 'number') {
                     return order === 'asc' ? valA - valB : valB - valA;
                 } else {
-                    return order === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+                    return order === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valB);
                 }
             });
         }

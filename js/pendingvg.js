@@ -20,7 +20,7 @@ const database = firebase.database();
 const auth = firebase.auth();
 
 // === Global Variables ===
-const INACTIVITY_TIME = 1800000; // 30 minutes
+const INACTIVITY_TIME = 1800000; 
 let currentUserAdminPosition = null;
 let isAdminVerified = false;
 let inactivityTimeout;
@@ -162,34 +162,6 @@ function checkInactivity() {
 
 // === Authentication ===
 document.addEventListener('DOMContentLoaded', () => {
-  // auth.onAuthStateChanged(async (user) => {
-  //   if (!user) {
-  //     showErrorAlert('Authentication Required', 'Please sign in to access pending applications.', () => {
-  //       window.location.href = '../pages/login.html';
-  //     });
-  //     return;
-  //   }
-
-  //   const permissions = await checkAdminPermissions();
-  //   if (!permissions.canView) {
-  //     showErrorAlert('Access Denied', 'You do not have permission to access this page.', () => {
-  //       window.location.href = '../pages/login.html';
-  //     });
-  //     return;
-  //   }
-
-  //   try {
-  //     const snapshot = await database.ref(`users/${user.uid}`).once('value');
-  //     const userData = snapshot.val();
-  //     currentUserAdminPosition = userData?.adminPosition || null;
-  //     initializePageFunctions(user.uid);
-  //     resetInactivityTimer();
-  //   } catch (error) {
-  //     currentUserAdminPosition = null;
-  //     initializePageFunctions(user.uid);
-  //     resetInactivityTimer();
-  //   }
-  // });
   auth.onAuthStateChanged(async (user) => {
     console.log(`[${new Date().toISOString()}] Auth state changed:`, user ? { uid: user.uid, email: user.email } : 'No user');
 
@@ -521,11 +493,7 @@ function renderApplications(applicationsToRender) {
       <td>${app.email || 'N/A'}</td>
       <td>${app.mobileNumber || 'N/A'}</td>
       <td><a href="${app.socialMediaLink}" target="_blank" rel="noopener noreferrer">${app.socialMediaLink ? 'Link' : 'N/A'}</a></td>
-      <td>${app.headquarters?.region || 'N/A'}</td>
-      <td>${app.headquarters?.province || 'N/A'}</td>
-      <td>${app.headquarters?.city || 'N/A'}</td>
-      <td>${app.headquarters?.barangay || 'N/A'}</td>
-      <td>${app.headquarters?.streetAddress || 'N/A'}</td>
+      <td>${app.headquarters?.formattedAddress || 'N/A'}</td>
       <td>${formattedTimestamp}</td>
       <td>
         <button title="View" class="viewBtn" data-key="${app.key}"><i class='bx bx-show-alt'></i></button>
@@ -687,16 +655,8 @@ function applySearchAndSort() {
     'email-desc': 'Search by Email',
     'mobileNumber-asc': 'Search by Mobile Number',
     'mobileNumber-desc': 'Search by Mobile Number',
-    'region-asc': 'Search by Region',
-    'region-desc': 'Search by Region',
-    'province-asc': 'Search by Province',
-    'province-desc': 'Search by Province',
-    'city-asc': 'Search by City',
-    'city-desc': 'Search by City',
-    'barangay-asc': 'Search by Barangay',
-    'barangay-desc': 'Search by Barangay',
-    'streetAddress-asc': 'Search by Street Address',
-    'streetAddress-desc': 'Search by Street Address',
+    'formattedAddress-asc': 'Search by Address',
+    'formattedAddress-desc': 'Search by Address',
     'applicationDateandTime-asc': 'Search by Application Date/Time',
     'applicationDateandTime-desc': 'Search by Application Date/Time',
     'areasOfExpertiseFocus-asc': 'Search by Areas of Expertise/Focus',
@@ -724,11 +684,7 @@ function applySearchAndSort() {
           contactPerson: (app.contactPerson || '').toLowerCase(),
           email: (app.email || '').toLowerCase(),
           mobileNumber: (app.mobileNumber || '').toLowerCase(),
-          region: (app.headquarters?.region || '').toLowerCase(),
-          province: (app.headquarters?.province || '').toLowerCase(),
-          city: (app.headquarters?.city || '').toLowerCase(),
-          barangay: (app.headquarters?.barangay || '').toLowerCase(),
-          streetAddress: (app.headquarters?.streetAddress || '').toLowerCase(),
+          formattedAddress: (app.headquarters?.formattedAddress || '').toLowerCase(),
           applicationDateTime: app.applicationDateandTime ? new Date(app.applicationDateandTime).toLocaleString().toLowerCase() : '',
           areasOfExpertiseFocus: (app.areasOfExpertiseFocus || '').toLowerCase(),
           legalStatusRegistration: (app.legalStatusRegistration || '').toLowerCase(),
@@ -752,20 +708,8 @@ function applySearchAndSort() {
           case 'mobileNumber':
             fieldValue = (app.mobileNumber || '').toLowerCase();
             break;
-          case 'region':
-            fieldValue = (app.headquarters?.region || '').toLowerCase();
-            break;
-          case 'province':
-            fieldValue = (app.headquarters?.province || '').toLowerCase();
-            break;
-          case 'city':
-            fieldValue = (app.headquarters?.city || '').toLowerCase();
-            break;
-          case 'barangay':
-            fieldValue = (app.headquarters?.barangay || '').toLowerCase();
-            break;
-          case 'streetAddress':
-            fieldValue = (app.headquarters?.streetAddress || '').toLowerCase();
+          case 'formattedAddress':
+            fieldValue = (app.formattedAddress || '').toLowerCase();
             break;
           case 'applicationDateandTime':
             fieldValue = app.applicationDateandTime ? new Date(app.applicationDateandTime).toLocaleString().toLowerCase() : '';
@@ -812,25 +756,9 @@ function applySearchAndSort() {
           valA = parseInt(a.mobileNumber || '0');
           valB = parseInt(b.mobileNumber || '0');
           break;
-        case 'region':
-          valA = (a.headquarters?.region || '').toLowerCase();
-          valB = (b.headquarters?.region || '').toLowerCase();
-          break;
-        case 'province':
-          valA = (a.headquarters?.province || '').toLowerCase();
-          valB = (b.headquarters?.province || '').toLowerCase();
-          break;
-        case 'city':
-          valA = (a.headquarters?.city || '').toLowerCase();
-          valB = (b.headquarters?.city || '').toLowerCase();
-          break;
-        case 'barangay':
-          valA = (a.headquarters?.barangay || '').toLowerCase();
-          valB = (b.headquarters?.barangay || '').toLowerCase();
-          break;
-        case 'streetAddress':
-          valA = (a.headquarters?.streetAddress || '').toLowerCase();
-          valB = (b.headquarters?.streetAddress || '').toLowerCase();
+        case 'formattedAddress':
+          valA = (a.headquarters?.formattedAddress || '').toLowerCase();
+          valB = (b.headquarters?.formattedAddress || '').toLowerCase();
           break;
         case 'applicationDateandTime':
           valA = new Date(a.applicationDateandTime || 0).getTime();
@@ -883,11 +811,9 @@ function showPreviewModal(applicationData) {
       <hr>
       <h2>Headquarters Address:</h2>
       <div style="margin-left: 10px;">
-        <p><strong>Region:</strong> ${applicationData.headquarters?.region || 'N/A'}</p>
-        <p><strong>Province:</strong> ${applicationData.headquarters?.province || 'N/A'}</p>
-        <p><strong>City:</strong> ${applicationData.headquarters?.city || 'N/A'}</p>
-        <p><strong>Barangay:</strong> ${applicationData.headquarters?.barangay || 'N/A'}</p>
-        <p><strong>Street Address:</strong> ${applicationData.headquarters?.streetAddress || 'N/A'}</p>
+        <p><strong>Address:</strong> ${applicationData.headquarters?.formattedAddress || 'N/A'}</p>
+        <p><strong>Latitude:</strong> ${applicationData.headquarters?.latitude || 'N/A'}</p>
+        <p><strong>Longitude:</strong> ${applicationData.headquarters?.longitude || 'N/A'}</p>
       </div>
       <hr>
       <h2>Organizational Background:</h2>
@@ -978,14 +904,14 @@ async function handleTableActions(event) {
               const normalizedEmail = applicationData.email.trim().toLowerCase();
               const normalizedContactPerson = applicationData.contactPerson.trim().toLowerCase();
               const normalizedMobileNumber = String(applicationData.mobileNumber).trim();
-              const normalizedStreetAddress = applicationData.headquarters?.streetAddress ? applicationData.headquarters.streetAddress.trim().toLowerCase() : '';
-
+              const normalizedFormattedAddress = applicationData.headquarters?.formattedAddress ? applicationData.headquarters.formattedAddress.trim().toLowerCase() : '';
+              
               if (
                 approvedData.organizationName.trim().toLowerCase() === normalizedOrgName ||
                 approvedData.email.trim().toLowerCase() === normalizedEmail ||
                 approvedData.contactPerson.trim().toLowerCase() === normalizedContactPerson ||
                 String(approvedData.mobileNumber).trim() === normalizedMobileNumber ||
-                (approvedData.headquarters?.streetAddress && approvedData.headquarters.streetAddress.trim().toLowerCase() === normalizedStreetAddress)
+                (approvedData.headquarters?.formattedAddress && approvedData.headquarters.formattedAddress.trim().toLowerCase() === normalizedFormattedAddress)
               ) {
                 isDuplicate = true;
                 if (approvedData.organizationName.trim().toLowerCase() === normalizedOrgName) {
@@ -1234,11 +1160,9 @@ function validateExcelRow(row, headers, columnMap, existingRecords) {
     { key: 'email', label: 'Email', isEmail: true },
     { key: 'mobileNumber', label: 'Mobile Number', isMobile: true },
     { key: 'socialMediaLink', label: 'Social Media', isUrl: true, required: false },
-    { key: 'headquarters.streetAddress', label: 'Street Address' },
-    { key: 'headquarters.region', label: 'Region' },
-    { key: 'headquarters.province', label: 'Province' },
-    { key: 'headquarters.city', label: 'City' },
-    { key: 'headquarters.barangay', label: 'Barangay' },
+    { key: 'headquarters.formattedAddress', label: 'Address' },
+    { key: 'headquarters.latitude', label: 'Latitude', isNumber: true },
+    { key: 'headquarters.longitude', label: 'Longitude', isNumber: true },
     { key: 'organizationalBackgroundMission', label: 'Organizational Background/Mission', minLength: 20 },
     { key: 'areasOfExpertiseFocus', label: 'Areas of Expertise/Focus', minLength: 20 },
     { key: 'legalStatusRegistration', label: 'Legal Status/Registration' },
@@ -1280,7 +1204,7 @@ function validateExcelRow(row, headers, columnMap, existingRecords) {
   const emailLower = record.email ? record.email.trim().toLowerCase() : '';
   const contactPersonLower = record.contactPerson ? record.contactPerson.trim().toLowerCase() : '';
   const mobileNumber = record.mobileNumber ? String(record.mobileNumber).trim() : '';
-  const streetAddressLower = record.headquarters?.streetAddress ? record.headquarters.streetAddress.trim().toLowerCase() : '';
+  const formattedAddressLower = record.headquarters?.formattedAddress ? record.headquarters.formattedAddress.trim().toLowerCase() : '';
 
   if (orgNameLower && existingRecords.has(`org:${orgNameLower}`)) {
     isValidRecord = false;
@@ -1298,9 +1222,9 @@ function validateExcelRow(row, headers, columnMap, existingRecords) {
     isValidRecord = false;
     rowErrors.push('Duplicate Mobile Number');
   }
-  if (streetAddressLower && existingRecords.has(`address:${streetAddressLower}`)) {
+  if (formattedAddressLower && existingRecords.has(`address:${formattedAddressLower}`)) {
     isValidRecord = false;
-    rowErrors.push('Duplicate Street Address');
+    rowErrors.push('Duplicate Address');
   }
 
   record.applicationDateandTime = new Date().toISOString();
@@ -1347,11 +1271,9 @@ async function handleExcelFileSelect(event) {
         'Areas of Expertise/Focus': 'areasOfExpertiseFocus',
         'Contact Person': 'contactPerson',
         'Email': 'email',
-        'Barangay': 'headquarters.barangay',
-        'City': 'headquarters.city',
-        'Province': 'headquarters.province',
-        'Region': 'headquarters.region',
-        'Street Address': 'headquarters.streetAddress',
+        'Address': 'headquarters.formattedAddress',
+        'Latitude': 'headquarters.latitude',
+        'Longitude': 'headquarters.longitude',
         'Legal Status/Registration': 'legalStatusRegistration',
         'Mobile Number': 'mobileNumber',
         'Organization Name': 'organizationName',
@@ -1516,11 +1438,9 @@ function downloadExcelTemplate() {
       'Email',
       'Mobile Number',
       'Social Media',
-      'Region',
-      'Province',
-      'City',
-      'Barangay',
-      'Street Address',
+      'Address',
+      'Latitude',
+      'Longitude',
       'Organizational Background/Mission',
       'Areas of Expertise/Focus',
       'Legal Status/Registration',
@@ -1533,11 +1453,9 @@ function downloadExcelTemplate() {
       'example@gmail.com', 
       '09123456789', 
       'https://facebook.com/exampleorg', 
-      'NCR',
-      'Metro Manila',
-      'Quezon City',
-      'Barangay Example',
-      '123 Example Street',
+      '123 Example Street, Quezon City, Metro Manila, Philippines',
+      '14.5995',
+      '120.9842',
       'Promoting education and community development through innovative programs and partnerships.', 
       'Education and Community Development Programs', 
       'Registered Non-Profit',
@@ -1566,11 +1484,9 @@ function exportToExcel() {
     'Email': app.email || 'N/A',
     'Mobile Number': String(app.mobileNumber || 'N/A'),
     'Social Media': app.socialMediaLink || 'N/A',
-    'Region': app.headquarters?.region || 'N/A',
-    'Province': app.headquarters?.province || 'N/A',
-    'City': app.headquarters?.city || 'N/A',
-    'Barangay': app.headquarters?.barangay || 'N/A',
-    'Street Address': app.headquarters?.streetAddress || 'N/A',
+    'Address': app.headquarters?.formattedAddress || 'N/A',
+    'Latitude': app.headquarters?.latitude || 'N/A',
+    'Longitude': app.headquarters?.longitude || 'N/A',
     'Application Date/Time': app.applicationDateandTime ? new Date(app.applicationDateandTime).toLocaleString() : 'N/A',
     'Areas of Expertise/Focus': app.areasOfExpertiseFocus || 'N/A',
     'Legal Status/Registration': app.legalStatusRegistration || 'N/A',
@@ -1641,7 +1557,7 @@ function exportToPDF() {
     doc.text(`Report Generated: ${now.toLocaleString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true, timeZone: 'Asia/Manila' })} (PHT)`, margin, yOffset);
     yOffset += 15;
 
-    const head = [['No.', 'Organization Name', 'Contact Person', 'Email', 'Mobile Number', 'Social Media', 'Region', 'Province', 'City', 'Barangay', 'Street Address', 'Application Date/Time', 'Areas of Expertise/Focus', 'Legal Status/Registration', 'Organizational Background/Mission', 'Required Documents Link']];
+    const head = [['No.', 'Organization Name', 'Contact Person', 'Email', 'Mobile Number', 'Social Media', 'Address', 'Latitude', 'Longitude', 'Application Date/Time', 'Areas of Expertise/Focus', 'Legal Status/Registration', 'Organizational Background/Mission', 'Required Documents Link']];
     const body = filteredApplications.map((app, i) => [
       i + 1,
       app.organizationName || 'N/A',
@@ -1649,11 +1565,9 @@ function exportToPDF() {
       app.email || 'N/A',
       String(app.mobileNumber) || 'N/A',
       app.socialMediaLink || 'N/A',
-      app.headquarters?.region || 'N/A',
-      app.headquarters?.province || 'N/A',
-      app.headquarters?.city || 'N/A',
-      app.headquarters?.barangay || 'N/A',
-      app.headquarters?.streetAddress || 'N/A',
+      app.headquarters?.formattedAddress || 'N/A',
+      app.headquarters?.latitude || 'N/A',
+      app.headquarters?.longitude || 'N/A',
       app.applicationDateandTime ? new Date(app.applicationDateandTime).toLocaleString() : 'N/A',
       app.areasOfExpertiseFocus || 'N/A',
       app.legalStatusRegistration || 'N/A',
@@ -1683,21 +1597,19 @@ function exportToPDF() {
       },
       columnStyles: {
         0: { cellWidth: 10 }, // No.
-        1: { cellWidth: 20 }, // Organization Name
+        1: { cellWidth: 25 }, // Organization Name
         2: { cellWidth: 20 }, // Contact Person
         3: { cellWidth: 20 }, // Email
         4: { cellWidth: 20 }, // Mobile Number
         5: { cellWidth: 20 }, // Social Media
-        6: { cellWidth: 15 }, // Region
-        7: { cellWidth: 15 }, // Province
-        8: { cellWidth: 15 }, // City
-        9: { cellWidth: 15 }, // Barangay
-        10: { cellWidth: 15 }, // Street Address
-        11: { cellWidth: 15 }, // Application Date/Time
-        12: { cellWidth: 20 }, // Areas of Expertise/Focus
-        13: { cellWidth: 20 }, // Legal Status/Registration
-        14: { cellWidth: 20 }, // Organizational Background/Mission
-        15: { cellWidth: 20 }, // Required Documents Link
+        6: { cellWidth: 25 }, // Address
+        7: { cellWidth: 15 }, // Latitude
+        8: { cellWidth: 15 }, // Longitude
+        9: { cellWidth: 15 }, // Application Date/Time
+        10: { cellWidth: 20 }, // Areas of Expertise/Focus
+        11: { cellWidth: 20 }, // Legal Status/Registration
+        12: { cellWidth: 30 }, // Organizational Background/Mission
+        13: { cellWidth: 20 }, // Required Documents Link
       },
       margin: { top: margin, left: margin, right: margin },
       styles: {
@@ -1789,11 +1701,9 @@ function saveSingleApplicationPdf(application) {
     y = addDetail('Email', application.email);
     y = addDetail('Mobile Number', String(application.mobileNumber));
     y = addDetail('Social Media Link', application.socialMediaLink);
-    y = addDetail('Region', application.headquarters?.region);
-    y = addDetail('Province', application.headquarters?.province);
-    y = addDetail('City', application.headquarters?.city);
-    y = addDetail('Barangay', application.headquarters?.barangay);
-    y = addDetail('Street Address', application.headquarters?.streetAddress);
+    y = addDetail('Address', application.headquarters?.formattedAddress);
+    y = addDetail('Latitude', application.headquarters?.latitude);
+    y = addDetail('Longitude', application.headquarters?.longitude);
     y = addDetail(
       'Application Date/Time',
       application.applicationDateandTime

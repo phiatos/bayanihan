@@ -1,0 +1,63 @@
+<header>Volunteer Requests Overview</header>
+
+<!-- Summary Dashboard -->
+<div class="dashboard-cards">
+    <div class="card">
+        <div class="card-title">Total Active Requests</div>
+        <div class="card-value" id="total-requests"></div>
+    </div>
+    <div class="card">
+        <div class="card-title">Volunteers Needed</div>
+        <div class="card-value" id="total-volunteers"></div>
+    </div>
+    <div class="card">
+        <div class="card-title">Requests Completed</div>
+        <div class="card-value" id="requests-completed"></div>
+    </div>
+    <div class="card">
+        <div class="card-title">Requests Pending</div>
+        <div class="card-value" id="requests-pending"></div>
+    </div>
+    <div class="card">
+        <div class="card-title">Remaining Volunteers</div>
+        <div class="card-value" id="total-remaining"></div>
+    </div>
+</div>
+
+<!-- Filters / Search -->
+<div class="filters">
+    <input type="text" placeholder="Search by ABVN or Task" id="search-input">
+    <select id="status-filter">
+        <option value="">All Status</option>
+        <option value="Pending">Pending</option>
+        <option value="In Progress">In Progress</option>
+        <option value="Completed">Completed</option>
+    </select>
+    <select id="skills-filter">
+        <option value="">All Skills</option>
+        <!-- populate dynamically -->
+    </select>
+</div>
+
+<!-- Requests Table -->
+<div class="table-container">
+    <table>
+        <thead>
+            <tr>
+                <th>No.</th>
+                <th>ABVN Name</th>
+                <th>Task Name</th>
+                <th>Required Skills</th>
+                <th>Volunteers Needed</th>
+                <th>Assigned</th>
+                <th>Task Dates</th>       
+                <th>Task Times</th>   
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="requests-table">
+            <!-- Rows will be populated dynamically from Firebase -->
+        </tbody>
+    </table>
+</div>

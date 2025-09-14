@@ -85,6 +85,44 @@
   border-radius: 4px;
 }
 
+/* =====================
+   Dashboard Tabs
+===================== */
+.dashboard-tabs, .tabs-container {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.tab-btn, .tab-button {
+  flex: 1 !important;
+  padding: 0.8rem 1.2rem !important;
+  background: transparent;
+  border: none;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--gray);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-radius: 8px 8px 0 0 !important;
+  position: relative;
+}
+
+.tab-btn:hover, .tab-button:hover {
+  color: var(--primary-color) !important;
+  background: rgba(20, 174, 187, 0.08) !important;
+}
+
+.tab-btn.active, .tab-button.active  {
+  color: var(--accent-color) !important;
+  background: rgba(250, 63, 153, 0.08) !important;
+  border-bottom: 3px solid var(--accent-color) !important;
+}
+
+@keyframes tabSlide {
+  from { width: 0; left: 50%; }
+  to { width: 60%; left: 20%; }
+}
 /*----------Custom Scrollbar for the Table Container----------------*/
 .table-container {
   overflow-x: auto;
@@ -537,6 +575,7 @@ hr {
 .modal-content input[type="tel"],
 .modal-content input[type="date"],
 .modal-content input[type="url"],
+.modal-content input[type="datetime-local"],
 .modal-content textarea,
 .modal-content select {
   width: 100%;
@@ -658,7 +697,7 @@ hr {
 }
 
 /* ==========================================================================
-  Table Styling (reliefslog, reportslog, activation)
+  Table Styling
 ========================================================================== */
 .table-container {
   width: 100%;
@@ -669,43 +708,31 @@ hr {
 }
 
 table {
-  width: 100%;
-  min-width: 400px;   
-  max-width: 1200px; 
+  width: 100%;              
+  min-width: 400px;       
+  max-width: 1200px;       
   margin: 0 auto;    
-  
   border-collapse: collapse;
   border-spacing: 0;
   background-color: #fff;
-  
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   border-radius: 8px;
   overflow: hidden;
 }
 
-
 /* Table header and body */
 th, td {
-  padding: 10px 8px;       /* reduced padding for a tighter look */
-  font-size: 12px;         /* smaller but readable font */
+  padding: 6px 8px;      
+  font-size: clamp(10px, 2vw, 13px);      
   text-align: center;
   vertical-align: middle;
   align-content: center;
   color: #333;
   border-bottom: 1px solid #f0f0f0;
   word-break: break-word;
-  min-width: 120px;         /* slightly smaller min width */
-  max-width: 300px;        /* reduced max width */
-  white-space: normal;     /* allow wrapping */
-}
-
-td {
-  font-size: 11px;         /* smaller font for data cells */
-  vertical-align: top;
-  padding: 8px 8px;
-  white-space: nowrap;       /* keep text on one line */
-  overflow: hidden;
-  text-overflow: ellipsis;   /* add "..." when too long */
+  min-width: 120px;   
+  max-width: 300px;        
+  white-space: normal;    
 }
 
 th {
@@ -717,21 +744,29 @@ th {
   font-size: 12px;
   letter-spacing: 0.05em;
   color: #555;
-  padding: 12px 10px;
+  padding: 8px 6px;
   border-bottom: 2px solid #ddd;
   z-index: 10;
 
-  white-space: normal;       /* allow wrapping */
-  word-break: break-word;    /* break long words */
-  hyphens: auto;             /* add hyphenation */
+  white-space: normal;       
+  word-break: break-word;   
+  hyphens: auto;             
   text-align: center;
-  
-  box-shadow: inset 0 -1px 0 #ccc;  /* subtle underline effect */
-  user-select: none;          /* prevent accidental text selection */
-  cursor: default;            /* indicate non-interactive header */
+
+  box-shadow: inset 0 -1px 0 #ccc;  
+  user-select: none;         
+  cursor: default;           
   transition: background-color 0.3s ease;
 }
 
+td {
+  font-size: 12px;
+  vertical-align: top;
+  padding: 8px 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  /* text-overflow: ellipsis; */
+}
 
 /* Row hover effect */
 tr:hover {
@@ -745,11 +780,11 @@ td input[type="email"],
 td input[type="number"],
 td select {
   width: 100%;
-  padding: 10px 12px; /* slightly more padding for comfort */
-  font-size: 14px; /* match table font size */
-  background-color: #f9fafb; /* lighter, modern shade */
+  padding: 8px 6px; 
+  font-size: 11px;
+  background-color: #f9fafb; 
   border: 1px solid #d0d5da;
-  border-radius: 6px; /* slightly rounder for a softer feel */
+  border-radius: 6px;
   box-sizing: border-box;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
@@ -889,7 +924,8 @@ td:has(.viewBtn, .editBtn,
 .saveSinglePdfBtn, .savePDFBtn,
 .actionBtn, .endorseBtn,
 .deleteBtn, .rejectBtn, .archiveBtn,
-.rescheduleBtn, .saveBtn, .action-button-endorse-button, .action-button) {
+.rescheduleBtn, .saveBtn, .action-button-endorse-button, 
+.action-button) {
   display: flex;
   gap: 8px;
   justify-content: center;
@@ -903,7 +939,8 @@ td:has(.viewBtn, .editBtn,
 .saveSinglePdfBtn, .savePDFBtn,
 .actionBtn, .endorseBtn,
 .deleteBtn, .rejectBtn, .archiveBtn,
-.rescheduleBtn, .saveBtn, .action-button-endorse-button, .action-button {
+.rescheduleBtn, .saveBtn, .action-button-endorse-button, 
+.action-button {
   width: 45px;
   height: 45px;
   padding: 0;
@@ -1215,33 +1252,6 @@ button[type="submit"]:hover,
   margin-left: 20px;
 }
 
-/* td:has(.viewBtn, .approveBtn, .rejectBtn, .editBtn, .registerBtn) {
-  display: flex;
-  gap: 5px;
-  justify-content: center;
-  align-items: center;
-  padding: 8px;
-}
-
-.viewBtn, .approveBtn, .rejectBtn, .editBtn, .registerBtn {
-  width: 40px;
-  height: 40px;
-  padding: 0;
-  font-size: 20px;
-  border-radius: 50%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.viewBtn:hover, .approveBtn:hover, .rejectBtn:hover, 
-.editBtn:hover, .registerBtn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-} */
-
 /* ==========================================================================
  Pagination
 ========================================================================== */
@@ -1441,25 +1451,25 @@ button[type="submit"]:hover,
 /* Buttons */
 .form-page-container form .next-btn, .next-btn,
 .form-page-container form .backBtn, .back-btn, .activate-btn{
-    width: 200px;
-    padding: 8px 0; /* a bit more vertical padding for comfort */
-    background-color: var(--primary-color);
-    color: var(--white);
-    box-sizing: border-box;
-    border: none;
-    border-radius: 10px; /* slightly rounder for modern feel */
-    cursor: pointer;
-    font-size: 14px; /* slightly larger for readability */
-    letter-spacing: 0.5px;
-    display: inline-block;
-    text-align: center;
-    margin-top: 10px;
-    margin-bottom: 25px;
-    transition: 
-      background-color 0.3s ease, 
-      box-shadow 0.3s ease, 
-      transform 0.2s ease;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  width: 200px;
+  padding: 8px 0; /* a bit more vertical padding for comfort */
+  background-color: var(--primary-color);
+  color: var(--white);
+  box-sizing: border-box;
+  border: none;
+  border-radius: 10px; /* slightly rounder for modern feel */
+  cursor: pointer;
+  font-size: 14px; /* slightly larger for readability */
+  letter-spacing: 0.5px;
+  display: inline-block;
+  text-align: center;
+  margin-top: 10px;
+  margin-bottom: 25px;
+  transition: 
+    background-color 0.3s ease, 
+    box-shadow 0.3s ease, 
+    transform 0.2s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
 }
 
 .cancel-btn{
@@ -1595,9 +1605,8 @@ label:has(+ textarea[required])::after {
 }
 
 /* ==========================================================================
-  Toast Notifications
+  Toast Notifications and SwalFire
 ========================================================================== */
-/* --- Toast Notifications --- */
 .toast-container {
   position: fixed;
   top: 1rem;
@@ -1958,6 +1967,67 @@ label:has(+ textarea[required])::after {
   }
 }
 
+.swal2-endorse-popup {
+  border-radius: 12px;
+  padding: 1.5rem 2rem;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  max-width: 420px;
+}
+
+.swal2-endorse-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--accent-color);
+  margin-bottom: 0.5rem;
+}
+
+.swal2-endorse-content {
+  font-size: 1.05rem;
+  color: var(--swal-text-color);
+  margin-bottom: 2rem;
+  line-height: 1.5;
+}
+
+.swal2-endorse-confirm-btn {
+  background: linear-gradient(45deg, var(--accent-color), var(--accent-hover-color)) !important;
+  color: var(--white) !important;
+  font-weight: 600;
+  font-size: 1rem;
+  padding: 0.65rem 2rem !important;
+  border-radius: 8px !important;
+  border: none !important;
+  box-shadow: 0 4px 12px rgba(250, 59, 153, 0.4);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+}
+
+.swal2-endorse-confirm-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(250, 59, 153, 0.6);
+}
+
+.swal2-endorse-cancel-btn {
+  background-color: #f5f5f5 !important;
+  color: #757575 !important;
+  font-weight: 500;
+  font-size: 1rem;
+  padding: 0.65rem 2rem !important;
+  border-radius: 8px !important;
+  border: none !important;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+}
+
+.swal2-endorse-cancel-btn:hover {
+  background-color: #e0e0e0 !important;
+  color: #424242 !important;
+}
+
 /* ==========================================================================
   PDF and Donation Buttons
 ========================================================================== */
@@ -2014,6 +2084,37 @@ label:has(+ textarea[required])::after {
   #sortSelect, #roleFilter, #actionFilter {
     width: 100%;
     max-width: 100%;
+  }
+}
+
+/* Base (mobile-first) */
+th, td {
+  font-size: clamp(10px, 2vw, 13px);
+  padding: 6px 8px;
+  min-width: clamp(80px, 15vw, 125px);
+}
+
+table {
+  width: 100%;
+  min-width: unset;
+}
+
+/* Tablet screens (≥600px) */
+@media (min-width: 600px) {
+  table {
+    min-width: 480px;
+  }
+  th, td {
+    padding: 10px 8px;
+  }
+}
+
+/* Larger screens (≥900px) */
+@media (min-width: 900px) {
+  table {
+    width: 90%;
+    max-width: 900px;
+    margin: 0 auto;
   }
 }
 
@@ -2134,5 +2235,3 @@ label:has(+ textarea[required])::after {
     width: 100%; /* stack vertically */
   }
 }
-
-

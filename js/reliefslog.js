@@ -160,10 +160,33 @@ document.addEventListener('DOMContentLoaded', () => {
     const savePdfBtn = document.getElementById('savePdfBtn');
     const exportExcelBtn = document.getElementById('exportBtn');
 
-    let data = [];
+    // Add these new variables
+    const tabsContainer = document.querySelector('.tabs-container');
+    const tabButtons = document.querySelectorAll('.tab-button');
+
+    let allReliefsData = [];
     let filteredData = [];
     let currentPage = 1;
     const rowsPerPage = 5;
+
+   
+    // Add this section to handle tab clicks
+    if (tabsContainer) {
+        tabsContainer.addEventListener('click', (event) => {
+            const clickedButton = event.target.closest('.tab-button');
+            if (!clickedButton) return;
+
+            // Remove 'active' class from all buttons
+            tabButtons.forEach(button => button.classList.remove('active'));
+
+            // Add 'active' class to the clicked button
+            clickedButton.classList.add('active');
+
+            // Filter and render the table based on the selected tab
+            const status = clickedButton.dataset.tab;
+            handleTabClick(status);
+        });
+    }
 
     function initializeTable() {
         if (!tableBody || !searchInput || !sortSelect || !entriesInfo || !pagination || !savePdfBtn || !exportExcelBtn) {
@@ -173,7 +196,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Fetch data from Firebase
         database.ref('requestRelief/requests').on('value', (snapshot) => {
-            data = [];
+            allReliefsData = [];
             const requests = snapshot.val();
             if (requests) {
                 const existingReliefIDs = new Set();
@@ -193,7 +216,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                     existingReliefIDs.add(reliefId);
 
-                    data.push({
+                    allReliefsData.push({
                         id: reliefId,
                         volunteerOrganization: groupName,
                         city: request.city,
@@ -212,7 +235,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 console.log(`[${new Date().toISOString()}] No relief requests found in Firebase`);
             }
-            filteredData = [...data];
+            filteredData = [...allReliefsData];
             renderTable();
         }, (error) => {
             Swal.fire({
@@ -315,10 +338,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 },
                 didDrawPage: function (data) {
                     doc.setFontSize(8);
-                    const pageNumberText = `Page ${data.pageNumber} of ${doc.internal.getNumberOfPages()}`;
+                    const pageNumberText = `Page ${allReliefsData.pageNumber} of ${doc.internal.getNumberOfPages()}`;
                     const poweredByText = "Powered by: Appvance";
                     const pageWidth = doc.internal.pageSize.width;
-                    const margin = data.settings.margin.left;
+                    const margin = allReliefsData.settings.margin.left;
                     const footerY = doc.internal.pageSize.height - 10;
 
                     doc.text(pageNumberText, margin, footerY);
@@ -389,9 +412,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 </td>
                 <td>
                     <button title="Save" class="saveBtn" data-key="${item.firebaseKey}"><i class='bx bx-save'></i></button>
-                    <button title="View" class="viewBtn" data-index="${data.findIndex(d => d.firebaseKey === item.firebaseKey)}"><i class='bx bx-show-alt'></i></button>
+                    <button title="View" class="viewBtn" data-index="${allReliefsData.findIndex(d => d.firebaseKey === item.firebaseKey)}"><i class='bx bx-show-alt'></i></button>
                     <button title="Reject" class="deleteBtn" data-key="${item.firebaseKey}"><i class="bx bx-x-circle"></i></button>
-                    <button title="Save as PDF" class="savePDFBtn" data-index="${data.indexOf(item)}"><i class='bx bxs-file-pdf'></i></button>
+                    <button title="Save as PDF" class="savePDFBtn" data-index="${allReliefsData.indexOf(item)}"><i class='bx bxs-file-pdf'></i></button>
                 </td>
             `;
 
@@ -510,8 +533,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 RequestCategory: item => item.category
             };
 
-            const valA = typeof map[key] === "function" ? map[key](a, data.indexOf(a)) : "";
-            const valB = typeof map[key] === "function" ? map[key](b, data.indexOf(b)) : "";
+            const valA = typeof map[key] === "function" ? map[key](a, allReliefsData.indexOf(a)) : "";
+            const valB = typeof map[key] === "function" ? map[key](b, allReliefsData.indexOf(b)) : "";
 
             const compA = isNaN(valA) ? String(valA).toLowerCase() : parseFloat(valA);
             const compB = isNaN(valB) ? String(valB).toLowerCase() : parseFloat(valB);
@@ -528,7 +551,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('click', (e) => {
         if (e.target.classList.contains('viewBtn')) {
             const idx = parseInt(e.target.dataset.index);
-            const item = data[idx];
+            const item = allReliefsData[idx];
 
             document.getElementById('modalTitle').textContent = `Relief Request of ${item.volunteerOrganization}`;
             document.getElementById('modalContact').textContent = item.contact;
@@ -557,7 +580,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (e.target.classList.contains('savePDFBtn')) {
             const idx = parseInt(e.target.dataset.index);
-            const itemToExport = data[idx];
+            const itemToExport = allReliefsData[idx];
             if (itemToExport) {
                 saveSingleReliefToPdf(itemToExport);
             } else {
@@ -568,8 +591,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target.classList.contains('deleteBtn')) {
             const firebaseKey = e.target.dataset.key;
             archiveRequest(firebaseKey, () => {
-                data = data.filter(item => item.firebaseKey !== firebaseKey);
-                filteredData = [...data];
+                allReliefsData = allReliefsData.filter(item => item.firebaseKey !== firebaseKey);
+                filteredData = [...allReliefsData];
                 renderTable();
                 renderArchivedTable();
             });
@@ -632,7 +655,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
 
                     if (typeof onSuccessCallback === 'function') {
-                        onSuccessCallback();
+                         allReliefsData = allReliefsData.filter(item => item.firebaseKey !== firebaseKey);
+                        const currentTab = document.querySelector('.tab-button.active').dataset.tab;
+                        handleTabClick(currentTab); // Re-filter and re-render the table
+                        renderArchivedTable();
                     }
                 })
                 .catch(error => {
@@ -779,10 +805,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     searchInput.addEventListener('input', function() {
         const searchTerm = this.value.toLowerCase();
-        filteredData = data.filter(item => {
-            return Object.values(item).some(value => {
-                return String(value).toLowerCase().includes(searchTerm);
-            });
+        filteredData = allReliefsData.filter(item => {
+            const matchesTab = document.querySelector('.tab-button.active').dataset.tab === 'all' || 
+                               item.status.toLowerCase() === document.querySelector('.tab-button.active').dataset.tab;
+            const matchesSearch = Object.values(item).some(value => 
+                String(value).toLowerCase().includes(query)
+            );
+            return matchesTab && matchesSearch;
         });
         currentPage = 1;
         renderTable();
@@ -1010,5 +1039,18 @@ document.addEventListener('DOMContentLoaded', () => {
             Swal.close();
             Swal.fire("Error", "Failed to load logo image. Please check the path.", "error");
         };
+    }
+
+    // Add this function after your existing functions
+    function handleTabClick(status) {
+        currentPage = 1; // Reset to the first page when a new tab is selected
+
+        if (status === 'all') {
+            filteredData = [...allReliefsData];
+        } else {
+            filteredData = allReliefsData.filter(item => item.status.toLowerCase() === status);
+        }
+
+        renderTable();
     }
 });

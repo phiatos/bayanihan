@@ -191,48 +191,6 @@ function setupInactivityListeners() {
     });
 }
 
-// Authentication Check
-// auth.onAuthStateChanged(user => {
-//     if (!user) {
-//         Swal.fire({
-//             icon: 'error',
-//             title: 'Authentication Required',
-//             text: 'Please sign in to access pending volunteer applications.',
-//             timer: 2000,
-//             showConfirmButton: false,
-//             timerProgressBar: true,
-//             allowOutsideClick: false,
-//             customClass: {
-//                 popup: 'swal2-popup-error-clean',
-//                 title: 'swal2-title-error-clean',
-//                 htmlContainer: 'swal2-text-error-clean'
-//             }
-//         }).then(() => {
-//             window.location.href = "../pages/login.html";
-//         });
-//         return;
-//     }
-
-//     // Fetch user role to determine Super Admin status and permissions
-//     database.ref(`users/${user.uid}`).once('value', snapshot => {
-//         const userData = snapshot.val();
-//         if (userData && userData.adminPosition) {
-//             currentUserAdminPosition = userData.adminPosition;
-//         } else {
-//             currentUserAdminPosition = null;
-//         }
-//         currentUserIsSuperAdmin = userData && userData.isSuperAdmin === true;
-//         initializePageFunctions(user.uid);
-//         setupInactivityListeners();
-//         resetInactivityTimer();
-//     }).catch(error => {
-//         currentUserAdminPosition = null;
-//         currentUserIsSuperAdmin = false;
-//         initializePageFunctions(user.uid);
-//         setupInactivityListeners();
-//         resetInactivityTimer();
-//     });
-// });
 auth.onAuthStateChanged(async (user) => {
     console.log(`[${new Date().toISOString()}] Auth state changed:`, user ? { uid: user.uid, email: user.email } : 'No user');
 
@@ -524,384 +482,419 @@ function initializePageFunctions(userId) {
     }
 
     function downloadExcelTemplate() {
-    const headers = [
-        "Full Name",
-        "Middle Initial",
-        "Name Extension",
-        "Email",
-        "Mobile Number",
-        "Age",
-        "Social Media",
-        "Other Skills",
-        "Emergency Response",
-        "Date/Time Availability",
-        "Street Address",
-        "Region",
-        "Province",
-        "City",
-        "Barangay",
-        "Skills",
-        "Status Notes"
-    ];
-    const sampleData = [{
-        "Full Name": "Jane Doe",
-        "Middle Initial": "",
-        "Name Extension": "",
-        "Email": "jane.doe@gmail.com",
-        "Mobile Number": "09123456789",
-        "Age": 25,
-        "Social Media": "Facebook: JaneDoe",
-        "Other Skills": "First Aid Training",
-        "Emergency Response": "Yes (24/7) or No",
-        "Date/Time Availability": "2025-08-20 at 10:00 AM, 2025-08-21 at 02:00 PM",
-        "Street Address": "123 Main St",
-        "Region": "NCR",
-        "Province": "Metro Manila",
-        "City": "Quezon City",
-        "Barangay": "Bagong Pag-asa",
-        "Skills": "Medical, Logistics",
-        "Status Notes": "Pending"
-    }];
-    const instructions = [{
-        Instructions: "1. Ensure Mobile Number is 11 digits starting with '09' (e.g., 09123456789). Format the Mobile Number column as 'Text' in Excel to preserve leading zeros.\n2. Duplicate volunteers (same name, mobile number, and email) are allowed but will prompt for confirmation during import.\n3. Emergency Response should be 'Yes (24/7)' or 'No'.\n4. Date/Time Availability should be in the format 'YYYY-MM-DD at HH:MM AM/PM' (comma-separated for multiple slots, e.g., '2025-08-20 at 10:00 AM, 2025-08-21 at 02:00 PM').\n5. Skills can include 'Medical', 'Logistics', 'General' (comma-separated).\n6. Status Notes can be 'Pending', 'Approved', 'Rejected', or other valid statuses."
-    }];
+        const headers = [
+            "Full Name",
+            "Middle Initial",
+            "Name Extension",
+            "Email",
+            "Mobile Number",
+            "Age",
+            "Social Media",
+            "Other Skills",
+            "Emergency Response",
+            "Date/Time Availability",
+            "Street Address",
+            "Region",
+            "Province",
+            "City",
+            "Barangay",
+            "Skills",
+            "Status Notes"
+        ];
+        const sampleData = [{
+            "Full Name": "Jane Doe",
+            "Middle Initial": "",
+            "Name Extension": "",
+            "Email": "jane.doe@gmail.com",
+            "Mobile Number": "09123456789",
+            "Age": 25,
+            "Social Media": "Facebook: JaneDoe",
+            "Other Skills": "First Aid Training",
+            "Emergency Response": "Yes (24/7) or No",
+            "Date/Time Availability": "2025-08-20 at 10:00 AM, 2025-08-21 at 02:00 PM",
+            "Street Address": "123 Main St",
+            "Region": "NCR",
+            "Province": "Metro Manila",
+            "City": "Quezon City",
+            "Barangay": "Bagong Pag-asa",
+            "Skills": "Medical, Logistics",
+            "Status Notes": "Pending"
+        }];
+        const instructions = [{
+            Instructions: "1. Ensure Mobile Number is 11 digits starting with '09' (e.g., 09123456789). Format the Mobile Number column as 'Text' in Excel to preserve leading zeros.\n2. Duplicate volunteers (same name, mobile number, and email) are allowed but will prompt for confirmation during import.\n3. Emergency Response should be 'Yes (24/7)' or 'No'.\n4. Date/Time Availability should be in the format 'YYYY-MM-DD at HH:MM AM/PM' (comma-separated for multiple slots, e.g., '2025-08-20 at 10:00 AM, 2025-08-21 at 02:00 PM').\n5. Skills can include 'Medical', 'Logistics', 'General' (comma-separated).\n6. Status Notes can be 'Pending', 'Approved', 'Rejected', or other valid statuses."
+        }];
 
-    const ws = XLSX.utils.json_to_sheet(sampleData, { header: headers });
-    const wsInstructions = XLSX.utils.json_to_sheet(instructions);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Volunteer Template");
-    XLSX.utils.book_append_sheet(wb, wsInstructions, "Instructions");
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
-    const formattedDate = `${year}-${month}-${day}`;
-    const filename = `pending_volunteer_template_${formattedDate}.xlsx`;
-    XLSX.writeFile(wb, filename);
-    Swal.fire({
-        title: 'Template Downloaded!',
-        text: `Excel template saved as "${filename}"`,
-        icon: 'success',
-        showConfirmButton: true,
-        confirmButtonText: 'OK',
-        customClass: {
-            popup: 'swal2-popup-success-clean',
-            title: 'swal2-title-success-clean',
-            htmlContainer: 'swal2-text-success-clean',
-            confirmButton: 'my-success-button'
-        }
-    });
-}
+        const ws = XLSX.utils.json_to_sheet(sampleData, { header: headers });
+        const wsInstructions = XLSX.utils.json_to_sheet(instructions);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Volunteer Template");
+        XLSX.utils.book_append_sheet(wb, wsInstructions, "Instructions");
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        const formattedDate = `${year}-${month}-${day}`;
+        const filename = `pending_volunteer_template_${formattedDate}.xlsx`;
+        XLSX.writeFile(wb, filename);
+        Swal.fire({
+            title: 'Template Downloaded!',
+            text: `Excel template saved as "${filename}"`,
+            icon: 'success',
+            showConfirmButton: true,
+            confirmButtonText: 'OK',
+            customClass: {
+                popup: 'swal2-popup-success-clean',
+                title: 'swal2-title-success-clean',
+                htmlContainer: 'swal2-text-success-clean',
+                confirmButton: 'my-success-button'
+            }
+        });
+    }
 
     // Add Excel import handling
-excelFileInput.addEventListener("change", async (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
+    excelFileInput.addEventListener("change", async (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
 
-    showImportStatusModal("Reading file...");
+        showImportStatusModal("Reading file...");
 
-    const reader = new FileReader();
-    reader.onload = async function(e) {
-        try {
-            const data = new Uint8Array(e.target.result);
-            const workbook = XLSX.read(data, { type: 'array' });
-            const firstSheetName = workbook.SheetNames[0];
-            const worksheet = workbook.Sheets[firstSheetName];
-            const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
-            const headers = json[0];
-            const requiredHeaders = ["Full Name", "Email", "Mobile Number", "Age", "Region", "Province", "City", "Barangay"];
-            const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
-            if (missingHeaders.length > 0) {
-                importErrorList.innerHTML = `<li>Missing required columns: ${missingHeaders.join(', ')}</li>`;
-                updateImportStatus(0, "Import failed due to missing columns.");
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: `Missing required columns: ${missingHeaders.join(', ')}`,
-                    showConfirmButton: true,
-                    confirmButtonText: 'OK',
-                    customClass: {
-                        popup: 'swal2-popup-error-clean',
-                        title: 'swal2-title-error-clean',
-                        htmlContainer: 'swal2-text-error-clean',
-                        confirmButton: 'my-error-button'
-                    }
-                });
-                importStatusModal.style.display = 'flex';
-                return;
-            }
-
-            const rows = json.slice(1);
-            const volunteersToImport = [];
-            const potentialDuplicates = [];
-            const importErrors = [];
-            const totalRows = rows.length;
-            let processedRows = 0;
-
-            for (let i = 0; i < totalRows; i++) {
-                const row = rows[i];
-                if (!row || row.every(cell => !cell || cell.toString().trim() === '')) {
-                    importErrors.push(`Row ${i + 2}: Empty row skipped.`);
-                    continue;
-                }
-                processedRows++;
-                const progress = (processedRows / totalRows) * 100;
-                updateImportStatus(progress, `Processing row ${processedRows} of ${totalRows}...`);
-
-                const fullName = String(row[headers.indexOf("Full Name")] || '').trim();
-                if (!fullName) {
-                    importErrors.push(`Row ${i + 2}: Full Name is missing or invalid.`);
-                    continue;
-                }
-
-                const volunteer = {
-                    firstName: fullName.split(' ')[0] || 'Unknown',
-                    lastName: fullName.split(' ').slice(-1)[0] || 'Unknown',
-                    middleInitial: String(row[headers.indexOf("Middle Initial")] || '').trim(),
-                    nameExtension: String(row[headers.indexOf("Name Extension")] || '').trim(),
-                    email: String(row[headers.indexOf("Email")] || '').trim(),
-                    mobileNumber: String(row[headers.indexOf("Mobile Number")] || '').trim().replace(/\D/g, ''),
-                    age: parseInt(row[headers.indexOf("Age")] || 0),
-                    socialMediaLink: String(row[headers.indexOf("Social Media")] || '').trim(),
-                    otherSkillComments: String(row[headers.indexOf("Other Skills")] || '').trim(),
-                    isEmergencyResponse: String(row[headers.indexOf("Emergency Response")] || '').trim() === 'Yes (24/7)',
-                    availability: String(row[headers.indexOf("Date/Time Availability")] || '').trim()
-                        ? {
-                            specificDateTimeSlots: String(row[headers.indexOf("Date/Time Availability")] || '')
-                                .trim()
-                                .split(',')
-                                .map(slot => {
-                                    const [date, time] = slot.trim().split(' at ');
-                                    return { date: date || '', time: time || '' };
-                                })
-                                .filter(slot => slot.date && slot.time)
+                const headers = json[0];
+                const requiredHeaders = ["Full Name", "Email", "Mobile Number", "Age", "Region", "Province", "City", "Barangay"];
+                const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
+                if (missingHeaders.length > 0) {
+                    importErrorList.innerHTML = `<li>Missing required columns: ${missingHeaders.join(', ')}</li>`;
+                    updateImportStatus(0, "Import failed due to missing columns.");
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: `Missing required columns: ${missingHeaders.join(', ')}`,
+                        showConfirmButton: true,
+                        confirmButtonText: 'OK',
+                        customClass: {
+                            popup: 'swal2-popup-error-clean',
+                            title: 'swal2-title-error-clean',
+                            htmlContainer: 'swal2-text-error-clean',
+                            confirmButton: 'my-error-button'
                         }
-                        : null,
-                    address: {
-                        streetAddress: String(row[headers.indexOf("Street Address")] || '').trim(),
-                        region: String(row[headers.indexOf("Region")] || '').trim(),
-                        province: String(row[headers.indexOf("Province")] || '').trim(),
-                        city: String(row[headers.indexOf("City")] || '').trim(),
-                        barangay: String(row[headers.indexOf("Barangay")] || '').trim()
-                    },
-                    skills: String(row[headers.indexOf("Skills")] || '').trim().split(',').map(skill => skill.trim()).filter(skill => skill),
-                    status: String(row[headers.indexOf("Status Notes")] || 'Pending').trim(),
-                    statusNotes: String(row[headers.indexOf("Status Notes")] || '').trim(),
-                    applicationDateandTime: new Date().toISOString(),
-                    lastStatusUpdate: Date.now(),
-                    recaptchaResponse: null
-                };
-
-                // Normalize mobile number
-                if (volunteer.mobileNumber && volunteer.mobileNumber.length === 10 && volunteer.mobileNumber.startsWith('9')) {
-                    volunteer.mobileNumber = '0' + volunteer.mobileNumber;
+                    });
+                    importStatusModal.style.display = 'flex';
+                    return;
                 }
 
-                // Create mock inputs for validation
-                const mockInputs = {
-                    name: { value: fullName, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
-                    firstName: { value: volunteer.firstName, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
-                    lastName: { value: volunteer.lastName, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
-                    middleInitial: { value: volunteer.middleInitial, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
-                    nameExtension: { value: volunteer.nameExtension, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
-                    email: { value: volunteer.email, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
-                    mobileNumber: { value: volunteer.mobileNumber, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
-                    age: { value: volunteer.age.toString(), classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
-                    socialMediaLink: { value: volunteer.socialMediaLink, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
-                    otherSkillComments: { value: volunteer.otherSkillComments, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
-                    isEmergencyResponse: { value: volunteer.isEmergencyResponse ? 'Yes (24/7)' : 'No', classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
-                    specificDateTimeSlots: { value: volunteer.availability ? volunteer.availability.specificDateTimeSlots.map(slot => `${slot.date} at ${slot.time}`).join(',') : '', classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
-                    streetAddress: { value: volunteer.address.streetAddress, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
-                    region: { value: volunteer.address.region, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
-                    province: { value: volunteer.address.province, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
-                    city: { value: volunteer.address.city, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
-                    barangay: { value: volunteer.address.barangay, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
-                    skills: { value: volunteer.skills.join(','), classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
-                    status: { value: volunteer.status, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
-                    statusNotes: { value: volunteer.statusNotes, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null }
-                };
+                const rows = json.slice(1);
+                const volunteersToImport = [];
+                const potentialDuplicates = [];
+                const importErrors = [];
+                const totalRows = rows.length;
+                let processedRows = 0;
 
-                // Override showError to collect errors
-                const originalShowError = showError;
-                const rowErrors = [];
-                showError = (input, message) => {
-                    rowErrors.push(`Row ${i + 2}: ${message}`);
-                };
-
-                // Validate
-                let isValidRow = false;
-                try {
-                    isValidRow = await validateVolunteerForm(mockInputs);
-                } catch (error) {
-                    importErrors.push(`Row ${i + 2}: Validation error - ${error.message}`);
-                }
-
-                // Restore original showError
-                showError = originalShowError;
-
-                if (!isValidRow) {
-                    if (rowErrors.length > 0) {
-                        importErrors.push(...rowErrors);
+                for (let i = 0; i < totalRows; i++) {
+                    const row = rows[i];
+                    if (!row || row.every(cell => !cell || cell.toString().trim() === '')) {
+                        importErrors.push(`Row ${i + 2}: Empty row skipped.`);
+                        continue;
                     }
-                    continue;
-                }
+                    processedRows++;
+                    const progress = (processedRows / totalRows) * 100;
+                    updateImportStatus(progress, `Processing row ${processedRows} of ${totalRows}...`);
 
-                // Check for duplicates in pendingVolunteer, approvedVolunteer, and volunteerGroups/endorsedVolunteers
-                const duplicates = await checkForDuplicate(volunteer.mobileNumber, volunteer.email, fullName);
-                let isDuplicate = false;
-                const duplicateMessages = [];
-
-                // Check pendingVolunteer duplicates
-                if (duplicates.all || duplicates.email || duplicates.number || duplicates.name) {
-                    isDuplicate = true;
-                    if (duplicates.all) {
-                        duplicateMessages.push(`Row ${i + 2}: Same name, mobile number, and email already exist in pending volunteers.`);
-                    } else {
-                        if (duplicates.email) duplicateMessages.push(`Row ${i + 2}: Email already used in pending volunteers.`);
-                        if (duplicates.number) duplicateMessages.push(`Row ${i + 2}: Mobile number already used in pending volunteers.`);
-                        if (duplicates.name) duplicateMessages.push(`Row ${i + 2}: Name already used in pending volunteers.`);
+                    const fullName = String(row[headers.indexOf("Full Name")] || '').trim();
+                    if (!fullName) {
+                        importErrors.push(`Row ${i + 2}: Full Name is missing or invalid.`);
+                        continue;
                     }
-                }
 
-                // Check approvedVolunteer duplicates
-                const approvedVolunteersRef = database.ref('volunteerApplications/approvedVolunteer');
-                if (volunteer.email) {
-                    const emailSnapshot = await approvedVolunteersRef.orderByChild('email').equalTo(volunteer.email).once('value');
-                    if (emailSnapshot.exists()) {
+                    const volunteer = {
+                        firstName: fullName.split(' ')[0] || 'Unknown',
+                        lastName: fullName.split(' ').slice(-1)[0] || 'Unknown',
+                        middleInitial: String(row[headers.indexOf("Middle Initial")] || '').trim(),
+                        nameExtension: String(row[headers.indexOf("Name Extension")] || '').trim(),
+                        email: String(row[headers.indexOf("Email")] || '').trim(),
+                        mobileNumber: String(row[headers.indexOf("Mobile Number")] || '').trim().replace(/\D/g, ''),
+                        age: parseInt(row[headers.indexOf("Age")] || 0),
+                        socialMediaLink: String(row[headers.indexOf("Social Media")] || '').trim(),
+                        otherSkillComments: String(row[headers.indexOf("Other Skills")] || '').trim(),
+                        isEmergencyResponse: String(row[headers.indexOf("Emergency Response")] || '').trim() === 'Yes (24/7)',
+                        availability: String(row[headers.indexOf("Date/Time Availability")] || '').trim()
+                            ? {
+                                specificDateTimeSlots: String(row[headers.indexOf("Date/Time Availability")] || '')
+                                    .trim()
+                                    .split(',')
+                                    .map(slot => {
+                                        const [date, time] = slot.trim().split(' at ');
+                                        return { date: date || '', time: time || '' };
+                                    })
+                                    .filter(slot => slot.date && slot.time)
+                            }
+                            : null,
+                        address: {
+                            streetAddress: String(row[headers.indexOf("Street Address")] || '').trim(),
+                            region: String(row[headers.indexOf("Region")] || '').trim(),
+                            province: String(row[headers.indexOf("Province")] || '').trim(),
+                            city: String(row[headers.indexOf("City")] || '').trim(),
+                            barangay: String(row[headers.indexOf("Barangay")] || '').trim()
+                        },
+                        skills: String(row[headers.indexOf("Skills")] || '').trim().split(',').map(skill => skill.trim()).filter(skill => skill),
+                        status: String(row[headers.indexOf("Status Notes")] || 'Pending').trim(),
+                        statusNotes: String(row[headers.indexOf("Status Notes")] || '').trim(),
+                        applicationDateandTime: new Date().toISOString(),
+                        lastStatusUpdate: Date.now(),
+                        recaptchaResponse: null
+                    };
+
+                    // Normalize mobile number
+                    if (volunteer.mobileNumber && volunteer.mobileNumber.length === 10 && volunteer.mobileNumber.startsWith('9')) {
+                        volunteer.mobileNumber = '0' + volunteer.mobileNumber;
+                    }
+
+                    // Create mock inputs for validation
+                    const mockInputs = {
+                        name: { value: fullName, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                        firstName: { value: volunteer.firstName, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                        lastName: { value: volunteer.lastName, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                        middleInitial: { value: volunteer.middleInitial, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                        nameExtension: { value: volunteer.nameExtension, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                        email: { value: volunteer.email, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                        mobileNumber: { value: volunteer.mobileNumber, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                        age: { value: volunteer.age.toString(), classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                        socialMediaLink: { value: volunteer.socialMediaLink, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                        otherSkillComments: { value: volunteer.otherSkillComments, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                        isEmergencyResponse: { value: volunteer.isEmergencyResponse ? 'Yes (24/7)' : 'No', classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                        specificDateTimeSlots: { value: volunteer.availability ? volunteer.availability.specificDateTimeSlots.map(slot => `${slot.date} at ${slot.time}`).join(',') : '', classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                        streetAddress: { value: volunteer.address.streetAddress, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                        region: { value: volunteer.address.region, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                        province: { value: volunteer.address.province, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                        city: { value: volunteer.address.city, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                        barangay: { value: volunteer.address.barangay, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                        skills: { value: volunteer.skills.join(','), classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                        status: { value: volunteer.status, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                        statusNotes: { value: volunteer.statusNotes, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null }
+                    };
+
+                    // Override showError to collect errors
+                    const originalShowError = showError;
+                    const rowErrors = [];
+                    showError = (input, message) => {
+                        rowErrors.push(`Row ${i + 2}: ${message}`);
+                    };
+
+                    // Validate
+                    let isValidRow = false;
+                    try {
+                        isValidRow = await validateVolunteerForm(mockInputs);
+                    } catch (error) {
+                        importErrors.push(`Row ${i + 2}: Validation error - ${error.message}`);
+                    }
+
+                    // Restore original showError
+                    showError = originalShowError;
+
+                    if (!isValidRow) {
+                        if (rowErrors.length > 0) {
+                            importErrors.push(...rowErrors);
+                        }
+                        continue;
+                    }
+
+                    // Check for duplicates in pendingVolunteer, approvedVolunteer, and volunteerGroups/endorsedVolunteers
+                    const duplicates = await checkForDuplicate(volunteer.mobileNumber, volunteer.email, fullName);
+                    let isDuplicate = false;
+                    const duplicateMessages = [];
+
+                    // Check pendingVolunteer duplicates
+                    if (duplicates.all || duplicates.email || duplicates.number || duplicates.name) {
                         isDuplicate = true;
-                        duplicateMessages.push(`Row ${i + 2}: Email already used in approved volunteers.`);
+                        if (duplicates.all) {
+                            duplicateMessages.push(`Row ${i + 2}: Same name, mobile number, and email already exist in pending volunteers.`);
+                        } else {
+                            if (duplicates.email) duplicateMessages.push(`Row ${i + 2}: Email already used in pending volunteers.`);
+                            if (duplicates.number) duplicateMessages.push(`Row ${i + 2}: Mobile number already used in pending volunteers.`);
+                            if (duplicates.name) duplicateMessages.push(`Row ${i + 2}: Name already used in pending volunteers.`);
+                        }
                     }
-                }
-                if (volunteer.mobileNumber) {
-                    const mobileSnapshot = await approvedVolunteersRef.orderByChild('mobileNumber').equalTo(volunteer.mobileNumber).once('value');
-                    if (mobileSnapshot.exists()) {
-                        isDuplicate = true;
-                        duplicateMessages.push(`Row ${i + 2}: Mobile number already used in approved volunteers.`);
+
+                    // Check approvedVolunteer duplicates
+                    const approvedVolunteersRef = database.ref('volunteerApplications/approvedVolunteer');
+                    if (volunteer.email) {
+                        const emailSnapshot = await approvedVolunteersRef.orderByChild('email').equalTo(volunteer.email).once('value');
+                        if (emailSnapshot.exists()) {
+                            isDuplicate = true;
+                            duplicateMessages.push(`Row ${i + 2}: Email already used in approved volunteers.`);
+                        }
                     }
-                }
-                if (fullName) {
-                    const nameSnapshot = await approvedVolunteersRef.once('value');
-                    let nameExists = false;
-                    if (nameSnapshot.exists()) {
-                        nameSnapshot.forEach(childSnapshot => {
-                            const approvedVolunteer = childSnapshot.val();
-                            const approvedFullName = `${approvedVolunteer.firstName || ''} ${approvedVolunteer.lastName || ''}`.trim().toLowerCase();
-                            if (approvedFullName === fullName.toLowerCase()) {
-                                nameExists = true;
-                                return true;
+                    if (volunteer.mobileNumber) {
+                        const mobileSnapshot = await approvedVolunteersRef.orderByChild('mobileNumber').equalTo(volunteer.mobileNumber).once('value');
+                        if (mobileSnapshot.exists()) {
+                            isDuplicate = true;
+                            duplicateMessages.push(`Row ${i + 2}: Mobile number already used in approved volunteers.`);
+                        }
+                    }
+                    if (fullName) {
+                        const nameSnapshot = await approvedVolunteersRef.once('value');
+                        let nameExists = false;
+                        if (nameSnapshot.exists()) {
+                            nameSnapshot.forEach(childSnapshot => {
+                                const approvedVolunteer = childSnapshot.val();
+                                const approvedFullName = `${approvedVolunteer.firstName || ''} ${approvedVolunteer.lastName || ''}`.trim().toLowerCase();
+                                if (approvedFullName === fullName.toLowerCase()) {
+                                    nameExists = true;
+                                    return true;
+                                }
+                            });
+                        }
+                        if (nameExists) {
+                            isDuplicate = true;
+                            duplicateMessages.push(`Row ${i + 2}: Name already used in approved volunteers.`);
+                        }
+                    }
+
+                    // Check volunteerGroups/endorsedVolunteers duplicates
+                    const abvnGroupsRef = database.ref('volunteerGroups');
+                    const abvnSnapshot = await abvnGroupsRef.once('value');
+                    if (abvnSnapshot.exists()) {
+                        abvnSnapshot.forEach(groupSnapshot => {
+                            const endorsedVolunteers = groupSnapshot.child('endorsedVolunteers').val();
+                            if (endorsedVolunteers) {
+                                for (const volKey in endorsedVolunteers) {
+                                    const endorsedVolunteer = endorsedVolunteers[volKey];
+                                    const groupName = groupSnapshot.val().organization || groupSnapshot.key;
+                                    if (volunteer.email && endorsedVolunteer.email && volunteer.email.toLowerCase() === endorsedVolunteer.email.toLowerCase()) {
+                                        isDuplicate = true;
+                                        duplicateMessages.push(`Row ${i + 2}: Email already used in ABVN group: ${groupName}.`);
+                                    }
+                                    if (volunteer.mobileNumber && endorsedVolunteer.mobileNumber && volunteer.mobileNumber === endorsedVolunteer.mobileNumber) {
+                                        isDuplicate = true;
+                                        duplicateMessages.push(`Row ${i + 2}: Mobile number already used in ABVN group: ${groupName}.`);
+                                    }
+                                    const endorsedFullName = `${endorsedVolunteer.firstName || ''} ${endorsedVolunteer.lastName || ''}`.trim().toLowerCase();
+                                    if (fullName.toLowerCase() === endorsedFullName) {
+                                        isDuplicate = true;
+                                        duplicateMessages.push(`Row ${i + 2}: Name already used in ABVN group: ${groupName}.`);
+                                    }
+                                }
                             }
                         });
                     }
-                    if (nameExists) {
-                        isDuplicate = true;
-                        duplicateMessages.push(`Row ${i + 2}: Name already used in approved volunteers.`);
+
+                    if (isDuplicate) {
+                        potentialDuplicates.push({
+                            rowIndex: i + 2,
+                            volunteer,
+                            duplicateMessages
+                        });
+                    } else {
+                        volunteersToImport.push(volunteer);
                     }
+
+                    await new Promise(resolve => setTimeout(resolve, 10));
                 }
 
-                // Check volunteerGroups/endorsedVolunteers duplicates
-                const abvnGroupsRef = database.ref('volunteerGroups');
-                const abvnSnapshot = await abvnGroupsRef.once('value');
-                if (abvnSnapshot.exists()) {
-                    abvnSnapshot.forEach(groupSnapshot => {
-                        const endorsedVolunteers = groupSnapshot.child('endorsedVolunteers').val();
-                        if (endorsedVolunteers) {
-                            for (const volKey in endorsedVolunteers) {
-                                const endorsedVolunteer = endorsedVolunteers[volKey];
-                                const groupName = groupSnapshot.val().organization || groupSnapshot.key;
-                                if (volunteer.email && endorsedVolunteer.email && volunteer.email.toLowerCase() === endorsedVolunteer.email.toLowerCase()) {
-                                    isDuplicate = true;
-                                    duplicateMessages.push(`Row ${i + 2}: Email already used in ABVN group: ${groupName}.`);
-                                }
-                                if (volunteer.mobileNumber && endorsedVolunteer.mobileNumber && volunteer.mobileNumber === endorsedVolunteer.mobileNumber) {
-                                    isDuplicate = true;
-                                    duplicateMessages.push(`Row ${i + 2}: Mobile number already used in ABVN group: ${groupName}.`);
-                                }
-                                const endorsedFullName = `${endorsedVolunteer.firstName || ''} ${endorsedVolunteer.lastName || ''}`.trim().toLowerCase();
-                                if (fullName.toLowerCase() === endorsedFullName) {
-                                    isDuplicate = true;
-                                    duplicateMessages.push(`Row ${i + 2}: Name already used in ABVN group: ${groupName}.`);
-                                }
-                            }
+                // Handle potential duplicates with confirmation
+                if (potentialDuplicates.length > 0) {
+                    const duplicateMessagesHtml = potentialDuplicates.map(d => d.duplicateMessages.join('<br>')).join('<br>');
+                    const result = await Swal.fire({
+                        title: 'Potential Duplicate Volunteers Detected',
+                        html: `${duplicateMessagesHtml}<br><br>Do you want to proceed with importing these records?`,
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Proceed Anyway',
+                        cancelButtonText: 'Skip Duplicates',
+                        reverseButtons: true,
+                        customClass: {
+                            popup: 'custom-swal-popup-large',
+                            title: 'custom-swal-title',
+                            htmlContainer: 'custom-swal-content',
+                            confirmButton: 'custom-confirm-btn',
+                            cancelButton: 'custom-cancel-btn'
                         }
                     });
+
+                    if (result.isConfirmed) {
+                        potentialDuplicates.forEach(d => volunteersToImport.push(d.volunteer));
+                    } else {
+                        potentialDuplicates.forEach(d => {
+                            importErrors.push(...d.duplicateMessages);
+                        });
+                    }
                 }
 
-                if (isDuplicate) {
-                    potentialDuplicates.push({
-                        rowIndex: i + 2,
-                        volunteer,
-                        duplicateMessages
+                if (volunteersToImport.length > 0) {
+                    updateImportStatus(100, `Importing ${volunteersToImport.length} records to Firebase...`);
+                    const updates = {};
+                    volunteersToImport.forEach(volunteer => {
+                        const newKey = database.ref().child('volunteerApplications/pendingVolunteer').push().key;
+                        updates[`volunteerApplications/pendingVolunteer/${newKey}`] = volunteer;
+                    });
+
+                    await database.ref().update(updates);
+                    updateImportStatus(100, `Import complete! ${volunteersToImport.length} records added.`);
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success!',
+                        text: `${volunteersToImport.length} volunteer records imported successfully.`,
+                        showConfirmButton: true,
+                        confirmButtonText: 'OK',
+                        customClass: {
+                            popup: 'swal2-popup-success-clean',
+                            title: 'swal2-title-success-clean',
+                            htmlContainer: 'swal2-text-success-clean',
+                            confirmButton: 'my-success-button'
+                        }
+                    }).then(() => {
+                        if (importErrors.length === 0) {
+                            closeImportStatusModal();
+                        }
                     });
                 } else {
-                    volunteersToImport.push(volunteer);
-                }
-
-                await new Promise(resolve => setTimeout(resolve, 10));
-            }
-
-            // Handle potential duplicates with confirmation
-            if (potentialDuplicates.length > 0) {
-                const duplicateMessagesHtml = potentialDuplicates.map(d => d.duplicateMessages.join('<br>')).join('<br>');
-                const result = await Swal.fire({
-                    title: 'Potential Duplicate Volunteers Detected',
-                    html: `${duplicateMessagesHtml}<br><br>Do you want to proceed with importing these records?`,
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonText: 'Proceed Anyway',
-                    cancelButtonText: 'Skip Duplicates',
-                    reverseButtons: true,
-                    customClass: {
-                        popup: 'custom-swal-popup-large',
-                        title: 'custom-swal-title',
-                        htmlContainer: 'custom-swal-content',
-                        confirmButton: 'custom-confirm-btn',
-                        cancelButton: 'custom-cancel-btn'
-                    }
-                });
-
-                if (result.isConfirmed) {
-                    potentialDuplicates.forEach(d => volunteersToImport.push(d.volunteer));
-                } else {
-                    potentialDuplicates.forEach(d => {
-                        importErrors.push(...d.duplicateMessages);
+                    updateImportStatus(100, "Import failed. No valid records found.");
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'No valid records found in the Excel file. Please check the data format.',
+                        showConfirmButton: true,
+                        confirmButtonText: 'OK',
+                        customClass: {
+                            popup: 'swal2-popup-error-clean',
+                            title: 'swal2-title-error-clean',
+                            htmlContainer: 'swal2-text-error-clean',
+                            confirmButton: 'my-error-button'
+                        }
                     });
+                    importStatusModal.style.display = 'flex';
                 }
-            }
 
-            if (volunteersToImport.length > 0) {
-                updateImportStatus(100, `Importing ${volunteersToImport.length} records to Firebase...`);
-                const updates = {};
-                volunteersToImport.forEach(volunteer => {
-                    const newKey = database.ref().child('volunteerApplications/pendingVolunteer').push().key;
-                    updates[`volunteerApplications/pendingVolunteer/${newKey}`] = volunteer;
-                });
-
-                await database.ref().update(updates);
-                updateImportStatus(100, `Import complete! ${volunteersToImport.length} records added.`);
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Success!',
-                    text: `${volunteersToImport.length} volunteer records imported successfully.`,
-                    showConfirmButton: true,
-                    confirmButtonText: 'OK',
-                    customClass: {
-                        popup: 'swal2-popup-success-clean',
-                        title: 'swal2-title-success-clean',
-                        htmlContainer: 'swal2-text-success-clean',
-                        confirmButton: 'my-success-button'
-                    }
-                }).then(() => {
-                    if (importErrors.length === 0) {
-                        closeImportStatusModal();
-                    }
-                });
-            } else {
-                updateImportStatus(100, "Import failed. No valid records found.");
+                if (importErrors.length > 0) {
+                    importErrorList.innerHTML = '<li>Errors:</li>' + importErrors.map(err => `<li>${err}</li>`).join('');
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Warning',
+                        text: 'Some records were not imported due to errors. Check the status modal for details.',
+                        showConfirmButton: true,
+                        confirmButtonText: 'OK',
+                        customClass: {
+                            popup: 'swal2-popup-warning-clean',
+                            title: 'swal2-title-warning-clean',
+                            htmlContainer: 'swal2-text-warning-clean',
+                            confirmButton: 'my-warning-button'
+                        }
+                    });
+                    importStatusModal.style.display = 'flex';
+                }
+            } catch (error) {
+                importErrorList.innerHTML = `<li>Error: ${error.message}</li>`;
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
-                    text: 'No valid records found in the Excel file. Please check the data format.',
+                    text: 'An error occurred while importing the Excel file: ' + error.message,
                     showConfirmButton: true,
                     confirmButtonText: 'OK',
                     customClass: {
@@ -913,44 +906,9 @@ excelFileInput.addEventListener("change", async (event) => {
                 });
                 importStatusModal.style.display = 'flex';
             }
-
-            if (importErrors.length > 0) {
-                importErrorList.innerHTML = '<li>Errors:</li>' + importErrors.map(err => `<li>${err}</li>`).join('');
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Warning',
-                    text: 'Some records were not imported due to errors. Check the status modal for details.',
-                    showConfirmButton: true,
-                    confirmButtonText: 'OK',
-                    customClass: {
-                        popup: 'swal2-popup-warning-clean',
-                        title: 'swal2-title-warning-clean',
-                        htmlContainer: 'swal2-text-warning-clean',
-                        confirmButton: 'my-warning-button'
-                    }
-                });
-                importStatusModal.style.display = 'flex';
-            }
-        } catch (error) {
-            importErrorList.innerHTML = `<li>Error: ${error.message}</li>`;
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'An error occurred while importing the Excel file: ' + error.message,
-                showConfirmButton: true,
-                confirmButtonText: 'OK',
-                customClass: {
-                    popup: 'swal2-popup-error-clean',
-                    title: 'swal2-title-error-clean',
-                    htmlContainer: 'swal2-text-error-clean',
-                    confirmButton: 'my-error-button'
-                }
-            });
-            importStatusModal.style.display = 'flex';
-        }
-    };
-    reader.readAsArrayBuffer(file);
-});
+        };
+        reader.readAsArrayBuffer(file);
+    });
 
     // Add event listener for download template button
     document.getElementById("downloadTemplateBtn").addEventListener("click", downloadExcelTemplate);
@@ -998,9 +956,10 @@ excelFileInput.addEventListener("change", async (event) => {
     function showPreviewModal(volunteer) {
         if (!restrictAction('view')) return;
         const fullName = getFullName(volunteer);
-        let specificSlotsHtml = '';
 
-        if (volunteer.availability && volunteer.availability.specificDateTimeSlots && volunteer.availability.specificDateTimeSlots.length > 0) {
+        // Availability
+        let specificSlotsHtml = '';
+        if (volunteer.availability?.specificDateTimeSlots?.length > 0) {
             specificSlotsHtml = `<h5 style="margin-bottom: 10px; color: #14AEBB;">Date/Time Availability:</h5><div style="margin-left: 15px;"><ol style="padding-left: 20px; margin-top: 5px;">`;
             volunteer.availability.specificDateTimeSlots.forEach(slot => {
                 if (slot.date && slot.time) {
@@ -1012,11 +971,12 @@ excelFileInput.addEventListener("change", async (event) => {
             specificSlotsHtml = `<p><strong>Date/Time Availability:</strong> N/A</p>`;
         }
 
+        // Skills
         let skillsHtml = '';
-        if (volunteer.skills && Array.isArray(volunteer.skills) && volunteer.skills.length > 0) {
+        if (volunteer.skills?.length > 0) {
             skillsHtml = `<h5 style="margin-bottom: 10px; color: #14AEBB;">Selected Skills:</h5><div style="margin-left: 15px;"><ol style="padding-left: 20px; margin-top: 5px;">`;
             volunteer.skills.forEach(skill => {
-                if (skill === 'Other' && volunteer.otherSkillComments && volunteer.otherSkillComments.trim()) {
+                if (skill === 'Other' && volunteer.otherSkillComments?.trim()) {
                     skillsHtml += `<li>${skill} (${volunteer.otherSkillComments})</li>`;
                 } else {
                     skillsHtml += `<li>${skill}</li>`;
@@ -1025,6 +985,25 @@ excelFileInput.addEventListener("change", async (event) => {
             skillsHtml += `</ol></div>`;
         } else {
             skillsHtml = `<p><strong>Skills:</strong> None selected</p>`;
+        }
+
+        // Rejection info
+        let rejectionHtml = '';
+        if (volunteer.rejected) {
+            const rejectedAt = volunteer.rejected.at ? formatDate(volunteer.rejected.at) : 'N/A';
+            const abvnName = volunteer.rejected.byABVN || 'Unknown ABVN';
+            const reason = volunteer.rejected.reason || 'No reason provided';
+            
+            rejectionHtml = `
+                <hr>
+                <h2>Rejection Information:</h2>
+                <div style="margin-left: 15px;">
+                    <p><strong>Rejected By ABVN:</strong> ${volunteer.rejectionDetails?.rejectedByABVN || '-'}</p>
+                    <p><strong>Rejection Date/Time:</strong> ${volunteer.rejectionDetails?.rejectedAt || '-'}</p>
+                    <p><strong>Task Name:</strong> ${volunteer.endorsedDetails?.taskName || '-'}</p>
+                    <p><strong>Reason:</strong> ${volunteer.rejectionDetails?.reason || '-'}</p>
+                </div>
+            `;
         }
 
         modalContent.innerHTML = `
@@ -1036,15 +1015,13 @@ excelFileInput.addEventListener("change", async (event) => {
                 <p><strong>Mobile Number:</strong> ${volunteer.mobileNumber || 'N/A'}</p>
                 <p><strong>Age:</strong> ${volunteer.age || 'N/A'}</p>
                 <p><strong>Social Media:</strong> ${volunteer.socialMediaLink ? `<a href="${volunteer.socialMediaLink}" target="_blank" rel="noopener noreferrer">${volunteer.socialMediaLink}</a>` : 'N/A'}</p>
-                <p><strong>Additional Info:</strong> ${volunteer.otherSkillComments || 'N/A'}</p>
+                <p><strong>Additional Info:</strong> ${volunteer.otherSkillComments || '-'}</p>
                 <hr>
                 <h2>Address Information:</h2>
                 <div style="margin-left: 15px;">
-                    <p><strong>Region:</strong> ${volunteer.address?.region || 'N/A'}</p>
-                    <p><strong>Province:</strong> ${volunteer.address?.province || 'N/A'}</p>
-                    <p><strong>City:</strong> ${volunteer.address?.city || 'N/A'}</p>
-                    <p><strong>Barangay:</strong> ${volunteer.address?.barangay || 'N/A'}</p>
-                    <p><strong>Street Address:</strong> ${volunteer.address?.streetAddress || 'N/A'}</p>
+                    <p><strong>Address:</strong> ${volunteer.address?.formattedAddress || 'N/A'}</p>
+                    <p><strong>Latitude:</strong> ${volunteer.address?.latitude || 'N/A'}</p>
+                    <p><strong>Longitude:</strong> ${volunteer.address?.longitude || 'N/A'}</p>
                 </div>
                 <hr>
                 <h2>Availability:</h2>
@@ -1053,6 +1030,7 @@ excelFileInput.addEventListener("change", async (event) => {
                 <hr>
                 <h2>Skills:</h2>
                 ${skillsHtml}
+                ${rejectionHtml}
             </div>
         `;
         previewModal.style.display = 'flex';
@@ -1097,12 +1075,14 @@ excelFileInput.addEventListener("change", async (event) => {
         resetCurrentVolunteer();
     }
 
+    // Function to show the endorse ABVN modal
     function showEndorseABVNModal() {
         if (!restrictAction('endorseToABVN')) return;
         endorseABVNModal.style.display = 'flex';
         fetchABVNs();
     }
 
+    // Function to hide the endorse ABVN modal
     function hideEndorseABVNModal() {
         endorseABVNModal.style.display = 'none';
         abvnListContainer.innerHTML = '<p>Loading ABVN locations...</p>';
@@ -1159,41 +1139,113 @@ excelFileInput.addEventListener("change", async (event) => {
     // Cache for ABVN data
     let abvnCache = null;
 
-    function calculateLocationScore(volunteerLocation, groupAddress) {
-        if (!volunteerLocation || !groupAddress) return 0;
-        const scores = {
-            barangay: 50,
-            city: 30,
-            province: 20,
-            region: 10
+    function calculateDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371; // Earth's radius in km
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a =
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * Math.PI / 180) *
+            Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c; // distance in km
+    }
+
+    // Function to calculate location score for matching volunteers to ABVN groups
+    function calculateMatchScore(volunteer, request) {
+        let locationScore = 0;
+        let skillsScore = 0;
+        let availabilityScore = 0;
+        let urgencyScore = 0;
+
+        // --- LOCATION scoring ---
+        if (volunteer.address?.latitude && volunteer.address?.longitude &&
+            request.address?.latitude && request.address?.longitude) {
+
+            const distance = calculateDistance(
+                volunteer.address.latitude, volunteer.address.longitude,
+                request.address.latitude, request.address.longitude
+            );
+
+            if (distance <= 5) locationScore = 50;
+            else if (distance <= 20) locationScore = 40;
+            else if (distance <= 50) locationScore = 30;
+            else if (distance <= 100) locationScore = 20;
+            else locationScore = 10;
+        }
+
+        // --- SKILLS scoring ---
+        const neededSkills = request.skills || [];
+        (volunteer.skills || []).forEach(skill => {
+            if (neededSkills.map(s => s.toLowerCase()).includes(skill.toLowerCase())) {
+                skillsScore += 20;
+            }
+        });
+
+        if (volunteer.otherSkillComments && request.otherSkillComments) {
+            if (request.otherSkillComments.toLowerCase().includes(volunteer.otherSkillComments.toLowerCase())) {
+                skillsScore += 10;
+            }
+        }
+
+        // --- AVAILABILITY scoring ---
+        if (volunteer.availability) {
+            const start = new Date(request.taskStartDate);
+            const end = new Date(request.taskEndDate);
+            let availableAllDays = true;
+
+            for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                const dateStr = d.toISOString().split("T")[0];
+                const availableToday = volunteer.availability.some(slot =>
+                    slot.date === dateStr &&
+                    slot.startTime <= request.taskTimeStart &&
+                    slot.endTime >= request.taskTimeEnd
+                );
+                if (!availableToday) {
+                    availableAllDays = false;
+                    break;
+                }
+            }
+            if (availableAllDays) availabilityScore = 20;
+        }
+
+        // --- URGENCY scoring ---
+        const today = new Date();
+        const taskStartDate = new Date(request.taskStartDate);
+        const daysDiff = (taskStartDate - today) / (1000 * 60 * 60 * 24);
+        if (daysDiff <= 2) urgencyScore = 20;
+        else if (daysDiff <= 7) urgencyScore = 10;
+
+        return {
+            total: locationScore + skillsScore + availabilityScore + urgencyScore,
+            location: locationScore,
+            skills: skillsScore,
+            availability: availabilityScore,
+            urgency: urgencyScore
         };
-        let score = 0;
-        if (volunteerLocation.barangay?.toLowerCase() && groupAddress.barangay?.toLowerCase() &&
-            volunteerLocation.barangay.toLowerCase() === groupAddress.barangay.toLowerCase()) {
-            score += scores.barangay;
-        }
-        if (volunteerLocation.city?.toLowerCase() && groupAddress.city?.toLowerCase() &&
-            volunteerLocation.city.toLowerCase() === groupAddress.city.toLowerCase()) {
-            score += scores.city;
-        }
-        if (volunteerLocation.province?.toLowerCase() && groupAddress.province?.toLowerCase() &&
-            volunteerLocation.province.toLowerCase() === groupAddress.province.toLowerCase()) {
-            score += scores.province;
-        }
-        if (volunteerLocation.region?.toLowerCase() && groupAddress.region?.toLowerCase() &&
-            volunteerLocation.region.toLowerCase() === groupAddress.region.toLowerCase()) {
-            score += scores.region;
-        }
-        return score;
     }
 
     function populateFilterDropdowns(groups) {
         const regionFilter = document.getElementById('regionFilter');
         const provinceFilter = document.getElementById('provinceFilter');
         const cityFilter = document.getElementById('cityFilter');
-        const regions = [...new Set(groups.map(g => g.address?.region).filter(Boolean))].sort();
-        const provinces = [...new Set(groups.map(g => g.address?.province).filter(Boolean))].sort();
-        const cities = [...new Set(groups.map(g => g.address?.city).filter(Boolean))].sort();
+        const skillFilter = document.getElementById('skillFilter'); // new dropdown in modal
+
+        const regions = [...new Set(groups.map(g => g.address?.region).filter(Boolean))];
+        const provinces = [...new Set(groups.map(g => g.address?.province).filter(Boolean))];
+        const cities = [...new Set(groups.map(g => g.address?.city).filter(Boolean))];
+
+        // Collect all unique skills from ABVN needs
+        const skills = [...new Set(
+            groups.flatMap(g =>
+                g.volunteerNeeds
+                    ? Object.values(g.volunteerNeeds).flatMap(n => n.skills || [])
+                    : []
+            )
+        )];
+
         regionFilter.innerHTML = '<option value="">All Regions</option>' +
             regions.map(region => `<option value="${region}">${region}</option>`).join('');
         provinceFilter.innerHTML = '<option value="">All Provinces</option>' +
@@ -1202,117 +1254,218 @@ excelFileInput.addEventListener("change", async (event) => {
             cities.map(city => `<option value="${city}">${city}</option>`).join('');
     }
 
-    function renderABVNOptions(groups, volunteerLocation) {
-        const abvnListContainer = document.getElementById('abvnListContainer');
-        const filterResultsInfo = document.getElementById('filterResultsInfo');
-        const endorseABVNSubmitBtn = document.getElementById('endorseABVNSubmitBtn');
-        abvnListContainer.innerHTML = '';
-        if (groups.length === 0) {
-            abvnListContainer.innerHTML = '<p>No ABVN groups match the filters.</p>';
-            filterResultsInfo.textContent = 'Showing 0 ABVN groups';
-            endorseABVNSubmitBtn.disabled = true;
-            return;
+    function renderABVNOptions(groups, volunteer) {
+        const abvnListContainer = document.getElementById("abvnListContainer");
+        abvnListContainer.innerHTML = "";
+
+        // --- Volunteer Info Summary ---
+        if (volunteer) {
+            const volunteerSummary = document.createElement("div");
+            volunteerSummary.classList.add("volunteer-summary");
+            volunteerSummary.innerHTML = `
+                <h4>Volunteer Details</h4>
+                <p><strong>Name:</strong> ${getFullName(volunteer)}</p>
+                <p><strong>Location:</strong> ${volunteer.address?.formattedAddress || "N/A"}</p>
+                <p><strong>Date and Time Availability:</strong><br>
+                ${
+                volunteer.availability?.specificDateTimeSlots
+                    ? Object.values(volunteer.availability.specificDateTimeSlots)
+                        .map(slot => `${slot.date || "N/A"}: ${slot.time || "N/A"}`)
+                        .join('<br>')
+                    : "N/A"
+                }
+                </p>
+                <div class="skills-match">
+                    ${(volunteer.skills || []).map(s => `<span>${s}</span>`).join("") || "N/A"}
+                </div>
+            `;
+            abvnListContainer.appendChild(volunteerSummary);
         }
-        groups.forEach((group, index) => {
-            const radioDiv = document.createElement('div');
-            radioDiv.classList.add('abvn-option');
-            const radioInput = document.createElement('input');
-            radioInput.type = 'radio';
-            radioInput.name = 'selectedABVN';
-            radioInput.value = group.key;
-            radioInput.id = `group-${group.key}`;
-            radioInput.dataset.name = group.organization || 'Unknown Organization';
-            const locationParts = [group.address?.barangay, group.address?.city, group.address?.province].filter(Boolean);
-            radioInput.dataset.location = locationParts.join(', ');
-            if (groups.length === 1 && group.score >= 50) {
-                radioInput.checked = true;
-                endorseABVNSubmitBtn.disabled = false;
+
+        // --- Calculate distance for each group ---
+        groups.forEach(group => {
+            if (volunteer.address?.latitude && group.address?.latitude) {
+                group.distance = calculateDistance(
+                    volunteer.address.latitude, volunteer.address.longitude,
+                    group.address.latitude, group.address.longitude
+                );
+            } else {
+                group.distance = Infinity;
             }
-            const label = document.createElement('label');
-            label.htmlFor = `group-${group.key}`;
-            label.innerHTML = `<strong>${group.organization || 'N/A'}</strong> <br> (${radioInput.dataset.location || 'N/A'}${group.score > 0 ? ` - Match Score: ${group.score}%` : ''})`;
-            radioDiv.appendChild(radioInput);
-            radioDiv.appendChild(label);
-            abvnListContainer.appendChild(radioDiv);
         });
-        filterResultsInfo.textContent = `Showing ${groups.length} ABVN group${groups.length !== 1 ? 's' : ''}`;
-        endorseABVNSubmitBtn.disabled = groups.length === 0 || !document.querySelector('input[name="selectedABVN"]:checked');
+
+        // --- ABVN Group Cards ---
+        groups.forEach(group => {
+            const abvnCard = document.createElement("div");
+            abvnCard.classList.add("abvn-card");
+
+            const locationDisplay = group.address?.formattedAddress || "N/A";
+            let distanceDisplay = "";
+            if (group.distance !== Infinity) {
+                let distanceLabel = `<span style="color:red">Far</span>`;
+                if (group.distance <= 10) distanceLabel = `<span style="color:green">Near</span>`;
+                else if (group.distance <= 30) distanceLabel = `<span style="color:orange">Medium</span>`;
+                distanceDisplay = `<div class="info-row"><i class="fas fa-ruler"></i> ${group.distance.toFixed(1)} km (${distanceLabel})</div>`;
+            }
+
+            abvnCard.innerHTML = `
+                <h4>${group.organization || "N/A"}</h4>
+                <div class="info-row"><i class="fas fa-map-marker-alt"></i> ${locationDisplay}</div>
+                ${distanceDisplay}
+                <div class="info-row"><strong>Match Score:</strong> ${group.score} 
+                    (Loc: ${group.scoreBreakdown.location}, Skills: ${group.scoreBreakdown.skills}, Avail: ${group.scoreBreakdown.availability}, Urg: ${group.scoreBreakdown.urgency})
+                </div>
+            `;
+
+            const requests = group.volunteerNeeds ? Object.entries(group.volunteerNeeds) : [];
+            requests
+            .filter(([reqId, reqData]) => {
+                const remaining = Math.max((reqData.volunteersNeeded || 0) - (reqData.assigned || 0), 0);
+                return remaining > 0; 
+            })
+            .forEach(([reqId, reqData]) => {
+                const matchedSkills = (volunteer.skills || []).filter(skill =>
+                (reqData.skills || []).map(s => s.toLowerCase()).includes(skill.toLowerCase())
+                );
+                const remaining = Math.max((reqData.volunteersNeeded || 0) - (reqData.assigned || 0), 0);
+                const missingSkills = (reqData.skills || []).filter(skill =>
+                !(volunteer.skills || []).map(s => s.toLowerCase()).includes(skill.toLowerCase())
+                );
+                const isUrgent = remaining <= 2 && remaining > 0;
+
+                const requestDiv = document.createElement("div");
+                requestDiv.classList.add("abvn-request-card");
+                requestDiv.innerHTML = `
+                <div class="request-header">
+                    <input type="radio" name="selectedABVN" value="${group.key}" data-request-id="${reqId}" id="group-${group.key}-req-${reqId}">
+                    <label for="group-${group.key}-req-${reqId}">
+                        <strong>Task:</strong> ${reqData.taskName || "N/A"} 
+                        ${isUrgent ? '<span class="urgent-task">URGENT</span>' : ''}
+                    </label>
+                    <span class="remaining-slots ${isUrgent ? 'urgent' : ''}">
+                        ${remaining} slot(s) remaining
+                    </span>
+                </div>
+                <div class="request-details">
+                    <p><strong>Needed Skills:</strong> ${reqData.skills?.join(', ') || "N/A"}</p>
+                    <p><strong>Matched Skills:</strong> ${matchedSkills.length ? matchedSkills.join(', ') : "None"}</p>
+                    <p><strong>Skill Gaps:</strong> ${missingSkills.length ? missingSkills.map(s => `<span class="missing-skill">${s}</span>`).join(', ') : "None"}</p>
+                    <p><strong>Submitted By ABVN:</strong> ${reqData.submissionDateTime ? new Date(reqData.submissionDateTime).toLocaleString() : "N/A"}</p>
+                </div>
+                `;
+
+                abvnCard.appendChild(requestDiv);
+            });
+
+
+            abvnListContainer.appendChild(abvnCard);
+        });
+
+        document.getElementById("filterResultsInfo").textContent = `Showing ${groups.length} ABVN group(s)`;
+        abvnListContainer.addEventListener('change', (event) => {
+            if (event.target.name === 'selectedABVN') {
+                document.getElementById('endorseABVNSubmitBtn').disabled = false;
+            }
+        });
     }
 
     async function fetchABVNs() {
         const abvnListContainer = document.getElementById('abvnListContainer');
         const endorseABVNSubmitBtn = document.getElementById('endorseABVNSubmitBtn');
         const filterResultsInfo = document.getElementById('filterResultsInfo');
+
         abvnListContainer.innerHTML = '<div class="spinner">Loading...</div>';
         endorseABVNSubmitBtn.disabled = true;
+
         try {
+            // --- Fetch ABVN data once ---
             if (!abvnCache) {
                 const snapshot = await database.ref('volunteerGroups').once('value');
                 abvnCache = [];
                 if (snapshot.exists()) {
-                    snapshot.forEach(childSnapshot => {
-                        abvnCache.push({ key: childSnapshot.key, ...childSnapshot.val() });
+                    snapshot.forEach(childSnap => {
+                        abvnCache.push({ key: childSnap.key, ...childSnap.val() });
                     });
                 }
             }
-            if (abvnCache.length === 0) {
+
+            if (!abvnCache.length) {
                 abvnListContainer.innerHTML = '<p>No volunteer groups found.</p>';
                 filterResultsInfo.textContent = 'Showing 0 ABVN groups';
                 return;
             }
-            const volunteerLocation = currentVolunteerData?.address;
-            let matchedGroups = abvnCache.map(group => ({
-                ...group,
-                score: calculateLocationScore(volunteerLocation, group.address || {})
-            }));
-            matchedGroups.sort((a, b) => {
-                if (b.score === a.score) {
-                    return (a.organization || '').localeCompare(b.organization || '');
-                }
-                return b.score - a.score;
+
+            const volunteer = currentVolunteerData;
+            if (!volunteer) return;
+
+            // --- Calculate scores and distance for each group ---
+            let scoredGroups = abvnCache.map(group => {
+                const match = calculateMatchScore(volunteer, group);
+                const distance = (volunteer.address?.latitude && group.address?.latitude)
+                    ? calculateDistance(volunteer.address.latitude, volunteer.address.longitude,
+                                        group.address.latitude, group.address.longitude)
+                    : Infinity;
+
+                return { 
+                    ...group, 
+                    score: match.total || 0, 
+                    scoreBreakdown: {
+                        location: match.location || 0,
+                        skills: match.skills || 0,
+                        availability: match.availability || 0,
+                        urgency: match.urgency || 0
+                    }, 
+                    distance 
+                };
             });
-            matchedGroups = matchedGroups.slice(0, 10);
-            populateFilterDropdowns(abvnCache);
-            renderABVNOptions(matchedGroups, volunteerLocation);
-            abvnListContainer.addEventListener('change', (event) => {
-                if (event.target.name === 'selectedABVN') {
-                    endorseABVNSubmitBtn.disabled = false;
+
+            // --- Sort by admin selection ---
+            const sortOption = document.getElementById('matchSortBy').value || 'distance';
+            scoredGroups.sort((a, b) => {
+                switch (sortOption) {
+                    case "skills": return b.scoreBreakdown.skills - a.scoreBreakdown.skills;
+                    case "availability": return b.scoreBreakdown.availability - a.scoreBreakdown.availability;
+                    case "urgency": return b.scoreBreakdown.urgency - a.scoreBreakdown.urgency;
+                    case "overall": return b.score - a.score;
+                    case "distance":
+                    default: return a.distance - b.distance;
                 }
             });
-            setupFilterListeners(volunteerLocation);
+
+            // --- Limit top 10 ---
+            const topGroups = scoredGroups.slice(0, 10);
+
+            renderABVNOptions(topGroups, volunteer);
+
+            // --- Setup search listener ---
+            setupSearchListener(volunteer);
+
         } catch (error) {
+            console.error(error);
             abvnListContainer.innerHTML = '<p style="color: red;">Failed to load ABVN locations.</p>';
             filterResultsInfo.textContent = 'Showing 0 ABVN groups';
-            Swal.fire({
-                title: 'Error',
-                text: 'Failed to load ABVN groups. Please try again.',
-                icon: 'error',
-                customClass: {
-                    popup: 'swal2-popup-error-clean',
-                    title: 'swal2-title-error-clean',
-                    htmlContainer: 'swal2-text-error-clean',
-                    confirmButton: 'my-error-button'
-                }
-            });
         }
     }
 
-    function setupFilterListeners(volunteerLocation) {
+    function setupSearchListener(volunteer) {
         const abvnSearchInput = document.getElementById('abvnSearchInput');
-        const regionFilter = document.getElementById('regionFilter');
-        const provinceFilter = document.getElementById('provinceFilter');
-        const cityFilter = document.getElementById('cityFilter');
-        const clearFiltersBtn = document.getElementById('clearFiltersBtn');
+        if (!abvnSearchInput) return;
 
-        function applyFilters() {
+        abvnSearchInput.addEventListener('input', () => {
             const searchTerm = abvnSearchInput.value.toLowerCase().trim();
-            const selectedRegion = regionFilter.value;
-            const selectedProvince = provinceFilter.value;
-            const selectedCity = cityFilter.value;
-            let filteredGroups = abvnCache.map(group => ({
-                ...group,
-                score: calculateLocationScore(volunteerLocation, group.address || {})
-            }));
+
+            let filteredGroups = abvnCache.map(group => {
+                const match = calculateMatchScore(volunteer, group);
+                let distance = Infinity;
+                if (volunteer.address?.latitude && group.address?.latitude) {
+                    distance = calculateDistance(
+                        volunteer.address.latitude, volunteer.address.longitude,
+                        group.address.latitude, group.address.longitude
+                    );
+                }
+                return { ...group, score: match.total, scoreBreakdown: match, distance };
+            });
+
             if (searchTerm) {
                 filteredGroups = filteredGroups.filter(group => {
                     const orgName = (group.organization || '').toLowerCase();
@@ -1320,121 +1473,109 @@ excelFileInput.addEventListener("change", async (event) => {
                     return orgName.includes(searchTerm) || location.includes(searchTerm);
                 });
             }
-            if (selectedRegion) {
-                filteredGroups = filteredGroups.filter(group => group.address?.region === selectedRegion);
-            }
-            if (selectedProvince) {
-                filteredGroups = filteredGroups.filter(group => group.address?.province === selectedProvince);
-            }
-            if (selectedCity) {
-                filteredGroups = filteredGroups.filter(group => group.address?.city === selectedCity);
-            }
-            filteredGroups.sort((a, b) => {
-                if (b.score === a.score) {
-                    return (a.organization || '').localeCompare(b.organization || '');
-                }
-                return b.score - a.score;
-            });
-            filteredGroups = filteredGroups.slice(0, 10);
-            renderABVNOptions(filteredGroups, volunteerLocation);
-        }
 
-        abvnSearchInput.addEventListener('input', applyFilters);
-        regionFilter.addEventListener('change', applyFilters);
-        provinceFilter.addEventListener('change', applyFilters);
-        cityFilter.addEventListener('change', applyFilters);
-        clearFiltersBtn.addEventListener('click', () => {
-            abvnSearchInput.value = '';
-            regionFilter.value = '';
-            provinceFilter.value = '';
-            cityFilter.value = '';
-            applyFilters();
+            // Sort by current selection
+            const sortOption = document.getElementById('matchSortBy').value || 'distance';
+            filteredGroups.sort((a, b) => {
+                switch (sortOption) {
+                    case "skills": return b.scoreBreakdown.skills - a.scoreBreakdown.skills;
+                    case "availability": return b.scoreBreakdown.availability - a.scoreBreakdown.availability;
+                    case "urgency": return b.scoreBreakdown.urgency - a.scoreBreakdown.urgency;
+                    case "overall": return b.score - a.score;
+                    case "distance":
+                    default: return a.distance - b.distance;
+                }
+            });
+
+            renderABVNOptions(filteredGroups.slice(0, 10), volunteer);
         });
     }
+
+    // --- Listen to sort change ---
+    document.getElementById('matchSortBy').addEventListener('change', fetchABVNs);
 
     // Export Excel 
     function exportToExcel() {
         if (!restrictAction('view')) return;
-            if (filteredApplications.length === 0) {
-                Swal.fire({
-                    title: 'Error',
-                    text: 'No data to export!',
-                    icon: 'error',
-                    timer: 1600,
-                    showConfirmButton: false,
-                    timerProgressBar: true,
-                    allowOutsideClick: false,
-                    customClass: {
-                        popup: 'swal2-popup-error-clean',
-                        title: 'swal2-title-error-clean',
-                        htmlContainer: 'swal2-text-error-clean',
-                        confirmButton: 'my-error-button'
-                    }
-                });
-                return;
-            }
-            const dataForExport = filteredApplications.map((volunteer, i) => {
-                const applicationDateTime = formatDate(volunteer.applicationDateandTime);
-                if (applicationDateTime === 'N/A') {}
-                let skillsDisplay = 'None';
-                if (volunteer.skills && Array.isArray(volunteer.skills) && volunteer.skills.length > 0) {
-                    skillsDisplay = volunteer.skills.map(skill => 
-                        skill === 'Other' && volunteer.otherSkillComments ? 
-                        `${skill} (${volunteer.otherSkillComments})` : skill
-                    ).join('; ');
-                }
-                return {
-                    "No.": i + 1,
-                    "Full Name": getFullName(volunteer) || 'N/A',
-                    "Email": volunteer.email || 'N/A',
-                    "Mobile Number": String(volunteer.mobileNumber || 'N/A'),
-                    "Age": volunteer.age || 'N/A',
-                    "Social Media": volunteer.socialMediaLink || 'N/A',
-                    "Additional Info": volunteer.otherSkillComments || 'N/A',
-                    "Emergency Response": volunteer.isEmergencyResponse ? 'Yes (24/7)' : 'No',
-                    "Date/Time Availability": volunteer.availability?.specificDateTimeSlots?.map(slot => `${slot.date} at ${slot.time}`).join('; ') || 'N/A',
-                    "Region": volunteer.address?.region || 'N/A',
-                    "Province": volunteer.address?.province || 'N/A',
-                    "City": volunteer.address?.city || 'N/A',
-                    "Barangay": volunteer.address?.barangay || 'N/A',
-                    "Skills": skillsDisplay,
-                    "Application Date/Time": applicationDateTime,
-                    "Status Notes": typeof volunteer.statusNotes === 'string' ? volunteer.statusNotes : (Array.isArray(volunteer.statusNotes) && volunteer.statusNotes.length > 0 ? volunteer.statusNotes[volunteer.statusNotes.length - 1].note : '-')
-                };
-            });
-            const ws = XLSX.utils.json_to_sheet(dataForExport);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Pending Volunteer Applications");
-            const today = new Date();
-            const year = today.getFullYear();
-            const month = String(today.getMonth() + 1).padStart(2, '0');
-            const day = String(today.getDate()).padStart(2, '0');
-            const hours = String(today.getHours()).padStart(2, '0');
-            const minutes = String(today.getMinutes()).padStart(2, '0');
-            const seconds = String(today.getSeconds()).padStart(2, '0');
-            const formattedDateTime = `${year}-${month}-${day}_${hours}${minutes}${seconds}`;
-            const filename = `pending-volunteer-applications_${formattedDateTime}.xlsx`;
-            XLSX.writeFile(wb, filename);
+        if (filteredApplications.length === 0) {
             Swal.fire({
-                title: 'Export Successful!',
-                text: `Volunteer application details have been exported to Excel "${filename}".`,
-                icon: 'success',
-                showConfirmButton: true,
-                confirmButtonText: 'OK',
+                title: 'Error',
+                text: 'No data to export!',
+                icon: 'error',
+                timer: 1600,
+                showConfirmButton: false,
+                timerProgressBar: true,
+                allowOutsideClick: false,
                 customClass: {
-                    popup: 'swal2-popup-success-clean',
-                    title: 'swal2-title-success-clean',
-                    htmlContainer: 'swal2-text-success-clean',
-                    confirmButton: 'my-success-button'
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
                 }
             });
+            return;
+        }
+        const dataForExport = filteredApplications.map((volunteer, i) => {
+            const applicationDateTime = formatDate(volunteer.applicationDateandTime);
+            if (applicationDateTime === 'N/A') {}
+            let skillsDisplay = 'None';
+            if (volunteer.skills && Array.isArray(volunteer.skills) && volunteer.skills.length > 0) {
+                skillsDisplay = volunteer.skills.map(skill => 
+                    skill === 'Other' && volunteer.otherSkillComments ? 
+                    `${skill} (${volunteer.otherSkillComments})` : skill
+                ).join('; ');
+            }
+            return {
+                "No.": i + 1,
+                "Full Name": getFullName(volunteer) || 'N/A',
+                "Email": volunteer.email || 'N/A',
+                "Mobile Number": String(volunteer.mobileNumber || 'N/A'),
+                "Age": volunteer.age || 'N/A',
+                "Social Media": volunteer.socialMediaLink || 'N/A',
+                "Additional Info": volunteer.otherSkillComments || 'N/A',
+                "Emergency Response": volunteer.isEmergencyResponse ? 'Yes (24/7)' : 'No',
+                "Date/Time Availability": volunteer.availability?.specificDateTimeSlots?.map(slot => `${slot.date} at ${slot.time}`).join('; ') || 'N/A',
+                "Address": volunteer.address?.formattedAddress || 'N/A',
+                "Latitude": volunteer.address?.latitude || 'N/A',
+                "Longitude": volunteer.address?.longitude || 'N/A',
+                "Skills": skillsDisplay,
+                "Application Date/Time": applicationDateTime,
+                "Status Notes": typeof volunteer.statusNotes === 'string' ? volunteer.statusNotes : (Array.isArray(volunteer.statusNotes) && volunteer.statusNotes.length > 0 ? volunteer.statusNotes[volunteer.statusNotes.length - 1].note : '-')
+            };
+        });
+        const ws = XLSX.utils.json_to_sheet(dataForExport);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Pending Volunteer Applications");
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        const hours = String(today.getHours()).padStart(2, '0');
+        const minutes = String(today.getMinutes()).padStart(2, '0');
+        const seconds = String(today.getSeconds()).padStart(2, '0');
+        const formattedDateTime = `${year}-${month}-${day}_${hours}${minutes}${seconds}`;
+        const filename = `pending-volunteer-applications_${formattedDateTime}.xlsx`;
+        XLSX.writeFile(wb, filename);
+        Swal.fire({
+            title: 'Export Successful!',
+            text: `Volunteer application details have been exported to Excel "${filename}".`,
+            icon: 'success',
+            showConfirmButton: true,
+            confirmButtonText: 'OK',
+            customClass: {
+                popup: 'swal2-popup-success-clean',
+                title: 'swal2-title-success-clean',
+                htmlContainer: 'swal2-text-success-clean',
+                confirmButton: 'my-success-button'
+            }
+        });
     }
 
     // Export PDF all
     function exportToPDF() {
         if (!restrictAction('view')) return;
         if (filteredApplications.length === 0) {
-             Swal.fire({
+            Swal.fire({
                 title: 'Error',
                 text: 'No data to PDF!',
                 icon: 'error',
@@ -1455,6 +1596,11 @@ excelFileInput.addEventListener("change", async (event) => {
             title: 'Generating PDF',
             text: 'Please wait while your PDF is being generated...',
             allowOutsideClick: false,
+            customClass: {
+                popup: 'swal2-popup-success-clean',
+                title: 'swal2-title-success-clean',
+                htmlContainer: 'swal2-text-success-clean',
+            },
             didOpen: () => {
                 Swal.showLoading();
             }
@@ -1484,8 +1630,8 @@ excelFileInput.addEventListener("change", async (event) => {
             yOffset += 15;
             const head = [[
                 "No.", "Full Name", "Email", "Mobile Number", "Age", "Social Media",
-                "Region", "Province", "City", "Barangay", "Additional Info",
-                "Skills", "Date/Time Availability", "Application Date/Time", "Status Notes"
+                "Address", "Latitude", "Longitude", "Additional Info",
+                "Skills", "Emergency Response", "Date/Time Availability", "Application Date/Time", "Status Notes"
             ]];
             const body = filteredApplications.map((volunteer, i) => {
                 const applicationDateTime = formatDate(volunteer.applicationDateandTime);
@@ -1504,10 +1650,9 @@ excelFileInput.addEventListener("change", async (event) => {
                     String(volunteer.mobileNumber || 'N/A'),
                     volunteer.age || 'N/A',
                     volunteer.socialMediaLink || 'N/A',
-                    volunteer.address?.region || 'N/A',
-                    volunteer.address?.province || 'N/A',
-                    volunteer.address?.city || 'N/A',
-                    volunteer.address?.barangay || 'N/A',
+                    volunteer.address?.formattedAddress || 'N/A',
+                    volunteer.address?.latitude || 'N/A',
+                    volunteer.address?.longitude || 'N/A',
                     volunteer.otherSkillComments || 'N/A',
                     skillsDisplay,
                     volunteer.isEmergencyResponse ? 'Yes (24/7)' : 'No',
@@ -1529,6 +1674,23 @@ excelFileInput.addEventListener("change", async (event) => {
                 styles: {
                     fontSize: 8,
                     cellPadding: 2
+                },
+                columnStyles: {
+                    0: { cellWidth: 20 }, // No.
+                    1: { cellWidth: 20 }, // Full Name
+                    2: { cellWidth: 20 }, // Email
+                    3: { cellWidth: 25 }, // Mobile Number
+                    4: { cellWidth: 10 }, // Age
+                    5: { cellWidth: 20 }, // Social Media
+                    6: { cellWidth: 30 }, // Address
+                    7: { cellWidth: 10 }, // Latitude
+                    8: { cellWidth: 10 }, // Longitude
+                    9: { cellWidth: 10 }, // Additional Info
+                    10: { cellWidth: 20 }, // Skills
+                    11: { cellWidth: 20 }, // Emergency Response
+                    12: { cellWidth: 20 }, // Date/Time Availability
+                    13: { cellWidth: 20 }, // Application Date/Time
+                    14: { cellWidth: 20 }  // Status Notes
                 },
                 didDrawPage: function(data) {
                     doc.setFontSize(8);
@@ -1624,11 +1786,9 @@ excelFileInput.addEventListener("change", async (event) => {
             y = addDetail("Mobile Number", String(volunteer.mobileNumber));
             y = addDetail("Age", volunteer.age);
             y = addDetail("Social Media Link", volunteer.socialMediaLink);
-            y = addDetail("Region", volunteer.address?.region);
-            y = addDetail("Province", volunteer.address?.province);
-            y = addDetail("City", volunteer.address?.city);
-            y = addDetail("Barangay", volunteer.address?.barangay);
-            y = addDetail("Street Address", volunteer.address?.streetAddress);
+            y = addDetail("Address", volunteer.address?.formattedAddress);
+            y = addDetail("Latitude", volunteer.address?.latitude);
+            y = addDetail("Longitude", volunteer.address?.longitude);
             y = addDetail("Additional Info", volunteer.otherSkillComments);
             let skillsDisplay = 'None';
             if (volunteer.skills && Array.isArray(volunteer.skills) && volunteer.skills.length > 0) {
@@ -1711,6 +1871,14 @@ excelFileInput.addEventListener("change", async (event) => {
             } else if (Array.isArray(volunteer.statusNotes) && volunteer.statusNotes.length > 0) {
                 displayStatusNotes = volunteer.statusNotes[volunteer.statusNotes.length - 1].note;
             }
+            
+            let rejectionTag = '';
+            if (volunteer.rejected) {
+                const abvnName = volunteer.rejected.byABVN || volunteer.rejected.byId || 'Unknown ABVN';
+                // const reason = volunteer.rejected.reason ? ` - Reason: ${volunteer.rejected.reason}` : '';
+                rejectionTag = `<span class="rejected-tag">Rejected by ${abvnName}</span>`;
+            }
+
             let specificSlotsHtml = 'N/A';
             if (volunteer.availability && volunteer.availability.specificDateTimeSlots && volunteer.availability.specificDateTimeSlots.length > 0) {
                 specificSlotsHtml = '<ol>';
@@ -1740,15 +1908,13 @@ excelFileInput.addEventListener("change", async (event) => {
                 <td>${volunteer.mobileNumber || 'N/A'}</td>
                 <td>${volunteer.age || 'N/A'}</td>
                 <td>${socialMediaDisplay}</td>
-                <td>${volunteer.otherSkillComments || 'N/A'}</td>
+                <td>${volunteer.otherSkillComments || '-'}</td>
                 <td>${volunteer.isEmergencyResponse ? 'Yes (24/7)' : 'No'}</td>
                 <td>${specificSlotsHtml}</td>
-                <td>${volunteer.address?.region || 'N/A'}</td>
-                <td>${volunteer.address?.province || 'N/A'}</td>
-                <td>${volunteer.address?.city || 'N/A'}</td>
-                <td>${volunteer.address?.barangay || 'N/A'}</td>
+                <td>${volunteer.address?.formattedAddress || 'N/A'}</td>
                 <td>${skillsHtml}</td>
                 <td>${displayStatusNotes}</td>
+                ${rejectionTag ? `<td>${rejectionTag}</td>` : '<td></td>'}
                 ${hasActionPermissions ? `
                     <td>
                         <button title="Actions" class="actionBtn" data-key="${volunteer.key}"><i class='bx bx-dots-vertical-rounded'></i></button>
@@ -2230,13 +2396,14 @@ excelFileInput.addEventListener("change", async (event) => {
                                 title: 'Success!',
                                 text: 'Volunteer status updated to Stalled with notes.',
                                 icon: 'success',
-                                timer: 2000,
-                                showConfirmButton: false,
-                                timerProgressBar: true,
+                                showConfirmButton: true,
+                                confirmButtonText: 'Ok',
+                                allowOutsideClick: false,
                                 customClass: {
                                     popup: 'swal2-popup-success-clean',
                                     title: 'swal2-title-success-clean',
-                                    htmlContainer: 'swal2-text-success-clean'
+                                    htmlContainer: 'swal2-text-success-clean',
+                                    confirmButton: 'my-success-button'
                                 }
                             });
                             fetchPendingVolunteers();
@@ -2257,12 +2424,13 @@ excelFileInput.addEventListener("change", async (event) => {
                         Swal.fire({
                             title: 'Cancelled',
                             text: 'No notes entered. Status remains unchanged.',
-                            icon: 'info',
+                            icon: 'warning',
+                            confirmButtonText: 'OK',
                             customClass: {
-                                popup: 'swal2-popup-info-clean',
-                                title: 'swal2-title-info-clean',
-                                htmlContainer: 'swal2-text-info-clean',
-                                confirmButton: 'my-info-button'
+                                popup: 'swal2-popup-warning-clean',
+                                title: 'swal2-title-warning-clean',
+                                htmlContainer: 'swal2-text-warning-clean',
+                                confirmButton: 'my-warning-button'
                             }
                         });
                     }
@@ -2304,14 +2472,14 @@ excelFileInput.addEventListener("change", async (event) => {
                                     title: 'Archived!',
                                     text: 'Volunteer application has been archived.',
                                     icon: 'success',
-                                    timer: 1600,
-                                    showConfirmButton: false,
-                                    timerProgressBar: true,
+                                    showConfirmButton: true,
+                                    confirmButtonText: 'Ok',
                                     allowOutsideClick: false,
                                     customClass: {
                                         popup: 'swal2-popup-success-clean',
                                         title: 'swal2-title-success-clean',
-                                        htmlContainer: 'swal2-text-success-clean'
+                                        htmlContainer: 'swal2-text-success-clean',
+                                        confirmButton: 'my-success-button'
                                     }
                                 });
                                 fetchPendingVolunteers();
@@ -2402,14 +2570,14 @@ excelFileInput.addEventListener("change", async (event) => {
                             title: 'Retrieved!',
                             text: 'Volunteer has been retrieved to pending applications.',
                             icon: 'success',
-                            timer: 1600,
-                            showConfirmButton: false,
-                            timerProgressBar: true,
+                            showConfirmButton: true,
+                            confirmButtonText: 'Ok',
                             allowOutsideClick: false,
                             customClass: {
                                 popup: 'swal2-popup-success-clean',
                                 title: 'swal2-title-success-clean',
                                 htmlContainer: 'swal2-text-success-clean',
+                                confirmButton: 'my-success-button'
                             }
                         });
                         fetchArchivedApplications();
@@ -2693,19 +2861,6 @@ excelFileInput.addEventListener("change", async (event) => {
                 });
                 return;
             }
-            // let isMatchingAvailability = false;
-            // if (currentVolunteerData?.availability?.specificDateTimeSlots?.length > 0) {
-            //     const selectedDateTime = new Date(scheduledDateTime);
-            //     const selectedDateStr = selectedDateTime.toISOString().split('T')[0];
-            //     const selectedTime24Hr = formatTimeTo24Hr(selectedDateTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }));
-                
-            //     isMatchingAvailability = currentVolunteerData.availability.specificDateTimeSlots.some(slot => {
-            //         if (!slot.date || !slot.time) return false;
-            //         const slotDate = slot.date;
-            //         const slotTime = slot.time;
-            //         return slotDate === selectedDateStr && slotTime === selectedDateTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-            //     });
-            // }
             let isMatchingAvailability = false;
             if (currentVolunteerData?.availability?.specificDateTimeSlots?.length > 0) {
                 const selectedDateTime = new Date(scheduledDateTime);
@@ -2814,14 +2969,14 @@ excelFileInput.addEventListener("change", async (event) => {
                         title: 'Success!',
                         text: 'Volunteer scheduled and approved successfully.',
                         icon: 'success',
-                        timer: 1600,
-                        showConfirmButton: false,
-                        timerProgressBar: true,
+                        showConfirmButton: true,
+                        confirmButtonText: 'Ok',
                         allowOutsideClick: false,
                         customClass: {
                             popup: 'swal2-popup-success-clean',
                             title: 'swal2-title-success-clean',
                             htmlContainer: 'swal2-text-success-clean',
+                            confirmButton: 'my-success-button'
                         }
                     });
                     hideScheduleModal();
@@ -2848,124 +3003,123 @@ excelFileInput.addEventListener("change", async (event) => {
 
     endorseABVNForm.addEventListener('submit', async (event) => {
         event.preventDefault();
+
         if (!restrictAction('endorseToABVN')) {
             hideEndorseABVNModal();
             return;
         }
+
         const selectedABVNR = document.querySelector('input[name="selectedABVN"]:checked');
         if (!selectedABVNR) {
-            Swal.fire({
-                title: 'Error',
-                text: 'Please select an ABVN to endorse to.',
-                icon: 'error',
-                customClass: {
-                    popup: 'swal2-popup-error-clean',
-                    title: 'swal2-title-error-clean',
-                    htmlContainer: 'swal2-text-error-clean',
-                    confirmButton: 'my-error-button'
-                }
-            });
+            Swal.fire({ title: 'Error', text: 'Please select an ABVN request to endorse to.', icon: 'error' });
             return;
         }
+
         if (!currentVolunteerKey || !currentVolunteerData) {
-            Swal.fire({
-                title: 'Error',
-                text: 'No volunteer selected for endorsement.',
-                icon: 'error',
-                customClass: {
-                    popup: 'swal2-popup-error-clean',
-                    title: 'swal2-title-error-clean',
-                    htmlContainer: 'swal2-text-error-clean',
-                    confirmButton: 'my-error-button'
-                }
-            });
+            Swal.fire({ title: 'Error', text: 'No volunteer selected.', icon: 'error' });
             hideEndorseABVNModal();
             return;
         }
+
         const abvnKey = selectedABVNR.value;
-        const abvnName = selectedABVNR.dataset.name;
-        const abvnLocation = selectedABVNR.dataset.location;
+        const requestId = selectedABVNR.dataset.requestId;
+
+        const abvnDataSnapshot = await database.ref(`volunteerGroups/${abvnKey}`).once('value');
+        const abvnData = abvnDataSnapshot.val();
+        const abvnName = abvnData.organization || "ABVN Group";
+        const abvnLocation = abvnData.address?.formattedAddress || "N/A";
+
+        // Validate that the selected request still has slots available
+        const requestRef = database.ref(`volunteerGroups/${abvnKey}/volunteerNeeds/${requestId}`);
+        const requestSnapshot = await requestRef.once('value');
+        const requestData = requestSnapshot.val();
+        if (!requestData || (requestData.volunteersNeeded || 0) <= (requestData.assigned || 0)) {
+            Swal.fire({
+                title: 'Request Filled',
+                text: 'Selected volunteer request already has enough volunteers assigned.',
+                icon: 'warning'
+            });
+            return;
+        }
+
         Swal.fire({
             title: 'Confirm Endorsement?',
-            html: `Endorse <strong>${getFullName(currentVolunteerData)}</strong> to <strong>${abvnName}</strong> in ${abvnLocation}? An endorsement email will be sent to the ABVN group.`,
+            html: `Endorse <strong>${getFullName(currentVolunteerData)}</strong> to <strong>${abvnName}</strong> in ${abvnLocation} for task <strong>${requestData.taskName || "N/A"}</strong>?`,
             icon: 'question',
             showCancelButton: true,
+            reverseButtons: true,
             confirmButtonText: 'Endorse',
             cancelButtonText: 'Cancel',
-            reverseButtons: true,
-            focusCancel: true,
-            allowOutsideClick: false,
             customClass: {
-                popup: 'custom-swal-popup-large',
-                title: 'custom-swal-title',
-                htmlContainer: 'custom-swal-content',
-                confirmButton: 'custom-confirm-btn',
-                cancelButton: 'custom-cancel-btn'
+                popup: 'swal2-endorse-popup',
+                title: 'swal2-endorse-title',
+                html: 'swal2-endorse-content',
+                confirmButton: 'swal2-endorse-confirm-btn',
+                cancelButton: 'swal2-endorse-cancel-btn'
             }
         }).then(async (result) => {
-            if (result.isConfirmed) {
-                try {
-                    const abvnSnapshot = await database.ref(`volunteerGroups/${abvnKey}`).once('value');
-                    const abvnGroupData = abvnSnapshot.val();
-                    if (!abvnGroupData) {
-                        Swal.fire({
-                            title: 'Error',
-                            text: 'Selected ABVN group details not found.',
-                            icon: 'error',
-                            customClass: {
-                                popup: 'swal2-popup-error-clean',
-                                title: 'swal2-title-error-clean',
-                                htmlContainer: 'swal2-text-error-clean',
-                                confirmButton: 'my-error-button'
-                            }
-                        });
-                        return;
-                    }
-                    await database.ref(`volunteerGroups/${abvnKey}/endorsedVolunteers/${currentVolunteerKey}`).set({
-                        ...currentVolunteerData,
-                        status: 'directedToABVN',
+            if (!result.isConfirmed) return;
+
+            try {
+                // --- Increment assigned in both nodes ---
+                await requestRef.transaction(current => {
+                    if (!current) return null;
+                    current.assigned = (current.assigned || 0) + 1;
+                    return current;
+                });
+
+                const globalRequestRef = database.ref(`volunteerRequests/${requestId}`);
+                await globalRequestRef.transaction(current => {
+                    if (!current) return null;
+                    current.assigned = (current.assigned || 0) + 1;
+                    return current;
+                });
+
+                // --- Endorse the volunteer ---
+                await database.ref(`volunteerEndorsements/${abvnKey}/endorsedVolunteers/${currentVolunteerKey}`).set({
+                    ...currentVolunteerData,
+                    requestId: requestId,
+                    endorsedDetails: {
+                        status: 'endorsedToABVN',
+                        taskName: requestData.taskName || "N/A",
                         endorsedToABVNKey: abvnKey,
                         endorsedToABVNName: abvnName,
                         endorsedToABVNLocation: abvnLocation,
-                        endorsementDate: new Date().toISOString()
-                    });
-                    await database.ref(`volunteerApplications/pendingVolunteer/${currentVolunteerKey}`).remove();
-                    await sendEndorsementEmail(currentVolunteerData, abvnGroupData);
-                    Swal.fire({
-                        title: 'Endorsed!',
-                        text: 'Volunteer has been endorsed to the selected ABVN group, and an endorsement email sent.',
-                        icon: 'success',
-                        showConfirmButton: true,
-                        confirmButtonText: 'Ok',
-                        allowOutsideClick: false,
-                        customClass: {
-                            popup: 'swal2-popup-success-clean',
-                            title: 'swal2-title-success-clean',
-                            htmlContainer: 'swal2-text-success-clean',
-                            confirmButton: 'my-success-button'
-                        }
-                    });
-                    hideEndorseABVNModal();
-                } catch (error) {
-                    Swal.fire({
-                        title: 'Error',
-                        text: 'Failed to endorse volunteer. Please try again.',
-                        icon: 'error',
-                        customClass: {
-                            popup: 'swal2-popup-error-clean',
-                            title: 'swal2-title-error-clean',
-                            htmlContainer: 'swal2-text-error-clean',
-                            confirmButton: 'my-error-button'
-                        }
-                    });
-                    hideEndorseABVNModal();
-                }
-            } else {
+                        endorsementDate: new Date().toISOString(),
+                    }
+                });
+
+                // Remove from pending
+                await database.ref(`volunteerApplications/pendingVolunteer/${currentVolunteerKey}`).remove();
+
+                // Send email
+                await sendEndorsementEmail(currentVolunteerData, abvnData);
+
+                Swal.fire({
+                    title: 'Endorsed!',
+                    text: 'Volunteer successfully endorsed.',
+                    icon: 'success',
+                    showConfirmButton: true,
+                    confirmButtonText: 'OK',
+                    customClass: {
+                        popup: 'swal2-popup-success-clean',
+                        title: 'swal2-title-success-clean',
+                        htmlContainer: 'swal2-text-success-clean',
+                        confirmButton: 'my-success-button'
+                    }
+                });
+
+                hideEndorseABVNModal();
+
+            } catch (error) {
+                console.error(error);
+                Swal.fire({ title: 'Error', text: 'Failed to endorse volunteer. Try again.', icon: 'error' });
                 hideEndorseABVNModal();
             }
         });
     });
 
+    // Function to handle the endorsement process with duplicate checks
     async function handleEndorsementProcess() {
         if (!restrictAction('endorseToABVN')) return;
         const volunteerEmail = currentVolunteerData.email;
@@ -3038,14 +3192,12 @@ excelFileInput.addEventListener("change", async (event) => {
                             title: 'Cancelled',
                             text: 'Endorsement cancelled for review.',
                             icon: 'error',
-                            timer: 2000,
-                            showConfirmButton: false,
-                            timerProgressBar: true,
-                            allowOutsideClick: false,
+                            confirmButtonText: 'OK',
                             customClass: {
                                 popup: 'swal2-popup-error-clean',
                                 title: 'swal2-title-error-clean',
-                                htmlContainer: 'swal2-text-error-clean'
+                                htmlContainer: 'swal2-text-error-clean',
+                                confirmButton: 'my-error-button'
                             }
                         });
                         hideEndorseABVNModal();
@@ -3104,14 +3256,12 @@ excelFileInput.addEventListener("change", async (event) => {
                             title: 'Cancelled',
                             text: 'Endorsement cancelled for review.',
                             icon: 'error',
-                            timer: 2000,
-                            showConfirmButton: false,
-                            timerProgressBar: true,
-                            allowOutsideClick: false,
+                            confirmButtonText: 'OK',
                             customClass: {
                                 popup: 'swal2-popup-error-clean',
                                 title: 'swal2-title-error-clean',
-                                htmlContainer: 'swal2-text-error-clean'
+                                htmlContainer: 'swal2-text-error-clean',
+                                confirmButton: 'my-error-button'
                             }
                         });
                         hideEndorseABVNModal();
@@ -3164,14 +3314,14 @@ excelFileInput.addEventListener("change", async (event) => {
                 title: 'Email Sent!',
                 text: 'Confirmation email has been sent to the volunteer.',
                 icon: 'success',
-                timer: 2000,
-                showConfirmButton: false,
-                timerProgressBar: true,
+                showConfirmButton: true,
+                confirmButtonText: 'Ok',
                 allowOutsideClick: false,
                 customClass: {
                     popup: 'swal2-popup-success-clean',
                     title: 'swal2-title-success-clean',
-                    htmlContainer: 'swal2-text-success-clean'
+                    htmlContainer: 'swal2-text-success-clean',
+                    confirmButton: 'my-success-button'
                 }
             });
         } catch (error) {
@@ -3227,6 +3377,9 @@ excelFileInput.addEventListener("change", async (event) => {
                 title: 'Endorsement Sent!',
                 text: 'Endorsement email has been sent to the ABVN group.',
                 icon: 'success',
+                showConfirmButton: true,
+                confirmButtonText: 'Ok',
+                allowOutsideClick: false,
                 customClass: {
                     popup: 'swal2-popup-success-clean',
                     title: 'swal2-title-success-clean',

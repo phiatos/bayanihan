@@ -4,14 +4,14 @@ console.warn = function () {};
 
 // Firebase Configuration
 const firebaseConfig = {
-    apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
-    authDomain: "bayanihan-5ce7e.firebaseapp.com",
-    databaseURL: "https://bayanihan-5ce7e-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "bayanihan-5ce7e",
-    storageBucket: "bayanihan-5ce7e.appspot.com",
-    messagingSenderId: "593123849917",
-    appId: "1:593123849917:web:eb85a63a536eeff78ce9d4",
-    measurementId: "G-ZTQ9VXXVV0",
+  apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
+  authDomain: "bayanihan-5ce7e.firebaseapp.com",
+  databaseURL: "https://bayanihan-5ce7e-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "bayanihan-5ce7e",
+  storageBucket: "bayanihan-5ce7e.appspot.com",
+  messagingSenderId: "593123849917",
+  appId: "1:593123849917:web:eb85a63a536eeff78ce9d4",
+  measurementId: "G-ZTQ9VXXVV0",
 };
 
 // Initialize Firebase
@@ -197,8 +197,8 @@ function generateTempPassword() {
 }
 
 function isValidMobile(mobile) {
-  const mobileRegex = /^09[0-9]{9}$/;
-  return mobileRegex.test(mobile);
+    const mobileRegex = /^09[0-9]{9}$/;
+    return mobileRegex.test(mobile);
 }
 
 function isValidEmail(email) {
@@ -237,27 +237,6 @@ function clearError(inputField) {
     inputField.classList.remove('error');
 }
 
-// function restrictMobileNumberInput(input) {
-//     let isProgrammaticChange = false;
-
-//     // Function to set value programmatically without triggering restrictions
-//     input.setValue = function(value) {
-//         isProgrammaticChange = true;
-//         input.value = value || '';
-//         isProgrammaticChange = false;
-//     };
-
-//     input.addEventListener("input", () => {
-//         if (isProgrammaticChange) return; // Skip restrictions for programmatic changes
-//         input.value = input.value.replace(/[^0-9]/g, '');
-//         if (input.value.length > 11) {
-//             input.value = input.value.slice(0, 11);
-//         }
-//         if (input.value && !input.value.startsWith('09')) {
-//             input.value = '09' + input.value.replace(/^09/, '').slice(0, 9);
-//         }
-//     });
-// }
 function restrictMobileNumberInput(input) {
     let isProgrammaticChange = false;
     let debounceTimeout;
@@ -304,81 +283,43 @@ function validateInputInRealTime(input, fieldConfig) {
                 showError(input, `${fieldConfig.label} must be a valid URL (e.g., https://facebook.com/yourpage).`);
             }
         }
+        if (fieldConfig.isNumber) {
+            const num = parseFloat(input.value);
+            if (isNaN(num)) {
+                showError(input, `${fieldConfig.label} must be a valid number.`);
+            } else if (fieldConfig.label === 'Latitude' && (num < -90 || num > 90)) {
+                showError(input, `${fieldConfig.label} must be between -90 and 90.`);
+            } else if (fieldConfig.label === 'Longitude' && (num < -180 || num > 180)) {
+                showError(input, `${fieldConfig.label} must be between -180 and 180.`);
+            }
+        }
     }
 }
 
 async function verifyUserPassword(password) {
-  Swal.showLoading();
-  try {
-    const user = auth.currentUser;
-    if (!user) {
-      throw new Error("No user is currently logged in.");
+    Swal.showLoading();
+    try {
+        const user = auth.currentUser;
+        if (!user) {
+            throw new Error("No user is currently logged in.");
+        }
+        const credential = firebase.auth.EmailAuthProvider.credential(user.email, password);
+        await user.reauthenticateWithCredential(credential);
+        Swal.hideLoading();
+        return true;
+    } catch (error) {
+        Swal.hideLoading();
+        if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+            Swal.showValidationMessage('Incorrect password.');
+        } else if (error.code === 'auth/user-not-found') {
+            Swal.showValidationMessage('User not found. Please log in again.');
+        } else {
+            Swal.showValidationMessage(`Authentication error: ${error.message}`);
+        }
+        return false;
     }
-    const credential = firebase.auth.EmailAuthProvider.credential(user.email, password);
-    await user.reauthenticateWithCredential(credential);
-    Swal.hideLoading();
-    return true;
-  } catch (error) {
-    Swal.hideLoading();
-    if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-      Swal.showValidationMessage('Incorrect password.');
-    } else if (error.code === 'auth/user-not-found') {
-      Swal.showValidationMessage('User not found. Please log in again.');
-    } else {
-      Swal.showValidationMessage(`Authentication error: ${error.message}`);
-    }
-    return false;
-  }
 }
 
-// async function checkDuplicates(email, mobileNumber, organizationName) {
-//     const [emailSnapshot, mobileSnapshot, orgSnapshot, registeredSnapshot] = await Promise.all([
-//         database.ref('users').orderByChild('email').equalTo(email.toLowerCase()).once('value'),
-//         database.ref('users').orderByChild('mobile').equalTo(mobileNumber).once('value'),
-//         database.ref('volunteerGroups').orderByChild('organization').equalTo(organizationName.toLowerCase()).once('value'),
-//         database.ref('abvnApplications/registeredABVN').once('value')
-//     ]);
-
-//     // Check organization name first (strict uniqueness)
-//     if (orgSnapshot.exists()) {
-//         return { isDuplicate: true, reason: 'organization name', location: `volunteerGroups/${Object.keys(orgSnapshot.val())[0]}` };
-//     }
-//     // Check mobile number
-//     if (mobileSnapshot.exists()) {
-//         return { isDuplicate: true, reason: 'mobile number', location: `users/${Object.keys(mobileSnapshot.val())[0]}` };
-//     }
-//     // Check email
-//     if (emailSnapshot.exists()) {
-//         return { isDuplicate: true, reason: 'email', location: `users/${Object.keys(emailSnapshot.val())[0]}` };
-//     }
-//     // Check registeredABVN for any matches
-//     if (registeredSnapshot.exists()) {
-//         let duplicateReason = '';
-//         let duplicateLocation = '';
-//         registeredSnapshot.forEach(child => {
-//             const data = child.val();
-//             if (data.organizationName.trim().toLowerCase() === organizationName.toLowerCase()) {
-//                 duplicateReason = 'organization name';
-//                 duplicateLocation = `abvnApplications/registeredABVN/${child.key}`;
-//                 return true;
-//             }
-//             if (data.mobileNumber === mobileNumber) {
-//                 duplicateReason = 'mobile number';
-//                 duplicateLocation = `abvnApplications/registeredABVN/${child.key}`;
-//                 return true;
-//             }
-//             if (data.email.trim().toLowerCase() === email.toLowerCase()) {
-//                 duplicateReason = 'email';
-//                 duplicateLocation = `abvnApplications/registeredABVN/${child.key}`;
-//                 return true;
-//             }
-//         });
-//         if (duplicateReason) {
-//             return { isDuplicate: true, reason: duplicateReason, location: duplicateLocation };
-//         }
-//     }
-//     return { isDuplicate: false };
-// }
 // === Enhanced Duplicate Check ===
 async function checkDuplicates(email, mobileNumber, organizationName) {
     const [userSnapshot, volunteerGroupSnapshot, registeredSnapshot] = await Promise.all([
@@ -391,7 +332,6 @@ async function checkDuplicates(email, mobileNumber, organizationName) {
     const mobile = mobileNumber.trim();
     const orgNameLower = organizationName.toLowerCase().trim();
 
-    // Helper function to check if a combination exists
     const checkCombination = (data, path) => {
         let duplicateReason = '';
         let duplicateLocation = '';
@@ -400,7 +340,6 @@ async function checkDuplicates(email, mobileNumber, organizationName) {
             const existingMobile = value.mobileNumber || value.mobile;
             const existingOrgName = value.organizationName?.toLowerCase().trim() || value.organization?.toLowerCase().trim();
 
-            // Individual duplicate checks
             if (existingEmail === emailLower) {
                 duplicateReason = 'email';
                 duplicateLocation = `${path}/${key}`;
@@ -417,7 +356,6 @@ async function checkDuplicates(email, mobileNumber, organizationName) {
                 return { isDuplicate: true, reason: duplicateReason, location: duplicateLocation };
             }
 
-            // Combination check
             if (existingEmail === emailLower && existingMobile === mobile && existingOrgName === orgNameLower) {
                 duplicateReason = 'combination of email, mobile number, and organization name';
                 duplicateLocation = `${path}/${key}`;
@@ -427,19 +365,16 @@ async function checkDuplicates(email, mobileNumber, organizationName) {
         return { isDuplicate: false };
     };
 
-    // Check users
     if (userSnapshot.exists()) {
         const result = checkCombination(userSnapshot.val(), 'users');
         if (result.isDuplicate) return result;
     }
 
-    // Check volunteerGroups
     if (volunteerGroupSnapshot.exists()) {
         const result = checkCombination(volunteerGroupSnapshot.val(), 'volunteerGroups');
         if (result.isDuplicate) return result;
     }
 
-    // Check registeredABVN
     if (registeredSnapshot.exists()) {
         const result = checkCombination(registeredSnapshot.val(), 'abvnApplications/registeredABVN');
         if (result.isDuplicate) return result;
@@ -490,7 +425,7 @@ async function openArchivedModal() {
                 <td>${app.contactPerson || 'N/A'}</td>
                 <td>${app.email || 'N/A'}</td>
                 <td>${app.mobileNumber || 'N/A'}</td>
-                <td>${app.headquarters?.region || 'N/A'}</td>
+                <td>${app.headquarters?.formattedAddress || 'N/A'}</td>
                 <td>${formattedTimestamp}</td>
                 <td>
                     <button class="retrieveBtn" data-key="${app.key}">Retrieve</button>
@@ -530,7 +465,6 @@ function initializeArchivedModal() {
         }
     });
 
-    // Handle retrieve button clicks
     archivedApplicationsContainer.addEventListener('click', async (event) => {
         const target = event.target.closest('button');
         if (!target || !target.classList.contains('retrieveBtn') || !target.dataset.key) return;
@@ -540,11 +474,6 @@ function initializeArchivedModal() {
         if (!permissions.canRetrieve) {
             showAccessDeniedAlert('retrieve archived applications');
             return;
-        }
-
-        if (!isAdminVerified) {
-            const isVerified = await verifySuperAdminPassword();
-            if (!isVerified) return;
         }
 
         try {
@@ -569,20 +498,18 @@ function initializeArchivedModal() {
                 title: 'Success',
                 text: 'Application retrieved successfully.',
                 icon: 'success',
-                timer: 1600,
-                showConfirmButton: false,
-                timerProgressBar: true,
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
                 allowOutsideClick: false,
                 customClass: {
-                    popup: 'swal2-popup-success-clean',
-                    title: 'swal2-title-success-clean',
-                    htmlContainer: 'swal2-text-success-clean'
+                  popup: 'swal2-popup-success-clean',
+                  title: 'swal2-title-success-clean',
+                  htmlContainer: 'swal2-text-success-clean',
+                  confirmButton: 'my-success-button'
                 }
             });
 
-            // Refresh the archived applications modal
             openArchivedModal();
-            // Refresh the main approved applications table
             fetchApprovedApplications();
         } catch (error) {
             showErrorAlert('Error', 'Failed to retrieve application. Please try again.');
@@ -593,8 +520,6 @@ function initializeArchivedModal() {
 // === Authentication and Initialization ===
 document.addEventListener('DOMContentLoaded', () => {
     auth.onAuthStateChanged(async (user) => {
-        console.log(`[${new Date().toISOString()}] Auth state changed:`, user ? { uid: user.uid, email: user.email } : 'No user');
-
         if (!user) {
             showErrorAlert('Authentication Required', 'Please sign in to access approved applications.', () => {
                 window.location.href = '../pages/login.html';
@@ -603,13 +528,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            // Check password_needs_reset
             const userSnapshot = await database.ref(`users/${user.uid}`).once('value');
             const userData = userSnapshot.val();
             const passwordNeedsReset = userData ? (userData.password_needs_reset || false) : false;
 
             if (passwordNeedsReset) {
-                console.log(`[${new Date().toISOString()}] Password change required for user ${user.uid}. Redirecting to profile page.`);
                 Swal.fire({
                     icon: 'error',
                     title: 'Password Change Required',
@@ -629,7 +552,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // Proceed with normal flow
             const permissions = await checkAdminPermissions();
             if (!permissions.canView) {
                 showErrorAlert('Access Denied', 'You do not have permission to access this page.', () => {
@@ -642,7 +564,6 @@ document.addEventListener('DOMContentLoaded', () => {
             initializePageFunctions(user.uid);
             resetInactivityTimer();
         } catch (error) {
-            console.error(`[${new Date().toISOString()}] Error checking user data:`, error);
             Swal.fire({
                 icon: 'error',
                 title: 'Authentication Error',
@@ -664,7 +585,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // === Page Initialization ===
 function initializePageFunctions(adminUserId) {
-    // DOM Element References
     const volunteerOrgsContainer = document.getElementById('volunteerOrgsContainer');
     const searchInput = document.getElementById('searchInput');
     const sortSelect = document.getElementById('sortSelect');
@@ -685,15 +605,13 @@ function initializePageFunctions(adminUserId) {
     const editEmail = document.getElementById('editEmail');
     const editMobileNumber = document.getElementById('editMobileNumber');
     const editSocialMedia = document.getElementById('editSocialMedia');
-    const editRegionSelect = document.getElementById('editRegion');
-    const editProvinceSelect = document.getElementById('editProvince');
-    const editCitySelect = document.getElementById('editCity');
-    const editBarangaySelect = document.getElementById('editBarangay');
-    const editRegionTextInput = document.getElementById('editRegion-text');
-    const editProvinceTextInput = document.getElementById('editProvince-text');
-    const editCityTextInput = document.getElementById('editCity-text');
-    const editBarangayTextInput = document.getElementById('editBarangay-text');
-    const editStreetAddress = document.getElementById('editStreetAddress');
+    const editFormattedAddress = document.getElementById('editFormattedAddress');
+    const editLatitude = document.getElementById('editLatitude');
+    const editLongitude = document.getElementById('editLongitude');
+    const editOrganizationalBackgroundMission = document.getElementById('editOrganizationalBackgroundMission');
+    const editAreasOfExpertiseFocus = document.getElementById('editAreasOfExpertiseFocus');
+    const editLegalStatusRegistration = document.getElementById('editLegalStatusRegistration');
+    const editRequiredDocumentsLink = document.getElementById('editRequiredDocumentsLink');
     excelFileInput = document.getElementById('excelFileInput');
     importExcelBtn = document.getElementById('importExcelBtn');
     importStatusModal = document.getElementById('importStatusModal');
@@ -702,37 +620,32 @@ function initializePageFunctions(adminUserId) {
     importStatusText = document.getElementById('importStatusText');
     importErrorList = document.getElementById('importErrorList');
 
-    // Initialize archived modal
     initializeArchivedModal();
 
-    // Apply real-time validation to edit form inputs
     const editOrgFormInputs = [
-        { id: 'editOrganization', label: 'Organization Name'},
+        { id: 'editOrganization', label: 'Organization Name', lettersOnly: true },
         { id: 'editContactPerson', label: 'Contact Person', lettersOnly: true },
         { id: 'editEmail', label: 'Email', isEmail: true },
         { id: 'editMobileNumber', label: 'Mobile Number', isMobile: true },
         { id: 'editSocialMedia', label: 'Social Media', isUrl: true, required: false },
-        { id: 'editStreetAddress', label: 'Street Address', required: false },
+        { id: 'editFormattedAddress', label: 'Formatted Address' },
+        { id: 'editLatitude', label: 'Latitude', isNumber: true },
+        { id: 'editLongitude', label: 'Longitude', isNumber: true },
         { id: 'editOrganizationalBackgroundMission', label: 'Organizational Background/Mission' },
         { id: 'editAreasOfExpertiseFocus', label: 'Areas of Expertise/Focus' },
         { id: 'editLegalStatusRegistration', label: 'Legal Status/Registration' },
         { id: 'editRequiredDocumentsLink', label: 'Required Documents Link', isUrl: true, required: false }
     ];
 
-    editOrgFormInputs.forEach(({ id, label, lettersOnly, isEmail, isMobile, isUrl, required }) => {
+    editOrgFormInputs.forEach(({ id, label, lettersOnly, isEmail, isMobile, isUrl, required, isNumber }) => {
         const input = document.getElementById(id);
         if (input) {
-            input.addEventListener('input', () => validateInputInRealTime(input, { label, lettersOnly, isEmail, isMobile, isUrl, required }));
+            input.addEventListener('input', () => validateInputInRealTime(input, { label, lettersOnly, isEmail, isMobile, isUrl, required, isNumber }));
         }
     });
 
-    // Apply input restrictions for mobile number
-    restrictMobileNumberInput(document.getElementById('editMobileNumber'));
-
-    // Event Listeners
-    const downloadTemplateBtn = document.getElementById('downloadTemplateBtn');
-    if (downloadTemplateBtn) {
-        downloadTemplateBtn.addEventListener('click', downloadExcelTemplate);
+    if (document.getElementById('downloadTemplateBtn')) {
+        document.getElementById('downloadTemplateBtn').addEventListener('click', downloadExcelTemplate);
     }
 
     if (editMobileNumber) {
@@ -758,8 +671,8 @@ function initializePageFunctions(adminUserId) {
     if (searchInput) {
         let searchTimeout;
         searchInput.addEventListener('keyup', () => {
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(applySearchAndSort, 300);
+          clearTimeout(searchTimeout);
+          searchTimeout = setTimeout(applySearchAndSort, 300);
         });
     }
 
@@ -805,93 +718,6 @@ function initializePageFunctions(adminUserId) {
         }
     });
 
-    if (editRegionSelect) {
-        editRegionSelect.addEventListener('change', async () => {
-            editProvinceSelect.innerHTML = '<option value="" selected="true" disabled>Choose Province</option>';
-            editCitySelect.innerHTML = '<option value="" selected="true" disabled>Choose City / Municipality</option>';
-            editBarangaySelect.innerHTML = '<option value="" selected="true" disabled>Choose Barangay</option>';
-            if (editRegionTextInput) editRegionTextInput.value = editRegionSelect.options[editRegionSelect.selectedIndex]?.textContent || '';
-            if (editProvinceTextInput) editProvinceTextInput.value = '';
-            if (editCityTextInput) editCityTextInput.value = '';
-            if (editBarangayTextInput) editBarangayTextInput.value = '';
-
-            const regionCode = editRegionSelect.value;
-            if (!regionCode) return;
-
-            try {
-                const response = await fetch('../json/province.json');
-                const provinces = await response.json();
-                const filteredProvinces = provinces.filter(p => p.region_code === regionCode);
-                filteredProvinces.sort((a, b) => a.province_name.localeCompare(b.province_name));
-                filteredProvinces.forEach(entry => {
-                    const opt = document.createElement('option');
-                    opt.value = entry.province_code;
-                    opt.textContent = entry.province_name;
-                    editProvinceSelect.appendChild(opt);
-                });
-            } catch (error) {
-            }
-        });
-    }
-
-    if (editProvinceSelect) {
-        editProvinceSelect.addEventListener('change', async () => {
-            editCitySelect.innerHTML = '<option value="" selected="true" disabled>Choose City / Municipality</option>';
-            editBarangaySelect.innerHTML = '<option value="" selected="true" disabled>Choose Barangay</option>';
-            if (editProvinceTextInput) editProvinceTextInput.value = editProvinceSelect.options[editProvinceSelect.selectedIndex]?.textContent || '';
-            if (editCityTextInput) editCityTextInput.value = '';
-            if (editBarangayTextInput) editBarangayTextInput.value = '';
-
-            const provinceCode = editProvinceSelect.value;
-            if (!provinceCode) return;
-
-            try {
-                const response = await fetch('../json/city.json');
-                const cities = await response.json();
-                const filteredCities = cities.filter(c => c.province_code === provinceCode);
-                filteredCities.sort((a, b) => a.city_name.localeCompare(b.city_name));
-                filteredCities.forEach(entry => {
-                    const opt = document.createElement('option');
-                    opt.value = entry.city_code;
-                    opt.textContent = entry.city_name;
-                    editCitySelect.appendChild(opt);
-                });
-            } catch (error) {
-            }
-        });
-    }
-
-    if (editCitySelect) {
-        editCitySelect.addEventListener('change', async () => {
-            editBarangaySelect.innerHTML = '<option value="" selected="true" disabled>Choose Barangay</option>';
-            if (editCityTextInput) editCityTextInput.value = editCitySelect.options[editCitySelect.selectedIndex]?.textContent || '';
-            if (editBarangayTextInput) editBarangayTextInput.value = '';
-
-            const cityCode = editCitySelect.value;
-            if (!cityCode) return;
-
-            try {
-                const response = await fetch('../json/barangay.json');
-                const barangays = await response.json();
-                const filteredBarangays = barangays.filter(b => b.city_code === cityCode);
-                filteredBarangays.sort((a, b) => a.brgy_name.localeCompare(b.brgy_name));
-                filteredBarangays.forEach(entry => {
-                    const opt = document.createElement('option');
-                    opt.value = entry.brgy_code;
-                    opt.textContent = entry.brgy_name;
-                    editBarangaySelect.appendChild(opt);
-                });
-            } catch (error) {
-            }
-        });
-    }
-
-    if (editBarangaySelect) {
-        editBarangaySelect.addEventListener('change', () => {
-            if (editBarangayTextInput) editBarangayTextInput.value = editBarangaySelect.options[editBarangaySelect.selectedIndex]?.textContent || '';
-        });
-    }
-
     if (editOrgForm) {
         editOrgForm.addEventListener('submit', async e => {
             e.preventDefault();
@@ -901,7 +727,6 @@ function initializePageFunctions(adminUserId) {
 
     volunteerOrgsContainer.addEventListener('click', handleTableActions);
 
-    // Initial Data Fetch
     fetchApprovedApplications();
 }
 
@@ -918,7 +743,7 @@ function fetchApprovedApplications() {
                 const appKey = childSnapshot.key;
                 allApplications.push({ key: appKey, ...appData });
             });
-        } else {}
+        }
         applySearchAndSort();
     }, (error) => {
         showErrorAlert('Error', 'Failed to load approved applications. Please try again later.');
@@ -936,7 +761,7 @@ function renderApplications(applicationsToRender) {
     const paginatedApplications = applicationsToRender.slice(startIndex, endIndex);
 
     if (paginatedApplications.length === 0) {
-        volunteerOrgsContainer.innerHTML = '<tr><td colspan="13" style="text-align: center;">No approved applications found on this page.</td></tr>';
+        volunteerOrgsContainer.innerHTML = '<tr><td colspan="9" style="text-align: center;">No approved applications found on this page.</td></tr>';
         updateEntriesInfo(0);
         renderPagination(0);
         return;
@@ -960,11 +785,7 @@ function renderApplications(applicationsToRender) {
             <td>${app.email || 'N/A'}</td>
             <td>${app.mobileNumber || 'N/A'}</td>
             <td><a href="${app.socialMediaLink}" target="_blank" rel="noopener noreferrer">${app.socialMediaLink ? 'Link' : 'N/A'}</a></td>
-            <td>${app.headquarters?.region || 'N/A'}</td>
-            <td>${app.headquarters?.province || 'N/A'}</td>
-            <td>${app.headquarters?.city || 'N/A'}</td>
-            <td>${app.headquarters?.barangay || 'N/A'}</td>
-            <td>${app.headquarters?.streetAddress || 'N/A'}</td>
+            <td>${app.headquarters?.formattedAddress || 'N/A'}</td>
             <td>${formattedTimestamp}</td>
             <td>
                 <button title="View" class="viewBtn" data-key="${app.key}"><i class='bx bx-show-alt'></i></button>
@@ -1028,191 +849,146 @@ function updateEntriesInfo(totalItems) {
 
 // === Search and Sort ===
 function applySearchAndSort() {
-  const searchInput = document.getElementById('searchInput');
-  const sortSelect = document.getElementById('sortSelect');
-  let currentApplications = [...allApplications];
+    const searchInput = document.getElementById('searchInput');
+    const sortSelect = document.getElementById('sortSelect');
+    let currentApplications = [...allApplications];
 
-  // Set dynamic placeholder based on sort selection
-  const placeholderMap = {
-    'organizationName-asc': 'Search by Organization Name',
-    'organizationName-desc': 'Search by Organization Name',
-    'contactPerson-asc': 'Search by Contact Person',
-    'contactPerson-desc': 'Search by Contact Person',
-    'email-asc': 'Search by Email',
-    'email-desc': 'Search by Email',
-    'mobileNumber-asc': 'Search by Mobile Number',
-    'mobileNumber-desc': 'Search by Mobile Number',
-    'region-asc': 'Search by Region',
-    'region-desc': 'Search by Region',
-    'province-asc': 'Search by Province',
-    'province-desc': 'Search by Province',
-    'city-asc': 'Search by City',
-    'city-desc': 'Search by City',
-    'barangay-asc': 'Search by Barangay',
-    'barangay-desc': 'Search by Barangay',
-    'streetAddress-asc': 'Search by Street Address',
-    'streetAddress-desc': 'Search by Street Address',
-    'applicationDateandTime-asc': 'Search by Application Date/Time',
-    'applicationDateandTime-desc': 'Search by Application Date/Time',
-    'areasOfExpertiseFocus-asc': 'Search by Areas of Expertise/Focus',
-    'areasOfExpertiseFocus-desc': 'Search by Areas of Expertise/Focus',
-    'legalStatusRegistration-asc': 'Search by Legal Status/Registration',
-    'legalStatusRegistration-desc': 'Search by Legal Status/Registration',
-    'organizationalBackgroundMission-asc': 'Search by Organizational Background/Mission',
-    'organizationalBackgroundMission-desc': 'Search by Organizational Background/Mission',
-    'requiredDocumentsLink-asc': 'Search by Required Documents Link',
-    'requiredDocumentsLink-desc': 'Search by Required Documents Link',
-    'socialMediaLink-asc': 'Search by Social Media Link',
-    'socialMediaLink-desc': 'Search by Social Media Link',
-  };
-  searchInput.placeholder = placeholderMap[sortSelect.value] || 'Search All Fields';
+    const placeholderMap = {
+        'organizationName-asc': 'Search by Organization Name',
+        'organizationName-desc': 'Search by Organization Name',
+        'contactPerson-asc': 'Search by Contact Person',
+        'contactPerson-desc': 'Search by Contact Person',
+        'email-asc': 'Search by Email',
+        'email-desc': 'Search by Email',
+        'mobileNumber-asc': 'Search by Mobile Number',
+        'mobileNumber-desc': 'Search by Mobile Number',
+        'formattedAddress-asc': 'Search by Address',
+        'formattedAddress-desc': 'Search by Address',
+        'applicationDateandTime-asc': 'Search by Application Date/Time',
+        'applicationDateandTime-desc': 'Search by Application Date/Time',
+        'areasOfExpertiseFocus-asc': 'Search by Areas of Expertise/Focus',
+        'areasOfExpertiseFocus-desc': 'Search by Areas of Expertise/Focus',
+        'legalStatusRegistration-asc': 'Search by Legal Status/Registration',
+        'legalStatusRegistration-desc': 'Search by Legal Status/Registration',
+        'organizationalBackgroundMission-asc': 'Search by Organizational Background/Mission',
+        'organizationalBackgroundMission-desc': 'Search by Organizational Background/Mission',
+        'requiredDocumentsLink-asc': 'Search by Required Documents Link',
+        'requiredDocumentsLink-desc': 'Search by Required Documents Link',
+        'socialMediaLink-asc': 'Search by Social Media Link',
+        'socialMediaLink-desc': 'Search by Social Media Link',
+    };
+    searchInput.placeholder = placeholderMap[sortSelect.value] || 'Search All Fields';
 
-  // Apply search filter
-  const searchTerm = searchInput.value.toLowerCase().trim();
-  if (searchTerm) {
-    const sortValue = sortSelect.value;
-    const sortBy = sortValue ? sortValue.split('-')[0] : null;
+    const searchTerm = searchInput.value.toLowerCase().trim();
+    if (searchTerm) {
+      const sortValue = sortSelect.value;
+      const sortBy = sortValue ? sortValue.split('-')[0] : null;
 
-    currentApplications = currentApplications.filter((app) => {
-      if (!sortBy) {
-        // Search all fields when no sort option is selected
-        const fields = {
-          orgName: (app.organizationName || '').toLowerCase(),
-          contactPerson: (app.contactPerson || '').toLowerCase(),
-          email: (app.email || '').toLowerCase(),
-          mobileNumber: (app.mobileNumber || '').toLowerCase(),
-          region: (app.headquarters?.region || '').toLowerCase(),
-          province: (app.headquarters?.province || '').toLowerCase(),
-          city: (app.headquarters?.city || '').toLowerCase(),
-          barangay: (app.headquarters?.barangay || '').toLowerCase(),
-          streetAddress: (app.headquarters?.streetAddress || '').toLowerCase(),
-          applicationDateTime: app.applicationDateandTime ? new Date(app.applicationDateandTime).toLocaleString().toLowerCase() : '',
-          areasOfExpertiseFocus: (app.areasOfExpertiseFocus || '').toLowerCase(),
-          legalStatusRegistration: (app.legalStatusRegistration || '').toLowerCase(),
-          organizationalBackgroundMission: (app.organizationalBackgroundMission || '').toLowerCase(),
-          requiredDocumentsLink: (app.requiredDocumentsLink || '').toLowerCase(),
-          socialMediaLink: (app.socialMediaLink || '').toLowerCase(),
-        };
-        return Object.values(fields).some((field) => field.includes(searchTerm));
-      } else {
-        // Search only the selected field
-        let fieldValue;
-        switch (sortBy) {
-          case 'organizationName':
-            fieldValue = (app.organizationName || '').toLowerCase();
-            break;
-          case 'contactPerson':
-            fieldValue = (app.contactPerson || '').toLowerCase();
-            break;
-          case 'email':
-            fieldValue = (app.email || '').toLowerCase();
-            break;
-          case 'mobileNumber':
-            fieldValue = (app.mobileNumber || '').toLowerCase();
-            break;
-          case 'region':
-            fieldValue = (app.headquarters?.region || '').toLowerCase();
-            break;
-          case 'province':
-            fieldValue = (app.headquarters?.province || '').toLowerCase();
-            break;
-          case 'city':
-            fieldValue = (app.headquarters?.city || '').toLowerCase();
-            break;
-          case 'barangay':
-            fieldValue = (app.headquarters?.barangay || '').toLowerCase();
-            break;
-          case 'streetAddress':
-            fieldValue = (app.headquarters?.streetAddress || '').toLowerCase();
-            break;
-          case 'applicationDateandTime':
-            fieldValue = app.applicationDateandTime ? new Date(app.applicationDateandTime).toLocaleString().toLowerCase() : '';
-            break;
-          case 'areasOfExpertiseFocus':
-            fieldValue = (app.areasOfExpertiseFocus || '').toLowerCase();
-            break;
-          case 'legalStatusRegistration':
-            fieldValue = (app.legalStatusRegistration || '').toLowerCase();
-            break;
-          case 'organizationalBackgroundMission':
-            fieldValue = (app.organizationalBackgroundMission || '').toLowerCase();
-            break;
-          case 'requiredDocumentsLink':
-            fieldValue = (app.requiredDocumentsLink || '').toLowerCase();
-            break;
-          case 'socialMediaLink':
-            fieldValue = (app.socialMediaLink || '').toLowerCase();
-            break;
-          default:
-            fieldValue = (app.organizationName || '').toLowerCase();
+      currentApplications = currentApplications.filter((app) => {
+        if (!sortBy) {
+            const fields = {
+                orgName: (app.organizationName || '').toLowerCase(),
+                contactPerson: (app.contactPerson || '').toLowerCase(),
+                email: (app.email || '').toLowerCase(),
+                mobileNumber: (app.mobileNumber || '').toLowerCase(),
+                formattedAddress: (app.headquarters?.formattedAddress || '').toLowerCase(),
+                applicationDateTime: app.applicationDateandTime ? new Date(app.applicationDateandTime).toLocaleString().toLowerCase() : '',
+                areasOfExpertiseFocus: (app.areasOfExpertiseFocus || '').toLowerCase(),
+                legalStatusRegistration: (app.legalStatusRegistration || '').toLowerCase(),
+                organizationalBackgroundMission: (app.organizationalBackgroundMission || '').toLowerCase(),
+                requiredDocumentsLink: (app.requiredDocumentsLink || '').toLowerCase(),
+                socialMediaLink: (app.socialMediaLink || '').toLowerCase(),
+            };
+            return Object.values(fields).some((field) => field.includes(searchTerm));
+        } else {
+          let fieldValue;
+          switch (sortBy) {
+            case 'organizationName':
+              fieldValue = (app.organizationName || '').toLowerCase();
+              break;
+            case 'contactPerson':
+              fieldValue = (app.contactPerson || '').toLowerCase();
+              break;
+            case 'email':
+              fieldValue = (app.email || '').toLowerCase();
+              break;
+            case 'mobileNumber':
+              fieldValue = (app.mobileNumber || '').toLowerCase();
+              break;
+            case 'formattedAddress':
+              fieldValue = (app.headquarters?.formattedAddress || '').toLowerCase();
+              break
+            case 'applicationDateandTime':
+              fieldValue = app.applicationDateandTime ? new Date(app.applicationDateandTime).toLocaleString().toLowerCase() : '';
+              break;
+            case 'areasOfExpertiseFocus':
+              fieldValue = (app.areasOfExpertiseFocus || '').toLowerCase();
+              break;
+            case 'legalStatusRegistration':
+              fieldValue = (app.legalStatusRegistration || '').toLowerCase();
+              break;
+            case 'organizationalBackgroundMission':
+              fieldValue = (app.organizationalBackgroundMission || '').toLowerCase();
+              break;
+            case 'requiredDocumentsLink':
+              fieldValue = (app.requiredDocumentsLink || '').toLowerCase();
+              break;
+            case 'socialMediaLink':
+              fieldValue = (app.socialMediaLink || '').toLowerCase();
+              break;
+            default:
+              fieldValue = (app.organizationName || '').toLowerCase();
+          }
+          return fieldValue.includes(searchTerm);
         }
-        return fieldValue.includes(searchTerm);
-      }
-    });
-  }
+      });
+    }
 
-  // Apply sort
-  const sortValue = sortSelect.value;
-  if (sortValue) {
-    const [sortBy, order] = sortValue.split('-');
-    currentApplications.sort((a, b) => {
-      let valA, valB;
+    const sortValue = sortSelect.value;
+    if (sortValue) {
+        const [sortBy, order] = sortValue.split('-');
+        currentApplications.sort((a, b) => {
+            let valA, valB;
 
-      switch (sortBy) {
-        case 'organizationName':
-        case 'contactPerson':
-        case 'email':
-        case 'areasOfExpertiseFocus':
-        case 'legalStatusRegistration':
-        case 'organizationalBackgroundMission':
-        case 'requiredDocumentsLink':
-        case 'socialMediaLink':
-          valA = (a[sortBy] || '').toLowerCase();
-          valB = (b[sortBy] || '').toLowerCase();
-          break;
-        case 'mobileNumber':
-          valA = parseInt(a.mobileNumber || '0');
-          valB = parseInt(b.mobileNumber || '0');
-          break;
-        case 'region':
-          valA = (a.headquarters?.region || '').toLowerCase();
-          valB = (b.headquarters?.region || '').toLowerCase();
-          break;
-        case 'province':
-          valA = (a.headquarters?.province || '').toLowerCase();
-          valB = (b.headquarters?.province || '').toLowerCase();
-          break;
-        case 'city':
-          valA = (a.headquarters?.city || '').toLowerCase();
-          valB = (b.headquarters?.city || '').toLowerCase();
-          break;
-        case 'barangay':
-          valA = (a.headquarters?.barangay || '').toLowerCase();
-          valB = (b.headquarters?.barangay || '').toLowerCase();
-          break;
-        case 'streetAddress':
-          valA = (a.headquarters?.streetAddress || '').toLowerCase();
-          valB = (b.headquarters?.streetAddress || '').toLowerCase();
-          break;
-        case 'applicationDateandTime':
-          valA = new Date(a.applicationDateandTime || 0).getTime();
-          valB = new Date(b.applicationDateandTime || 0).getTime();
-          break;
-        default:
-          valA = (a.organizationName || '').toLowerCase();
-          valB = (b.organizationName || '').toLowerCase();
-      }
+            switch (sortBy) {
+                case 'organizationName':
+                case 'contactPerson':
+                case 'email':
+                case 'areasOfExpertiseFocus':
+                case 'legalStatusRegistration':
+                case 'organizationalBackgroundMission':
+                case 'requiredDocumentsLink':
+                case 'socialMediaLink':
+                    valA = (a[sortBy] || '').toLowerCase();
+                    valB = (b[sortBy] || '').toLowerCase();
+                    break;
+                case 'mobileNumber':
+                    valA = parseInt(a.mobileNumber || '0');
+                    valB = parseInt(b.mobileNumber || '0');
+                    break;
+                case 'formattedAddress':
+                    valA = (a.headquarters?.formattedAddress || '').toLowerCase();
+                    valB = (b.headquarters?.formattedAddress || '').toLowerCase();
+                    break;
+                case 'applicationDateandTime':
+                    valA = new Date(a.applicationDateandTime || 0).getTime();
+                    valB = new Date(b.applicationDateandTime || 0).getTime();
+                    break;
+                default:
+                    valA = (a.organizationName || '').toLowerCase();
+                    valB = (b.organizationName || '').toLowerCase();
+            }
 
-      if (typeof valA === 'number' && typeof valB === 'number') {
-        return order === 'asc' ? valA - valB : valB - valA;
-      }
-      return order === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
-    });
-  }
+            if (typeof valA === 'number' && typeof valB === 'number') {
+                return order === 'asc' ? valA - valB : valB - valA;
+            }
+            return order === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+        });
+    }
 
-  filteredApplications = currentApplications;
-  currentPage = 1;
-  renderApplications(filteredApplications);
+    filteredApplications = currentApplications;
+    currentPage = 1;
+    renderApplications(filteredApplications);
 }
 
 // === View Modal ===
@@ -1239,11 +1015,9 @@ function showPreviewModal(applicationData) {
             <hr>
             <h2>Headquarters Address:</h2>
             <div style="margin-left: 15px;">
-                <p><strong>Region:</strong> ${applicationData.headquarters?.region || 'N/A'}</p>
-                <p><strong>Province:</strong> ${applicationData.headquarters?.province || 'N/A'}</p>
-                <p><strong>City:</strong> ${applicationData.headquarters?.city || 'N/A'}</p>
-                <p><strong>Barangay:</strong> ${applicationData.headquarters?.barangay || 'N/A'}</p>
-                <p><strong>Street Address:</strong> ${applicationData.headquarters?.streetAddress || 'N/A'}</p>
+                <p><strong>Formatted Address:</strong> ${applicationData.headquarters?.formattedAddress || 'N/A'}</p>
+                <p><strong>Latitude:</strong> ${applicationData.headquarters?.latitude || 'N/A'}</p>
+                <p><strong>Longitude:</strong> ${applicationData.headquarters?.longitude || 'N/A'}</p>
             </div>
             <hr>
             <h2>Organizational Background:</h2>
@@ -1287,20 +1061,20 @@ async function handleTableActions(event) {
             showAccessDeniedAlert('edit applications');
             return;
         }
-        if (!isAdminVerified) {
-            const isVerified = await verifySuperAdminPassword();
-            if (!isVerified) return;
-        }
+        // if (!isAdminVerified) {
+        //     const isVerified = await verifySuperAdminPassword();
+        //     if (!isVerified) return;
+        // }
         openEditModal(appKey);
     } else if (target.classList.contains('registerBtn')) {
         if (!permissions.canConfirm) {
             showAccessDeniedAlert('register volunteer groups');
             return;
         }
-        if (!isAdminVerified) {
-            const isVerified = await verifySuperAdminPassword();
-            if (!isVerified) return;
-        }
+        // if (!isAdminVerified) {
+        //     const isVerified = await verifySuperAdminPassword();
+        //     if (!isVerified) return;
+        // }
         const application = allApplications.find(app => app.key === appKey);
         if (application) registerVolunteerGroup(application);
     } else if (target.classList.contains('archiveBtn')) {
@@ -1325,14 +1099,14 @@ async function handleTableActions(event) {
                 title: 'Success',
                 text: 'Application archived.',
                 icon: 'success',
-                timer: 1600,
-                showConfirmButton: false,
-                timerProgressBar: true,
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
                 allowOutsideClick: false,
                 customClass: {
                     popup: 'swal2-popup-success-clean',
                     title: 'swal2-title-success-clean',
-                    htmlContainer: 'swal2-text-success-clean'
+                    htmlContainer: 'swal2-text-success-clean',
+                    confirmButton: 'my-success-button'
                 }
             });
             fetchApprovedApplications();
@@ -1357,11 +1131,14 @@ async function openEditModal(appKey) {
     const editEmail = document.getElementById('editEmail');
     const editMobileNumber = document.getElementById('editMobileNumber');
     const editSocialMedia = document.getElementById('editSocialMedia');
-    const editStreetAddress = document.getElementById('editStreetAddress');
+    const editFormattedAddress = document.getElementById('editFormattedAddress');
+    const editLatitude = document.getElementById('editLatitude');
+    const editLongitude = document.getElementById('editLongitude');
     const editOrganizationalBackgroundMission = document.getElementById('editOrganizationalBackgroundMission');
     const editAreasOfExpertiseFocus = document.getElementById('editAreasOfExpertiseFocus');
     const editLegalStatusRegistration = document.getElementById('editLegalStatusRegistration');
     const editRequiredDocumentsLink = document.getElementById('editRequiredDocumentsLink');
+    const pacInput = document.getElementById('pac-input');
 
     editOrgFirebaseKey.value = appKey;
     editOrganization.value = applicationToEdit.organizationName || '';
@@ -1369,107 +1146,108 @@ async function openEditModal(appKey) {
     editEmail.value = applicationToEdit.email || '';
     editMobileNumber.setValue(applicationToEdit.mobileNumber || '');
     editSocialMedia.value = applicationToEdit.socialMediaLink === "N/A" ? "" : applicationToEdit.socialMediaLink;
-    editStreetAddress.value = applicationToEdit.headquarters?.streetAddress === "N/A" ? "" : applicationToEdit.headquarters?.streetAddress;
+    editFormattedAddress.value = applicationToEdit.headquarters?.formattedAddress || '';
+    editLatitude.value = applicationToEdit.headquarters?.latitude || '';
+    editLongitude.value = applicationToEdit.headquarters?.longitude || '';
     editOrganizationalBackgroundMission.value = applicationToEdit.organizationalBackgroundMission === "N/A" ? "" : applicationToEdit.organizationalBackgroundMission;
     editAreasOfExpertiseFocus.value = applicationToEdit.areasOfExpertiseFocus === "N/A" ? "" : applicationToEdit.areasOfExpertiseFocus;
     editLegalStatusRegistration.value = applicationToEdit.legalStatusRegistration === "N/A" ? "" : applicationToEdit.legalStatusRegistration;
     editRequiredDocumentsLink.value = applicationToEdit.requiredDocumentsLink === "N/A" ? "" : applicationToEdit.requiredDocumentsLink;
+    pacInput.value = applicationToEdit.headquarters?.formattedAddress || '';
 
-    await populateEditLocationDropdowns(
-        applicationToEdit.headquarters?.region,
-        applicationToEdit.headquarters?.province,
-        applicationToEdit.headquarters?.city,
-        applicationToEdit.headquarters?.barangay
-    );
+    // Ensure map is initialized and centered on existing coordinates if available
+    if (typeof google !== 'undefined' && applicationToEdit.headquarters?.latitude && applicationToEdit.headquarters?.longitude) {
+        const map = new google.maps.Map(document.getElementById('map'), {
+            center: {
+                lat: parseFloat(applicationToEdit.headquarters.latitude),
+                lng: parseFloat(applicationToEdit.headquarters.longitude)
+            },
+            zoom: 17,
+            mapTypeControl: false,
+        });
+
+        const marker = new google.maps.Marker({
+            map: map,
+            position: {
+                lat: parseFloat(applicationToEdit.headquarters.latitude),
+                lng: parseFloat(applicationToEdit.headquarters.longitude)
+            },
+            anchorPoint: new google.maps.Point(0, -29)
+        });
+
+        const autocomplete = new google.maps.places.Autocomplete(pacInput, {
+            types: ['geocode'],
+            componentRestrictions: { country: 'ph' }
+        });
+        autocomplete.bindTo('bounds', map);
+
+        autocomplete.addListener('place_changed', () => {
+            marker.setVisible(false);
+            const place = autocomplete.getPlace();
+
+            if (!place.geometry || !place.geometry.location) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Invalid Location',
+                    text: 'Please select a valid location from the suggestions.',
+                    confirmButtonText: 'OK',
+                    customClass: {
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean',
+                        confirmButton: 'my-error-button'
+                    }
+                });
+                return;
+            }
+
+            if (place.geometry.viewport) {
+                map.fitBounds(place.geometry.viewport);
+            } else {
+                map.setCenter(place.geometry.location);
+                map.setZoom(17);
+            }
+
+            marker.setPosition(place.geometry.location);
+            marker.setVisible(true);
+
+            editFormattedAddress.value = place.formatted_address || '';
+            editLatitude.value = place.geometry.location.lat();
+            editLongitude.value = place.geometry.location.lng();
+        });
+
+        map.addListener('click', (event) => {
+            const geocoder = new google.maps.Geocoder();
+            const latlng = event.latLng;
+
+            marker.setPosition(latlng);
+            marker.setVisible(true);
+
+            geocoder.geocode({ location: latlng }, (results, status) => {
+                if (status === 'OK' && results[0]) {
+                    editFormattedAddress.value = results[0].formatted_address;
+                    editLatitude.value = latlng.lat();
+                    editLongitude.value = latlng.lng();
+                    pacInput.value = results[0].formatted_address;
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Geocoding Failed',
+                        text: 'Unable to retrieve address for this location.',
+                        confirmButtonText: 'OK',
+                        customClass: {
+                            popup: 'swal2-popup-error-clean',
+                            title: 'swal2-title-error-clean',
+                            htmlContainer: 'swal2-text-error-clean',
+                            confirmButton: 'my-error-button'
+                        }
+                    });
+                }
+            });
+        });
+    }
 
     document.getElementById('editOrgModal').style.display = 'flex';
-}
-
-async function populateEditLocationDropdowns(selectedRegionName, selectedProvinceName, selectedCityName, selectedBarangayName) {
-    const editRegionSelect = document.getElementById('editRegion');
-    const editProvinceSelect = document.getElementById('editProvince');
-    const editCitySelect = document.getElementById('editCity');
-    const editBarangaySelect = document.getElementById('editBarangay');
-    const editRegionTextInput = document.getElementById('editRegion-text');
-    const editProvinceTextInput = document.getElementById('editProvince-text');
-    const editCityTextInput = document.getElementById('editCity-text');
-    const editBarangayTextInput = document.getElementById('editBarangay-text');
-
-    editRegionSelect.innerHTML = '<option value="" selected="true" disabled>Choose Region</option>';
-    editProvinceSelect.innerHTML = '<option value="" selected="true" disabled>Choose Province</option>';
-    editCitySelect.innerHTML = '<option value="" selected="true" disabled>Choose City / Municipality</option>';
-    editBarangaySelect.innerHTML = '<option value="" selected="true" disabled>Choose Barangay</option>';
-
-    try {
-        const regionResponse = await fetch('../json/region.json');
-        if (!regionResponse.ok) throw new Error(`HTTP error! Status: ${regionResponse.status}`);
-        const regions = await regionResponse.json();
-        regions.sort((a, b) => a.region_name.localeCompare(b.region_name));
-        regions.forEach(entry => {
-            const opt = document.createElement('option');
-            opt.value = entry.region_code;
-            opt.textContent = entry.region_name;
-            editRegionSelect.appendChild(opt);
-        });
-        const regionFound = regions.find(r => r.region_name === selectedRegionName);
-        if (regionFound) {
-            editRegionSelect.value = regionFound.region_code;
-            if (editRegionTextInput) editRegionTextInput.value = regionFound.region_name;
-        }
-
-        const provinceResponse = await fetch('../json/province.json');
-        if (!provinceResponse.ok) throw new Error(`HTTP error! Status: ${provinceResponse.status}`);
-        const provinces = await provinceResponse.json();
-        const filteredProvinces = provinces.filter(p => p.region_code === editRegionSelect.value);
-        filteredProvinces.sort((a, b) => a.province_name.localeCompare(b.province_name));
-        filteredProvinces.forEach(entry => {
-            const opt = document.createElement('option');
-            opt.value = entry.province_code;
-            opt.textContent = entry.province_name;
-            editProvinceSelect.appendChild(opt);
-        });
-        const provinceFound = filteredProvinces.find(p => p.province_name === selectedProvinceName);
-        if (provinceFound) {
-            editProvinceSelect.value = provinceFound.province_code;
-            if (editProvinceTextInput) editProvinceTextInput.value = provinceFound.province_name;
-        }
-
-        const cityResponse = await fetch('../json/city.json');
-        if (!cityResponse.ok) throw new Error(`HTTP error! Status: ${cityResponse.status}`);
-        const cities = await cityResponse.json();
-        const filteredCities = cities.filter(c => c.province_code === editProvinceSelect.value);
-        filteredCities.sort((a, b) => a.city_name.localeCompare(b.city_name));
-        filteredCities.forEach(entry => {
-            const opt = document.createElement('option');
-            opt.value = entry.city_code;
-            opt.textContent = entry.city_name;
-            editCitySelect.appendChild(opt);
-        });
-        const cityFound = filteredCities.find(c => c.city_name === selectedCityName);
-        if (cityFound) {
-            editCitySelect.value = cityFound.city_code;
-            if (editCityTextInput) editCityTextInput.value = cityFound.city_name;
-        }
-
-        const barangayResponse = await fetch('../json/barangay.json');
-        if (!barangayResponse.ok) throw new Error(`HTTP error! Status: ${barangayResponse.status}`);
-        const barangays = await barangayResponse.json();
-        const filteredBarangays = barangays.filter(b => b.city_code === editCitySelect.value);
-        filteredBarangays.sort((a, b) => a.brgy_name.localeCompare(b.brgy_name));
-        filteredBarangays.forEach(entry => {
-            const opt = document.createElement('option');
-            opt.value = entry.brgy_code;
-            opt.textContent = entry.brgy_name;
-            editBarangaySelect.appendChild(opt);
-        });
-        const barangayFound = filteredBarangays.find(b => b.brgy_name === selectedBarangayName);
-        if (barangayFound) {
-            editBarangaySelect.value = barangayFound.brgy_code;
-            if (editBarangayTextInput) editBarangayTextInput.value = barangayFound.brgy_name;
-        }
-    } catch (error) {
-        showErrorAlert('Failed to Load Location Data', `Unable to load location data for editing: ${error.message}.`);
-    }
 }
 
 // === Edit Form Submission ===
@@ -1479,7 +1257,7 @@ async function handleEditFormSubmission() {
         showAccessDeniedAlert('edit applications');
         return;
     }
-    
+
     const editOrgForm = document.getElementById('editOrgForm');
     const editOrgFirebaseKey = document.getElementById('editOrgFirebaseKey');
     const editOrganization = document.getElementById('editOrganization');
@@ -1487,11 +1265,9 @@ async function handleEditFormSubmission() {
     const editEmail = document.getElementById('editEmail');
     const editMobileNumber = document.getElementById('editMobileNumber');
     const editSocialMedia = document.getElementById('editSocialMedia');
-    const editRegionSelect = document.getElementById('editRegion');
-    const editProvinceSelect = document.getElementById('editProvince');
-    const editCitySelect = document.getElementById('editCity');
-    const editBarangaySelect = document.getElementById('editBarangay');
-    const editStreetAddress = document.getElementById('editStreetAddress');
+    const editFormattedAddress = document.getElementById('editFormattedAddress');
+    const editLatitude = document.getElementById('editLatitude');
+    const editLongitude = document.getElementById('editLongitude');
     const editOrganizationalBackgroundMission = document.getElementById('editOrganizationalBackgroundMission');
     const editAreasOfExpertiseFocus = document.getElementById('editAreasOfExpertiseFocus');
     const editLegalStatusRegistration = document.getElementById('editLegalStatusRegistration');
@@ -1508,48 +1284,57 @@ async function handleEditFormSubmission() {
     const updatedEmail = editEmail.value.trim();
     const updatedMobileNumber = editMobileNumber.value.trim();
     const updatedSocialMedia = editSocialMedia.value.trim();
-    const updatedStreetAddress = editStreetAddress.value.trim();
+    const updatedFormattedAddress = editFormattedAddress.value.trim();
+    const updatedLatitude = editLatitude.value.trim();
+    const updatedLongitude = editLongitude.value.trim();
     const updatedOrganizationalBackgroundMission = editOrganizationalBackgroundMission.value.trim();
     const updatedAreasOfExpertiseFocus = editAreasOfExpertiseFocus.value.trim();
     const updatedLegalStatusRegistration = editLegalStatusRegistration.value.trim();
     const updatedRequiredDocumentsLink = editRequiredDocumentsLink.value.trim();
 
-    const updatedRegionText = editRegionSelect.options[editRegionSelect.selectedIndex]?.textContent || '';
-    const updatedProvinceText = editProvinceSelect.options[editProvinceSelect.selectedIndex]?.textContent || '';
-    const updatedCityText = editCitySelect.options[editCitySelect.selectedIndex]?.textContent || '';
-    const updatedBarangayText = editBarangaySelect.options[editBarangaySelect.selectedIndex]?.textContent || '';
-
-    // Validate required fields
     if (!updatedOrganization || !updatedContactPerson || !updatedEmail || !updatedMobileNumber ||
-        !updatedRegionText || !updatedProvinceText || !updatedCityText || !updatedBarangayText ||
+        !updatedFormattedAddress || !updatedLatitude || !updatedLongitude ||
         !updatedOrganizationalBackgroundMission || !updatedAreasOfExpertiseFocus || !updatedLegalStatusRegistration) {
-        showErrorAlert('Error', 'Please fill in all required fields (Organization, Contact Person, Contact Information, Full Address, Organizational Background/Mission, Areas of Expertise/Focus, and Legal Status/Registration).');
+        showErrorAlert('Error', 'Please fill in all required fields, including selecting a valid location.');
         return;
     }
 
-    // Validate email
     if (!isValidEmail(updatedEmail)) {
         showErrorAlert('Invalid Email', 'Please enter a valid email address.');
         return;
     }
 
-    // Validate mobile number
     if (!isValidMobile(updatedMobileNumber)) {
-        showErrorAlert('Invalid Mobile Number', 'Mobile number must be 11 digits starting with "09" (e.g., 09123456789).');
+        showErrorAlert('Invalid Mobile Number', 'Mobile number must be 11 digits starting with "09".');
         return;
     }
 
-    // Validate URL for requiredDocumentsLink if provided
+    const lat = parseFloat(updatedLatitude);
+    const lon = parseFloat(updatedLongitude);
+    if (isNaN(lat) || lat < -90 || lat > 90) {
+        showErrorAlert('Invalid Latitude', 'Latitude must be a number between -90 and 90.');
+        return;
+    }
+    if (isNaN(lon) || lon < -180 || lon > 180) {
+        showErrorAlert('Invalid Longitude', 'Longitude must be a number between -180 and 180.');
+        return;
+    }
+
     if (updatedRequiredDocumentsLink && updatedRequiredDocumentsLink !== "N/A") {
         try {
             new URL(updatedRequiredDocumentsLink);
         } catch (e) {
-            showErrorAlert('Invalid URL', 'Required Documents Link must be a valid URL (e.g., https://example.com/documents).');
+            showErrorAlert('Invalid URL', 'Required Documents Link must be a valid URL.');
             return;
         }
     }
 
-    // Validate form
+    const duplicateCheck = await checkDuplicates(updatedEmail, updatedMobileNumber, updatedOrganization);
+    if (duplicateCheck.isDuplicate && duplicateCheck.location !== `abvnApplications/approvedABVN/${appKey}`) {
+        showErrorAlert('Duplicate Entry', `The ${duplicateCheck.reason} is already in use elsewhere (${duplicateCheck.location}).`);
+        return;
+    }
+
     if (!editOrgForm.checkValidity()) {
         editOrgForm.reportValidity();
         return;
@@ -1560,14 +1345,12 @@ async function handleEditFormSubmission() {
             organizationName: updatedOrganization,
             contactPerson: updatedContactPerson,
             email: updatedEmail,
-            mobileNumber: updatedMobileNumber, // Save the actual mobile number string
+            mobileNumber: updatedMobileNumber,
             socialMediaLink: updatedSocialMedia || "N/A",
             headquarters: {
-                region: updatedRegionText,
-                province: updatedProvinceText,
-                city: updatedCityText,
-                barangay: updatedBarangayText,
-                streetAddress: updatedStreetAddress || "N/A"
+                formattedAddress: updatedFormattedAddress,
+                latitude: lat,
+                longitude: lon
             },
             organizationalBackgroundMission: updatedOrganizationalBackgroundMission || "N/A",
             areasOfExpertiseFocus: updatedAreasOfExpertiseFocus || "N/A",
@@ -1575,9 +1358,9 @@ async function handleEditFormSubmission() {
             requiredDocumentsLink: updatedRequiredDocumentsLink || "N/A",
             lastUpdatedBy: auth.currentUser.uid,
             lastUpdatedAt: new Date().toISOString(),
-            applicationDateandTime: allApplications.find(app => app.key === appKey).applicationDateandTime, // Preserve original
-            approvedApplicationDate: allApplications.find(app => app.key === appKey).approvedApplicationDate, // Preserve original
-            recaptchaResponse: allApplications.find(app => app.key === appKey).recaptchaResponse // Preserve original
+            applicationDateandTime: allApplications.find(app => app.key === appKey).applicationDateandTime,
+            approvedApplicationDate: allApplications.find(app => app.key === appKey).approvedApplicationDate,
+            recaptchaResponse: allApplications.find(app => app.key === appKey).recaptchaResponse
         };
 
         await database.ref(`abvnApplications/approvedABVN/${appKey}`).update(updatedData);
@@ -1597,216 +1380,261 @@ async function handleEditFormSubmission() {
         });
         document.getElementById('editOrgModal').style.display = 'none';
         editOrgForm.reset();
+        document.getElementById('pac-input').value = ''; // Clear the search input
         fetchApprovedApplications();
     } catch (error) {
         showErrorAlert('Error', 'Failed to update approved application. Please try again.');
     }
 }
 
-// === Register Volunteer Group ===
 async function registerVolunteerGroup(applicationData) {
-  const result = await Swal.fire({
-    title: 'Confirm Registration',
-    text: `Are you sure you want to register "${applicationData.organizationName}" as a volunteer group?`,
-    icon: 'question',
-    showCancelButton: true,
-    confirmButtonText: 'Yes, Register!',
-    cancelButtonText: 'Cancel',
-    reverseButtons: true,
-    customClass: {
-      popup: 'custom-swal-popup-large',
-      title: 'custom-swal-title',
-      htmlContainer: 'custom-swal-content',
-      confirmButton: 'custom-confirm-btn',
-      cancelButton: 'custom-cancel-btn'
-    }
-  });
-  if (!result.isConfirmed) {
-    return;
-  }
-
-  Swal.fire({
-    icon: 'success',
-    title: 'Processing...',
-    html: 'Registering volunteer group and creating user account. Please wait.',
-    allowOutsideClick: false,
-    showConfirmButton: false,
-    timerProgressBar: true,
-    customClass: {
-      popup: 'swal2-popup-success-clean',
-      title: 'swal2-title-success-clean',
-      htmlContainer: 'swal2-text-success-clean'
-    },
-    didOpen: () => {
-      Swal.showLoading();
-    }
-  });
-
-  let newUserAuthId = null;
-  let tempPassword = null;
-
-  try {
-    // Validate required fields
-    if (!applicationData.organizationName || !applicationData.contactPerson || !applicationData.email || !applicationData.mobileNumber ||
-        !applicationData.headquarters?.region || !applicationData.headquarters?.province ||
-        !applicationData.headquarters?.city || !applicationData.headquarters?.barangay) {
-      throw new Error("Missing required fields in application data for registration.");
-    }
-
-    if (!isValidEmail(applicationData.email)) {
-      throw new Error("Invalid email format in application data.");
-    }
-
-    const formattedMobile = applicationData.mobileNumber;
-    if (!isValidMobile(formattedMobile)) {
-      throw new Error("Invalid mobile number format in application data.");
-    }
-
-    const adminUser = auth.currentUser;
-    if (!adminUser) {
-      throw new Error("No admin signed in. Please sign in again.");
-    }
-
-    // Check for duplicates
-    console.log(`[${new Date().toISOString()}] Checking duplicates for mobile: ${formattedMobile}, email: ${applicationData.email}, org: ${applicationData.organizationName}`);
-    const duplicateCheck = await checkDuplicates(applicationData.email, formattedMobile, applicationData.organizationName);
-    if (duplicateCheck.isDuplicate) {
-      throw new Error(`An application or user with this ${duplicateCheck.reason} already exists at ${duplicateCheck.location}. Please use a unique ${duplicateCheck.reason}.`);
-    }
-
-    // Create user in Firebase Authentication
-    let userAuthAlreadyExists = false;
-    try {
-      const signInMethods = await secondaryAuth.fetchSignInMethodsForEmail(applicationData.email);
-      if (signInMethods && signInMethods.length > 0) {
-        userAuthAlreadyExists = true;
-        const usersSnapshot = await database.ref('users').orderByChild('email').equalTo(applicationData.email).once('value');
-        if (usersSnapshot.exists()) {
-          newUserAuthId = Object.keys(usersSnapshot.val())[0];
-        } else {
-          throw new Error(`An account with this email already exists in Firebase Authentication, but its details are not found in the application's user database. Please verify if the organization is already registered.`);
+    const result = await Swal.fire({
+        title: 'Confirm Registration',
+        text: `Are you sure you want to register "${applicationData.organizationName}" as a volunteer group?`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, Register!',
+        cancelButtonText: 'Cancel',
+        reverseButtons: true,
+        customClass: {
+            popup: 'custom-swal-popup-large',
+            title: 'custom-swal-title',
+            htmlContainer: 'custom-swal-content',
+            confirmButton: 'custom-confirm-btn',
+            cancelButton: 'custom-cancel-btn'
         }
-      }
-    } catch (error) {
-      throw new Error(`Firebase Auth user check failed: ${error.message}`);
+    });
+    if (!result.isConfirmed) {
+        return;
     }
 
-    if (!userAuthAlreadyExists) {
-      tempPassword = generateTempPassword();
-      const userCredential = await secondaryAuth.createUserWithEmailAndPassword(applicationData.email, tempPassword);
-      newUserAuthId = userCredential.user.uid;
-
-      // Save user data
-      await database.ref(`users/${newUserAuthId}`).set({
-        role: "ABVN",
-        email: applicationData.email,
-        mobile: formattedMobile,
-        organization: applicationData.organizationName,
-        contactPerson: applicationData.contactPerson,
-        address: {
-          region: applicationData.headquarters?.region || "N/A",
-          province: applicationData.headquarters?.province || "N/A",
-          city: applicationData.headquarters?.city || "N/A",
-          barangay: applicationData.headquarters?.barangay || "N/A",
-          streetAddress: applicationData.headquarters?.streetAddress || "N/A"
-        },
-        createdAt: new Date().toISOString(),
-        isFirstLogin: true,
-        emailVerified: false,
-        password_needs_reset: true
-      });
-    }
-
-    // Prepare volunteer group data
-    const currentVolunteerGroupsSnapshot = await database.ref('volunteerGroups').once('value');
-    const currentGroups = currentVolunteerGroupsSnapshot.val();
-
-    let groupKeyToSave = null;
-    let groupAlreadyExists = false;
-
-    if (currentGroups) {
-      for (const key in currentGroups) {
-        if (currentGroups[key].userId === newUserAuthId || currentGroups[key].email === applicationData.email) {
-          groupKeyToSave = key;
-          groupAlreadyExists = true;
-          break;
-        }
-      }
-    }
-
-    if (!groupAlreadyExists) {
-      let nextKey = 1;
-      if (currentGroups) {
-        const keys = Object.keys(currentGroups).map(Number);
-        if (keys.length > 0) {
-          nextKey = Math.max(...keys) + 1;
-        }
-      }
-      groupKeyToSave = nextKey;
-    }
-
-    const volunteerGroupData = {
-      organization: applicationData.organizationName,
-      contactPerson: applicationData.contactPerson,
-      email: applicationData.email,
-      mobileNumber: formattedMobile,
-      socialMedia: applicationData.socialMediaLink || "N/A",
-      address: {
-        region: applicationData.headquarters?.region || "N/A",
-        province: applicationData.headquarters?.province || "N/A",
-        city: applicationData.headquarters?.city || "N/A",
-        barangay: applicationData.headquarters?.barangay || "N/A",
-        streetAddress: applicationData.headquarters?.streetAddress || "N/A"
-      },
-      organizationalBackgroundMission: applicationData.organizationalBackgroundMission || "N/A",
-      areasOfExpertiseFocus: applicationData.areasOfExpertiseFocus || "N/A",
-      legalStatusRegistration: applicationData.legalStatusRegistration || "N/A",
-      requiredDocumentsLink: applicationData.requiredDocumentsLink || "N/A",
-      userId: newUserAuthId,
-      registeredAt: new Date().toISOString(),
-      lastUpdatedBy: adminUser.uid,
-      lastUpdatedAt: new Date().toISOString(),
-      applicationDateandTime: applicationData.applicationDateandTime,
-      approvedApplicationDate: applicationData.approvedApplicationDate,
-      recaptchaResponse: applicationData.recaptchaResponse || "N/A" // Default to "N/A" if undefined
-    };
-
-    // Save to volunteerGroups
-    try {
-      if (groupAlreadyExists) {
-        await database.ref(`volunteerGroups/${groupKeyToSave}`).update(volunteerGroupData);
-      } else {
-        await database.ref(`volunteerGroups/${groupKeyToSave}`).set(volunteerGroupData);
-      }
-
-      // Save to registeredABVN
-      await database.ref(`abvnApplications/registeredABVN/${applicationData.key}`).set({
-        ...applicationData,
-        registeredBy: adminUser.uid,
-        registeredAt: new Date().toISOString(),
-        volunteerGroupKey: groupKeyToSave,
-        authUserId: newUserAuthId,
-        recaptchaResponse: applicationData.recaptchaResponse || "N/A" // Ensure consistency
-      });
-
-      // Remove from approvedABVN
-      await database.ref(`abvnApplications/approvedABVN/${applicationData.key}`).remove();
-
-      // Send email if new user was created
-      if (tempPassword) {
-        await emailjs.send('service_g5f0erj', 'template_0yk865p', {
-          email: applicationData.email,
-          organization: applicationData.organizationName,
-          tempPassword: tempPassword,
-          message: `Your volunteer group "${applicationData.organizationName}" has been successfully registered with Bayanihan. Please use the credentials below to log in. You will be prompted to verify your email and reset your password upon your first login.`,
-          verification_message: `Please log in using the provided email and temporary password. You will be prompted to verify your email and reset your password upon your first login.`
-        });
-      }
-
-      Swal.fire({
+    Swal.fire({
         icon: 'success',
-        title: groupAlreadyExists ? 'Group Updated!' : 'Successfully Registered!',
-        text: `${applicationData.organizationName} has been ${groupAlreadyExists ? 'updated in' : 'added to'} Volunteer Groups. ${tempPassword ? 'Login credentials sent via email.' : ''}`,
+        title: 'Processing...',
+        html: 'Registering volunteer group and creating user account. Please wait.',
+        allowOutsideClick: false,
+        showConfirmButton: false,
+        timerProgressBar: true,
+        customClass: {
+            popup: 'swal2-popup-success-clean',
+            title: 'swal2-title-success-clean',
+            htmlContainer: 'swal2-text-success-clean'
+        },
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
+    let newUserAuthId = null;
+    let tempPassword = null;
+
+    try {
+        if (!applicationData.organizationName || !applicationData.contactPerson || !applicationData.email || !applicationData.mobileNumber || !applicationData.headquarters?.formattedAddress || !applicationData.headquarters?.latitude || !applicationData.headquarters?.longitude) {
+            throw new Error("Missing required fields in application data for registration.");
+        }
+
+        if (!isValidEmail(applicationData.email)) {
+            throw new Error("Invalid email format in application data.");
+        }
+
+        const formattedMobile = applicationData.mobileNumber;
+        if (!isValidMobile(formattedMobile)) {
+            throw new Error("Invalid mobile number format in application data.");
+        }
+
+        const lat = parseFloat(applicationData.headquarters.latitude);
+        const lon = parseFloat(applicationData.headquarters.longitude);
+        if (isNaN(lat) || lat < -90 || lat > 90 || isNaN(lon) || lon < -180 || lon > 180) {
+            throw new Error("Invalid latitude or longitude in application data.");
+        }
+
+        const adminUser = auth.currentUser;
+        if (!adminUser) {
+            throw new Error("No admin signed in. Please sign in again.");
+        }
+
+        const duplicateCheck = await checkDuplicates(applicationData.email, formattedMobile, applicationData.organizationName);
+        if (duplicateCheck.isDuplicate) {
+            throw new Error(`An application or user with this ${duplicateCheck.reason} already exists at ${duplicateCheck.location}. Please use a unique ${duplicateCheck.reason}.`);
+        }
+
+        let userAuthAlreadyExists = false;
+        try {
+            const signInMethods = await secondaryAuth.fetchSignInMethodsForEmail(applicationData.email);
+            if (signInMethods && signInMethods.length > 0) {
+                userAuthAlreadyExists = true;
+                const usersSnapshot = await database.ref('users').orderByChild('email').equalTo(applicationData.email).once('value');
+                if (usersSnapshot.exists()) {
+                    newUserAuthId = Object.keys(usersSnapshot.val())[0];
+                } else {
+                    throw new Error(`An account with this email already exists in Firebase Authentication, but its details are not found in the application's user database. Please verify if the organization is already registered.`);
+                }
+            }
+        } catch (error) {
+            throw new Error(`Firebase Auth user check failed: ${error.message}`);
+        }
+
+        if (!userAuthAlreadyExists) {
+            tempPassword = generateTempPassword();
+            const userCredential = await secondaryAuth.createUserWithEmailAndPassword(applicationData.email, tempPassword);
+            newUserAuthId = userCredential.user.uid;
+
+            await database.ref(`users/${newUserAuthId}`).set({
+                role: "ABVN",
+                email: applicationData.email,
+                mobile: formattedMobile,
+                organization: applicationData.organizationName,
+                contactPerson: applicationData.contactPerson,
+                address: {
+                    formattedAddress: applicationData.headquarters.formattedAddress,
+                    latitude: applicationData.headquarters.latitude,
+                    longitude: applicationData.headquarters.longitude
+                },
+                createdAt: new Date().toISOString(),
+                isFirstLogin: true,
+                emailVerified: false,
+                password_needs_reset: true
+            });
+        }
+
+        const volunteerGroupData = {
+            organization: applicationData.organizationName,
+            contactPerson: applicationData.contactPerson,
+            email: applicationData.email,
+            mobileNumber: formattedMobile,
+            socialMedia: applicationData.socialMediaLink || "N/A",
+            address: {
+                formattedAddress: applicationData.headquarters.formattedAddress,
+                latitude: applicationData.headquarters.latitude,
+                longitude: applicationData.headquarters.longitude
+            },
+            organizationalBackgroundMission: applicationData.organizationalBackgroundMission || "N/A",
+            areasOfExpertiseFocus: applicationData.areasOfExpertiseFocus || "N/A",
+            legalStatusRegistration: applicationData.legalStatusRegistration || "N/A",
+            requiredDocumentsLink: applicationData.requiredDocumentsLink || "N/A",
+            userId: newUserAuthId,
+            registeredAt: new Date().toISOString(),
+            lastUpdatedBy: adminUser.uid,
+            lastUpdatedAt: new Date().toISOString(),
+            applicationDateandTime: applicationData.applicationDateandTime,
+            approvedApplicationDate: applicationData.approvedApplicationDate,
+            recaptchaResponse: applicationData.recaptchaResponse || "N/A"
+        };
+
+        try {
+            // Use newUserAuthId as the key for volunteerGroups, consistent with vgm.js
+            await database.ref(`volunteerGroups/${newUserAuthId}`).set(volunteerGroupData);
+
+            await database.ref(`abvnApplications/registeredABVN/${applicationData.key}`).set({
+                ...applicationData,
+                registeredBy: adminUser.uid,
+                registeredAt: new Date().toISOString(),
+                volunteerGroupKey: newUserAuthId, // Use newUserAuthId instead of groupKeyToSave
+                authUserId: newUserAuthId,
+                recaptchaResponse: applicationData.recaptchaResponse || "N/A"
+            });
+
+            await database.ref(`abvnApplications/approvedABVN/${applicationData.key}`).remove();
+
+            if (tempPassword) {
+                await emailjs.send('service_g5f0erj', 'template_0yk865p', {
+                    email: applicationData.email,
+                    organization: applicationData.organizationName,
+                    tempPassword: tempPassword,
+                    message: `Your volunteer group "${applicationData.organizationName}" has been successfully registered with Bayanihan. Please use the credentials below to log in. You will be prompted to verify your email and reset your password upon your first login.`,
+                    verification_message: `Please log in using the provided email and temporary password. You will be prompted to verify your email and reset your password upon your first login.`
+                });
+            }
+
+            Swal.fire({
+                icon: 'success',
+                title: 'Successfully Registered!',
+                text: `${applicationData.organizationName} has been added to Volunteer Groups. ${tempPassword ? 'Login credentials sent via email.' : ''}`,
+                confirmButtonText: 'OK',
+                showConfirmButton: true,
+                allowOutsideClick: false,
+                customClass: {
+                    popup: 'swal2-popup-success-clean',
+                    title: 'swal2-title-success-clean',
+                    htmlContainer: 'swal2-text-success-clean',
+                    confirmButton: 'my-success-button'
+                }
+            });
+
+            fetchApprovedApplications();
+        } catch (error) {
+            if (newUserAuthId && !userAuthAlreadyExists) {
+                try {
+                    await database.ref(`users/${newUserAuthId}`).remove();
+                    await secondaryAuth.currentUser.delete();
+                } catch (rollbackError) {}
+            }
+            throw error;
+        }
+    } catch (error) {
+        let errorMessage = 'Failed to register volunteer group. Please try again.';
+        if (error.message.includes('auth/email-already-in-use')) {
+            errorMessage = 'An account with this email already exists. Please check if the organization is already registered or use a different email.';
+        } else if (error.message.includes('Mobile number already registered for a different user.')) {
+            errorMessage = 'This mobile number is already linked to a different existing user. Please ensure the organization is not already registered or use a unique mobile number.';
+        } else if (error.message.includes('No admin signed in.')) {
+            errorMessage = 'Your admin session has expired. Please log in again to register groups.';
+        } else if (error.message.includes('An application or user with this')) {
+            errorMessage = error.message;
+        } else {
+            errorMessage = `An unexpected error occurred: ${error.message}`;
+        }
+        showErrorAlert('Registration Failed', errorMessage);
+    } finally {
+        Swal.hideLoading();
+        if (secondaryAuth.currentUser) {
+            await secondaryAuth.signOut();
+        }
+    }
+}
+
+// === Excel Template Download ===
+function downloadExcelTemplate() {
+    const templateData = [
+        [
+            'Organization Name',
+            'Contact Person',
+            'Email',
+            'Mobile Number',
+            'Social Media',
+            'Formatted Address',
+            'Latitude',
+            'Longitude',
+            'Organizational Background/Mission',
+            'Areas of Expertise/Focus',
+            'Legal Status/Registration',
+            'Required Documents Link',
+        ],
+        [
+            'Community Care Network',
+            'Angela Bautista',
+            'angela.bautista@gmail.com',
+            '09171239876',
+            'https://facebook.com/ccnph',
+            '12 Unity Street, Barangay Poblacion, Makati City, Metro Manila, NCR, Philippines',
+            '14.5590',
+            '121.0270',
+            'Strengthening community resilience through health and livelihood initiatives.',
+            'Health, Livelihood',
+            'Non-Profit Organization',
+            'https://drive.google.com/file/d/ccn',
+        ],
+    ];
+
+    const ws = XLSX.utils.aoa_to_sheet(templateData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Template');
+    XLSX.writeFile(wb, 'approved_abvn_application_template.xlsx');
+
+    Swal.fire({
+        title: 'Template Downloaded!',
+        text: 'Excel template has been downloaded successfully.',
+        icon: 'success',
         confirmButtonText: 'OK',
         showConfirmButton: true,
         allowOutsideClick: false,
@@ -1816,266 +1644,173 @@ async function registerVolunteerGroup(applicationData) {
           htmlContainer: 'swal2-text-success-clean',
           confirmButton: 'my-success-button'
         }
-      });
-
-      fetchApprovedApplications();
-    } catch (error) {
-      // Rollback user creation if volunteerGroups or registeredABVN write fails
-      if (newUserAuthId && !userAuthAlreadyExists) {
-        try {
-          await database.ref(`users/${newUserAuthId}`).remove();
-          await secondaryAuth.currentUser.delete();
-        } catch (rollbackError) {
-          console.error(`[${new Date().toISOString()}] Rollback failed: ${rollbackError.message}`);
-        }
-      }
-      throw error;
-    }
-  } catch (error) {
-    let errorMessage = 'Failed to register volunteer group. Please try again.';
-    if (error.message.includes('auth/email-already-in-use')) {
-      errorMessage = 'An account with this email already exists. Please check if the organization is already registered or use a different email.';
-    } else if (error.message.includes('Mobile number already registered for a different user.')) {
-      errorMessage = 'This mobile number is already linked to a different existing user. Please ensure the organization is not already registered or use a unique mobile number.';
-    } else if (error.message.includes('No admin signed in.')) {
-      errorMessage = 'Your admin session has expired. Please log in again to register groups.';
-    } else if (error.message.includes('An application or user with this')) {
-      errorMessage = error.message;
-    } else {
-      errorMessage = `An unexpected error occurred: ${error.message}`;
-    }
-    showErrorAlert('Registration Failed', errorMessage);
-  } finally {
-    Swal.hideLoading();
-    if (secondaryAuth.currentUser) {
-      await secondaryAuth.signOut();
-    }
-  }
-}
-
-// === Excel Template Download ===
-function downloadExcelTemplate() {
-  const templateData = [
-    [
-      'Organization Name',
-      'Contact Person',
-      'Email',
-      'Mobile Number',
-      'Social Media',
-      'Region',
-      'Province',
-      'City',
-      'Barangay',
-      'Street Address',
-      'Organizational Background/Mission',
-      'Areas of Expertise/Focus',
-      'Legal Status/Registration',
-      'Required Documents Link',
-    ],
-    [
-        'Community Care Network',
-        'Angela Bautista',
-        'angela.bautista@gmail.com',
-        '09171239876',
-        'https://facebook.com/ccnph',
-        'NCR',
-        'Metro Manila',
-        'Makati City',
-        'Barangay Poblacion',
-        '12 Unity Street',
-        'Strengthening community resilience through health and livelihood initiatives.',
-        'Health, Livelihood',
-        'Non-Profit Organization',
-        'https://drive.google.com/file/d/ccn',
-    ],
-  ];
-
-  const ws = XLSX.utils.aoa_to_sheet(templateData);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Template');
-  XLSX.writeFile(wb, 'approved_abvn_application_template.xlsx');
-
-  Swal.fire({
-    title: 'Template Downloaded!',
-    text: 'Excel template has been downloaded successfully.',
-    icon: 'success',
-    timer: 2500,
-    showConfirmButton: false,
-    timerProgressBar: true,
-    allowOutsideClick: false,
-    customClass: {
-      popup: 'swal2-popup-success-clean',
-      title: 'swal2-title-success-clean',
-      htmlContainer: 'swal2-text-success-clean'
-    }
-  });
+    });
 }
 
 // === Import Excel ===
 async function handleExcelFileSelect(event) {
-  const permissions = await checkAdminPermissions();
-  if (!permissions.canImport) {
-    showAccessDeniedAlert('import volunteer group applications');
-    return;
-  }
-
-  const file = event.target.files[0];
-  if (!file) return;
-
-  importProgressBar.style.width = '0%';
-  importProgressBar.textContent = '0%';
-  importProgressBar.style.backgroundColor = '#4CAF50';
-  importStatusText.textContent = 'Reading Excel file...';
-  importErrorList.innerHTML = '';
-  importStatusModal.style.display = 'flex';
-
-  const reader = new FileReader();
-  reader.onload = async (e) => {
-    try {
-      const data = new Uint8Array(e.target.result);
-      const workbook = XLSX.read(data, { type: 'array' });
-      const firstSheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[firstSheetName];
-      const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-
-      if (jsonData.length === 0) {
-        throw new Error("The Excel file is empty or could not be read.");
-      }
-
-      const headers = jsonData[0];
-      const rows = jsonData.slice(1);
-      const columnMap = {
-        'Organization Name': 'organizationName',
-        'Contact Person': 'contactPerson',
-        'Email': 'email',
-        'Mobile Number': 'mobileNumber',
-        'Social Media': 'socialMediaLink',
-        'Region': 'headquarters.region',
-        'Province': 'headquarters.province',
-        'City': 'headquarters.city',
-        'Barangay': 'headquarters.barangay',
-        'Street Address': 'headquarters.streetAddress',
-        'Organizational Background/Mission': 'organizationalBackgroundMission',
-        'Areas of Expertise/Focus': 'areasOfExpertiseFocus',
-        'Legal Status/Registration': 'legalStatusRegistration',
-        'Required Documents Link': 'requiredDocumentsLink',
-      };
-
-      const mappedData = [];
-      const importErrors = [];
-      let processedCount = 0;
-      const totalRecords = rows.length;
-
-      if (totalRecords === 0) {
-        Swal.fire({
-          title: 'No Data',
-          text: 'The Excel file contains headers but no data rows.',
-          icon: 'info',
-          timer: 1600,
-          showConfirmButton: false,
-          timerProgressBar: true
-        });
-        importStatusModal.style.display = 'none';
+    const permissions = await checkAdminPermissions();
+    if (!permissions.canImport) {
+        showAccessDeniedAlert('import volunteer group applications');
         return;
-      }
-
-      importStatusText.textContent = `Validating and preparing ${totalRecords} records...`;
-
-      const pendingSnapshot = await database.ref('abvnApplications/pendingABVN').once('value');
-      const approvedSnapshot = await database.ref('abvnApplications/approvedABVN').once('value');
-      const rejectedSnapshot = await database.ref('abvnApplications/rejectedABVN').once('value');
-
-      const existingRecords = new Set();
-      [pendingSnapshot, approvedSnapshot, rejectedSnapshot].forEach(snapshot => {
-        if (snapshot.exists()) {
-          snapshot.forEach(child => {
-            const data = child.val();
-            if (data.organizationName) existingRecords.add(`org:${data.organizationName.trim().toLowerCase()}`);
-            if (data.email) existingRecords.add(`email:${data.email.trim().toLowerCase()}`);
-            if (data.contactPerson) existingRecords.add(`contact:${data.contactPerson.trim().toLowerCase()}`);
-            if (data.mobileNumber) existingRecords.add(`mobile:${data.mobileNumber.trim()}`);
-            if (data.headquarters?.streetAddress) existingRecords.add(`address:${data.headquarters.streetAddress.trim().toLowerCase()}`);
-          });
-        }
-      });
-
-      for (let i = 0; i < totalRecords; i++) {
-        const row = rows[i];
-        const { record, isValidRecord, rowErrors } = validateExcelRow(row, headers, columnMap, existingRecords);
-        if (isValidRecord) {
-          mappedData.push(record);
-        } else {
-          importErrors.push(`Row ${i + 2} (${record.organizationName || 'N/A'}): ${rowErrors.join(', ')}`);
-        }
-        processedCount++;
-        const progress = Math.round((processedCount / totalRecords) * 100);
-        importProgressBar.style.width = `${progress}%`;
-        importProgressBar.textContent = `${progress}%`;
-        importStatusText.textContent = `Processing ${processedCount}/${totalRecords} records...`;
-      }
-
-      if (mappedData.length === 0) {
-        showErrorAlert('No Valid Records', 'No valid records found in the Excel file after validation. Check errors for details.');
-        importErrorList.innerHTML = importErrors.map(err => `<li>${err}</li>`).join('');
-        importProgressBar.style.backgroundColor = '#f44336';
-        return;
-      }
-
-      importStatusText.textContent = `Importing ${mappedData.length} valid records to Firebase...`;
-
-      let successCount = 0;
-      let currentErrors = [];
-
-      for (const appData of mappedData) {
-        try {
-          const newAppRef = database.ref('abvnApplications/approvedABVN').push();
-          await newAppRef.set(appData);
-          successCount++;
-        } catch (error) {
-          currentErrors.push(`Failed to import "${appData.organizationName || 'N/A'}": ${error.message}`);
-        }
-        processedCount++;
-        const progress = Math.round((processedCount / rows.length) * 100);
-        importProgressBar.style.width = `${progress}%`;
-        importProgressBar.textContent = `${progress}%`;
-        importStatusText.textContent = `Processing ${processedCount}/${rows.length} records...`;
-      }
-
-      importErrorList.innerHTML = importErrors.concat(currentErrors).map(err => `<li>${err}</li>`).join('');
-      if (successCount > 0) {
-        Swal.fire({
-          title: 'Import Complete!',
-          html: `Successfully imported ${successCount} new applications. ${importErrors.length + currentErrors.length > 0 ? `<br><br><strong>${importErrors.length + currentErrors.length} issues occurred (including duplicates). Check the status modal for details.</strong>` : ''}`,
-          icon: 'success',
-          timer: 1600,
-          showConfirmButton: false,
-          timerProgressBar: true,
-          allowOutsideClick: false,
-          customClass: {
-            popup: 'swal2-popup-success-clean',
-            title: 'swal2-title-success-clean',
-            htmlContainer: 'swal2-text-success-clean',
-          }
-        }).then(() => {
-          fetchApprovedApplications();
-          importStatusModal.style.display = 'none';
-        });
-      } else {
-        showErrorAlert('Import Failed', 'No applications were successfully imported. Please check for errors in the status modal.');
-      }
-    } catch (error) {
-      showErrorAlert('Error', `Failed to process Excel file: ${error.message}`);
-      importProgressBar.style.backgroundColor = '#f44336';
-      importStatusText.textContent = `Error: ${error.message}`;
-      importStatusModal.style.display = 'flex';
-    } finally {
-      event.target.value = '';
     }
-  };
 
-  reader.readAsArrayBuffer(file);
+    const file = event.target.files[0];
+    if (!file) return;
+
+    importProgressBar.style.width = '0%';
+    importProgressBar.textContent = '0%';
+    importProgressBar.style.backgroundColor = '#4CAF50';
+    importStatusText.textContent = 'Reading Excel file...';
+    importErrorList.innerHTML = '';
+    importStatusModal.style.display = 'flex';
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+            if (jsonData.length === 0) {
+                throw new Error("The Excel file is empty or could not be read.");
+            }
+
+            const headers = jsonData[0];
+            const rows = jsonData.slice(1);
+            const columnMap = {
+                'Organization Name': 'organizationName',
+                'Contact Person': 'contactPerson',
+                'Email': 'email',
+                'Mobile Number': 'mobileNumber',
+                'Social Media': 'socialMediaLink',
+                'Formatted Address': 'headquarters.formattedAddress',
+                'Latitude': 'headquarters.latitude',
+                'Longitude': 'headquarters.longitude',
+                'Organizational Background/Mission': 'organizationalBackgroundMission',
+                'Areas of Expertise/Focus': 'areasOfExpertiseFocus',
+                'Legal Status/Registration': 'legalStatusRegistration',
+                'Required Documents Link': 'requiredDocumentsLink',
+            };
+
+            const mappedData = [];
+            const importErrors = [];
+            let processedCount = 0;
+            const totalRecords = rows.length;
+
+            if (totalRecords === 0) {
+                Swal.fire({
+                    title: 'No Data',
+                    text: 'The Excel file contains headers but no data rows.',
+                    icon: 'info',
+                    timer: 1600,
+                    showConfirmButton: false,
+                    timerProgressBar: true
+                });
+                importStatusModal.style.display = 'none';
+                return;
+            }
+
+            importStatusText.textContent = `Validating and preparing ${totalRecords} records...`;
+
+            const pendingSnapshot = await database.ref('abvnApplications/pendingABVN').once('value');
+            const approvedSnapshot = await database.ref('abvnApplications/approvedABVN').once('value');
+            const rejectedSnapshot = await database.ref('abvnApplications/rejectedABVN').once('value');
+
+            const existingRecords = new Set();
+            [pendingSnapshot, approvedSnapshot, rejectedSnapshot].forEach(snapshot => {
+                if (snapshot.exists()) {
+                    snapshot.forEach(child => {
+                        const data = child.val();
+                        if (data.organizationName) existingRecords.add(`org:${data.organizationName.trim().toLowerCase()}`);
+                        if (data.email) existingRecords.add(`email:${data.email.trim().toLowerCase()}`);
+                        if (data.contactPerson) existingRecords.add(`contact:${data.contactPerson.trim().toLowerCase()}`);
+                        if (data.mobileNumber) existingRecords.add(`mobile:${data.mobileNumber.trim()}`);
+                        if (data.headquarters?.formattedAddress) existingRecords.add(`address:${data.headquarters.formattedAddress.trim().toLowerCase()}`);
+                    });
+                }
+            });
+
+            for (let i = 0; i < totalRecords; i++) {
+                const row = rows[i];
+                const { record, isValidRecord, rowErrors } = validateExcelRow(row, headers, columnMap, existingRecords);
+                if (isValidRecord) {
+                    mappedData.push(record);
+                } else {
+                    importErrors.push(`Row ${i + 2} (${record.organizationName || 'N/A'}): ${rowErrors.join(', ')}`);
+                }
+                processedCount++;
+                const progress = Math.round((processedCount / totalRecords) * 100);
+                importProgressBar.style.width = `${progress}%`;
+                importProgressBar.textContent = `${progress}%`;
+                importStatusText.textContent = `Processing ${processedCount}/${totalRecords} records...`;
+            }
+
+            if (mappedData.length === 0) {
+                showErrorAlert('No Valid Records', 'No valid records found in the Excel file after validation. Check errors for details.');
+                importErrorList.innerHTML = importErrors.map(err => `<li>${err}</li>`).join('');
+                importProgressBar.style.backgroundColor = '#f44336';
+                return;
+            }
+
+            importStatusText.textContent = `Importing ${mappedData.length} valid records to Firebase...`;
+
+            let successCount = 0;
+            let currentErrors = [];
+
+            for (const appData of mappedData) {
+                try {
+                    const newAppRef = database.ref('abvnApplications/approvedABVN').push();
+                    await newAppRef.set(appData);
+                    successCount++;
+                } catch (error) {
+                    currentErrors.push(`Failed to import "${appData.organizationName || 'N/A'}": ${error.message}`);
+                }
+                processedCount++;
+                const progress = Math.round((processedCount / rows.length) * 100);
+                importProgressBar.style.width = `${progress}%`;
+                importProgressBar.textContent = `${progress}%`;
+                importStatusText.textContent = `Processing ${processedCount}/${rows.length} records...`;
+            }
+
+            importErrorList.innerHTML = importErrors.concat(currentErrors).map(err => `<li>${err}</li>`).join('');
+            if (successCount > 0) {
+                Swal.fire({
+                    title: 'Import Complete!',
+                    html: `Successfully imported ${successCount} new applications. ${importErrors.length + currentErrors.length > 0 ? `<br><br><strong>${importErrors.length + currentErrors.length} issues occurred (including duplicates). Check the status modal for details.</strong>` : ''}`,
+                    icon: 'success',
+                    timer: 1600,
+                    showConfirmButton: false,
+                    timerProgressBar: true,
+                    allowOutsideClick: false,
+                    customClass: {
+                        popup: 'swal2-popup-success-clean',
+                        title: 'swal2-title-success-clean',
+                        htmlContainer: 'swal2-text-success-clean',
+                    }
+                }).then(() => {
+                    fetchApprovedApplications();
+                    importStatusModal.style.display = 'none';
+                });
+            } else {
+                showErrorAlert('Import Failed', 'No applications were successfully imported. Please check for errors in the status modal.');
+            }
+        } catch (error) {
+            showErrorAlert('Error', `Failed to process Excel file: ${error.message}`);
+            importProgressBar.style.backgroundColor = '#f44336';
+            importStatusText.textContent = `Error: ${error.message}`;
+            importStatusModal.style.display = 'flex';
+        } finally {
+            event.target.value = '';
+        }
+    };
+
+    reader.readAsArrayBuffer(file);
 }
 
+// === Import Excel ===
 function validateExcelRow(row, headers, columnMap, existingRecords) {
   const record = {};
   const rowErrors = [];
@@ -2087,110 +1822,126 @@ function validateExcelRow(row, headers, columnMap, existingRecords) {
       if (firebaseKey.includes('.')) {
         const [parentKey, childKey] = firebaseKey.split('.');
         record[parentKey] = record[parentKey] || {};
-        record[parentKey][childKey] = row[index];
+        record[parentKey][childKey] = row[index] ? String(row[index]).trim() : '';
       } else {
-        record[firebaseKey] = row[index];
+        record[firebaseKey] = row[index] ? String(row[index]).trim() : '';
       }
     }
   });
 
-  const isEmpty = (value) => value === undefined || value === null || value.toString().trim() === '';
-  const isLettersOnly = (value) => /^[a-zA-Z\s]+$/.test(value);
-  const isValidEmail = (email) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const validDomains = ['gmail.com'];
-    const domain = email?.split('@')[1]?.toLowerCase();
-    return emailRegex.test(email) && validDomains.includes(domain);
-  };
-  const isValidMobile = (mobile) => /^09\d{9}$/.test(mobile);
-  const isValidUrl = (url) => {
-    try {
-      new URL(url);
-      return true;
-    } catch {
-      return false;
-    }
-  };
-
-  const fieldsToCheck = [
-    { key: 'organizationName', label: 'Organization Name', lettersOnly: true },
-    { key: 'contactPerson', label: 'Contact Person', lettersOnly: true },
-    { key: 'email', label: 'Email', isEmail: true },
-    { key: 'mobileNumber', label: 'Mobile Number', isMobile: true },
-    { key: 'socialMediaLink', label: 'Social Media', isUrl: true, required: false },
-    { key: 'headquarters.streetAddress', label: 'Street Address' },
-    { key: 'headquarters.region', label: 'Region' },
-    { key: 'headquarters.province', label: 'Province' },
-    { key: 'headquarters.city', label: 'City' },
-    { key: 'headquarters.barangay', label: 'Barangay' },
-    { key: 'organizationalBackgroundMission', label: 'Organizational Background/Mission', minLength: 20 },
-    { key: 'areasOfExpertiseFocus', label: 'Areas of Expertise/Focus', minLength: 10 },
-    { key: 'legalStatusRegistration', label: 'Legal Status/Registration' },
-    { key: 'requiredDocumentsLink', label: 'Required Documents Link', isUrl: true },
+  const requiredFields = [
+    'organizationName',
+    'contactPerson',
+    'email',
+    'mobileNumber',
+    'headquarters.formattedAddress',
+    'headquarters.latitude',
+    'headquarters.longitude',
+    'organizationalBackgroundMission',
+    'areasOfExpertiseFocus',
+    'legalStatusRegistration'
   ];
 
-  fieldsToCheck.forEach(({ key, label, lettersOnly, isEmail, isMobile, isUrl, required = true, minLength }) => {
-    let value = key.includes('.') ? record[key.split('.')[0]]?.[key.split('.')[1]] : record[key];
-    value = value?.toString().trim();
-
-    if (required && isEmpty(value)) {
+  requiredFields.forEach(field => {
+    if (field.includes('.')) {
+      const [parentKey, childKey] = field.split('.');
+      if (!record[parentKey]?.[childKey]) {
+        rowErrors.push(`${field} is missing`);
+        isValidRecord = false;
+      }
+    } else if (!record[field]) {
+      rowErrors.push(`${field} is missing`);
       isValidRecord = false;
-      rowErrors.push(`${label} is required`);
-    } else if (!isEmpty(value)) {
-      if (lettersOnly && !isLettersOnly(value)) {
-        isValidRecord = false;
-        rowErrors.push(`${label} should only contain letters and spaces`);
-      }
-      if (isEmail && !isValidEmail(value)) {
-        isValidRecord = false;
-        rowErrors.push(`Please enter a valid Gmail address for ${label} (e.g., example@gmail.com)`);
-      }
-      if (isMobile && !isValidMobile(value)) {
-        isValidRecord = false;
-        rowErrors.push(`${label} must be 11 digits starting with "09"`);
-      }
-      if (isUrl && !isValidUrl(value)) {
-        isValidRecord = false;
-        rowErrors.push(`${label} must be a valid URL (e.g., https://facebook.com/yourpage)`);
-      }
-      if (minLength && value.length < minLength) {
-        isValidRecord = false;
-        rowErrors.push(`${label} must be at least ${minLength} characters long`);
-      }
     }
   });
 
-  const orgNameLower = record.organizationName ? record.organizationName.trim().toLowerCase() : '';
-  const emailLower = record.email ? record.email.trim().toLowerCase() : '';
-  const contactPersonLower = record.contactPerson ? record.contactPerson.trim().toLowerCase() : '';
-  const mobileNumber = record.mobileNumber ? String(record.mobileNumber).trim() : '';
-  const streetAddressLower = record.headquarters?.streetAddress ? record.headquarters.streetAddress.trim().toLowerCase() : '';
-
-  if (orgNameLower && existingRecords.has(`org:${orgNameLower}`)) {
+  if (record.organizationName && !isLettersOnly(record.organizationName)) {
+    rowErrors.push('Organization Name must contain only letters and spaces');
     isValidRecord = false;
-    rowErrors.push('Duplicate Organization Name');
-  }
-  if (emailLower && existingRecords.has(`email:${emailLower}`)) {
-    isValidRecord = false;
-    rowErrors.push('Duplicate Email');
-  }
-  if (contactPersonLower && existingRecords.has(`contact:${contactPersonLower}`)) {
-    isValidRecord = false;
-    rowErrors.push('Duplicate Contact Person');
-  }
-  if (mobileNumber && existingRecords.has(`mobile:${mobileNumber}`)) {
-    isValidRecord = false;
-    rowErrors.push('Duplicate Mobile Number');
-  }
-  if (streetAddressLower && existingRecords.has(`address:${streetAddressLower}`)) {
-    isValidRecord = false;
-    rowErrors.push('Duplicate Street Address');
   }
 
-  record.applicationDateandTime = new Date().toISOString();
-  record.status = 'Approved';
-  record.approvedApplicationDate = new Date().toISOString();
-  record.recaptchaResponse = 'N/A'; 
+  if (record.contactPerson && !isLettersOnly(record.contactPerson)) {
+    rowErrors.push('Contact Person must contain only letters and spaces');
+    isValidRecord = false;
+  }
+
+  if (record.email && !isValidEmail(record.email)) {
+    rowErrors.push('Invalid email format');
+    isValidRecord = false;
+  }
+
+  if (record.mobileNumber && !isValidMobile(record.mobileNumber)) {
+    rowErrors.push('Mobile Number must be 11 digits starting with "09"');
+    isValidRecord = false;
+  }
+
+  if (record.headquarters?.latitude) {
+      const lat = parseFloat(record.headquarters.latitude);
+      if (isNaN(lat) || lat < -90 || lat > 90) {
+        rowErrors.push('Latitude must be a number between -90 and 90');
+        isValidRecord = false;
+      } else {
+        record.headquarters.latitude = lat;
+      }
+  }
+
+  if (record.headquarters?.longitude) {
+      const lon = parseFloat(record.headquarters.longitude);
+      if (isNaN(lon) || lon < -180 || lon > 180) {
+        rowErrors.push('Longitude must be a number between -180 and 180');
+        isValidRecord = false;
+      } else {
+        record.headquarters.longitude = lon;
+      }
+  }
+
+  if (record.socialMediaLink && record.socialMediaLink !== "N/A") {
+      try {
+        new URL(record.socialMediaLink);
+      } catch (e) {
+        rowErrors.push('Social Media must be a valid URL');
+        isValidRecord = false;
+      }
+  }
+
+  if (record.requiredDocumentsLink && record.requiredDocumentsLink !== "N/A") {
+    try {
+      new URL(record.requiredDocumentsLink);
+    } catch (e) {
+      rowErrors.push('Required Documents Link must be a valid URL');
+      isValidRecord = false;
+    }
+  }
+
+  if (isValidRecord) {
+    if (existingRecords.has(`org:${record.organizationName.toLowerCase()}`)) {
+      rowErrors.push(`Organization "${record.organizationName}" already exists`);
+      isValidRecord = false;
+    }
+    if (existingRecords.has(`email:${record.email.toLowerCase()}`)) {
+      rowErrors.push(`Email "${record.email}" already exists`);
+      isValidRecord = false;
+    }
+    if (existingRecords.has(`contact:${record.contactPerson.toLowerCase()}`)) {
+      rowErrors.push(`Contact Person "${record.contactPerson}" already exists`);
+      isValidRecord = false;
+    }
+    if (existingRecords.has(`mobile:${record.mobileNumber}`)) {
+      rowErrors.push(`Mobile Number "${record.mobileNumber}" already exists`);
+      isValidRecord = false;
+    }
+    if (existingRecords.has(`address:${record.headquarters?.formattedAddress.toLowerCase()}`)) {
+      rowErrors.push(`Address "${record.headquarters?.formattedAddress}" already exists`);
+      isValidRecord = false;
+    }
+  }
+
+  if (isValidRecord) {
+    record.status = 'Approved';
+    record.applicationDateandTime = new Date().toISOString();
+    record.approvedApplicationDate = new Date().toISOString();
+    record.recaptchaResponse = 'N/A';
+  }
 
   return { record, isValidRecord, rowErrors };
 }
@@ -2221,11 +1972,9 @@ function exportToExcel() {
         "Email": app.email || 'N/A',
         "Mobile Number": String(app.mobileNumber || 'N/A'),
         "Social Media": app.socialMediaLink || 'N/A',
-        "Region": app.headquarters?.region || 'N/A',
-        "Province": app.headquarters?.province || 'N/A',
-        "City": app.headquarters?.city || 'N/A',
-        "Barangay": app.headquarters?.barangay || 'N/A',
-        "Street Address": app.headquarters?.streetAddress || 'N/A',
+        "Formatted Address": app.headquarters?.formattedAddress || 'N/A',
+        "Latitude": app.headquarters?.latitude || 'N/A',
+        "Longitude": app.headquarters?.longitude || 'N/A',
         "Mission/Background": app.organizationalBackgroundMission || 'N/A',
         "Areas of Expertise/Focus": app.areasOfExpertiseFocus || 'N/A',
         "Legal Status/Registration": app.legalStatusRegistration || 'N/A',
@@ -2264,7 +2013,7 @@ function exportToExcel() {
     });
 }
 
-// PDF all
+// === Export PDF ===
 function exportToPDF() {
     if (!filteredApplications.length) {
         Swal.fire({
@@ -2314,9 +2063,9 @@ function exportToPDF() {
         yOffset += 15;
 
         const head = [[
-            'No.', 'Organization Name', 'Contact Person', 'Email', 'Mobile Number', 'Social Media',
-            'Region', 'Province', 'City', 'Barangay', 'Street Address', 'Application Date/Time', 'Approved Date/Time',
-            'Mission/Background', 'Areas of Expertise/Focus', 'Legal Status/Registration', 'Required Documents'
+          'No.', 'Organization Name', 'Contact Person', 'Email', 'Mobile Number', 'Social Media',
+          'Formatted Address', 'Latitude', 'Longitude', 'Mission/Background', 'Areas of Expertise/Focus',
+          'Legal Status/Registration', 'Required Documents', 'Application Date/Time', 'Approved Date/Time'
         ]];
 
         const body = filteredApplications.map((app, i) => [
@@ -2326,17 +2075,15 @@ function exportToPDF() {
             app.email || 'N/A',
             String(app.mobileNumber) || 'N/A',
             app.socialMediaLink || 'N/A',
-            app.headquarters?.region || 'N/A',
-            app.headquarters?.province || 'N/A',
-            app.headquarters?.city || 'N/A',
-            app.headquarters?.barangay || 'N/A',
-            app.headquarters?.streetAddress || 'N/A',
-            app.applicationDateandTime ? new Date(app.applicationDateandTime).toLocaleString() : 'N/A',
-            app.approvedApplicationDate ? new Date(app.approvedApplicationDate).toLocaleString() : 'N/A',
+            app.headquarters?.formattedAddress || 'N/A',
+            app.headquarters?.latitude || 'N/A',
+            app.headquarters?.longitude || 'N/A',
             app.organizationalBackgroundMission ? app.organizationalBackgroundMission.substring(0, 100) + (app.organizationalBackgroundMission.length > 100 ? '...' : '') : 'N/A',
             app.areasOfExpertiseFocus || 'N/A',
             app.legalStatusRegistration || 'N/A',
-            app.requiredDocumentsLink || 'N/A'
+            app.requiredDocumentsLink || 'N/A',
+            app.applicationDateandTime ? new Date(app.applicationDateandTime).toLocaleString() : 'N/A',
+            app.approvedApplicationDate ? new Date(app.approvedApplicationDate).toLocaleString() : 'N/A'
         ]);
 
         doc.autoTable({
@@ -2366,17 +2113,15 @@ function exportToPDF() {
                 3: { cellWidth: 15 }, // Email
                 4: { cellWidth: 15 }, // Mobile Number
                 5: { cellWidth: 15 }, // Social Media
-                6: { cellWidth: 15 }, // Region
-                7: { cellWidth: 15 }, // Province
-                8: { cellWidth: 15 }, // City
-                9: { cellWidth: 15 }, // Barangay
-                10: { cellWidth: 15 }, // Street Address
-                11: { cellWidth: 15 }, // Application Date/Time
-                12: { cellWidth: 15 }, // Approved Date/Time
-                13: { cellWidth: 20 }, // Mission/Background
-                14: { cellWidth: 20 }, // Areas of Expertise/Focus
-                15: { cellWidth: 20 }, // Legal Status/Registration
-                16: { cellWidth: 20 }, // Required Documents
+                6: { cellWidth: 20 }, // Formatted Address
+                7: { cellWidth: 15 }, // Latitude
+                8: { cellWidth: 15 }, // Longitude
+                9: { cellWidth: 20 }, // Mission/Background
+                10: { cellWidth: 20 }, // Areas of Expertise/Focus
+                11: { cellWidth: 20 }, // Legal Status/Registration
+                12: { cellWidth: 20 }, // Required Documents
+                13: { cellWidth: 15 }, // Application Date/Time
+                14: { cellWidth: 15 }, // Approved Date/Time
             },
             margin: { top: margin, left: margin, right: margin },
             styles: {
@@ -2409,21 +2154,21 @@ function exportToPDF() {
             showConfirmButton: true,
             confirmButtonText: 'OK',
             customClass: {
-                popup: 'swal2-popup-success-clean',
-                title: 'swal2-title-success-clean',
-                htmlContainer: 'swal2-text-success-clean',
-                confirmButton: 'my-success-button'
+              popup: 'swal2-popup-success-clean',
+              title: 'swal2-title-success-clean',
+              htmlContainer: 'swal2-text-success-clean',
+              confirmButton: 'my-success-button'
             }
         });
     };
 
     logo.onerror = () => {
-        Swal.close();
-        showErrorAlert('Error', "Failed to load logo image. Please check the path: '../assets/images/AB_logo.png'");
+      Swal.close();
+      showErrorAlert('Error', "Failed to load logo image. Please check the path: '../assets/images/AB_logo.png'");
     };
 }
 
-// PDF Single
+// === PDF Single ===
 function saveSingleApplicationPdf(application) {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
@@ -2432,87 +2177,85 @@ function saveSingleApplicationPdf(application) {
     logo.src = '../assets/images/AB_logo.png';
 
     logo.onload = function() {
-        const pageWidth = doc.internal.pageSize.width;
-        const pageHeight = doc.internal.pageSize.height;
-        const logoWidth = 30;
-        const logoHeight = (logo.naturalHeight / logo.naturalWidth) * logoWidth;
-        const margin = 14;
-        const maxTextWidth = pageWidth - 2 * margin; // Maximum width for text to fit within margins
+      const pageWidth = doc.internal.pageSize.width;
+      const pageHeight = doc.internal.pageSize.height;
+      const logoWidth = 30;
+      const logoHeight = (logo.naturalHeight / logo.naturalWidth) * logoWidth;
+      const margin = 14;
+      const maxTextWidth = pageWidth - 2 * margin; 
 
-        doc.addImage(logo, 'PNG', pageWidth - logoWidth - margin, margin, logoWidth, logoHeight);
+      doc.addImage(logo, 'PNG', pageWidth - logoWidth - margin, margin, logoWidth, logoHeight);
 
-        doc.setFontSize(18);
-        doc.text("Volunteer Group Application Details", 14, 22);
-        doc.setFontSize(10);
-        doc.text(`Report Generated: ${new Date().toLocaleString('en-US', { timeZone: 'Asia/Manila' })}`, 14, 30);
-        let y = 45;
+      doc.setFontSize(18);
+      doc.text("Volunteer Group Application Details", 14, 22);
+      doc.setFontSize(10);
+      doc.text(`Report Generated: ${new Date().toLocaleString('en-US', { timeZone: 'Asia/Manila' })}`, 14, 30);
+      let y = 45;
 
-        const addDetail = (label, value) => {
-            const text = `${label}: ${value || 'N/A'}`;
-            const textLines = doc.splitTextToSize(text, maxTextWidth); // Split text to fit within page width
-            textLines.forEach(line => {
-                if (y + 7 > pageHeight - 20) { // Check if there's enough space, else add new page
-                    doc.addPage();
-                    y = 20;
-                    doc.addImage(logo, 'PNG', pageWidth - logoWidth - margin, margin, logoWidth, logoHeight);
-                    doc.setFontSize(18);
-                    doc.text("Volunteer Group Application Details (Continued)", 14, 22);
-                    doc.setFontSize(10);
-                }
-                doc.text(line, 14, y);
-                y += 7;
-            });
-            return y; // Return updated y position
-        };
-
-        y = addDetail("Organization Name", application.organizationName);
-        y = addDetail("Contact Person", application.contactPerson);
-        y = addDetail("Email", application.email);
-        y = addDetail("Mobile Number", String(application.mobileNumber));
-        y = addDetail("Social Media Link", application.socialMediaLink);
-        y = addDetail("Region", application.headquarters?.region);
-        y = addDetail("Province", application.headquarters?.province);
-        y = addDetail("City", application.headquarters?.city);
-        y = addDetail("Barangay", application.headquarters?.barangay);
-        y = addDetail("Street Address", application.headquarters?.streetAddress);
-        y = addDetail("Mission/Background", application.organizationalBackgroundMission);
-        y = addDetail("Areas of Expertise/Focus", application.areasOfExpertiseFocus);
-        y = addDetail("Legal Status/Registration", application.legalStatusRegistration);
-        y = addDetail("Required Documents", application.requiredDocumentsLink ? application.requiredDocumentsLink : 'N/A');
-        y = addDetail("Application Date/Time", application.applicationDateandTime ? new Date(application.applicationDateandTime).toLocaleString('en-US', {
-            year: 'numeric', month: 'short', day: 'numeric',
-            hour: '2-digit', minute: '2-digit', second: '2-digit'
-        }) : 'N/A');
-        y = addDetail("Approved Date/Time", application.approvedApplicationDate ? new Date(application.approvedApplicationDate).toLocaleString('en-US', {
-            year: 'numeric', month: 'short', day: 'numeric',
-            hour: '2-digit', minute: '2-digit', second: '2-digit'
-        }) : 'N/A'); // Added approved date to single PDF
-
-        doc.setFontSize(8);
-        const footerY = doc.internal.pageSize.height - 10;
-        const pageNumberText = `Page ${doc.internal.getNumberOfPages()} of ${doc.internal.getNumberOfPages()}`;
-        const poweredByText = "Powered by: Appvance";
-
-        doc.text(pageNumberText, margin, footerY);
-        doc.text(poweredByText, pageWidth - margin, footerY, { align: 'right' });
-
-        doc.save(`application_${application.organizationName || 'unknown'}_${new Date().toISOString().slice(0, 10)}.pdf`);
-        Swal.fire({
-            title: 'Export Successful!',
-            text: 'Volunteer group application details have been exported to PDF.',
-            icon: 'success',
-            showConfirmButton: true,
-            confirmButtonText: 'OK',
-            customClass: {
-                popup: 'swal2-popup-success-clean',
-                title: 'swal2-title-success-clean',
-                htmlContainer: 'swal2-text-success-clean',
-                confirmButton: 'my-success-button'
-            }
+      const addDetail = (label, value) => {
+        const text = `${label}: ${value || 'N/A'}`;
+        const textLines = doc.splitTextToSize(text, maxTextWidth); 
+        textLines.forEach(line => {
+          if (y + 7 > pageHeight - 20) { 
+            doc.addPage();
+            y = 20;
+            doc.addImage(logo, 'PNG', pageWidth - logoWidth - margin, margin, logoWidth, logoHeight);
+            doc.setFontSize(18);
+            doc.text("Volunteer Group Application Details (Continued)", 14, 22);
+            doc.setFontSize(10);
+          }
+          doc.text(line, 14, y);
+          y += 7;
         });
+        return y;
+      };
+
+      y = addDetail("Organization Name", application.organizationName);
+      y = addDetail("Contact Person", application.contactPerson);
+      y = addDetail("Email", application.email);
+      y = addDetail("Mobile Number", String(application.mobileNumber));
+      y = addDetail("Social Media Link", application.socialMediaLink);
+      y = addDetail("Formatted Address", application.headquarters?.formattedAddress);
+      y = addDetail("Latitude", application.headquarters?.latitude);
+      y = addDetail("Longitude", application.headquarters?.longitude);
+      y = addDetail("Mission/Background", application.organizationalBackgroundMission);
+      y = addDetail("Areas of Expertise/Focus", application.areasOfExpertiseFocus);
+      y = addDetail("Legal Status/Registration", application.legalStatusRegistration);
+      y = addDetail("Required Documents", application.requiredDocumentsLink ? application.requiredDocumentsLink : 'N/A');
+      y = addDetail("Application Date/Time", application.applicationDateandTime ? new Date(application.applicationDateandTime).toLocaleString('en-US', {
+        year: 'numeric', month: 'short', day: 'numeric',
+        hour: '2-digit', minute: '2-digit', second: '2-digit'
+      }) : 'N/A');
+      y = addDetail("Approved Date/Time", application.approvedApplicationDate ? new Date(application.approvedApplicationDate).toLocaleString('en-US', {
+        year: 'numeric', month: 'short', day: 'numeric',
+        hour: '2-digit', minute: '2-digit', second: '2-digit'
+      }) : 'N/A'); // Added approved date to single PDF
+
+      doc.setFontSize(8);
+      const footerY = doc.internal.pageSize.height - 10;
+      const pageNumberText = `Page ${doc.internal.getNumberOfPages()} of ${doc.internal.getNumberOfPages()}`;
+      const poweredByText = "Powered by: Appvance";
+
+      doc.text(pageNumberText, margin, footerY);
+      doc.text(poweredByText, pageWidth - margin, footerY, { align: 'right' });
+
+      doc.save(`application_${application.organizationName || 'unknown'}_${new Date().toISOString().slice(0, 10)}.pdf`);
+      Swal.fire({
+        title: 'Export Successful!',
+        text: 'Volunteer group application details have been exported to PDF.',
+        icon: 'success',
+        showConfirmButton: true,
+        confirmButtonText: 'OK',
+        customClass: {
+          popup: 'swal2-popup-success-clean',
+          title: 'swal2-title-success-clean',
+          htmlContainer: 'swal2-text-success-clean',
+          confirmButton: 'my-success-button'
+        }
+      });
     };
 
     logo.onerror = function() {
-        Swal.fire("Error", "Failed to load logo image. Please check the path: '../assets/images/AB_logo.png'", "error");
+      Swal.fire("Error", "Failed to load logo image. Please check the path: '../assets/images/AB_logo.png'", "error");
     };
 }

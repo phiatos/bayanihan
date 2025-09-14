@@ -1,3 +1,59 @@
+const tabContent = document.getElementById("tab-content");
+const dashboardContainer = document.getElementById("dashboard-container");
+
+document.querySelectorAll(".tab-btn").forEach(btn => {
+  btn.addEventListener("click", async () => {
+    const tab = btn.dataset.tab;
+
+    // Remove .active from all tabs and add to the clicked tab
+    document.querySelectorAll(".tab-btn").forEach(t => t.classList.remove("active"));
+    btn.classList.add("active");
+
+    if (tab === "volunteers") {
+      // Hide dashboard
+      dashboardContainer.style.display = "none";
+
+      // Fetch volunteer overview HTML
+      const res = await fetch("../pages/volunteerRequestOverview.html");
+      const html = await res.text();
+
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, "text/html");
+      const bodyContent = doc.body.innerHTML;
+
+      tabContent.innerHTML = bodyContent;
+
+      // Attach CSS (only once)
+      if (!document.querySelector('link[href="../css/volunteerRequest.css"]')) {
+        const link = document.createElement("link");
+        link.rel = "stylesheet";
+        link.href = "../css/volunteerRequest.css";
+        document.head.appendChild(link);
+      }
+
+      // Force reload volunteer JS every time
+      try {
+        const jsRes = await fetch("../js/volunteerRequestOverview.js");
+        const jsCode = await jsRes.text();
+        new Function(jsCode)();
+      } catch (err) {
+        console.error("Failed to load volunteerRequestOverview.js", err);
+      }
+    } else if (tab === "activation") {
+      // Hide dashboard
+      dashboardContainer.style.display = "none";
+      tabContent.innerHTML = `<h2>Activation content goes here...</h2>`;
+    } else {
+      // Default tab → show dashboard again
+      dashboardContainer.style.display = "block";
+      tabContent.innerHTML = "";
+    }
+  });
+});
+
+// Auto-load Default tab
+document.querySelector(".tab-btn[data-tab='default']").click();
+
 // dashboard.js
 // Global variables
 // Place this at the very top of dashboard.js
@@ -1225,7 +1281,7 @@ async function showWeatherInfoWindow(lat, lng) {
         }
         const forecastResponse = await fetch(`https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lng}&appid=${WEATHER_API_KEY}&units=metric`);
         if (!forecastResponse.ok) throw new Error(`HTTP error! Status: ${forecastResponse.status}`);
-        const forecastData = await response.json();
+        const forecastData = await forecastResponse.json();
         const condition = weatherData.weather[0].main.toLowerCase();
         const cloudCover = weatherData.clouds.all || 0;
         const pop = (forecastData.list[0].pop || 0) * 100;
@@ -1775,21 +1831,148 @@ content += `<span class="timestamp">${timestamp.toLocaleString("en-US", {
             }
 
             // Handle calamity notifications with map interaction
-            if (notification.location && notification.type === "calamity") {
-                const coordinates = provinces.find(p => p.name === notification.location) || { lat: 14.5995, lng: 120.9842 };
-                if (currentInfoWindow) singleInfoWindow.close();
-                singleInfoWindow.setContent(`
-                    <div>
-                        ${notification.calamityType || ''} in ${notification.location}<br>
-                        ${notification.details || ''}
-                    </div>
-                `);
-                singleInfoWindow.setPosition(coordinates);
-                singleInfoWindow.open(map);
-                currentInfoWindow = { getPosition: () => coordinates };
-                map.setCenter(coordinates);
-                map.setZoom(12);
+            // Keep track of calamity + ABVN markers
+const calamityMarkersMap = {};
+let abvnMarkers = [];
+
+if (notification.type === "calamity" && notification.eventId) {
+    database.ref("calamities").orderByChild("eventId").equalTo(notification.eventId).once("value")
+        .then(calSnapshot => {
+            const calData = calSnapshot.val();
+            if (!calData) return;
+
+            const calKey = Object.keys(calData)[0];
+            const calamity = calData[calKey];
+            const coordinates = calamity.coordinates || { lat: 14.5995, lng: 120.9842 };
+
+            // 🔹 If marker already exists → bounce + center
+            if (calamityMarkersMap[calKey]) {
+                const existingMarker = calamityMarkersMap[calKey];
+                map.panTo(coordinates);
+                map.setZoom(13);
+                existingMarker.setAnimation(google.maps.Animation.BOUNCE);
+                setTimeout(() => existingMarker.setAnimation(null), 1500);
+                return;
             }
+
+            // 🚨 Calamity marker (fa-location-exclamation)
+            const calamityIcon = {
+                path: "M256 0C167.6 0 96 71.6 96 160c0 87.9 128 256 160 288 32-32 160-200.1 160-288C416 71.6 344.4 0 256 0zm0 224c-35.3 0-64-28.7-64-64s28.7-64 64-64 64 28.7 64 64-28.7 64-64 64zM288 320h-64v64h64v-64z",
+                fillColor: "#e63946",
+                fillOpacity: 1,
+                strokeWeight: 1,
+                strokeColor: "#fff",
+                scale: 0.05,
+                anchor: new google.maps.Point(256, 512)
+            };
+
+            const pinMarker = new google.maps.Marker({
+                position: coordinates,
+                map: map,
+                title: calamity.location || "Calamity",
+                icon: calamityIcon,
+                animation: google.maps.Animation.DROP
+            });
+            calamityMarkersMap[calKey] = pinMarker;
+
+            // 🔹 InfoWindow for calamity
+            const calamityInfo = new google.maps.InfoWindow({
+                content: `
+                  <div style="font-family:'Segoe UI',sans-serif;width:260px;border-radius:12px;background:#fff;box-shadow:0 4px 14px rgba(0,0,0,0.25);overflow:hidden;">
+                    <div style="background:#e63946;color:#fff;padding:10px 14px;font-size:16px;font-weight:600;">
+                      🚨 ${calamity.type || "Calamity"}
+                    </div>
+                    <div style="padding:12px;color:#333;font-size:14px;line-height:1.4;">
+                      <b>📍 ${calamity.location}</b><br>
+                      <b>Magnitude:</b> ${calamity.magnitude || "N/A"}<br>
+                      <b>Time:</b> ${new Date(calamity.time).toLocaleString()}
+                    </div>
+                    <div style="padding:10px;border-top:1px solid #eee;text-align:center;">
+                      <button id="showAbvnBtn-${calKey}" style="
+                        padding:8px 12px;border:none;border-radius:6px;
+                        background:#2a9d8f;color:#fff;font-size:14px;font-weight:500;
+                        cursor:pointer;transition:all 0.2s ease;">
+                        Show Nearest ABVNs
+                      </button>
+                    </div>
+                  </div>
+                `
+            });
+            calamityInfo.open(map, pinMarker);
+
+            map.panTo(coordinates);
+            map.setZoom(13);
+
+            // 🔹 Handle "Show Nearest ABVNs"
+            google.maps.event.addListener(calamityInfo, "domready", () => {
+                document.getElementById(`showAbvnBtn-${calKey}`).addEventListener("click", async () => {
+                    try {
+                        // Remove old ABVN markers
+                        abvnMarkers.forEach(m => m.setMap(null));
+                        abvnMarkers = [];
+
+                        const snapshot = await database.ref("activations")
+                            .orderByChild("status").equalTo("active").once("value");
+                        const activations = snapshot.val() || {};
+                        let abvnCount = 0;
+
+                        // 👥 ABVN marker (fa-people-group)
+                        const abvnIcon = {
+                            path: "M320 96a64 64 0 1 1-128 0 64 64 0 1 1 128 0zm96 192c0-53-43-96-96-96h-64c-53 0-96 43-96 96v64h256v-64zm-320-32a48 48 0 1 0 0-96 48 48 0 1 0 0 96zm352-48a48 48 0 1 1-96 0 48 48 0 1 1 96 0zM64 320c0-35.3 28.7-64 64-64H96c-53 0-96 43-96 96v32h96v-64zm416 0c0-53-43-96-96-96h-32c35.3 0 64 28.7 64 64v64h64v-32z",
+                            fillColor: "#2a9d8f",
+                            fillOpacity: 1,
+                            strokeWeight: 1,
+                            strokeColor: "#fff",
+                            scale: 0.05,
+                            anchor: new google.maps.Point(256, 512)
+                        };
+
+                        Object.values(activations).forEach(act => {
+                            if (act.latitude && act.longitude) {
+                                const abvnCoords = { lat: parseFloat(act.latitude), lng: parseFloat(act.longitude) };
+                                const distance = haversineDistance(coordinates, abvnCoords).toFixed(1);
+
+                                const abvnMarker = new google.maps.Marker({
+                                    position: abvnCoords,
+                                    map: map,
+                                    title: `${act.organization} (${distance} km)`,
+                                    icon: abvnIcon,
+                                    animation: google.maps.Animation.DROP
+                                });
+
+                                const infoWindow = new google.maps.InfoWindow({
+                                    content: `
+                                      <div style="font-family:'Segoe UI',sans-serif;font-size:14px;">
+                                        <b>${act.organization}</b><br>
+                                        ${act.areaOfOperation || "No location"}<br>
+                                        <span style="color:#666;">${distance} km from calamity</span>
+                                      </div>
+                                    `
+                                });
+                                abvnMarker.addListener("click", () => infoWindow.open(map, abvnMarker));
+                                abvnMarkers.push(abvnMarker);
+                                abvnCount++;
+                            }
+                        });
+
+                        Swal.fire({
+                            icon: "success",
+                            title: "ABVN Groups Located",
+                            text: `Displayed ${abvnCount} nearby activated ABVN groups.`,
+                        });
+                    } catch (error) {
+                        console.error("Error fetching ABVNs:", error);
+                        Swal.fire({ icon: "error", title: "Error", text: "Failed to load ABVN group locations." });
+                    }
+                });
+            });
+        })
+        .catch(error => {
+            console.error("Error fetching calamity:", error);
+            Swal.fire({ icon: "error", title: "Error", text: "Failed to load calamity location." });
+        });
+}
+
         });
 
         // Handle hover effect and delete button
@@ -1844,6 +2027,7 @@ content += `<span class="timestamp">${timestamp.toLocaleString("en-US", {
         });
     });
 }
+
 
 // Verify report in reportssubmission
 async function verifyReport(reportId) {
@@ -2298,6 +2482,52 @@ cleanupExpiredMarkers();
 // Initialize dashboard when the page loads
 window.addEventListener("load", initializeDashboard);
 
+// Add periodic refresh for calamity tracking to fix realtime updates
+setInterval(trackCalamities, 5 * 60 * 1000); // Refresh every 5 minutes
+
+// Haversine distance function
+function haversineDistance(coord1, coord2) {
+    const R = 6371; // Earth's radius in km
+    const dLat = (coord2.lat - coord1.lat) * Math.PI / 180;
+    const dLon = (coord2.lng - coord1.lng) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos(coord1.lat * Math.PI / 180) * Math.cos(coord2.lat * Math.PI / 180) *
+              Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c; // Distance in km
+}
+
+// Function to find nearest ABVN group
+async function findNearestABVN(lat, lng) {
+    try {
+        const snapshot = await database.ref("activations").orderByChild("status").equalTo("active").once("value");
+        const activations = snapshot.val();
+        if (!activations) return null;
+
+        let nearest = null;
+        let minDist = Infinity;
+
+        Object.values(activations).forEach(act => {
+            if (act.latitude && act.longitude) {
+                const dist = haversineDistance({ lat, lng }, { lat: parseFloat(act.latitude), lng: parseFloat(act.longitude) });
+                if (dist < minDist) {
+                    minDist = dist;
+                    nearest = act;
+                }
+            }
+        });
+
+        return nearest ? {
+            organization: nearest.organization,
+            distance: minDist.toFixed(2) + ' km',
+            areaOfOperation: nearest.areaOfOperation
+        } : null;
+    } catch (error) {
+        console.error("Error finding nearest ABVN:", error);
+        throw error;
+    }
+}
+
 document.getElementById("saveMetrics").addEventListener("click", () => {
   const settings = {};
   document.querySelectorAll("input[type=checkbox]").forEach(cb => {
@@ -2339,4 +2569,4 @@ function loadMetricsSettings() {
       });
     }
   }).catch(err => console.error("Error loading metrics:", err));
-}
+} 

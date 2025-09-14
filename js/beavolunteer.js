@@ -12,18 +12,14 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
 const auth = firebase.auth();
+let map, marker, autocomplete;
 
 document.addEventListener('DOMContentLoaded', () => {
     const volunteerForm = document.getElementById('volunteer-org-form');
-    const regionSelect = document.getElementById('region');
-    const provinceSelect = document.getElementById('province');
-    const citySelect = document.getElementById('city');
-    const barangaySelect = document.getElementById('barangay');
-    const streetAddressInput = document.getElementById('streetAddress');
-    const regionTextInput = document.getElementById('region-text');
-    const provinceTextInput = document.getElementById('province-text');
-    const cityTextInput = document.getElementById('city-text');
-    const barangayTextInput = document.getElementById('barangay-text');
+    const locationInput = document.getElementById('location');
+    const latitudeInput = document.getElementById('latitude');
+    const longitudeInput = document.getElementById('longitude');
+    const formattedAddressInput = document.getElementById('formatted-address');
     const availabilityInputsDiv = document.getElementById('availability-inputs');
     const addAvailabilityButton = document.getElementById('addAvailability');
     const submitButton = document.querySelector('.btn-primary');
@@ -37,11 +33,98 @@ document.addEventListener('DOMContentLoaded', () => {
     const otherCheckbox = document.getElementById('otherSkillCheckbox');
     const otherComments = document.getElementById('otherSkillComments');
 
+    // Map initialization is handled by map-loader.js, so define window.initMap here
+    window.initMap = function() {
+        const mapOptions = {
+            center: { lat: 14.5995, lng: 120.9842 }, // Default: Manila, Philippines
+            zoom: 10,
+        };
+        map = new google.maps.Map(document.getElementById('map'), mapOptions);
+
+        autocomplete = new google.maps.places.Autocomplete(locationInput, {
+            types: ['geocode'],
+            componentRestrictions: { country: 'ph' }, // Restrict to Philippines
+        });
+
+        marker = new google.maps.Marker({
+            map: map,
+            draggable: true,
+        });
+
+        autocomplete.bindTo('bounds', map);
+
+        autocomplete.addListener('place_changed', () => {
+            const place = autocomplete.getPlace();
+            if (!place.geometry) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Invalid Location',
+                    text: 'Please select a valid location from the suggestions.',
+                    confirmButtonText: 'OK',
+                });
+                return;
+            }
+
+            map.setCenter(place.geometry.location);
+            map.setZoom(15);
+            marker.setPosition(place.geometry.location);
+
+            latitudeInput.value = place.geometry.location.lat();
+            longitudeInput.value = place.geometry.location.lng();
+            formattedAddressInput.value = place.formatted_address;
+
+            clearError(locationInput);
+        });
+
+        marker.addListener('dragend', () => {
+            const position = marker.getPosition();
+            latitudeInput.value = position.lat();
+            longitudeInput.value = position.lng();
+
+            const geocoder = new google.maps.Geocoder();
+            geocoder.geocode({ location: position }, (results, status) => {
+                if (status === 'OK' && results[0]) {
+                    formattedAddressInput.value = results[0].formatted_address;
+                    locationInput.value = results[0].formatted_address;
+                    clearError(locationInput);
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Geocoding Error',
+                        text: 'Unable to retrieve address for this location.',
+                        confirmButtonText: 'OK',
+                    });
+                }
+            });
+        });
+
+        map.addListener('click', (event) => {
+            marker.setPosition(event.latLng);
+            latitudeInput.value = event.latLng.lat();
+            longitudeInput.value = event.latLng.lng();
+
+            const geocoder = new google.maps.Geocoder();
+            geocoder.geocode({ location: event.latLng }, (results, status) => {
+                if (status === 'OK' && results[0]) {
+                    formattedAddressInput.value = results[0].formatted_address;
+                    locationInput.value = results[0].formatted_address;
+                    clearError(locationInput);
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Geocoding Error',
+                        text: 'Unable to retrieve address for this location.',
+                        confirmButtonText: 'OK',
+                    });
+                }
+            });
+        });
+    };
+
     // Email validation
     function isValidEmail(email) {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         const validDomains = ['gmail.com'];
-        // const validDomains = ['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'icloud.com', 'protonmail.com'];
         const domain = email.split('@')[1]?.toLowerCase();
         return emailRegex.test(email) && validDomains.includes(domain);
     }
@@ -136,7 +219,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Apply real-time validation to form inputs
-    Array.from(volunteerForm.querySelectorAll('input, textarea, select')).forEach(input => {
+    Array.from(volunteerForm.querySelectorAll('input, textarea')).forEach(input => {
         const fieldConfig = {
             'firstName': { label: 'First Name', lettersOnly: true },
             'middleInitial': { label: 'Middle Initial', lettersOnly: true, required: false },
@@ -146,12 +229,8 @@ document.addEventListener('DOMContentLoaded', () => {
             'mobileNumber': { label: 'Mobile Number', isMobile: true },
             'socialMedia': { label: 'Social Media', isUrl: true, required: true },
             'age': { label: 'Age', isAge: true },
-            'streetAddress': { label: 'Street Address' },
             'otherSkillComments': { label: 'Other Skill Details', required: false },
-            'region': { label: 'Region' },
-            'province': { label: 'Province' },
-            'city': { label: 'City' },
-            'barangay': { label: 'Barangay' }
+            'location': { label: 'Location' }
         }[input.id];
         if (fieldConfig) {
             input.addEventListener('input', () => validateInputInRealTime(input, fieldConfig, {
@@ -163,16 +242,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 mobileNumber: document.getElementById('mobileNumber'),
                 socialMedia: document.getElementById('socialMedia'),
                 age: document.getElementById('age'),
-                streetAddress: document.getElementById('streetAddress'),
                 otherSkillComments: document.getElementById('otherSkillComments'),
-                region: document.getElementById('region'),
-                province: document.getElementById('province'),
-                city: document.getElementById('city'),
-                barangay: document.getElementById('barangay')
+                location: document.getElementById('location')
             }));
         }
     });
-    
+
     // Add real-time validation for availability inputs
     document.querySelectorAll('.availability-item').forEach(item => {
         const dateInput = item.querySelector('.availability-date');
@@ -267,12 +342,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     const today = new Date();
                     today.setHours(0, 0, 0, 0);
                     const isToday = selectedDate.toDateString() === today.toDateString();
-                    const currentTime = new Date(); // Use fresh Date object for current time
+                    const currentTime = new Date();
                     const oneHourLater = new Date(currentTime.getTime() + 60 * 60 * 1000);
                     const oneHourLaterHour = oneHourLater.getHours();
                     const oneHourLaterMinute = oneHourLater.getMinutes();
                     const formattedOneHourLater = `${oneHourLaterHour}:${oneHourLaterMinute < 10 ? '0' + oneHourLaterMinute : oneHourLaterMinute}`;
-                    if (hours < 8 || hours > 20) {
+                    const isEmergencyResponse = document.getElementById('emergencyResponseCheckbox')?.checked || false;
+                    if (!isEmergencyResponse && (hours < 8 || hours > 20)) {
                         showError(timeInput, 'Time must be between 8 AM and 8 PM.');
                         return;
                     }
@@ -288,18 +364,6 @@ document.addEventListener('DOMContentLoaded', () => {
     restrictMobileNumberInput(document.getElementById('mobileNumber'));
     restrictAgeInput(document.getElementById('age'));
 
-    // Set min date for availability inputs to tomorrow
-    // function setMinDateForAvailability() {
-    //     const today = new Date();
-    //     const minDate = today.toISOString().split('T')[0];
-    //     document.querySelectorAll('.availability-date').forEach(dateInput => {
-    //         dateInput.setAttribute('min', minDate);
-    //     });
-    //     document.querySelectorAll('.availability-time').forEach(timeInput => {
-    //         timeInput.setAttribute('min', '08:00');
-    //         timeInput.setAttribute('max', '20:00');
-    //     });
-    // }
     function setMinDateForAvailability() {
         const today = new Date();
         const minDate = today.toISOString().split('T')[0];
@@ -339,14 +403,10 @@ document.addEventListener('DOMContentLoaded', () => {
             { id: 'nameExtension', label: 'Name Extension', lettersOnly: true, required: false },
             { id: 'email', label: 'Email', isEmail: true },
             { id: 'mobileNumber', label: 'Mobile Number', isMobile: true },
-            { id: 'socialMedia', label: 'Social Media', isUrl: true, required: false },
+            { id: 'socialMedia', label: 'Social Media', isUrl: true, required: true },
             { id: 'age', label: 'Age', isAge: true },
-            { id: 'streetAddress', label: 'Street Address' },
             { id: 'otherSkillComments', label: 'Other Skill Details', required: otherCheckbox.checked },
-            { id: 'region', label: 'Region' },
-            { id: 'province', label: 'Province' },
-            { id: 'city', label: 'City' },
-            { id: 'barangay', label: 'Barangay' }
+            { id: 'location', label: 'Location' }
         ];
 
         fieldsToCheck.forEach(({ id, label, lettersOnly, isEmail, isMobile, isAge, isUrl, required }) => {
@@ -391,6 +451,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         });
+
+        // Validate location coordinates
+        if (isEmpty(latitudeInput.value) || isEmpty(longitudeInput.value)) {
+            showError(locationInput, 'Please pin a location on the map.');
+            errors.push('Please pin a location on the map.');
+            isValid = false;
+        }
 
         // Check skills
         const skillCheckboxes = document.querySelectorAll('input[name="skills"]:checked');
@@ -541,7 +608,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return { isValid, errors, specificDateTimeAvailability };
     }
     
-
     if (otherCheckbox && otherComments) {
         otherCheckbox.addEventListener('change', (event) => {
             if (event.target.checked) {
@@ -759,287 +825,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     updateRemoveButtons();
 
-    var my_handlers = {
-        fill_regions: function() {
-            if (regionTextInput) regionTextInput.value = '';
-            if (provinceTextInput) provinceTextInput.value = '';
-            if (cityTextInput) cityTextInput.value = '';
-            if (barangayTextInput) barangayTextInput.value = '';
-
-            regionSelect.innerHTML = '<option value="" selected="true" disabled>Choose Region</option>';
-            regionSelect.selectedIndex = 0;
-
-            provinceSelect.innerHTML = '<option value="" selected="true" disabled>Choose Region First</option>';
-            provinceSelect.selectedIndex = 0;
-
-            citySelect.innerHTML = '<option value="" selected="true" disabled>Choose Region First</option>';
-            citySelect.selectedIndex = 0;
-
-            barangaySelect.innerHTML = '<option value="" selected="true" disabled>Choose Region First</option>';
-            barangaySelect.selectedIndex = 0;
-
-            const url = '../json/region.json';
-
-            fetch(url)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! Status: ${response.status} - ${response.statusText}`);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (!Array.isArray(data) || !data.every(item => item.region_code && item.region_name)) {
-                        throw new Error("Invalid region data structure");
-                    }
-
-                    data.sort(function(a, b) {
-                        return a.region_name.localeCompare(b.region_name);
-                    });
-
-                    data.forEach(entry => {
-                        const opt = document.createElement('option');
-                        opt.value = entry.region_code;
-                        opt.textContent = entry.region_name;
-                        regionSelect.appendChild(opt);
-                    });
-                })
-                .catch(error => {
-                    console.error("Request for region.json Failed (Vanilla JS): " + error.message);
-                    console.error("Fetch error object: ", error);
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Failed to Load Regions',
-                        text: `Unable to load region data: ${error.message}. Check if ${url} is accessible.`,
-                        confirmButtonText: 'OK'
-                    });
-                });
-        },
-        fill_provinces: function() {
-            var region_code = regionSelect.value;
-
-            if (!region_code) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Select Region First',
-                    text: 'Please select a region before choosing a province.',
-                    confirmButtonText: 'OK'
-                });
-                provinceSelect.innerHTML = '<option value="" selected="true" disabled>Choose Province</option>';
-                provinceSelect.selectedIndex = 0;
-                citySelect.innerHTML = '<option value="" selected="true" disabled>Choose Province First</option>';
-                citySelect.selectedIndex = 0;
-                barangaySelect.innerHTML = '<option value="" selected="true" disabled>Choose City First</option>';
-                barangaySelect.selectedIndex = 0;
-                if (provinceTextInput) provinceTextInput.value = '';
-                if (cityTextInput) cityTextInput.value = '';
-                if (barangayTextInput) barangayTextInput.value = '';
-                return;
-            }
-
-            var region_text = regionSelect.options[regionSelect.selectedIndex].textContent;
-            if (regionTextInput) regionTextInput.value = region_text;
-
-            if (provinceTextInput) provinceTextInput.value = '';
-            if (cityTextInput) cityTextInput.value = '';
-            if (barangayTextInput) barangayTextInput.value = '';
-
-            provinceSelect.innerHTML = '<option value="" selected="true" disabled>Choose Province</option>';
-            provinceSelect.selectedIndex = 0;
-
-            citySelect.innerHTML = '<option value="" selected="true" disabled>Choose Province First</option>';
-            citySelect.selectedIndex = 0;
-
-            barangaySelect.innerHTML = '<option value="" selected="true" disabled>Choose Province First</option>';
-            barangaySelect.selectedIndex = 0;
-
-            const url = '../json/province.json';
-
-            fetch(url)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! Status: ${response.status} - ${response.statusText}`);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (!Array.isArray(data) || !data.every(item => item.region_code && item.province_code && item.province_name)) {
-                        throw new Error("Invalid province data structure");
-                    }
-
-                    var result = data.filter(function(value) {
-                        return value.region_code === region_code;
-                    });
-
-                    result.sort(function(a, b) {
-                        return a.province_name.localeCompare(b.province_name);
-                    });
-
-                    result.forEach(entry => {
-                        const opt = document.createElement('option');
-                        opt.value = entry.province_code;
-                        opt.textContent = entry.province_name;
-                        provinceSelect.appendChild(opt);
-                    });
-                })
-                .catch(error => {
-                    console.error("Request for province.json Failed (Vanilla JS): " + error.message);
-                    console.error("Fetch error object: ", error);
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Failed to Load Provinces',
-                        text: `Unable to load province data: ${error.message}. Check if ${url} is accessible.`,
-                        confirmButtonText: 'OK'
-                    });
-                });
-        },
-        fill_cities: function() {
-            var province_code = provinceSelect.value;
-
-            if (!province_code) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Select Province First',
-                    text: 'Please select a province before choosing a city/municipality.',
-                    confirmButtonText: 'OK'
-                });
-                citySelect.innerHTML = '<option value="" selected="true" disabled>Choose City / Municipality</option>';
-                citySelect.selectedIndex = 0;
-                barangaySelect.innerHTML = '<option value="" selected="true" disabled>Choose City First</option>';
-                barangaySelect.selectedIndex = 0;
-                if (cityTextInput) cityTextInput.value = '';
-                if (barangayTextInput) barangayTextInput.value = '';
-                return;
-            }
-
-            var province_text = provinceSelect.options[provinceSelect.selectedIndex].textContent;
-            if (provinceTextInput) provinceTextInput.value = province_text;
-
-            if (cityTextInput) cityTextInput.value = '';
-            if (barangayTextInput) barangayTextInput.value = '';
-
-            citySelect.innerHTML = '<option value="" selected="true" disabled>Choose City / Municipality</option>';
-            citySelect.selectedIndex = 0;
-
-            barangaySelect.innerHTML = '<option value="" selected="true" disabled>Choose City First</option>';
-            barangaySelect.selectedIndex = 0;
-
-            const url = '../json/city.json';
-
-            fetch(url)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! Status: ${response.status} - ${response.statusText}`);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (!Array.isArray(data) || !data.every(item => item.province_code && item.city_code && item.city_name)) {
-                        throw new Error("Invalid city data structure");
-                    }
-
-                    var result = data.filter(function(value) {
-                        return value.province_code === province_code;
-                    });
-
-                    result.sort(function(a, b) {
-                        return a.city_name.localeCompare(b.city_name);
-                    });
-
-                    result.forEach(entry => {
-                        const opt = document.createElement('option');
-                        opt.value = entry.city_code;
-                        opt.textContent = entry.city_name;
-                        citySelect.appendChild(opt);
-                    });
-                })
-                .catch(error => {
-                    console.error("Request for city.json Failed (Vanilla JS): " + error.message);
-                    console.error("Fetch error object: ", error);
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Failed to Load Cities',
-                        text: `Unable to load city data: ${error.message}. Check if ${url} is accessible.`,
-                        confirmButtonText: 'OK'
-                    });
-                });
-        },
-        fill_barangays: function() {
-            var city_code = citySelect.value;
-
-            if (!city_code) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Select City/Municipality First',
-                    text: 'Please select a city/municipality before choosing a barangay.',
-                    confirmButtonText: 'OK'
-                });
-                barangaySelect.innerHTML = '<option value="" selected="true" disabled>Choose Barangay</option>';
-                barangaySelect.selectedIndex = 0;
-                if (barangayTextInput) barangayTextInput.value = '';
-                return;
-            }
-
-            var city_text = citySelect.options[citySelect.selectedIndex].textContent;
-            if (cityTextInput) cityTextInput.value = city_text;
-
-            if (barangayTextInput) barangayTextInput.value = '';
-
-            barangaySelect.innerHTML = '<option value="" selected="true" disabled>Choose Barangay</option>';
-            barangaySelect.selectedIndex = 0;
-
-            const url = '../json/barangay.json';
-
-            fetch(url)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! Status: ${response.status} - ${response.statusText}`);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (!Array.isArray(data) || !data.every(item => item.city_code && item.brgy_code && item.brgy_name)) {
-                        throw new Error("Invalid barangay data structure");
-                    }
-
-                    var result = data.filter(function(value) {
-                        return value.city_code === city_code;
-                    });
-
-                    result.sort(function(a, b) {
-                        return a.brgy_name.localeCompare(b.brgy_name);
-                    });
-
-                    result.forEach(entry => {
-                        const opt = document.createElement('option');
-                        opt.value = entry.brgy_code;
-                        opt.textContent = entry.brgy_name;
-                        barangaySelect.appendChild(opt);
-                    });
-                })
-                .catch(error => {
-                    console.error("Request for barangay.json Failed (Vanilla JS): " + error.message);
-                    console.error("Fetch error object: ", error);
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Failed to Load Barangays',
-                        text: `Unable to load barangay data: ${error.message}. Check if ${url} is accessible.`,
-                        confirmButtonText: 'OK'
-                    });
-                });
-        },
-        onchange_barangay: function() {
-            var barangay_text = barangaySelect.options[barangaySelect.selectedIndex].textContent;
-            if (barangayTextInput) barangayTextInput.value = barangay_text;
-        },
-    };
-
-    if (regionSelect) regionSelect.addEventListener('change', my_handlers.fill_provinces);
-    if (provinceSelect) provinceSelect.addEventListener('change', my_handlers.fill_cities);
-    if (citySelect) citySelect.addEventListener('change', my_handlers.fill_barangays);
-    if (barangaySelect) barangaySelect.addEventListener('change', my_handlers.onchange_barangay);
-
-    my_handlers.fill_regions();
-
     if (volunteerForm) {
         volunteerForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -1097,12 +882,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     mobileNumber: document.getElementById('mobileNumber'),
                     socialMedia: document.getElementById('socialMedia'),
                     age: document.getElementById('age'),
-                    streetAddress: document.getElementById('streetAddress'),
                     otherSkillComments: document.getElementById('otherSkillComments'),
-                    region: document.getElementById('region'),
-                    province: document.getElementById('province'),
-                    city: document.getElementById('city'),
-                    barangay: document.getElementById('barangay')
+                    location: document.getElementById('location'),
+                    latitude: document.getElementById('latitude'),
+                    longitude: document.getElementById('longitude'),
+                    formattedAddress: document.getElementById('formatted-address')
                 };
 
                 const { isValid, errors, specificDateTimeAvailability } = await validateFormForSubmission(inputs);
@@ -1127,11 +911,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
-                const selectedRegionText = regionSelect.options[regionSelect.selectedIndex]?.textContent || '';
-                const selectedProvinceText = provinceSelect.options[provinceSelect.selectedIndex]?.textContent || '';
-                const selectedCityText = citySelect.options[citySelect.selectedIndex]?.textContent || '';
-                const selectedBarangayText = barangaySelect.options[barangaySelect.selectedIndex]?.textContent || '';
-                
                 const emergencyResponseCheckbox = document.getElementById('emergencyResponseCheckbox');
                 const isEmergencyResponse = emergencyResponseCheckbox ? emergencyResponseCheckbox.checked : false;
 
@@ -1147,11 +926,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     skills: Array.from(document.querySelectorAll('input[name="skills"]:checked')).map(checkbox => checkbox.value),
                     otherSkillComments: inputs.otherSkillComments.value.trim() || '',
                     address: {
-                        region: selectedRegionText,
-                        province: selectedProvinceText,
-                        city: selectedCityText,
-                        barangay: selectedBarangayText,
-                        streetAddress: inputs.streetAddress.value.trim()
+                        latitude: parseFloat(inputs.latitude.value),
+                        longitude: parseFloat(inputs.longitude.value),
+                        formattedAddress: inputs.formattedAddress.value.trim()
                     },
                     availability: {
                         specificDateTimeSlots: specificDateTimeAvailability
@@ -1178,7 +955,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 volunteerForm.reset();
-                my_handlers.fill_regions();
+                latitudeInput.value = '';
+                longitudeInput.value = '';
+                formattedAddressInput.value = '';
+                locationInput.value = '';
+                marker.setPosition(null);
+                map.setCenter({ lat: 14.5995, lng: 120.9842 });
+                map.setZoom(10);
                 grecaptcha.reset();
                 agreeCheckbox.checked = false;
                 updateSubmitButtonState();

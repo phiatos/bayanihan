@@ -25,20 +25,17 @@ try {
 const auth = firebase.auth();
 const database = firebase.database();
 
-// Initialize secondary Firebase app for creating users
 try {
     firebase.initializeApp(firebaseConfig, "SecondaryApp");
 } catch (error) {
 }
 const secondaryAuth = firebase.auth(firebase.app("SecondaryApp"));
 
-// Initialize EmailJS with updated public key
 try {
     emailjs.init('ULA8rmn7VM-3fZ7ik');
 } catch (error) {
 }
 
-// Function to generate a random temporary password
 function generateTempPassword() {
     const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     let password = "";
@@ -48,22 +45,26 @@ function generateTempPassword() {
     return password;
 }
 
-// Function to validate email format
 function isValidEmail(email) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const validDomains = ['gmail.com'];
-    // const validDomains = ['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'icloud.com', 'protonmail.com'];
     const domain = email.split('@')[1]?.toLowerCase();
     return emailRegex.test(email) && validDomains.includes(domain);
 }
 
-// Function to validate mobile number format
 function isValidMobile(mobile) {
+    mobile = mobile.replace(/\D/g, '');
     const mobileRegex = /^09[0-9]{9}$/;
     return mobileRegex.test(mobile);
 }
 
-// Function to check if mobile number is already in use by another user
+document.getElementById('mobileNumber').addEventListener('input', (e) => {
+    e.target.value = e.target.value.replace(/\D/g, '');
+});
+document.getElementById('editMobileNumber').addEventListener('input', (e) => {
+    e.target.value = e.target.value.replace(/\D/g, '');
+});
+
 async function isMobileNumberInUse(mobile, excludeUid) {
     try {
         const snapshot = await database.ref('users').once('value');
@@ -79,7 +80,6 @@ async function isMobileNumberInUse(mobile, excludeUid) {
     }
 }
 
-// Function to check if email is already in use by another user
 async function isEmailInUse(email, excludeUid) {
     try {
         const snapshot = await database.ref('users').once('value');
@@ -95,7 +95,6 @@ async function isEmailInUse(email, excludeUid) {
     }
 }
 
-// Function to check if data is unchanged
 async function isDataUnchanged(orgId, updatedData) {
     try {
         const snapshot = await database.ref(`volunteerGroups/${orgId}`).once('value');
@@ -108,18 +107,22 @@ async function isDataUnchanged(orgId, updatedData) {
             orgData.email === updatedData.email &&
             orgData.mobileNumber === updatedData.mobileNumber &&
             orgData.socialMedia === updatedData.socialMedia &&
-            orgData.address.region === updatedData.address.region &&
-            orgData.address.province === updatedData.address.province &&
-            orgData.address.city === updatedData.address.city &&
-            orgData.address.barangay === updatedData.address.barangay &&
-            orgData.address.streetAddress === updatedData.address.streetAddress
+            orgData.address.formattedAddress === updatedData.address.formattedAddress &&
+            orgData.address.latitude === updatedData.address.latitude &&
+            orgData.address.longitude === updatedData.address.longitude &&
+            orgData.organizationalBackgroundMission === updatedData.organizationalBackgroundMission &&
+            orgData.areasOfExpertiseFocus === updatedData.areasOfExpertiseFocus &&
+            orgData.legalStatusRegistration === updatedData.legalStatusRegistration &&
+            orgData.requiredDocumentsLink === updatedData.requiredDocumentsLink &&
+            orgData.applicationDateandTime === updatedData.applicationDateandTime &&
+            orgData.approvedApplicationDate === updatedData.approvedApplicationDate &&
+            orgData.recaptchaResponse === updatedData.recaptchaResponse
         );
     } catch (error) {
         return false;
     }
 }
 
-// Function to verify Super Admin password
 async function verifySuperAdminPassword() {
     const { value: password } = await Swal.fire({
         title: 'Enter Admin Password',
@@ -185,14 +188,11 @@ let filteredArchivedData = [];
 const archivedRowsPerPage = 5;
 let archivedCurrentPage = 1;
 
-let currentAddressCell = null;
-let editingRowId = null;
 let orgData = null;
 let isProcessing = false;
 let currentEditOrgKey = null;
 let adminPosition = null;
 
-// DOM elements
 const tableBody = document.querySelector("#orgTable tbody");
 const entriesInfo = document.querySelector("#entriesInfo");
 const paginationContainer = document.querySelector("#pagination");
@@ -203,27 +203,10 @@ const sortSelect = document.getElementById('sortSelect');
 const searchInput = document.getElementById('searchInput');
 const clearBtn = document.querySelector('.clear-btn');
 const closeAddOrgModalBtn = document.getElementById("closeModalBtn");
-const continueSuccessBtn = document.getElementById("closeSuccessBtn");
-
-const regionSelect = document.getElementById('region');
-const provinceSelect = document.getElementById('province');
-const citySelect = document.getElementById('city');
-const barangaySelect = document.getElementById('barangay');
-
 const editOrgModal = document.getElementById('editOrgModal');
 const closeEditModalBtn = document.getElementById('closeEditModalBtn');
 const editOrgForm = document.getElementById('editOrgForm');
-const editRegionSelect = document.getElementById('editRegion');
-const editProvinceSelect = document.getElementById('editProvince');
-const editCitySelect = document.getElementById('editCity');
-const editBarangaySelect = document.getElementById('editBarangay');
 const editOrgFirebaseKeyInput = document.getElementById('editOrgFirebaseKey');
-
-const regionTextInput = document.getElementById('region-text');
-const provinceTextInput = document.getElementById('province-text');
-const cityTextInput = document.getElementById('city-text');
-const barangayTextInput = document.getElementById('barangay-text');
-
 const archivedModal = document.getElementById('archivedModal');
 const closeArchivedModalBtn = document.getElementById('closeArchivedModalBtn');
 const archivedTableBody = document.querySelector('#archivedTable tbody');
@@ -231,7 +214,6 @@ const archivedEntriesInfo = document.getElementById('archivedEntriesInfo');
 const archivedPaginationContainer = document.getElementById('archivedPagination');
 const viewArchivedBtn = document.getElementById('viewArchived');
 
-// Floating button visibility
 document.addEventListener('mousemove', (e) => {
     if (!addNew) return;
     const windowWidth = window.innerWidth;
@@ -245,49 +227,12 @@ document.addEventListener('mousemove', (e) => {
     }
 });
 
-// Utility function to clear add form inputs
 function clearAInputs() {
     addOrgForm.reset();
-    my_handlers.fill_regions();
+    document.getElementById('map').innerHTML = '';
+    initializeMap();
 }
 
-// Fetch and render table data
-// function fetchAndRenderTable() {
-//     database.ref("volunteerGroups").on("value", snapshot => {
-//         const fetchedData = snapshot.val();
-//         if (!fetchedData) {
-//             data = [];
-//             filteredData = [];
-//             applySearchAndSort();
-//             Swal.fire({
-//                 icon: "info",
-//                 title: "No Data",
-//                 text: "No active volunteer groups found in the database.",
-//                 toast: true,
-//                 position: 'top-end',
-//                 showConfirmButton: false,
-//                 timer: 3000
-//             });
-//             return;
-//         }
-//         data = Object.entries(fetchedData).map(([key, entry]) => ({
-//             id: key,
-//             organization: entry.organization || "N/A",
-//             contactPerson: entry.contactPerson || "N/A",
-//             email: entry.email || "N/A",
-//             mobileNumber: entry.mobileNumber || "N/A",
-//             socialMedia: entry.socialMedia || "N/A",
-//             address: {
-//                 region: entry.address?.region || "N/A",
-//                 province: entry.address?.province || "N/A",
-//                 city: entry.address?.city || "N/A",
-//                 barangay: entry.address?.barangay || "N/A",
-//                 streetAddress: entry.address?.streetAddress || "N/A"
-//             }
-//         }));
-//         applySearchAndSort();
-//     });
-// }
 function fetchAndRenderTable() {
     database.ref("volunteerGroups").on("value", snapshot => {
         const fetchedData = snapshot.val();
@@ -314,26 +259,28 @@ function fetchAndRenderTable() {
             mobileNumber: entry.mobileNumber || "N/A",
             socialMedia: entry.socialMedia || "N/A",
             address: {
-                region: entry.address?.region || "N/A",
-                province: entry.address?.province || "N/A",
-                city: entry.address?.city || "N/A",
-                barangay: entry.address?.barangay || "N/A",
-                streetAddress: entry.address?.streetAddress || "N/A"
+                formattedAddress: entry.address?.formattedAddress || "N/A",
+                latitude: entry.address?.latitude || "N/A",
+                longitude: entry.address?.longitude || "N/A"
             },
             organizationalBackgroundMission: entry.organizationalBackgroundMission || "N/A",
             areasOfExpertiseFocus: entry.areasOfExpertiseFocus || "N/A",
             legalStatusRegistration: entry.legalStatusRegistration || "N/A",
             requiredDocumentsLink: entry.requiredDocumentsLink || "N/A",
+            applicationDateandTime: entry.applicationDateandTime || "N/A",
+            approvedApplicationDate: entry.approvedApplicationDate || "N/A",
+            recaptchaResponse: entry.recaptchaResponse || "N/A",
             timestamp: entry.timestamp || "N/A",
-            userId: entry.userId || "N/A"
+            userId: entry.userId || "N/A",
+            lastUpdatedBy: entry.lastUpdatedBy || "N/A",
+            lastUpdatedAt: entry.lastUpdatedAt || "N/A"
         }));
         applySearchAndSort();
     });
 }
 
-// Fetch and render archived table data
 function fetchAndRenderArchivedTable() {
-    database.ref("deletedVolunteerGroups").on("value", snapshot => {
+    database.ref("deleted/deletedVolunteerGroups").on("value", snapshot => {
         const fetchedArchivedData = snapshot.val();
         if (!fetchedArchivedData) {
             archivedData = [];
@@ -349,11 +296,9 @@ function fetchAndRenderArchivedTable() {
             mobileNumber: entry.mobileNumber || "N/A",
             socialMedia: entry.socialMedia || "N/A",
             address: {
-                region: entry.address?.region || "N/A",
-                province: entry.address?.province || "N/A",
-                city: entry.address?.city || "N/A",
-                barangay: entry.address?.barangay || "N/A",
-                streetAddress: entry.address?.streetAddress || "N/A"
+                formattedAddress: entry.address?.formattedAddress || "N/A",
+                latitude: entry.address?.latitude || "N/A",
+                longitude: entry.address?.longitude || "N/A"
             },
             deletedAt: entry.deletedAt || "N/A"
         }));
@@ -361,10 +306,18 @@ function fetchAndRenderArchivedTable() {
     });
 }
 
-// === View Modal ===
 function showPreviewModal(orgData) {
     const modalContentDiv = document.getElementById('modalContent');
     const formattedTimestamp = orgData.timestamp ? new Date(orgData.timestamp).toLocaleString('en-US', {
+        year: 'numeric', month: 'short', day: 'numeric',
+        hour: '2-digit', minute: '2-digit', second: '2-digit'
+    }) : 'N/A';
+    const formattedAppDateTime = orgData.applicationDateandTime ? new Date(orgData.applicationDateandTime).toLocaleString('en-US', {
+        year: 'numeric', month: 'short', day: 'numeric',
+        hour: '2-digit', minute: '2-digit', second: '2-digit'
+    }) : 'N/A';
+    const formattedApprovedDate = orgData.approvedApplicationDate ? new Date(orgData.approvedApplicationDate).toLocaleDateString('en-US') : 'N/A';
+    const lastUpdatedAt = orgData.lastUpdatedAt ? new Date(orgData.lastUpdatedAt).toLocaleString('en-US', {
         year: 'numeric', month: 'short', day: 'numeric',
         hour: '2-digit', minute: '2-digit', second: '2-digit'
     }) : 'N/A';
@@ -380,11 +333,9 @@ function showPreviewModal(orgData) {
             <hr>
             <h2>Address:</h2>
             <div style="margin-left: 15px;">
-                <p><strong>Region:</strong> ${orgData.address?.region || 'N/A'}</p>
-                <p><strong>Province:</strong> ${orgData.address?.province || 'N/A'}</p>
-                <p><strong>City:</strong> ${orgData.address?.city || 'N/A'}</p>
-                <p><strong>Barangay:</strong> ${orgData.address?.barangay || 'N/A'}</p>
-                <p><strong>Street Address:</strong> ${orgData.address?.streetAddress || 'N/A'}</p>
+                <p><strong>Formatted Address:</strong> ${orgData.address?.formattedAddress || 'N/A'}</p>
+                <p><strong>Latitude:</strong> ${orgData.address?.latitude || 'N/A'}</p>
+                <p><strong>Longitude:</strong> ${orgData.address?.longitude || 'N/A'}</p>
             </div>
             <hr>
             <h2>Organizational Background:</h2>
@@ -395,7 +346,12 @@ function showPreviewModal(orgData) {
             <p><strong>Legal Status/Registration:</strong> ${orgData.legalStatusRegistration || 'N/A'}</p>
             <p><strong>Required Documents:</strong> ${orgData.requiredDocumentsLink ? `<a href="${orgData.requiredDocumentsLink}" target="_blank" rel="noopener noreferrer">View Document</a>` : 'N/A'}</p>
             <hr>
-            <p style="margin-top: 20px; font-size: 0.9em; color: #555;"><strong>Created At:</strong> ${formattedTimestamp}</p>
+            <h2>Dates:</h2>
+            <p><strong>Application Date and Time:</strong> ${formattedAppDateTime}</p>
+            <p><strong>Approved Application Date:</strong> ${formattedApprovedDate}</p>
+            <p><strong>Created At:</strong> ${formattedTimestamp}</p>
+            <p><strong>Last Updated At:</strong> ${lastUpdatedAt}</p>
+            <p><strong>Last Updated By:</strong> ${orgData.lastUpdatedBy || 'N/A'}</p>
         </div>
     `;
     document.getElementById('previewModal').style.display = 'flex';
@@ -408,7 +364,6 @@ function hidePreviewModal() {
     modalContentDiv.innerHTML = '';
 }
 
-// Render table
 function renderTable(dataToRender = filteredData) {
     if (!tableBody) return;
     tableBody.innerHTML = "";
@@ -417,9 +372,9 @@ function renderTable(dataToRender = filteredData) {
     const pageData = dataToRender.slice(start, end);
 
     if (pageData.length === 0 && searchInput.value.trim() !== "") {
-        tableBody.innerHTML = `<tr><td colspan="12" class="text-center">No volunteer group found.</td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="8" class="text-center">No volunteer group found.</td></tr>`;
     } else if (pageData.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="12" class="text-center">No volunteer groups to display.</td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="8" class="text-center">No volunteer groups to display.</td></tr>`;
     }
 
     pageData.forEach((row, index) => {
@@ -431,14 +386,8 @@ function renderTable(dataToRender = filteredData) {
             <td>${row.contactPerson}</td>
             <td>${row.email}</td>
             <td>${row.mobileNumber}</td>
-            <td>
-                ${row.socialMedia && row.socialMedia !== 'N/A' ? `<a href="${row.socialMedia}" target="_blank" rel="noopener noreferrer">${row.socialMedia}</a>` : 'N/A'}
-            </td>
-            <td>${row.address?.region || 'N/A'}</td>
-            <td>${row.address?.province || 'N/A'}</td>
-            <td>${row.address?.city || 'N/A'}</td>
-            <td>${row.address?.barangay || 'N/A'}</td>
-            <td>${row.address?.streetAddress || 'N/A'}</td>
+            <td>${row.socialMedia && row.socialMedia !== 'N/A' ? `<a href="${row.socialMedia}" target="_blank" rel="noopener noreferrer">${row.socialMedia}</a>` : 'N/A'}</td>
+            <td>${row.address?.formattedAddress || 'N/A'}</td>
             <td>
                 <button title="View" class="viewBtn" data-id="${row.id}"><i class='bx bx-show'></i></button>
                 <button title="Edit" class="editBtn" data-id="${row.id}"><i class='bx bx-edit'></i></button>
@@ -453,7 +402,6 @@ function renderTable(dataToRender = filteredData) {
     attachRowHandlers();
 }
 
-// Render archived table
 function renderArchivedTable(dataToRender = filteredArchivedData) {
     if (!archivedTableBody) return;
     archivedTableBody.innerHTML = "";
@@ -467,13 +415,11 @@ function renderArchivedTable(dataToRender = filteredArchivedData) {
 
     pageData.forEach((row) => {
         const tr = document.createElement("tr");
-        const fullAddress = `${row.address?.streetAddress !== 'N/A' ? row.address.streetAddress + ', ' : ''}${row.address?.barangay || 'N/A'}, ${row.address?.city || 'N/A'}, ${row.address?.province || 'N/A'}, ${row.address?.region || 'N/A'}`;
         const deletedDate = row.deletedAt ? new Date(row.deletedAt).toLocaleDateString() : 'N/A';
-
         tr.innerHTML = `
             <td>${row.organization}</td>
             <td>${row.email}</td>
-            <td>${fullAddress}</td>
+            <td>${row.address?.formattedAddress || 'N/A'}</td>
             <td>${deletedDate}</td>
             <td>
                 <button class="retrieveBtn" data-id="${row.id}">Retrieve</button>
@@ -487,280 +433,259 @@ function renderArchivedTable(dataToRender = filteredArchivedData) {
     attachArchivedRowHandlers();
 }
 
-var my_handlers = {
-    fill_regions: function() {
-        if (regionTextInput) regionTextInput.value = '';
-        if (provinceTextInput) provinceTextInput.value = '';
-        if (cityTextInput) cityTextInput.value = '';
-        if (barangayTextInput) barangayTextInput.value = '';
+let map, marker, editMap, editMarker;
 
-        regionSelect.innerHTML = '<option value="" selected="true" disabled>Choose Region</option>';
-        regionSelect.selectedIndex = 0;
+function initializeMap() {
+    const mapDiv = document.getElementById('map');
+    const philippinesBounds = {
+        north: 21.121, // Northernmost point
+        south: 4.643,  // Southernmost point
+        west: 116.929, // Westernmost point
+        east: 126.604  // Easternmost point
+    };
+    map = new google.maps.Map(mapDiv, {
+        center: { lat: 14.5995, lng: 120.9842 }, // Manila
+        zoom: 6,
+        restriction: {
+            latLngBounds: philippinesBounds,
+            strictBounds: true
+        }
+    });
 
-        provinceSelect.innerHTML = '<option value="" selected="true" disabled>Choose Region First</option>';
-        provinceSelect.selectedIndex = 0;
+    const input = document.getElementById('formattedAddress');
+    const autocomplete = new google.maps.places.Autocomplete(input, {
+        bounds: philippinesBounds,
+        strictBounds: true,
+        componentRestrictions: { country: 'PH' }
+    });
+    autocomplete.bindTo('bounds', map);
 
-        citySelect.innerHTML = '<option value="" selected="true" disabled>Choose Region First</option>';
-        citySelect.selectedIndex = 0;
+    marker = new google.maps.Marker({
+        map: map,
+        draggable: true
+    });
 
-        barangaySelect.innerHTML = '<option value="" selected="true" disabled>Choose Region First</option>';
-        barangaySelect.selectedIndex = 0;
-
-        const url = '../json/region.json';
-
-        fetch(url)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! Status: ${response.status} - ${response.statusText}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (!Array.isArray(data) || !data.every(item => item.region_code && item.region_name)) {
-                    throw new Error("Invalid region data structure");
-                }
-
-                data.sort(function(a, b) {
-                    return a.region_name.localeCompare(b.region_name);
-                });
-
-                data.forEach(entry => {
-                    const opt = document.createElement('option');
-                    opt.value = entry.region_code;
-                    opt.textContent = entry.region_name;
-                    regionSelect.appendChild(opt);
-                });
-            })
-            .catch(error => {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Failed to Load Regions',
-                    text: `Unable to load region data: ${error.message}. Check if ${url} is accessible.`,
-                    confirmButtonText: 'OK'
-                });
-            });
-    },
-    fill_provinces: function() {
-        var region_code = regionSelect.value;
-
-        if (!region_code) {
+    autocomplete.addListener('place_changed', () => {
+        const place = autocomplete.getPlace();
+        if (!place.geometry) {
             Swal.fire({
-                icon: 'warning',
-                title: 'Select Region First',
-                text: 'Please select a region before choosing a province.',
-                confirmButtonText: 'OK'
+                icon: 'error',
+                title: 'Invalid Address',
+                text: 'Please select a valid address within the Philippines.'
             });
-            provinceSelect.innerHTML = '<option value="" selected="true" disabled>Choose Province</option>';
-            provinceSelect.selectedIndex = 0;
-            citySelect.innerHTML = '<option value="" selected="true" disabled>Choose Province First</option>';
-            citySelect.selectedIndex = 0;
-            barangaySelect.innerHTML = '<option value="" selected="true" disabled>Choose City First</option>';
-            barangaySelect.selectedIndex = 0;
-            if (provinceTextInput) provinceTextInput.value = '';
-            if (cityTextInput) cityTextInput.value = '';
-            if (barangayTextInput) barangayTextInput.value = '';
+            return;
+        }
+        if (!philippinesBounds.north >= place.geometry.location.lat() ||
+            place.geometry.location.lat() < philippinesBounds.south ||
+            philippinesBounds.east < place.geometry.location.lng() ||
+            place.geometry.location.lng() < philippinesBounds.west) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Invalid Location',
+                text: 'Selected location must be within the Philippines.'
+            });
             return;
         }
 
-        var region_text = regionSelect.options[regionSelect.selectedIndex].textContent;
-        if (regionTextInput) regionTextInput.value = region_text;
+        map.setCenter(place.geometry.location);
+        marker.setPosition(place.geometry.location);
+        document.getElementById('latitude').value = place.geometry.location.lat();
+        document.getElementById('longitude').value = place.geometry.location.lng();
+        input.value = place.formatted_address;
+    });
 
-        if (provinceTextInput) provinceTextInput.value = '';
-        if (cityTextInput) cityTextInput.value = '';
-        if (barangayTextInput) barangayTextInput.value = '';
-
-        provinceSelect.innerHTML = '<option value="" selected="true" disabled>Choose Province</option>';
-        provinceSelect.selectedIndex = 0;
-
-        citySelect.innerHTML = '<option value="" selected="true" disabled>Choose Province First</option>';
-        citySelect.selectedIndex = 0;
-
-        barangaySelect.innerHTML = '<option value="" selected="true" disabled>Choose Province First</option>';
-        barangaySelect.selectedIndex = 0;
-
-        const url = '../json/province.json';
-
-        fetch(url)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! Status: ${response.status} - ${response.statusText}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (!Array.isArray(data) || !data.every(item => item.region_code && item.province_code && item.province_name)) {
-                    throw new Error("Invalid province data structure");
-                }
-
-                var result = data.filter(function(value) {
-                    return value.region_code === region_code;
-                });
-
-                result.sort(function(a, b) {
-                    return a.province_name.localeCompare(b.province_name);
-                });
-
-                result.forEach(entry => {
-                    const opt = document.createElement('option');
-                    opt.value = entry.province_code;
-                    opt.textContent = entry.province_name;
-                    provinceSelect.appendChild(opt);
-                });
-            })
-            .catch(error => {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Failed to Load Provinces',
-                    text: `Unable to load province data: ${error.message}. Check if ${url} is accessible.`,
-                    confirmButtonText: 'OK'
-                });
-            });
-    },
-    fill_cities: function() {
-        var province_code = provinceSelect.value;
-
-        if (!province_code) {
+    marker.addListener('dragend', () => {
+        const latlng = marker.getPosition();
+        if (!philippinesBounds.north >= latlng.lat() ||
+            latlng.lat() < philippinesBounds.south ||
+            philippinesBounds.east < latlng.lng() ||
+            latlng.lng() < philippinesBounds.west) {
             Swal.fire({
-                icon: 'warning',
-                title: 'Select Province First',
-                text: 'Please select a province before choosing a city/municipality.',
-                confirmButtonText: 'OK'
+                icon: 'error',
+                title: 'Invalid Location',
+                text: 'Selected location must be within the Philippines.'
             });
-            citySelect.innerHTML = '<option value="" selected="true" disabled>Choose City / Municipality</option>';
-            citySelect.selectedIndex = 0;
-            barangaySelect.innerHTML = '<option value="" selected="true" disabled>Choose City First</option>';
-            barangaySelect.selectedIndex = 0;
-            if (cityTextInput) cityTextInput.value = '';
-            if (barangayTextInput) barangayTextInput.value = '';
+            marker.setPosition(map.getCenter());
+            return;
+        }
+        const geocoder = new google.maps.Geocoder();
+        geocoder.geocode({ location: latlng }, (results, status) => {
+            if (status === 'OK' && results[0]) {
+                if (results[0].address_components.some(comp => comp.short_name === 'PH')) {
+                    input.value = results[0].formatted_address;
+                    document.getElementById('latitude').value = latlng.lat();
+                    document.getElementById('longitude').value = latlng.lng();
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Invalid Location',
+                        text: 'Selected location must be within the Philippines.'
+                    });
+                    marker.setPosition(map.getCenter());
+                }
+            }
+        });
+    });
+
+    map.addListener('click', (e) => {
+        if (!philippinesBounds.north >= e.latLng.lat() ||
+            e.latLng.lat() < philippinesBounds.south ||
+            philippinesBounds.east < e.latLng.lng() ||
+            e.latLng.lng() < philippinesBounds.west) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Invalid Location',
+                text: 'Selected location must be within the Philippines.'
+            });
+            return;
+        }
+        marker.setPosition(e.latLng);
+        const geocoder = new google.maps.Geocoder();
+        geocoder.geocode({ location: e.latLng }, (results, status) => {
+            if (status === 'OK' && results[0]) {
+                if (results[0].address_components.some(comp => comp.short_name === 'PH')) {
+                    input.value = results[0].formatted_address;
+                    document.getElementById('latitude').value = e.latLng.lat();
+                    document.getElementById('longitude').value = e.latLng.lng();
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Invalid Location',
+                        text: 'Selected location must be within the Philippines.'
+                    });
+                    marker.setPosition(map.getCenter());
+                }
+            }
+        });
+    });
+}
+
+function initializeEditMap(lat = 14.5995, lng = 120.9842) {
+    const editMapDiv = document.getElementById('editMap');
+    const philippinesBounds = {
+        north: 21.121,
+        south: 4.643,
+        west: 116.929,
+        east: 126.604
+    };
+    editMap = new google.maps.Map(editMapDiv, {
+        center: { lat: lat, lng: lng },
+        zoom: 6,
+        restriction: {
+            latLngBounds: philippinesBounds,
+            strictBounds: true
+        }
+    });
+
+    const editInput = document.getElementById('editFormattedAddress');
+    const autocomplete = new google.maps.places.Autocomplete(editInput, {
+        bounds: philippinesBounds,
+        strictBounds: true,
+        componentRestrictions: { country: 'PH' }
+    });
+    autocomplete.bindTo('bounds', editMap);
+
+    editMarker = new google.maps.Marker({
+        map: editMap,
+        draggable: true,
+        position: { lat: lat, lng: lng }
+    });
+
+    autocomplete.addListener('place_changed', () => {
+        const place = autocomplete.getPlace();
+        if (!place.geometry) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Invalid Address',
+                text: 'Please select a valid address within the Philippines.'
+            });
+            return;
+        }
+        if (!philippinesBounds.north >= place.geometry.location.lat() ||
+            place.geometry.location.lat() < philippinesBounds.south ||
+            philippinesBounds.east < place.geometry.location.lng() ||
+            place.geometry.location.lng() < philippinesBounds.west) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Invalid Location',
+                text: 'Selected location must be within the Philippines.'
+            });
             return;
         }
 
-        var province_text = provinceSelect.options[provinceSelect.selectedIndex].textContent;
-        if (provinceTextInput) provinceTextInput.value = province_text;
+        editMap.setCenter(place.geometry.location);
+        editMarker.setPosition(place.geometry.location);
+        document.getElementById('editLatitude').value = place.geometry.location.lat();
+        document.getElementById('editLongitude').value = place.geometry.location.lng();
+        editInput.value = place.formatted_address;
+    });
 
-        if (cityTextInput) cityTextInput.value = '';
-        if (barangayTextInput) barangayTextInput.value = '';
-
-        citySelect.innerHTML = '<option value="" selected="true" disabled>Choose City / Municipality</option>';
-        citySelect.selectedIndex = 0;
-
-        barangaySelect.innerHTML = '<option value="" selected="true" disabled>Choose City First</option>';
-        barangaySelect.selectedIndex = 0;
-
-        const url = '../json/city.json';
-
-        fetch(url)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! Status: ${response.status} - ${response.statusText}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (!Array.isArray(data) || !data.every(item => item.province_code && item.city_code && item.city_name)) {
-                    throw new Error("Invalid city data structure");
-                }
-
-                var result = data.filter(function(value) {
-                    return value.province_code === province_code;
-                });
-
-                result.sort(function(a, b) {
-                    return a.city_name.localeCompare(b.city_name);
-                });
-
-                result.forEach(entry => {
-                    const opt = document.createElement('option');
-                    opt.value = entry.city_code;
-                    opt.textContent = entry.city_name;
-                    citySelect.appendChild(opt);
-                });
-            })
-            .catch(error => {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Failed to Load Cities',
-                    text: `Unable to load city data: ${error.message}. Check if ${url} is accessible.`,
-                    confirmButtonText: 'OK'
-                });
-            });
-    },
-    fill_barangays: function() {
-        var city_code = citySelect.value;
-
-        if (!city_code) {
+    editMarker.addListener('dragend', () => {
+        const latlng = editMarker.getPosition();
+        if (!philippinesBounds.north >= latlng.lat() ||
+            latlng.lat() < philippinesBounds.south ||
+            philippinesBounds.east < latlng.lng() ||
+            latlng.lng() < philippinesBounds.west) {
             Swal.fire({
-                icon: 'warning',
-                title: 'Select City/Municipality First',
-                text: 'Please select a city/municipality before choosing a barangay.',
-                confirmButtonText: 'OK'
+                icon: 'error',
+                title: 'Invalid Location',
+                text: 'Selected location must be within the Philippines.'
             });
-            barangaySelect.innerHTML = '<option value="" selected="true" disabled>Choose Barangay</option>';
-            barangaySelect.selectedIndex = 0;
-            if (barangayTextInput) barangayTextInput.value = '';
+            editMarker.setPosition(editMap.getCenter());
             return;
         }
-
-        var city_text = citySelect.options[citySelect.selectedIndex].textContent;
-        if (cityTextInput) cityTextInput.value = city_text;
-
-        if (barangayTextInput) barangayTextInput.value = '';
-
-        barangaySelect.innerHTML = '<option value="" selected="true" disabled>Choose Barangay</option>';
-        barangaySelect.selectedIndex = 0;
-
-        const url = '../json/barangay.json';
-
-        fetch(url)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! Status: ${response.status} - ${response.statusText}`);
+        const geocoder = new google.maps.Geocoder();
+        geocoder.geocode({ location: latlng }, (results, status) => {
+            if (status === 'OK' && results[0]) {
+                if (results[0].address_components.some(comp => comp.short_name === 'PH')) {
+                    editInput.value = results[0].formatted_address;
+                    document.getElementById('editLatitude').value = latlng.lat();
+                    document.getElementById('editLongitude').value = latlng.lng();
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Invalid Location',
+                        text: 'Selected location must be within the Philippines.'
+                    });
+                    editMarker.setPosition(editMap.getCenter());
                 }
-                return response.json();
-            })
-            .then(data => {
-                if (!Array.isArray(data) || !data.every(item => item.city_code && item.brgy_code && item.brgy_name)) {
-                    throw new Error("Invalid barangay data structure");
-                }
+            }
+        });
+    });
 
-                var result = data.filter(function(value) {
-                    return value.city_code === city_code;
-                });
-
-                result.sort(function(a, b) {
-                    return a.brgy_name.localeCompare(b.brgy_name);
-                });
-
-                result.forEach(entry => {
-                    const opt = document.createElement('option');
-                    opt.value = entry.brgy_code;
-                    opt.textContent = entry.brgy_name;
-                    barangaySelect.appendChild(opt);
-                });
-            })
-            .catch(error => {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Failed to Load Barangays',
-                    text: `Unable to load barangay data: ${error.message}. Check if ${url} is accessible.`,
-                    confirmButtonText: 'OK'
-                });
+    editMap.addListener('click', (e) => {
+        if (!philippinesBounds.north >= e.latLng.lat() ||
+            e.latLng.lat() < philippinesBounds.south ||
+            philippinesBounds.east < e.latLng.lng() ||
+            e.latLng.lng() < philippinesBounds.west) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Invalid Location',
+                text: 'Selected location must be within the Philippines.'
             });
-    },
-    onchange_barangay: function() {
-        var barangay_text = barangaySelect.options[barangaySelect.selectedIndex].textContent;
-        if (barangayTextInput) barangayTextInput.value = barangay_text;
-    },
-};
+            return;
+        }
+        editMarker.setPosition(e.latLng);
+        const geocoder = new google.maps.Geocoder();
+        geocoder.geocode({ location: e.latLng }, (results, status) => {
+            if (status === 'OK' && results[0]) {
+                if (results[0].address_components.some(comp => comp.short_name === 'PH')) {
+                    editInput.value = results[0].formatted_address;
+                    document.getElementById('editLatitude').value = e.latLng.lat();
+                    document.getElementById('editLongitude').value = e.latLng.lng();
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Invalid Location',
+                        text: 'Selected location must be within the Philippines.'
+                    });
+                    editMarker.setPosition(editMap.getCenter());
+                }
+            }
+        });
+    });
+}
 
-if (regionSelect) regionSelect.addEventListener('change', my_handlers.fill_provinces);
-if (provinceSelect) provinceSelect.addEventListener('change', my_handlers.fill_cities);
-if (citySelect) citySelect.addEventListener('change', my_handlers.fill_barangays);
-if (barangaySelect) barangaySelect.addEventListener('change', my_handlers.onchange_barangay);
-
-my_handlers.fill_regions();
-
-// Event listeners for modals and buttons
 if (addNew) {
     addNew.addEventListener('click', () => {
         if (!['Super Admin', 'position-one', 'position-two'].includes(adminPosition)) {
@@ -783,8 +708,7 @@ if (addNew) {
         if (addOrgModal) {
             addOrgModal.style.display = 'flex';
             addOrgForm.reset();
-            my_handlers.fill_regions();
-            currentAddressCell = null;
+            initializeMap();
         }
     });
 }
@@ -813,7 +737,6 @@ window.addEventListener('click', (event) => {
     }
 });
 
-// Event listener for the form submission to show confirmation modal
 if (addOrgForm) {
     addOrgForm.addEventListener('submit', async e => {
         e.preventDefault();
@@ -837,28 +760,47 @@ if (addOrgForm) {
         }
 
         const organization = document.getElementById('organization').value.trim();
+        const formattedAddress = document.getElementById('formattedAddress').value.trim();
+        const latitude = document.getElementById('latitude').value.trim();
+        const longitude = document.getElementById('longitude').value.trim();
         const contactPerson = document.getElementById('contactPerson').value.trim();
         const email = document.getElementById('email').value.trim();
-        const mobileNumber = document.getElementById('mobileNumber').value.trim();
+        const mobileNumber = document.getElementById('mobileNumber').value;
         const socialMedia = document.getElementById('socialMedia').value.trim();
-        const streetAddress = document.getElementById('streetAddress')?.value.trim() || '';
-        const organizationalBackgroundMission = document.getElementById('organizationalBackgroundMission')?.value.trim() || '';
-        const areasOfExpertiseFocus = document.getElementById('areasOfExpertiseFocus')?.value.trim() || '';
-        const legalStatusRegistration = document.getElementById('legalStatusRegistration')?.value.trim() || '';
-        const requiredDocumentsLink = document.getElementById('requiredDocumentsLink')?.value.trim() || '';
+        const organizationalBackgroundMission = document.getElementById('organizationalBackgroundMission').value.trim();
+        const areasOfExpertiseFocus = document.getElementById('areasOfExpertiseFocus').value.trim();
+        const legalStatusRegistration = document.getElementById('legalStatusRegistration').value.trim();
+        const requiredDocumentsLink = document.getElementById('requiredDocumentsLink').value.trim();
+        const applicationDateandTime = document.getElementById('applicationDateandTime').value.trim();
+        const approvedApplicationDate = document.getElementById('approvedApplicationDate').value.trim();
+        const recaptchaResponse = document.getElementById('recaptchaResponse').value.trim();
 
-        const selectedRegionText = regionSelect.options[regionSelect.selectedIndex]?.textContent || '';
-        const selectedProvinceText = provinceSelect.options[provinceSelect.selectedIndex]?.textContent || '';
-        const selectedCityText = citySelect.options[citySelect.selectedIndex]?.textContent || '';
-        const selectedBarangayText = barangaySelect.options[barangaySelect.selectedIndex]?.textContent || '';
+        const appDateTime = new Date(applicationDateandTime);
+        const approvedDate = new Date(approvedApplicationDate);
+        const appDateOnly = new Date(appDateTime.getFullYear(), appDateTime.getMonth(), appDateTime.getDate());
+        const approvedDateOnly = new Date(approvedDate.getFullYear(), approvedDate.getMonth(), approvedDate.getDate());
+        if (appDateOnly > approvedDateOnly) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Invalid Dates',
+                text: 'Application Date cannot be after Approved Application Date.',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
+                }
+            });
+            return;
+        }
 
-        // Validation Checks
-        if (!organization || !contactPerson || !email || !mobileNumber ||
-            !selectedRegionText || !selectedProvinceText || !selectedCityText || !selectedBarangayText) {
+        if (!organization || !formattedAddress || !latitude || !longitude || !contactPerson || !email || !mobileNumber || !applicationDateandTime || !approvedApplicationDate) {
             Swal.fire({
                 icon: 'error',
                 title: 'Missing Fields',
-                text: 'Please fill in all required fields (Organization, Contact Person, Email, Mobile Number, and Full Address).',
+                text: 'Please fill in all required fields (Organization, Address, Latitude, Longitude, Contact Person, Email, Mobile Number, Application Date and Time, Approved Application Date).',
                 showConfirmButton: true,
                 confirmButtonText: 'OK',
                 customClass: {
@@ -948,25 +890,29 @@ if (addOrgForm) {
             mobileNumber: mobileNumber,
             socialMedia: socialMedia || "N/A",
             address: {
-                region: selectedRegionText,
-                province: selectedProvinceText,
-                city: selectedCityText,
-                barangay: selectedBarangayText,
-                streetAddress: streetAddress || "N/A"
+                formattedAddress: formattedAddress,
+                latitude: parseFloat(latitude),
+                longitude: parseFloat(longitude)
             },
             organizationalBackgroundMission: organizationalBackgroundMission || "N/A",
             areasOfExpertiseFocus: areasOfExpertiseFocus || "N/A",
             legalStatusRegistration: legalStatusRegistration || "N/A",
             requiredDocumentsLink: requiredDocumentsLink || "N/A",
-            timestamp: new Date().toISOString()
+            applicationDateandTime: applicationDateandTime,
+            approvedApplicationDate: approvedApplicationDate,
+            recaptchaResponse: recaptchaResponse || "N/A",
+            timestamp: new Date().toISOString(),
+            lastUpdatedBy: auth.currentUser?.uid || "N/A",
+            lastUpdatedAt: new Date().toISOString()
         };
 
         const confirmDetails = document.getElementById('confirmDetails');
         if (confirmDetails) {
-            const fullAddress = `${orgData.address.streetAddress !== 'N/A' ? orgData.address.streetAddress + ', ' : ''}${orgData.address.barangay}, ${orgData.address.city}, ${orgData.address.province}, ${orgData.address.region}`;
             confirmDetails.innerHTML = `
                 <p><strong>Organization:</strong> ${orgData.organization}</p>
-                <p><strong>Full Address:</strong> ${fullAddress}</p>
+                <p><strong>Address:</strong> ${orgData.address.formattedAddress}</p>
+                <p><strong>Latitude:</strong> ${orgData.address.latitude}</p>
+                <p><strong>Longitude:</strong> ${orgData.address.longitude}</p>
                 <p><strong>Contact Person:</strong> ${orgData.contactPerson}</p>
                 <p><strong>Email:</strong> ${orgData.email}</p>
                 <p><strong>Mobile:</strong> ${orgData.mobileNumber}</p>
@@ -975,6 +921,8 @@ if (addOrgForm) {
                 <p><strong>Areas of Expertise/Focus:</strong> ${orgData.areasOfExpertiseFocus}</p>
                 <p><strong>Legal Status/Registration:</strong> ${orgData.legalStatusRegistration}</p>
                 <p><strong>Required Documents:</strong> ${orgData.requiredDocumentsLink}</p>
+                <p><strong>Application Date and Time:</strong> ${orgData.applicationDateandTime}</p>
+                <p><strong>Approved Application Date:</strong> ${orgData.approvedApplicationDate}</p>
             `;
         }
 
@@ -1010,24 +958,49 @@ if (confirmSaveBtn) {
             return;
         }
 
+        // Validate numeric fields to prevent NaN
+        const lat = parseFloat(orgData.address.latitude);
+        const lon = parseFloat(orgData.address.longitude);
+        if (isNaN(lat) || isNaN(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Invalid Coordinates',
+                text: 'Latitude or longitude is invalid. Please check the address.',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
+                }
+            });
+            isProcessing = false;
+            confirmSaveBtn.disabled = false;
+            return;
+        }
+
         const newVolunteerGroup = {
             organization: orgData.organization,
             contactPerson: orgData.contactPerson,
-            email: orgData.email || "N/A",
+            email: orgData.email,
             mobileNumber: orgData.mobileNumber,
-            socialMedia: orgData.socialMedia,
+            socialMedia: orgData.socialMedia || "N/A",
             address: {
-                region: orgData.address.region,
-                province: orgData.address.province,
-                city: orgData.address.city,
-                barangay: orgData.address.barangay,
-                streetAddress: orgData.address.streetAddress
+                formattedAddress: orgData.address.formattedAddress,
+                latitude: lat,
+                longitude: lon
             },
-            organizationalBackgroundMission: orgData.organizationalBackgroundMission,
-            areasOfExpertiseFocus: orgData.areasOfExpertiseFocus,
-            legalStatusRegistration: orgData.legalStatusRegistration,
-            requiredDocumentsLink: orgData.requiredDocumentsLink,
-            timestamp: orgData.timestamp
+            organizationalBackgroundMission: orgData.organizationalBackgroundMission || "N/A",
+            areasOfExpertiseFocus: orgData.areasOfExpertiseFocus || "N/A",
+            legalStatusRegistration: orgData.legalStatusRegistration || "N/A",
+            requiredDocumentsLink: orgData.requiredDocumentsLink || "N/A",
+            applicationDateandTime: orgData.applicationDateandTime,
+            approvedApplicationDate: orgData.approvedApplicationDate,
+            recaptchaResponse: orgData.recaptchaResponse || "N/A",
+            timestamp: orgData.timestamp || new Date().toISOString(),
+            lastUpdatedBy: auth.currentUser?.uid || "N/A",
+            lastUpdatedAt: new Date().toISOString()
         };
 
         try {
@@ -1048,6 +1021,11 @@ if (confirmSaveBtn) {
             }
             const newUser = userCredential.user;
 
+            if (!newUser.uid) {
+                throw new Error("Failed to generate a valid user ID.");
+            }
+
+            // Save to users
             await database.ref(`users/${newUser.uid}`).set({
                 role: "ABVN",
                 email: orgData.email,
@@ -1055,29 +1033,38 @@ if (confirmSaveBtn) {
                 organization: orgData.organization,
                 contactPerson: orgData.contactPerson,
                 address: {
-                    region: orgData.address.region,
-                    province: orgData.address.province,
-                    city: orgData.address.city,
-                    barangay: orgData.address.barangay,
-                    streetAddress: orgData.address.streetAddress
+                    formattedAddress: orgData.address.formattedAddress,
+                    latitude: lat,
+                    longitude: lon
                 },
-                organizationalBackgroundMission: orgData.organizationalBackgroundMission,
-                areasOfExpertiseFocus: orgData.areasOfExpertiseFocus,
-                legalStatusRegistration: orgData.legalStatusRegistration,
-                requiredDocumentsLink: orgData.requiredDocumentsLink,
+                organizationalBackgroundMission: orgData.organizationalBackgroundMission || "N/A",
+                areasOfExpertiseFocus: orgData.areasOfExpertiseFocus || "N/A",
+                legalStatusRegistration: orgData.legalStatusRegistration || "N/A",
+                requiredDocumentsLink: orgData.requiredDocumentsLink || "N/A",
+                applicationDateandTime: orgData.applicationDateandTime,
+                approvedApplicationDate: orgData.approvedApplicationDate,
+                recaptchaResponse: orgData.recaptchaResponse || "N/A",
                 createdAt: new Date().toISOString(),
                 isFirstLogin: true,
                 emailVerified: false,
-                password_needs_reset: true
+                password_needs_reset: true,
+                lastUpdatedBy: adminUser.uid,
+                lastUpdatedAt: new Date().toISOString()
             });
 
-            const snapshot = await database.ref('volunteerGroups').once('value');
-            const groups = snapshot.val();
-            const nextKey = groups ? Math.max(...Object.keys(groups).map(Number)) + 1 : 1;
-
-            await database.ref(`volunteerGroups/${nextKey}`).set({
+            // Save to volunteerGroups with UID as key
+            await database.ref(`volunteerGroups/${newUser.uid}`).set({
                 ...newVolunteerGroup,
                 userId: newUser.uid
+            });
+
+            // Optionally save to abvnApplications/registeredABVN to sync with approvedvg.js
+            await database.ref(`abvnApplications/registeredABVN/${newUser.uid}`).set({
+                ...newVolunteerGroup,
+                registeredBy: adminUser.uid,
+                registeredAt: new Date().toISOString(),
+                volunteerGroupKey: newUser.uid, // Ensure volunteerGroupKey is the UID
+                authUserId: newUser.uid
             });
 
             await emailjs.send('service_g5f0erj', 'template_0yk865p', {
@@ -1143,40 +1130,6 @@ window.addEventListener('click', (event) => {
     }
 });
 
-// Function to populate and open the edit modal
-// function openEditModal(orgId) {
-//     const orgToEdit = data.find(org => org.id === orgId);
-//     if (!orgToEdit) {
-//         Swal.fire({
-//             icon: 'error',
-//             title: 'Error',
-//             text: 'Volunteer group not found.',
-//             showConfirmButton: true,
-//             confirmButtonText: 'OK',
-//             customClass: {
-//                 popup: 'swal2-popup-suerrorccess-clean',
-//                 title: 'swal2-title-error-clean',
-//                 htmlContainer: 'swal2-text-error-clean',
-//                 confirmButton: 'my-error-button'
-//             }
-//         });
-//         return;
-//     }
-
-//     currentEditOrgKey = orgId;
-//     editOrgFirebaseKeyInput.value = orgId;
-
-//     document.getElementById('editOrganization').value = orgToEdit.organization;
-//     document.getElementById('editContactPerson').value = orgToEdit.contactPerson;
-//     document.getElementById('editEmail').value = orgToEdit.email;
-//     document.getElementById('editMobileNumber').value = orgToEdit.mobileNumber;
-//     document.getElementById('editSocialMedia').value = orgToEdit.socialMedia === "N/A" ? "" : orgToEdit.socialMedia;
-//     document.getElementById('editStreetAddress').value = orgToEdit.address.streetAddress === "N/A" ? "" : orgToEdit.address.streetAddress;
-
-//     populateEditLocationDropdowns(orgToEdit.address.region, orgToEdit.address.province, orgToEdit.address.city, orgToEdit.address.barangay);
-
-//     editOrgModal.style.display = 'flex';
-// }
 function openEditModal(orgId) {
     const orgToEdit = data.find(org => org.id === orgId);
     if (!orgToEdit) {
@@ -1200,264 +1153,34 @@ function openEditModal(orgId) {
     editOrgFirebaseKeyInput.value = orgId;
 
     document.getElementById('editOrganization').value = orgToEdit.organization;
+    document.getElementById('editFormattedAddress').value = orgToEdit.address.formattedAddress || '';
+    document.getElementById('editLatitude').value = orgToEdit.address.latitude || '';
+    document.getElementById('editLongitude').value = orgToEdit.address.longitude || '';
     document.getElementById('editContactPerson').value = orgToEdit.contactPerson;
     document.getElementById('editEmail').value = orgToEdit.email;
-    document.getElementById('editMobileNumber').value = orgToEdit.mobileNumber;
+    document.getElementById('editMobileNumber').value = orgToEdit.mobileNumber || "";
     document.getElementById('editSocialMedia').value = orgToEdit.socialMedia === "N/A" ? "" : orgToEdit.socialMedia;
-    document.getElementById('editStreetAddress').value = orgToEdit.address.streetAddress === "N/A" ? "" : orgToEdit.address.streetAddress;
     document.getElementById('editOrganizationalBackgroundMission').value = orgToEdit.organizationalBackgroundMission || "";
     document.getElementById('editAreasOfExpertiseFocus').value = orgToEdit.areasOfExpertiseFocus || "";
     document.getElementById('editLegalStatusRegistration').value = orgToEdit.legalStatusRegistration || "";
     document.getElementById('editRequiredDocumentsLink').value = orgToEdit.requiredDocumentsLink || "";
+    document.getElementById('editApplicationDateandTime').value = 
+        orgToEdit.applicationDateandTime && !isNaN(new Date(orgToEdit.applicationDateandTime).getTime()) 
+        ? new Date(orgToEdit.applicationDateandTime).toISOString().slice(0, 16) 
+        : "";
+    document.getElementById('editApprovedApplicationDate').value = 
+        orgToEdit.approvedApplicationDate && !isNaN(new Date(orgToEdit.approvedApplicationDate).getTime()) 
+        ? new Date(orgToEdit.approvedApplicationDate).toISOString().slice(0, 10) 
+        : "";
+    document.getElementById('editRecaptchaResponse').value = orgToEdit.recaptchaResponse || "";
 
-    populateEditLocationDropdowns(orgToEdit.address.region, orgToEdit.address.province, orgToEdit.address.city, orgToEdit.address.barangay);
+    initializeEditMap(
+        orgToEdit.address.latitude !== "N/A" ? parseFloat(orgToEdit.address.latitude) : 14.5995,
+        orgToEdit.address.longitude !== "N/A" ? parseFloat(orgToEdit.address.longitude) : 120.9842
+    );
 
     editOrgModal.style.display = 'flex';
 }
-
-// Function to populate edit modal location dropdowns
-// async function populateEditLocationDropdowns(selectedRegion, selectedProvince, selectedCity, selectedBarangay) {
-//     editRegionSelect.innerHTML = '<option value="" selected="true" disabled>Choose Region</option>';
-//     editProvinceSelect.innerHTML = '<option value="" selected="true" disabled>Choose Province</option>';
-//     editCitySelect.innerHTML = '<option value="" selected="true" disabled>Choose City / Municipality</option>';
-//     editBarangaySelect.innerHTML = '<option value="" selected="true" disabled>Choose Barangay</option>';
-
-//     try {
-//         const regionResponse = await fetch('../json/region.json');
-//         if (!regionResponse.ok) throw new Error(`HTTP error! Status: ${regionResponse.status}`);
-//         const regions = await regionResponse.json();
-//         regions.sort((a, b) => a.region_name.localeCompare(b.region_name));
-//         regions.forEach(entry => {
-//             const opt = document.createElement('option');
-//             opt.value = entry.region_code;
-//             opt.textContent = entry.region_name;
-//             editRegionSelect.appendChild(opt);
-//         });
-//         const regionFound = regions.find(r => r.region_name === selectedRegion);
-//         if (regionFound) {
-//             editRegionSelect.value = regionFound.region_code;
-//         }
-
-//         const provinceResponse = await fetch('../json/province.json');
-//         if (!provinceResponse.ok) throw new Error(`HTTP error! Status: ${provinceResponse.status}`);
-//         const provinces = await provinceResponse.json();
-//         const filteredProvinces = provinces.filter(p => p.region_code === editRegionSelect.value);
-//         filteredProvinces.sort((a, b) => a.province_name.localeCompare(b.province_name));
-//         filteredProvinces.forEach(entry => {
-//             const opt = document.createElement('option');
-//             opt.value = entry.province_code;
-//             opt.textContent = entry.province_name;
-//             editProvinceSelect.appendChild(opt);
-//         });
-//         const provinceFound = filteredProvinces.find(p => p.province_name === selectedProvince);
-//         if (provinceFound) {
-//             editProvinceSelect.value = provinceFound.province_code;
-//         }
-
-//         const cityResponse = await fetch('../json/city.json');
-//         if (!cityResponse.ok) throw new Error(`HTTP error! Status: ${cityResponse.status}`);
-//         const cities = await cityResponse.json();
-//         const filteredCities = cities.filter(c => c.province_code === editProvinceSelect.value);
-//         filteredCities.sort((a, b) => a.city_name.localeCompare(b.city_name));
-//         filteredCities.forEach(entry => {
-//             const opt = document.createElement('option');
-//             opt.value = entry.city_code;
-//             opt.textContent = entry.city_name;
-//             editCitySelect.appendChild(opt);
-//         });
-//         const cityFound = filteredCities.find(c => c.city_name === selectedCity);
-//         if (cityFound) {
-//             editCitySelect.value = cityFound.city_code;
-//         }
-
-//         const barangayResponse = await fetch('../json/barangay.json');
-//         if (!barangayResponse.ok) throw new Error(`HTTP error! Status: ${barangayResponse.status}`);
-//         const barangays = await barangayResponse.json();
-//         const filteredBarangays = barangays.filter(b => b.city_code === editCitySelect.value);
-//         filteredBarangays.sort((a, b) => a.brgy_name.localeCompare(b.brgy_name));
-//         filteredBarangays.forEach(entry => {
-//             const opt = document.createElement('option');
-//             opt.value = entry.brgy_code;
-//             opt.textContent = entry.brgy_name;
-//             editBarangaySelect.appendChild(opt);
-//         });
-//         const barangayFound = filteredBarangays.find(b => b.brgy_name === selectedBarangay);
-//         if (barangayFound) {
-//             editBarangaySelect.value = barangayFound.brgy_code;
-//         }
-//     } catch (error) {
-//         Swal.fire({
-//             icon: 'error',
-//             title: 'Failed to Load Location Data',
-//             text: `Unable to load location data for editing: ${error.message}.`,
-//             showConfirmButton: true,
-//             confirmButtonText: 'OK',
-//             customClass: {
-//                 popup: 'swal2-popup-error-clean',
-//                 title: 'swal2-title-error-clean',
-//                 htmlContainer: 'swal2-text-error-clean',
-//                 confirmButton: 'my-error-button'
-//             }
-//         });
-//     }
-// }
-async function populateEditLocationDropdowns(selectedRegion, selectedProvince, selectedCity, selectedBarangay) {
-    editRegionSelect.innerHTML = '<option value="" selected="true" disabled>Choose Region</option>';
-    editProvinceSelect.innerHTML = '<option value="" selected="true" disabled>Choose Province</option>';
-    editCitySelect.innerHTML = '<option value="" selected="true" disabled>Choose City / Municipality</option>';
-    editBarangaySelect.innerHTML = '<option value="" selected="true" disabled>Choose Barangay</option>';
-
-    try {
-        const regionResponse = await fetch('../json/region.json');
-        if (!regionResponse.ok) throw new Error(`HTTP error! Status: ${regionResponse.status}`);
-        const regions = await regionResponse.json();
-        regions.sort((a, b) => a.region_name.localeCompare(b.region_name));
-        regions.forEach(entry => {
-            const opt = document.createElement('option');
-            opt.value = entry.region_code;
-            opt.textContent = entry.region_name;
-            editRegionSelect.appendChild(opt);
-        });
-        const regionFound = regions.find(r => r.region_name === selectedRegion);
-        if (regionFound) {
-            editRegionSelect.value = regionFound.region_code;
-        }
-
-        const provinceResponse = await fetch('../json/province.json');
-        if (!provinceResponse.ok) throw new Error(`HTTP error! Status: ${provinceResponse.status}`);
-        const provinces = await provinceResponse.json();
-        const filteredProvinces = provinces.filter(p => p.region_code === editRegionSelect.value);
-        filteredProvinces.sort((a, b) => a.province_name.localeCompare(b.province_name));
-        filteredProvinces.forEach(entry => {
-            const opt = document.createElement('option');
-            opt.value = entry.province_code;
-            opt.textContent = entry.province_name;
-            editProvinceSelect.appendChild(opt);
-        });
-        const provinceFound = filteredProvinces.find(p => p.province_name === selectedProvince);
-        if (provinceFound) {
-            editProvinceSelect.value = provinceFound.province_code;
-        }
-
-        const cityResponse = await fetch('../json/city.json');
-        if (!cityResponse.ok) throw new Error(`HTTP error! Status: ${cityResponse.status}`);
-        const cities = await cityResponse.json();
-        const filteredCities = cities.filter(c => c.province_code === editProvinceSelect.value);
-        filteredCities.sort((a, b) => a.city_name.localeCompare(b.city_name));
-        filteredCities.forEach(entry => {
-            const opt = document.createElement('option');
-            opt.value = entry.city_code;
-            opt.textContent = entry.city_name;
-            editCitySelect.appendChild(opt);
-        });
-        const cityFound = filteredCities.find(c => c.city_name === selectedCity);
-        if (cityFound) {
-            editCitySelect.value = cityFound.city_code;
-        }
-
-        const barangayResponse = await fetch('../json/barangay.json');
-        if (!barangayResponse.ok) throw new Error(`HTTP error! Status: ${barangayResponse.status}`);
-        const barangays = await barangayResponse.json();
-        const filteredBarangays = barangays.filter(b => b.city_code === editCitySelect.value);
-        filteredBarangays.sort((a, b) => a.brgy_name.localeCompare(b.brgy_name));
-        filteredBarangays.forEach(entry => {
-            const opt = document.createElement('option');
-            opt.value = entry.brgy_code;
-            opt.textContent = entry.brgy_name;
-            editBarangaySelect.appendChild(opt);
-        });
-        const barangayFound = filteredBarangays.find(b => b.brgy_name === selectedBarangay);
-        if (barangayFound) {
-            editBarangaySelect.value = barangayFound.brgy_code;
-        }
-
-        // Populate new fields
-        const orgToEdit = data.find(org => org.id === currentEditOrgKey);
-        if (orgToEdit) {
-            document.getElementById('editOrganizationalBackgroundMission').value = orgToEdit.organizationalBackgroundMission || '';
-            document.getElementById('editAreasOfExpertiseFocus').value = orgToEdit.areasOfExpertiseFocus || '';
-            document.getElementById('editLegalStatusRegistration').value = orgToEdit.legalStatusRegistration || '';
-            document.getElementById('editRequiredDocumentsLink').value = orgToEdit.requiredDocumentsLink || '';
-        }
-    } catch (error) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Failed to Load Location Data',
-            text: `Unable to load location data for editing: ${error.message}.`,
-            showConfirmButton: true,
-            confirmButtonText: 'OK',
-            customClass: {
-                popup: 'swal2-popup-error-clean',
-                title: 'swal2-title-error-clean',
-                htmlContainer: 'swal2-text-error-clean',
-                confirmButton: 'my-error-button'
-            }
-        });
-    }
-}
-
-editRegionSelect.addEventListener('change', async () => {
-    editProvinceSelect.innerHTML = '<option value="" selected="true" disabled>Choose Province</option>';
-    editCitySelect.innerHTML = '<option value="" selected="true" disabled>Choose City / Municipality</option>';
-    editBarangaySelect.innerHTML = '<option value="" selected="true" disabled>Choose Barangay</option>';
-    const regionCode = editRegionSelect.value;
-    if (!regionCode) return;
-
-    try {
-        const response = await fetch('../json/province.json');
-        const provinces = await response.json();
-        const filteredProvinces = provinces.filter(p => p.region_code === regionCode);
-        filteredProvinces.sort((a, b) => a.province_name.localeCompare(b.province_name));
-        filteredProvinces.forEach(entry => {
-            const opt = document.createElement('option');
-            opt.value = entry.province_code;
-            opt.textContent = entry.province_name;
-            editProvinceSelect.appendChild(opt);
-        });
-    } catch (error) {
-    }
-});
-
-editProvinceSelect.addEventListener('change', async () => {
-    editCitySelect.innerHTML = '<option value="" selected="true" disabled>Choose City / Municipality</option>';
-    editBarangaySelect.innerHTML = '<option value="" selected="true" disabled>Choose Barangay</option>';
-    const provinceCode = editProvinceSelect.value;
-    if (!provinceCode) return;
-
-    try {
-        const response = await fetch('../json/city.json');
-        const cities = await response.json();
-        const filteredCities = cities.filter(c => c.province_code === provinceCode);
-        filteredCities.sort((a, b) => a.city_name.localeCompare(b.city_name));
-        filteredCities.forEach(entry => {
-            const opt = document.createElement('option');
-            opt.value = entry.city_code;
-            opt.textContent = entry.city_name;
-            editCitySelect.appendChild(opt);
-        });
-    } catch (error) {
-    }
-});
-
-editCitySelect.addEventListener('change', async () => {
-    editBarangaySelect.innerHTML = '<option value="" selected="true" disabled>Choose Barangay</option>';
-    const cityCode = editCitySelect.value;
-    if (!cityCode) return;
-
-    try {
-        const response = await fetch('../json/barangay.json');
-        const barangays = await response.json();
-        const filteredBarangays = barangays.filter(b => b.city_code === cityCode);
-        filteredBarangays.sort((a, b) => a.brgy_name.localeCompare(b.brgy_name));
-        filteredBarangays.forEach(entry => {
-            const opt = document.createElement('option');
-            opt.value = entry.brgy_code;
-            opt.textContent = entry.brgy_name;
-            editBarangaySelect.appendChild(opt);
-        });
-    } catch (error) {
-    }
-});
 
 if (editOrgForm) {
     editOrgForm.addEventListener('submit', async e => {
@@ -1500,28 +1223,47 @@ if (editOrgForm) {
         }
 
         const updatedOrganization = document.getElementById('editOrganization').value.trim();
+        const updatedFormattedAddress = document.getElementById('editFormattedAddress').value.trim();
+        const updatedLatitude = document.getElementById('editLatitude').value.trim();
+        const updatedLongitude = document.getElementById('editLongitude').value.trim();
         const updatedContactPerson = document.getElementById('editContactPerson').value.trim();
         const updatedEmail = document.getElementById('editEmail').value.trim();
-        const updatedMobileNumber = document.getElementById('editMobileNumber').value.trim();
+        const updatedMobileNumber = document.getElementById('editMobileNumber').value;
         const updatedSocialMedia = document.getElementById('editSocialMedia').value.trim();
-        const updatedStreetAddress = document.getElementById('editStreetAddress').value.trim();
         const updatedOrganizationalBackgroundMission = document.getElementById('editOrganizationalBackgroundMission').value.trim();
         const updatedAreasOfExpertiseFocus = document.getElementById('editAreasOfExpertiseFocus').value.trim();
         const updatedLegalStatusRegistration = document.getElementById('editLegalStatusRegistration').value.trim();
         const updatedRequiredDocumentsLink = document.getElementById('editRequiredDocumentsLink').value.trim();
+        const updatedApplicationDateandTime = document.getElementById('editApplicationDateandTime').value.trim();
+        const updatedApprovedApplicationDate = document.getElementById('editApprovedApplicationDate').value.trim();
+        const updatedRecaptchaResponse = document.getElementById('editRecaptchaResponse').value.trim();
 
-        const updatedRegionText = editRegionSelect.options[editRegionSelect.selectedIndex]?.textContent || '';
-        const updatedProvinceText = editProvinceSelect.options[editProvinceSelect.selectedIndex]?.textContent || '';
-        const updatedCityText = editCitySelect.options[editCitySelect.selectedIndex]?.textContent || '';
-        const updatedBarangayText = editBarangaySelect.options[editBarangaySelect.selectedIndex]?.textContent || '';
+        const appDateTime = new Date(updatedApplicationDateandTime);
+        const approvedDate = new Date(updatedApprovedApplicationDate);
+        const appDateOnly = new Date(appDateTime.getFullYear(), appDateTime.getMonth(), appDateTime.getDate());
+        const approvedDateOnly = new Date(approvedDate.getFullYear(), approvedDate.getMonth(), approvedDate.getDate());
+        if (appDateOnly > approvedDateOnly) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Invalid Dates',
+                text: 'Application Date cannot be after Approved Application Date.',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
+                }
+            });
+            return;
+        }
 
-        // Validation Checks
-        if (!updatedOrganization || !updatedContactPerson || !updatedEmail || !updatedMobileNumber ||
-            !updatedRegionText || !updatedProvinceText || !updatedCityText || !updatedBarangayText) {
+        if (!updatedOrganization || !updatedFormattedAddress || !updatedLatitude || !updatedLongitude || !updatedContactPerson || !updatedEmail || !updatedMobileNumber || !updatedApplicationDateandTime || !updatedApprovedApplicationDate) {
             Swal.fire({
                 icon: 'error',
                 title: 'Missing Fields',
-                text: 'Please fill in all required fields (Organization, Contact Person, Email, Mobile Number, and Full Address).',
+                text: 'Please fill in all required fields (Organization, Address, Latitude, Longitude, Contact Person, Email, Mobile Number, Application Date and Time, Approved Application Date).',
                 showConfirmButton: true,
                 confirmButtonText: 'OK',
                 customClass: {
@@ -1568,7 +1310,40 @@ if (editOrgForm) {
             return;
         }
 
-        // Fetch the userId and existing data from volunteerGroups
+        if (!updatedApplicationDateandTime || isNaN(new Date(updatedApplicationDateandTime).getTime())) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Invalid Application Date',
+                text: 'Please enter a valid application date and time.',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
+                }
+            });
+            return;
+        }
+
+        if (!updatedApprovedApplicationDate || isNaN(new Date(updatedApprovedApplicationDate).getTime())) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Invalid Approved Application Date',
+                text: 'Please enter a valid approved application date.',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
+                }
+            });
+            return;
+        }
+
         let userId, existingData;
         try {
             const snapshot = await database.ref(`volunteerGroups/${orgId}`).once('value');
@@ -1607,7 +1382,6 @@ if (editOrgForm) {
             return;
         }
 
-        // Check for unchanged data
         const updatedDataForComparison = {
             organization: updatedOrganization,
             contactPerson: updatedContactPerson,
@@ -1615,20 +1389,21 @@ if (editOrgForm) {
             mobileNumber: updatedMobileNumber,
             socialMedia: updatedSocialMedia || "N/A",
             address: {
-                region: updatedRegionText,
-                province: updatedProvinceText,
-                city: updatedCityText,
-                barangay: updatedBarangayText,
-                streetAddress: updatedStreetAddress || "N/A"
-            }
+                formattedAddress: updatedFormattedAddress,
+                latitude: parseFloat(updatedLatitude),
+                longitude: parseFloat(updatedLongitude)
+            },
+            organizationalBackgroundMission: updatedOrganizationalBackgroundMission || "N/A",
+            areasOfExpertiseFocus: updatedAreasOfExpertiseFocus || "N/A",
+            legalStatusRegistration: updatedLegalStatusRegistration || "N/A",
+            requiredDocumentsLink: updatedRequiredDocumentsLink || "N/A",
+            applicationDateandTime: updatedApplicationDateandTime,
+            approvedApplicationDate: updatedApprovedApplicationDate,
+            recaptchaResponse: updatedRecaptchaResponse || "N/A"
         };
 
         const unchanged = await isDataUnchanged(orgId, updatedDataForComparison);
-        if (unchanged && 
-            existingData.organizationalBackgroundMission === (updatedOrganizationalBackgroundMission || "N/A") &&
-            existingData.areasOfExpertiseFocus === (updatedAreasOfExpertiseFocus || "N/A") &&
-            existingData.legalStatusRegistration === (updatedLegalStatusRegistration || "N/A") &&
-            existingData.requiredDocumentsLink === (updatedRequiredDocumentsLink || "N/A")) {
+        if (unchanged) {
             Swal.fire({
                 icon: 'info',
                 title: 'No Changes Detected',
@@ -1646,7 +1421,6 @@ if (editOrgForm) {
             return;
         }
 
-        // Check if mobile number is in use
         const mobileInUse = await isMobileNumberInUse(updatedMobileNumber, userId);
         if (mobileInUse) {
             Swal.fire({
@@ -1665,7 +1439,6 @@ if (editOrgForm) {
             return;
         }
 
-        // Check if email is in use
         const emailInUse = await isEmailInUse(updatedEmail, userId);
         if (emailInUse) {
             Swal.fire({
@@ -1684,11 +1457,6 @@ if (editOrgForm) {
             return;
         }
 
-        const passwordVerified = await verifySuperAdminPassword();
-        if (!passwordVerified) {
-            return;
-        }
-
         try {
             const updatedData = {
                 organization: updatedOrganization,
@@ -1697,56 +1465,57 @@ if (editOrgForm) {
                 mobileNumber: updatedMobileNumber,
                 socialMedia: updatedSocialMedia || "N/A",
                 address: {
-                    region: updatedRegionText,
-                    province: updatedProvinceText,
-                    city: updatedCityText,
-                    barangay: updatedBarangayText,
-                    streetAddress: updatedStreetAddress || "N/A"
+                    formattedAddress: updatedFormattedAddress,
+                    latitude: parseFloat(updatedLatitude),
+                    longitude: parseFloat(updatedLongitude)
                 },
                 organizationalBackgroundMission: updatedOrganizationalBackgroundMission || "N/A",
                 areasOfExpertiseFocus: updatedAreasOfExpertiseFocus || "N/A",
                 legalStatusRegistration: updatedLegalStatusRegistration || "N/A",
                 requiredDocumentsLink: updatedRequiredDocumentsLink || "N/A",
+                applicationDateandTime: updatedApplicationDateandTime,
+                approvedApplicationDate: updatedApprovedApplicationDate,
+                recaptchaResponse: updatedRecaptchaResponse || "N/A",
                 lastUpdatedBy: auth.currentUser.uid,
                 lastUpdatedAt: new Date().toISOString(),
-                timestamp: existingData.timestamp || new Date().toISOString(), // Ensure timestamp is defined
+                timestamp: existingData.timestamp || new Date().toISOString(),
                 userId: existingData.userId
             };
 
-            // Update volunteerGroups
             await database.ref(`volunteerGroups/${orgId}`).update(updatedData);
 
-            // Update users node to reflect changes
             await database.ref(`users/${userId}`).update({
                 email: updatedEmail,
                 mobile: updatedMobileNumber,
                 organization: updatedOrganization,
                 contactPerson: updatedContactPerson,
                 address: {
-                    region: updatedRegionText,
-                    province: updatedProvinceText,
-                    city: updatedCityText,
-                    barangay: updatedBarangayText,
-                    streetAddress: updatedStreetAddress || "N/A"
+                    formattedAddress: updatedFormattedAddress,
+                    latitude: parseFloat(updatedLatitude),
+                    longitude: parseFloat(updatedLongitude)
                 },
                 organizationalBackgroundMission: updatedOrganizationalBackgroundMission || "N/A",
                 areasOfExpertiseFocus: updatedAreasOfExpertiseFocus || "N/A",
                 legalStatusRegistration: updatedLegalStatusRegistration || "N/A",
-                requiredDocumentsLink: updatedRequiredDocumentsLink || "N/A"
+                requiredDocumentsLink: updatedRequiredDocumentsLink || "N/A",
+                applicationDateandTime: updatedApplicationDateandTime,
+                approvedApplicationDate: updatedApprovedApplicationDate,
+                recaptchaResponse: updatedRecaptchaResponse || "N/A",
+                lastUpdatedBy: auth.currentUser.uid,
+                lastUpdatedAt: new Date().toISOString()
             });
 
             Swal.fire({
                 icon: 'success',
                 title: 'Updated!',
                 text: 'The volunteer group has been updated.',
-                timer: 1600,
-                showConfirmButton: false,
-                timerProgressBar: true,
                 allowOutsideClick: false,
+                confirmButtonText: 'OK',
                 customClass: {
                     popup: 'swal2-popup-success-clean',
                     title: 'swal2-title-success-clean',
-                    htmlContainer: 'swal2-text-success-clean'
+                    htmlContainer: 'swal2-text-success-clean',
+                    confirmButton: 'my-success-button'  
                 }
             });
             document.getElementById('editOrgModal').style.display = 'none';
@@ -1770,7 +1539,6 @@ if (editOrgForm) {
     });
 }
 
-// Function to attach handlers to dynamically created table rows
 function attachRowHandlers() {
     document.querySelectorAll('.viewBtn').forEach(button => {
         button.onclick = (e) => {
@@ -1823,10 +1591,9 @@ function attachRowHandlers() {
                 return;
             }
 
-            const rowId = button.getAttribute('data-id');
+            const orgId = button.getAttribute('data-id');
             const orgName = button.closest('tr').children[1].textContent;
 
-            // Verify Super Admin password before proceeding
             verifySuperAdminPassword().then((passwordVerified) => {
                 if (!passwordVerified) {
                     return;
@@ -1861,8 +1628,8 @@ function attachRowHandlers() {
                         });
 
                         try {
-                            const snapshot = await database.ref(`volunteerGroups/${rowId}`).once('value');
-                            const groupData = snapshot.val();
+                            const groupSnapshot = await database.ref(`volunteerGroups/${orgId}`).once('value');
+                            const groupData = groupSnapshot.val();
                             if (!groupData) {
                                 Swal.fire({
                                     icon: 'error',
@@ -1880,9 +1647,34 @@ function attachRowHandlers() {
                                 return;
                             }
 
+                            const userId = groupData.userId;
+                            const userSnapshot = await database.ref(`users/${userId}`).once('value');
+                            const userData = userSnapshot.val();
+                            if (!userData) {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error',
+                                    text: 'User data not found for archiving.',
+                                    showConfirmButton: true,
+                                    confirmButtonText: 'OK',
+                                    customClass: {
+                                        popup: 'swal2-popup-error-clean',
+                                        title: 'swal2-title-error-clean',
+                                        htmlContainer: 'swal2-text-error-clean',
+                                        confirmButton: 'my-error-button'
+                                    }
+                                });
+                                return;
+                            }
+
                             groupData.deletedAt = new Date().toISOString();
-                            await database.ref(`deletedVolunteerGroups/${rowId}`).set(groupData);
-                            await database.ref(`volunteerGroups/${rowId}`).remove();
+                            userData.deletedAt = new Date().toISOString();
+
+                            await database.ref(`deleted/deletedVolunteerGroups/${orgId}`).set(groupData);
+                            await database.ref(`deleted/deletedUsers/${orgId}`).set(userData);
+
+                            await database.ref(`volunteerGroups/${orgId}`).remove();
+                            await database.ref(`users/${userId}`).remove();
 
                             Swal.close();
                             Swal.fire({
@@ -1925,50 +1717,64 @@ function attachRowHandlers() {
     });
 }
 
-    function attachArchivedRowHandlers() {
-        document.querySelectorAll('.retrieveBtn').forEach(button => {
-            button.addEventListener('click', () => {
-                if (!['Super Admin', 'position-one'].includes(adminPosition)) {
-                    Swal.fire({
-                        title: 'Access Denied',
-                        text: 'Only Super Admins and position-one can restore archived groups.',
-                        icon: 'error',
-                        timer: 2000,
-                        showConfirmButton: false,
-                        timerProgressBar: true,
-                        allowOutsideClick: false,
-                        customClass: {
-                            popup: 'swal2-popup-error-clean',
-                            title: 'swal2-title-error-clean',
-                            htmlContainer: 'swal2-text-error-clean'
-                        }
-                    });
-                    return;
-                }
-
-                const rowId = button.getAttribute('data-id');
-                const orgToRestore = archivedData.find(item => item.id === rowId);
-                const orgName = orgToRestore ? orgToRestore.organization : 'N/A';
-
+function attachArchivedRowHandlers() {
+    document.querySelectorAll('.retrieveBtn').forEach(button => {
+        button.addEventListener('click', async () => {
+            if (!['Super Admin', 'position-one'].includes(adminPosition)) {
                 Swal.fire({
-                    title: `Restore "${orgName}"?`,
-                    text: 'This will move the volunteer group back to the active list.',
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonText: 'Restore',
-                    cancelButtonText: 'Cancel',
-                    reverseButtons: true,
-                    focusCancel: true,
+                    title: 'Access Denied',
+                    text: 'Only Super Admins and position-one can restore archived groups.',
+                    icon: 'error',
+                    timer: 2000,
+                    showConfirmButton: false,
+                    timerProgressBar: true,
                     allowOutsideClick: false,
                     customClass: {
-                        popup: 'custom-swal-popup',
-                        title: 'custom-swal-title',
-                        confirmButton: 'custom-confirm-btn',
-                        cancelButton: 'custom-cancel-btn'
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean'
                     }
-                }).then(async (result) => {
-                    if (result.isConfirmed) {
-                        if (!orgToRestore) {
+                });
+                return;
+            }
+
+            const orgId = button.getAttribute('data-id');
+            const orgToRestore = archivedData.find(item => item.id === orgId);
+            const orgName = orgToRestore ? orgToRestore.organization : 'N/A';
+
+            Swal.fire({
+                title: `Retrieve "${orgName}"?`,
+                text: 'This will move the volunteer group back to the active list.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Retrieve',
+                cancelButtonText: 'Cancel',
+                reverseButtons: true,
+                focusCancel: true,
+                allowOutsideClick: false,
+                customClass: {
+                    popup: 'custom-swal-popup-large',
+                    title: 'custom-swal-title',
+                    htmlContainer: 'custom-swal-content',
+                    confirmButton: 'custom-confirm-btn',
+                    cancelButton: 'custom-cancel-btn'
+                }
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    try {
+                        Swal.fire({
+                            title: 'Restoring Volunteer Group...',
+                            text: 'Moving volunteer group data to active records...',
+                            allowOutsideClick: false,
+                            didOpen: () => {
+                                Swal.showLoading();
+                            }
+                        });
+
+                        // Fetch full data from deleted nodes
+                        const groupSnapshot = await database.ref(`deleted/deletedVolunteerGroups/${orgId}`).once('value');
+                        const groupData = groupSnapshot.val();
+                        if (!groupData) {
                             Swal.fire({
                                 icon: 'error',
                                 title: 'Error',
@@ -1985,34 +1791,13 @@ function attachRowHandlers() {
                             return;
                         }
 
-                        try {
-                            const { deletedAt, ...restoredData } = orgToRestore;
-
-                            await database.ref(`volunteerGroups/${rowId}`).set(restoredData);
-                            await database.ref(`deletedVolunteerGroups/${rowId}`).remove();
-
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Retrieved!',
-                                text: `Volunteer group "${orgName}" has been restored to the active list.`,
-                                timer: 1600,
-                                showConfirmButton: false,
-                                timerProgressBar: true,
-                                allowOutsideClick: false,
-                                customClass: {
-                                    popup: 'swal2-popup-success-clean',
-                                    title: 'swal2-title-success-clean',
-                                    htmlContainer: 'swal2-text-success-clean'
-                                }
-                            });
-
-                            fetchAndRenderTable();
-                            fetchAndRenderArchivedTable();
-                        } catch (error) {
+                        const userSnapshot = await database.ref(`deleted/deletedUsers/${orgId}`).once('value');
+                        const userData = userSnapshot.val();
+                        if (!userData) {
                             Swal.fire({
                                 icon: 'error',
-                                title: 'Restoration Error',
-                                text: `Failed to restore volunteer group: ${error.message}.`,
+                                title: 'Error',
+                                text: 'User data not found for restoration.',
                                 showConfirmButton: true,
                                 confirmButtonText: 'OK',
                                 customClass: {
@@ -2022,44 +1807,104 @@ function attachRowHandlers() {
                                     confirmButton: 'my-error-button'
                                 }
                             });
+                            return;
                         }
+
+                        // Remove deletedAt and restore all fields
+                        const { deletedAt, ...restoredGroupData } = groupData;
+                        const { deletedAt: userDeletedAt, ...restoredUserData } = userData;
+
+                        // Restore to volunteerGroups and users with updated timestamps
+                        await database.ref(`volunteerGroups/${orgId}`).set({
+                            ...restoredGroupData,
+                            lastUpdatedBy: auth.currentUser?.uid || 'N/A',
+                            lastUpdatedAt: new Date().toISOString()
+                        });
+                        await database.ref(`users/${restoredGroupData.userId}`).set({
+                            ...restoredUserData,
+                            lastUpdatedBy: auth.currentUser?.uid || 'N/A',
+                            lastUpdatedAt: new Date().toISOString()
+                        });
+
+                        // Remove from deleted nodes
+                        await database.ref(`deleted/deletedVolunteerGroups/${orgId}`).remove();
+                        await database.ref(`deleted/deletedUsers/${orgId}`).remove();
+
+                        Swal.close();
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Retrieved!',
+                            text: `Volunteer group "${orgName}" has been retrieved from the archive.`,
+                            
+                            showConfirmButton: false,
+                            timerProgressBar: true,
+                            allowOutsideClick: false,
+                            customClass: {
+                                popup: 'swal2-popup-success-clean',
+                                title: 'swal2-title-success-clean',
+                                htmlContainer: 'swal2-text-success-clean'
+                            }
+                        }).then(() => {
+                            fetchAndRenderTable();
+                            fetchAndRenderArchivedTable();
+                        });
+                    } catch (error) {
+                        Swal.close();
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Restoration Error',
+                            text: `Failed to restore volunteer group: ${error.message}.`,
+                            showConfirmButton: true,
+                            confirmButtonText: 'OK',
+                            customClass: {
+                                popup: 'swal2-popup-error-clean',
+                                title: 'swal2-title-error-clean',
+                                htmlContainer: 'swal2-text-error-clean',
+                                confirmButton: 'my-error-button'
+                            }
+                        });
                     }
-                });
+                }
             });
         });
-    }
+    });
+}
 
 function updateEntriesInfo(totalItems) {
     const startIndex = (currentPage - 1) * rowsPerPage;
     const endIndex = Math.min(startIndex + rowsPerPage, totalItems);
-    entriesInfo.textContent = `Showing ${totalItems ? startIndex + 1 : 0} to ${endIndex} of ${totalItems} entries`;
+    if (entriesInfo) {
+        entriesInfo.textContent = `Showing ${totalItems ? startIndex + 1 : 0} to ${endIndex} of ${totalItems} entries`;
+    }
 }
 
 function updateArchivedEntriesInfo(totalItems) {
     const startIndex = (archivedCurrentPage - 1) * archivedRowsPerPage;
     const endIndex = Math.min(startIndex + archivedRowsPerPage, totalItems);
-    archivedEntriesInfo.textContent = `Showing ${totalItems ? startIndex + 1 : 0} to ${endIndex} of ${totalItems} entries`;
+    if (archivedEntriesInfo) {
+        archivedEntriesInfo.textContent = `Showing ${totalItems ? startIndex + 1 : 0} to ${endIndex} of ${totalItems} entries`;
+    }
 }
 
 function renderPagination(totalRows) {
     if (!paginationContainer) return;
-    paginationContainer.innerHTML = "";
+    paginationContainer.innerHTML = '';
     const totalPages = Math.ceil(totalRows / rowsPerPage);
-    if (totalPages === 0) {
-        return;
-    }
+    if (totalPages === 0) return;
+
     const createButton = (label, page, disabled = false, active = false) => {
-        const btn = document.createElement("button");
+        const btn = document.createElement('button');
         btn.textContent = label;
         if (disabled) btn.disabled = true;
-        if (active) btn.classList.add("active-page");
-        btn.addEventListener("click", () => {
+        if (active) btn.classList.add('active-page');
+        btn.addEventListener('click', () => {
             currentPage = page;
             renderTable(filteredData);
         });
         return btn;
     };
-    paginationContainer.appendChild(createButton("Prev", currentPage - 1, currentPage === 1));
+
+    paginationContainer.appendChild(createButton('Prev', currentPage - 1, currentPage === 1));
 
     const maxVisiblePages = 5;
     let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
@@ -2072,28 +1917,29 @@ function renderPagination(totalRows) {
     for (let i = startPage; i <= endPage; i++) {
         paginationContainer.appendChild(createButton(i, i, false, i === currentPage));
     }
-    paginationContainer.appendChild(createButton("Next", currentPage + 1, currentPage === totalPages));
+
+    paginationContainer.appendChild(createButton('Next', currentPage + 1, currentPage === totalPages));
 }
 
 function renderArchivedPagination(totalRows) {
     if (!archivedPaginationContainer) return;
-    archivedPaginationContainer.innerHTML = "";
+    archivedPaginationContainer.innerHTML = '';
     const totalPages = Math.ceil(totalRows / archivedRowsPerPage);
-    if (totalPages === 0) {
-        return;
-    }
+    if (totalPages === 0) return;
+
     const createButton = (label, page, disabled = false, active = false) => {
-        const btn = document.createElement("button");
+        const btn = document.createElement('button');
         btn.textContent = label;
         if (disabled) btn.disabled = true;
-        if (active) btn.classList.add("active-page");
-        btn.addEventListener("click", () => {
+        if (active) btn.classList.add('active-page');
+        btn.addEventListener('click', () => {
             archivedCurrentPage = page;
             renderArchivedTable(filteredArchivedData);
         });
         return btn;
     };
-    archivedPaginationContainer.appendChild(createButton("Prev", archivedCurrentPage - 1, archivedCurrentPage === 1));
+
+    archivedPaginationContainer.appendChild(createButton('Prev', archivedCurrentPage - 1, archivedCurrentPage === 1));
 
     const maxVisiblePages = 5;
     let startPage = Math.max(1, archivedCurrentPage - Math.floor(maxVisiblePages / 2));
@@ -2106,38 +1952,31 @@ function renderArchivedPagination(totalRows) {
     for (let i = startPage; i <= endPage; i++) {
         archivedPaginationContainer.appendChild(createButton(i, i, false, i === archivedCurrentPage));
     }
-    archivedPaginationContainer.appendChild(createButton("Next", archivedCurrentPage + 1, archivedCurrentPage === totalPages));
+
+    archivedPaginationContainer.appendChild(createButton('Next', archivedCurrentPage + 1, archivedCurrentPage === totalPages));
 }
 
 function applySearchAndSort() {
     let currentData = [...data];
 
-    const searchTerm = searchInput.value.toLowerCase().trim();
+    const searchTerm = searchInput?.value.toLowerCase().trim() || '';
     if (searchTerm) {
         currentData = currentData.filter(item => {
             const organization = (item.organization || '').toLowerCase();
             const contactPerson = (item.contactPerson || '').toLowerCase();
             const email = (item.email || '').toLowerCase();
             const mobileNumber = (item.mobileNumber || '').toLowerCase();
-            const region = (item.address?.region || '').toLowerCase();
-            const province = (item.address?.province || '').toLowerCase();
-            const city = (item.address?.city || '').toLowerCase();
-            const barangay = (item.address?.barangay || '').toLowerCase();
-            const streetAddress = (item.address?.streetAddress || '').toLowerCase();
+            const formattedAddress = (item.address?.formattedAddress || '').toLowerCase();
 
             return organization.includes(searchTerm) ||
-                contactPerson.includes(searchTerm) ||
-                email.includes(searchTerm) ||
-                mobileNumber.includes(searchTerm) ||
-                region.includes(searchTerm) ||
-                province.includes(searchTerm) ||
-                city.includes(searchTerm) ||
-                barangay.includes(searchTerm) ||
-                streetAddress.includes(searchTerm);
+                   contactPerson.includes(searchTerm) ||
+                   email.includes(searchTerm) ||
+                   mobileNumber.includes(searchTerm) ||
+                   formattedAddress.includes(searchTerm);
         });
     }
 
-    const sortValue = sortSelect.value;
+    const sortValue = sortSelect?.value || '';
     if (sortValue) {
         currentData.sort((a, b) => {
             let valA, valB;
@@ -2149,12 +1988,12 @@ function applySearchAndSort() {
                 order = -1;
             }
 
-            if (['organization', 'contactPerson', 'email', 'mobileNumber', 'socialMedia'].includes(field)) {
-                valA = (a[field] || '').toString().toLowerCase();
-                valB = (b[field] || '').toString().toLowerCase();
-            } else if (['region', 'province', 'city', 'barangay', 'streetAddress'].includes(field)) {
-                valA = (a.address?.[field] || '').toLowerCase();
-                valB = (b.address?.[field] || '').toLowerCase();
+            if (['organizationName', 'contactPerson', 'email', 'mobileNumber'].includes(field)) {
+                valA = (a[field.replace('Name', '')] || '').toString().toLowerCase();
+                valB = (b[field.replace('Name', '')] || '').toString().toLowerCase();
+            } else if (field === 'formattedAddress') {
+                valA = (a.address?.formattedAddress || '').toLowerCase();
+                valB = (b.address?.formattedAddress || '').toLowerCase();
             } else {
                 valA = (a.organization || '').toLowerCase();
                 valB = (b.organization || '').toLowerCase();
@@ -2201,11 +2040,11 @@ if (searchInput) {
 }
 
 if (sortSelect) {
-    sortSelect.addEventListener("change", applySearchAndSort);
+    sortSelect.addEventListener('change', applySearchAndSort);
 }
 
 if (viewArchivedBtn) {
-    viewArchivedBtn.addEventListener('click', () => {
+    viewArchivedBtn.addEventListener('click', async () => {
         if (!['Super Admin', 'position-one'].includes(adminPosition)) {
             Swal.fire({
                 title: 'Access Denied',
@@ -2223,10 +2062,12 @@ if (viewArchivedBtn) {
             });
             return;
         }
+
         if (archivedModal) {
             document.getElementById('addOrgModal').style.display = 'none';
             document.getElementById('confirmModal').style.display = 'none';
             document.getElementById('editOrgModal').style.display = 'none';
+            document.getElementById('previewModal').style.display = 'none';
             
             archivedModal.style.display = 'flex';
             fetchAndRenderArchivedTable();
@@ -2234,7 +2075,6 @@ if (viewArchivedBtn) {
     });
 }
 
-// close archived modal button
 if (closeArchivedModalBtn) {
     closeArchivedModalBtn.addEventListener('click', () => {
         if (archivedModal) {
@@ -2243,17 +2083,14 @@ if (closeArchivedModalBtn) {
     });
 }
 
-// Add event listener for closing the preview modal
 document.getElementById('closeModal').addEventListener('click', hidePreviewModal);
 
-// Add event listener for clicking outside the modal content to close it
 window.addEventListener('click', (event) => {
     if (event.target === document.getElementById('previewModal')) {
         hidePreviewModal();
     }
 });
 
-const editDetailsBtn = document.getElementById('editDetailsBtn');
 if (editDetailsBtn) {
     editDetailsBtn.addEventListener('click', () => {
         const confirmModal = document.getElementById('confirmModal');
@@ -2262,32 +2099,37 @@ if (editDetailsBtn) {
     });
 }
 
-// Initialize
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener('DOMContentLoaded', () => {
+    // Initialization code can be added here if needed
 });
 
 auth.onAuthStateChanged(async (user) => {
     if (!user) {
         Swal.fire({
-            icon: "warning",
-            title: "Authentication Required",
-            text: "Please sign in as an admin to view volunteer groups.",
+            icon: 'warning',
+            title: 'Authentication Required',
+            text: 'Please sign in as an admin to view volunteer groups.',
             timer: 2000,
-            showConfirmButton: false
+            showConfirmButton: false,
+            timerProgressBar: true,
+            allowOutsideClick: false,
+            customClass: {
+                popup: 'swal2-popup-error-clean',
+                title: 'swal2-title-error-clean',
+                htmlContainer: 'swal2-text-error-clean'
+            }
+        }).then(() => {
+            window.location.replace('../pages/login.html');
         });
-        setTimeout(() => {
-            window.location.replace("../pages/login.html");
-        }, 2000);
         return;
     }
 
     try {
-        const userSnapshot = await database.ref('users/' + user.uid).once('value');
+        const userSnapshot = await database.ref(`users/${user.uid}`).once('value');
         const userData = userSnapshot.val();
-        adminPosition = userData?.adminPosition || null; // Set adminPosition here
-        const passwordNeedsReset = userData?.password_needs_reset || false;
+        adminPosition = userData?.adminPosition || null;
 
-        if (passwordNeedsReset) {
+        if (userData?.password_needs_reset) {
             Swal.fire({
                 icon: 'error',
                 title: 'Password Change Required',
@@ -2302,7 +2144,7 @@ auth.onAuthStateChanged(async (user) => {
                     htmlContainer: 'swal2-text-error-clean'
                 }
             }).then(() => {
-                window.location.replace("../pages/profile.html");
+                window.location.replace('../pages/profile.html');
             });
             return;
         }
@@ -2316,9 +2158,6 @@ auth.onAuthStateChanged(async (user) => {
         fetchAndRenderTable();
         fetchAndRenderArchivedTable();
     } catch (error) {
-        console.error(`[${new Date().toISOString()}] Error checking user data:`, error);
-        adminPosition = null;
-        if (viewArchivedBtn) viewArchivedBtn.style.display = 'none';
         Swal.fire({
             icon: 'error',
             title: 'Authentication Error',
@@ -2332,7 +2171,7 @@ auth.onAuthStateChanged(async (user) => {
                 confirmButton: 'my-error-button'
             }
         }).then(() => {
-            window.location.replace("../pages/login.html");
+            window.location.replace('../pages/login.html');
         });
     }
 });
