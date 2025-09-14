@@ -482,4 +482,182 @@ input:disabled::placeholder {
   display: block;
 }
 
+/* Specific styling for the content of "My Requests" tab */
+/* Container for the list of cards */
+.requests-list-container {
+    display: flex;
+    flex-direction: column; /* Stacks the cards vertically */
+    gap: 20px; /* Adds space between each card */
+    max-height: 500px; /* Adjust this value as needed */
+    overflow-y: auto;
+    padding-top: 10px;
+    padding-right: 15px; /* Adds space for the scrollbar so it doesn't overlap content */
+}
+
+/* Existing card styling remains the same */
+.request-card {
+    background-color: #ffffff;
+    border: 1px solid var(--accent-color);
+    border-radius: 15px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.request-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+/* Card Header */
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    background-color: var(--accent-color);
+    border-top-left-radius: 15px;
+    border-top-right-radius: 15px;
+}
+
+.card-title {
+    padding: 10px;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #FFF;
+}
+
+.card-category {
+    font-weight: 700;
+    color: #FFF;
+}
+
+/* Status Badge */
+.card-status {
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: #FFF;
+    margin-right: 15px;
+}
+
+.card-body{
+  border-radius: 15px;
+  padding: 20px;
+  background-color: #ffffff;
+}
+
+/* Status-specific colors */
+.status-Pending {
+    background-color: #ffc107; /* Orange */
+}
+
+.status-Completed {
+    background-color: #12c13b; /* Green */
+}
+
+.status-Submitted {
+    background-color: #4059A5; /* Green */
+}
+
+.status-Declined {
+    background-color: #dc3545; /* Red */
+}
+
+/* Card Body Sections */
+.contact-info, .address-info, .items-info {
+    margin-bottom: 15px;
+}
+
+.contact-info p, .address-info p {
+    margin: 5px 0;
+    color: #2e2e2e;
+}
+
+.contact-info p strong, .address-info p strong {
+    color: var(--accent-color);
+}
+
+.items-info h4 {
+    margin: 0 0 10px;
+    color: var(--accent-color);
+}
+
+.items-list {
+  max-height: 200px; /* adjust to your preferred height */
+  overflow-y: auto;  /* enables vertical scrolling */
+  margin: 0;
+  padding: 8px 12px;
+  list-style-type: none; /* optional: remove bullets */
+  border: 1px solid #ddd; /* optional: adds a boundary */
+  border-radius: 6px;
+  background: #fafafa; /* optional: light background */
+}
+
+/* optional: style scrollbars (for modern browsers) */
+.items-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.items-list::-webkit-scrollbar-thumb {
+  background-color: #bbb;
+  border-radius: 3px;
+}
+
+.items-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+
+.items-list li {
+    background-color: #f8f9fa;
+    border-left: 3px solid var(--primary-color);
+    padding: 8px 12px;
+    margin-bottom: 5px;
+    border-radius: 4px;
+}
+
+.items-list li strong {
+    color: var(--primary-color);
+}
+
+.items-list li small {
+    display: block;
+    color: #777;
+    margin-top: 2px;
+    font-style: italic;
+}
+
+/* Card Footer */
+.card-footer {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 20px;
+}
+
+.view-details-btn {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    font-weight: 500;
+    padding: 10px 15px;
+    border-radius: 15px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s ease;
+    width: 100%;
+}
+
+.view-details-btn:hover {
+    background-color: var(--secondary-color);
+}
+
+.requests-counter{
+  margin-top: -25px;
+  font-size: 12px;
+  padding: 5px;
+  color: gray;
+}
 

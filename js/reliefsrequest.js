@@ -70,6 +70,155 @@ document.addEventListener('DOMContentLoaded', () => {
     const addItemBtn = document.getElementById('addItemBtn');
     const itemsTableBody = document.querySelector('#itemsTable tbody');
     const noEntriesRow = document.getElementById('noEntriesRow');
+
+    const tabButtons = document.querySelectorAll('.tab-button');
+    const tabContents = {
+        'requests': document.getElementById('form-main-content').querySelector('form'),
+        'my-requests': document.getElementById('my-requests-tab')
+    };
+    
+    // Initial setup: display the 'requests' tab content by default
+    document.getElementById('form-main-content').querySelector('form').style.display = 'block';
+
+    tabButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const tabName = button.dataset.tab;
+
+            // Remove 'active' class from all buttons
+            tabButtons.forEach(btn => btn.classList.remove('active'));
+
+            // Hide all tab contents
+            for (const key in tabContents) {
+                tabContents[key].style.display = 'none';
+            }
+
+            // Add 'active' class to the clicked button
+            button.classList.add('active');
+
+            // Show the corresponding tab content
+            if (tabContents[tabName]) {
+                tabContents[tabName].style.display = 'block';
+            }
+        });
+    });
+
+    function updateRequestCounter() {
+  const requestsListContainer = document.querySelector('#my-requests-tab .requests-list-container');
+  const counter = document.getElementById('requests-counter');
+  if (!requestsListContainer || !counter) return;
+
+  const count = requestsListContainer.querySelectorAll('.request-card').length;
+  counter.textContent = `Total of ${count} Request${count !== 1 ? 's' : ''}`;
+}
+
+
+        const requestsListContainer = document.querySelector('.requests-list-container');
+// Function to fetch and display user's requests
+    function fetchUserRequests() {
+    const user = auth.currentUser;
+    if (user) {
+        const userUid = user.uid;
+        const requestsRef = firebase.database().ref('requestRelief/requests');
+
+        // Filter by userUid
+        requestsRef.orderByChild('userUid').equalTo(userUid).once('value')
+            .then((snapshot) => {
+                if (snapshot.exists()) {
+                    requestsListContainer.innerHTML = ''; // Clear existing
+                    snapshot.forEach((childSnapshot) => {
+                        const requestData = childSnapshot.val();
+                        const requestId = childSnapshot.key;
+                        createRequestCard(requestId, requestData);
+                    });
+
+                     updateRequestCounter();
+
+                } else {
+                    requestsListContainer.innerHTML = `
+                        <p style="text-align: center; color: #888; padding: 20px;">
+                            No requests found. Submit a new request using the form.
+                        </p>`;
+                         updateRequestCounter();
+                }
+            })
+            .catch((error) => {
+                console.error("Error fetching data:", error);
+                requestsListContainer.innerHTML = `
+                    <p style="text-align: center; color: #dc3545; padding: 20px;">
+                        Error loading requests. Please try again later.
+                    </p>`;
+                     updateRequestCounter();
+            });
+    } else {
+        requestsListContainer.innerHTML = `
+            <p style="text-align: center; color: #555; padding: 20px;">
+                Please log in to view your requests.
+            </p>`;
+             updateRequestCounter();
+    }
+}
+
+
+    // Call fetchUserRequests when the "My Requests" tab is clicked
+    document.querySelector('button[data-tab="my-requests"]').addEventListener('click', fetchUserRequests);
+
+    // Function to create and append a single request card
+    function createRequestCard(requestId, data) {
+        const card = document.createElement('div');
+        card.className = 'request-card';
+        card.setAttribute('data-request-id', requestId);
+
+        const timestamp = new Date(data.timestamp).toLocaleString();
+        
+        let itemsHtml = '';
+        if (data.items && data.items.length > 0) {
+            itemsHtml = data.items.map(item => `
+            <li>
+                <strong>${item.name}:</strong> ${item.quantity}
+                ${item.notes && item.notes !== 'N/A' ? `<br><small>Notes: ${item.notes}</small>` : ''}
+            </li>
+        `).join('');
+        } else {
+            itemsHtml = '<li>No specific items listed.</li>';
+        }
+
+        card.innerHTML = `
+            <div class="card-header">
+                <h3 class="card-title">Request for <span class="card-category">${data.category}</span></h3>
+                <span class="card-status status-${data.status || 'Submitted'}">${data.status || 'SUBMITTED'}</span>
+            </div>
+            <div class="card-body">
+                <div class="card-body-wrapper">
+                    <div class="left-column">
+                        <div class="contact-info">
+                            <h4>Contact Details</h4>
+                            <p><strong>Contact Person:</strong> <span class="contact-name">${data.contactPerson}</span></p>
+                            <p><strong>Organization:</strong> <span class="contact-org">${data.volunteerOrganization || 'N/A'}</span></p>
+                            <p><strong>Contact Number:</strong> <span class="contact-number">${data.contactNumber}</span></p>
+                            <p><strong>Email:</strong> <span class="contact-email">${data.email}</span></p>
+                        </div>
+                        <div class="address-info">
+                            <h4>Drop-off Location</h4>
+                            <p><strong>Address:</strong> <span class="address-text">${data.address?.formattedAddress}</span></p>
+                            <p><strong>Submitted On:</strong> <span class="timestamp-text">${timestamp}</span></p>
+                        </div>
+                    </div>
+                    <div class="right-column">
+                        <div class="items-info">
+                            <h4>Requested Items</h4>
+                            <ul class="items-list">
+                                ${itemsHtml}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+        `;
+
+        requestsListContainer.appendChild(card);
+    }
+    
     
 // --- Helper function to update button and fields state ---
 function updateState() {
