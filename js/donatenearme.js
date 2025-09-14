@@ -6,6 +6,7 @@ let map;
 let markers = [];
 let autocompletes = {};
 let currentPinButtonId = null;
+let selectedCoordinates = { lat: null, lng: null };
 
 const MAX_VALUATION = 1000000000; // Maximum valuation for in-kind donations (PHP 1,000,000,000)
 const MAX_AMOUNT_DONATED = 1000000000; // Maximum amount for monetary donations (PHP 1,000,000,000)
@@ -41,8 +42,13 @@ function initMap() {
             title: place.name,
         });
         markers.push(marker);
+        // Store coordinates
+        selectedCoordinates = {
+            lat: place.geometry.location.lat(),
+            lng: place.geometry.location.lng()
+        };
         const infowindow = new google.maps.InfoWindow({
-            content: `<strong>${place.name}</strong><br>${place.formatted_address}`,
+            content: `<strong>${place.name}</strong><br>${place.formatted_address}<br>Lat: ${selectedCoordinates.lat.toFixed(6)}, Lng: ${selectedCoordinates.lng.toFixed(6)}`,
         });
         marker.addListener("click", () => {
             infowindow.open(map, marker);
@@ -66,12 +72,17 @@ function initMap() {
             title: "Pinned Location",
         });
         markers.push(marker);
+        // Store coordinates
+        selectedCoordinates = {
+            lat: event.latLng.lat(),
+            lng: event.latLng.lng()
+        };
         const geocoder = new google.maps.Geocoder();
         geocoder.geocode({ location: event.latLng }, (results, status) => {
             if (status === "OK" && results[0]) {
                 const address = results[0].formatted_address;
                 const infowindow = new google.maps.InfoWindow({
-                    content: `Pinned Location<br>${address}`,
+                    content: `Pinned Location<br>${address}<br>Lat: ${selectedCoordinates.lat.toFixed(6)}, Lng: ${selectedCoordinates.lng.toFixed(6)}`,
                 });
                 marker.addListener("click", () => {
                     infowindow.open(map, marker);
@@ -89,11 +100,11 @@ function initMap() {
                 Swal.fire({
                     icon: "error",
                     title: "Geocoding Error",
-                    text: "Unable to retrieve address for the pinned location.",
+                    text: "Unable to retrieve address for the pinned location. Coordinates saved instead.",
                 });
                 const addressInput = document.getElementById(getAddressInputId(currentPinButtonId));
                 if (addressInput) {
-                    addressInput.value = `Lat: ${event.latLng.lat()}, Lng: ${event.latLng.lng()}`;
+                    addressInput.value = `Lat: ${selectedCoordinates.lat.toFixed(6)}, Lng: ${selectedCoordinates.lng.toFixed(6)}`;
                 }
                 const mapModal = document.getElementById('mapModal');
                 if (mapModal) {
@@ -951,6 +962,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 name: donorName,
                 type: inKindDonorType,
                 address: donorAddress || '',
+                latitude: selectedCoordinates.lat || null, 
+                longitude: selectedCoordinates.lng || null,
                 number: donorMobileNumber || '',
                 email: donorEmail || '',
                 assistance: assistanceType,
@@ -993,6 +1006,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     container.style.display = 'none';
                 });
                 individualFields.style.display = 'block';
+                // Reset coordinates
+                selectedCoordinates = { lat: null, lng: null };
             } catch (error) {
                 Swal.fire({
                     icon: 'error',
