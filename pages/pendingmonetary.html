@@ -1,39 +1,65 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="../components/sidebar.css" />
-    <link rel="stylesheet" href="../css/inkind.css" />
-    <link rel="stylesheet" href="../css/global.css" />
-    <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" />
-
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js"></script>
-
-    <!-- Firebase Compat SDK -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bayanihan | Angat Buhay Disaster Relief Portal</title>
+    <link rel="stylesheet" href="../components/sidebar.css">
+    <link rel="stylesheet" href="../css/inkind.css">
+    <link rel="stylesheet" href="../css/global.css">
+    <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <!-- Firebase Compatibility SDKs -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-
-    <script src="../js/pendingmonetary.js"></script>
-
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <!-- Sheets -->
+    <!-- Sheets and PDF -->
     <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
-    <!-- PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
-    <title>Bayanihan | Angat Buhay Disaster Relief Portal</title>
+    <style>
+        .donor-type-buttons {
+            display:block;
+            border-bottom: 2px solid #ddd;
+            margin-bottom: 20px;
+        }
+        .donor-type-buttons button {
+            padding: 10px 85px 10px 20px; /* Top, Right, Bottom, Left */
+            border: none;
+            background: #14AEBB;
+            cursor: pointer;
+            font-size: 12px;
+            margin-right: 5px;
+            border-radius: 5px 5px 0 0;
+        }
+        .donor-type-buttons button.active {
+            background: #FA3B99;
+            color: white;
+        }
+        .donor-type-buttons button:hover {
+            background: #0E7781;
+        }
+        .urgent-row {
+            border: 3px solid red !important; /* Temporary to test visibility */
+        }
+        .urgent-row td {
+            border-color: #ff9999; /* Slightly darker red for cell borders */
+        }
+        table tbody tr.urgent-row {
+            background-color: #ffcccc !important;
+            color: #333;
+        }
+        table tbody tr.urgent-row td {
+            border-color: #ff9999;
+        }
+    </style>
 </head>
 <body>
     <div class="main-container">
         <div class="sidebar-placeholder"></div>
-
         <div id="main-content">
-            
             <section>
                 <div class="controls">
                     <div class="controls_left">
@@ -46,78 +72,150 @@
                         </div>
                         <div class="custom-select-wrapper">
                             <select id="sortSelect">
-                                <option value="">Sort by</option> 
-                                <optgroup label="Donation Drive">
-                                    <option value="donationDrive-asc">Donation Drive (A–Z)</option>
-                                    <option value="donationDrive-desc">Donation Drive (Z–A)</option>
+                                <option value="">Sort by</option>
+                                <optgroup label="Name">
+                                    <option value="name-asc">Name (A–Z)</option>
+                                    <option value="name-desc">Name (Z–A)</option>
                                 </optgroup>
-                                <optgroup label="Contact Name">
-                                    <option value="contactPerson-asc">Contact Name (A–Z)</option>
-                                    <option value="contactPerson-desc">Contact Name (Z–A)</option>
+                                <optgroup label="Amount Donated">
+                                    <option value="amountDonated-asc">Amount Donated (Low to High)</option>
+                                    <option value="amountDonated-desc">Amount Donated (High to Low)</option>
                                 </optgroup>
-                                <optgroup label="Account Name">
-                                    <option value="accountName-asc">Account Name (A–Z)</option>
-                                    <option value="accountName-desc">Account Name (Z–A)</option>
+                                <optgroup label="Date Received">
+                                    <option value="donationDate-asc">Date Received (Oldest First)</option>
+                                    <option value="donationDate-desc">Date Received (Newest First)</option>
                                 </optgroup>
-                                <optgroup label="Drop Off">
-                                    <option value="dropOff-asc">Drop Off (A–Z)</option>
-                                    <option value="dropOff-desc">Drop Off (Z–A)</option>
+                                <optgroup label="Bank">
+                                    <option value="bank-asc">Bank (A–Z)</option>
+                                    <option value="bank-desc">Bank (Z–A)</option>
+                                </optgroup>
+                                <optgroup label="Donor Type (Archived Table Only)">
+                                    <option value="type-asc">Donor Type (A–Z)</option>
+                                    <option value="type-desc">Donor Type (Z–A)</option>
                                 </optgroup>
                             </select>
                             <i class='bx bx-chevron-down'></i>
                         </div>
                         <div class="button-group">
-                            <button id="viewArchived" aria-label="View Archived Admins">
+                            <button id="viewArchived" aria-label="View Archived Donations">
                                 <i class='bx bx-archive' style="color: white; font-size: 20px;"></i>
                             </button>
                         </div>
                     </div>
                 </div>
-
                 <div class="table-controls">
                     <button id="viewApprovedBtn" class="viewApprovedBtn">
-                        <i class='bx bx-show' style="font-size: 1.2rem;"></i>View In-Kind Donation
+                        <i class='bx bx-show' style="font-size: 1.2rem;"></i> View In-Kind Donation
                     </button>
                 </div>
-
-                <div class="table-container">
-                    <table id="donationTable">
+                <div class="donor-type-buttons">
+                    <button id="individualBtn" class="active">Individual</button>
+                    <button id="anonymousBtn">Anonymous</button>
+                    <button id="corporateBtn">Corporate</button>
+                    <button id="foundationBtn">Foundation</button>
+                </div>
+                <div id="individualTableContainer" class="table-container" >
+                    <table id="individualTable" class="table table-bordered">
                         <thead>
                             <tr>
                                 <th>No.</th>
-                                <th>Encoder</th>
-                                <th>Names/Company</th>
-                                <th>Location (at least City)</th>
-                                <th>Number</th>
-                                <th>Amount Donated</th>
-                                <th>Cash Invoice#</th>
-                                <th>Date Received</th>
+                                <th>Full Name</th>
+                                <th>Mobile Number</th>
                                 <th>Email</th>
-                                <th>Bank</th>
+                                <th>Amount Donated</th>
+                                <th>Data Sent</th>
+                                <th>Bank or E-Wallet</th>
+                                <th>Reference Number</th>
+                                <th>Proof of Transaction</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="individualTableBody"></tbody>
+                    </table>
+                </div>
+                <div id="anonymousTableContainer" class="table-container" style="display: none;">
+                    <table id="anonymousTable" class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>No.</th>
+                                <th>Mobile Number</th>
+                                <th>Email</th>
+                                <th>Donation Note</th>
+                                <th>Date Sent</th>
+                                <th>Bank or E-Wallet</th>
+                                <th>Reference Number</th>
+                                <th>Proof of Transaction</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="anonymousTableBody"></tbody>
+                    </table>
+                </div>
+                <div id="corporateTableContainer" class="table-container" style="display: none;">
+                    <table id="corporateTable" class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>No.</th>
+                                <th>Company Name</th>
+                                <th>Contact Person</th>
+                                <th>Mobile Number</th>
+                                <th>Email</th>
+                                <th>Amount Donated</th>
+                                <th>Date Sent</th>
+                                <th>Bank or E-Wallet</th>
                                 <th>Reference No.</th>
                                 <th>Proof of Transaction</th>
                                 <th>Action</th>
                             </tr>
                         </thead>
-                        <tbody id="donationTableBody">
-                        </tbody> 
+                        <tbody id="corporateTableBody"></tbody>
                     </table>
-               
                 </div>
-                
+                <div id="foundationTableContainer" class="table-container" style="display: none;">
+                    <table id="foundationTable" class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>No.</th>
+                                <th>Foundation Name</th>
+                                <th>Contact Person</th>
+                                <th>Mobile Number</th>
+                                <th>Email</th>
+                                <th>Amount Donated</th>
+                                <th>Date Sent</th>
+                                <th>Bank or E-Wallet</th>
+                                <th>Reference No.</th>
+                                <th>Proof of Transaction</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="foundationTableBody"></tbody>
+                    </table>
+                </div>
                 <div class="pagination-info">
                     <span id="entriesInfo">Showing 0 to 0 of 0 entries</span>
                     <div id="pagination" class="pagination"></div>
                 </div>
-
-                <br>
             </section>
 
+            <!-- Preview Modal -->
+            <div class="modal" id="previewModal" style="display:none;">
+                <div class="modal-content">
+                    <span class="close-button" id="closeModal">×</span>
+                    <div id="modalContent"></div>
+                </div>
+            </div>
+            
             <!-- Archived Modal -->
             <div class="modal" id="archivedModal" style="display: none;">
                 <div class="modal-content">
                     <span class="close-button" id="closeArchivedModalBtn">×</span>
-                    <h2>Archived Monetary Donations</h2>
+                    <h2>Archived In-Kind Donations</h2>
+                    <div class="tab-nav">
+                        <button class="tab-button active" data-tab="individual">Individual</button>
+                        <button class="tab-button" data-tab="anonymous">Anonymous</button>
+                        <button class="tab-button" data-tab="corporation">Corporation</button>
+                        <button class="tab-button" data-tab="foundation">Foundation</button>
+                    </div>
                     <div class="table-container" style="max-height: 400px; overflow-y: auto;">
                         <table id="archivedTable">
                             <thead>
@@ -125,10 +223,9 @@
                                     <th>No.</th>
                                     <th>Encoder</th>
                                     <th>Names/Company</th>
-                                    <th>Location (At least City)</th>
                                     <th>Number</th>
                                     <th>Amount Donated</th>
-                                    <th>Cash Invoice #</th>
+                                    <th>Cash Invoice#</th>
                                     <th>Date Received</th>
                                     <th>Email</th>
                                     <th>Bank</th>
@@ -137,27 +234,18 @@
                                     <th>Action</th>
                                 </tr>
                             </thead>
-                            <tbody></tbody>
+                            <tbody id="archivedTableBody"></tbody>
                         </table>
                     </div>
-                    <div class="pagination-info" style="margin-top: 15px;">
-                        <span id="archivedEntriesInfo">Showing 0 to 0 of 0 entries</span>
-                        <div id="archivedPagination" class="pagination"></div>
-                    </div>
+                    
                 </div>
             </div>
 
-             <!-- Added Preview Modal -->
-            <div class="modal" id="previewModal" style="display:none;">
-                <div class="modal-content">
-                    <span class="close-button" id="closeModal">×</span>
-                    <div id="modalContent"></div>
-                </div>
-            </div>
 
+               
+            </div>
         </div>
     </div>
-
     <script>
         fetch('../components/sidebar.html')
             .then(res => res.text())
@@ -169,7 +257,7 @@
             })
             .catch(err => console.error('Error loading sidebar:', err));
     </script>
-    
-    <script src="../js/inactivity-detector.js"></script> 
+    <script src="../js/pendingmonetary.js"></script>
+    <script src="../js/inactivity-detector.js"></script>
 </body>
 </html>

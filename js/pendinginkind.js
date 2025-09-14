@@ -46,7 +46,50 @@ document.addEventListener("DOMContentLoaded", () => {
     const archivedPaginationContainer = document.getElementById("archivedPagination");
     const closeArchivedModalBtn = document.getElementById("closeArchivedModalBtn");
 
+    // DOM elements
+    const donorTypeButtons = {
+        individual: document.getElementById('individualBtn'),
+        anonymous: document.getElementById('anonymousBtn'),
+        corporate: document.getElementById('corporateBtn'),
+        foundation: document.getElementById('foundationBtn'),
+    };
+    const tableBodies = {
+        individual: document.querySelector("#individualTable tbody"),
+        anonymous: document.querySelector("#anonymousTable tbody"),
+        corporate: document.querySelector("#corporateTable tbody"),
+        foundation: document.querySelector("#foundationTable tbody"),
+    };
+    const tableContainers = {
+        individual: document.getElementById('individualTableContainer'),
+        anonymous: document.getElementById('anonymousTableContainer'),
+        corporate: document.getElementById('corporateTableContainer'),
+        foundation: document.getElementById('foundationTableContainer'),
+    };
+
+    document.querySelectorAll('.tab-button').forEach(button => {
+        button.addEventListener('click', () => {
+            // Remove active class from all buttons
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            // Add active class to clicked button
+            button.classList.add('active');
+            // Load data for the selected tab
+            const tabType = button.getAttribute('data-tab');
+            updateArchivedTableData(tabType);
+        });
+    });
+
+
     // Check DOM elements
+    Object.entries(donorTypeButtons).forEach(([type, btn]) => {
+        if (!btn) console.warn(`Donor type button (#${type}Btn) not found in the DOM.`);
+    });
+    Object.entries(tableBodies).forEach(([type, tbody]) => {
+        if (!tbody) console.warn(`Table body (#${type}Table tbody) not found in the DOM.`);
+    });
+    Object.entries(tableContainers).forEach(([type, container]) => {
+        if (!container) console.warn(`Table container (#${type}TableContainer) not found in the DOM.`);
+    });
+
     if (!tableBody) console.warn('Table body (#donationTable tbody) not found in the DOM.');
     if (!searchInput) console.warn('Search input (#searchInput) not found in the DOM.');
     if (!sortSelect) console.warn('Sort select (#sortSelect) not found in the DOM.');
@@ -71,9 +114,25 @@ document.addEventListener("DOMContentLoaded", () => {
     let filteredAndSortedArchivedDonations = [];
     let archivedCurrentPage = 1;
     const rowsPerPage = 10;
-    let currentPage = 1;
-    let allDonations = [];
-    let filteredAndSortedDonations = [];
+    let allDonations = {
+        individual: [],
+        anonymous: [],
+        corporate: [],
+        foundation: [],
+    };
+    let filteredAndSortedDonations = {
+        individual: [],
+        anonymous: [],
+        corporate: [],
+        foundation: [],
+    };
+    let currentPage = {
+        individual: 1,
+        anonymous: 1,
+        corporate: 1,
+        foundation: 1,
+    };
+    let currentDonorType = 'individual'; // Default donor type
     let permissions = { canView: false, canEdit: false, canArchive: false, canRetrieve: false };
     let isAdminVerified = false;
 
@@ -175,52 +234,6 @@ document.addEventListener("DOMContentLoaded", () => {
         return password;
     }
 
-    // async function notifyABVNEndorsement(donationId, groupId, donationData, endorsedGroup) {
-    //     try {
-    //         const user = firebase.auth().currentUser;
-    //         if (!user) {
-    //             throw new Error("User not authenticated.");
-    //         }
-
-    //         const group = endorsedGroup;
-    //         if (!group) {
-    //             throw new Error(`Volunteer group not found for groupId: ${groupId}`);
-    //         }
-
-    //         let abvnUserUid = null;
-    //         const usersSnapshot = await database.ref("users").orderByChild("organization").equalTo(group.name).once("value");
-    //         if (usersSnapshot.exists()) {
-    //             usersSnapshot.forEach(child => {
-    //                 const userData = child.val();
-    //                 if (userData.role === "ABVN") {
-    //                     abvnUserUid = child.key;
-    //                 }
-    //             });
-    //         }
-
-    //         const notification = {
-    //             groupId: groupId,
-    //             organization: group.name,
-    //             donationId: donationId,
-    //             timestamp: new Date().toISOString(),
-    //             read: false,
-    //             type: "endorsement",
-    //             userUid: abvnUserUid || null,
-    //             message: `A donation from ${donationData.name || 'an anonymous donor'} has been endorsed to ${group.name} for ${donationData.type || 'N/A'} in ${group.details || 'N/A'}.`,
-    //             identifier: `endorsement_${donationId}_${groupId}_${Date.now()}`
-    //         };
-
-    //         const newNotificationRef = await database.ref("notifications").push(notification);
-    //         console.log(`Endorsement notification created for ${group.name}:`, notification);
-
-    //         return newNotificationRef.key;
-    //     } catch (error) {
-    //         console.error("Error creating endorsement notification:", error);
-    //         logErrorToFirebase(error, 'notifyABVNEndorsement');
-    //         throw error;
-    //     }
-    // }
-    
     // Replace the existing notifyABVNEndorsement function with this updated version
     async function notifyABVNEndorsement(donationId, groupId, donationData, endorsedGroup) {
         try {
@@ -450,6 +463,13 @@ document.addEventListener("DOMContentLoaded", () => {
             await database.ref('donations/savedDonations/inkind/' + id).set(queuedDonation);
             await database.ref('donations/pending/inkind/' + id).remove();
 
+            const donorType = queuedDonation.type.toLowerCase();
+            allDonations[donorType] = allDonations[donorType].filter(d => d.id !== id);
+            filteredAndSortedDonations[donorType] = filteredAndSortedDonations[donorType].filter(d => d.id !== id);
+            if (currentDonorType === donorType) {
+                renderTable(donorType);
+            }
+
             console.log('Triggering approval email for queued donation...');
             sendApprovalEmail(queuedDonation);
 
@@ -678,6 +698,15 @@ document.addEventListener("DOMContentLoaded", () => {
                     await archivedRef.remove();
                     console.log('Donation removed from archivedDonations');
 
+                    const donorType = archivedDonation.type.toLowerCase();
+                    allArchivedDonations = allArchivedDonations.filter(d => d.id !== id);
+                    filteredAndSortedArchivedDonations = filteredAndSortedArchivedDonations.filter(d => d.id !== id);
+                    allDonations[donorType].push(updatedDonation);
+                    filteredAndSortedDonations[donorType] = [...allDonations[donorType]];
+                    if (currentDonorType === donorType) {
+                        renderTable(donorType);
+                    }
+
                     const checkSnapshot = await archivedRef.once('value');
                     if (checkSnapshot.exists()) {
                         throw new Error("Failed to delete donation from archived donations.");
@@ -776,9 +805,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
                         await database.ref(`donations/pending/archivedDonations/inkind/${id}`).set(archivedDonation);
                         await donationRef.remove();
-                        const checkSnapshot = await donationRef.once('value');
-                        if (checkSnapshot.exists()) {
-                            throw new Error("Failed to delete donation from donations/pending/inkind.");
+                        const donorType = donation.type.toLowerCase();
+                        allDonations[donorType] = allDonations[donorType].filter(d => d.id !== id);
+                        filteredAndSortedDonations[donorType] = filteredAndSortedDonations[donorType].filter(d => d.id !== id);
+                        if (currentDonorType === donorType) {
+                            renderTable(donorType);
                         }
 
                         const message = `In-kind donation from "${donation.name || 'Unknown'}" rejected and archived by ${auth.currentUser?.adminPosition || 'Unknown'} from ${localStorage.getItem('organization') || 'Unknown Group'} on ${new Date().toLocaleDateString('en-US')}.`;
@@ -1228,11 +1259,12 @@ document.addEventListener("DOMContentLoaded", () => {
         database.ref('donations/pending/inkind').on('value', (snapshot) => {
             clearTimeout(debounceTimeout);
             debounceTimeout = setTimeout(() => {
-                allDonations = [];
+                allDonations = { individual: [], anonymous: [], corporate: [], foundation: [] };
                 const data = snapshot.val();
                 if (data && typeof data === 'object') {
                     Object.keys(data).forEach((key) => {
                         const donation = data[key];
+                        const donorType = donation.type ? donation.type.toLowerCase() : 'individual';
                         const donationEntry = {
                             id: key,
                             encoder: donation.encoder || 'N/A',
@@ -1248,14 +1280,21 @@ document.addEventListener("DOMContentLoaded", () => {
                             status: donation.status || 'Pending',
                             staffIncharge: donation.staffIncharge || 'N/A',
                             donationDate: donation.donationDate || 'N/A',
-                            createdAt: donation.createdAt || 'N/A'
+                            createdAt: donation.createdAt || 'N/A',
+                            urgentNeed: donation.urgentNeed || false // Add urgentNeed field
                         };
-                        allDonations.push(donationEntry);
+                        if (['individual', 'anonymous', 'corporate', 'foundation'].includes(donorType)) {
+                            allDonations[donorType].push(donationEntry);
+                        } else {
+                            allDonations.individual.push(donationEntry);
+                        }
                     });
                 }
-                filteredAndSortedDonations = [...allDonations];
-                applySorting(filteredAndSortedDonations, sortSelect?.value || '');
-                renderTable();
+                Object.keys(allDonations).forEach(type => {
+                    filteredAndSortedDonations[type] = [...allDonations[type]];
+                    applySorting(filteredAndSortedDonations[type], sortSelect?.value || '');
+                });
+                renderTable(currentDonorType);
             }, 300);
         }, (error) => {
             console.error('Error loading donations:', error);
@@ -1316,43 +1355,124 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // Render table
-    function renderTable() {
+    function renderTable(donorType) {
+        const tableBody = tableBodies[donorType];
         if (!tableBody) return;
         tableBody.innerHTML = '';
-        const startIndex = (currentPage - 1) * rowsPerPage;
+        const startIndex = (currentPage[donorType] - 1) * rowsPerPage;
         const endIndex = startIndex + rowsPerPage;
-        const currentRows = filteredAndSortedDonations.slice(startIndex, endIndex);
+        const currentRows = filteredAndSortedDonations[donorType].slice(startIndex, endIndex);
 
         if (currentRows.length === 0) {
-            tableBody.innerHTML = `<tr><td colspan="15" style="text-align: center;">No pending donations found.</td></tr>`;
+            tableBody.innerHTML = `<tr><td colspan="${donorType === 'anonymous' ? 13 : 12}" style="text-align: center;">No ${donorType} donations found.</td></tr>`;
         } else {
             currentRows.forEach((donation, index) => {
                 const row = tableBody.insertRow();
-                row.innerHTML = `
-                    <td>${startIndex + index + 1}</td>
-                    <td>${donation.encoder}</td>
-                    <td>${donation.name}</td>
-                    <td>${donation.type}</td>
-                    <td>${donation.address}</td>
-                    <td>${donation.contactPerson}</td>
-                    <td>${donation.number}</td>
-                    <td>${donation.email}</td>
-                    <td>${donation.assistance}</td>
-                    <td>₱${parseFloat(donation.valuation || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                    <td>${donation.additionalnotes}</td>
-                    <td>${donation.staffIncharge}</td>
-                    <td>${donation.donationDate ? new Date(donation.donationDate).toLocaleDateString('en-PH') : 'N/A'}</td>
-                    <td>${donation.status}</td>
-                    <td>
-                        <button title="View" class="viewBtn" aria-label="View donation details"><i class='bx bx-show-alt'></i></button>
-                        ${permissions.canEdit ? `
-                            <button title="Approve" class="approveBtn" aria-label="Approve donation"><i class='bx bx-check-circle'></i></button>
-                            ${permissions.canArchive ? `
-                                <button title="Reject" class="rejectBtn" aria-label="Reject donation"><i class='bx bx-x-circle'></i></button>
+                // Add 'urgent-row' class if urgentNeed is true
+                if (donation.urgentNeed === true) {
+                    row.classList.add('urgent-row');
+                    console.log(`Added urgent-row class to donation ID: ${donation.id}, urgentNeed: ${donation.urgentNeed}`);
+                }
+
+                // Customize row content based on donor type
+                let rowContent = '';
+                if (donorType === 'individual') {
+                    rowContent = `
+                        <td>${startIndex + index + 1}</td>
+                        <td>${donation.name || 'N/A'}</td>
+                        <td>${donation.type || 'Individual'}</td>
+                        <td>${donation.address || 'N/A'}</td>
+                        <td>${donation.number || 'N/A'}</td>
+                        <td>${donation.email || 'N/A'}</td>
+                        <td>${donation.assistance || 'N/A'}</td>
+                        <td>₱${parseFloat(donation.valuation || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        <td>${donation.additionalnotes || 'N/A'}</td>
+                        <td>${donation.donationDate ? new Date(donation.donationDate).toLocaleDateString('en-PH') : 'N/A'}</td>
+                        <td>${donation.status || 'Pending'}</td>
+                        <td>
+                            <button title="View" class="viewBtn" aria-label="View donation details"><i class='bx bx-show-alt'></i></button>
+                            ${permissions.canEdit ? `
+                                <button title="Approve" class="approveBtn" aria-label="Approve donation"><i class='bx bx-check-circle'></i></button>
+                                ${permissions.canArchive ? `
+                                    <button title="Reject" class="rejectBtn" aria-label="Reject donation"><i class='bx bx-x-circle'></i></button>
+                                ` : ''}
                             ` : ''}
-                        ` : ''}
-                    </td>
-                `;
+                        </td>
+                    `;
+                } else if (donorType === 'anonymous') {
+                    rowContent = `
+                        <td>${startIndex + index + 1}</td>
+                        <td>${donation.address || 'N/A'}</td>
+                        <td>${donation.number || 'N/A'}</td>
+                        <td>${donation.email || 'N/A'}</td>
+                        <td>${donation.additionalnotes || 'N/A'}</td>
+                        <td>${donation.assistance || 'N/A'}</td>
+                        <td>₱${parseFloat(donation.valuation || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        <td>${donation.type || 'Anonymous'}</td>
+                        <td>₱${parseFloat(donation.valuation || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        <td>${donation.additionalnotes || 'N/A'}</td>
+                        <td>${donation.donationDate ? new Date(donation.donationDate).toLocaleDateString('en-PH') : 'N/A'}</td>
+                        <td>${donation.status || 'Pending'}</td>
+                        <td>
+                            <button title="View" class="viewBtn" aria-label="View donation details"><i class='bx bx-show-alt'></i></button>
+                            ${permissions.canEdit ? `
+                                <button title="Approve" class="approveBtn" aria-label="Approve donation"><i class='bx bx-check-circle'></i></button>
+                                ${permissions.canArchive ? `
+                                    <button title="Reject" class="rejectBtn" aria-label="Reject donation"><i class='bx bx-x-circle'></i></button>
+                                ` : ''}
+                            ` : ''}
+                        </td>
+                    `;
+                } else if (donorType === 'corporate') {
+                    rowContent = `
+                        <td>${startIndex + index + 1}</td>
+                        <td>${donation.name || 'N/A'}</td>
+                        <td>${donation.address || 'N/A'}</td>
+                        <td>${donation.number || 'N/A'}</td>
+                        <td>${donation.email || 'N/A'}</td>
+                        <td>${donation.additionalnotes || 'N/A'}</td>
+                        <td>${donation.assistance || 'N/A'}</td>
+                        <td>₱${parseFloat(donation.valuation || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        <td>${donation.additionalnotes || 'N/A'}</td>
+                        <td>${donation.donationDate ? new Date(donation.donationDate).toLocaleDateString('en-PH') : 'N/A'}</td>
+                        <td>${donation.status || 'Pending'}</td>
+                        <td>
+                            <button title="View" class="viewBtn" aria-label="View donation details"><i class='bx bx-show-alt'></i></button>
+                            ${permissions.canEdit ? `
+                                <button title="Approve" class="approveBtn" aria-label="Approve donation"><i class='bx bx-check-circle'></i></button>
+                                ${permissions.canArchive ? `
+                                    <button title="Reject" class="rejectBtn" aria-label="Reject donation"><i class='bx bx-x-circle'></i></button>
+                                ` : ''}
+                            ` : ''}
+                        </td>
+                    `;
+                } else if (donorType === 'foundation') {
+                    rowContent = `
+                        <td>${startIndex + index + 1}</td>
+                        <td>${donation.name || 'N/A'}</td>
+                        <td>${donation.address || 'N/A'}</td>
+                        <td>${donation.contactPerson || 'N/A'}</td>
+                        <td>${donation.number || 'N/A'}</td>
+                        <td>${donation.email || 'N/A'}</td>
+                        <td>${donation.assistance || 'N/A'}</td>
+                        <td>₱${parseFloat(donation.valuation || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        <td>${donation.additionalnotes || 'N/A'}</td>
+                        <td>${donation.donationDate ? new Date(donation.donationDate).toLocaleDateString('en-PH') : 'N/A'}</td>
+                        <td>${donation.status || 'Pending'}</td>
+                        <td>
+                            <button title="View" class="viewBtn" aria-label="View donation details"><i class='bx bx-show-alt'></i></button>
+                            ${permissions.canEdit ? `
+                                <button title="Approve" class="approveBtn" aria-label="Approve donation"><i class='bx bx-check-circle'></i></button>
+                                ${permissions.canArchive ? `
+                                    <button title="Reject" class="rejectBtn" aria-label="Reject donation"><i class='bx bx-x-circle'></i></button>
+                                ` : ''}
+                            ` : ''}
+                        </td>
+                    `;
+                }
+
+                row.innerHTML = rowContent;
+
                 const viewBtn = row.querySelector('.viewBtn');
                 if (viewBtn) viewBtn.addEventListener('click', () => showPreviewModal(donation));
                 if (permissions.canEdit) {
@@ -1373,8 +1493,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
             });
         }
-        updatePaginationInfo();
-        renderPagination();
+        updatePaginationInfo(donorType);
+        renderPagination(donorType);
     }
 
     function renderArchivedTable() {
@@ -1392,31 +1512,101 @@ document.addEventListener("DOMContentLoaded", () => {
             archivedTableBody.innerHTML = '<tr><td colspan="15" style="text-align: center; padding: 20px;">No archived in-kind donations found.</td></tr>';
         } else {
             paginatedItems.forEach((donation, index) => {
-                if (!donation.id) {
-                    return;
-                }
+                if (!donation.id) return;
                 const row = archivedTableBody.insertRow();
-                row.innerHTML = `
-                    <td>${start + index + 1}</td>
-                    <td>${donation.encoder || 'N/A'}</td>
-                    <td>${donation.name || 'N/A'}</td>
-                    <td>${donation.type || 'N/A'}</td>
-                    <td>${donation.address || 'N/A'}</td>
-                    <td>${donation.contactPerson || 'N/A'}</td>
-                    <td>${donation.number || 'N/A'}</td>
-                    <td>${donation.email || 'N/A'}</td>
-                    <td>${donation.assistance || 'N/A'}</td>
-                    <td>₱${parseFloat(donation.valuation || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                    <td>${donation.additionalnotes || 'N/A'}</td>
-                    <td>${donation.staffIncharge || 'N/A'}</td>
-                    <td>${donation.donationDate ? new Date(donation.donationDate).toLocaleDateString('en-PH') : 'N/A'}</td>
-                    <td><span class="status-${donation.status ? donation.status.toLowerCase() : 'na'}">${donation.status || 'N/A'}</span></td>
-                    <td>
-                        ${permissions.canRetrieve ? `
-                            <button class="retrieveBtn" aria-label="Retrieve donation">Retrieve</button>
-                        ` : ''}
-                    </td>
-                `;
+                let rowContent = '';
+                if (donation.type.toLowerCase() === 'individual') {
+                    rowContent = `
+                        <td>${start + index + 1}</td>
+                        <td>${donation.encoder || 'N/A'}</td>
+                        <td>${donation.name || 'N/A'}</td>
+                        <td>${donation.type || 'Individual'}</td>
+                        <td>${donation.address || 'N/A'}</td>
+                        <td>${donation.contactPerson || 'N/A'}</td>
+                        <td>${donation.number || 'N/A'}</td>
+                        <td>${donation.email || 'N/A'}</td>
+                        <td>${donation.assistance || 'N/A'}</td>
+                        <td>₱${parseFloat(donation.valuation || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        <td>${donation.additionalnotes || 'N/A'}</td>
+                        <td>${donation.staffIncharge || 'N/A'}</td>
+                        <td>${donation.donationDate ? new Date(donation.donationDate).toLocaleDateString('en-PH') : 'N/A'}</td>
+                        <td><span class="status-${donation.status ? donation.status.toLowerCase() : 'na'}">${donation.status || 'N/A'}</span></td>
+                        <td>
+                            ${permissions.canRetrieve ? `
+                                <button class="retrieveBtn" aria-label="Retrieve donation">Retrieve</button>
+                            ` : ''}
+                        </td>
+                    `;
+                } else if (donation.type.toLowerCase() === 'anonymous') {
+                    rowContent = `
+                        <td>${start + index + 1}</td>
+                        <td>${donation.encoder || 'N/A'}</td>
+                        <td>Anonymous</td>
+                        <td>${donation.type || 'Anonymous'}</td>
+                        <td>${donation.address || 'N/A'}</td>
+                        <td>${donation.contactPerson || 'N/A'}</td>
+                        <td>${donation.number || 'N/A'}</td>
+                        <td>${donation.email || 'N/A'}</td>
+                        <td>${donation.assistance || 'N/A'}</td>
+                        <td>₱${parseFloat(donation.valuation || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        <td>${donation.additionalnotes || 'N/A'}</td>
+                        <td>${donation.staffIncharge || 'N/A'}</td>
+                        <td>${donation.donationDate ? new Date(donation.donationDate).toLocaleDateString('en-PH') : 'N/A'}</td>
+                        <td><span class="status-${donation.status ? donation.status.toLowerCase() : 'na'}">${donation.status || 'N/A'}</span></td>
+                        <td>
+                            ${permissions.canRetrieve ? `
+                                <button class="retrieveBtn" aria-label="Retrieve donation">Retrieve</button>
+                            ` : ''}
+                        </td>
+                    `;
+                } else if (donation.type.toLowerCase() === 'corporate') {
+                    rowContent = `
+                        <td>${start + index + 1}</td>
+                        <td>${donation.encoder || 'N/A'}</td>
+                        <td>${donation.name || 'N/A'}</td>
+                        <td>${donation.type || 'Corporate'}</td>
+                        <td>${donation.address || 'N/A'}</td>
+                        <td>${donation.contactPerson || 'N/A'}</td>
+                        <td>${donation.number || 'N/A'}</td>
+                        <td>${donation.email || 'N/A'}</td>
+                        <td>${donation.assistance || 'N/A'}</td>
+                        <td>₱${parseFloat(donation.valuation || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        <td>${donation.additionalnotes || 'N/A'}</td>
+                        <td>${donation.staffIncharge || 'N/A'}</td>
+                        <td>${donation.donationDate ? new Date(donation.donationDate).toLocaleDateString('en-PH') : 'N/A'}</td>
+                        <td><span class="status-${donation.status ? donation.status.toLowerCase() : 'na'}">${donation.status || 'N/A'}</span></td>
+                        <td>
+                            ${permissions.canRetrieve ? `
+                                <button class="retrieveBtn" aria-label="Retrieve donation">Retrieve</button>
+                            ` : ''}
+                        </td>
+                    `;
+                } else if (donation.type.toLowerCase() === 'foundation') {
+                    rowContent = `
+                        <td>${start + index + 1}</td>
+                        <td>${donation.encoder || 'N/A'}</td>
+                        <td>${donation.name || 'N/A'}</td>
+                        <td>${donation.type || 'Foundation'}</td>
+                        <td>${donation.address || 'N/A'}</td>
+                        <td>${donation.contactPerson || 'N/A'}</td>
+                        <td>${donation.number || 'N/A'}</td>
+                        <td>${donation.email || 'N/A'}</td>
+                        <td>${donation.assistance || 'N/A'}</td>
+                        <td>₱${parseFloat(donation.valuation || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        <td>${donation.additionalnotes || 'N/A'}</td>
+                        <td>${donation.staffIncharge || 'N/A'}</td>
+                        <td>${donation.donationDate ? new Date(donation.donationDate).toLocaleDateString('en-PH') : 'N/A'}</td>
+                        <td><span class="status-${donation.status ? donation.status.toLowerCase() : 'na'}">${donation.status || 'N/A'}</span></td>
+                        <td>
+                            ${permissions.canRetrieve ? `
+                                <button class="retrieveBtn" aria-label="Retrieve donation">Retrieve</button>
+                            ` : ''}
+                        </td>
+                    `;
+                }
+
+                row.innerHTML = rowContent;
+
                 if (permissions.canRetrieve) {
                     const retrieveBtn = row.querySelector('.retrieveBtn');
                     if (retrieveBtn) {
@@ -1436,22 +1626,28 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // Update pagination info
-    function updatePaginationInfo() {
+    function updatePaginationInfo(donorType) {
         if (!entriesInfo) return;
-        const totalEntries = filteredAndSortedDonations.length;
-        const startEntry = (currentPage - 1) * rowsPerPage + 1;
-        const endEntry = Math.min(currentPage * rowsPerPage, totalEntries);
+        const totalEntries = filteredAndSortedDonations[donorType].length;
+        const startEntry = (currentPage[donorType] - 1) * rowsPerPage + 1;
+        const endEntry = Math.min(currentPage[donorType] * rowsPerPage, totalEntries);
         entriesInfo.textContent = `Showing ${startEntry} to ${endEntry} of ${totalEntries} entries`;
         if (totalEntries === 0) {
             entriesInfo.textContent = `Showing 0 to 0 of 0 entries`;
         }
     }
 
+    function updateArchivedTableData(tabType) {
+        filteredAndSortedArchivedDonations = allArchivedDonations.filter(donation => donation.type.toLowerCase() === tabType);
+        archivedCurrentPage = 1;
+        renderArchivedTable();
+    }
+
     // Render pagination
-    function renderPagination() {
+    function renderPagination(donorType) {
         if (!paginationContainer) return;
         paginationContainer.innerHTML = '';
-        const totalPages = Math.ceil(filteredAndSortedDonations.length / rowsPerPage);
+        const totalPages = Math.ceil(filteredAndSortedDonations[donorType].length / rowsPerPage);
 
         if (totalPages <= 0) {
             paginationContainer.innerHTML = '<span>No entries to display</span>';
@@ -1465,27 +1661,27 @@ document.addEventListener("DOMContentLoaded", () => {
             if (isActive) btn.classList.add('active-page');
             btn.addEventListener('click', () => {
                 if (!disabled) {
-                    currentPage = page;
-                    renderTable();
+                    currentPage[donorType] = page;
+                    renderTable(donorType);
                 }
             });
             return btn;
         };
 
-        paginationContainer.appendChild(createPaginationButton('Prev', Math.max(1, currentPage - 1), currentPage === 1));
+        paginationContainer.appendChild(createPaginationButton('Prev', Math.max(1, currentPage[donorType] - 1), currentPage[donorType] === 1));
 
         const maxVisible = 5;
-        let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+        let startPage = Math.max(1, currentPage[donorType] - Math.floor(maxVisible / 2));
         let endPage = Math.min(totalPages, startPage + maxVisible - 1);
         if (endPage - startPage < maxVisible - 1) {
             startPage = Math.max(1, endPage - maxVisible + 1);
         }
 
         for (let i = startPage; i <= endPage; i++) {
-            paginationContainer.appendChild(createPaginationButton(i, i, false, i === currentPage));
+            paginationContainer.appendChild(createPaginationButton(i, i, false, i === currentPage[donorType]));
         }
 
-        paginationContainer.appendChild(createPaginationButton('Next', Math.min(totalPages, currentPage + 1), currentPage === totalPages));
+        paginationContainer.appendChild(createPaginationButton('Next', Math.min(totalPages, currentPage[donorType] + 1), currentPage[donorType] === totalPages));
     }
 
     function renderArchivedPagination() {
@@ -1512,27 +1708,42 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
+    // Initialize donor type buttons
+    Object.entries(donorTypeButtons).forEach(([type, btn]) => {
+        if (btn) {
+            btn.addEventListener('click', () => {
+                currentDonorType = type;
+                Object.values(donorTypeButtons).forEach(button => button.classList.remove('active'));
+                btn.classList.add('active');
+                Object.values(tableContainers).forEach(container => container.style.display = 'none');
+                tableContainers[type].style.display = 'block';
+                currentPage[type] = 1;
+                renderTable(type);
+            });
+        }
+});
+
     // Search functionality
     if (searchInput) {
         searchInput.addEventListener('input', () => {
             const searchTerm = searchInput.value.toLowerCase();
-            filteredAndSortedDonations = allDonations.filter(d => {
+            filteredAndSortedDonations[currentDonorType] = allDonations[currentDonorType].filter(d => {
                 return (d.encoder || '').toLowerCase().includes(searchTerm) ||
-                       (d.name || '').toLowerCase().includes(searchTerm) ||
-                       (d.type || '').toLowerCase().includes(searchTerm) ||
-                       (d.address || '').toLowerCase().includes(searchTerm) ||
-                       (d.contactPerson || '').toLowerCase().includes(searchTerm) ||
-                       (d.number || '').includes(searchTerm) ||
-                       (d.email || '').toLowerCase().includes(searchTerm) ||
-                       (d.assistance || '').toLowerCase().includes(searchTerm) ||
-                       String(d.valuation || '').includes(searchTerm) ||
-                       (d.additionalnotes || '').toLowerCase().includes(searchTerm) ||
-                       (d.status || '').toLowerCase().includes(searchTerm) ||
-                       (d.staffIncharge || '').toLowerCase().includes(searchTerm) ||
-                       (d.donationDate || '').toLowerCase().includes(searchTerm);
+                    (d.name || '').toLowerCase().includes(searchTerm) ||
+                    (d.type || '').toLowerCase().includes(searchTerm) ||
+                    (d.address || '').toLowerCase().includes(searchTerm) ||
+                    (d.contactPerson || '').toLowerCase().includes(searchTerm) ||
+                    (d.number || '').includes(searchTerm) ||
+                    (d.email || '').toLowerCase().includes(searchTerm) ||
+                    (d.assistance || '').toLowerCase().includes(searchTerm) ||
+                    String(d.valuation || '').includes(searchTerm) ||
+                    (d.additionalnotes || '').toLowerCase().includes(searchTerm) ||
+                    (d.status || '').toLowerCase().includes(searchTerm) ||
+                    (d.staffIncharge || '').toLowerCase().includes(searchTerm) ||
+                    (d.donationDate || '').toLowerCase().includes(searchTerm);
             });
-            currentPage = 1;
-            renderTable();
+            currentPage[currentDonorType] = 1;
+            renderTable(currentDonorType);
         });
     }
 
@@ -1545,16 +1756,22 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function applySorting(arr, sortVal) {
-        if (!sortVal) return;
-        const [field, direction] = sortVal.split('-');
-        const fields = {
-            donationDrive: 'name',
-            contactPerson: 'contactPerson',
-            accountName: 'name',
-            dropOff: 'address'
-        };
-        const sortField = fields[field] || 'name';
+        // First, sort by urgentNeed (true comes first)
         arr.sort((a, b) => {
+            // If urgentNeed is true, it should come first (return -1)
+            // If urgentNeed is false or undefined, it comes later (return 1)
+            if (a.urgentNeed === true && b.urgentNeed !== true) return -1;
+            if (b.urgentNeed === true && a.urgentNeed !== true) return 1;
+            // If both have same urgentNeed status, apply secondary sorting
+            if (!sortVal) return 0;
+            const [field, direction] = sortVal.split('-');
+            const fields = {
+                donationDrive: 'name',
+                contactPerson: 'contactPerson',
+                accountName: 'name',
+                dropOff: 'address'
+            };
+            const sortField = fields[field] || 'name';
             const valA = (a[sortField] || '').toString().toLowerCase();
             const valB = (b[sortField] || '').toString().toLowerCase();
             return direction === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
@@ -1564,27 +1781,60 @@ document.addEventListener("DOMContentLoaded", () => {
     // Show preview modal
     function showPreviewModal(donation) {
         if (!modalContent || !previewModal) return;
-        modalContent.innerHTML = `
+        let modalHTML = `
             <div class="modal-content-inner" style="padding: 20px;">
                 <h2>Donor Information:</h2>
-                <p><strong>Encoder:</strong> ${donation.encoder}</p>
-                <p><strong>Name:</strong> ${donation.name}</p>
-                <p><strong>Type:</strong> ${donation.type}</p>
-                <p><strong>Address:</strong> ${donation.address}</p>
-                <p><strong>Contact Person:</strong> ${donation.contactPerson}</p>
-                <p><strong>Number:</strong> ${donation.number}</p>
-                <p><strong>Email:</strong> ${donation.email}</p>
+                <p><strong>Encoder:</strong> ${donation.encoder || 'N/A'}</p>
+                <p><strong>Type:</strong> ${donation.type || 'N/A'}</p>
+        `;
+        
+        if (donation.type.toLowerCase() === 'individual') {
+            modalHTML += `
+                <p><strong>Full Name:</strong> ${donation.name || 'N/A'}</p>
+                <p><strong>Address:</strong> ${donation.address || 'N/A'}</p>
+                <p><strong>Mobile Number:</strong> ${donation.number || 'N/A'}</p>
+                <p><strong>Email:</strong> ${donation.email || 'N/A'}</p>
+            `;
+        } else if (donation.type.toLowerCase() === 'anonymous') {
+            modalHTML += `
+                <p><strong>Address:</strong> ${donation.address || 'N/A'}</p>
+                <p><strong>Mobile Number:</strong> ${donation.number || 'N/A'}</p>
+                <p><strong>Email:</strong> ${donation.email || 'N/A'}</p>
+                <p><strong>Donation Note:</strong> ${donation.additionalnotes || 'N/A'}</p>
+            `;
+        } else if (donation.type.toLowerCase() === 'corporate') {
+            modalHTML += `
+                <p><strong>Company Name:</strong> ${donation.name || 'N/A'}</p>
+                <p><strong>Address:</strong> ${donation.address || 'N/A'}</p>
+                <p><strong>Mobile Number:</strong> ${donation.number || 'N/A'}</p>
+                <p><strong>Email:</strong> ${donation.email || 'N/A'}</p>
+                <p><strong>Donation Note:</strong> ${donation.additionalnotes || 'N/A'}</p>
+            `;
+        } else if (donation.type.toLowerCase() === 'foundation') {
+            modalHTML += `
+                <p><strong>Foundation Name:</strong> ${donation.name || 'N/A'}</p>
+                <p><strong>Address:</strong> ${donation.address || 'N/A'}</p>
+                <p><strong>Contact Person:</strong> ${donation.contactPerson || 'N/A'}</p>
+                <p><strong>Mobile Number:</strong> ${donation.number || 'N/A'}</p>
+                <p><strong>Email:</strong> ${donation.email || 'N/A'}</p>
+            `;
+        }
+
+        modalHTML += `
                 <hr>
                 <h2>Donation Details:</h2>
-                <p><strong>Assistance:</strong> ${donation.assistance}</p>
+                <p><strong>Donation Category:</strong> ${donation.assistance || 'N/A'}</p>
                 <p><strong>Valuation:</strong> ₱${parseFloat(donation.valuation || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                <p><strong>Additional Notes:</strong> ${donation.additionalnotes}</p>
-                <p><strong>Status:</strong> ${donation.status}</p>
-                <p><strong>Staff-In-Charge:</strong> ${donation.staffIncharge}</p>
+                <p><strong>Additional Notes:</strong> ${donation.additionalnotes || 'N/A'}</p>
+                <p><strong>Status:</strong> ${donation.status || 'Pending'}</p>
+                <p><strong>Staff-In-Charge:</strong> ${donation.staffIncharge || 'N/A'}</p>
                 <p><strong>Donation Date:</strong> ${donation.donationDate ? new Date(donation.donationDate).toLocaleDateString('en-PH') : 'N/A'}</p>
                 <p><strong>Recorded On:</strong> ${donation.createdAt ? new Date(donation.createdAt).toLocaleString('en-PH') : 'N/A'}</p>
+                <p><strong>Urgent Need:</strong> ${donation.urgentNeed ? 'Yes' : 'No'}</p>
             </div>
         `;
+        
+        modalContent.innerHTML = modalHTML;
         previewModal.style.display = 'flex';
     }
 
