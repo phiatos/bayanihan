@@ -998,10 +998,10 @@ function initializePageFunctions(userId) {
                 <hr>
                 <h2>Rejection Information:</h2>
                 <div style="margin-left: 15px;">
-                    <p><strong>Rejected By ABVN:</strong> ${volunteer.rejectionDetails?.rejectedByABVN || '-'}</p>
-                    <p><strong>Rejection Date/Time:</strong> ${volunteer.rejectionDetails?.rejectedAt || '-'}</p>
+                    <p><strong>Rejected By ABVN:</strong> ${volunteer.rejected?.byABVN || '-'}</p>
+                    <p><strong>Rejection Date/Time:</strong> ${volunteer.rejected?.at || '-'}</p>
                     <p><strong>Task Name:</strong> ${volunteer.endorsedDetails?.taskName || '-'}</p>
-                    <p><strong>Reason:</strong> ${volunteer.rejectionDetails?.reason || '-'}</p>
+                    <p><strong>Reason:</strong> ${volunteer.rejected?.reason || '-'}</p>
                 </div>
             `;
         }
@@ -3001,6 +3001,7 @@ function initializePageFunctions(userId) {
         });
     }
 
+    // endorse submit / endorsement submission
     endorseABVNForm.addEventListener('submit', async (event) => {
         event.preventDefault();
 
@@ -3033,6 +3034,7 @@ function initializePageFunctions(userId) {
         const requestRef = database.ref(`volunteerGroups/${abvnKey}/volunteerNeeds/${requestId}`);
         const requestSnapshot = await requestRef.once('value');
         const requestData = requestSnapshot.val();
+        
         if (!requestData || (requestData.volunteersNeeded || 0) <= (requestData.assigned || 0)) {
             Swal.fire({
                 title: 'Request Filled',

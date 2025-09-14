@@ -40,18 +40,6 @@
   --highlight-color: rgba(20, 174, 187, 0.2); /* semi-transparent version of primary-color */
 }
 
-.nested-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 5px;
-  background-color: #f9f9f9;
-}
-.nested-table th, .nested-table td {
-  border: 1px solid #ccc;
-  padding: 5px;
-  text-align: left;
-}
-
 * {
   margin: 0;
   padding: 0;
@@ -100,7 +88,7 @@
 }
 
 /* =====================
-   Dashboard Tabs
+  Dashboard Tabs
 ===================== */
 .dashboard-tabs {
   display: flex;
@@ -137,6 +125,30 @@
   from { width: 0; left: 50%; }
   to { width: 60%; left: 20%; }
 }
+
+/* =====================
+  VolunteerRequest Overview
+===================== */
+.nested-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 5px;
+  background-color: #f9f9f9;
+}
+.nested-table th, .nested-table td {
+  border: 1px solid #ccc;
+  padding: 5px;
+  text-align: left;
+}
+
+.highlighted-request {
+  background-color: var(--highlight-color);
+  transition: background-color 2s ease;
+}
+.highlighted-request.fade {
+  background-color: transparent;
+}
+
 /*----------Custom Scrollbar for the Table Container----------------*/
 .table-container {
   overflow-x: auto;
@@ -933,8 +945,8 @@ button:disabled {
 
 
 /* Table Cell Styling for Action Buttons */
-td:has(.viewBtn, .expandBtn, .editBtn, 
-.approveBtn, .registerBtn, 
+td:has(.viewBtn, .expandBtn, .endorseNowBtn,
+.editBtn, .approveBtn, .registerBtn, 
 .saveSinglePdfBtn, .savePDFBtn,
 .actionBtn, .endorseBtn,
 .deleteBtn, .rejectBtn, .archiveBtn,
@@ -948,8 +960,8 @@ td:has(.viewBtn, .expandBtn, .editBtn,
 }
 
 /* Refined Action Buttons (Circular) */
-.viewBtn, .expandBtn, .editBtn, 
-.approveBtn, .registerBtn,
+.viewBtn, .expandBtn, .endorseNowBtn,
+.editBtn, .approveBtn, .registerBtn,
 .saveSinglePdfBtn, .savePDFBtn,
 .actionBtn, .endorseBtn,
 .deleteBtn, .rejectBtn, .archiveBtn,
@@ -969,8 +981,8 @@ td:has(.viewBtn, .expandBtn, .editBtn,
   transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.viewBtn:hover, .expandBtn:hover, .editBtn:hover,
-.approveBtn:hover, .registerBtn:hover,
+.viewBtn:hover, .expandBtn:hover, .endorseNowBtn:hover,
+.editBtn:hover, .approveBtn:hover, .registerBtn:hover,
 .saveSinglePdfBtn:hover, .savePDFBtn:hover,
 .rejectBtn:hover, .deleteBtn:hover, .archiveBtn:hover,
 .actionBtn:hover, .endorseBtn:hover,
@@ -980,7 +992,7 @@ td:has(.viewBtn, .expandBtn, .editBtn,
 }
 
 /* Button Icons */
-.viewBtn i, .editBtn i,
+.viewBtn i, .editBtn i, .endorseNowBtn i,
 .approveBtn i, .registerBtn i,
 .saveSinglePdfBtn i, .savePDFBtn i,
 .actionBtn i, .endorseBtn i,
@@ -996,7 +1008,7 @@ td:has(.viewBtn, .expandBtn, .editBtn,
   pointer-events: none; 
 }
 
-.viewBtn, .editBtn,
+.viewBtn, .editBtn, .endorseNowBtn,
 .approveBtn, .registerBtn,
 .saveSinglePdfBtn, .savePDFBtn,
 .actionBtn, .endorseBtn,
@@ -1006,7 +1018,6 @@ td:has(.viewBtn, .expandBtn, .editBtn,
 .action-button-endorse-button, .action-button {
   pointer-events: auto;
 }
-
 
 /* Button Colors */
 .viewBtn {

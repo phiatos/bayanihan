@@ -994,7 +994,7 @@ async function rejectVolunteer(volunteer, reason = '') {
     try {
         const abvnId = volunteer.sourceAbvnKey; 
         const abvnName = volunteer.endorsedDetails?.endorsedToABVNName || 'Unknown ABVN';
-        const timestamp = Date.now();
+        const timestamp = new Date().toISOString();
 
         // 1. Move volunteer back to Pending with a "rejected" node
         await database.ref(`volunteerApplications/pendingVolunteer/${volunteer.key}`).set({

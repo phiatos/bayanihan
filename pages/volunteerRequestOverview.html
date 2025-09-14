@@ -1,3 +1,5 @@
+<!-- volunteerRequestOverview.html -->
+
 <header>Volunteer Requests Overview</header>
 
 <!-- Summary Dashboard -->
@@ -32,6 +34,13 @@
     </div>
 </div>
 
+<div id="previewModal" class="modal" style="display:none;">
+    <div class="modal-content">
+        <span id="closeModal" class="close">×</span>
+        <div id="modalContent"></div>
+    </div>
+</div>
+
 <!-- Filters / Search -->
 <div class="filters">
     <input type="text" placeholder="Search by ABVN or Task" id="search-input">
@@ -40,6 +49,8 @@
         <option value="Pending">Pending</option>
         <option value="In Progress">In Progress</option>
         <option value="Completed">Completed</option>
+        <option value="Incomplete">Incomplete</option>
+        <option value="Rejected">Rejected</option>
     </select>
     <select id="skills-filter">
         <option value="">All Skills</option>

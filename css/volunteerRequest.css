@@ -1,3 +1,30 @@
+.assigned-volunteers {
+  transition: max-height 0.3s ease, opacity 0.3s ease;
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+}
+
+.assigned-volunteers.show {
+  max-height: 1000px; 
+  opacity: 1;
+}
+
+.nested-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.nested-table th, .nested-table td {
+  border: 1px solid #ccc;
+  padding: 6px;
+  text-align: left;
+}
+
+.highlighted-request {
+  background-color: #f0f8ff;
+}
+
 #my-requests-template {
   padding: 1rem 0;
 }
