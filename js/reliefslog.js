@@ -151,7 +151,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         return result;
     }
-
     const tableBody = document.querySelector('#orgTable tbody');
     const searchInput = document.getElementById('searchInput');
     const sortSelect = document.getElementById('sortSelect');
@@ -393,10 +392,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td data-key="No">${rowIndex + 1}</td>
                 <td data-key="ReliefID">${item.id}</td>
                 <td data-key="VolunteerGroupName">${item.volunteerOrganization}</td>
-                <td data-key="City">${item.city}</td>
-                <td data-key="DropoffAddress">${item.address}</td>
                 <td data-key="ContactPerson">${item.contact}</td>
                 <td data-key="ContactNumber">${item.number}</td>
+                <td data-key="DropoffAddress">${item.address?.formattedAddress || 'N/A'}</td>
                 <td data-key="RequestCategory">${item.category}</td>
                 <!-- Status dropdown -->
                 <td>
@@ -413,7 +411,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>
                     <button title="Save" class="saveBtn" data-key="${item.firebaseKey}"><i class='bx bx-save'></i></button>
                     <button title="View" class="viewBtn" data-index="${allReliefsData.findIndex(d => d.firebaseKey === item.firebaseKey)}"><i class='bx bx-show-alt'></i></button>
-                    <button title="Reject" class="deleteBtn" data-key="${item.firebaseKey}"><i class="bx bx-x-circle"></i></button>
                     <button title="Save as PDF" class="savePDFBtn" data-index="${allReliefsData.indexOf(item)}"><i class='bx bxs-file-pdf'></i></button>
                 </td>
             `;
@@ -424,6 +421,7 @@ document.addEventListener('DOMContentLoaded', () => {
         entriesInfo.textContent = `Showing ${filteredData.length ? start + 1 : 0} to ${Math.min(end, filteredData.length)} of ${filteredData.length} entries`;
         renderPagination();
         attachSaveListeners();
+        attachStatusListeners();
     }
 
     function attachSaveListeners() {
@@ -470,6 +468,137 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
     }
+
+function attachStatusListeners() {
+  document.querySelectorAll('.statusSelect').forEach(select => {
+    select.addEventListener('change', (e) => {
+      if (e.target.value === "Completed") {
+        const reliefId = e.target.dataset.id;
+        const reliefItem = filteredData.find(r => r.id === reliefId);
+
+        if (reliefItem) {
+          // Temporary fallback if DB doesn't yet store lat/lng
+          if (!reliefItem.lat || !reliefItem.lng) {
+            reliefItem.lat = 14.6500; // dummy Marikina
+            reliefItem.lng = 121.1000;
+          }
+
+          openMatchModal(reliefItem);
+        }
+      }
+    });
+  });
+}
+
+
+    const matchModal = document.getElementById("matchModal");
+    const closeBtn = matchModal.querySelector(".closeBtn");
+    const modalReliefId = document.getElementById("modalReliefId");
+    const modalCategory = document.getElementById("modalCategory");
+    const modalAddress = document.getElementById("modalAddress");
+    const donationMatches = document.getElementById("donationMatches");
+
+    function attachStatusListeners() {
+    document.querySelectorAll('.statusSelect').forEach(select => {
+        select.addEventListener('change', (e) => {
+        if (e.target.value === "Completed") {
+            const reliefId = e.target.dataset.id;
+            const reliefItem = allReliefsData.find(r => r.id == reliefId); // careful: use == not === if IDs are strings/numbers
+
+            if (reliefItem) {
+            openMatchModal(reliefItem);
+            } else {
+            console.error("No matching reliefItem for id:", reliefId);
+            }
+        }
+        });
+    });
+    }
+
+// Haversine Formula (distance in km)
+function calculateDistance(lat1, lng1, lat2, lng2) {
+  const R = 6371; // Earth radius in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLng / 2) ** 2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+// Find nearest donations
+function findNearestDonations(request, donations) {
+  const reqLat = request.address?.latitude;
+  const reqLng = request.address?.longitude;
+
+  if (!reqLat || !reqLng) {
+    console.warn("No lat/lng found in request:", request);
+    return [];
+  }
+
+  return donations.map(donation => {
+    const distance = calculateDistance(
+      reqLat, reqLng,
+      donation.lat, donation.lng
+    );
+    return { ...donation, distance };
+  }).sort((a, b) => a.distance - b.distance);
+}
+
+// Open modal with matches
+function openMatchModal(request) {
+  console.log("Request object passed to modal:", request);
+
+  // Dummy donations for testing
+  const donations = [
+    { name: "Donor A", assistance: "Rice", lat: 14.6505, lng: 121.0300, address: "Quezon City" },
+    { name: "Donor B", assistance: "Rice", lat: 14.6250, lng: 121.1200, address: "Antipolo" },
+    { name: "Donor C", assistance: "Rice", lat: 13.7563, lng: 121.0583, address: "Batangas" }
+  ];
+
+  const matches = findNearestDonations(request, donations);
+
+  // Get elements
+  const reliefIdEl = document.getElementById("modalReliefId");
+  const categoryEl = document.getElementById("modalReliefCategory");
+  const addressEl = document.getElementById("modalReliefAddress");
+  const donationMatches = document.getElementById("donationMatches");
+
+  // Fill modal info
+  if (reliefIdEl) reliefIdEl.textContent = request.id || "N/A";
+  if (categoryEl) categoryEl.textContent = request.category || "N/A";
+  if (addressEl)  addressEl.textContent = request.address?.formattedAddress || "N/A";
+
+  // Render donation matches
+  donationMatches.innerHTML = "";
+  matches.forEach(match => {
+    const div = document.createElement("div");
+    div.innerHTML = `
+      <p><strong>${match.name}</strong> - ${match.assistance}</p>
+      <p>📍 ${match.address}</p>
+      <p>🛣️ ${match.distance.toFixed(2)} km away</p>
+      <hr>
+    `;
+    donationMatches.appendChild(div);
+  });
+
+  // Show modal
+  document.getElementById("matchModal").style.display = "flex";
+}
+
+// Close modal
+document.querySelector(".closeBtn").addEventListener("click", () => {
+  document.getElementById("matchModal").style.display = "none";
+});
+
+
+    closeBtn.onclick = () => { matchModal.style.display = "none"; };
+    window.onclick = (e) => { if (e.target === matchModal) matchModal.style.display = "none"; };
+
+    console.log("Attaching listeners to", document.querySelectorAll('.statusSelect').length, "status selects");
+
 
     document.getElementById('closeModal').addEventListener('click', () => {
         document.getElementById('reliefModal').classList.add('hidden');

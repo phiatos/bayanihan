@@ -86,3 +86,77 @@ textarea {
   line-height: 1.4;
 }
 
+.modal {
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.4);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: #ffffff;
+            padding: 2rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 500px;
+            position: relative;
+            transform: scale(1);
+            animation: modal-open 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+        }
+
+        @keyframes modal-open {
+            from {
+                transform: scale(0.9);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .closeBtn {
+            color: #9ca3af;
+            font-size: 2rem;
+            position: absolute;
+            top: 1.5rem;
+            right: 1.5rem;
+            cursor: pointer;
+            transition: color 0.2s ease-in-out;
+        }
+
+        .closeBtn:hover {
+            color: #ef4444;
+        }
+        
+        .match-modal-wrapper{
+          margin: 10px;
+        }
+
+        #confirmMatchBtn {
+            width: 100%;
+            margin-top: 1.5rem;
+            font-size: 15px;
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            border-radius: 0.75rem;
+            background-color: var(--accent-color);
+            color: #ffffff;
+            transition: background-color 0.2s ease-in-out;
+        }
+
+        #confirmMatchBtn:hover {
+            background-color: var(--accent-hover-color);
+        }
+
+        .modal-content p{
+          margin-top: 10px;
+        }
