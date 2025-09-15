@@ -1,3 +1,4 @@
+// inkind.js
 document.addEventListener("DOMContentLoaded", () => {
     const firebaseConfig = {
         apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
@@ -42,7 +43,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const archivedEntriesInfo = document.querySelector("#archivedEntriesInfo");
     const archivedPaginationContainer = document.querySelector("#archivedPagination");
 
-    const rowsPerPage = 10;
+    const rowsPerPage = 5;
     let currentPage = 1;
     let allDonations = [];
     let filteredAndSortedDonations = [];
@@ -57,6 +58,11 @@ document.addEventListener("DOMContentLoaded", () => {
     let inactivityTimeout;
     const INACTIVITY_TIME = 1800000;
     let permissions = { canView: false, canEdit: false, canArchive: false, canRetrieve: false };
+    let map;
+    let markers = [];
+    let autocompletes = {};
+    let currentPinButtonId = null;
+    let selectedCoordinates = { lat: null, lng: null };
 
     // Function to validate email format
     function isValidEmail(email) {
@@ -81,6 +87,219 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function isValidNumber(value) {
         return /^\d+(\.\d+)?$/.test(value);
+    }
+
+    document.getElementById('donationDate').max = new Date().toISOString().split('T')[0];
+    document.getElementById('edit-donationDate').max = new Date().toISOString().split('T')[0];
+
+    const closeEndorseModalBtn = document.getElementById('closeEndorseModalBtn');
+    if (closeEndorseModalBtn) {
+        closeEndorseModalBtn.addEventListener('click', () => {
+            document.getElementById('endorseModal').style.display = 'none';
+        });
+    }
+
+    function getDistance(lat1, lng1, lat2, lng2) {
+        const R = 6371; // Earth's radius in kilometers
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLng = (lng2 - lng1) * Math.PI / 180;
+        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLng / 2) * Math.sin(dLng / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
+    }
+
+    function initMap() {
+        const defaultLocation = { lat: 14.5995, lng: 120.9842 }; // Manila, Philippines
+        map = new google.maps.Map(document.getElementById("mapContainer"), {
+            center: defaultLocation,
+            zoom: 10,
+            mapTypeId: "roadmap",
+        });
+
+        const searchInput = document.getElementById("search-input");
+        const autocomplete = new google.maps.places.Autocomplete(searchInput);
+        autocomplete.bindTo("bounds", map);
+
+        autocomplete.addListener("place_changed", () => {
+            const place = autocomplete.getPlace();
+            if (!place.geometry || !place.geometry.location) {
+                Swal.fire({
+                    icon: "error",
+                    title: "Location Not Found",
+                    text: "Please select a valid location from the dropdown.",
+                    customClass: {
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean'
+                    }
+                });
+                return;
+            }
+            map.setCenter(place.geometry.location);
+            map.setZoom(16);
+            clearMarkers();
+            const marker = new google.maps.Marker({
+                position: place.geometry.location,
+                map: map,
+                title: place.name,
+            });
+            markers.push(marker);
+            selectedCoordinates = {
+                lat: place.geometry.location.lat(),
+                lng: place.geometry.location.lng()
+            };
+            const infowindow = new google.maps.InfoWindow({
+                content: `<strong>${place.name}</strong><br>${place.formatted_address}<br>Lat: ${selectedCoordinates.lat.toFixed(6)}, Lng: ${selectedCoordinates.lng.toFixed(6)}`,
+            });
+            marker.addListener("click", () => {
+                infowindow.open(map, marker);
+            });
+            infowindow.open(map, marker);
+            const addressInput = document.getElementById(getAddressInputId(currentPinButtonId));
+            if (addressInput) {
+                addressInput.value = place.formatted_address;
+            }
+            const mapModal = document.getElementById('mapModal');
+            if (mapModal) {
+                mapModal.style.display = 'none';
+            }
+        });
+
+        map.addListener("click", (event) => {
+            clearMarkers();
+            const marker = new google.maps.Marker({
+                position: event.latLng,
+                map: map,
+                title: "Pinned Location",
+            });
+            markers.push(marker);
+            selectedCoordinates = {
+                lat: event.latLng.lat(),
+                lng: event.latLng.lng()
+            };
+            const geocoder = new google.maps.Geocoder();
+            geocoder.geocode({ location: event.latLng }, (results, status) => {
+                if (status === "OK" && results[0]) {
+                    const address = results[0].formatted_address;
+                    const infowindow = new google.maps.InfoWindow({
+                        content: `Pinned Location<br>${address}<br>Lat: ${selectedCoordinates.lat.toFixed(6)}, Lng: ${selectedCoordinates.lng.toFixed(6)}`,
+                    });
+                    marker.addListener("click", () => {
+                        infowindow.open(map, marker);
+                    });
+                    infowindow.open(map, marker);
+                    const addressInput = document.getElementById(getAddressInputId(currentPinButtonId));
+                    if (addressInput) {
+                        addressInput.value = address;
+                    }
+                    const mapModal = document.getElementById('mapModal');
+                    if (mapModal) {
+                        mapModal.style.display = 'none';
+                    }
+                } else {
+                    Swal.fire({
+                        icon: "error",
+                        title: "Geocoding Error",
+                        text: "Unable to retrieve address for the pinned location. Coordinates saved instead.",
+                        customClass: {
+                            popup: 'swal2-popup-error-clean',
+                            title: 'swal2-title-error-clean',
+                            htmlContainer: 'swal2-text-error-clean'
+                        }
+                    });
+                    const addressInput = document.getElementById(getAddressInputId(currentPinButtonId));
+                    if (addressInput) {
+                        addressInput.value = `Lat: ${selectedCoordinates.lat.toFixed(6)}, Lng: ${selectedCoordinates.lng.toFixed(6)}`;
+                    }
+                    const mapModal = document.getElementById('mapModal');
+                    if (mapModal) {
+                        mapModal.style.display = 'none';
+                    }
+                }
+            });
+            map.setCenter(event.latLng);
+            map.setZoom(16);
+        });
+    }
+
+    function clearMarkers() {
+        markers.forEach(marker => marker.setMap(null));
+        markers = [];
+    }
+
+    function getAddressInputId(pinButtonId) {
+        const addressInputMap = {
+            'addressPinBtn': 'address',
+            'edit-addressPinBtn': 'edit-address'
+        };
+        return addressInputMap[pinButtonId] || 'address';
+    }
+
+    const mapModal = document.getElementById('mapModal');
+    const closeBtn = document.querySelector('.closeBtn');
+    const pinButtons = {
+        'addressPinBtn': 'address',
+        'edit-addressPinBtn': 'edit-address'
+    };
+
+    Object.keys(pinButtons).forEach(pinBtnId => {
+        const pinBtn = document.getElementById(pinBtnId);
+        if (pinBtn) {
+            pinBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                currentPinButtonId = pinBtnId;
+                mapModal.style.display = 'flex';
+                if (!map) {
+                    initMap();
+                } else {
+                    setTimeout(() => {
+                        if (map) {
+                            google.maps.event.trigger(map, 'resize');
+                            const addressInput = document.getElementById(pinButtons[pinBtnId]);
+                            if (addressInput && addressInput.value && !addressInput.value.startsWith('Lat:')) {
+                                const geocoder = new google.maps.Geocoder();
+                                geocoder.geocode({ 'address': addressInput.value }, (results, status) => {
+                                    if (status === 'OK' && results[0]) {
+                                        map.setCenter(results[0].geometry.location);
+                                        clearMarkers();
+                                        const marker = new google.maps.Marker({
+                                            map: map,
+                                            position: results[0].geometry.location,
+                                            title: addressInput.value,
+                                        });
+                                        markers.push(marker);
+                                        selectedCoordinates = {
+                                            lat: results[0].geometry.location.lat(),
+                                            lng: results[0].geometry.location.lng()
+                                        };
+                                    } else {
+                                        map.setCenter({ lat: 14.5995, lng: 120.9842 });
+                                        map.setZoom(10);
+                                    }
+                                });
+                            } else {
+                                map.setCenter({ lat: 14.5995, lng: 120.9842 });
+                                map.setZoom(10);
+                            }
+                        }
+                    }, 100);
+                }
+            });
+        }
+    });
+
+    if (mapModal && closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            mapModal.style.display = 'none';
+        });
+
+        window.addEventListener('click', (e) => {
+            if (e.target === mapModal) {
+                mapModal.style.display = 'none';
+            }
+        });
     }
 
     // Add real-time input restrictions for number fields
@@ -304,19 +523,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     showError(input, `${fieldConfig.label} is not a valid date.`);
                 }
             }
-            // if (fieldConfig.isDate) {
-            //     const receivedDate = new Date(input.value);
-            //     const oneWeekFromNow = new Date();
-            //     oneWeekFromNow.setDate(oneWeekFromNow.getDate() + 7);
-            //     oneWeekFromNow.setHours(0, 0, 0, 0);
-            //     const normalizedReceivedDate = new Date(receivedDate);
-            //     normalizedReceivedDate.setHours(0, 0, 0, 0);
-            //     if (isNaN(receivedDate.getTime())) {
-            //         showError(input, `${fieldConfig.label} is not a valid date.`);
-            //     } else if (normalizedReceivedDate.getTime() > oneWeekFromNow.getTime()) {
-            //         showError(input, `${fieldConfig.label} cannot be more than one week in the future.`);
-            //     }
-            // }
         }
     }
 
@@ -327,14 +533,15 @@ document.addEventListener("DOMContentLoaded", () => {
             name: { label: 'Donor Name', lettersOnly: true },
             type: { label: 'Donor Type', lettersOnly: true },
             contactPerson: { label: 'Contact Person', lettersOnly: true },
+            category: { label: 'Category', lettersOnly: true },
             assistance: { label: 'Type of Assistance', lettersOnly: true },
             number: { label: 'Mobile Number', numberOnly: true, checkMobile: true },
             valuation: { label: 'Valuation', numberOnly: true, checkValuation: true },
-            address: { label: 'Address' },
+            address: { label: 'Address', required: true }, // No autocomplete
             email: { label: 'Email', checkEmail: true },
             additionalnotes: { label: 'Additional Notes', required: false },
             status: { label: 'Status' },
-            staffIncharge: { label: 'Staff-In Charge', lettersOnly: true },
+            staffIncharge: { label: 'Staff-In-Charge', lettersOnly: true },
             donationDate: { label: 'Donation Date', isDate: true }
         }[input.name];
         if (fieldConfig) {
@@ -344,6 +551,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     name: form.name,
                     type: form.type,
                     contactPerson: form.contactPerson,
+                    category: form.category,
                     assistance: form.assistance,
                     number: form.number,
                     valuation: form.valuation,
@@ -365,14 +573,15 @@ document.addEventListener("DOMContentLoaded", () => {
             'edit-name': { label: 'Name', lettersOnly: true },
             'edit-type': { label: 'Type', lettersOnly: true },
             'edit-contactPerson': { label: 'Contact Person', lettersOnly: true },
+            'edit-category': { label: 'Category', lettersOnly: true },
             'edit-assistance': { label: 'Type of Assistance', lettersOnly: true },
             'edit-number': { label: 'Number', numberOnly: true, checkMobile: true },
             'edit-valuation': { label: 'Valuation', numberOnly: true, checkValuation: true },
-            'edit-address': { label: 'Address' },
+            'edit-address': { label: 'Address', required: true }, // No autocomplete
             'edit-email': { label: 'Email', checkEmail: true },
             'edit-additionalnotes': { label: 'Additional Notes', required: false },
             'edit-status': { label: 'Status' },
-            'edit-staffIncharge': { label: 'Staff-In Charge', lettersOnly: true },
+            'edit-staffIncharge': { label: 'Staff-In-Charge', lettersOnly: true },
             'edit-donationDate': { label: 'Donation Date', isDate: true }
         }[input.id];
         if (fieldConfig) {
@@ -381,6 +590,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 name: document.getElementById("edit-name"),
                 type: document.getElementById("edit-type"),
                 contactPerson: document.getElementById("edit-contactPerson"),
+                category: document.getElementById("edit-category"),
                 assistance: document.getElementById("edit-assistance"),
                 number: document.getElementById("edit-number"),
                 valuation: document.getElementById("edit-valuation"),
@@ -427,10 +637,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     importExcelBtn.addEventListener("click", () => {
-        if (!permissions.canEdit) {
-            Swal.fire('Error', 'You do not have permission to import donations.', 'error');
-            return;
-        }
         excelFileInput.click();
     });
 
@@ -463,9 +669,12 @@ document.addEventListener("DOMContentLoaded", () => {
             "Name",
             "Type",
             "Address",
+            "Latitude",
+            "Longitude",
             "Contact Person",
             "Number",
             "Email",
+            "Category",
             "Assistance",
             "Valuation",
             "Additional Notes",
@@ -478,9 +687,12 @@ document.addEventListener("DOMContentLoaded", () => {
             Name: "Jane Doe",
             Type: "Clothing",
             Address: "Manila",
+            Latitude: 14.5995,
+            Longitude: 120.9842,
             "Contact Person": "Jane Doe",
             Number: "09123456789",
             Email: "jane.doe@gmail.com",
+            Category: "Relief Packs",
             Assistance: "Relief Goods",
             Valuation: 5000.00,
             "Additional Notes": "Donated used clothes in good condition",
@@ -543,6 +755,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     "Contact Person",
                     "Number",
                     "Email",
+                    "Category",
                     "Assistance",
                     "Valuation",
                     "Additional Notes",
@@ -593,10 +806,15 @@ document.addEventListener("DOMContentLoaded", () => {
                         encoder: String(row[headers.indexOf("Encoder")] || '').trim(),
                         name: String(row[headers.indexOf("Name")] || '').trim(),
                         type: String(row[headers.indexOf("Type")] || '').trim(),
-                        address: String(row[headers.indexOf("Address")] || '').trim(),
+                        address: {
+                            formattedAddress: String(row[headers.indexOf("Address")] || '').trim(),
+                            latitude: parseFloat(row[headers.indexOf("Latitude")]) || null,
+                            longitude: parseFloat(row[headers.indexOf("Longitude")]) || null
+                        },
                         contactPerson: String(row[headers.indexOf("Contact Person")] || '').trim(),
                         number: String(row[headers.indexOf("Number")] || '').trim().replace(/\D/g, ''),
                         email: String(row[headers.indexOf("Email")] || '').trim(),
+                        category: String(row[headers.indexOf("Category")] || '').trim(),
                         assistance: String(row[headers.indexOf("Assistance")] || '').trim(),
                         valuation: String(row[headers.indexOf("Valuation")] || '').trim(),
                         additionalnotes: String(row[headers.indexOf("Additional Notes")] || '').trim(),
@@ -622,6 +840,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         contactPerson: { value: donation.contactPerson, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
                         number: { value: donation.number, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
                         email: { value: donation.email, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
+                        category: { value: donation.category, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
                         assistance: { value: donation.assistance, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
                         valuation: { value: donation.valuation, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
                         additionalnotes: { value: donation.additionalnotes, classList: { add: () => {}, remove: () => {} }, nextElementSibling: null },
@@ -815,11 +1034,15 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     function fetchArchivedDonations() {
-        archivedInKindRef.on('value', (snapshot) => { 
-            allArchivedInKindDonation = []; 
+        archivedInKindRef.on('value', (snapshot) => {
+            allArchivedInKindDonation = [];
             snapshot.forEach((childSnapshot) => {
                 const donation = childSnapshot.val();
                 donation.id = childSnapshot.key;
+                donation.coordinates = {
+                    lat: donation.address?.latitude || donation.coordinates?.lat || null,
+                    lng: donation.address?.longitude || donation.coordinates?.lng || null
+                };
                 allArchivedInKindDonation.push(donation);
             });
 
@@ -842,16 +1065,21 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         paginatedItems.forEach((item, index) => {
+            const coordinatesDisplay = item.address?.latitude && item.address?.longitude
+                ? `Lat: ${item.address.latitude.toFixed(6)}, Lng: ${item.address.longitude.toFixed(6)}`
+                : 'N/A';
+
             const row = archivedTableBody.insertRow();
             row.innerHTML = `
                 <td>${start + index + 1}</td>
                 <td>${item.encoder}</td>
                 <td>${item.name}</td>
                 <td>${item.type}</td>
-                <td>${item.address}</td> <!-- Fixed column order -->
+                <td>${sanitizeInput(item.address?.formattedAddress || item.address || 'N/A')} (${coordinatesDisplay})</td>
                 <td>${item.contactPerson}</td>
                 <td>${item.number}</td>
-                <td>${item.email}</td> <!-- Fixed column order -->
+                <td>${item.email}</td> 
+                <td>${item.category}</td> 
                 <td>${item.assistance}</td>
                 <td>${parseFloat(item.valuation || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                 <td>${item.additionalnotes}</td>
@@ -998,6 +1226,10 @@ document.addEventListener("DOMContentLoaded", () => {
             case "email-desc":
                 placeholderText = "Search by Email";
                 break;
+            case "category-asc":
+            case "category-desc":
+                placeholderText = "Search by Type of Category";
+                break;
             case "assistance-asc":
             case "assistance-desc":
                 placeholderText = "Search by Type of Assistance";
@@ -1137,55 +1369,59 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-
     function loadDonations(userUid) {
-    database.ref("donations/savedDonations/inkind").on("value", snapshot => {
-        allDonations = [];
-        const donations = snapshot.val();
-        if (donations) {
-            Object.keys(donations).forEach(key => {
-                const donation = donations[key];
-                const donationEntry = {
-                    firebaseKey: key,
-                    userUid: donation.userUid || '',
-                    encoder: donation.encoder || '',
-                    name: donation.name || '',
-                    type: donation.type || '',
-                    address: donation.address || '',
-                    contactPerson: donation.contactPerson || '',
-                    number: donation.number || '',
-                    email: donation.email || '',
-                    assistance: donation.assistance || '',
-                    valuation: donation.valuation || 0,
-                    additionalnotes: donation.additionalnotes || '',
-                    status: donation.status || '',
-                    staffIncharge: donation.staffIncharge || '',
-                    donationDate: donation.donationDate || '',
-                    createdAt: donation.createdAt || ''
-                };
-                allDonations.push(donationEntry);
-            });
-        }
-        filteredAndSortedDonations = [...allDonations];
-        applySorting(filteredAndSortedDonations, sortSelect.value);
-        renderTable();
-    }, error => {
-        logErrorToFirebase(error, 'loadDonations_inkind');
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'Failed to load in-kind donations: ' + error.message,
-            showConfirmButton: true,
-            confirmButtonText: 'OK',
-            customClass: {
-                popup: 'swal2-popup-error-clean',
-                title: 'swal2-title-error-clean',
-                htmlContainer: 'swal2-text-error-clean',
-                confirmButton: 'my-error-button'
+        database.ref("donations/savedDonations/inkind").on("value", snapshot => {
+            allDonations = [];
+            const donations = snapshot.val();
+            if (donations) {
+                Object.keys(donations).forEach(key => {
+                    const donation = donations[key];
+                    const donationEntry = {
+                        firebaseKey: key,
+                        userUid: donation.userUid || '',
+                        encoder: donation.encoder || '',
+                        name: donation.name || '',
+                        type: donation.type || '',
+                        address: {
+                            formattedAddress: typeof donation.address === 'string' ? donation.address : donation.address?.formattedAddress || 'N/A',
+                            latitude: donation.address?.latitude || donation.coordinates?.lat || null,
+                            longitude: donation.address?.longitude || donation.coordinates?.lng || null
+                        },
+                        contactPerson: donation.contactPerson || '',
+                        number: donation.number || '',
+                        email: donation.email || '',
+                        category: donation.category || '',
+                        assistance: donation.assistance || '',
+                        valuation: donation.valuation || 0,
+                        additionalnotes: donation.additionalnotes || '',
+                        status: donation.status || '',
+                        staffIncharge: donation.staffIncharge || '',
+                        donationDate: donation.donationDate || '',
+                        createdAt: donation.createdAt || ''
+                    };
+                    allDonations.push(donationEntry);
+                });
             }
+            filteredAndSortedDonations = [...allDonations];
+            applySorting(filteredAndSortedDonations, sortSelect.value);
+            renderTable();
+        }, error => {
+            logErrorToFirebase(error, 'loadDonations_inkind');
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Failed to load in-kind donations: ' + error.message,
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
+                }
+            });
         });
-    });
-}
+    }
 
     const isEmpty = (value) => value.trim() === "";
     const isLettersOnly = (value) => /^[a-zA-Z\s]+$/.test(value);
@@ -1213,88 +1449,64 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     async function validateDonationForm(inputs, excludeKey = null, isEditOrArchive = false) {
+        const fieldConfig = {
+            encoder: { label: 'Encoder', lettersOnly: true, required: true },
+            name: { label: 'Name', lettersOnly: true, required: true },
+            type: { label: 'Type', lettersOnly: true, required: true },
+            address: { label: 'Address', required: true },
+            contactPerson: { label: 'Contact Person', lettersOnly: true, required: true },
+            number: { label: 'Number', checkMobile: true, required: true },
+            email: { label: 'Email', checkEmail: true, required: true },
+            category: { label: 'Category', required: true },
+            assistance: { label: 'Assistance', lettersOnly: true, required: true },
+            valuation: { label: 'Valuation', checkValuation: true, required: true },
+            additionalnotes: { label: 'Additional Notes', required: false },
+            status: { label: 'Status', required: true },
+            staffIncharge: { label: 'Staff-In-Charge', lettersOnly: true, required: true },
+            donationDate: { label: 'Donation Date', isDate: true, required: true }
+        };
+
         let isValid = true;
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        const fieldsToCheck = [
-            { input: inputs.encoder, label: "Encoder", lettersOnly: true },
-            { input: inputs.name, label: "Name", lettersOnly: true },
-            { input: inputs.type, label: "Type", lettersOnly: true },
-            { input: inputs.contactPerson, label: "Contact Person", lettersOnly: true },
-            { input: inputs.number, label: "Number", numberOnly: true, checkMobile: true },
-            { input: inputs.address, label: "Address" },
-            { input: inputs.email, label: "Email", checkEmail: true },
-            { input: inputs.assistance, label: "Assistance", lettersOnly: true },
-            { input: inputs.valuation, label: "Valuation", numberOnly: true },
-            { input: inputs.additionalnotes, label: "Additional Notes", required: false },
-            { input: inputs.status, label: "Status" },
-            { input: inputs.staffIncharge, label: "Staff-In-Charge", lettersOnly: true },
-            { input: inputs.donationDate, label: "Donation Date", checkDate: true }
-        ];
-
-        for (const { input, label, lettersOnly, numberOnly, checkEmail, checkMobile, checkValuation, isDate, required = true } of fieldsToCheck) {
-            if (!input) {
-                isValid = false;
-                continue;
-            }
-            const fieldId = input.id || input.name;
-            if (excludeKey && fieldId === excludeKey) continue;
+        for (const [key, input] of Object.entries(inputs)) {
+            if (!input || (excludeKey && input.id === excludeKey)) continue;
+            const config = fieldConfig[key];
+            if (!config) continue;
 
             clearError(input);
             const sanitizedValue = sanitizeInput(input.value);
-            if (required && isEmpty(sanitizedValue)) {
-                showError(input, `${label} is required`);
+            if (config.required && isEmpty(sanitizedValue)) {
+                showError(input, `${config.label} is required`);
                 isValid = false;
             } else if (!isEmpty(sanitizedValue)) {
-                if (lettersOnly && !isLettersOnly(sanitizedValue)) {
-                    showError(input, `${label} should only contain letters and spaces`);
+                if (config.lettersOnly && !isLettersOnly(sanitizedValue)) {
+                    showError(input, `${config.label} should only contain letters and spaces`);
                     isValid = false;
                 }
-                if (numberOnly && !isValidNumber(sanitizedValue)) {
-                    showError(input, `${label} should only contain numbers`);
-                    isValid = false;
-                }
-                if (checkEmail && !isValidEmail(sanitizedValue)) {
-                    showError(input, 'Please enter a valid email address from an allowed domain.');
-                    isValid = false;
-                }
-                if (checkMobile && !isValidMobile(sanitizedValue)) {
+                if (config.checkMobile && !isValidMobile(sanitizedValue)) {
                     showError(input, 'Mobile number must be 11 digits starting with "09"');
                     isValid = false;
                 }
-                if (checkValuation && !isValidValuation(sanitizedValue)) {
+                if (config.checkEmail && !isValidEmail(sanitizedValue)) {
+                    showError(input, 'Please enter a valid email address from an allowed domain.');
+                    isValid = false;
+                }
+                if (config.checkValuation && !isValidValuation(sanitizedValue)) {
                     showError(input, 'Valuation must be a positive number with up to 2 decimal places, max 1,000,000');
                     isValid = false;
                 }
-                if (isDate) {
-                    const donationDate = new Date(sanitizedValue);
-                    if (isNaN(donationDate.getTime())) {
-                        showError(input, `${label} is not a valid date`);
-                        isValid = false;
-                    }
+                if (config.isDate && isNaN(new Date(sanitizedValue).getTime())) {
+                    showError(input, `${config.label} is not a valid date`);
+                    isValid = false;
                 }
-                // if (isDate) {
-                //     const donationDate = new Date(sanitizedValue);
-                //     const oneWeekFromNow = new Date();
-                //     oneWeekFromNow.setDate(oneWeekFromNow.getDate() + 7);
-                //     oneWeekFromNow.setHours(0, 0, 0, 0);
-                //     const normalizedDonationDate = new Date(donationDate);
-                //     normalizedDonationDate.setHours(0, 0, 0, 0);
-                //     if (isNaN(donationDate.getTime())) {
-                //         showError(input, `${label} is not a valid date`);
-                //         isValid = false;
-                //     } else if (normalizedDonationDate.getTime() > oneWeekFromNow.getTime()) {
-                //         showError(input, `${label} cannot be more than one week in the future`);
-                //         isValid = false;
-                //     }
-                // }
             }
             input.value = sanitizedValue;
         }
 
-        if (!isValid) {
-            return false;
+        if (!isValid) return false;
+
+        if (isEditOrArchive && !currentUserIsSuperAdmin && !isAdminVerified) {
+            const verified = await verifySuperAdminPassword();
+            if (!verified) return false;
         }
 
         const permissions = await checkAdminPermissions();
@@ -1307,42 +1519,12 @@ document.addEventListener("DOMContentLoaded", () => {
                 showConfirmButton: false,
                 timerProgressBar: true,
                 allowOutsideClick: false,
-                customClass: {
-                    popup: 'swal2-popup-warning-clean',
-                    title: 'swal2-title-warning-clean',
-                    htmlContainer: 'swal2-text-warning-clean',
-                }
             });
             return false;
         }
 
-        if (isEditOrArchive && !currentUserIsSuperAdmin && !isAdminVerified) {
-            const verified = await verifySuperAdminPassword();
-            if (!verified) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Verification Failed',
-                    text: 'Invalid admin password.',
-                    timer: 1600,
-                    showConfirmButton: false,
-                    timerProgressBar: true,
-                    allowOutsideClick: false,
-                    customClass: {
-                        popup: 'swal2-popup-error-clean',
-                        title: 'swal2-title-error-clean',
-                        htmlContainer: 'swal2-text-error-clean'
-                    }
-                });
-                return false;
-            }
-        }
-
-        const email = sanitizeInput(inputs.email.value.trim());
-        const mobile = sanitizeInput(inputs.number.value.trim());
-        const name = sanitizeInput(inputs.name.value.trim().toLowerCase());
-
         try {
-            const duplicates = await checkForDuplicate(mobile, email, name, excludeKey);
+            const duplicates = await checkForDuplicate(inputs.number.value, inputs.email.value, inputs.name.value.toLowerCase(), excludeKey);
             if (duplicates.email || duplicates.number || duplicates.name) {
                 const duplicateFields = [];
                 if (duplicates.email) duplicateFields.push('email');
@@ -1365,26 +1547,20 @@ document.addEventListener("DOMContentLoaded", () => {
                         confirmButton: 'custom-confirm-btn',
                         cancelButton: 'custom-cancel-btn'
                     }
-                });
 
+                });
                 if (!result.isConfirmed) return false;
             }
         } catch (error) {
             Swal.fire({
                 title: 'Error',
                 text: 'Failed to check for duplicates: ' + error.message,
-                icon: 'error',
-                customClass: {
-                    popup: 'swal2-popup-error-clean',
-                    title: 'swal2-title-error-clean',
-                    htmlContainer: 'swal2-text-error-clean',
-                    confirmButton: 'my-error-button'
-                }
+                icon: 'error'
             });
             return false;
         }
 
-        return isValid;
+        return true;
     }
 
     form.addEventListener("input", () => {
@@ -1399,6 +1575,7 @@ document.addEventListener("DOMContentLoaded", () => {
         form.contactPerson.value = '';
         form.number.value = '';
         form.email.value = '';
+        form.category.value = '';
         form.assistance.value = '';
         form.valuation.value = '';
         form.additionalnotes.value = '';
@@ -1422,6 +1599,7 @@ document.addEventListener("DOMContentLoaded", () => {
             contactPerson: form.contactPerson,
             number: form.number,
             email: form.email,
+            category: form.category,
             assistance: form.assistance,
             valuation: form.valuation,
             additionalnotes: form.additionalnotes,
@@ -1451,10 +1629,15 @@ document.addEventListener("DOMContentLoaded", () => {
                 encoder: sanitizeInput(form.encoder.value),
                 name: sanitizeInput(form.name.value),
                 type: sanitizeInput(form.type.value),
-                address: sanitizeInput(form.address.value),
+                address: {
+                    formattedAddress: sanitizeInput(form.address.value),
+                    latitude: selectedCoordinates.lat,
+                    longitude: selectedCoordinates.lng
+                },
                 contactPerson: sanitizeInput(form.contactPerson.value),
                 number: sanitizeInput(form.number.value),
                 email: sanitizeInput(form.email.value),
+                category: sanitizeInput(form.category.value),
                 assistance: sanitizeInput(form.assistance.value),
                 valuation: parseFloat(form.valuation.value) || 0,
                 additionalnotes: sanitizeInput(form.additionalnotes.value),
@@ -1481,6 +1664,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     }
                 });
                 clearFormFields();
+                selectedCoordinates = { lat: null, lng: null };
             } catch (error) {
                 Swal.fire({
                     title: 'Error',
@@ -1562,6 +1746,9 @@ document.addEventListener("DOMContentLoaded", () => {
             year: 'numeric', month: 'short', day: 'numeric',
             hour: '2-digit', minute: '2-digit', second: '2-digit'
         }) : 'N/A';
+        const coordinatesDisplay = donation.address?.latitude && donation.address?.longitude
+            ? `Lat: ${sanitizeInput(donation.address.latitude.toFixed(6))}, Lng: ${sanitizeInput(donation.address.longitude.toFixed(6))}`
+            : 'N/A';
 
         modalContentDiv.innerHTML = `
             <div class="modal-content-inner" style="padding: 20px;">
@@ -1569,12 +1756,14 @@ document.addEventListener("DOMContentLoaded", () => {
                 <p><strong>Encoder:</strong> ${sanitizeInput(donation.encoder || 'N/A')}</p>
                 <p><strong>Name:</strong> ${sanitizeInput(donation.name || 'N/A')}</p>
                 <p><strong>Type:</strong> ${sanitizeInput(donation.type || 'N/A')}</p>
-                <p><strong>Address:</strong> ${sanitizeInput(donation.address || 'N/A')}</p>
+                <p><strong>Address:</strong> ${sanitizeInput(donation.address?.formattedAddress || donation.address || 'N/A')}</p>
+                <p><strong>Coordinates:</strong> ${coordinatesDisplay}</p>
                 <p><strong>Contact Person:</strong> ${sanitizeInput(donation.contactPerson || 'N/A')}</p>
                 <p><strong>Number:</strong> ${sanitizeInput(donation.number || 'N/A')}</p>
                 <p><strong>Email:</strong> ${sanitizeInput(donation.email || 'N/A')}</p>
                 <hr>
                 <h2>Donation Details:</h2>
+                <p><strong>Category:</strong> ${sanitizeInput(donation.category || 'N/A')}</p>
                 <p><strong>Assistance:</strong> ${sanitizeInput(donation.assistance || 'N/A')}</p>
                 <p><strong>Valuation:</strong> ₱${parseFloat(donation.valuation || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                 <p><strong>Additional Notes:</strong> ${sanitizeInput(donation.additionalnotes || 'N/A')}</p>
@@ -1603,22 +1792,26 @@ document.addEventListener("DOMContentLoaded", () => {
 
         tableBody.innerHTML = "";
         if (currentPageRows.length === 0) {
-            tableBody.innerHTML = `<tr><td colspan="15" style="text-align: center;">No donations found.</td></tr>`;
+            tableBody.innerHTML = `<tr><td colspan="16" style="text-align: center;">No donations found.</td></tr>`;
         } else {
             currentPageRows.forEach((d, i) => {
+                const coordinatesDisplay = d.address?.latitude && d.address?.longitude
+                    ? `Lat: ${d.address.latitude.toFixed(6)}, Lng: ${d.address.longitude.toFixed(6)}`
+                    : 'N/A';
                 const tr = document.createElement("tr");
                 tr.innerHTML = `
                     <td>${startIndex + i + 1}</td>
                     <td>${sanitizeInput(d.encoder || 'N/A')}</td>
                     <td>${sanitizeInput(d.name || 'N/A')}</td>
                     <td>${sanitizeInput(d.type || 'N/A')}</td>
-                    <td>${sanitizeInput(d.address || 'N/A')}</td>
+                    <td>${sanitizeInput(d.address?.formattedAddress || d.address || 'N/A')} (${coordinatesDisplay})</td>
                     <td>${sanitizeInput(d.contactPerson || 'N/A')}</td>
                     <td>${sanitizeInput(d.number || 'N/A')}</td>
                     <td>${sanitizeInput(d.email || 'N/A')}</td>
+                    <td>${sanitizeInput(d.category || 'N/A')}</td>
                     <td>${sanitizeInput(d.assistance || 'N/A')}</td>
                     <td>₱${parseFloat(d.valuation || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                    <td>${sanitizeInput(d.additionalnotes || 'N/A')}</td>
+                    <td>${sanitizeInput(d.additionalnotes || '-')}</td>
                     <td>${sanitizeInput(d.status || 'N/A')}</td>
                     <td>${sanitizeInput(d.staffIncharge || 'N/A')}</td>
                     <td>${sanitizeInput(d.donationDate ? new Date(d.donationDate).toLocaleDateString('en-PH') : 'N/A')}</td>
@@ -1724,6 +1917,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (currentSort.includes('contactPerson')) return (d.contactPerson || '').toLowerCase().includes(searchTerm);
             if (currentSort.includes('number')) return (d.number || '').includes(searchTerm);
             if (currentSort.includes('email')) return (d.email || '').toLowerCase().includes(searchTerm);
+            if (currentSort.includes('category')) return (d.category || '').toLowerCase().includes(searchTerm);
             if (currentSort.includes('assistance')) return (d.assistance || '').toLowerCase().includes(searchTerm);
             if (currentSort.includes('valuation')) return String(d.valuation || '').includes(searchTerm);
             if (currentSort.includes('notes')) return (d.additionalnotes || '').toLowerCase().includes(searchTerm);
@@ -1738,6 +1932,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 (d.contactPerson || '').toLowerCase().includes(searchTerm) ||
                 (d.number || '').includes(searchTerm) ||
                 (d.email || '').toLowerCase().includes(searchTerm) ||
+                (d.category || '').toLowerCase().includes(searchTerm) ||
                 (d.assistance || '').toLowerCase().includes(searchTerm) ||
                 String(d.valuation || '').includes(searchTerm) ||
                 (d.additionalnotes || '').toLowerCase().includes(searchTerm) ||
@@ -1772,10 +1967,12 @@ document.addEventListener("DOMContentLoaded", () => {
         else if (sortVal === "number-desc") arr.sort((a, b) => parseInt((b.number || '0').replace(/\D/g, '')) - parseInt((a.number || '0').replace(/\D/g, '')));
         else if (sortVal === "email-asc") arr.sort((a, b) => (a.email || '').localeCompare(b.email || ''));
         else if (sortVal === "email-desc") arr.sort((a, b) => (b.email || '').localeCompare(a.email || ''));
+        else if (sortVal === "category-asc") arr.sort((a, b) => (a.category || '').localeCompare(b.category || ''));
+        else if (sortVal === "category-desc") arr.sort((a, b) => (b.category || '').localeCompare(a.category || ''));
         else if (sortVal === "assistance-asc") arr.sort((a, b) => (a.assistance || '').localeCompare(b.assistance || ''));
         else if (sortVal === "assistance-desc") arr.sort((a, b) => (b.assistance || '').localeCompare(a.assistance || ''));
-        else if (sortVal === "valuation-asc") arr.sort((a, b) => (a.valuation || '').localeCompare(b.valuation || ''));
-        else if (sortVal === "valuation-desc") arr.sort((a, b) => (b.valuation || '').localeCompare(a.valuation || ''));
+        else if (sortVal === "valuation-asc") arr.sort((a, b) => (parseFloat(a.valuation) || 0) - (parseFloat(b.valuation) || 0));
+        else if (sortVal === "valuation-desc") arr.sort((a, b) => (parseFloat(b.valuation) || 0) - (parseFloat(a.valuation) || 0));
         else if (sortVal === "additionalnotes-asc") arr.sort((a, b) => (a.additionalnotes || '').localeCompare(b.additionalnotes || ''));
         else if (sortVal === "additionalnotes-desc") arr.sort((a, b) => (b.additionalnotes || '').localeCompare(a.additionalnotes || ''));
         else if (sortVal === "status-asc") arr.sort((a, b) => (a.status || '').localeCompare(b.status || ''));
@@ -1797,10 +1994,13 @@ document.addEventListener("DOMContentLoaded", () => {
             "Encoder": d.encoder,
             "Name": d.name,
             "Type": d.type,
-            "Address": d.address,
+            "Address": d.address?.formattedAddress || d.address || 'N/A',
+            "Latitude": d.address?.latitude || d.coordinates?.lat || 'N/A',
+            "Longitude": d.address?.longitude || d.coordinates?.lng || 'N/A',
             "Contact Person": d.contactPerson,
             "Number": d.number,
             "Email": d.email,
+            "Category": d.category,
             "Assistance": d.assistance,
             "Valuation": d.valuation,
             "Additional Notes": d.additionalnotes,
@@ -1860,15 +2060,18 @@ document.addEventListener("DOMContentLoaded", () => {
             doc.text(`Report Generated: ${new Date().toLocaleString()}`, 14, yOffset);
             yOffset += 15;
 
-            const head = [["No.", "Encoder", "Name", "Address", "Contact Person", "Number", "Email", "Assistance", "Valuation", "Additional Notes", "Status", "Staff-In-Charge", "Donation Date"]];
+            const head = [["No.", "Encoder", "Name", "Address", "Latitude", "Longitude", "Contact Person", "Number", "Email", "Category", "Assistance", "Valuation", "Additional Notes", "Status", "Staff-In-Charge", "Donation Date"]];
             const body = allDonations.map((d, i) => [
                 i + 1,
                 d.encoder || 'N/A',
                 d.name || 'N/A',
-                d.address || 'N/A',
+                d.address?.formattedAddress || d.address || 'N/A',
+                d.address?.latitude?.toFixed(6) || d.coordinates?.lat?.toFixed(6) || 'N/A',
+                d.address?.longitude?.toFixed(6) || d.coordinates?.lng?.toFixed(6) || 'N/A',
                 d.contactPerson || 'N/A',
                 String(d.number) || 'N/A',
                 d.email || 'N/A',
+                d.category || 'N/A',
                 d.assistance || 'N/A',
                 `PHP ${parseFloat(d.valuation || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
                 d.additionalnotes || 'N/A',
@@ -1960,10 +2163,13 @@ document.addEventListener("DOMContentLoaded", () => {
             addDetail("Encoder", donation.encoder);
             addDetail("Name", donation.name);
             addDetail("Type", donation.type);
-            addDetail("Address", donation.address);
+            addDetail("Address", donation.address?.formattedAddress || 'N/A');
+            addDetail("Latitude", donation.address?.latitude?.toFixed(6) || 'N/A');
+            addDetail("Longitude", donation.address?.longitude?.toFixed(6) || 'N/A');
             addDetail("Contact Person", donation.contactPerson);
             addDetail("Number", donation.number);
             addDetail("Email", donation.email);
+            addDetail("Category", donation.category);
             addDetail("Assistance", donation.assistance);
             addDetail("Valuation", `₱${parseFloat(donation.valuation || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
             addDetail("Additional Notes", donation.additionalnotes);
@@ -2180,41 +2386,47 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         try {
-            // Fetch active activations
             const activationsSnapshot = await firebase.database().ref('activations').orderByChild('status').equalTo('active').once('value');
             const activations = activationsSnapshot.val();
-
-            // Fetch volunteer groups
             const volunteerGroupsSnapshot = await firebase.database().ref('volunteerGroups').once('value');
             const volunteerGroups = volunteerGroupsSnapshot.val() || {};
 
             let selectOptions = '<option value="" disabled selected>-- Select an option --</option>';
             const donationAddress = (donationToEndorse.address || '').toLowerCase().trim();
+            const donationCoords = donationToEndorse.coordinates || { lat: null, lng: null };
 
             if (activations && volunteerGroups) {
-                for (const activationId in activations) {
-                    const activation = activations[activationId];
-                    if (activation.status !== 'active') continue;
+            for (const activationId in activations) {
+                const activation = activations[activationId];
+                if (activation.status !== 'active') continue;
 
-                    let matchedGroup = null;
-                    for (const groupId in volunteerGroups) {
-                        const group = volunteerGroups[groupId];
-                        const groupArea = (group.areaOfOperation || '').toLowerCase().trim();
-                        if (group.organization && activation.organization &&
-                            group.organization.toLowerCase() === activation.organization.toLowerCase() &&
-                            isValidEmail(group.email) &&
-                            (donationAddress.includes(groupArea) || groupArea.includes(donationAddress))) {
-                            matchedGroup = group;
-                            break;
-                        }
+                let matchedGroup = null;
+                for (const groupId in volunteerGroups) {
+                    const group = volunteerGroups[groupId];
+                    const groupArea = (group.areaOfOperation || '').toLowerCase().trim();
+                    const groupCoords = group.coordinates || { lat: null, lng: null };
+
+                    // Match by address or proximity (within ~10km)
+                    let isMatch = donationAddress.includes(groupArea) || groupArea.includes(donationAddress);
+                    if (!isMatch && donationCoords.lat && groupCoords.lat) {
+                        const distance = getDistance(donationCoords.lat, donationCoords.lng, groupCoords.lat, groupCoords.lng);
+                        if (distance <= 10) isMatch = true; // 10km radius
                     }
 
-                    if (matchedGroup) {
-                        const orgName = activation.organization || 'Unknown';
-                        const area = activation.areaOfOperation || 'Not specified';
-                        selectOptions += `<option value="${orgName}" data-email="${matchedGroup.email}" data-activation-id="${activationId}">${orgName} (${area})</option>`;
+                    if (group.organization && activation.organization &&
+                        group.organization.toLowerCase() === activation.organization.toLowerCase() &&
+                        isValidEmail(group.email) && isMatch) {
+                        matchedGroup = group;
+                        break;
                     }
                 }
+
+                if (matchedGroup) {
+                    const orgName = activation.organization || 'Unknown';
+                    const area = activation.areaOfOperation || 'Not specified';
+                    selectOptions += `<option value="${orgName}" data-email="${matchedGroup.email}" data-activation-id="${activationId}">${orgName} (${area})</option>`;
+                }
+            }
 
                 if (selectOptions !== '<option value="" disabled selected>-- Select an option --</option>') {
                     Swal.fire({
@@ -2370,24 +2582,6 @@ document.addEventListener("DOMContentLoaded", () => {
             Swal.fire('Error', 'You do not have permission to edit donations.', 'error');
             return;
         }
-        const isVerified = await verifySuperAdminPassword();
-        isAdminVerified = isVerified;
-        if (!isVerified) {
-            Swal.fire({
-                title: 'Error',
-                text: 'Incorrect admin password.',
-                icon: 'error',
-                showConfirmButton: true,
-                confirmButtonText: 'OK',
-                customClass: {
-                    popup: 'swal2-popup-error-clean',
-                    title: 'swal2-title-error-clean',
-                    htmlContainer: 'swal2-text-error-clean',
-                    confirmButton: 'my-error-button'
-                }
-            });
-            return;
-        }
         editingKey = firebaseKey;
         const donationToEdit = allDonations.find(d => d.firebaseKey === firebaseKey);
 
@@ -2395,16 +2589,22 @@ document.addEventListener("DOMContentLoaded", () => {
             document.getElementById("edit-encoder").value = donationToEdit.encoder;
             document.getElementById("edit-name").value = donationToEdit.name;
             document.getElementById("edit-type").value = donationToEdit.type;
-            document.getElementById("edit-address").value = donationToEdit.address;
+            document.getElementById("edit-address").value = donationToEdit.address?.formattedAddress || donationToEdit.address || '';
+                selectedCoordinates = {
+                    lat: donationToEdit.address?.latitude || donationToEdit.coordinates?.lat || null,
+                    lng: donationToEdit.address?.longitude || donationToEdit.coordinates?.lng || null
+                };
             document.getElementById("edit-contactPerson").value = donationToEdit.contactPerson;
             document.getElementById("edit-number").value = donationToEdit.number;
             document.getElementById("edit-email").value = donationToEdit.email;
+            document.getElementById("edit-category").value = donationToEdit.category || '';
             document.getElementById("edit-assistance").value = donationToEdit.assistance;
             document.getElementById("edit-valuation").value = donationToEdit.valuation;
             document.getElementById("edit-additionalnotes").value = donationToEdit.additionalnotes;
             document.getElementById("edit-status").value = donationToEdit.status;
             document.getElementById("edit-staffIncharge").value = donationToEdit.staffIncharge;
             document.getElementById("edit-donationDate").value = donationToEdit.donationDate || '';
+            selectedCoordinates = donationToEdit.coordinates || { lat: null, lng: null }; // Load coordinates
             editModal.style.display = "flex";
             Array.from(editModal.querySelectorAll('input, select')).forEach(clearError);
         }
@@ -2419,6 +2619,7 @@ document.addEventListener("DOMContentLoaded", () => {
             contactPerson: document.getElementById("edit-contactPerson"),
             number: document.getElementById("edit-number"),
             email: document.getElementById("edit-email"),
+            category: document.getElementById("edit-category"),
             assistance: document.getElementById("edit-assistance"),
             valuation: document.getElementById("edit-valuation"),
             additionalnotes: document.getElementById("edit-additionalnotes"),
@@ -2433,10 +2634,15 @@ document.addEventListener("DOMContentLoaded", () => {
                 encoder: sanitizeInput(inputs.encoder.value),
                 name: sanitizeInput(inputs.name.value),
                 type: sanitizeInput(inputs.type.value),
-                address: sanitizeInput(inputs.address.value),
+                address: {
+                    formattedAddress: sanitizeInput(inputs.address.value),
+                    latitude: selectedCoordinates.lat,
+                    longitude: selectedCoordinates.lng
+                },
                 contactPerson: sanitizeInput(inputs.contactPerson.value),
                 number: sanitizeInput(inputs.number.value),
                 email: sanitizeInput(inputs.email.value),
+                category: sanitizeInput(inputs.category.value),
                 assistance: sanitizeInput(inputs.assistance.value),
                 valuation: parseFloat(inputs.valuation.value) || 0,
                 additionalnotes: sanitizeInput(inputs.additionalnotes.value),
@@ -2462,6 +2668,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     }
                 });
                 editModal.style.display = "none";
+                selectedCoordinates = { lat: null, lng: null };
             } catch (error) {
                 Swal.fire({
                     title: 'Error',

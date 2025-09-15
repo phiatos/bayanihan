@@ -1158,16 +1158,13 @@ button:disabled {
 }
 
 /* General Action Buttons */
-
-
-/* Table Cell Styling for Action Buttons */
 td:has(.viewBtn, .expandBtn, .endorseNowBtn,
 .editBtn, .approveBtn, .registerBtn, 
 .saveSinglePdfBtn, .savePDFBtn,
 .actionBtn, .endorseBtn,
 .deleteBtn, .rejectBtn, .archiveBtn,
 .rescheduleBtn, .saveBtn, .action-button-endorse-button, 
-.action-button) {
+.action-button, .edit-addressPinBtn) {
   display: flex;
   gap: 8px;
   justify-content: center;
@@ -1182,7 +1179,8 @@ td:has(.viewBtn, .expandBtn, .endorseNowBtn,
 .actionBtn, .endorseBtn,
 .deleteBtn, .rejectBtn, .archiveBtn,
 .rescheduleBtn, .saveBtn, .action-button-endorse-button, 
-.action-button, .cancel-request-btn, .edit-request-btn {
+.action-button, .cancel-request-btn, .edit-request-btn,
+.pin-location-btn {
   width: 45px;
   height: 45px;
   padding: 0;
@@ -1202,7 +1200,8 @@ td:has(.viewBtn, .expandBtn, .endorseNowBtn,
 .saveSinglePdfBtn:hover, .savePDFBtn:hover,
 .rejectBtn:hover, .deleteBtn:hover, .archiveBtn:hover,
 .actionBtn:hover, .endorseBtn:hover,
-.rescheduleBtn:hover, .cancel-request-btn:hover, .edit-request-btn:hover  {
+.rescheduleBtn:hover, .cancel-request-btn:hover, 
+.edit-request-btn:hover, .pin-location-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
@@ -1216,7 +1215,8 @@ td:has(.viewBtn, .expandBtn, .endorseNowBtn,
 .archiveBtn i, .rescheduleBtn i,
 .saveBtn i, .expandBtn i,
 .action-button-endorse-button i, .action-button i,
-.cancel-request-btn i, .edit-request-btn i {
+.cancel-request-btn i, .edit-request-btn i, 
+.pin-location-btn i {
   display: inline-flex;
   justify-content: center;
   align-items: center;
@@ -1233,7 +1233,8 @@ td:has(.viewBtn, .expandBtn, .endorseNowBtn,
 .archiveBtn, .rescheduleBtn,
 .saveBtn, .expandBtn,
 .action-button-endorse-button, .action-button,
-.cancel-request-btn, .edit-request-btn  {
+.cancel-request-btn, .edit-request-btn, 
+.pin-location-btn  {
   pointer-events: auto;
 }
 
