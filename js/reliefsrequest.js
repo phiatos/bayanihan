@@ -761,8 +761,10 @@ formPage2.addEventListener("submit", async (e) => {
     ...item,
     quantity: Number(item.quantity)
   })),
-  timestamp: firebase.database.ServerValue.TIMESTAMP
-};
+  timestamp: firebase.database.ServerValue.TIMESTAMP,
+  donationDate: new Date().toISOString() // ✅ replaces old timestamp
+
+  };
 
 
   const requestRef = database.ref("requestRelief/requests").push();
