@@ -25,6 +25,7 @@
     <div class="main-container">
         <div class="sidebar-placeholder"></div>
         <div id="main-content">
+
             <div class="controls">
                 <div class="controls_left">
                     <header>Relief Request Log</header>
@@ -71,6 +72,12 @@
                 </div>
             </div>
 
+             <div class="tabs-container">
+                <button class="tab-button active" data-tab="all">All</button>
+                <button class="tab-button" data-tab="pending">Pending</button>
+                <button class="tab-button" data-tab="completed">Completed</button>
+            </div>
+
             <div class="table-container">
             <table id="orgTable">
                 <thead>
@@ -78,10 +85,9 @@
                         <th>No.</th>
                         <th>Relief ID</th>
                         <th>Volunteer Group Name</th>
-                        <th>City/Municipality</th>
-                        <th>Exact Drop-off Address</th>
                         <th>Contact Person</th>
                         <th>Contact Number</th>
+                        <th>Drop-off Location</th>
                         <th>Request Category</th>
                         <th>Status</th>
                         <th>Notes</th>
@@ -140,9 +146,8 @@
                         <tr>
                             <th>No.</th>
                             <th>Volunteer Group</th>
-                            <th>Location</th>
-                            <th>Drop-off Location</th>
                             <th>Contact Person</th>
+                            <th>Drop-off Location</th>
                             <th>Request Category</th>
                             <th>Archived Date</th>
                             <th>Actions</th>
@@ -158,6 +163,27 @@
             </div>
         </div>
     </div>
+
+    <!-- Match Modal -->
+<div id="matchModal" class="modal" style="display:none;">
+  <div class="modal-content">
+    <span class="closeBtn">&times;</span>
+
+    <div class="match-modal-wrapper">
+    <h2>Match Relief Request</h2>
+    <p><strong>Relief ID:</strong> <span id="modalReliefId"></span></p>
+    <p><strong>Category:</strong> <span id="modalReliefCategory"></span></p>
+    <p><strong>Dropoff Address:</strong> <span id="modalReliefAddress"></span></p>
+    </div>
+
+    <div class="match-modal-wrapper">
+    <h3>Matching Donations:</h3>
+    <div id="donationMatches">Loading...</div>
+    </div>
+
+    <button id="confirmMatchBtn">Confirm Match</button>
+  </div>
+</div>
 
     <script>
         // Fetch the sidebar HTML and inject it into the page
@@ -182,6 +208,7 @@
     </script>
 
     <script src="../js/inactivity-detector.js"></script> 
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAAAu6BeQjIZ7H7beFbAsPWuKuORmh0wrk&libraries=places,marker"></script>
     <script type="module" src="../js/reliefslog.js"></script>
 </body>
 </html>

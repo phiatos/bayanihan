@@ -1,3 +1,4 @@
+// dashboard.js
 const tabContent = document.getElementById("tab-content");
 const dashboardContainer = document.getElementById("dashboard-container");
 
@@ -392,6 +393,11 @@ window.initializeDashboard = function () {
                 userEmail = user.email;
                 headerEl.textContent = userRole === "AB ADMIN" ? "Admin Dashboard" : "ABVN Dashboard";
                 
+                 // --- TAB PERMISSION LOGIC ---
+                if (userRole !== "AB ADMIN") {
+                    document.querySelectorAll(".tab-btn[data-tab='volunteers'], .tab-btn[data-tab='activation']")
+                            .forEach(tab => tab.style.display = "none");
+                }
 
                 initializeMap();
                 if (!map) {
@@ -403,6 +409,7 @@ window.initializeDashboard = function () {
                 setupAdminNotifications();
                 fetchReports();
                 fetchApprovedReports();
+                
                 if (userRole === "ABVN") {
                     map.setOptions({
                         disableDefaultUI: true,
@@ -1781,17 +1788,17 @@ content += `<span class="timestamp">${timestamp.toLocaleString("en-US", {
 
             // Handle navigation for admin notifications
             if (notification.type === "admin" && userRole === "AB ADMIN") {
-                
-                // ===== Volunteer Request Redirect =====
-                document.querySelector(".tab-btn[data-tab='volunteers']").click();
-                window.highlightedRequestId = notification.requestId;
-                setTimeout(() => {
-                    if (window.highlightedRequestId === undefined) window.highlightedRequestId = notification.requestId;
-                    if (typeof renderTable === "function") {
-                        renderTable();
-                    }
-                }, 500); 
-                // ===== Volunteer Request Redirect =====
+
+                // ----- Volunteer Request Redirect (only if requestId exists) -----
+                if (notification.requestId) {
+                    window.highlightedRequestId = notification.requestId;
+                    document.querySelector(".tab-btn[data-tab='volunteers']").click();
+                    setTimeout(() => {
+                        if (typeof renderTable === "function") renderTable();
+                    }, 500);
+                    // exit early so it doesn’t also try to redirect to other pages
+                    return;
+                }
 
                 let targetPage = "";
                 let reportIdToUse = "";
