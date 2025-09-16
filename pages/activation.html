@@ -48,6 +48,13 @@
                         </select>
                         <i class='bx bx-chevron-down'></i>
                     </div>
+                    
+                    <div class="button-group">
+                        <button id="viewActivationHistory" aria-label="View Activation History">
+                            <i class='bx bx-history' style="color: white; font-size: 20px;"></i>
+                        </button>
+                    </div>
+                    
                 </div>
             </div>
 
@@ -74,12 +81,6 @@
             <div class="pagination-info">
                 <span id="entriesInfo">Showing 0 to 0 of 0 entries</span>
                 <div id="pagination" class="pagination"></div>
-            </div>
-
-            <!-- Activation Map Section -->
-            <div class="map-section">
-                <h2>Actived ABVN Map</h2>
-                <div id="activationMap" style="height: 400px; width: 100%; margin-top: 20px;"></div>
             </div>
         </div>
     </div>
@@ -169,6 +170,37 @@
             <div class="modal-action-buttons">
                 <button id="saveLocationBtn" class="next-btn">Save Location</button>
                 <button class="cancel-btn" id="cancelMapModalBtn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+     <!-- Activation History Modal -->
+    <div id="activationHistoryModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close-button" id="closeActivationHistoryModal">×</span>
+            <h2>Activation History</h2>
+            <div class="table-container">
+                <table id="historyTable">
+                    <thead>
+                        <tr>
+                            <th>No.</th>
+                            <th>Organization</th>
+                            <th>HQ</th>
+                            <th>Area of Operations</th>
+                            <th>Contact Person</th>
+                            <th>Email</th>
+                            <th>Mobile Number</th>
+                            <th>Calamity Type</th>
+                            <th>Status</th>
+                            <th>Deactivation Date</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyTableBody"></tbody>
+                </table>
+            </div>
+            <div class="pagination-info">
+                <span id="historyEntriesInfo">Showing 0 to 0 of 0 entries</span>
+                <div id="historyPagination" class="pagination"></div>
             </div>
         </div>
     </div>
