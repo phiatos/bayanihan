@@ -1412,11 +1412,7 @@ button[type="submit"]:hover,
   margin-right: 8px;
 }
 
-<<<<<<< Updated upstream
 #viewArchived, .archiveBtn, .deleteBtn, #viewActivationHistory {
-=======
-#viewArchived, .archiveBtn, .deleteBtn, .matchBtn {
->>>>>>> Stashed changes
   width: 45px;
   height: 45px;
   padding: 0;
@@ -1432,11 +1428,7 @@ button[type="submit"]:hover,
   background-color: var(--gray); 
 }
 
-<<<<<<< Updated upstream
 #viewArchived:hover, .archiveBtn:hover, .deleteBtn:hover, #viewActivationHistory:hover {
-=======
-#viewArchived:hover, .archiveBtn:hover, .deleteBtn:hover, .matchBtn:hover{
->>>>>>> Stashed changes
   background-color: #7b7b7b; 
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
