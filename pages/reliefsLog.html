@@ -165,25 +165,25 @@
     </div>
 
     <!-- Match Modal -->
-<div id="matchModal" class="modal" style="display:none;">
-  <div class="modal-content">
-    <span class="closeBtn">&times;</span>
+    <div id="matchModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <span class="closeBtn">&times;</span>
 
-    <div class="match-modal-wrapper">
-    <h2>Match Relief Request</h2>
-    <p><strong>Relief ID:</strong> <span id="modalReliefId"></span></p>
-    <p><strong>Category:</strong> <span id="modalReliefCategory"></span></p>
-    <p><strong>Dropoff Address:</strong> <span id="modalReliefAddress"></span></p>
+            <div class="match-modal-wrapper">
+                <h2>Match Relief Request</h2>
+                <p><strong>Relief ID:</strong> <span id="modalReliefId"></span></p>
+                <p><strong>Category:</strong> <span id="modalReliefCategory"></span></p>
+                <p><strong>Dropoff Address:</strong> <span id="modalReliefAddress"></span></p>
+            </div>
+
+            <div class="match-modal-wrapper">
+                <h3>Matching Donations:</h3>
+                <div id="donationMatches">Loading...</div>
+            </div>
+
+            <button id="confirmMatchBtn">Confirm Match</button>
+        </div>
     </div>
-
-    <div class="match-modal-wrapper">
-    <h3>Matching Donations:</h3>
-    <div id="donationMatches">Loading...</div>
-    </div>
-
-    <button id="confirmMatchBtn">Confirm Match</button>
-  </div>
-</div>
 
     <script>
         // Fetch the sidebar HTML and inject it into the page

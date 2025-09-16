@@ -498,7 +498,7 @@ function renderApplications(applicationsToRender) {
       <td>
         <button title="View" class="viewBtn" data-key="${app.key}"><i class='bx bx-show-alt'></i></button>
         <button title="Approve" class="approveBtn" data-key="${app.key}"><i class="bx bx-check-circle"></i></button>
-        <button title="Reject" class="rejectBtn" data-key="${app.key}"><i class="bx bx-x-circle"></i></button>
+        <button title="Reject" class="rejectBtn" data-key="${app.key}"><i class='bx bx-archive'></i></button>
         <button title="Save as PDF" class="saveSinglePdfBtn" data-key="${app.key}"><i class='bx bxs-file-pdf'></i></button>
       </td>
     `;

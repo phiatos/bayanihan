@@ -1059,7 +1059,7 @@ function initializePageFunctions(userId) {
                 <td>
                     <button class="viewBtn" data-key="${volunteer.key}"><i class='bx bx-show-alt'></i></button>
                     ${permissions.canEdit ? `<button title="Reschedule" class="rescheduleBtn" data-key="${volunteer.key}"><i class='bx bx-calendar-edit'></i></button>` : ''}
-                    ${permissions.canArchive ? `<button title="Archive" class="archiveBtn" data-key="${volunteer.key}"><i class="bx bx-x-circle"></i></button>` : ''}
+                    ${permissions.canArchive ? `<button title="Archive" class="archiveBtn" data-key="${volunteer.key}"><i class='bx bx-archive'></i></button>` : ''}
                     <button title="Save as PDF" class="saveSinglePdfBtn" data-key="${volunteer.key}"><i class='bx bxs-file-pdf'></i></button>
                 </td>
             `;

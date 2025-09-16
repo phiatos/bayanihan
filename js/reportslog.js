@@ -493,7 +493,7 @@ async function verifySuperAdminPassword() {
                 <td>${report["CalamityName"] || "-"}</td>
                 <td>
                     <button title="View" class="viewBtn"><i class="bx bx-show-alt"></i></button>
-                    <button title="Archive" class="deleteBtn"><i class="bx bx-x-circle"></i></button>
+                    <button title="Archive" class="deleteBtn"><i class='bx bx-archive'></i></button>
                     <button title="Save as PDF" class="savePDFBtn"><i class="bx bxs-file-pdf"></i></button>
                 </td>
             `;

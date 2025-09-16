@@ -3082,7 +3082,7 @@ function initializePageFunctions(userId) {
                     ...currentVolunteerData,
                     requestId: requestId,
                     endorsedDetails: {
-                        status: 'endorsedToABVN',
+                        status: 'Pending',
                         taskName: requestData.taskName || "N/A",
                         endorsedToABVNKey: abvnKey,
                         endorsedToABVNName: abvnName,

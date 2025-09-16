@@ -1,3 +1,4 @@
+<!-- inkind.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,7 +9,7 @@
     <link rel="stylesheet" href="../css/global.css" />
     <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" />
     
-     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
     <script type="text/javascript">
         (function() {
             emailjs.init({
@@ -29,7 +30,8 @@
     <!-- PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
-    
+    <!-- Maps -->
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAAAu6BeQjIZ7H7beFbAsPWuKuORmh0wrk&libraries=places,marker&callback=initMap"></script>
     <title>Bayanihan | Angat Buhay Disaster Relief Portal</title>
 </head>
 <body>
@@ -57,7 +59,12 @@
                             </div>
                             <div class="input-field">
                                 <label for="address">Address</label>
-                                <input type="text" id="address" name="address" placeholder="Enter address" maxlength="150" required/>
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <input type="text" id="address" name="address" placeholder="Select location" readonly required/>
+                                    <button type="button" id="addressPinBtn" class="pin-location-btn" aria-label="Pin location for address">
+                                        <i class='bx bx-map-pin'></i>
+                                    </button>
+                                </div>
                             </div>
                             <div class="input-field">
                                 <label for="contactPerson">Contact Person</label>
@@ -65,19 +72,31 @@
                             </div>
                             <div class="input-field">
                                 <label for="number">Mobile Number</label>
-                                <input type="number" id="number" name="number" placeholder="Enter mobile number" maxlength="15" pattern="09[0-9]{9}" required/>
+                                <input type="tel" id="number" name="number" placeholder="Enter mobile number" maxlength="11" pattern="09[0-9]{9}" required/>
                             </div>
                             <div class="input-field">
                                 <label for="email">Email</label>
                                 <input type="email" id="email" name="email" placeholder="Enter email" maxlength="100" required/>
                             </div>
                             <div class="input-field">
+                                <label for="category">Category</label>
+                                <select id="category" name="category" required>
+                                    <option value="" disabled selected>Select Category</option>
+                                    <option value="Relief Packs">Relief Packs</option>
+                                    <option value="Hot Meals">Hot Meals</option>
+                                    <option value="Hygiene Kits">Hygiene Kits</option>
+                                    <option value="Drinking Water">Drinking Water</option>
+                                    <option value="Rice Packs">Rice Packs</option>
+                                    <option value="Other Essentials">Other Essentials</option>
+                                </select>
+                            </div>
+                            <div class="input-field">
                                 <label for="assistance">Type of Assistance</label>
-                                <input type="text" id="assistance" name="assistance" placeholder="Enter type of assistance" maxlength="50" required/>
+                                <input type="text" id="assistance" name="assistance" placeholder="Enter types of assistance, separated by commas" requiredz>
                             </div>
                             <div class="input-field">
                                 <label for="valuation">Valuation</label>
-                                <input type="number" id="valuation" name="valuation" placeholder="Enter valuation" maxlength="999999999" required/>
+                                <input type="number" id="valuation" name="valuation" placeholder="Enter valuation" max="999999999" required/>
                             </div>
                             <div class="input-field">
                                 <label for="additionalnotes">Additional Notes</label>
@@ -150,6 +169,10 @@
                                     <option value="email-asc">Email (A–Z)</option>
                                     <option value="email-desc">Email (Z–A)</option>
                                 </optgroup>
+                                <optgroup label="Category">
+                                    <option value="category-asc">Category (A–Z)</option>
+                                    <option value="category-desc">Category (Z–A)</option>
+                                </optgroup>
                                 <optgroup label="Type of Assistance">
                                     <option value="assistance-asc">Type of Assistance (A–Z)</option>
                                     <option value="assistance-desc">Type of Assistance (Z–A)</option>
@@ -175,7 +198,7 @@
                         </div>
 
                         <div class="button-group">
-                            <button id="viewArchived" aria-label="View Archived Admins">
+                            <button id="viewArchived" aria-label="View Archived Donations">
                                 <i class='bx bx-archive' style="color: white; font-size: 20px;"></i>
                             </button>
                             <button id="downloadTemplateBtn"><i class='bx bx-file-blank'></i></button>
@@ -203,23 +226,24 @@
                 <div class="table-container">
                     <table id="inKindTable">
                         <thead>
-                        <tr>
-                            <th>No.</th>
-                            <th>Encoder</th>
-                            <th>Name</th>
-                            <th>Type</th>
-                            <th>Address</th>
-                            <th>Contact Person</th>
-                            <th>Number</th>
-                            <th>Email</th>
-                            <th>Assistance</th>
-                            <th>Valuation</th>
-                            <th>Additional Notes</th>
-                            <th>Status</th>
-                            <th>Staff-In-Charge</th>
-                            <th>Donation Date</th>
-                            <th>Actions</th>               
-                        </tr>
+                            <tr>
+                                <th>No.</th>
+                                <th>Encoder</th>
+                                <th>Name</th>
+                                <th>Type</th>
+                                <th>Address</th>
+                                <th>Contact Person</th>
+                                <th>Number</th>
+                                <th>Email</th>
+                                <th>Category</th>
+                                <th>Assistance</th>
+                                <th>Valuation</th>
+                                <th>Additional Notes</th>
+                                <th>Status</th>
+                                <th>Staff-In-Charge</th>
+                                <th>Donation Date</th>
+                                <th>Actions</th>
+                            </tr>
                         </thead>
                         <tbody></tbody>
                     </table>
@@ -232,8 +256,8 @@
 
                 <br>
                 <div class="pdf-buttons">
-                <button id="exportBtn" class="pdf-button" type="button"><i class='bx bxs-file-pdf'></i>Export to Excel</button>
-                <button id="savePdfBtn" class="excel-button" type="button"><i class='bx bxs-file-export'></i>Save to PDF</button>
+                    <button id="exportBtn" class="pdf-button" type="button"><i class='bx bxs-file-export'></i>Export to Excel</button>
+                    <button id="savePdfBtn" class="excel-button" type="button"><i class='bx bxs-file-pdf'></i>Save to PDF</button>
                 </div>
             </section>
 
@@ -244,31 +268,41 @@
                 </div>
             </div>
 
-            <!-- <div class="modal" id="endorseModal" style="display:none;">
-                <div class="modal-content">
-                    <h4>Endorse In-Kind Donation to ABVN</h4>
-                    <hr>
-
-                    <p>Select Activated ABVN to endorse this donation to:</p>
-                    <div id="abvnList">
-                        <p>Loading ABVN volunteers...</p>
-                    </div>
-
-                    <button type="button" id="confirmEndorseBtn">Confirm</button>
-                    <button type="button" id="cancelEndorseBtn">Cancel</button>
-                </div>
-            </div> -->
             <div id="endorseModal" class="modal" style="display: none;">
                 <div class="modal-content">
-                    <span class="close-button" id="cancelEndorseBtn">&times;</span>
+                    <span class="close-button" id="closeEndorseModalBtn">&times;</span>
                     <h2>Endorse Donation</h2>
-                    <!-- Add your endorsement form or content here -->
-                    <button id="confirmEndorseBtn">Confirm</button>
-                    <button id="cancelEndorseBtn">Cancel</button>
+                    <p style="font-weight: 500; color: #333;">Select a volunteer group:</p>
+                    <select id="assignmentSelect" style="
+                        width: 100%;
+                        padding: 10px;
+                        border-radius: 8px;
+                        border: 1px solid #ccc;
+                        font-size: 14px;
+                        background: #fefefe;
+                        box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+                    ">
+                        <option value="" disabled selected>-- Select an option --</option>
+                    </select>
+                    <div id="assignmentDetails" style="
+                        margin-top: 15px;
+                        max-height: 200px;
+                        overflow-y: auto;
+                        text-align: left;
+                        background: #f9f9f9;
+                        padding: 10px;
+                        border-radius: 8px;
+                        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+                    ">
+                        <p>Please select an option to view details.</p>
+                    </div>
+                    <div style="margin-top: 20px;">
+                        <button id="confirmEndorseBtn" class="bayanihanBtn">Confirm</button>
+                        <button id="cancelEndorseBtn" class="bayanihanBtn">Cancel</button>
+                    </div>
                 </div>
             </div>
 
-            <!-- Edit Modal -->
             <div class="modal" id="editModal" style="display:none;">
                 <div class="modal-content">
                     <span class="close-button" id="closeEditModalBtn">×</span>
@@ -289,7 +323,12 @@
                         </div>
                         <div class="form-group">
                             <label for="edit-address">Address</label>
-                            <input type="text" id="edit-address" name="edit-address" placeholder="Enter address" required>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <input type="text" id="edit-address" name="edit-address" placeholder="Select location" readonly required>
+                                <button type="button" id="edit-addressPinBtn" class="pin-location-btn" aria-label="Pin location for edit address">
+                                    <i class='bx bx-map-pin'></i>
+                                </button>
+                            </div>
                         </div>
                         <div class="form-group">
                             <label for="edit-contactPerson">Contact Person</label>
@@ -297,15 +336,27 @@
                         </div>
                         <div class="form-group">
                             <label for="edit-number">Number</label>
-                            <input type="number" id="edit-number" name="edit-number" placeholder="Enter number" maxlength="15" pattern="09[0-9]{9}" required>
+                            <input type="tel" id="edit-number" name="edit-number" placeholder="Enter number" maxlength="11" pattern="09[0-9]{9}" required>
                         </div>
                         <div class="form-group">
                             <label for="edit-email">Email</label>
                             <input type="email" id="edit-email" name="edit-email" placeholder="Enter email" required>
                         </div>
                         <div class="form-group">
+                            <label for="edit-category">Category</label>
+                            <select id="edit-category" name="edit-category" required>
+                                <option value="" disabled selected>Select Category</option>
+                                <option value="Relief Packs">Relief Packs</option>
+                                <option value="Hot Meals">Hot Meals</option>
+                                <option value="Hygiene Kits">Hygiene Kits</option>
+                                <option value="Drinking Water">Drinking Water</option>
+                                <option value="Rice Packs">Rice Packs</option>
+                                <option value="Other Essentials">Other Essentials</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
                             <label for="edit-assistance">Type of Assistance</label>
-                            <input type="text" id="edit-assistance" name="edit-assistance" placeholder="Enter type of assistance" required>
+                            <input type="text" id="edit-assistance" placeholder="Enter types of assistance, separated by commas" required>
                         </div>
                         <div class="form-group">
                             <label for="edit-valuation">Valuation</label>
@@ -329,7 +380,7 @@
                         </div>
                         <div class="form-group">
                             <label for="edit-donationDate">Donation Date</label>
-                            <input type="date" id="edit-donationDate" name="edit-donationDate" placeholder="Select donation date" max="" required/>
+                            <input type="date" id="edit-donationDate" name="edit-donationDate" placeholder="Select donation date" required/>
                         </div>
 
                         <div style="margin-top: 20px;">
@@ -340,7 +391,6 @@
                 </div>
             </div>
 
-            <!-- Archived Modal -->
             <div class="modal" id="archivedModal" style="display: none;">
                 <div class="modal-content">
                     <span class="close-button" id="closeArchivedModalBtn">×</span>
@@ -357,6 +407,7 @@
                                     <th>Contact Person</th>
                                     <th>Number</th>
                                     <th>Email</th>
+                                    <th>Category</th>
                                     <th>Type of Assistance</th>
                                     <th>Valuation</th>
                                     <th>Additional Notes</th>
@@ -376,7 +427,35 @@
                     </div>
                 </div>
             </div>
-            
+
+            <div id="mapModal" class="modal" style="display: none;">
+                <div class="modal-content" style="width: 80%; max-width: 800px; height: 600px; padding: 0;">
+                    <span class="closeBtn" style="position: absolute; top: 10px; right: 20px; font-size: 24px; cursor: pointer;">&times;</span>
+                    <input type="text" id="search-input" placeholder="Search for a location" style="width: 100%; padding: 10px; margin-bottom: 10px;">
+                    <div id="mapContainer" style="width: 100%; height: 500px;"></div>
+                </div>
+            </div>
+
+            <!-- Match Modal -->
+            <div id="matchModal" class="modal" style="display:none;">
+                <div class="modal-content">
+                    <span class="closeBtn">&times;</span>
+
+                    <div class="match-modal-wrapper">
+                    <h2>Match Relief Request</h2>
+                    <p><strong>Category:</strong> <span id="modalReliefCategory"></span></p>
+                    <p><strong>Dropoff Address:</strong> <span id="modalReliefAddress"></span></p>
+                    <p><strong>Donation Date:</strong> <span id="modalDonationDate"></span></p>
+                    </div>
+
+                    <div class="match-modal-wrapper">
+                    <h3>Matching Relief Requests:</h3>
+                    <div id="donationMatches">Loading...</div>
+                    </div>
+
+                    <button id="confirmMatchBtn">Confirm Match</button>
+                </div>
+            </div>
         </div>
     </div>
 

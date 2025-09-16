@@ -21,6 +21,7 @@ const totalRequestsEl = document.getElementById("total-requests");
 const totalVolunteersEl = document.getElementById("total-volunteers");
 const requestsCompletedEl = document.getElementById("requests-completed");
 const requestsPendingEl = document.getElementById("requests-pending");
+const totalConfirmedEl = document.getElementById("total-confirmed");
 
 const searchInput = document.getElementById("search-input");
 const statusFilter = document.getElementById("status-filter");
@@ -36,7 +37,7 @@ async function fetchVolunteerRequestsOverview() {
     const snapshot = await database.ref('volunteerRequests').once('value');
     snapshot.forEach(child => {
         const req = child.val();
-        const remaining = (req.volunteersNeeded || 0) - (req.assigned || 0);
+        const remaining = (req.volunteersNeeded || 0) - (req.confirmed || 0);
 
         const row = document.createElement('tr');
         row.innerHTML = `
@@ -68,8 +69,10 @@ async function fetchRequests() {
                     const otherSkills = reqData.otherSkillComments || "";
                     let volunteersNeeded = reqData.volunteersNeeded || 0;
                     let assigned = reqData.assigned || 0;
+                    let confirmed = reqData.confirmed || 0;
                     const taskName = reqData.taskName || "—";
 
+                    if (confirmed > volunteersNeeded) confirmed = volunteersNeeded;
                     if (assigned > volunteersNeeded) assigned = volunteersNeeded;
 
                     let status = getAutoStatus({
@@ -89,6 +92,16 @@ async function fetchRequests() {
                         updates[`volunteerRequests/${reqId}/assigned`] = assigned;
                     }
                     if (Object.keys(updates).length > 0) await database.ref().update(updates);
+
+                    const reqSnapshot = await database.ref(`volunteerRequests/${reqId}`).once('value');
+                    const reqDataFromRequests = reqSnapshot.val();
+                    const confirmedFromRequests = reqDataFromRequests?.confirmed || 0;
+                    if (confirmed !== confirmedFromRequests) {
+                        const syncUpdates = {};
+                        syncUpdates[`volunteerRequests/${reqId}/confirmed`] = confirmed;
+                        syncUpdates[`volunteerGroups/${groupSnap.key}/volunteerNeeds/${reqId}/confirmed`] = confirmed;
+                        await database.ref().update(syncUpdates);
+                    }
 
                     skills.forEach(skill => allSkills.add(skill));
 
@@ -113,6 +126,7 @@ async function fetchRequests() {
                         otherSkills,
                         volunteersNeeded,
                         assigned,
+                        confirmed,
                         status,
                         taskName,
                         taskStartDate,
@@ -147,38 +161,69 @@ function populateSkillsFilter() {
 }
 
 // Determine correct status automatically
+// function getAutoStatus(req) {
+//     const today = new Date();
+//     const taskEnd = req.taskEndDate ? new Date(req.taskEndDate) : null;
+
+//     const volunteersNeeded = Number(req.volunteersNeeded || 0);
+//     const assigned = Number(req.assigned || 0);
+//     const status = req.status || "Pending";
+
+//     if (status === "Rejected") return "Rejected";
+//     if (status === "Completed") return "Completed";
+
+//     if (assigned >= volunteersNeeded && volunteersNeeded > 0) return "Completed";
+
+//     if (status === "Pending") {
+//         if (assigned > 0) return "In Progress"; // some volunteers assigned
+//         if (taskEnd && taskEnd < today && assigned < volunteersNeeded) return "Incomplete"; // past end date
+//         return "Pending";
+//     }
+
+//     if (status === "In Progress") {
+//         if (taskEnd && taskEnd < today && assigned < volunteersNeeded) return "Incomplete"; // not enough volunteers by end date
+//         return "In Progress";
+//     }
+
+//     if (status === "Incomplete") {
+//         if (assigned >= volunteersNeeded) return "Completed"; // now fully assigned
+//         return "Incomplete";
+//     }
+
+//     return "Pending";
+// }
 function getAutoStatus(req) {
     const today = new Date();
     const taskEnd = req.taskEndDate ? new Date(req.taskEndDate) : null;
 
     const volunteersNeeded = Number(req.volunteersNeeded || 0);
     const assigned = Number(req.assigned || 0);
+    const confirmed = Number(req.confirmed || 0);
     const status = req.status || "Pending";
 
     if (status === "Rejected") return "Rejected";
     if (status === "Completed") return "Completed";
 
-    if (assigned >= volunteersNeeded && volunteersNeeded > 0) return "Completed";
+    if (confirmed >= volunteersNeeded && volunteersNeeded > 0) return "Completed";
 
     if (status === "Pending") {
-        if (assigned > 0) return "In Progress"; // some volunteers assigned
-        if (taskEnd && taskEnd < today && assigned < volunteersNeeded) return "Incomplete"; // past end date
+        if (assigned > 0) return "In Progress";
+        if (taskEnd && taskEnd < today && assigned < volunteersNeeded) return "Incomplete";
         return "Pending";
     }
 
     if (status === "In Progress") {
-        if (taskEnd && taskEnd < today && assigned < volunteersNeeded) return "Incomplete"; // not enough volunteers by end date
+        if (taskEnd && taskEnd < today && confirmed < volunteersNeeded) return "Incomplete";
         return "In Progress";
     }
 
     if (status === "Incomplete") {
-        if (assigned >= volunteersNeeded) return "Completed"; // now fully assigned
+        if (confirmed >= volunteersNeeded) return "Completed";
         return "Incomplete";
     }
 
     return "Pending";
 }
-
 
 // Render requests in the table
 async function renderTable() {
@@ -213,7 +258,7 @@ async function renderTable() {
     }
 
     for (const [index, req] of filtered.entries()) {
-        const remaining = req.status === "Completed" ? 0 : Math.max(req.volunteersNeeded - req.assigned, 0);
+        const remaining = req.status === "Completed" ? 0 : Math.max(req.volunteersNeeded - (req.confirmed || 0), 0);
 
         // Main request row
         const row = document.createElement("tr");
@@ -449,11 +494,15 @@ function updateDashboard() {
         totalAssignedEl.textContent = allRequests.reduce((sum, r) => sum + (r.assigned || 0), 0);
     }
 
+        if (totalConfirmedEl) {
+        totalConfirmedEl.textContent = allRequests.reduce((sum, r) => sum + (r.confirmed || 0), 0);
+    }
+
     // Remaining Volunteers
     const remainingEl = document.getElementById("total-remaining");
     if (remainingEl) {
         remainingEl.textContent = allRequests.reduce(
-            (sum, r) => sum + (r.status === "Completed" ? 0 : Math.max((r.volunteersNeeded || 0) - (r.assigned || 0), 0)),
+            (sum, r) => sum + (r.status === "Completed" ? 0 : Math.max((r.volunteersNeeded || 0) - (r.confirmed || 0), 0)),
             0
         );
     }
@@ -471,7 +520,8 @@ function showRequestModal(request) {
         <p><strong>Other Skills:</strong> ${request.otherSkills || "—"}</p>
         <p><strong>Volunteers Needed:</strong> ${request.volunteersNeeded}</p>
         <p><strong>Assigned Volunteers:</strong> ${request.assigned}</p>
-        <p><strong>Remaining:</strong> ${request.status === "Completed" ? 0 : Math.max(request.volunteersNeeded - request.assigned, 0)}</p>
+        <p><strong>Confirmed Volunteers:</strong> ${request.confirmed || 0}</p>
+        <p><strong>Remaining:</strong> ${request.status === "Completed" ? 0 : Math.max(request.volunteersNeeded - (request.confirmed || 0), 0)}</p>
         <p><strong>Task Dates:</strong> ${request.taskStartDate} to ${request.taskEndDate}</p>
         <p><strong>Task Times:</strong> ${request.taskTimeStart} - ${request.taskTimeEnd}</p>
         <p><strong>Status:</strong> ${request.status}</p>

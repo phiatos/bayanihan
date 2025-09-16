@@ -328,15 +328,22 @@ function initSidebar() {
       );
     } else if (role === "AB ADMIN") {
       Object.values(menuItems).forEach((i) => i && (i.style.display = "block"));
-      // Explicitly hide volunteerRequests for all AB ADMIN users
-      if (menuItems.volunteerRequests) {
-        menuItems.volunteerRequests.style.display = "none";
-      }
+      // Explicitly hide some menus for all AB ADMIN users
+      [
+        menuItems.volunteerRequests,
+        menuItems.reportsSubmission,
+        menuItems.rdanaMain,
+        menuItems.reliefsRequest
+      ].forEach((item) => {
+        if (item) item.style.display = "none";
+      });
+
       if (adminPosition !== "Super Admin") {
         ["activitylogs", "adminmanagement"].forEach(
           (k) => menuItems[k] && (menuItems[k].style.display = "none")
         );
       }
+      
       // Check if all sub-menu items under volunteerApplications are hidden
       const volunteerSubMenus = [
         menuItems.pendingVolunteers,

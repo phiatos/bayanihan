@@ -1,4 +1,3 @@
-// ======================= Firebase Config =======================
 const firebaseConfig = {
   apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
   authDomain: "bayanihan-5ce7e.firebaseapp.com",
@@ -173,8 +172,8 @@ function detectLocation(callback) {
 }
 
 function getGreeting() {
-  const hour = new Date().getHours(); // Current time: 10:58 AM PST, August 28, 2025
-  if (hour < 12) return responses.greeting.morning; // Matches 10:58 AM
+  const hour = new Date().getHours();
+  if (hour < 12) return responses.greeting.morning;
   if (hour < 17) return responses.greeting.afternoon;
   return responses.greeting.evening;
 }
@@ -245,7 +244,7 @@ function isLocationQuery(query) {
     "my location",
     "i am in",
     "i'm in",
-    "m in", // Handles shorthand like "m in taguig"
+    "m in",
     "city",
     "barangay",
     "region",
@@ -298,7 +297,6 @@ function getBotResponse(query) {
           .join(", ") + ", Philippines";
       return `Location set to ${userRegion}. How can I assist you?`;
     }
-    // Trigger geolocation only for ambiguous location queries
     detectLocation();
     return responses.location;
   }
@@ -318,9 +316,8 @@ function getBotResponse(query) {
     return responses.founder;
   }
 
-  // Check for external/unrelated queries first (e.g., sports news)
   if (sanitizedQuery.includes("sports") || (sanitizedQuery.includes("news") && !sanitizedQuery.includes("operations") && !sanitizedQuery.includes("updates") && !isSystemRelated(query))) {
-    return "I'm sorry, that topic is outside my scope. Please visit <a href='https://www.angat-bayanihan.com'>angat-bayanihan.com</a> for more information or ask about donations, volunteering, emergencies, or ongoing operations!";
+    return responses.default;
   }
 
   if (isSystemRelated(query)) {
@@ -470,7 +467,7 @@ document.addEventListener("DOMContentLoaded", () => {
     addMessage(getGreeting(), false, false);
   }
 
-  // Initial greeting only (no auto geolocation)
+  // Initial greeting only
   getGreetingAndSend();
 
   // Event listeners
@@ -479,7 +476,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const message = chatInput.value.trim();
     if (!message) return;
 
-    // Manual unit-test trigger without auto-running on load
     if (message.toLowerCase() === "/test") {
       addMessage(message, true);
       addMessage("✅ Running unit tests... open DevTools console to see results.", false);
@@ -505,7 +501,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (e.key === "Enter" && !isTyping) sendButton.click();
   });
 
-  // Navbar scroll effect (optional)
+  // Navbar scroll effect
   window.addEventListener("scroll", () => {
     const navbar = document.querySelector(".navbar");
     if (navbar) {
@@ -517,7 +513,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Chips (quick questions)
+  // Chips
   const chips = document.querySelectorAll(".chip");
   chips.forEach((chip) => {
     chip.addEventListener("click", () => {
@@ -529,7 +525,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // Toggle for pre-made questions (if present)
+  // Toggle pre-made questions
   const toggle = document.getElementById("toggle-questions");
   const container = document.getElementById("preMadeQuestions");
   if (toggle && container) {

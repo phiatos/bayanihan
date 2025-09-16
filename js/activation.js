@@ -132,6 +132,8 @@ const calamityOptions = [
 
 let currentPage = 1;
 const rowsPerPage = 5;
+let activationHistory = [];
+let historyCurrentPage = 1;
 
 const tableBody = document.querySelector("#orgTable tbody");
 const searchInput = document.querySelector("#searchInput");
@@ -168,9 +170,15 @@ const modalActivateSubmitBtn = document.getElementById("modalActivateSubmitBtn")
 const modalPrevStepBtn = document.getElementById("modalPrevStepBtn");
 const pinLocationBtn = document.getElementById("pinLocationBtn");
 
+const activationHistoryModal = document.getElementById("activationHistoryModal");
+const closeActivationHistoryModalBtn = document.getElementById("closeActivationHistoryModal");
+const historyTableBody = document.getElementById("historyTableBody");
+const historyEntriesInfo = document.getElementById("historyEntriesInfo");
+const historyPaginationContainer = document.getElementById("historyPagination");
+const viewActivationHistoryBtn = document.getElementById("viewActivationHistory");
+
 let selectedGroupForActivation = null;
 let map, markers = [], autocomplete, geocoder;
-let activationMap, activationMarkers = [], activationsListener, singleInfoWindow, currentInfoWindow, isInfoWindowClicked = false;
 let currentActivationId = null;
 let currentGroupId = null;
 
@@ -358,334 +366,6 @@ function initMap() {
             { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
         );
     }
-}
-
-function initActivationMap() {
-    const defaultLocation = { lat: 14.5995, lng: 120.9842 };
-
-    try {
-        const mapDiv = document.getElementById("activationMap");
-        if (!mapDiv) {
-            console.error("Activation map container not found.");
-            Swal.fire({
-                icon: "error",
-                title: "Map Error",
-                text: "Activation map container not found on the page.",
-            });
-            return;
-        }
-
-        if (!window.google || !window.google.maps) {
-            console.error("Google Maps API not loaded for activation map.");
-            Swal.fire({
-                icon: "error",
-                title: "Map Error",
-                text: "Google Maps API failed to load for the activation map.",
-            });
-            return;
-        }
-
-        activationMap = new google.maps.Map(mapDiv, {
-            center: defaultLocation,
-            zoom: 6,
-            mapTypeId: "roadmap",
-        });
-        console.log("Activation map initialized successfully.");
-
-        singleInfoWindow = new google.maps.InfoWindow();
-        google.maps.event.trigger(activationMap, "resize");
-        console.log("Activation map resize event triggered.");
-
-        fetch('../json/ph_admin1.geojson')
-            .then(res => {
-                if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-                return res.json();
-            })
-            .then(data => {
-                console.log("GeoJSON loaded:", data);
-
-                const geoJsonLayer = activationMap.data;
-                geoJsonLayer.addGeoJson(data);
-
-                geoJsonLayer.setStyle({
-                    fillColor: '#FA3B99',
-                    fillOpacity: 0.4,
-                    strokeColor: '#FFF',
-                    strokeWeight: 1.5,
-                    clickable: false,
-                });
-
-                geoJsonLayer.addListener('mouseover', event => {
-                    geoJsonLayer.overrideStyle(event.feature, { fillOpacity: 0.7 });
-                });
-
-                geoJsonLayer.addListener('mouseout', event => {
-                    geoJsonLayer.revertStyle(event.feature);
-                });
-
-                geoJsonLayer.addListener('click', event => {
-                    const name = event.feature.getProperty("name") || event.feature.getProperty("NAME_1") || "Unnamed Province";
-                    const content = `<strong>${name}</strong>`;
-                    const infowindow = new google.maps.InfoWindow({
-                        content,
-                        position: event.latLng
-                    });
-                    infowindow.open(activationMap);
-                });
-            })
-            .catch(error => {
-                console.error("Error loading GeoJSON:", error);
-            });
-
-        addMarkersForActiveActivations();
-
-    } catch (error) {
-        console.error("Failed to initialize Activation Map:", error);
-        Swal.fire({
-            icon: "error",
-            title: "Map Error",
-            text: "Failed to load the activation map. Check your internet connection or API key.",
-        });
-    }
-}
-
-function addMarkersForActiveActivations() {
-    if (!activationMap) {
-        console.error("Activation map not initialized before adding markers");
-        return;
-    }
-
-    if (activationsListener) {
-        activationsListener.off();
-        console.log("Removed existing activations listener");
-    }
-
-    activationsListener = database.ref("activations").orderByChild("status").equalTo("active").limitToLast(50);
-    activationsListener.on("value", snapshot => {
-        activationMarkers.forEach(marker => marker.setMap(null));
-        activationMarkers = [];
-
-        const activations = snapshot.val();
-        if (!activations) {
-            console.log("No active activations found in Firebase.");
-            activationMap.setCenter({ lat: 14.5995, lng: 120.9842 });
-            activationMap.setZoom(6);
-            console.log("No activation markers to display, set default map view.");
-            return;
-        }
-
-        const bounds = new google.maps.LatLngBounds();
-
-        Object.entries(activations).forEach(([key, activation]) => {
-            if (!activation.latitude || !activation.longitude) {
-                return;
-            }
-
-            const position = { lat: parseFloat(activation.latitude), lng: parseFloat(activation.longitude) };
-            const logoPath = "../assets/images/AB_logo.png";
-
-            const marker = new google.maps.Marker({
-                position: position,
-                map: activationMap,
-                title: activation.organization,
-                icon: {
-                    url: logoPath,
-                    scaledSize: new google.maps.Size(40, 20),
-                    anchor: new google.maps.Point(20, 10),
-                },
-            });
-
-            activationMarkers.push(marker);
-            bounds.extend(position);
-
-            const img = new Image();
-            img.src = logoPath;
-            img.onload = () => {
-                console.log("Logo loaded successfully for InfoWindow:", logoPath);
-                createInfoWindow(marker, activation, logoPath);
-            };
-            img.onerror = () => {
-                console.error("Failed to load logo for InfoWindow:", logoPath);
-                createInfoWindow(marker, activation, null);
-            };
-        });
-
-        if (activationMarkers.length > 0) {
-            activationMap.fitBounds(bounds);
-            console.log("Adjusted activation map bounds to fit all markers.");
-        } else {
-            activationMap.setCenter({ lat: 14.5995, lng: 120.9842 });
-            activationMap.setZoom(6);
-            console.log("No activation markers to display, set default map view.");
-        }
-
-        google.maps.event.trigger(activationMap, "resize");
-        console.log("Map resize event triggered after adding markers");
-    }, error => {
-        console.error("Error fetching activations for map:", error);
-        Swal.fire({
-            icon: "error",
-            title: "Error",
-            text: "Failed to load activation markers on the map.",
-        });
-    });
-}
-
-function createInfoWindow(marker, activation, logoUrl) {
-    const content = `
-        <div class="bayanihan-infowindow">
-            <div class="header">
-                ${logoUrl ? 
-                `<img src="${logoUrl}" alt="Logo" class="logo" />` : 
-                `<div class="placeholder-icon"><i class='bx bx-building'></i></div>`
-                }
-                <div class="header-text">
-                    <h3>${activation.organization}</h3>
-                    <span class="status-badge"><i class='bx bx-check-circle'></i> Active</span>
-                </div>
-            </div>
-            <div class="info-section">
-                <div class="info-item">
-                    <i class='bx bx-map'></i>
-                    <div class="info-text">
-                        <span class="label">Location</span>
-                        <span class="value">${activation.areaOfOperation}</span>
-                    </div>
-                </div>
-                <div class="info-item">
-                    <i class='bx bx-cloud-lightning'></i>
-                    <div class="info-text">
-                        <span class="label">Calamity</span>
-                        <span class="value">${activation.calamityName} (${activation.calamityType})</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <style>
-        .bayanihan-infowindow {
-            font-family: 'Arial', sans-serif;
-            background: #fff;
-            border-radius: 16px;
-            max-width: 420px;
-            padding: 28px;
-            border-left: 8px solid #FF69B4;
-            animation: fadeSlideIn 0.4s ease;
-        }
-        .header {
-            display: flex;
-            align-items: center;
-            margin-bottom: 24px;
-            gap: 16px;
-        }
-        .logo, .placeholder-icon {
-            width: 80px;
-            height: 80px;
-            border-radius: 16px;
-            background: rgb(255, 255, 255);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 6px;
-            box-sizing: border-box;
-        }
-        .logo {
-            object-fit: contain;
-            max-width: 100%;
-            max-height: 100%;
-            border-radius: 12px;
-        }
-        .header-text h3 {
-            margin: 0;
-            font-size: 20px;
-            color: #007BFF;
-            line-height: 1.3;
-        }
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            margin-top: 6px;
-            font-size: 13px;
-            background: #d4edda;
-            color: #388E3C;
-            padding: 4px 10px;
-            border-radius: 16px;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .status-badge i {
-            font-size: 18px;
-            margin-right: 6px;
-        }
-        .info-section {
-            display: flex;
-            flex-direction: column;
-            gap: 18px;
-        }
-        .info-item {
-            display: flex;
-            align-items: flex-start;
-            gap: 14px;
-            font-size: 16px;
-            color: #333;
-        }
-        .info-item i {
-            font-size: 24px;
-            color: #007BFF;
-            flex-shrink: 0;
-            margin-top: 4px;
-        }
-        .info-text {
-            display: flex;
-            flex-direction: column;
-        }
-        .label {
-            font-weight: bold;
-            color: #555;
-            font-size: 14px;
-            margin-bottom: 4px;
-        }
-        .value {
-            color: #222;
-            font-size: 15px;
-        }
-        @keyframes fadeSlideIn {
-            0% { opacity: 0; transform: translateY(10px); }
-            100% { opacity: 1; transform: translateY(0); }
-        }
-        </style>
-    `;
-
-    marker.addListener("mouseover", () => {
-        if (isInfoWindowClicked) return;
-        if (currentInfoWindow && currentInfoWindow !== marker) singleInfoWindow.close();
-        singleInfoWindow.setContent(content);
-        singleInfoWindow.open(activationMap, marker);
-        currentInfoWindow = marker;
-        console.log(`InfoWindow opened on hover for ${activation.organization}`);
-    });
-
-    marker.addListener("mouseout", () => {
-        if (isInfoWindowClicked) return;
-        if (currentInfoWindow === marker) {
-            singleInfoWindow.close();
-            currentInfoWindow = null;
-        }
-    });
-
-    marker.addListener("click", () => {
-        if (currentInfoWindow && currentInfoWindow !== marker) singleInfoWindow.close();
-        singleInfoWindow.setContent(content);
-        singleInfoWindow.open(activationMap, marker);
-        currentInfoWindow = marker;
-        isInfoWindowClicked = true;
-    });
-
-    singleInfoWindow?.addListener("closeclick", () => {
-        isInfoWindowClicked = false;
-        currentInfoWindow = null;
-    });
 }
 
 function clearMarkers() {
@@ -900,7 +580,6 @@ firebase.auth().onAuthStateChanged(async (user) => {
             console.log("User is authenticated:", user.uid);
             console.log("Anonymous user:", user.isAnonymous);
             listenForDataUpdates();
-            initActivationMap();
             resetInactivityTimer();
 
         } catch (error) {
@@ -926,7 +605,6 @@ firebase.auth().onAuthStateChanged(async (user) => {
         try {
             await firebase.auth().signInAnonymously();
             console.log("Signed in anonymously successfully.");
-            initActivationMap();
             resetInactivityTimer();
         } catch (error) {
             console.error("Anonymous auth failed:", error.code, error.message);
@@ -958,7 +636,6 @@ function listenForDataUpdates() {
                 const groupData = fetchedGroups[key];
                 console.log("Processing group with key:", key);
                 const addressData = groupData.address || {};
-                // Use formattedAddress if available, otherwise build combinedAddress
                 let combinedAddress = addressData.formattedAddress || "Not specified";
                 if (!addressData.formattedAddress && addressData) {
                     const addressParts = [];
@@ -985,6 +662,7 @@ function listenForDataUpdates() {
             console.warn("No volunteerGroups data found.");
         }
         populateGroupDropdown();
+        renderHistoryTable();
     }, error => {
         console.error("Error fetching volunteerGroups:", error.code, error.message);
         Swal.fire({
@@ -1028,15 +706,58 @@ function listenForDataUpdates() {
                 return dateB - dateA;
             });
         } else {
-            console.log("No activations found in the database.");
+            console.log("No active activations found in the database.");
         }
         renderTable();
     }, error => {
-        console.error("Error listening for activations:", error.code, error.message);
+        console.error("Error listening for active activations:", error.code, error.message);
         Swal.fire({
             icon: 'error',
             title: 'Error',
-            text: `Failed to load activations: ${error.message}`
+            text: `Failed to load active activations: ${error.message}`
+        });
+    });
+
+    console.log("Setting up real-time listener for activation history...");
+    database.ref("activations/activationHistory").orderByChild("deactivationDate").on("value", snapshot => {
+        const fetchedHistory = snapshot.val();
+        activationHistory = [];
+        if (fetchedHistory) {
+            for (let key in fetchedHistory) {
+                const activation = fetchedHistory[key];
+                const volunteerGroup = allVolunteerGroups.find(group => group.no === String(activation.groupId));
+                activationHistory.push({
+                    id: key,
+                    no: activation.no || 0,
+                    groupId: activation.groupId,
+                    organization: activation.organization || "Unknown",
+                    hq: volunteerGroup ? volunteerGroup.hq : "Not specified",
+                    areaOfOperation: activation.areaOfOperation || "Not specified",
+                    calamityType: activation.calamityType || "Typhoon",
+                    calamityName: activation.calamityName || "Unknown",
+                    status: activation.status,
+                    activationDate: activation.activationDate,
+                    deactivationDate: activation.deactivationDate || "N/A",
+                    contactPerson: volunteerGroup ? volunteerGroup.contactPerson : "N/A",
+                    email: volunteerGroup ? volunteerGroup.email : "N/A",
+                    mobileNumber: volunteerGroup ? volunteerGroup.mobileNumber : "N/A"
+                });
+            }
+            activationHistory.sort((a, b) => {
+                const dateA = new Date(a.deactivationDate);
+                const dateB = new Date(b.deactivationDate);
+                return dateB - dateA;
+            });
+        } else {
+            console.log("No activation history found in the database.");
+        }
+        renderHistoryTable();
+    }, error => {
+        console.error("Error listening for activation history:", error.code, error.message);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: `Failed to load activation history: ${error.message}`
         });
     });
 }
@@ -1099,6 +820,82 @@ function renderTable(filteredData = currentActiveActivations) {
 
     entriesInfo.textContent = `Showing ${start + 1} to ${Math.min(end, filteredData.length)} of ${filteredData.length} entries`;
     renderPagination(filteredData.length);
+}
+
+function renderHistoryTable() {
+    historyTableBody.innerHTML = "";
+    const start = (historyCurrentPage - 1) * rowsPerPage;
+    const end = start + rowsPerPage;
+    const pageData = activationHistory.slice(start, end);
+
+    if (pageData.length === 0 && activationHistory.length > 0 && historyCurrentPage > 1) {
+        historyCurrentPage--;
+        renderHistoryTable();
+        return;
+    } else if (pageData.length === 0 && activationHistory.length === 0) {
+        const noDataRow = document.createElement("tr");
+        noDataRow.innerHTML = `<td colspan="10" style="text-align: center;">No activation history to display.</td>`;
+        historyTableBody.appendChild(noDataRow);
+    }
+
+    pageData.forEach((row, index) => {
+        const displayNumber = start + index + 1;
+        const tr = document.createElement("tr");
+
+        tr.innerHTML = `
+            <td>${displayNumber}</td>
+            <td>${row.organization}</td>
+            <td>${row.hq}</td>
+            <td>${row.areaOfOperation || 'N/A'}</td>
+            <td>${row.contactPerson || 'N/A'}</td>
+            <td>${row.email || 'N/A'}</td>
+            <td>${row.mobileNumber || 'N/A'}</td>
+            <td>${row.calamityName} (${row.calamityType})</td>
+            <td><span class="status-circle red"></span> ${row.status}</td>
+            <td>${row.deactivationDate || 'N/A'}</td>
+        `;
+        historyTableBody.appendChild(tr);
+    });
+
+    historyEntriesInfo.textContent = `Showing ${start + 1} to ${Math.min(end, activationHistory.length)} of ${activationHistory.length} entries`;
+    renderHistoryPagination(activationHistory.length);
+}
+
+function renderHistoryPagination(totalRows) {
+    historyPaginationContainer.innerHTML = "";
+    const totalPages = Math.ceil(totalRows / rowsPerPage);
+    const maxVisible = 5;
+
+    const createButton = (label, page = null, disabled = false, active = false) => {
+        const btn = document.createElement("button");
+        btn.textContent = label;
+        if (disabled) btn.disabled = true;
+        if (active) btn.classList.add("active-page");
+        if (page !== null) {
+            btn.addEventListener("click", () => {
+                historyCurrentPage = page;
+                renderHistoryTable();
+            });
+        }
+        return btn;
+    };
+
+    if (totalPages === 0) return;
+
+    historyPaginationContainer.appendChild(createButton("Prev", historyCurrentPage - 1, historyCurrentPage === 1));
+
+    let startPage = Math.max(1, historyCurrentPage - Math.floor(maxVisible / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+
+    if (endPage - startPage < maxVisible - 1) {
+        startPage = Math.max(1, endPage - maxVisible + 1);
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+        historyPaginationContainer.appendChild(createButton(i, i, false, i === historyCurrentPage));
+    }
+
+    historyPaginationContainer.appendChild(createButton("Next", historyCurrentPage + 1, historyCurrentPage === totalPages));
 }
 
 function handleSearch() {
@@ -1192,49 +989,82 @@ function closeMapModal() {
     clearMarkers();
 }
 
-addActivationBtn.addEventListener("click", openAddActivationModal);
-closeBtn.addEventListener("click", closeActivationModal);
-closeActivationModalBtn.addEventListener("click", closeActivationModal);
-closeMapModalBtn.addEventListener("click", closeMapModal);
-cancelMapModalBtn.addEventListener("click", closeMapModal);
-window.addEventListener("click", (event) => {
-    if (event.target === activationModal) {
-        closeActivationModal();
-    } else if (event.target === mapModal) {
-        closeMapModal();
-    } else if (event.target === endorseModal) {
-        closeEndorseModal();
-    }
-});
+function openActivationHistoryModal() {
+    activationHistoryModal.style.display = "flex";
+    renderHistoryTable();
+}
 
-selectGroupDropdown.addEventListener("change", (e) => {
-    const selectedId = e.target.value;
-    console.log("selectGroupDropdown changed, selectedId:", selectedId);
-    selectedGroupForActivation = allVolunteerGroups.find(group => group.no === selectedId) || null;
-    console.log("Selected group:", selectedGroupForActivation);
-    modalNextStepBtn.disabled = !selectedGroupForActivation;
-    console.log("Next button disabled state:", modalNextStepBtn.disabled);
-});
+function closeActivationHistoryModal() {
+    activationHistoryModal.style.display = "none";
+}
+document.addEventListener("DOMContentLoaded", () => {
 
-modalNextStepBtn.addEventListener("click", () => {
-    console.log("Next button clicked");
-    showStep2();
-});
-modalPrevStepBtn.addEventListener("click", showStep1);
-
-pinLocationBtn.addEventListener("click", openMapModal);
-
-saveLocationBtn.addEventListener("click", () => {
-    if (!modalAreaInput.value || !modalLatitudeInput.value || !modalLongitudeInput.value) {
-        Swal.fire({
-            icon: 'warning',
-            title: 'Missing Location',
-            text: 'Please pin a location on the map.'
+    if (!viewActivationHistoryBtn) {
+        console.error("viewActivationHistory button not found in the DOM");
+    } else {
+        console.log("viewActivationHistory button found, attaching event listener");
+        viewActivationHistoryBtn.addEventListener("click", () => {
+            console.log("viewActivationHistory button clicked");
+            openActivationHistoryModal();
         });
-        return;
     }
-    mapModal.style.display = "none";
-});
+
+    if (!closeActivationHistoryModalBtn) {
+        console.error("closeActivationHistoryModal button not found in the DOM");
+    } else {
+        console.log("closeActivationHistoryModal button found, attaching event listener");
+        closeActivationHistoryModalBtn.addEventListener("click", () => {
+            console.log("closeActivationHistoryModal button clicked");
+            closeActivationHistoryModal();
+        });
+    }
+
+    addActivationBtn.addEventListener("click", openAddActivationModal);
+    closeBtn.addEventListener("click", closeActivationModal);
+    closeActivationModalBtn.addEventListener("click", closeActivationModal);
+    closeMapModalBtn.addEventListener("click", closeMapModal);
+    cancelMapModalBtn.addEventListener("click", closeMapModal);
+
+    window.addEventListener("click", (event) => {
+        if (event.target === activationModal) {
+            closeActivationModal();
+        } else if (event.target === mapModal) {
+            closeMapModal();
+        } else if (event.target === endorseModal) {
+            closeEndorseModal();
+        } else if (event.target === activationHistoryModal) {
+            closeActivationHistoryModal();
+        }
+    });
+
+    selectGroupDropdown.addEventListener("change", (e) => {
+        const selectedId = e.target.value;
+        console.log("selectGroupDropdown changed, selectedId:", selectedId);
+        selectedGroupForActivation = allVolunteerGroups.find(group => group.no === selectedId) || null;
+        console.log("Selected group:", selectedGroupForActivation);
+        modalNextStepBtn.disabled = !selectedGroupForActivation;
+        console.log("Next button disabled state:", modalNextStepBtn.disabled);
+    });
+
+    modalNextStepBtn.addEventListener("click", () => {
+        console.log("Next button clicked");
+        showStep2();
+    });
+    modalPrevStepBtn.addEventListener("click", showStep1);
+
+    pinLocationBtn.addEventListener("click", openMapModal);
+
+    saveLocationBtn.addEventListener("click", () => {
+        if (!modalAreaInput.value || !modalLatitudeInput.value || !modalLongitudeInput.value) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Missing Location',
+                text: 'Please pin a location on the map.'
+            });
+            return;
+        }
+        mapModal.style.display = "none";
+    });
 
 async function getNextActivationNumber() {
     try {
@@ -1482,8 +1312,8 @@ tableBody.addEventListener("click", e => {
                     text: `Do you want to deactivate this specific operation for group ID ${groupId}?`,
                     icon: 'warning',
                     showCancelButton: true,
-                    confirmButtonText: 'Yes, clear it!',
-                    cancelButtonText: 'No, keep editing',
+                    confirmButtonText: 'Yes, deactivate it!',
+                    cancelButtonText: 'No, keep it',
                     reverseButtons: true,
                     focusCancel: true,
                     allowOutsideClick: false,
@@ -1520,12 +1350,12 @@ tableBody.addEventListener("click", e => {
                                     deactivationDate: new Date().toISOString()
                                 };
 
-                                const deletedActivationRef = database.ref('deleted/deletedActivations').push();
+                                const historyActivationRef = database.ref(`activations/activationHistory`).push();
 
-                                console.log("Performing copy to deletedActivations and remove from activations...");
+                                console.log("Performing copy to activationHistory and remove from activations...");
                                 return Promise.all([
-                                    deletedActivationRef.set(deactivatedActivation).then(() => {
-                                        console.log("Successfully copied to deletedActivations.");
+                                    historyActivationRef.set(deactivatedActivation).then(() => {
+                                        console.log("Successfully copied to activationHistory.");
                                     }),
                                     activationRef.remove().then(() => {
                                         console.log("Successfully removed from activations.");
@@ -1537,7 +1367,7 @@ tableBody.addEventListener("click", e => {
                                 Swal.fire({
                                     icon: 'success',
                                     title: 'Deactivated!',
-                                    text: `The activation has been moved to deleted activations.`,
+                                    text: `The activation has been moved to activation history.`,
                                     showConfirmButton: true,
                                     confirmButtonText: 'OK',
                                     customClass: {
@@ -1564,8 +1394,8 @@ tableBody.addEventListener("click", e => {
                 text: `Do you want to deactivate this specific operation for group ID ${groupId}?`,
                 icon: 'warning',
                 showCancelButton: true,
-                confirmButtonText: 'Yes, clear it!',
-                cancelButtonText: 'No, keep editing',
+                confirmButtonText: 'Yes, deactivate it!',
+                cancelButtonText: 'No, keep it',
                 reverseButtons: true,
                 focusCancel: true,
                 allowOutsideClick: false,
@@ -1602,12 +1432,12 @@ tableBody.addEventListener("click", e => {
                                 deactivationDate: new Date().toISOString()
                             };
 
-                            const deletedActivationRef = database.ref('deleted/deletedActivations').push();
+                            const historyActivationRef = database.ref(`activations/activationHistory`).push();
 
-                            console.log("Performing copy to deletedActivations and remove from activations...");
+                            console.log("Performing copy to activationHistory and remove from activations...");
                             return Promise.all([
-                                deletedActivationRef.set(deactivatedActivation).then(() => {
-                                    console.log("Successfully copied to deletedActivations.");
+                                historyActivationRef.set(deactivatedActivation).then(() => {
+                                    console.log("Successfully copied to activationHistory.");
                                 }),
                                 activationRef.remove().then(() => {
                                     console.log("Successfully removed from activations.");
@@ -1619,7 +1449,7 @@ tableBody.addEventListener("click", e => {
                             Swal.fire({
                                 icon: 'success',
                                 title: 'Deactivated!',
-                                text: `The activation has been moved to deleted activations.`,
+                                text: `The activation has been moved to activation history.`,
                                 showConfirmButton: true,
                                 confirmButtonText: 'OK',
                                 customClass: {
@@ -1725,29 +1555,13 @@ sortSelect.addEventListener("change", () => {
 
 function cleanupActivationPage() {
     console.log("Cleaning up activation page state.");
-
-    if (activationsListener) {
-        activationsListener.off();
-        activationsListener = null;
-        console.log("Removed activations listener for map.");
-    }
-
-    activationMarkers.forEach(marker => marker.setMap(null));
-    activationMarkers = [];
-
-    if (singleInfoWindow) {
-        singleInfoWindow.close();
-        singleInfoWindow = null;
-        currentInfoWindow = null;
-        isInfoWindowClicked = false;
-    }
-
     markers.forEach(marker => marker.setMap(null));
     markers = [];
 }
 
-window.addEventListener('beforeunload', cleanupActivationPage);
-window.addEventListener('navigate-away', () => {
-    console.log('navigate-away event: Cleaning up activation page.');
-    cleanupActivationPage();
+    window.addEventListener('beforeunload', cleanupActivationPage);
+    window.addEventListener('navigate-away', () => {
+        console.log('navigate-away event: Cleaning up activation page.');
+        cleanupActivationPage();
+    });
 });

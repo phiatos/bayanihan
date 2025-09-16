@@ -312,19 +312,62 @@ fieldset {
 }
 
 
+  background: linear-gradient(145deg, #ffffff, #f1f5f9);
+  padding: 20px;
+  border-radius: 16px;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+.dashboard-cards .card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.12);
+}
 .card-title {
     font-size: 0.9rem;
     color: #555;
     width: 200px;
     min-height: 1.2em; /* ensures all titles occupy same height */
     margin-bottom: 5px;
+  font-size: 1rem;
+  color: #4b5563;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
-
 .card-value {
     font-size: 1.5rem;
     font-weight: bold;
     color: #333;
     margin-top: auto; /* pushes value to the bottom of the card */
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--primary-color, #2563eb);
+  margin-top: 8px;
+}
+
+/* =====================
+  VolunteerRequest Overview
+===================== */
+.nested-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 5px;
+  background-color: #f9f9f9;
+}
+.nested-table th, .nested-table td {
+  border: 1px solid #ccc;
+  padding: 5px;
+  text-align: left;
+}
+
+.highlighted-request {
+  background-color: var(--highlight-color);
+  transition: background-color 2s ease;
+}
+.highlighted-request.fade {
+  background-color: transparent;
 }
 /* Filters */
 .filters {

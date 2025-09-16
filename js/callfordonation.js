@@ -1002,7 +1002,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const tr = document.createElement('tr');
         const actionButtons = `
             <button title="View" class="viewBtn"><i class="bx bx-show-alt"></i></button>
-            ${userRole !== 'ADMIN' ? '<button title="Archive" class="deleteBtn"><i class="bx bx-x-circle"></i></button>' : ''}
+            ${userRole !== 'ADMIN' ? '<button title="Archive" class="deleteBtn"><i class="bx bx-archive"></i></button>' : ''}
             <button title="Save as PDF" class="savePDFBtn"><i class="bx bxs-file-pdf"></i></button>
         `;
         tr.innerHTML = `

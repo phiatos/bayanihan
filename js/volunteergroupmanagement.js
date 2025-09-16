@@ -391,7 +391,7 @@ function renderTable(dataToRender = filteredData) {
             <td>
                 <button title="View" class="viewBtn" data-id="${row.id}"><i class='bx bx-show'></i></button>
                 <button title="Edit" class="editBtn" data-id="${row.id}"><i class='bx bx-edit'></i></button>
-                <button title="Archive" class="deleteBtn" data-id="${row.id}"><i class="bx bx-x-circle"></i></button>
+                <button title="Archive" class="deleteBtn" data-id="${row.id}"><i class='bx bx-archive'></i></button>
             </td>
         `;
         tableBody.appendChild(tr);
