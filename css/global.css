@@ -1076,29 +1076,6 @@ button:disabled {
   gap: 10px;
 }
 
-/* Styles for the "View Archived" button */
-#viewArchived {
-  width: 45px;
-  height: 45px;
-  padding: 0;
-  margin: 0;
-  box-sizing: border-box;
-  font-size: 20px;
-  border-radius: 50%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
-  background-color: var(--gray); 
-}
-
-#viewArchived:hover {
-  background-color: #7b7b7b; 
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-}
-
 /* Styles for the "Download Template" button */
 #downloadTemplateBtn {
   width: 45px;
@@ -1161,7 +1138,7 @@ button:disabled {
 td:has(.viewBtn, .expandBtn, .endorseNowBtn,
 .editBtn, .approveBtn, .registerBtn, 
 .saveSinglePdfBtn, .savePDFBtn,
-.actionBtn, .endorseBtn,
+.actionBtn, .endorseBtn, .confirmBtn,
 .deleteBtn, .rejectBtn, .archiveBtn,
 .rescheduleBtn, .saveBtn, .action-button-endorse-button, 
 .action-button, .edit-addressPinBtn) {
@@ -1176,7 +1153,7 @@ td:has(.viewBtn, .expandBtn, .endorseNowBtn,
 .viewBtn, .expandBtn, .endorseNowBtn,
 .editBtn, .approveBtn, .registerBtn,
 .saveSinglePdfBtn, .savePDFBtn,
-.actionBtn, .endorseBtn,
+.actionBtn, .endorseBtn, .confirmBtn,
 .deleteBtn, .rejectBtn, .archiveBtn,
 .rescheduleBtn, .saveBtn, .action-button-endorse-button, 
 .action-button, .cancel-request-btn, .edit-request-btn,
@@ -1199,7 +1176,7 @@ td:has(.viewBtn, .expandBtn, .endorseNowBtn,
 .editBtn:hover, .approveBtn:hover, .registerBtn:hover,
 .saveSinglePdfBtn:hover, .savePDFBtn:hover,
 .rejectBtn:hover, .deleteBtn:hover, .archiveBtn:hover,
-.actionBtn:hover, .endorseBtn:hover,
+.actionBtn:hover, .endorseBtn:hover, .confirmBtn:hover,
 .rescheduleBtn:hover, .cancel-request-btn:hover, 
 .edit-request-btn:hover, .pin-location-btn:hover {
   transform: translateY(-2px);
@@ -1210,7 +1187,7 @@ td:has(.viewBtn, .expandBtn, .endorseNowBtn,
 .viewBtn i, .editBtn i, .endorseNowBtn i,
 .approveBtn i, .registerBtn i,
 .saveSinglePdfBtn i, .savePDFBtn i,
-.actionBtn i, .endorseBtn i,
+.actionBtn i, .endorseBtn i, .confirmBtn i,
 .deleteBtn i, .rejectBtn i,
 .archiveBtn i, .rescheduleBtn i,
 .saveBtn i, .expandBtn i,
@@ -1228,7 +1205,7 @@ td:has(.viewBtn, .expandBtn, .endorseNowBtn,
 .viewBtn, .editBtn, .endorseNowBtn,
 .approveBtn, .registerBtn,
 .saveSinglePdfBtn, .savePDFBtn,
-.actionBtn, .endorseBtn,
+.actionBtn, .endorseBtn, .confirmBtn,
 .deleteBtn, .rejectBtn,
 .archiveBtn, .rescheduleBtn,
 .saveBtn, .expandBtn,
@@ -1257,26 +1234,24 @@ td:has(.viewBtn, .expandBtn, .endorseNowBtn,
   transform: translateY(-2px);
 }
 
-.deleteBtn, .rejectBtn,
-.action-button, .archiveBtn,
+.rejectBtn, .action-button, 
 .cancel-request-btn {
   background-color: var(--red);
 }
 
-.deleteBtn:hover, .rejectBtn:hover,
-.action-button:hover, .archiveBtn:hover,
+.rejectBtn:hover, .action-button:hover,
 .cancel-request-btn:hover {
   background-color: var(--red-hover);
   transform: translateY(-2px);
 }
 
-.approveBtn,
+.approveBtn, .confirmBtn,
 #addItemBtn {
   background-color: var(--green);
   color: #fff;
 }
 
-.approveBtn:hover,
+.approveBtn:hover, .confirmBtn:hover,
 #addItemBtn:hover,
 button[type="submit"]:hover,
 #submitBtn:hover,
@@ -1337,6 +1312,28 @@ button[type="submit"]:hover,
 .pdf-button i, .excel-button i, .toggleViewBtn i, .viewPendingBtn i {
   font-size: 1.1rem;
   margin-right: 8px;
+}
+
+#viewArchived, .archiveBtn, .deleteBtn {
+  width: 45px;
+  height: 45px;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+  font-size: 20px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  background-color: var(--gray); 
+}
+
+#viewArchived:hover, .archiveBtn:hover, .deleteBtn:hover {
+  background-color: #7b7b7b; 
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
 /* Table Controls */

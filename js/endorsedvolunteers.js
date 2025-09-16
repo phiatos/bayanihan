@@ -600,7 +600,6 @@ async function fetchEndorsedVolunteers(userUid) {
         const userRole = userData?.role || 'ABVN';
 
         if (userRole === 'ABVN') {
-            // For ABVN users, find their associated volunteer group
             const volunteerGroupsRef = database.ref('volunteerGroups');
             const querySnapshot = await volunteerGroupsRef.orderByChild('userId').equalTo(userUid).once('value');
             let foundAbvnKey = null;
@@ -920,13 +919,14 @@ function renderVolunteersTable() {
                 ? `${volunteer.endorsedDetails.endorsedToABVNName} (${volunteer.endorsedDetails.endorsedToABVNLocation})` 
                 : 'N/A'}</td>
             <td>${volunteer.endorsedDetails?.taskName}</td>
+            <td>${volunteer.endorsedDetails ? (volunteer.endorsedDetails.status || 'Pending') : 'Pending'}</td>
             <td>${formatDate(volunteer.endorsedDetails?.endorsementDate)}</td>
             <td>
                 <button title="View" class="viewBtn"><i class='bx bx-show-alt'></i></button>
-                ${permissions.canArchive ? `<button title="Archive" class="archiveBtn"><i class='bx bx-x-circle'></i></button>` : ''}
+                ${permissions.canArchive ? `<button title="Archive" class="archiveBtn"><i class='bx bx-archive'></i></button>` : ''}
                 <button title="Save as PDF" class="saveSinglePdfBtn"><i class='bx bxs-file-pdf'></i></button>
-                ${permissions.canView ? `<button title="Reject" class="rejectBtn" data-key="${volunteer.key}"><i class='bx bx-block'></i></button>` : ''}
-            </td>
+                ${permissions.canView && volunteer.endorsedDetails?.status !== "Confirmed" ? `<button title="Reject" class="rejectBtn" data-key="${volunteer.key}"><i class="bx bx-x-circle"></i></button>` : ''}
+                ${currentUserRole === "ABVN" && volunteer.endorsedDetails?.status !== "Confirmed" ? `<button title="Confirm" class="confirmBtn" data-key="${volunteer.key}"><i class='bx bx-check-circle'></i></button>` : ''}            </td>
         `;
 
         // View button
@@ -985,40 +985,163 @@ function renderVolunteersTable() {
             });
         }
 
-    });
+        // Confirm button 
+        const confirmBtn = row.querySelector('.confirmBtn');
+        if (confirmBtn) {
+            confirmBtn.addEventListener('click', async (e) => {
+                const key = e.currentTarget.dataset.key;
+                try {
+                    const result = await Swal.fire({
+                        title: 'Confirm Volunteer',
+                        text: "Do you want to confirm this volunteer?",
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonText: 'Yes',
+                        cancelButtonText: 'No',
+                        reverseButtons: true,
+                        focusCancel: true,
+                        customClass: {
+                        popup: 'custom-swal-popup-small',
+                        title: 'custom-swal-title',
+                        htmlContainer: 'custom-swal-content',
+                        confirmButton: 'custom-confirm-btn',
+                        cancelButton: 'custom-cancel-btn'
+                        },
+                    });
+                    if (result.isConfirmed) {
+                        await confirmVolunteer(key, currentUserId);
+                    }
+                } catch (error) {
+                    console.error("Error confirming volunteer:", error);
+                    Swal.fire("Error", "Something went wrong. Please try again.", "error");
+                }
+            });
+        }
 
-    renderPagination();
+
+        });
+
+        renderPagination();
+    }
+
+async function confirmVolunteer(volunteerKey, userId) {
+    try {
+        const userSnapshot = await database.ref(`users/${userId}`).once('value');
+        const userData = userSnapshot.val();
+        if (userData.role !== 'ABVN') {
+            Swal.fire("Error", "Only ABVN users can confirm volunteers.", "error");
+            return;
+        }
+        const volunteerGroupsRef = database.ref('volunteerGroups');
+        const querySnapshot = await volunteerGroupsRef.orderByChild('userId').equalTo(userId).once('value');
+        let abvnId = null;
+        querySnapshot.forEach(childSnapshot => {
+            abvnId = childSnapshot.key;
+            return true;
+        });
+        if (!abvnId) {
+            Swal.fire("Error", "ABVN group not found.", "error");
+            return;
+        }
+        const volunteerRef = database.ref(`volunteerEndorsements/${abvnId}/endorsedVolunteers/${volunteerKey}`);
+        const snapshot = await volunteerRef.once("value");
+        const volunteer = snapshot.val();
+        if (!volunteer) {
+            Swal.fire("Error", "Volunteer not found.", "error");
+            return;
+        }
+        const timestamp = new Date().toISOString();
+        await volunteerRef.update({
+            "endorsedDetails/status": "Confirmed",
+            confirmedAt: timestamp
+        });
+        if (volunteer.requestId) {
+            // Increment confirmed count in volunteerRequests
+            await database.ref(`volunteerRequests/${volunteer.requestId}/confirmed`).transaction(c => (c || 0) + 1);
+            // Increment confirmed count in volunteerGroups
+            await database.ref(`volunteerGroups/${abvnId}/volunteerNeeds/${volunteer.requestId}/confirmed`).transaction(c => (c || 0) + 1);
+        }
+        Swal.fire({
+            title: "Confirmed!",
+            text: "Volunteer has been confirmed successfully.",
+            icon: "success",
+            timer: 1600,
+            showConfirmButton: false,
+            timerProgressBar: true,
+            customClass: {
+                popup: 'swal2-popup-success-clean',
+                title: 'swal2-title-success-clean',
+                htmlContainer: 'swal2-text-success-clean'
+            }
+        });
+        fetchEndorsedVolunteers(userId);
+    } catch (err) {
+        console.error("Error confirming volunteer:", err);
+        Swal.fire("Error", "Failed to confirm volunteer.", "error");
+    }
 }
 
 async function rejectVolunteer(volunteer, reason = '') {
     try {
+        // Check if volunteer is already confirmed
+        if (volunteer.endorsedDetails?.status === "Confirmed") {
+            Swal.fire({
+                title: 'Error',
+                text: 'Cannot reject a volunteer who is already confirmed.',
+                icon: 'error',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                allowOutsideClick: false,
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
+                }
+            });
+            return;
+        }
+
         const abvnId = volunteer.sourceAbvnKey; 
         const abvnName = volunteer.endorsedDetails?.endorsedToABVNName || 'Unknown ABVN';
         const timestamp = new Date().toISOString();
 
-        // 1. Move volunteer back to Pending with a "rejected" node
+        // 1. Rebuild volunteer data without requestId
+        const { requestId, ...volunteerDataWithoutRequest } = volunteer;
+
         await database.ref(`volunteerApplications/pendingVolunteer/${volunteer.key}`).set({
-            ...volunteer,
+            ...volunteerDataWithoutRequest,
             rejected: {
-                byABVN: abvnName,        
-                byId: abvnId,            
-                reason: reason || '',     
-                at: timestamp            
+                byABVN: abvnName,
+                byId: abvnId,
+                reason: reason || '',
+                at: timestamp
             }
         });
 
-        // 2. Remove volunteer from ABVN's endorsed list
+        // 2. Remove from ABVN's endorsed list
         await database.ref(`volunteerEndorsements/${abvnId}/endorsedVolunteers/${volunteer.key}`).remove();
 
-        // 3. Remove associated requestId from the volunteer's data (if it exists)
-        if (volunteer.requestId) {
-            await database.ref(`volunteerGroups/${abvnId}/volunteerNeeds/${volunteer.requestId}/assigned`).transaction(current => {
-                return (current || 1) - 1; // decrement the assigned count
+        // 3. Adjust counts if requestId exists
+        if (requestId) {
+            // Decrement assigned count in both nodes
+            await database.ref(`volunteerGroups/${abvnId}/volunteerNeeds/${requestId}/assigned`).transaction(current => {
+                return Math.max(0, (current || 1) - 1);
             });
 
-            await database.ref(`volunteerRequests/${volunteer.requestId}/assigned`).transaction(current => {
-                return (current || 1) - 1; // decrement global assigned count
+            await database.ref(`volunteerRequests/${requestId}/assigned`).transaction(current => {
+                return Math.max(0, (current || 1) - 1);
             });
+
+            // Decrement confirmed count in both nodes if volunteer was confirmed
+            if (volunteer.endorsedDetails?.status === "Confirmed") {
+                await database.ref(`volunteerRequests/${requestId}/confirmed`).transaction(current => {
+                    return Math.max(0, (current || 1) - 1);
+                });
+                await database.ref(`volunteerGroups/${abvnId}/volunteerNeeds/${requestId}/confirmed`).transaction(current => {
+                    return Math.max(0, (current || 1) - 1);
+                });
+            }
         }
 
         Swal.fire({
@@ -1495,16 +1618,14 @@ function showVolunteerDetails(volunteer) {
         skillsHtml = `<p><strong>Skills:</strong> None selected</p>`;
     }
 
-    // Handle address (aligned with showPreviewModal)
+    // Handle address
     const address = volunteer.address || {};
     const formattedAddress = address.formattedAddress || 'N/A';
     const latitude = address.latitude || 'N/A';
     const longitude = address.longitude || 'N/A';
 
-    // Include status for admins only
-    const statusHtml = permissions.canView
-        ? `<p><strong>Status:</strong> ${volunteer.endorsedDetails?.status || 'N/A'}</p>`
-        : '';
+    // Define statusHtml to show status for both ABVNs and admins
+    const statusHtml = `<p><strong>Status:</strong> ${volunteer.endorsedDetails?.status || 'Pending'}</p>`;
 
     modalContentDiv.innerHTML = `
         <div class="modal-content-inner" style="padding: 20px;">
@@ -1516,7 +1637,7 @@ function showVolunteerDetails(volunteer) {
             <p><strong>Social Media:</strong> ${socialMediaHtml}</p>
             <p><strong>Additional Info:</strong> ${volunteer.additionalInfo || volunteer.otherSkillComments || '-'}</p>
             ${statusHtml}
-            <p><strong>Task Name:</strong> ${volunteer.endorsedDetails?.taskName}</p>
+            <p><strong>Task Name:</strong> ${volunteer.endorsedDetails?.taskName || 'N/A'}</p>
             <hr>
             <h2>Address Information:</h2>
             <div style="margin-left: 15px;">

@@ -1853,7 +1853,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     <td>
                         <button class="viewBtn" data-id="${d.firebaseKey}"><i class='bx bx-show-alt'></i></button>
                         ${permissions.canEdit ? `<button class="editBtn" data-id="${d.firebaseKey}"><i class='bx bx-edit'></i></button>` : ''}
-                        ${permissions.canArchive ? `<button class="archiveBtn" data-id="${d.firebaseKey}"><i class="bx bx-x-circle"></i></button>` : ''}
+                        ${permissions.canArchive ? `<button class="archiveBtn" data-id="${d.firebaseKey}"><i class='bx bx-archive'></i></button>` : ''}
                         <button class="endorseBtn" data-id="${d.firebaseKey}"><i class='bx bx-mail-send'></i></button>
                         <button class="savePDFBtn" data-id="${d.firebaseKey}"><i class='bx bxs-file-pdf'></i></button>
                     </td>

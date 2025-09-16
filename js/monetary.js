@@ -1576,7 +1576,7 @@ async function validateDonationForm(inputs, excludeKey = null) {
                     <td>
                         <button class="viewBtn"><i class='bx bx-show-alt'></i></button>
                         ${permissions.canEdit ? `<button title="Edit" class="editBtn"><i class='bx bx-edit'></i></button>` : ''}
-                        ${permissions.canArchive ? `<button title="Archive" class="archiveBtn"><i class="bx bx-x-circle"></i></button>` : ''}
+                        ${permissions.canArchive ? `<button title="Archive" class="archiveBtn"><i class='bx bx-archive'></i></button>` : ''}
                         <button title="Save as PDF" class="savePDFBtn"><i class='bx bxs-file-pdf'></i></button>
                     </td>
                 `;
