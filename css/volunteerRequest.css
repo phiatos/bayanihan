@@ -283,33 +283,49 @@ fieldset {
 /* ==================== DASHBOARD/OVERVIEW ============ */
 /* ===================================================== */
 .dashboard-cards {
-  display: flex;
-  gap: 20px;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); /* flexible columns */
+    gap: 20px;
+    margin-bottom: 30px;
 }
 
 .dashboard-cards .card {
-  background-color: #fff;
-  padding: 15px 20px;
-  border-radius: 12px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-  flex: 1 1 200px;
-  text-align: center;
+    background: rgba(255, 255, 255, 0.15); /* semi-transparent glass */
+    backdrop-filter: blur(10px) saturate(180%); /* frosted glass effect */
+    -webkit-backdrop-filter: blur(10px) saturate(180%); /* Safari support */
+    border-radius: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.3); /* subtle glass border */
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1); /* soft shadow */
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    width: fit-content;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
+/* Optional: interactive hover effect */
+.dashboard-cards .card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+}
+
+
 .card-title {
-  font-size: 0.9rem;
-  color: #555;
-  margin-bottom: 10px;
+    font-size: 0.9rem;
+    color: #555;
+    width: 200px;
+    min-height: 1.2em; /* ensures all titles occupy same height */
+    margin-bottom: 5px;
 }
 
 .card-value {
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: #333;
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #333;
+    margin-top: auto; /* pushes value to the bottom of the card */
 }
-
 /* Filters */
 .filters {
   display: flex;
@@ -667,18 +683,6 @@ fieldset {
   text-align: center;
 }
 
-.card-title {
-  font-size: 0.9rem;
-  color: #555;
-  margin-bottom: 10px;
-}
-
-.card-value {
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: #333;
-}
-
 /* Filters */
 .filters {
   display: flex;
@@ -743,3 +747,30 @@ fieldset {
   margin: 0 auto;
   display: block;
 }
+
+.status-badge {
+    padding: 4px 10px;
+    border-radius: 12px;
+    color: white;
+    font-weight: bold;
+    font-size: 0.85rem;
+    display: inline-block;
+    text-align: center;
+}
+
+.status-badge-completed {
+    background-color: #28a745; /* Green */
+}
+
+.status-badge-pending {
+    background-color: #ffc107; /* Red */
+}
+
+.status-badge-incomplete {
+    background-color: #6c757d; /* Gray */
+}
+
+.status-badge-rejected {
+    background-color: #343a40; /* Dark Gray/Black */
+}
+
