@@ -6,17 +6,13 @@
     <link rel="stylesheet" href="../components/sidebar.css" />
     <link rel="stylesheet" href="../css/global.css" />
     <link rel="stylesheet" href="../css/vgandvolunteers.css" />
-
     <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" />
-
     <!-- EmailJS -->
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
-
     <!-- Firebase Compat SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <!-- Sheets -->
@@ -28,12 +24,12 @@
     <title>Bayanihan | Angat Buhay Disaster Relief Portal</title>
     <style>
         .donor-type-buttons {
-            display:block;
+            display: block;
             border-bottom: 2px solid #ddd;
             margin-bottom: 20px;
         }
         .donor-type-buttons button {
-            padding: 10px 85px 10px 20px; /* Top, Right, Bottom, Left */
+            padding: 10px 85px 10px 20px;
             border: none;
             background: #14AEBB;
             cursor: pointer;
@@ -49,10 +45,10 @@
             background: #0E7781;
         }
         .urgent-row {
-            border: 3px solid red !important; /* Temporary to test visibility */
+            border: 3px solid red !important;
         }
         .urgent-row td {
-            border-color: #ff9999; /* Slightly darker red for cell borders */
+            border-color: #ff9999;
         }
         table tbody tr.urgent-row {
             background-color: #ffcccc !important;
@@ -61,12 +57,19 @@
         table tbody tr.urgent-row td {
             border-color: #ff9999;
         }
+        .modal-content label {
+            display: block;
+            margin-bottom: 10px;
+        }
+        .modal-content ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
     </style>
 </head>
 <body>
     <div class="main-container">
         <div class="sidebar-placeholder"></div>
-
         <div id="main-content">
             <section>
                 <div class="controls">
@@ -80,7 +83,7 @@
                         </div>
                         <div class="custom-select-wrapper">
                             <select id="sortSelect">
-                                <option value="">Sort by</option> 
+                                <option value="">Sort by</option>
                                 <optgroup label="Donation Drive">
                                     <option value="donationDrive-asc">Donation Drive (A–Z)</option>
                                     <option value="donationDrive-desc">Donation Drive (Z–A)</option>
@@ -107,20 +110,17 @@
                         </div>
                     </div>
                 </div>
-
                 <div class="table-controls">
                     <button id="viewApprovedBtn" class="viewApprovedBtn">
                         <i class='bx bx-show' style="font-size: 1.2rem;"></i>View Monetary Donation
                     </button>
                 </div>
-
                 <div class="donor-type-buttons">
                     <button id="individualBtn" class="donor-btn active">Individual</button>
                     <button id="anonymousBtn" class="donor-btn">Anonymous</button>
                     <button id="corporateBtn" class="donor-btn">Corporate</button>
                     <button id="foundationBtn" class="donor-btn">Foundation</button>
                 </div>
-                
                 <div id="individualTableContainer" class="table-container">
                     <table id="individualTable" class="table table-bordered">
                         <thead>
@@ -133,6 +133,7 @@
                                 <th>Email</th>
                                 <th>Donation Category</th>
                                 <th>Valuation</th>
+                                <th>Items</th>
                                 <th>Description</th>
                                 <th>Donation Date</th>
                                 <th>Status</th>
@@ -154,7 +155,7 @@
                                 <th>Donation Category</th>
                                 <th>Valuation</th>
                                 <th>Donor Type</th>
-                                <th>Valuation</th>
+                                <th>Items</th>
                                 <th>Description</th>
                                 <th>Donation Date</th>
                                 <th>Status</th>
@@ -176,6 +177,7 @@
                                 <th>Donation Note</th>
                                 <th>Donation Category</th>
                                 <th>Valuation</th>
+                                <th>Items</th>
                                 <th>Description</th>
                                 <th>Donation Date</th>
                                 <th>Status</th>
@@ -197,6 +199,7 @@
                                 <th>Email</th>
                                 <th>Donation Category</th>
                                 <th>Valuation</th>
+                                <th>Items</th>
                                 <th>Description</th>
                                 <th>Donation Date</th>
                                 <th>Status</th>
@@ -206,23 +209,38 @@
                         <tbody></tbody>
                     </table>
                 </div>
-                
                 <div class="pagination-info">
                     <span id="entriesInfo">Showing 0 to 0 of 0 entries</span>
                     <div id="pagination" class="pagination"></div>
                 </div>
-
                 <br>
             </section>
-
-            <!-- Added Preview Modal -->
+            <!-- Updated Preview Modal -->
             <div class="modal" id="previewModal" style="display:none;">
                 <div class="modal-content">
                     <span class="close-button" id="closeModal">×</span>
-                    <div id="modalContent"></div>
+                    <div id="modalContent">
+                        <h4>Donation Details</h4>
+                        <label><strong>Encoder:</strong> <span id="preview-encoder"></span></label>
+                        <label><strong>Name:</strong> <span id="preview-name"></span></label>
+                        <label><strong>Type:</strong> <span id="preview-type"></span></label>
+                        <label><strong>Address:</strong> <span id="preview-address"></span></label>
+                        <label><strong>Contact Person:</strong> <span id="preview-contactPerson"></span></label>
+                        <label><strong>Number:</strong> <span id="preview-number"></span></label>
+                        <label><strong>Email:</strong> <span id="preview-email"></span></label>
+                        <label><strong>Type of Assistance:</strong> <span id="preview-assistance"></span></label>
+                        <label><strong>Valuation:</strong> <span id="preview-valuation"></span></label>
+                        <label><strong>Items:</strong>
+                            <ul id="preview-items"></ul>
+                        </label>
+                        <label><strong>Additional Notes:</strong> <span id="preview-additionalnotes"></span></label>
+                        <label><strong>Status:</strong> <span id="preview-status"></span></label>
+                        <label><strong>Staff-In Charge:</strong> <span id="preview-staffIncharge"></span></label>
+                        <label><strong>Donation Date:</strong> <span id="preview-donationDate"></span></label>
+                    </div>
                 </div>
             </div>
-
+            <!-- Updated Edit Modal -->
             <div class="modal" id="editModal" style="display:none;">
                 <div class="modal-content">
                     <span class="close-button" id="closeEditModalBtn">×</span>
@@ -236,6 +254,7 @@
                     <label>Email: <input type="email" id="edit-email"></label>
                     <label>Type of Assistance: <input type="text" id="edit-assistance"></label>
                     <label>Valuation: <input type="number" id="edit-valuation"></label>
+                    <label>Items (JSON format, e.g., [{name: "Rice", quantity: 10}]): <textarea id="edit-items"></textarea></label>
                     <label>Additional Notes: <input type="text" id="edit-additionalnotes"></label>
                     <label>Status:
                         <select id="edit-status">
@@ -250,7 +269,6 @@
                     <button type="button" id="cancelEditBtn">Cancel</button>
                 </div>
             </div>
-
             <!-- Archived Modal -->
             <div class="modal" id="archivedModal" style="display: none;">
                 <div class="modal-content">
@@ -274,13 +292,15 @@
                                     <th>Contact Person</th>
                                     <th>Number</th>
                                     <th>Email</th>
-                                    <td>Type of Assistance</td>
-                                    <td>Valuation</td>
-                                    <td>Additional Notes</td>
-                                    <td>Staff-In Charge</td>
-                                    <td>Donation Date</td>
-                                    <td>Status</td>
+                                    <th>Type of Assistance</th>
+                                    <th>Valuation</th>
+                                    <th>Items</th>
+                                    <th>Additional Notes</th>
+                                    <th>Staff-In Charge</th>
+                                    <th>Donation Date</th>
+                                    <th>Status</th>
                                     <th>Action</th>
+                                </tr>
                             </thead>
                             <tbody id="archivedTableBody"></tbody>
                         </table>
@@ -291,9 +311,30 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Match Modal -->
+            <div id="matchModal" class="modal" style="display:none;">
+                <div class="modal-content">
+                    <span class="closeBtn">&times;</span>
+
+                    <div class="match-modal-wrapper">
+                    <h2>Match Relief Request</h2>
+                    <p><strong>Category:</strong> <span id="modalReliefCategory"></span></p>
+                    <p><strong>Dropoff Address:</strong> <span id="modalReliefAddress"></span></p>
+                    <p><strong>Donation Date:</strong> <span id="modalDonationDate"></span></p>
+                    </div>
+
+                    <div class="match-modal-wrapper">
+                    <h3>Matching Relief Requests:</h3>
+                    <div id="donationMatches">Loading...</div>
+                    </div>
+
+                    <button id="confirmMatchBtn">Confirm Match</button>
+                </div>
+            </div>
+
         </div>
     </div>
-
     <script>
         fetch('../components/sidebar.html')
             .then(res => res.text())
@@ -304,23 +345,8 @@
                 document.querySelector('.sidebar-placeholder').appendChild(script);
             })
             .catch(err => console.error('Error loading sidebar:', err));
-
-        // Tab navigation logic
-        document.querySelectorAll('.tab-button').forEach(button => {
-            button.addEventListener('click', () => {
-                // Remove active class from all buttons
-                document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
-                // Add active class to clicked button
-                button.classList.add('active');
-                // Load data for the selected tab
-                const tabType = button.getAttribute('data-tab');
-                // Call a function to update the table based on tabType (to be implemented in pendinginkind.js)
-                updateTableData(tabType);
-            });
-        });
     </script>
-
-    <script src="../js/inactivity-detector.js"></script> 
+    <script src="../js/inactivity-detector.js"></script>
     <script src="../js/pendinginkind.js"></script>
 </body>
 </html>

@@ -7,6 +7,7 @@ let markers = [];
 let autocompletes = {};
 let currentPinButtonId = null;
 let selectedCoordinates = { lat: null, lng: null };
+let addedItems = []; // Array to store items added to the table
 
 const MAX_VALUATION = 1000000000; // Maximum valuation for in-kind donations (PHP 1,000,000,000)
 const MAX_AMOUNT_DONATED = 1000000000; // Maximum amount for monetary donations (PHP 1,000,000,000)
@@ -42,7 +43,6 @@ function initMap() {
             title: place.name,
         });
         markers.push(marker);
-        // Store coordinates
         selectedCoordinates = {
             lat: place.geometry.location.lat(),
             lng: place.geometry.location.lng()
@@ -72,7 +72,6 @@ function initMap() {
             title: "Pinned Location",
         });
         markers.push(marker);
-        // Store coordinates
         selectedCoordinates = {
             lat: event.latLng.lat(),
             lng: event.latLng.lng()
@@ -116,7 +115,6 @@ function initMap() {
         map.setZoom(16);
     });
 
-    // Initialize autocomplete for in-kind address fields only
     const addressFields = [
         'individualAddress',
         'anonymousAddress',
@@ -134,6 +132,10 @@ function initMap() {
                 const place = autocompletes[fieldId].getPlace();
                 if (place.geometry && place.geometry.location) {
                     input.value = place.formatted_address;
+                    selectedCoordinates = {
+                        lat: place.geometry.location.lat(),
+                        lng: place.geometry.location.lng()
+                    };
                 }
             });
         }
@@ -248,7 +250,6 @@ firebase.auth().onAuthStateChanged((user) => {
         currentUserUid = user.uid;
     } else {
         currentUserUid = null;
-        // Sign in anonymously for testing
         firebase.auth().signInAnonymously().catch(error => {
             Swal.fire({
                 icon: 'error',
@@ -299,7 +300,6 @@ async function populateCityDropdowns() {
             }
         });
     } catch (error) {
-        console.error('Error loading cities:', error);
         Swal.fire({
             icon: 'error',
             title: 'Error',
@@ -329,6 +329,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const inKindDonorTypeSelect = document.getElementById('inKindDonorType');
     const monetaryDonorTypeSelect = document.getElementById('monetaryDonorType');
 
+    // Requested Items Section Elements
+    const assistanceTypeSelect = document.getElementById('assistanceType');
+    const itemNameInput = document.getElementById('itemName');
+    const quantityInput = document.getElementById('quantity');
+    const notesInput = document.getElementById('notes');
+    const addItemBtn = document.getElementById('addItemBtn');
+    const itemsTable = document.getElementById('itemsTable');
+    const noEntriesRow = document.getElementById('noEntriesRow');
+    const nextBtn = document.getElementById('nextBtn');
+
     // In-Kind Donor Type Fields
     const individualFields = document.getElementById('individualFields');
     const anonymousFields = document.getElementById('anonymousFields');
@@ -341,7 +351,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const monetaryCorporateFields = document.getElementById('monetaryCorporateFields');
     const monetaryFoundationFields = document.getElementById('monetaryFoundationFields');
 
-    // Add the new code here
+    // Terms and Privacy Links
     const openTermsLinks = document.querySelectorAll('#openTerms');
     const openPrivacyLinks = document.querySelectorAll('#openPrivacy');
     const openPrivacyFromTermsLink = document.getElementById('openPrivacyFromTerms');
@@ -457,6 +467,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Toggle between In-Kind and Monetary Forms
     if (inKindBtn && monetaryBtn && inKindDonationForm && monetaryDonationForm) {
         inKindDonationForm.style.display = 'flex';
         monetaryDonationForm.style.display = 'none';
@@ -477,6 +488,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Manage Required Attributes for Donor Types
     function manageRequiredAttributes(formType, selectedType) {
         const fieldSets = formType === 'inKind' ? {
             'Individual': ['individualFullName', 'individualAddress', 'individualMobileNumber', 'individualEmail'],
@@ -525,7 +537,6 @@ document.addEventListener('DOMContentLoaded', () => {
             manageRequiredAttributes('inKind', selectedType);
         });
 
-        // Set default to Individual
         inKindDonorTypeSelect.value = 'Individual';
         individualFields.style.display = 'block';
         manageRequiredAttributes('inKind', 'Individual');
@@ -551,13 +562,214 @@ document.addEventListener('DOMContentLoaded', () => {
             manageRequiredAttributes('monetary', selectedType);
         });
 
-        // Set default to Individual
         monetaryDonorTypeSelect.value = 'Individual';
         monetaryIndividualFields.style.display = 'block';
         manageRequiredAttributes('monetary', 'Individual');
     }
 
-    // Pin Location Button Logic (In-Kind Only)
+    // Requested Items Section Logic
+    if (assistanceTypeSelect && itemNameInput && quantityInput && notesInput && addItemBtn && itemsTable && noEntriesRow) {
+        // Enable/disable item inputs based on assistanceType
+        assistanceTypeSelect.addEventListener('change', () => {
+            const selectedType = assistanceTypeSelect.value;
+            const inputs = [itemNameInput, quantityInput, notesInput, addItemBtn];
+            if (selectedType && selectedType !== '-- Select Category --') {
+                inputs.forEach(input => input.disabled = false);
+            } else {
+                inputs.forEach(input => input.disabled = true);
+                addedItems = [];
+                updateItemsTable();
+            }
+        });
+
+        // Add Item Button Logic
+        addItemBtn.addEventListener('click', () => {
+            const itemName = itemNameInput.value.trim();
+            const quantity = quantityInput.value;
+            const notes = notesInput.value.trim() || 'N/A';
+
+            // Validate inputs
+            if (!itemName) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Invalid Item Name',
+                    text: 'Please enter a valid item name.',
+                    showConfirmButton: true,
+                    confirmButtonText: 'OK',
+                    customClass: {
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean'
+                    }
+                });
+                return;
+            }
+            if (!quantity || quantity <= 0) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Invalid Quantity',
+                    text: 'Please enter a valid positive quantity.',
+                    showConfirmButton: true,
+                    confirmButtonText: 'OK',
+                    customClass: {
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean'
+                    }
+                });
+                return;
+            }
+
+            // Add item to array
+            addedItems.push({ name: itemName, quantity: Number(quantity), notes });
+            updateItemsTable();
+
+            // Clear inputs
+            itemNameInput.value = '';
+            quantityInput.value = '';
+            notesInput.value = '';
+        });
+
+        // Function to update the items table
+        function updateItemsTable() {
+            const tbody = itemsTable.querySelector('tbody');
+            tbody.innerHTML = '';
+
+            if (addedItems.length === 0) {
+                tbody.appendChild(noEntriesRow);
+                noEntriesRow.style.display = 'table-row';
+            } else {
+                noEntriesRow.style.display = 'none';
+                addedItems.forEach((item, index) => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${item.name}</td>
+                        <td>${item.quantity}</td>
+                        <td>${item.notes}</td>
+                        <td><button type="button" class="delete-item" data-index="${index}">Delete</button></td>
+                    `;
+                    tbody.appendChild(row);
+                });
+
+                // Add delete button event listeners
+                tbody.querySelectorAll('.delete-item').forEach(button => {
+                    button.addEventListener('click', () => {
+                        const index = parseInt(button.getAttribute('data-index'));
+                        addedItems.splice(index, 1);
+                        updateItemsTable();
+                    });
+                });
+            }
+        }
+    }
+
+    // Next Button Logic
+    if (nextBtn) {
+        nextBtn.addEventListener('click', () => {
+            const inKindDonorType = inKindDonorTypeSelect?.value;
+            const assistanceType = assistanceTypeSelect?.value;
+            const valuation = valuationInput?.value.replace(/,/g, '');
+            const donationDate = donationDateInput?.value;
+            const agreeToTerms = document.getElementById('agreeToTerms')?.checked;
+
+            // Validate required fields
+            let donorName, donorAddress, donorMobileNumber, donorEmail;
+            switch (inKindDonorType) {
+                case 'Individual':
+                    donorName = document.getElementById('individualFullName')?.value;
+                    donorAddress = document.getElementById('individualAddress')?.value;
+                    donorMobileNumber = document.getElementById('individualMobileNumber')?.value;
+                    donorEmail = document.getElementById('individualEmail')?.value;
+                    break;
+                case 'Anonymous':
+                    donorName = 'Anonymous';
+                    donorAddress = document.getElementById('anonymousAddress')?.value;
+                    donorMobileNumber = document.getElementById('anonymousMobileNumber')?.value;
+                    donorEmail = document.getElementById('anonymousEmail')?.value;
+                    break;
+                case 'Corporate':
+                    donorName = document.getElementById('corporateCompanyName')?.value;
+                    donorAddress = document.getElementById('corporateAddress')?.value;
+                    donorMobileNumber = document.getElementById('corporateMobileNumber')?.value;
+                    donorEmail = document.getElementById('corporateEmail')?.value;
+                    break;
+                case 'Foundation':
+                    donorName = document.getElementById('foundationName')?.value;
+                    donorAddress = document.getElementById('foundationAddress')?.value;
+                    donorMobileNumber = document.getElementById('foundationMobileNumber')?.value;
+                    donorEmail = document.getElementById('foundationEmail')?.value;
+                    break;
+                default:
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Invalid Donor Type',
+                        text: 'Please select a valid donor type.',
+                        showConfirmButton: true,
+                        confirmButtonText: 'OK',
+                        customClass: {
+                            popup: 'swal2-popup-error-clean',
+                            title: 'swal2-title-error-clean',
+                            htmlContainer: 'swal2-text-error-clean'
+                        }
+                    });
+                    return;
+            }
+
+            if (!inKindDonorType || !assistanceType || !valuation || !donationDate ||
+                (inKindDonorType !== 'Anonymous' && (!donorName || !donorAddress || !donorMobileNumber || !donorEmail))) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Please fill in all required fields for In Kind Donation.',
+                    showConfirmButton: true,
+                    confirmButtonText: 'OK',
+                    customClass: {
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean'
+                    }
+                });
+                return;
+            }
+
+            if (!agreeToTerms) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Terms Not Accepted',
+                    text: 'Please agree to the Terms and Conditions and Privacy Policy.',
+                    showConfirmButton: true,
+                    confirmButtonText: 'OK',
+                    customClass: {
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean'
+                    }
+                });
+                return;
+            }
+
+            if (addedItems.length === 0) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'No Items Added',
+                    text: 'Please add at least one item to your donation.',
+                    showConfirmButton: true,
+                    confirmButtonText: 'OK',
+                    customClass: {
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean'
+                    }
+                });
+                return;
+            }
+
+            // Proceed to submission or preview (submit the form)
+            inKindDonationForm.dispatchEvent(new Event('submit'));
+        });
+    }
+
+    // Pin Location Button Logic
     Object.keys(pinButtons).forEach(pinBtnId => {
         const pinBtn = document.getElementById(pinBtnId);
         if (pinBtn) {
@@ -899,6 +1111,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
+            if (addedItems.length === 0) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'No Items Added',
+                    text: 'Please add at least one item to your donation.',
+                    showConfirmButton: true,
+                    confirmButtonText: 'OK',
+                    customClass: {
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean'
+                    }
+                });
+                return;
+            }
+
             const parsedValue = parseFloat(valuation);
             if (isNaN(parsedValue) || parsedValue <= 0) {
                 Swal.fire({
@@ -961,9 +1189,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 encoder: inKindEncoder,
                 name: donorName,
                 type: inKindDonorType,
-                address: donorAddress || '',
-                latitude: selectedCoordinates.lat || null, 
-                longitude: selectedCoordinates.lng || null,
+                address: {
+                    formattedAddress: donorAddress || '',
+                    latitude: selectedCoordinates.lat ? selectedCoordinates.lat.toString() : null,
+                    longitude: selectedCoordinates.lng ? selectedCoordinates.lng.toString() : null
+                },
                 number: donorMobileNumber || '',
                 email: donorEmail || '',
                 assistance: assistanceType,
@@ -974,6 +1204,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 donationDate: donationDate,
                 urgentNeed: urgentNeed,
                 createdAt: new Date().toISOString(),
+                items: addedItems, // Include items array
                 ...additionalFields
             };
 
@@ -1006,8 +1237,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     container.style.display = 'none';
                 });
                 individualFields.style.display = 'block';
-                // Reset coordinates
                 selectedCoordinates = { lat: null, lng: null };
+                addedItems = [];
+                updateItemsTable();
             } catch (error) {
                 Swal.fire({
                     icon: 'error',
@@ -1302,7 +1534,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     amount: parsedAmount,
                     bank: bank,
                     referenceNumber: referenceNumber,
-                    proofOfTransferUrl: proofOfTransferLink, // Store Google Drive link
+                    proofOfTransferUrl: proofOfTransferLink,
                     cashInvoice: cashInvoice || '',
                     donationDate: donationDate,
                     status: 'pending',
