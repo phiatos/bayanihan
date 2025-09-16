@@ -351,374 +351,192 @@ document.addEventListener('DOMContentLoaded', () => {
     function loadTabContent(tab) {
         tabContent.innerHTML = '';
 
-        if (tab === 'submit-request') {
-            tabContent.innerHTML = document.getElementById('submit-request-template').innerHTML;
-            attachSubmitListener();
-        } else if (tab === 'my-requests') {
-    tabContent.innerHTML = document.getElementById('my-requests-template').innerHTML;
+            if (tab === 'submit-request') {
+                tabContent.innerHTML = document.getElementById('submit-request-template').innerHTML;
+                attachSubmitListener();
+            } else if (tab === 'my-requests') {
+            tabContent.innerHTML = document.getElementById('my-requests-template').innerHTML;
 
-    // Container for request cards
-    const requestsListContainer = document.createElement('div');
-    requestsListContainer.className = 'requests-list-container';
-    tabContent.appendChild(requestsListContainer);
+            // Container for request cards
+            const requestsListContainer = document.createElement('div');
+            requestsListContainer.className = 'requests-list-container';
+            tabContent.appendChild(requestsListContainer);
 
-    // Counter
-    const counter = document.createElement('p');
-    counter.id = 'requests-counter';
-    tabContent.insertBefore(counter, requestsListContainer);
+            // Counter
+            const counter = document.createElement('p');
+            counter.id = 'requests-counter';
+            tabContent.insertBefore(counter, requestsListContainer);
 
-    const user = auth.currentUser;
-    if (!user) return;
+            const user = auth.currentUser;
+            if (!user) return;
 
-    const sortDropdown = document.getElementById('sortStatus'); // if exists in template
+            const sortDropdown = document.getElementById('sortStatus'); // if exists in template
 
-    database.ref(`volunteerGroups/${user.uid}/volunteerNeeds`).once('value').then(snapshot => {
-        const statusOrder = ["Pending", "In Progress", "Completed", "Incomplete", "Rejected"];
-        const requestsArray = [];
+            database.ref(`volunteerGroups/${user.uid}/volunteerNeeds`).once('value').then(snapshot => {
+                const statusOrder = ["Pending", "In Progress", "Completed", "Incomplete", "Rejected"];
+                const requestsArray = [];
 
-        snapshot.forEach(childSnapshot => {
-            const req = childSnapshot.val();
-            const reqId = childSnapshot.key;
-            requestsArray.push({ reqId, ...req });
-        });
-
-        function renderRequests(sortedBy = null) {
-            requestsListContainer.innerHTML = '';
-
-            let sortedArray = [...requestsArray];
-
-            // Sort by selected status on top
-            if (sortedBy) {
-                sortedArray.sort((a, b) => {
-                    if (a.status === sortedBy && b.status !== sortedBy) return -1;
-                    if (b.status === sortedBy && a.status !== sortedBy) return 1;
-                    return statusOrder.indexOf(a.status) - statusOrder.indexOf(b.status);
+                snapshot.forEach(childSnapshot => {
+                    const req = childSnapshot.val();
+                    const reqId = childSnapshot.key;
+                    requestsArray.push({ reqId, ...req });
                 });
-            } else {
-                sortedArray.sort((a, b) => statusOrder.indexOf(a.status) - statusOrder.indexOf(b.status));
-            }
 
-            // Render cards
-            sortedArray.forEach(req => {
-                const card = document.createElement('div');
-                card.className = 'request-card';
-                card.setAttribute('data-request-id', req.reqId);
+                function renderRequests(sortedBy = null) {
+                    requestsListContainer.innerHTML = '';
 
-                const timestamp = new Date(req.submissionDateTime).toLocaleString();
-                const skillsStr = req.skills.join(', ') + (req.otherSkillComments ? ', ' + req.otherSkillComments : '');
+                    let sortedArray = [...requestsArray];
 
-                card.innerHTML = `
-                    <div class="card-header">
-                        <h3 class="card-title">${req.taskName}</h3>
-                        <span class="card-status status-${req.status}">${req.status}</span>
-                    </div>
-                    <div class="card-body">
-                        <div class="card-body-wrapper">
-                            <div class="left-column">
-                                <p><strong>Volunteers Needed:</strong> ${req.volunteersNeeded}</p>
-                                <p><strong>Dates:</strong> ${req.taskStartDate} to ${req.taskEndDate}</p>
-                                <p><strong>Skills:</strong> ${skillsStr}</p>
-                                <p><strong>Submitted On:</strong> ${timestamp}</p>
+                    // Sort by selected status on top
+                    if (sortedBy) {
+                        sortedArray.sort((a, b) => {
+                            if (a.status === sortedBy && b.status !== sortedBy) return -1;
+                            if (b.status === sortedBy && a.status !== sortedBy) return 1;
+                            return statusOrder.indexOf(a.status) - statusOrder.indexOf(b.status);
+                        });
+                    } else {
+                        sortedArray.sort((a, b) => statusOrder.indexOf(a.status) - statusOrder.indexOf(b.status));
+                    }
+
+                    // Render cards
+                    sortedArray.forEach(req => {
+                        const card = document.createElement('div');
+                        card.className = 'request-card';
+                        card.setAttribute('data-request-id', req.reqId);
+
+                        const timestamp = new Date(req.submissionDateTime).toLocaleString();
+                        const skillsStr = req.skills.join(', ') + (req.otherSkillComments ? ', ' + req.otherSkillComments : '');
+                        const cssStatusClass = req.status.replace(/\s+/g, '');
+
+                        card.innerHTML = `
+                            <div class="card-header">
+                                <h3 class="card-title">${req.taskName}</h3>
+                                <span class="card-status status-${cssStatusClass}">${req.status}</span>
                             </div>
-                            <div class="right-column">
-                                <div class="request-actions">
-                                    <button class="edit-request-btn"><i class='bx bx-edit'></i></button>
-                                    <button class="cancel-request-btn"><i class='bx bx-trash-alt'></i></button> 
+                            <div class="card-body">
+                                <div class="card-body-wrapper">
+                                    <div class="left-column">
+                                        <p><strong>Volunteers Needed:</strong> ${req.volunteersNeeded}</p>
+                                        <p><strong>Dates:</strong> ${req.taskStartDate} to ${req.taskEndDate}</p>
+                                        <p><strong>Skills:</strong> ${skillsStr}</p>
+                                        <p><strong>Submitted On:</strong> ${timestamp}</p>
+                                    </div>
+                                    <div class="right-column">
+                                        <div class="request-actions">
+                                            <button class="edit-request-btn"><i class='bx bx-edit'></i></button>
+                                            <button class="cancel-request-btn"><i class='bx bx-trash-alt'></i></button> 
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-                `;
-                requestsListContainer.appendChild(card);
+                        `;
+                        requestsListContainer.appendChild(card);
 
-                // Cancel button logic
-                const cancelBtn = card.querySelector('.cancel-request-btn');
-                if (req.status === "In Progress" || req.assigned > 0 || req.status === "Rejected" || req.status === "Completed") {
-                    cancelBtn.disabled = true;
-                    cancelBtn.style.backgroundColor = '#ccc';
-                    cancelBtn.style.color = '#666';
-                    cancelBtn.innerHTML = "<i class='bx bx-trash-alt'></i>";
-                } else {
-                    cancelBtn.disabled = false;
-                    cancelBtn.style.backgroundColor = '';
-                    cancelBtn.style.color = '';
-                    cancelBtn.innerHTML = "<i class='bx bx-trash-alt'></i>";
-                }
+                        // Cancel button logic
+                        const cancelBtn = card.querySelector('.cancel-request-btn');
+                        if (req.status === "In Progress" || req.assigned > 0 || req.status === "Rejected" || req.status === "Completed") {
+                            cancelBtn.disabled = true;
+                            cancelBtn.style.backgroundColor = '#ccc';
+                            cancelBtn.style.color = '#666';
+                            cancelBtn.innerHTML = "<i class='bx bx-trash-alt'></i>";
+                        } else {
+                            cancelBtn.disabled = false;
+                            cancelBtn.style.backgroundColor = '';
+                            cancelBtn.style.color = '';
+                            cancelBtn.innerHTML = "<i class='bx bx-trash-alt'></i>";
+                        }
 
-                cancelBtn.addEventListener('click', async () => {
-                    if (cancelBtn.disabled) {
-                        showWarning("This request cannot be cancelled because it is already in progress or volunteers have been assigned.");
-                        return;
-                    }
+                        cancelBtn.addEventListener('click', async () => {
+                            if (cancelBtn.disabled) {
+                                showWarning("This request cannot be cancelled because it is already in progress or volunteers have been assigned.");
+                                return;
+                            }
 
-                    const confirmResult = await Swal.fire({
-                        title: 'Are you sure?',
-                        text: "This will cancel your volunteer request.",
-                        icon: 'warning',
-                        showCancelButton: true,
-                        confirmButtonText: "Yes",
-                        cancelButtonText: "No",
-                        reverseButtons: true,
-                        customClass: {
-                            popup: 'swal2-popup-warning-clean',
-                            title: 'swal2-title-warning-clean',
-                            htmlContainer: 'swal2-text-warning-clean',
-                            confirmButton: 'my-warning-button',
-                            cancelButton: 'custom-cancel-btn'
-                        },
+                            const confirmResult = await Swal.fire({
+                                title: 'Are you sure?',
+                                text: "This will cancel your volunteer request.",
+                                icon: 'warning',
+                                showCancelButton: true,
+                                confirmButtonText: "Yes",
+                                cancelButtonText: "No",
+                                reverseButtons: true,
+                                customClass: {
+                                    popup: 'swal2-popup-warning-clean',
+                                    title: 'swal2-title-warning-clean',
+                                    htmlContainer: 'swal2-text-warning-clean',
+                                    confirmButton: 'my-warning-button',
+                                    cancelButton: 'custom-cancel-btn'
+                                },
+                            });
+
+                            if (confirmResult.isConfirmed) {
+                                try {
+                                    await database.ref(`volunteerGroups/${user.uid}/volunteerNeeds/${req.reqId}`).remove();
+                                    await database.ref(`volunteerRequests/${req.reqId}`).remove();
+                                    showSuccess('Cancelled!', 'Your volunteer request has been cancelled.');
+                                    renderRequests(sortDropdown?.value || null);
+                                } catch (error) {
+                                    console.error(error);
+                                    showError('Failed to cancel request.');
+                                }
+                            }
+                        });
+
+                        // Edit button logic
+                        const editBtn = card.querySelector('.edit-request-btn');
+                        if (req.status === "In Progress" || req.assigned > 0 || req.status === "Rejected" || req.status === "Completed") {
+                            editBtn.disabled = true;
+                            editBtn.style.backgroundColor = '#ccc';
+                            editBtn.style.color = '#666';
+                            editBtn.innerHTML = "<i class='bx bx-edit'></i>";
+                        } else {
+                            editBtn.disabled = false;
+                            editBtn.style.backgroundColor = '';
+                            editBtn.style.color = '';
+                            editBtn.innerHTML = "<i class='bx bx-edit'></i>";
+                        }
+
+                        editBtn.addEventListener('click', () => {
+                            if (editBtn.disabled) {
+                                showWarning("This request cannot be edited because it is already in progress or volunteers have been assigned.");
+                                return;
+                            }
+
+                            document.querySelector('.tab-btn[data-tab="submit-request"]').click();
+                            setTimeout(() => {
+                                const needsForm = document.getElementById('abvn-needs-form');
+                                if (!needsForm) return;
+
+                                needsForm.querySelector('#taskName').value = req.taskName;
+                                needsForm.querySelector('#volunteersNeeded').value = req.volunteersNeeded;
+                                needsForm.querySelector('#taskStartDate').value = req.taskStartDate;
+                                needsForm.querySelector('#taskEndDate').value = req.taskEndDate;
+                                needsForm.querySelector('#taskTimeStart').value = req.taskTimeStart;
+                                needsForm.querySelector('#taskTimeEnd').value = req.taskTimeEnd;
+                                needsForm.querySelector('#otherNeededSkills').value = req.otherSkillComments || '';
+                                needsForm.querySelectorAll('input[name="neededSkills"]').forEach(cb => {
+                                    cb.checked = req.skills.includes(cb.value);
+                                });
+                                needsForm.dataset.requestId = req.reqId;
+                            }, 100);
+                        });
                     });
 
-                    if (confirmResult.isConfirmed) {
-                        try {
-                            await database.ref(`volunteerGroups/${user.uid}/volunteerNeeds/${req.reqId}`).remove();
-                            await database.ref(`volunteerRequests/${req.reqId}`).remove();
-                            showSuccess('Cancelled!', 'Your volunteer request has been cancelled.');
-                            renderRequests(sortDropdown?.value || null);
-                        } catch (error) {
-                            console.error(error);
-                            showError('Failed to cancel request.');
-                        }
-                    }
-                });
-
-                // Edit button logic
-                const editBtn = card.querySelector('.edit-request-btn');
-                if (req.status === "In Progress" || req.assigned > 0 || req.status === "Rejected" || req.status === "Completed") {
-                    editBtn.disabled = true;
-                    editBtn.style.backgroundColor = '#ccc';
-                    editBtn.style.color = '#666';
-                    editBtn.innerHTML = "<i class='bx bx-edit'></i>";
-                } else {
-                    editBtn.disabled = false;
-                    editBtn.style.backgroundColor = '';
-                    editBtn.style.color = '';
-                    editBtn.innerHTML = "<i class='bx bx-edit'></i>";
+                    // Update counter after all cards rendered
+                    counter.textContent = `Total of ${sortedArray.length} Request${sortedArray.length !== 1 ? 's' : ''}`;
                 }
 
-                editBtn.addEventListener('click', () => {
-                    if (editBtn.disabled) {
-                        showWarning("This request cannot be edited because it is already in progress or volunteers have been assigned.");
-                        return;
-                    }
+                // Initial render
+                renderRequests();
 
-                    document.querySelector('.tab-btn[data-tab="submit-request"]').click();
-                    setTimeout(() => {
-                        const needsForm = document.getElementById('abvn-needs-form');
-                        if (!needsForm) return;
-
-                        needsForm.querySelector('#taskName').value = req.taskName;
-                        needsForm.querySelector('#volunteersNeeded').value = req.volunteersNeeded;
-                        needsForm.querySelector('#taskStartDate').value = req.taskStartDate;
-                        needsForm.querySelector('#taskEndDate').value = req.taskEndDate;
-                        needsForm.querySelector('#taskTimeStart').value = req.taskTimeStart;
-                        needsForm.querySelector('#taskTimeEnd').value = req.taskTimeEnd;
-                        needsForm.querySelector('#otherNeededSkills').value = req.otherSkillComments || '';
-                        needsForm.querySelectorAll('input[name="neededSkills"]').forEach(cb => {
-                            cb.checked = req.skills.includes(cb.value);
-                        });
-                        needsForm.dataset.requestId = req.reqId;
-                    }, 100);
-                });
-            });
-
-            // Update counter after all cards rendered
-            counter.textContent = `Total of ${sortedArray.length} Request${sortedArray.length !== 1 ? 's' : ''}`;
-        }
-
-        // Initial render
-        renderRequests();
-
-        // Sort dropdown listener
-        if (sortDropdown) {
-            sortDropdown.addEventListener('change', () => {
-                renderRequests(sortDropdown.value);
+                // Sort dropdown listener
+                if (sortDropdown) {
+                    sortDropdown.addEventListener('change', () => {
+                        renderRequests(sortDropdown.value);
+                    });
+                }
             });
         }
-    });
-}
-
-        // } else if (tab === 'my-requests') {
-        //     tabContent.innerHTML = document.getElementById('my-requests-template').innerHTML;
-
-        //     // Container for request cards
-        //     const requestsListContainer = document.createElement('div');
-        //     requestsListContainer.className = 'requests-list-container';
-        //     tabContent.appendChild(requestsListContainer);
-
-        //     // Counter
-        //     const counter = document.createElement('p');
-        //     counter.id = 'requests-counter';
-        //     tabContent.insertBefore(counter, requestsListContainer);
-
-        //     const user = auth.currentUser;
-        //     if (!user) return;
-
-        //     const requestsList = document.getElementById('abvn-requests-list');
-        //     const sortDropdown = document.getElementById('sortStatus'); // make sure this exists in your HTML
-
-        //     database.ref(`volunteerGroups/${user.uid}/volunteerNeeds`).once('value').then(snapshot => {
-        //         const statusOrder = ["Pending", "In Progress", "Completed", "Incomplete", "Rejected"];
-        //         const requestsArray = [];
-
-        //         snapshot.forEach(childSnapshot => {
-        //             const req = childSnapshot.val();
-        //             const reqId = childSnapshot.key;
-        //             requestsArray.push({ reqId, ...req });
-        //         });
-
-        //         function renderRequests(sortedBy = null) {
-        //             requestsList.innerHTML = '';
-
-        //             let sortedArray = [...requestsArray];
-
-        //             if (sortedBy) {
-        //                 // Move selected status to top
-        //                 sortedArray.sort((a, b) => {
-        //                     if (a.status === sortedBy && b.status !== sortedBy) return -1;
-        //                     if (b.status === sortedBy && a.status !== sortedBy) return 1;
-        //                     return statusOrder.indexOf(a.status) - statusOrder.indexOf(b.status);
-        //                 });
-        //             } else {
-        //                 // Default sort
-        //                 sortedArray.sort((a, b) => statusOrder.indexOf(a.status) - statusOrder.indexOf(b.status));
-        //             }
-
-        //             sortedArray.forEach(req => {
-        //                 const card = document.createElement('div');
-        //                 card.className = 'request-card';
-        //                 card.setAttribute('data-request-id', req.reqId);
-
-        //                 const timestamp = new Date(req.submissionDateTime).toLocaleString();
-        //                 const skillsStr = req.skills.join(', ') + (req.otherSkillComments ? ', ' + req.otherSkillComments : '');
-
-        //                 card.innerHTML = `
-        //                     <div class="card-header">
-        //                         <h3 class="card-title">${req.taskName}</h3>
-        //                         <span class="card-status status-${req.status}">${req.status}</span>
-        //                     </div>
-        //                     <div class="card-body">
-        //                         <div class="card-body-wrapper">
-        //                             <div class="left-column">
-        //                                 <p><strong>Volunteers Needed:</strong> ${req.volunteersNeeded}</p>
-        //                                 <p><strong>Dates:</strong> ${req.taskStartDate} to ${req.taskEndDate}</p>
-        //                                 <p><strong>Skills:</strong> ${skillsStr}</p>
-        //                             </div>
-        //                             <div class="right-column">
-        //                                 <p><strong>Submitted On:</strong> ${timestamp}</p>
-        //                                 <div class="request-actions">
-        //                                     <button class="cancel-request-btn">Cancel Request</button>
-        //                                     <button class="edit-request-btn">Edit Request</button>
-        //                                 </div>
-        //                             </div>
-        //                         </div>
-        //                     </div>
-        //                 `;
-        //                 requestsList.appendChild(card);
-
-        //                 // Update counter
-        //                 const count = sortedArray.length;
-        //                 counter.textContent = `Total of ${count} Request${count !== 1 ? 's' : ''}`;
-
-        //                 // Cancel
-        //                 const cancelBtn = card.querySelector('.cancel-request-btn');
-        //                 if (req.status === "In Progress" || req.assigned > 0 || req.status === "Rejected" || req.status === "Completed") {
-        //                     cancelBtn.disabled = true;
-        //                     cancelBtn.style.backgroundColor = '#ccc';
-        //                     cancelBtn.style.color = '#666';
-        //                     cancelBtn.textContent = 'Cannot Cancel';
-        //                 } else {
-        //                     cancelBtn.disabled = false;
-        //                     cancelBtn.style.backgroundColor = '';  
-        //                     cancelBtn.style.color = '';
-        //                     cancelBtn.textContent = 'Cancel Request';
-        //                 }
-
-        //                 cancelBtn.addEventListener('click', async () => {
-        //                     if (cancelBtn.disabled) {
-        //                         showWarning("This request cannot be cancelled because it is already in progress or volunteers have been assigned.");
-        //                         return;
-        //                     }
-        //                     const confirmResult = await Swal.fire({
-        //                         title: 'Are you sure?',
-        //                         text: "This will cancel your volunteer request.",
-        //                         icon: 'warning',
-        //                         showCancelButton: true,
-        //                         confirmButtonText: "Yes",
-        //                         cancelButtonText: "No",
-        //                         reverseButtons: true,
-        //                         customClass: {
-        //                             popup: 'swal2-popup-warning-clean',
-        //                             title: 'swal2-title-warning-clean',
-        //                             htmlContainer: 'swal2-text-warning-clean',
-        //                             confirmButton: 'my-warning-button',
-        //                             cancelButton: 'custom-cancel-btn'
-        //                         },
-        //                     });
-
-        //                     if (confirmResult.isConfirmed) {
-        //                         try {
-        //                             await database.ref(`volunteerGroups/${user.uid}/volunteerNeeds/${req.reqId}`).remove();
-        //                             await database.ref(`volunteerRequests/${req.reqId}`).remove();
-        //                             showSuccess('Cancelled!', 'Your volunteer request has been cancelled.');
-        //                             renderRequests(sortDropdown?.value || null);
-        //                         } catch (error) {
-        //                             console.error(error);
-        //                             showError('Failed to cancel request.');
-        //                         }
-        //                     }
-        //                 });
-
-        //                 // Edit
-        //                 const editBtn = card.querySelector('.edit-request-btn');
-        //                 if (req.status === "In Progress" || req.assigned > 0 || req.status === "Rejected" || req.status === "Completed") {
-        //                     editBtn.disabled = true;
-        //                     editBtn.style.backgroundColor = '#ccc';  
-        //                     editBtn.style.color = '#666';
-        //                     editBtn.textContent = 'Cannot Edit';
-        //                 } else {
-        //                     editBtn.disabled = false;
-        //                     editBtn.style.backgroundColor = '';     
-        //                     editBtn.style.color = '';
-        //                     editBtn.textContent = 'Edit Request';
-        //                 }
-
-        //                 editBtn.addEventListener('click', () => {
-        //                     if (editBtn.disabled) {
-        //                         showWarning("This request cannot be edited because it is already in progress or volunteers have been assigned.");
-        //                         return;
-        //                     }
-
-        //                     document.querySelector('.tab-btn[data-tab="submit-request"]').click();
-        //                     setTimeout(() => {
-        //                         const needsForm = document.getElementById('abvn-needs-form');
-        //                         if (!needsForm) return;
-
-        //                         needsForm.querySelector('#taskName').value = req.taskName;
-        //                         needsForm.querySelector('#volunteersNeeded').value = req.volunteersNeeded;
-        //                         needsForm.querySelector('#taskStartDate').value = req.taskStartDate;
-        //                         needsForm.querySelector('#taskEndDate').value = req.taskEndDate;
-        //                         needsForm.querySelector('#taskTimeStart').value = req.taskTimeStart;
-        //                         needsForm.querySelector('#taskTimeEnd').value = req.taskTimeEnd;
-        //                         needsForm.querySelector('#otherNeededSkills').value = req.otherSkillComments || '';
-        //                         needsForm.querySelectorAll('input[name="neededSkills"]').forEach(cb => {
-        //                             cb.checked = req.skills.includes(cb.value);
-        //                         });
-        //                         needsForm.dataset.requestId = req.reqId;
-        //                     }, 100);
-        //                 });
-        //             });
-        //         }
-
-        //         renderRequests();
-
-        //         // Hook up sort dropdown
-        //         if (sortDropdown) {
-        //             sortDropdown.addEventListener('change', () => {
-        //                 renderRequests(sortDropdown.value);
-        //             });
-        //         }
-        //     });
-        // }
     }
 
     // Initial load

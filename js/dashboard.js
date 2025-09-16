@@ -6,81 +6,105 @@ document.querySelectorAll(".tab-btn").forEach(btn => {
   btn.addEventListener("click", async () => {
     const tab = btn.dataset.tab;
 
-    // Remove .active from all tabs and add to the clicked tab
     document.querySelectorAll(".tab-btn").forEach(t => t.classList.remove("active"));
     btn.classList.add("active");
 
     if (tab === "volunteers") {
-      // Hide dashboard
-      dashboardContainer.style.display = "none";
+        // Hide dashboard
+        dashboardContainer.style.display = "none";
 
-      // Fetch volunteer overview HTML
-      const res = await fetch("../pages/volunteerRequestOverview.html");
-      const html = await res.text();
+        // Fetch volunteer overview HTML
+        const res = await fetch("../pages/volunteerRequestOverview.html");
+        const html = await res.text();
 
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(html, "text/html");
-      const bodyContent = doc.body.innerHTML;
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, "text/html");
+        const bodyContent = doc.body.innerHTML;
 
-      tabContent.innerHTML = bodyContent;
+        tabContent.innerHTML = bodyContent;
 
-      // Attach CSS (only once)
-      if (!document.querySelector('link[href="../css/volunteerRequest.css"]')) {
-        const link = document.createElement("link");
-        link.rel = "stylesheet";
-        link.href = "../css/volunteerRequest.css";
-        document.head.appendChild(link);
-      }
+        // Attach CSS (only once)
+        if (!document.querySelector('link[href="../css/volunteerRequest.css"]')) {
+            const link = document.createElement("link");
+            link.rel = "stylesheet";
+            link.href = "../css/volunteerRequest.css";
+            document.head.appendChild(link);
+        }
 
-      // Force reload volunteer JS every time
-      try {
-        const jsRes = await fetch("../js/volunteerRequestOverview.js");
-        const jsCode = await jsRes.text();
-        new Function(jsCode)();
-      } catch (err) {
-        console.error("Failed to load volunteerRequestOverview.js", err);
-      }
+        // Force reload volunteer JS every time
+        try {
+            const jsRes = await fetch("../js/volunteerRequestOverview.js");
+            const jsCode = await jsRes.text();
+            new Function(jsCode)();
+        } catch (err) {
+            console.error("Failed to load volunteerRequestOverview.js", err);
+        }
     } else if (tab === "activation") {
-      // Hide dashboard
-      dashboardContainer.style.display = "none";
-      tabContent.innerHTML = `<h2>Activation content goes here...</h2>`;
+        // Hide dashboard
+        dashboardContainer.style.display = "none";
 
+        // Fetch volunteer overview HTML
+        const res = await fetch("../pages/activationOverview.html");
+        const html = await res.text();
+
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, "text/html");
+        const bodyContent = doc.body.innerHTML;
+
+        tabContent.innerHTML = bodyContent;
+
+        // Attach CSS (only once)
+        if (!document.querySelector('link[href="../css/activationOverview.css"]')) {
+            const link = document.createElement("link");
+            link.rel = "stylesheet";
+            link.href = "../css/volunteerRequest.css";
+            document.head.appendChild(link);
+        }
+
+        // Force reload volunteer JS every time
+        try {
+            const jsRes = await fetch("../js/activationOverview.js");
+            const jsCode = await jsRes.text();
+            new Function(jsCode)();
+        } catch (err) {
+            console.error("Failed to load activationOverview.js", err);
+        }
     } else if (tab === "reliefs-request") {
-            // Hide dashboard
-      dashboardContainer.style.display = "none";
+        // Hide dashboard
+        dashboardContainer.style.display = "none";
 
-      // Fetch volunteer overview HTML
-      const res = await fetch("../pages/reliefRequestOverview.html");
-      const html = await res.text();
+            // Fetch volunteer overview HTML
+            const res = await fetch("../pages/reliefRequestOverview.html");
+            const html = await res.text();
 
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(html, "text/html");
-      const bodyContent = doc.body.innerHTML;
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, "text/html");
+            const bodyContent = doc.body.innerHTML;
 
-      tabContent.innerHTML = bodyContent;
+            tabContent.innerHTML = bodyContent;
 
-      // Attach CSS (only once)
-      if (!document.querySelector('link[href="../css/volunteerRequest.css"]')) {
-        const link = document.createElement("link");
-        link.rel = "stylesheet";
-        link.href = "../css/volunteerRequest.css";
-        document.head.appendChild(link);
-      }
+            // Attach CSS (only once)
+            if (!document.querySelector('link[href="../css/volunteerRequest.css"]')) {
+                const link = document.createElement("link");
+                link.rel = "stylesheet";
+                link.href = "../css/volunteerRequest.css";
+                document.head.appendChild(link);
+            }
 
-      // Force reload volunteer JS every time
-      try {
-        const jsRes = await fetch("../js/reliefRequestOverview.js");
-        const jsCode = await jsRes.text();
-        new Function(jsCode)();
-      } catch (err) {
-        console.error("Failed to load reliefRequestOverview.js", err);
-      }
-    } else {
-      // Default tab → show dashboard again
-      dashboardContainer.style.display = "block";
-      tabContent.innerHTML = "";
-    }
-  });
+            // Force reload volunteer JS every time
+            try {
+                const jsRes = await fetch("../js/reliefRequestOverview.js");
+                const jsCode = await jsRes.text();
+                new Function(jsCode)();
+            } catch (err) {
+                console.error("Failed to load reliefRequestOverview.js", err);
+            }
+        } else {
+        // Default tab → show dashboard again
+        dashboardContainer.style.display = "block";
+        tabContent.innerHTML = "";
+        }
+    });
 });
 
 // Auto-load Default tab

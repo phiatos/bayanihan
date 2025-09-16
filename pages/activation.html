@@ -1,3 +1,4 @@
+<!-- activation.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -13,7 +14,6 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
-    <!-- ❌ removed &callback=initMap -->
     <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAAAu6BeQjIZ7H7beFbAsPWuKuORmh0wrk&libraries=places,marker"></script>
 
     <title>Bayanihan | Angat Buhay Disaster Relief Portal</title>
@@ -97,8 +97,8 @@
                     <option value="">-- Select an Organization --</option>
                 </select>
                 <div class="modal-action-buttons">
-                    <button id="modalNextStepBtn" class="next-btn" disabled>Next</button>
                     <button class="cancel-btn" id="closeActivationModalBtn">Cancel</button>
+                    <button id="modalNextStepBtn" class="next-btn" disabled>Next</button>
                 </div>
             </div>
 
@@ -121,19 +121,20 @@
                 </div>
 
                 <div class="modal-calamity-name-container">
-                    <label for="modalCalamityNameInput">Calamity Name:</label>
-                    <input
-                        type="text"
-                        class="calamity-name-input"
-                        id="modalCalamityNameInput"
-                        placeholder="e.g., Typhoon Carina or Davao Earthquake"
-                        required
-                    />
+                    <label for="modalCalamityNameSelect">Calamity Name:</label>
+                    <select class="calamity-name-select" id="modalCalamityNameSelect" required>
+                        <option value="" disabled selected>-- Select Calamity Name --</option>
+                        <option value="add_new">Add New Calamity</option>
+                    </select>
+                    <div id="newCalamityInputContainer" style="display: none; margin-top: 10px;">
+                        <label for="modalNewCalamityNameInput">New Calamity Name:</label>
+                        <input type="text" class="calamity-name-input" id="modalNewCalamityNameInput" placeholder="e.g., Typhoon Carina or Davao Earthquake" required/>
+                    </div>
                 </div>
 
                 <div class="modal-action-buttons">
-                    <button id="modalActivateSubmitBtn" class="activate-btn">Activate Group</button>
                     <button id="modalPrevStepBtn" class="next-btn">Back</button>
+                    <button id="modalActivateSubmitBtn" class="activate-btn">Activate Group</button>
                 </div>
             </div>
         </div>
@@ -168,8 +169,8 @@
             </div>
             <div id="mapContainer" style="height: 400px; width: 100%;"></div>
             <div class="modal-action-buttons">
-                <button id="saveLocationBtn" class="next-btn">Save Location</button>
                 <button class="cancel-btn" id="cancelMapModalBtn">Cancel</button>
+                <button id="saveLocationBtn" class="next-btn">Save Location</button>
             </div>
         </div>
     </div>
