@@ -311,15 +311,6 @@ fieldset {
     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
 }
 
-
-  background: linear-gradient(145deg, #ffffff, #f1f5f9);
-  padding: 20px;
-  border-radius: 16px;
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-  position: relative;
-  overflow: hidden;
-}
 .dashboard-cards .card:hover {
   transform: translateY(-5px);
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.12);

@@ -426,6 +426,9 @@ async function loadApprovedReports() {
     }
 }
 
+// Add a global variable to track the currently open InfoWindow
+let currentInfoWindow = null;
+
 async function addMarkersForActiveActivations() {
     if (!map) {
         return;
@@ -506,16 +509,14 @@ async function addMarkersForActiveActivations() {
                             break;
                         }
                     }
-                } else {
                 }
 
                 // Fetch all approved reports for this organization
                 const relevantReports = approvedReports.filter(report => 
                     report.VolunteerGroupName && organization && report.VolunteerGroupName.toLowerCase() === organization.toLowerCase()
-                ).sort((a, b) => new Date(b.DateOfReport) - new Date(a.DateOfReport)); // Sort by date descending
+                ).sort((a, b) => new Date(b.DateOfReport) - new Date(a.DateOfReport));
 
                 if (relevantReports.length > 0) {
-                    // Calculate totals for this ABVN group only
                     const totals = relevantReports.reduce((acc, report) => ({
                         evacuees: (acc.evacuees || 0) + (parseInt(report.NoOfIndividualsOrFamilies) || 0),
                         foodPacks: (acc.foodPacks || 0) + (parseInt(report.NoOfFoodPacks) || 0),
@@ -529,12 +530,10 @@ async function addMarkersForActiveActivations() {
                     approvedReportsHtml = `
                     <div data-id="${totals.reportId}">
                         <div style="background: ${totals.status === 'pending' ? '#e0f7fa' : '#f0f0f0'}; border: ${totals.status === 'pending' ? '2px solid #00acc1' : '1px solid #ccc'}; border-radius: 8px; padding: 15px 20px; margin-top: 12px; font-family: Arial, sans-serif;">
-
                             <h3 style="color: #333; margin-bottom: 10px; font-weight: 700; font-size: 1rem;">
                             Total for ${organization === "unknown" ? "Unknown Organization" : organization}
                             ${totals.status === 'pending' ? '<span style="background-color: #ff4444; color: white; padding: 2px 6px; border-radius: 3px; font-size: 12px; margin-left: 5px;">New</span>' : ''}
                             </h3>
-
                             <div style="line-height: 1.5; color: #333; font-size: 1rem;">
                                 As of: <strong style="color: #ff4081; font-weight: 600;">${totals.timestamp ? new Date(totals.timestamp).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }) : "August 21, 2025"}</strong><br>
                                 Evacuees: <strong style="color: #ff4081; font-weight: 600;">${totals.evacuees}</strong><br>
@@ -549,8 +548,6 @@ async function addMarkersForActiveActivations() {
                     </div>
                     `;
                     hasApprovedReports = true;
-                } else {
-                    approvedReportsHtml = "<p>No approved reports available for this ABVN.</p>";
                 }
             } catch (error) {
                 needsAssessmentHtml = "<p>Error loading needs assessment.</p>";
@@ -595,8 +592,8 @@ async function addMarkersForActiveActivations() {
                 content: `
                     <div class="bayanihan-infowindow">
                         <div class="header">
-                            <div class="placeholder-icon"><i class='bx bx-building'></i></div>
-                            <div class="header-text">
+                        <img src="assets/images/AB_logo.png" alt="AB Logo" style="width: 60px; height: 60px; border-radius: 16px; padding: 6px; box-sizing: border-box; object-fit: contain">                            
+                        <div class="header-text">
                                 <h3>${activation.organization || "Unknown"}</h3>
                                 <span class="status-badge"><i class='bx bx-check-circle'></i> Active</span>
                             </div>
@@ -725,7 +722,13 @@ async function addMarkersForActiveActivations() {
             });
 
             marker.addListener("click", () => {
+                // Close the currently open InfoWindow if it exists
+                if (currentInfoWindow) {
+                    currentInfoWindow.close();
+                }
+                // Open the new InfoWindow and set it as the current one
                 infowindow.open(map, marker);
+                currentInfoWindow = infowindow;
             });
 
             markers.push(marker);
