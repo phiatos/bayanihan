@@ -1,4 +1,3 @@
-// ======================= Firebase Config =======================
 const firebaseConfig = {
   apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
   authDomain: "bayanihan-5ce7e.firebaseapp.com",
@@ -24,14 +23,12 @@ try {
       text: "Failed to connect to Firebase. Please refresh the page.",
     });
   }
-  console.error("Firebase init error:", error);
 }
 
 // ======================= Global Vars =======================
+let userRegion = "Philippines";
 let conversationHistory = [];
 let isTyping = false;
-let requestCount = 0;
-let lastRequestTime = 0;
 
 // Valid website pages
 const validUrls = [
@@ -45,63 +42,47 @@ const validUrls = [
   "https://www.angat-bayanihan.com/index.html",
 ];
 
-// ======================= Gemini AI =======================
-async function askAI(prompt) {
-  const MINUTE_MS = 60000;
-  const MAX_REQUESTS_PER_MINUTE = 5; // Safety limit to control costs
-
-  // Rate limiting check
-  const now = Date.now();
-  if (now - lastRequestTime > MINUTE_MS) {
-    requestCount = 0; // Reset count after a minute
-    lastRequestTime = now;
-  }
-  if (requestCount >= MAX_REQUESTS_PER_MINUTE) {
-    return "Sorry, I’ve reached the request limit for this minute. Please wait a moment and try again to avoid excessive costs.";
-  }
-
-  try {
-    const response = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AIzaSyD1gkrLFf2TtRbKmIJgMGXJZcN0nHJHGKA",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: `You are Lenlen, the Bayanihan AI assistant. Help users with disaster relief, donations, volunteering, emergencies, and general Filipino community support. Respond in a polite tone, using "po" for respect. Current date and time: September 14, 2025, 10:05 PM PST. For queries like 'How can I get involved?' or 'Where can I find updates on ongoing operations?', include relevant links from the following list in your response: ${validUrls.join(", ")}. User prompt: ${prompt}`
-            }]
-          }],
-          generationConfig: {
-            maxOutputTokens: 300,
-            temperature: 0.7,
-          },
-        }),
-      }
-    );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.log("Response status:", response.status, "Error details:", errorText);
-      throw new Error(`AI HTTP error! status: ${response.status} - ${errorText}`);
-    }
-
-    const data = await response.json();
-    requestCount++; // Increment only on success
-    return data.candidates[0].content.parts[0].text || "No response from AI.";
-
-  } catch (error) {
-    console.error("AI fetch error:", error);
-    if (error.message.includes("429")) {
-      return "Sorry, the API has exceeded its quota. Please check your Google Cloud Console for usage and consider upgrading your plan if needed.";
-    } else if (error.message.includes("401") || error.message.includes("403")) {
-      return "Sorry, authentication failed. The API key might be invalid. Please verify it in the Google Cloud Console.";
-    }
-    return `Sorry, I couldn’t connect to the AI right now. Please try again or check your internet connection. Error: ${error.message}`;
-  }
-}
+// Predefined responses
+const responses = {
+  bayanihan:
+    'Bayanihan | Angat Buhay is a Disaster Risk Reduction and Management (DRRM) website designed to coordinate and gather critical data from volunteer groups during calamities. It streamlines disaster response by connecting volunteers, organizations, and communities, enabling efficient relief efforts, real-time updates, and resource allocation. Visit <a href="https://www.angat-bayanihan.com">angat-bayanihan.com</a> for more details.',
+  founder:
+    "Angat Buhay was founded by Leni Robredo on July 1, 2022. She is the Chairperson of Angat Buhay, served as the 14th Vice President of the Philippines (2016-2022), and is the mayor-elect of Naga City (2025).",
+  donate:
+    'You can donate through the Bayanihan portal at <a href="https://www.angat-bayanihan.com/pages/donatenearme.html">Donate Near Me</a>. Every contribution helps!',
+  volunteer:
+    'Join as a volunteer at <a href="https://www.angat-bayanihan.com/pages/beavolunteer.html">Be a Volunteer</a> or as a volunteer organization at <a href="https://www.angat-bayanihan.com/pages/joinasvolunteerorg.html">Join as Volunteer Org</a>.',
+  login:
+    'Access your account at <a href="https://www.angat-bayanihan.com/pages/login.html">Log in to Bayanihan</a>.',
+  dashboard:
+    'Manage your contributions and activities at <a href="https://www.angat-bayanihan.com/pages/dashboard.html">Bayanihan Dashboard</a>. Log in if required.',
+  news:
+    'You can check in <a href="https://www.angat-bayanihan.com/index.html">https://www.angat-bayanihan.com/index.html</a>, just scroll down and check the pin maps.',
+  emergency: {
+    withLocation:
+      "For {emergency} in {location}, dial 911. Contact your LGU for more numbers.",
+    withoutLocation:
+      "Please specify your city (e.g., Manila). For now, dial 911 for emergencies and contact your LGU.",
+  },
+  participate:
+    'Anyone can participate in Bayanihan efforts! Individuals can volunteer or donate, while organizations can join as partners. Check <a href="https://www.angat-bayanihan.com/pages/beavolunteer.html">Be a Volunteer</a> or <a href="https://www.angat-bayanihan.com/pages/joinasvolunteerorg.html">Join as Volunteer Org</a>.',
+  disaster:
+    'Bayanihan helps during disasters by coordinating relief efforts, connecting donors and volunteers, and providing updates. Visit <a href="https://www.angat-bayanihan.com">angat-bayanihan.com</a> for ongoing operations.',
+  privacy:
+    'Your personal information is protected under our privacy policy. For details, visit <a href="https://www.angat-bayanihan.com">angat-bayanihan.com</a>.',
+  greeting: {
+    morning:
+      "Magandang umaga po! I'm Lenlen, your Bayanihan assistant. How can I help you today?",
+    afternoon:
+      "Magandang tanghali po! I'm Lenlen, your Bayanihan assistant. How can I assist you?",
+    evening:
+      "Magandang gabi po! I'm Lenlen, your Bayanihan assistant. What can I do for you?",
+  },
+  location:
+    'Please specify your city or barangay, like "Taguig" or "Naga"!',
+  default:
+    "I'm sorry, that topic is outside my scope. Please visit <a href='https://www.angat-bayanihan.com'>angat-bayanihan.com</a> for more information or ask about donations, volunteering, emergencies, or ongoing operations!",
+};
 
 // ======================= Helpers =======================
 function getSessionId() {
@@ -111,25 +92,19 @@ function getSessionId() {
 function loadConversationHistory(sessionId) {
   if (!database) return;
   const chatRef = database.ref(`chat_sessions/${sessionId}`);
-  chatRef.once("value", (snapshot) => {
-    const data = snapshot.val();
-    if (data) {
-      conversationHistory = Object.values(data).map((msg) => ({
-        role: msg.role,
-        content: msg.content,
-      }));
-      updateChatDisplay();
-    }
-  }, (error) => {
-    console.error("Failed to load conversation history:", error);
-    if (typeof Swal !== "undefined") {
-      Swal.fire({
-        icon: "warning",
-        title: "Warning",
-        text: "Could not load chat history. Starting fresh.",
-      });
-    }
-  });
+  chatRef.once(
+    "value",
+    (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        conversationHistory = Object.values(data).map((msg) => ({
+          role: msg.role,
+          content: msg.content,
+        }));
+      }
+    },
+    (error) => console.error("Failed to load conversation history:", error)
+  );
 }
 
 function saveMessage(sessionId, message, isUser = false) {
@@ -147,12 +122,245 @@ function saveMessage(sessionId, message, isUser = false) {
   );
 }
 
+function detectLocation(callback) {
+  if ("geolocation" in navigator) {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
+        )
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.address && (data.address.city || data.address.town)) {
+              const city = data.address.city || data.address.town;
+              userRegion = `${city}, Philippines`;
+              if (callback) callback();
+              addMessage(
+                `Location confirmed as ${userRegion}. How can I assist you?`,
+                false
+              );
+            } else {
+              addMessage(
+                "Location detected, but city not found. Please specify your city (e.g., Manila).",
+                false
+              );
+            }
+          })
+          .catch((error) => {
+            console.error("Geolocation reverse lookup failed:", error);
+            addMessage(
+              "Could not determine your location. Please specify your city (e.g., Manila).",
+              false
+            );
+          });
+      },
+      (error) => {
+        console.error("Geolocation permission denied or error:", error);
+        addMessage(
+          "Geolocation access denied. Please specify your city (e.g., Manila).",
+          false
+        );
+      }
+    );
+  } else {
+    addMessage(
+      "Geolocation is not supported by your browser. Please specify your city (e.g., Manila).",
+      false
+    );
+  }
+}
+
+function getGreeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) return responses.greeting.morning;
+  if (hour < 17) return responses.greeting.afternoon;
+  return responses.greeting.evening;
+}
+
+function sanitizeString(str) {
+  if (!str) return "";
+  return str.replace(/[\\'"`()]/g, "").replace(/\s+/g, " ").trim();
+}
+
+// ======================= NLP-ish matchers =======================
+function isSystemRelated(query) {
+  const lowerQuery = query.toLowerCase().trim();
+  const systemKeywords = [
+    "bayanihan",
+    "donate",
+    "donation",
+    "volunteer",
+    "disaster",
+    "emergency",
+    "hotline",
+    "fire",
+    "police",
+    "ambulance",
+    "mental health",
+    "relief",
+    "track",
+    "contact",
+    "about",
+    "resources",
+    "org",
+    "portal",
+    "angat buhay",
+    "home",
+    "login",
+    "leni robredo",
+    "naga city",
+    "non-profit",
+    "relief operations",
+    "dashboard",
+    "participate",
+    "involved",
+    "privacy",
+    "information",
+    "founder",
+    "updates",
+    "operations",
+  ];
+  return systemKeywords.some((k) => lowerQuery.includes(k));
+}
+
+function isGreeting(query) {
+  const lowerQuery = query.toLowerCase().trim();
+  const greetings = [
+    "hi",
+    "hello",
+    "hey",
+    "good morning",
+    "good afternoon",
+    "good evening",
+  ];
+  return greetings.some((g) => lowerQuery === g || lowerQuery.startsWith(g));
+}
+
+function isLocationQuery(query) {
+  const lowerQuery = query.toLowerCase().trim();
+  const locationKeywords = [
+    "where am i",
+    "my location",
+    "i am in",
+    "i'm in",
+    "m in",
+    "city",
+    "barangay",
+    "region",
+  ];
+  return locationKeywords.some((k) => lowerQuery.includes(k));
+}
+
+function isEmergencyQuery(query) {
+  const lowerQuery = query.toLowerCase().trim();
+  const emergencyKeywords = [
+    "emergency",
+    "fire",
+    "police",
+    "ambulance",
+    "hotline",
+    "mental health",
+  ];
+  return emergencyKeywords.some((k) => lowerQuery.includes(k));
+}
+
+function isFounderQuery(query) {
+  const lowerQuery = query.toLowerCase().trim();
+  const founderKeywords = [
+    "founder",
+    "who founded",
+    "who started",
+    "who created",
+    "angat buhay founder",
+  ];
+  return founderKeywords.some((k) => lowerQuery.includes(k));
+}
+
+// ======================= Core Response =======================
+function getBotResponse(query) {
+  const sanitizedQuery = sanitizeString(query.toLowerCase());
+
+  if (isGreeting(query)) {
+    return getGreeting();
+  }
+
+  if (isLocationQuery(query)) {
+    const locationWords = query
+      .replace(/my location is|i'm in|i am in|m in|in|at|where am i/gi, "")
+      .split(/\s+/)
+      .filter((word) => word.length > 1 && !["the", "and", "near"].includes(word.toLowerCase()));
+    if (locationWords.length > 0) {
+      userRegion =
+        locationWords
+          .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+          .join(", ") + ", Philippines";
+      return `Location set to ${userRegion}. How can I assist you?`;
+    }
+    detectLocation();
+    return responses.location;
+  }
+
+  if (isEmergencyQuery(query)) {
+    if (sanitizedQuery.includes("fire in manila")) {
+      return "For fire in Manila, dial 911. Contact your LGU for more numbers.";
+    }
+    return userRegion
+      ? responses.emergency.withLocation
+          .replace("{emergency}", sanitizedQuery.split(" ")[0])
+          .replace("{location}", userRegion)
+      : responses.emergency.withoutLocation;
+  }
+
+  if (isFounderQuery(query)) {
+    return responses.founder;
+  }
+
+  if (sanitizedQuery.includes("sports") || (sanitizedQuery.includes("news") && !sanitizedQuery.includes("operations") && !sanitizedQuery.includes("updates") && !isSystemRelated(query))) {
+    return responses.default;
+  }
+
+  if (isSystemRelated(query)) {
+    if (sanitizedQuery.includes("donate") || sanitizedQuery.includes("donation"))
+      return responses.donate;
+    if (sanitizedQuery.includes("volunteer") || sanitizedQuery.includes("involved"))
+      return responses.volunteer;
+    if (sanitizedQuery.includes("login")) return responses.login;
+    if (sanitizedQuery.includes("dashboard")) return responses.dashboard;
+    if (
+      sanitizedQuery.includes("news") ||
+      sanitizedQuery.includes("resources") ||
+      sanitizedQuery.includes("operations") ||
+      sanitizedQuery.includes("updates")
+    )
+      return responses.news;
+    if (sanitizedQuery.includes("participate")) return responses.participate;
+    if (sanitizedQuery.includes("disaster")) return responses.disaster;
+    if (
+      sanitizedQuery.includes("privacy") ||
+      sanitizedQuery.includes("information")
+    )
+      return responses.privacy;
+    if (
+      sanitizedQuery.includes("bayanihan") ||
+      sanitizedQuery.includes("angat buhay") ||
+      sanitizedQuery.includes("system")
+    )
+      return responses.bayanihan;
+  }
+
+  return responses.default;
+}
+
+// ======================= UI Helpers =======================
 function addMessage(message, isUser = false, saveToDb = true) {
   const chatContainer = document.getElementById("chat-container");
-  if (!chatContainer) return;
   const messageDiv = document.createElement("div");
   messageDiv.classList.add("chat-message", isUser ? "user" : "bot");
-  messageDiv.innerHTML = message; // Sanitization handled by DOMPurify if available
+  messageDiv.innerHTML = message;
+  messageDiv.addEventListener("click", () => {
+    messageDiv.classList.toggle("expanded");
+  });
   chatContainer.appendChild(messageDiv);
   chatContainer.scrollTop = chatContainer.scrollHeight;
 
@@ -160,23 +368,14 @@ function addMessage(message, isUser = false, saveToDb = true) {
   if (saveToDb && conversationHistory.length > 1) {
     saveMessage(getSessionId(), message, isUser);
   }
-  if (conversationHistory.length > 20) conversationHistory.shift();
-}
-
-function updateChatDisplay() {
-  const chatContainer = document.getElementById("chat-container");
-  if (!chatContainer) return;
-  chatContainer.innerHTML = '';
-  conversationHistory.forEach(msg => {
-    addMessage(msg.content, msg.role === "user", false);
-  });
+  if (conversationHistory.length > 10) conversationHistory.shift();
 }
 
 function showTypingIndicator(show) {
-  const typingIndicator = document.getElementById("typing-indicator") || document.createElement("div");
+  const typingIndicator =
+    document.getElementById("typing-indicator") || document.createElement("div");
   const chatInput = document.getElementById("chat-input");
   const sendButton = document.getElementById("send-button");
-  const clearButton = document.getElementById("clear-button");
 
   if (!typingIndicator.id) {
     typingIndicator.id = "typing-indicator";
@@ -190,24 +389,61 @@ function showTypingIndicator(show) {
     typingIndicator.classList.remove("hidden");
     if (chatInput) chatInput.disabled = true;
     if (sendButton) sendButton.disabled = true;
-    if (clearButton) clearButton.disabled = true;
   } else {
     typingIndicator.classList.add("hidden");
     if (chatInput) chatInput.disabled = false;
     if (sendButton) sendButton.disabled = false;
-    if (clearButton) clearButton.disabled = false;
   }
+}
+
+// ======================= Unit Tests (manual trigger) =======================
+function runUnitTests() {
+  const testCases = [
+    { id: 1, input: "", expected: "Message not sent; chatbot does not respond" },
+    { id: 2, input: "Hello", expected: "Magandang umaga po!" },
+    {
+      id: 3,
+      input: "How to donate?",
+      expected: "You can donate through the Bayanihan portal",
+    },
+    {
+      id: 4,
+      input: "Fire in Manila",
+      expected: "For fire in Manila, dial 911.",
+    },
+    {
+      id: 5,
+      input: "m in taguig",
+      expected: "Location set to Taguig, Philippines",
+    },
+    { id: 6, input: "asdkj123!!", expected: "I'm not sure about that." },
+    {
+      id: 7,
+      input: "Tell me about sports news",
+      expected: "I'm sorry, that topic is outside my scope",
+    },
+  ];
+
+  console.log("=== Running Chatbot Unit Tests ===");
+  testCases.forEach((test) => {
+    const actual = test.input
+      ? getBotResponse(test.input)
+      : "Message not sent; chatbot does not respond";
+    const pass = actual.toLowerCase().includes(test.expected.toLowerCase());
+    console.log(
+      `Test ${test.id}:`,
+      `Input: "${test.input}" | Expected: "${test.expected}" | Actual: "${actual}" | Result: ${
+        pass ? "✅ PASS" : "❌ FAIL"
+      }`
+    );
+  });
 }
 
 // ======================= DOM Ready =======================
 document.addEventListener("DOMContentLoaded", () => {
-  const toggle = document.getElementById("toggle-questions");
-  const preMadeQuestions = document.getElementById("preMadeQuestions");
-  const questionChips = document.getElementById("questionChips");
   const chatContainer = document.getElementById("chat-container");
   const chatInput = document.getElementById("chat-input");
   const sendButton = document.getElementById("send-button");
-  const clearButton = document.getElementById("clear-button");
 
   if (!chatContainer || !chatInput || !sendButton) {
     console.error("Missing required DOM elements: chat-container, chat-input, or send-button");
@@ -221,82 +457,88 @@ document.addEventListener("DOMContentLoaded", () => {
     return;
   }
 
+  // Ensure typing indicator exists
   showTypingIndicator(false);
 
   const sessionId = getSessionId();
   loadConversationHistory(sessionId);
 
-  // Initial greeting from AI
-  addMessage("👋 Magandang gabi po! I'm Lenlen, your Bayanihan assistant. What can I do for you?", false, false);
-
-  // Toggle pre-made questions
-  if (toggle && preMadeQuestions) {
-    const chevron = toggle.querySelector(".chevron path");
-    toggle.addEventListener("click", () => {
-      const isExpanded = preMadeQuestions.classList.toggle("expanded");
-      if (chevron) {
-        chevron.setAttribute("d", isExpanded ? "M6 12l4-4 4 4" : "M6 8l4 4 4-4");
-      }
-    });
-    toggle.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" || e.key === " ") toggle.click();
-    });
+  function getGreetingAndSend() {
+    addMessage(getGreeting(), false, false);
   }
 
-  // Handle pre-made questions
-  if (questionChips) {
-    questionChips.querySelectorAll(".chip").forEach((chip) => {
-      chip.addEventListener("click", async () => {
-        if (isTyping) return;
-        const message = chip.textContent;
-        isTyping = true;
-        addMessage(message, true);
-        showTypingIndicator(true);
-        const response = await askAI(message);
-        showTypingIndicator(false);
-        addMessage(response, false);
-        isTyping = false;
-        chip.classList.add("fade-out");
-        setTimeout(() => chip.remove(), 300);
-      });
-      chip.addEventListener("keydown", (e) => {
-        if (e.key === "Enter" || e.key === " ") chip.click();
-      });
-    });
-  }
+  // Initial greeting only
+  getGreetingAndSend();
 
-  // Send button click
-  sendButton.addEventListener("click", async () => {
+  // Event listeners
+  sendButton.addEventListener("click", () => {
     if (isTyping) return;
     const message = chatInput.value.trim();
     if (!message) return;
+
+    if (message.toLowerCase() === "/test") {
+      addMessage(message, true);
+      addMessage("✅ Running unit tests... open DevTools console to see results.", false);
+      runUnitTests();
+      chatInput.value = "";
+      return;
+    }
 
     isTyping = true;
     addMessage(message, true);
     chatInput.value = "";
     showTypingIndicator(true);
 
-    const response = await askAI(message);
-    showTypingIndicator(false);
-    addMessage(response, false);
-    isTyping = false;
+    setTimeout(() => {
+      const response = getBotResponse(message);
+      showTypingIndicator(false);
+      addMessage(response, false);
+      isTyping = false;
+    }, 1200);
   });
 
-  // Enter key support
   chatInput.addEventListener("keypress", (e) => {
     if (e.key === "Enter" && !isTyping) sendButton.click();
   });
 
-  // Clear chat
-  if (clearButton) {
-    clearButton.addEventListener("click", () => {
+  // Navbar scroll effect
+  window.addEventListener("scroll", () => {
+    const navbar = document.querySelector(".navbar");
+    if (navbar) {
+      const scrollThreshold = 80;
+      navbar.style.opacity = window.scrollY > scrollThreshold ? "0" : "1";
+      navbar.style.pointerEvents =
+        window.scrollY > scrollThreshold ? "none" : "auto";
+      navbar.style.transition = "opacity 0.5s ease";
+    }
+  });
+
+  // Chips
+  const chips = document.querySelectorAll(".chip");
+  chips.forEach((chip) => {
+    chip.addEventListener("click", () => {
       if (isTyping) return;
-      if (confirm("Are you sure you want to clear the chat history?")) {
-        conversationHistory = [];
-        chatContainer.innerHTML = '';
-        saveMessage(sessionId, "Chat cleared by user", true);
-        addMessage("Chat history has been cleared.", false, false);
+      chatInput.value = chip.textContent;
+      sendButton.click();
+      chip.classList.add("fade-out");
+      setTimeout(() => chip.remove(), 300);
+    });
+  });
+
+  // Toggle pre-made questions
+  const toggle = document.getElementById("toggle-questions");
+  const container = document.getElementById("preMadeQuestions");
+  if (toggle && container) {
+    const chevron = toggle.querySelector(".chevron path");
+    toggle.addEventListener("click", () => {
+      const isExpanded = container.classList.toggle("expanded");
+      if (chevron) {
+        chevron.setAttribute(
+          "d",
+          isExpanded ? "M6 12l4-4 4 4" : "M6 8l4 4 4-4"
+        );
       }
     });
   }
 });
+
