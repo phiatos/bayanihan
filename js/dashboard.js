@@ -43,7 +43,7 @@ document.querySelectorAll(".tab-btn").forEach(btn => {
         // Hide dashboard
         dashboardContainer.style.display = "none";
 
-        // Fetch volunteer overview HTML
+        // Fetch activation overview HTML
         const res = await fetch("../pages/activationOverview.html");
         const html = await res.text();
 
@@ -51,17 +51,21 @@ document.querySelectorAll(".tab-btn").forEach(btn => {
         const doc = parser.parseFromString(html, "text/html");
         const bodyContent = doc.body.innerHTML;
 
+        // Cleanup previous tab content
+        if (typeof window.cleanupActivationOverview === 'function') {
+            window.cleanupActivationOverview();
+        }
         tabContent.innerHTML = bodyContent;
 
         // Attach CSS (only once)
-        if (!document.querySelector('link[href="../css/activationOverview.css"]')) {
+        if (!document.querySelector('link[href="../css/volunteerRequest.css"]')) {
             const link = document.createElement("link");
             link.rel = "stylesheet";
             link.href = "../css/volunteerRequest.css";
             document.head.appendChild(link);
         }
 
-        // Force reload volunteer JS every time
+        // Force reload activation JS
         try {
             const jsRes = await fetch("../js/activationOverview.js");
             const jsCode = await jsRes.text();

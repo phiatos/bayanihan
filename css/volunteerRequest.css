@@ -1,3 +1,105 @@
+/* Chart Container */
+#chartContainer {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  padding: 15px;
+  margin-bottom: 20px;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+/* Ensure Chart Canvas is Responsive */
+#activationChart {
+  max-height: 400px;
+  width: 100%;
+}
+
+/* Grouped Activations Section */
+.grouped-section {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  padding: 15px 20px;
+  margin-bottom: 20px;
+}
+
+.grouped-section h3 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--primary-color, #14AEBB);
+  margin-bottom: 1rem;
+  border-bottom: 2px solid var(--primary-color, #14AEBB);
+  padding-bottom: 0.5rem;
+}
+
+.grouped-item {
+  margin-bottom: 1rem;
+  border-left: 4px solid var(--primary-color) !important;
+}
+
+.grouped-item h4 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--accent-color);
+  margin: 0 0 0.5rem 0;
+}
+
+.abvn-list {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+
+.abvn-list li {
+  font-size: 0.95rem;
+  color: #555;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #ddd;
+}
+
+.abvn-list li:last-child {
+  border-bottom: none;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  #chartContainer {
+    padding: 10px;
+  }
+
+  .grouped-section {
+    padding: 10px 15px;
+  }
+
+  .grouped-item h4 {
+    font-size: 1.1rem;
+  }
+
+  .abvn-list li {
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 425px) {
+  #chartContainer {
+    padding: 8px;
+  }
+
+  .grouped-section h3 {
+    font-size: 1.3rem;
+  }
+
+  .grouped-item h4 {
+    font-size: 1rem;
+  }
+
+  .abvn-list li {
+    font-size: 0.85rem;
+  }
+}
+
+ /* -------------- VOLUNTEER REQUEST OVERVIEW ----------------- */
 .assigned-volunteers {
   transition: max-height 0.3s ease, opacity 0.3s ease;
   overflow: hidden;

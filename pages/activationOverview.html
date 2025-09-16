@@ -1,6 +1,3 @@
-<!-- activationOverview_final.html -->
-<header>Activation Overview</header>
-
 <!-- Summary Dashboard -->
 <div class="dashboard-cards">
     <div class="card">
@@ -21,16 +18,30 @@
     </div>
 </div>
 
-<!-- New Grouped Activations Section -->
+<!-- Timeline Chart -->
+<div id="chartContainer">
+    <canvas id="activationChart"></canvas>
+</div>
+
+<!-- Grouped Activations Section -->
 <div id="grouped-activations" class="grouped-section">
     <!-- Populated dynamically -->
 </div>
 
-<!-- Modal for Details -->
+<!-- Preview Modal -->
 <div id="previewModal" class="modal" style="display:none;">
     <div class="modal-content">
         <span id="closeModal" class="close">×</span>
         <div id="modalContent"></div>
+    </div>
+</div>
+
+<!-- Map Modal -->
+<div id="mapModal" class="modal" style="display:none;">
+    <div class="modal-content">
+        <span id="closeMapModal" class="close">×</span>
+        <h2>Location Map</h2>
+        <div id="mapContainer"></div>
     </div>
 </div>
 
@@ -44,7 +55,11 @@
     </select>
     <select id="mission-type-filter">
         <option value="">All Mission Types</option>
-        <!-- populate dynamically -->
+        <!-- Populated dynamically -->
+    </select>
+    <select id="calamity-name-filter">
+        <option value="">All Calamity Names</option>
+        <!-- Populated dynamically -->
     </select>
 </div>
 
