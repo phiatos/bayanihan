@@ -65,6 +65,9 @@
             margin: 10px 0;
             padding-left: 20px;
         }
+        .matchBtn{
+            background-color:#14AEBB;
+        }
     </style>
 </head>
 <body>
@@ -277,31 +280,12 @@
                     <div class="tab-nav">
                         <button class="tab-button active" data-tab="individual">Individual</button>
                         <button class="tab-button" data-tab="anonymous">Anonymous</button>
-                        <button class="tab-button" data-tab="corporation">Corporation</button>
+                        <button class="tab-button" data-tab="corporate">Corporate</button>
                         <button class="tab-button" data-tab="foundation">Foundation</button>
                     </div>
                     <div class="table-container" style="max-height: 400px; overflow-y: auto;">
                         <table id="archivedTable">
-                            <thead>
-                                <tr>
-                                    <th>No.</th>
-                                    <th>Encoder</th>
-                                    <th>Names</th>
-                                    <th>Type</th>
-                                    <th>Address</th>
-                                    <th>Contact Person</th>
-                                    <th>Number</th>
-                                    <th>Email</th>
-                                    <th>Type of Assistance</th>
-                                    <th>Valuation</th>
-                                    <th>Items</th>
-                                    <th>Additional Notes</th>
-                                    <th>Staff-In Charge</th>
-                                    <th>Donation Date</th>
-                                    <th>Status</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
+                            <thead id="archivedTableHead"></thead>
                             <tbody id="archivedTableBody"></tbody>
                         </table>
                         <div class="pagination-info" style="margin-top: 15px;">
