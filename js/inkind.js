@@ -2356,210 +2356,166 @@ document.addEventListener("DOMContentLoaded", () => {
         showMatchModal(donationToMatch, firebaseKey);
     }
 
-    async function showMatchModal(donation, firebaseKey) {
-        try {
-            const requestsSnapshot = await firebase.database().ref('requestRelief/requests')
+async function showMatchModal(donation, firebaseKey) {
+    try {
+        const requestsSnapshot = await firebase.database().ref('requestRelief/requests')
             .orderByChild('status')
             .equalTo('Pending')
             .once('value');
-            const requests = requestsSnapshot.val() || {};
-            const donationCategories = Array.isArray(donation.category) ? donation.category : donation.category ? donation.category.split(',').map(item => item.trim()) : [];
-            const donationCoords = donation.address && typeof donation.address === 'object' ? {
-                lat: donation.address.latitude || null,
-                lng: donation.address.longitude || null
-            } : { lat: null, lng: null };
+        const requests = requestsSnapshot.val() || {};
 
-            let matches = [];
-            for (const requestId in requests) {
-                const request = requests[requestId];
-                if (request.status !== 'Pending') continue;
+        const donationCategories = Array.isArray(donation.category) 
+            ? donation.category 
+            : donation.category 
+                ? donation.category.split(',').map(item => item.trim()) 
+                : [];
+        const donationCoords = donation.address && typeof donation.address === 'object' 
+            ? { lat: donation.address.latitude || null, lng: donation.address.longitude || null } 
+            : { lat: null, lng: null };
 
-                const requestCategories = Array.isArray(request.category) ? request.category : request.category ? request.category.split(',').map(item => item.trim()) : [];
-                const hasMatchingCategory = donationCategories.some(dc => requestCategories.some(rc => rc.toLowerCase() === dc.toLowerCase()));
+        let matches = [];
+        for (const requestId in requests) {
+            const request = requests[requestId];
 
-                if (!hasMatchingCategory) continue;
+            const requestCategories = Array.isArray(request.category) 
+                ? request.category 
+                : request.category 
+                    ? request.category.split(',').map(item => item.trim()) 
+                    : [];
 
-                const requestCoords = request.address && typeof request.address === 'object' ? {
-                    lat: request.address.latitude || null,
-                    lng: request.address.longitude || null
-                } : { lat: null, lng: null };
+            const hasMatchingCategory = donationCategories.some(dc => 
+                requestCategories.some(rc => rc.toLowerCase() === dc.toLowerCase())
+            );
+            if (!hasMatchingCategory) continue;
 
-                let distance = null;
-                let distanceCategory = 'N/A';
-                if (donationCoords.lat && donationCoords.lng && requestCoords.lat && requestCoords.lng) {
-                    distance = getDistance(donationCoords.lat, donationCoords.lng, requestCoords.lat, requestCoords.lng);
-                    if (distance <= 5) distanceCategory = 'Near';
-                    else if (distance <= 10) distanceCategory = 'Medium';
-                    else if (distance <= 20) distanceCategory = 'Far';
-                    else continue; // Skip if distance > 20 km
+            const requestCoords = request.address && typeof request.address === 'object' 
+                ? { lat: request.address.latitude || null, lng: request.address.longitude || null } 
+                : { lat: null, lng: null };
+
+            let distance = null;
+            let distanceCategory = 'Far';
+            let distanceColor = 'red';
+
+            if (donationCoords.lat && donationCoords.lng && requestCoords.lat && requestCoords.lng) {
+                distance = getDistance(donationCoords.lat, donationCoords.lng, requestCoords.lat, requestCoords.lng);
+
+                if (distance <= 10) {
+                    distanceCategory = 'Near';
+                    distanceColor = 'green';
+                } else if (distance <= 30) {
+                    distanceCategory = 'Medium';
+                    distanceColor = 'orange';
+                } else {
+                    distanceCategory = 'Far';
+                    distanceColor = 'red';
                 }
-
-                matches.push({
-                    requestId,
-                    organization: request.organization || 'Unknown',
-                    email: request.email || '',
-                    category: requestCategories.join(', '),
-                    address: request.address?.formattedAddress || 'N/A',
-                    donationDate: request.donationDate || '',
-                    distance,
-                    distanceCategory
-                });
             }
 
-            // Sort matches: prioritize distance (near > medium > far) then donationDate (newest first)
-            matches.sort((a, b) => {
-                const distanceOrder = { 'Near': 1, 'Medium': 2, 'Far': 3 };
-                if (a.distanceCategory !== b.distanceCategory) {
-                    return distanceOrder[a.distanceCategory] - distanceOrder[b.distanceCategory];
-                }
-                return new Date(b.donationDate) - new Date(a.donationDate);
+            matches.push({
+                requestId,
+                organization: request.volunteerOrganization || 'Unknown',
+                email: request.email || '',
+                category: requestCategories.join(', '),
+                address: request.address?.formattedAddress || 'N/A',
+                donationDate: request.donationDate || '',
+                distance,
+                distanceCategory,
+                distanceColor
             });
+        }
 
-            const modal = document.getElementById('matchModal');
-            const modalReliefId = document.getElementById('modalReliefId');
-            const modalReliefCategory = document.getElementById('modalReliefCategory');
-            const modalReliefAddress = document.getElementById('modalReliefAddress');
-            const donationMatches = document.getElementById('donationMatches');
-            const confirmMatchBtn = document.getElementById('confirmMatchBtn');
+        // Sort by distance first (Near → Medium → Far), then by donationDate descending
+        matches.sort((a, b) => {
+            const distanceOrder = { 'Near': 1, 'Medium': 2, 'Far': 3 };
+            if (a.distanceCategory !== b.distanceCategory) {
+                return distanceOrder[a.distanceCategory] - distanceOrder[b.distanceCategory];
+            }
+            return new Date(b.donationDate) - new Date(a.donationDate);
+        });
 
-            if (matches.length === 0) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'No Matching Relief Requests',
-                    text: `No active relief requests found matching the donation's category (${donationCategories.join(', ')}) or within 20 km of ${sanitizeInput(donation.address?.formattedAddress || 'N/A')}.`,
-                    customClass: {
-                        popup: 'swal2-popup-warning-clean',
-                        title: 'swal2-title-warning-clean',
-                        htmlContainer: 'swal2-text-warning-clean'
-                    }
-                });
+        const modal = document.getElementById('matchModal');
+        const modalReliefCategory = document.getElementById('modalReliefCategory');
+        const modalReliefAddress = document.getElementById('modalReliefAddress');
+        const modalDonationDate = document.getElementById('modalDonationDate');
+        const donationMatches = document.getElementById('donationMatches');
+        const confirmMatchBtn = document.getElementById('confirmMatchBtn');
+
+        if (matches.length === 0) {
+            Swal.fire({ icon: 'warning', title: 'No Matching Relief Requests', text: 'No matching relief requests found.' });
+            return;
+        }
+
+        // --- Fixed donation info at the top ---
+        modalReliefCategory.textContent = donationCategories.join(', ') || 'N/A';
+        modalReliefAddress.textContent = donation.address?.formattedAddress || 'N/A';
+        modalDonationDate.textContent = donation.donationDate 
+            ? new Date(donation.donationDate).toLocaleDateString('en-US') 
+            : 'N/A';
+
+        // --- Populate all matching requests ---
+        donationMatches.innerHTML = matches.map((match, index) => `
+            <div class="match-option" style="margin-bottom: 10px; padding: 10px; border: 1px solid #ccc; border-radius: 8px; cursor: pointer;" data-index="${index}">
+                <p><strong>Organization:</strong> ${sanitizeInput(match.organization)}</p>
+                <p><strong>Category:</strong> ${sanitizeInput(match.category)}</p>
+                <p><strong>Address:</strong> ${sanitizeInput(match.address)}</p>
+                <p><strong>Distance:</strong> ${match.distance ? match.distance.toFixed(2) + ' km ' : 'N/A'}<span style="color:${match.distanceColor}">(${match.distanceCategory})</span></p>
+                <p><strong>Request Date:</strong> ${match.donationDate ? new Date(match.donationDate).toLocaleDateString('en-US') : 'N/A'}</p>
+            </div>
+        `).join('');
+
+        modal.style.display = 'flex';
+
+        // --- Highlight selection only ---
+        donationMatches.addEventListener('click', (e) => {
+            const matchOption = e.target.closest('.match-option');
+            if (!matchOption) return;
+            document.querySelectorAll('.match-option').forEach(opt => opt.style.background = '#fff');
+            matchOption.style.background = '#e3f2fd';
+        });
+
+        // --- Confirm match ---
+        confirmMatchBtn.onclick = async () => {
+            const selectedOption = donationMatches.querySelector('.match-option[style*="e3f2fd"]');
+            if (!selectedOption) {
+                Swal.fire({ icon: 'error', title: 'No Selection', text: 'Please select a relief request to match.' });
                 return;
             }
 
-            // Show modal with the first match by default
-            const firstMatch = matches[0];
-            modalReliefId.textContent = firstMatch.requestId;
-            modalReliefCategory.textContent = firstMatch.category;
-            modalReliefAddress.textContent = firstMatch.address;
+            const index = parseInt(selectedOption.dataset.index);
+            const selectedMatch = matches[index];
 
-            // Populate donation matches
-            let matchOptions = matches.map((match, index) => `
-                <div class="match-option" style="margin-bottom: 10px; padding: 10px; border: 1px solid #ccc; border-radius: 8px; cursor: pointer; background: ${index === 0 ? '#e3f2fd' : '#fff'};" data-index="${index}">
-                    <p><strong>Request ID:</strong> ${sanitizeInput(match.requestId)}</p>
-                    <p><strong>Organization:</strong> ${sanitizeInput(match.organization)}</p>
-                    <p><strong>Category:</strong> ${sanitizeInput(match.category)}</p>
-                    <p><strong>Address:</strong> ${sanitizeInput(match.address)}</p>
-                    <p><strong>Distance:</strong> ${match.distance ? match.distance.toFixed(2) + ' km (' + match.distanceCategory + ')' : 'N/A'}</p>
-                    <p><strong>Request Date:</strong> ${match.donationDate ? new Date(match.donationDate).toLocaleDateString('en-US') : 'N/A'}</p>
-                </div>
-            `).join('');
+            try {
+                await database.ref(`donations/savedDonations/inkind/${firebaseKey}`).update({
+                    endorsedTo: selectedMatch.organization,
+                    endorsedEmail: selectedMatch.email,
+                    endorsementDate: new Date().toISOString(),
+                    requestId: selectedMatch.requestId
+                });
 
-            donationMatches.innerHTML = matchOptions || '<p>No matching relief requests found.</p>';
+                await sendEndorsementEmail(donation, {
+                    name: selectedMatch.organization,
+                    email: selectedMatch.email
+                });
 
-            modal.style.display = 'flex';
-
-            // Handle match selection
-            donationMatches.addEventListener('click', (e) => {
-                const matchOption = e.target.closest('.match-option');
-                if (!matchOption) return;
-                const index = parseInt(matchOption.dataset.index);
-                const selectedMatch = matches[index];
-
-                // Update modal with selected match details
-                modalReliefId.textContent = selectedMatch.requestId;
-                modalReliefCategory.textContent = selectedMatch.category;
-                modalReliefAddress.textContent = selectedMatch.address;
-
-                // Highlight selected option
-                document.querySelectorAll('.match-option').forEach(opt => opt.style.background = '#fff');
-                matchOption.style.background = '#e3f2fd';
-            });
-
-            // Handle confirm button
-            confirmMatchBtn.onclick = async () => {
-                const selectedOption = donationMatches.querySelector('.match-option[style*="e3f2fd"]');
-                if (!selectedOption) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'No Selection',
-                        text: 'Please select a relief request to match.',
-                        customClass: {
-                            popup: 'swal2-popup-error-clean',
-                            title: 'swal2-title-error-clean',
-                            htmlContainer: 'swal2-text-error-clean'
-                        }
-                    });
-                    return;
-                }
-
-                const index = parseInt(selectedOption.dataset.index);
-                const selectedMatch = matches[index];
-
-                try {
-                    await database.ref(`donations/savedDonations/inkind/${firebaseKey}`).update({
-                        endorsedTo: selectedMatch.organization,
-                        endorsedEmail: selectedMatch.email,
-                        endorsementDate: new Date().toISOString(),
-                        requestId: selectedMatch.requestId
-                    });
-
-                    await sendEndorsementEmail(donation, {
-                        name: selectedMatch.organization,
-                        email: selectedMatch.email
-                    });
-
-                    modal.style.display = 'none';
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Match Successful!',
-                        text: `Donation matched to ${sanitizeInput(selectedMatch.organization)}.`,
-                        showConfirmButton: true,
-                        confirmButtonText: 'OK',
-                        customClass: {
-                            popup: 'swal2-popup-success-clean',
-                            title: 'swal2-title-success-clean',
-                            htmlContainer: 'swal2-text-success-clean',
-                            confirmButton: 'my-success-button'
-                        }
-                    });
-                } catch (error) {
-                    logErrorToFirebase(error, 'openMatchModal_update');
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Match Failed',
-                        text: `Failed to match donation: ${error.message}`,
-                        customClass: {
-                            popup: 'swal2-popup-error-clean',
-                            title: 'swal2-title-error-clean',
-                            htmlContainer: 'swal2-text-error-clean'
-                        }
-                    });
-                }
-            };
-
-            // Handle modal close
-            document.querySelector('#matchModal .closeBtn').onclick = () => {
                 modal.style.display = 'none';
-            };
-            window.addEventListener('click', (event) => {
-                if (event.target === modal) {
-                    modal.style.display = 'none';
-                }
-            });
-        } catch (error) {
-            logErrorToFirebase(error, 'openMatchModal');
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: `Error loading match options: ${error.message}`,
-                customClass: {
-                    popup: 'swal2-popup-error-clean',
-                    title: 'swal2-title-error-clean',
-                    htmlContainer: 'swal2-text-error-clean'
-                }
-            });
-        }
+                Swal.fire({ icon: 'success', title: 'Match Successful!', text: `Donation matched to ${sanitizeInput(selectedMatch.organization)}.` });
+            } catch (error) {
+                logErrorToFirebase(error, 'openMatchModal_update');
+                Swal.fire({ icon: 'error', title: 'Match Failed', text: `Failed to match donation: ${error.message}` });
+            }
+        };
+
+        // --- Close modal ---
+        document.querySelector('#matchModal .closeBtn').onclick = () => modal.style.display = 'none';
+        window.addEventListener('click', (event) => { if (event.target === modal) modal.style.display = 'none'; });
+
+    } catch (error) {
+        logErrorToFirebase(error, 'openMatchModal');
+        Swal.fire({ icon: 'error', title: 'Error', text: `Error loading match options: ${error.message}` });
     }
+}
+
+
 
     // Update sendEndorsementEmail for relief requests
     async function sendEndorsementEmail(donation, endorsedGroup) {
