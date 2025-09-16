@@ -1,3 +1,4 @@
+<!-- inkind.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -91,7 +92,7 @@
                             </div>
                             <div class="input-field">
                                 <label for="assistance">Type of Assistance</label>
-                                <input type="text" id="assistance" name="assistance" placeholder="Enter type of assistance" maxlength="50" required/>
+                                <input type="text" id="assistance" name="assistance" placeholder="Enter types of assistance, separated by commas" requiredz>
                             </div>
                             <div class="input-field">
                                 <label for="valuation">Valuation</label>
@@ -355,7 +356,7 @@
                         </div>
                         <div class="form-group">
                             <label for="edit-assistance">Type of Assistance</label>
-                            <input type="text" id="edit-assistance" name="edit-assistance" placeholder="Enter type of assistance" required>
+                            <input type="text" id="edit-assistance" placeholder="Enter types of assistance, separated by commas" required>
                         </div>
                         <div class="form-group">
                             <label for="edit-valuation">Valuation</label>
@@ -432,6 +433,27 @@
                     <span class="closeBtn" style="position: absolute; top: 10px; right: 20px; font-size: 24px; cursor: pointer;">&times;</span>
                     <input type="text" id="search-input" placeholder="Search for a location" style="width: 100%; padding: 10px; margin-bottom: 10px;">
                     <div id="mapContainer" style="width: 100%; height: 500px;"></div>
+                </div>
+            </div>
+
+            <!-- Match Modal -->
+            <div id="matchModal" class="modal" style="display:none;">
+                <div class="modal-content">
+                    <span class="closeBtn">&times;</span>
+
+                    <div class="match-modal-wrapper">
+                        <h2>Match Relief Request</h2>
+                        <p><strong>Relief ID:</strong> <span id="modalReliefId"></span></p>
+                        <p><strong>Category:</strong> <span id="modalReliefCategory"></span></p>
+                        <p><strong>Dropoff Address:</strong> <span id="modalReliefAddress"></span></p>
+                    </div>
+
+                    <div class="match-modal-wrapper">
+                        <h3>Matching Donations:</h3>
+                        <div id="donationMatches">Loading...</div>
+                    </div>
+
+                    <button id="confirmMatchBtn">Confirm Match</button>
                 </div>
             </div>
         </div>

@@ -746,24 +746,24 @@ formPage2.addEventListener("submit", async (e) => {
   }
 
   const newRequest = {
-  contactPerson,
-  contactNumber,
-  email,
-  category,
-  volunteerOrganization,
-  userUid,
-  address: {   // ✅ group address details together
-    formattedAddress,
-    latitude,
-    longitude,
-  },
-  items: addedItems.map(item => ({
-    ...item,
-    quantity: Number(item.quantity)
-  })),
-  timestamp: firebase.database.ServerValue.TIMESTAMP,
-  donationDate: new Date().toISOString() // ✅ replaces old timestamp
-
+    contactPerson,
+    contactNumber,
+    email,
+    category,
+    volunteerOrganization,
+    userUid,
+    address: {   // ✅ group address details together
+      formattedAddress,
+      latitude,
+      longitude,
+    },
+    items: addedItems.map(item => ({
+      ...item,
+      quantity: Number(item.quantity)
+    })),
+    timestamp: firebase.database.ServerValue.TIMESTAMP,
+    donationDate: new Date().toISOString(),
+    status: "Pending"
   };
 
 

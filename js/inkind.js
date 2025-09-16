@@ -42,7 +42,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const archivedTableBody = document.querySelector('#archivedTable tbody');
     const archivedEntriesInfo = document.querySelector("#archivedEntriesInfo");
     const archivedPaginationContainer = document.querySelector("#archivedPagination");
-
+    
     const rowsPerPage = 5;
     let currentPage = 1;
     let allDonations = [];
@@ -63,6 +63,39 @@ document.addEventListener("DOMContentLoaded", () => {
     let autocompletes = {};
     let currentPinButtonId = null;
     let selectedCoordinates = { lat: null, lng: null };
+
+    tableBody.addEventListener('click', (e) => {
+        const target = e.target.closest('button');
+        if (!target) return;
+        const firebaseKey = target.dataset.id;
+        if (!firebaseKey) return; // Safety check
+        if (target.classList.contains('viewBtn')) {
+            const donationToView = allDonations.find(app => app.firebaseKey === firebaseKey);
+            if (donationToView) {
+                showViewModal(donationToView);
+            } else {
+                Swal.fire({
+                    title: 'Error',
+                    text: 'Donation details not found.',
+                    icon: 'error',
+                    customClass: {
+                        popup: 'swal2-popup-error-clean',
+                        title: 'swal2-title-error-clean',
+                        htmlContainer: 'swal2-text-error-clean'
+                    }
+                });
+            }
+        } else if (target.classList.contains('editBtn') && permissions.canEdit) {
+            openEditModal(firebaseKey);
+        } else if (target.classList.contains('archiveBtn') && permissions.canArchive) {
+            deleteRow(firebaseKey);
+        } else if (target.classList.contains('endorseBtn')) {
+            openMatchModal(firebaseKey);
+        } else if (target.classList.contains('savePDFBtn')) {
+            const donation = allDonations.find(d => d.firebaseKey === firebaseKey);
+            saveSingleDonationPdf(donation);
+        }
+    });
 
     // Function to validate email format
     function isValidEmail(email) {
@@ -523,6 +556,15 @@ document.addEventListener("DOMContentLoaded", () => {
                     showError(input, `${fieldConfig.label} is not a valid date.`);
                 }
             }
+            // Custom validation for assistance
+            if (input.name === 'assistance') {
+                const items = input.value.split(',').map(item => item.trim());
+                if (items.some(item => item === '')) {
+                    showError(input, 'Each type of assistance must be non-empty.');
+                } else if (items.some(item => !/^[a-zA-Z\s]+$/.test(item))) {
+                    showError(input, 'Each type of assistance should only contain letters and spaces.');
+                }
+            }
         }
     }
 
@@ -534,7 +576,7 @@ document.addEventListener("DOMContentLoaded", () => {
             type: { label: 'Donor Type', lettersOnly: true },
             contactPerson: { label: 'Contact Person', lettersOnly: true },
             category: { label: 'Category', lettersOnly: true },
-            assistance: { label: 'Type of Assistance', lettersOnly: true },
+            assistance: { label: 'Type of Assistance' },
             number: { label: 'Mobile Number', numberOnly: true, checkMobile: true },
             valuation: { label: 'Valuation', numberOnly: true, checkValuation: true },
             address: { label: 'Address', required: true }, // No autocomplete
@@ -574,7 +616,7 @@ document.addEventListener("DOMContentLoaded", () => {
             'edit-type': { label: 'Type', lettersOnly: true },
             'edit-contactPerson': { label: 'Contact Person', lettersOnly: true },
             'edit-category': { label: 'Category', lettersOnly: true },
-            'edit-assistance': { label: 'Type of Assistance', lettersOnly: true },
+            'edit-assistance': { label: 'Type of Assistance' },
             'edit-number': { label: 'Number', numberOnly: true, checkMobile: true },
             'edit-valuation': { label: 'Valuation', numberOnly: true, checkValuation: true },
             'edit-address': { label: 'Address', required: true }, // No autocomplete
@@ -693,7 +735,7 @@ document.addEventListener("DOMContentLoaded", () => {
             Number: "09123456789",
             Email: "jane.doe@gmail.com",
             Category: "Relief Packs",
-            Assistance: "Relief Goods",
+            Assistance: "Food, Clothing, Medical Supplies",
             Valuation: 5000.00,
             "Additional Notes": "Donated used clothes in good condition",
             Status: "Received",
@@ -815,7 +857,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         number: String(row[headers.indexOf("Number")] || '').trim().replace(/\D/g, ''),
                         email: String(row[headers.indexOf("Email")] || '').trim(),
                         category: String(row[headers.indexOf("Category")] || '').trim(),
-                        assistance: String(row[headers.indexOf("Assistance")] || '').trim(),
+                        assistance: String(row[headers.indexOf("Assistance")] || '').split(',').map(item => item.trim()),                         
                         valuation: String(row[headers.indexOf("Valuation")] || '').trim(),
                         additionalnotes: String(row[headers.indexOf("Additional Notes")] || '').trim(),
                         status: String(row[headers.indexOf("Status")] || '').trim(),
@@ -1045,10 +1087,21 @@ document.addEventListener("DOMContentLoaded", () => {
                 };
                 allArchivedInKindDonation.push(donation);
             });
-
             allArchivedInKindDonation.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
             renderArchivedTable(currentArchivedPage);
             renderArchivedPagination();
+        }, (error) => {
+            logErrorToFirebase(error, 'fetchArchivedDonations');
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Failed to fetch archived donations: ' + error.message,
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean'
+                }
+            });
         });
     }
 
@@ -1068,8 +1121,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const coordinatesDisplay = item.address?.latitude && item.address?.longitude
                 ? `Lat: ${item.address.latitude.toFixed(6)}, Lng: ${item.address.longitude.toFixed(6)}`
                 : 'N/A';
-
-            const row = archivedTableBody.insertRow();
+            const assistanceDisplay = Array.isArray(item.assistance) ? item.assistance.join(', ') : item.assistance || 'N/A';            const row = archivedTableBody.insertRow();
             row.innerHTML = `
                 <td>${start + index + 1}</td>
                 <td>${item.encoder}</td>
@@ -1080,7 +1132,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 <td>${item.number}</td>
                 <td>${item.email}</td> 
                 <td>${item.category}</td> 
-                <td>${item.assistance}</td>
+                <td>${assistanceDisplay}</td>
                 <td>${parseFloat(item.valuation || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                 <td>${item.additionalnotes}</td>
                 <td>${item.status}</td>
@@ -1326,31 +1378,6 @@ document.addEventListener("DOMContentLoaded", () => {
             updateSearchPlaceholder();
             resetInactivityTimer();
 
-            viewArchivedBtn.addEventListener('click', async () => {
-                if (!permissions.canRetrieve) {
-                    Swal.fire({
-                        title: 'Access Denied',
-                        text: 'You do not have permission to view archived donations.',
-                        icon: 'error',
-                        timer: 1600,
-                        showConfirmButton: false,
-                        timerProgressBar: true,
-                        allowOutsideClick: false,
-                        customClass: {
-                            popup: 'swal2-popup-error-clean',
-                            title: 'swal2-title-error-clean',
-                            htmlContainer: 'swal2-text-error-clean'
-                        }
-                    });
-                    return;
-                }
-                archivedModal.style.display = 'flex';
-                fetchArchivedDonations();
-            });
-
-            if (!permissions.canArchive) document.querySelectorAll('.archiveBtn').forEach(btn => btn.style.display = 'none');
-            if (!permissions.canEdit) document.querySelectorAll('.editBtn').forEach(btn => btn.style.display = 'none');
-
         } catch (error) {
             console.error(`[${new Date().toISOString()}] Error checking user data:`, error);
             Swal.fire({
@@ -1458,7 +1485,7 @@ document.addEventListener("DOMContentLoaded", () => {
             number: { label: 'Number', checkMobile: true, required: true },
             email: { label: 'Email', checkEmail: true, required: true },
             category: { label: 'Category', required: true },
-            assistance: { label: 'Assistance', lettersOnly: true, required: true },
+            assistance: { label: 'Assistance', required: true },
             valuation: { label: 'Valuation', checkValuation: true, required: true },
             additionalnotes: { label: 'Additional Notes', required: false },
             status: { label: 'Status', required: true },
@@ -1474,9 +1501,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
             clearError(input);
             const sanitizedValue = sanitizeInput(input.value);
-            if (config.required && isEmpty(sanitizedValue)) {
-                showError(input, `${config.label} is required`);
-                isValid = false;
+            if (key === 'assistance') {
+                const items = sanitizedValue.split(',').map(item => item.trim());
+                if (items.some(item => item === '')) {
+                    showError(input, 'Each type of assistance must be non-empty.');
+                    isValid = false;
+                } else if (items.some(item => !/^[a-zA-Z\s]+$/.test(item))) {
+                    showError(input, 'Each type of assistance should only contain letters and spaces.');
+                    isValid = false;
+                }
             } else if (!isEmpty(sanitizedValue)) {
                 if (config.lettersOnly && !isLettersOnly(sanitizedValue)) {
                     showError(input, `${config.label} should only contain letters and spaces`);
@@ -1638,7 +1671,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 number: sanitizeInput(form.number.value),
                 email: sanitizeInput(form.email.value),
                 category: sanitizeInput(form.category.value),
-                assistance: sanitizeInput(form.assistance.value),
+                assistance: form.assistance.value.split(',').map(item => sanitizeInput(item.trim())), 
                 valuation: parseFloat(form.valuation.value) || 0,
                 additionalnotes: sanitizeInput(form.additionalnotes.value),
                 status: form.status.value,
@@ -1749,6 +1782,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const coordinatesDisplay = donation.address?.latitude && donation.address?.longitude
             ? `Lat: ${sanitizeInput(donation.address.latitude.toFixed(6))}, Lng: ${sanitizeInput(donation.address.longitude.toFixed(6))}`
             : 'N/A';
+        const assistanceDisplay = Array.isArray(donation.assistance) ? donation.assistance.join(', ') : donation.assistance || 'N/A';
 
         modalContentDiv.innerHTML = `
             <div class="modal-content-inner" style="padding: 20px;">
@@ -1764,7 +1798,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 <hr>
                 <h2>Donation Details:</h2>
                 <p><strong>Category:</strong> ${sanitizeInput(donation.category || 'N/A')}</p>
-                <p><strong>Assistance:</strong> ${sanitizeInput(donation.assistance || 'N/A')}</p>
+                <p><strong>Assistance:</strong> ${sanitizeInput(assistanceDisplay)}</p>
                 <p><strong>Valuation:</strong> ₱${parseFloat(donation.valuation || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                 <p><strong>Additional Notes:</strong> ${sanitizeInput(donation.additionalnotes || 'N/A')}</p>
                 <p><strong>Status:</strong> ${sanitizeInput(donation.status || 'N/A')}</p>
@@ -1798,6 +1832,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 const coordinatesDisplay = d.address?.latitude && d.address?.longitude
                     ? `Lat: ${d.address.latitude.toFixed(6)}, Lng: ${d.address.longitude.toFixed(6)}`
                     : 'N/A';
+                const assistanceDisplay = Array.isArray(d.assistance) ? d.assistance.join(', ') : d.assistance || 'N/A'; // Define assistanceDisplay here
                 const tr = document.createElement("tr");
                 tr.innerHTML = `
                     <td>${startIndex + i + 1}</td>
@@ -1809,45 +1844,20 @@ document.addEventListener("DOMContentLoaded", () => {
                     <td>${sanitizeInput(d.number || 'N/A')}</td>
                     <td>${sanitizeInput(d.email || 'N/A')}</td>
                     <td>${sanitizeInput(d.category || 'N/A')}</td>
-                    <td>${sanitizeInput(d.assistance || 'N/A')}</td>
+                    <td>${sanitizeInput(assistanceDisplay)}</td>
                     <td>₱${parseFloat(d.valuation || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                     <td>${sanitizeInput(d.additionalnotes || '-')}</td>
                     <td>${sanitizeInput(d.status || 'N/A')}</td>
                     <td>${sanitizeInput(d.staffIncharge || 'N/A')}</td>
                     <td>${sanitizeInput(d.donationDate ? new Date(d.donationDate).toLocaleDateString('en-PH') : 'N/A')}</td>
                     <td>
-                        <button class="viewBtn"><i class='bx bx-show-alt'></i></button>
-                        ${permissions.canEdit ? `<button class="editBtn"><i class='bx bx-edit'></i></button>` : ''}
-                        ${permissions.canArchive ? `<button class="archiveBtn"><i class="bx bx-x-circle"></i></button>` : ''}
-                        <button class="endorseBtn"><i class='bx bx-mail-send'></i></button>
-                        <button class="savePDFBtn"><i class='bx bxs-file-pdf'></i></button>
+                        <button class="viewBtn" data-id="${d.firebaseKey}"><i class='bx bx-show-alt'></i></button>
+                        ${permissions.canEdit ? `<button class="editBtn" data-id="${d.firebaseKey}"><i class='bx bx-edit'></i></button>` : ''}
+                        ${permissions.canArchive ? `<button class="archiveBtn" data-id="${d.firebaseKey}"><i class="bx bx-x-circle"></i></button>` : ''}
+                        <button class="endorseBtn" data-id="${d.firebaseKey}"><i class='bx bx-mail-send'></i></button>
+                        <button class="savePDFBtn" data-id="${d.firebaseKey}"><i class='bx bxs-file-pdf'></i></button>
                     </td>
                 `;
-                tr.querySelector(".viewBtn").addEventListener("click", () => {
-                    const donationToView = allDonations.find(app => app.firebaseKey === d.firebaseKey);
-                    if (donationToView) {
-                        showViewModal(donationToView);
-                    } else {
-                        Swal.fire({
-                            title: 'Error',
-                            text: 'Donation details not found.',
-                            icon: 'error',
-                            customClass: {
-                                popup: 'swal2-popup-error-clean',
-                                title: 'swal2-title-error-clean',
-                                htmlContainer: 'swal2-text-error-clean'
-                            }
-                        });
-                    }
-                });
-                if (permissions.canEdit) {
-                    tr.querySelector(".editBtn").addEventListener("click", () => openEditModal(d.firebaseKey));
-                }
-                if (permissions.canArchive) {
-                    tr.querySelector(".archiveBtn").addEventListener("click", () => deleteRow(d.firebaseKey));
-                }
-                tr.querySelector(".endorseBtn").addEventListener("click", () => openEndorseModal(d.firebaseKey));
-                tr.querySelector(".savePDFBtn").addEventListener("click", () => saveSingleDonationPdf(d));
                 tableBody.appendChild(tr);
             });
         }
@@ -1918,8 +1928,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (currentSort.includes('number')) return (d.number || '').includes(searchTerm);
             if (currentSort.includes('email')) return (d.email || '').toLowerCase().includes(searchTerm);
             if (currentSort.includes('category')) return (d.category || '').toLowerCase().includes(searchTerm);
-            if (currentSort.includes('assistance')) return (d.assistance || '').toLowerCase().includes(searchTerm);
-            if (currentSort.includes('valuation')) return String(d.valuation || '').includes(searchTerm);
+            if (currentSort.includes('assistance')) return Array.isArray(d.assistance) ? d.assistance.join(', ').toLowerCase().includes(searchTerm) : (d.assistance || '').toLowerCase().includes(searchTerm);            if (currentSort.includes('valuation')) return String(d.valuation || '').includes(searchTerm);
             if (currentSort.includes('notes')) return (d.additionalnotes || '').toLowerCase().includes(searchTerm);
             if (currentSort.includes('status')) return (d.status || '').toLowerCase().includes(searchTerm);
             if (currentSort.includes('staffIncharge')) return (d.staffIncharge || '').toLowerCase().includes(searchTerm);
@@ -1933,7 +1942,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 (d.number || '').includes(searchTerm) ||
                 (d.email || '').toLowerCase().includes(searchTerm) ||
                 (d.category || '').toLowerCase().includes(searchTerm) ||
-                (d.assistance || '').toLowerCase().includes(searchTerm) ||
+                (Array.isArray(d.assistance) ? d.assistance.join(', ') : d.assistance || '').toLowerCase().includes(searchTerm) ||
                 String(d.valuation || '').includes(searchTerm) ||
                 (d.additionalnotes || '').toLowerCase().includes(searchTerm) ||
                 (d.status || '').toLowerCase().includes(searchTerm) ||
@@ -1969,8 +1978,8 @@ document.addEventListener("DOMContentLoaded", () => {
         else if (sortVal === "email-desc") arr.sort((a, b) => (b.email || '').localeCompare(a.email || ''));
         else if (sortVal === "category-asc") arr.sort((a, b) => (a.category || '').localeCompare(b.category || ''));
         else if (sortVal === "category-desc") arr.sort((a, b) => (b.category || '').localeCompare(a.category || ''));
-        else if (sortVal === "assistance-asc") arr.sort((a, b) => (a.assistance || '').localeCompare(b.assistance || ''));
-        else if (sortVal === "assistance-desc") arr.sort((a, b) => (b.assistance || '').localeCompare(a.assistance || ''));
+        else if (sortVal === "assistance-asc") arr.sort((a, b) => (Array.isArray(a.assistance) ? a.assistance.join(', ') : a.assistance || '').localeCompare(Array.isArray(b.assistance) ? b.assistance.join(', ') : b.assistance || ''));
+        else if (sortVal === "assistance-desc") arr.sort((a, b) => (Array.isArray(b.assistance) ? b.assistance.join(', ') : b.assistance || '').localeCompare(Array.isArray(a.assistance) ? a.assistance.join(', ') : a.assistance || ''));
         else if (sortVal === "valuation-asc") arr.sort((a, b) => (parseFloat(a.valuation) || 0) - (parseFloat(b.valuation) || 0));
         else if (sortVal === "valuation-desc") arr.sort((a, b) => (parseFloat(b.valuation) || 0) - (parseFloat(a.valuation) || 0));
         else if (sortVal === "additionalnotes-asc") arr.sort((a, b) => (a.additionalnotes || '').localeCompare(b.additionalnotes || ''));
@@ -2001,7 +2010,7 @@ document.addEventListener("DOMContentLoaded", () => {
             "Number": d.number,
             "Email": d.email,
             "Category": d.category,
-            "Assistance": d.assistance,
+            "Assistance": Array.isArray(d.assistance) ? d.assistance.join(', ') : d.assistance || 'N/A',
             "Valuation": d.valuation,
             "Additional Notes": d.additionalnotes,
             "Staff-In-Charge": d.staffIncharge,
@@ -2072,7 +2081,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 String(d.number) || 'N/A',
                 d.email || 'N/A',
                 d.category || 'N/A',
-                d.assistance || 'N/A',
+                Array.isArray(d.assistance) ? d.assistance.join(', ') : d.assistance || 'N/A',
                 `PHP ${parseFloat(d.valuation || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
                 d.additionalnotes || 'N/A',
                 d.status || 'N/A',
@@ -2170,7 +2179,7 @@ document.addEventListener("DOMContentLoaded", () => {
             addDetail("Number", donation.number);
             addDetail("Email", donation.email);
             addDetail("Category", donation.category);
-            addDetail("Assistance", donation.assistance);
+            addDetail("Assistance", Array.isArray(donation.assistance) ? donation.assistance.join(', ') : donation.assistance || 'N/A');
             addDetail("Valuation", `₱${parseFloat(donation.valuation || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
             addDetail("Additional Notes", donation.additionalnotes);
             addDetail("Status", donation.status);
@@ -2294,17 +2303,12 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Function to send an endorsement email using EmailJS
-    async function sendEndorsementEmail(donation, endorsedGroup) {
-        const serviceID = 'service_mzpjk2a';
-        const templateID = 'template_4tks2la';
-
-        // Validate the volunteer group's email
-        if (!endorsedGroup.email || !isValidEmail(endorsedGroup.email)) {
+    async function openMatchModal(firebaseKey) {
+        if (!permissions.canEdit) {
             Swal.fire({
                 icon: 'error',
-                title: 'Invalid Email',
-                text: 'The volunteer group’s email is invalid or missing.',
+                title: 'Access Denied',
+                text: 'You do not have permission to endorse donations.',
                 customClass: {
                     popup: 'swal2-popup-error-clean',
                     title: 'swal2-title-error-clean',
@@ -2314,24 +2318,297 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
+        const donationToMatch = allDonations.find(d => d.firebaseKey === firebaseKey);
+        if (!donationToMatch) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Donation not found for matching.',
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean'
+                }
+            });
+            return;
+        }
+
+        if (donationToMatch.endorsedTo) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Already Matched',
+                text: `This donation has already been matched to ${sanitizeInput(donationToMatch.endorsedTo)}. Do you want to re-match it?`,
+                showCancelButton: true,
+                confirmButtonText: 'Re-match',
+                cancelButtonText: 'Cancel',
+                customClass: {
+                    popup: 'swal2-popup-warning-clean',
+                    title: 'swal2-title-warning-clean',
+                    htmlContainer: 'swal2-text-warning-clean'
+                }
+            }).then((result) => {
+                if (!result.isConfirmed) return;
+                showMatchModal(donationToMatch, firebaseKey);
+            });
+            return;
+        }
+
+        showMatchModal(donationToMatch, firebaseKey);
+    }
+
+    async function showMatchModal(donation, firebaseKey) {
+        try {
+            const requestsSnapshot = await firebase.database().ref('requestRelief/requests')
+            .orderByChild('status')
+            .equalTo('Pending')
+            .once('value');
+            const requests = requestsSnapshot.val() || {};
+            const donationCategories = Array.isArray(donation.category) ? donation.category : donation.category ? donation.category.split(',').map(item => item.trim()) : [];
+            const donationCoords = donation.address && typeof donation.address === 'object' ? {
+                lat: donation.address.latitude || null,
+                lng: donation.address.longitude || null
+            } : { lat: null, lng: null };
+
+            let matches = [];
+            for (const requestId in requests) {
+                const request = requests[requestId];
+                if (request.status !== 'Pending') continue;
+
+                const requestCategories = Array.isArray(request.category) ? request.category : request.category ? request.category.split(',').map(item => item.trim()) : [];
+                const hasMatchingCategory = donationCategories.some(dc => requestCategories.some(rc => rc.toLowerCase() === dc.toLowerCase()));
+
+                if (!hasMatchingCategory) continue;
+
+                const requestCoords = request.address && typeof request.address === 'object' ? {
+                    lat: request.address.latitude || null,
+                    lng: request.address.longitude || null
+                } : { lat: null, lng: null };
+
+                let distance = null;
+                let distanceCategory = 'N/A';
+                if (donationCoords.lat && donationCoords.lng && requestCoords.lat && requestCoords.lng) {
+                    distance = getDistance(donationCoords.lat, donationCoords.lng, requestCoords.lat, requestCoords.lng);
+                    if (distance <= 5) distanceCategory = 'Near';
+                    else if (distance <= 10) distanceCategory = 'Medium';
+                    else if (distance <= 20) distanceCategory = 'Far';
+                    else continue; // Skip if distance > 20 km
+                }
+
+                matches.push({
+                    requestId,
+                    organization: request.organization || 'Unknown',
+                    email: request.email || '',
+                    category: requestCategories.join(', '),
+                    address: request.address?.formattedAddress || 'N/A',
+                    donationDate: request.donationDate || '',
+                    distance,
+                    distanceCategory
+                });
+            }
+
+            // Sort matches: prioritize distance (near > medium > far) then donationDate (newest first)
+            matches.sort((a, b) => {
+                const distanceOrder = { 'Near': 1, 'Medium': 2, 'Far': 3 };
+                if (a.distanceCategory !== b.distanceCategory) {
+                    return distanceOrder[a.distanceCategory] - distanceOrder[b.distanceCategory];
+                }
+                return new Date(b.donationDate) - new Date(a.donationDate);
+            });
+
+            const modal = document.getElementById('matchModal');
+            const modalReliefId = document.getElementById('modalReliefId');
+            const modalReliefCategory = document.getElementById('modalReliefCategory');
+            const modalReliefAddress = document.getElementById('modalReliefAddress');
+            const donationMatches = document.getElementById('donationMatches');
+            const confirmMatchBtn = document.getElementById('confirmMatchBtn');
+
+            if (matches.length === 0) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'No Matching Relief Requests',
+                    text: `No active relief requests found matching the donation's category (${donationCategories.join(', ')}) or within 20 km of ${sanitizeInput(donation.address?.formattedAddress || 'N/A')}.`,
+                    customClass: {
+                        popup: 'swal2-popup-warning-clean',
+                        title: 'swal2-title-warning-clean',
+                        htmlContainer: 'swal2-text-warning-clean'
+                    }
+                });
+                return;
+            }
+
+            // Show modal with the first match by default
+            const firstMatch = matches[0];
+            modalReliefId.textContent = firstMatch.requestId;
+            modalReliefCategory.textContent = firstMatch.category;
+            modalReliefAddress.textContent = firstMatch.address;
+
+            // Populate donation matches
+            let matchOptions = matches.map((match, index) => `
+                <div class="match-option" style="margin-bottom: 10px; padding: 10px; border: 1px solid #ccc; border-radius: 8px; cursor: pointer; background: ${index === 0 ? '#e3f2fd' : '#fff'};" data-index="${index}">
+                    <p><strong>Request ID:</strong> ${sanitizeInput(match.requestId)}</p>
+                    <p><strong>Organization:</strong> ${sanitizeInput(match.organization)}</p>
+                    <p><strong>Category:</strong> ${sanitizeInput(match.category)}</p>
+                    <p><strong>Address:</strong> ${sanitizeInput(match.address)}</p>
+                    <p><strong>Distance:</strong> ${match.distance ? match.distance.toFixed(2) + ' km (' + match.distanceCategory + ')' : 'N/A'}</p>
+                    <p><strong>Request Date:</strong> ${match.donationDate ? new Date(match.donationDate).toLocaleDateString('en-US') : 'N/A'}</p>
+                </div>
+            `).join('');
+
+            donationMatches.innerHTML = matchOptions || '<p>No matching relief requests found.</p>';
+
+            modal.style.display = 'flex';
+
+            // Handle match selection
+            donationMatches.addEventListener('click', (e) => {
+                const matchOption = e.target.closest('.match-option');
+                if (!matchOption) return;
+                const index = parseInt(matchOption.dataset.index);
+                const selectedMatch = matches[index];
+
+                // Update modal with selected match details
+                modalReliefId.textContent = selectedMatch.requestId;
+                modalReliefCategory.textContent = selectedMatch.category;
+                modalReliefAddress.textContent = selectedMatch.address;
+
+                // Highlight selected option
+                document.querySelectorAll('.match-option').forEach(opt => opt.style.background = '#fff');
+                matchOption.style.background = '#e3f2fd';
+            });
+
+            // Handle confirm button
+            confirmMatchBtn.onclick = async () => {
+                const selectedOption = donationMatches.querySelector('.match-option[style*="e3f2fd"]');
+                if (!selectedOption) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'No Selection',
+                        text: 'Please select a relief request to match.',
+                        customClass: {
+                            popup: 'swal2-popup-error-clean',
+                            title: 'swal2-title-error-clean',
+                            htmlContainer: 'swal2-text-error-clean'
+                        }
+                    });
+                    return;
+                }
+
+                const index = parseInt(selectedOption.dataset.index);
+                const selectedMatch = matches[index];
+
+                try {
+                    await database.ref(`donations/savedDonations/inkind/${firebaseKey}`).update({
+                        endorsedTo: selectedMatch.organization,
+                        endorsedEmail: selectedMatch.email,
+                        endorsementDate: new Date().toISOString(),
+                        requestId: selectedMatch.requestId
+                    });
+
+                    await sendEndorsementEmail(donation, {
+                        name: selectedMatch.organization,
+                        email: selectedMatch.email
+                    });
+
+                    modal.style.display = 'none';
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Match Successful!',
+                        text: `Donation matched to ${sanitizeInput(selectedMatch.organization)}.`,
+                        showConfirmButton: true,
+                        confirmButtonText: 'OK',
+                        customClass: {
+                            popup: 'swal2-popup-success-clean',
+                            title: 'swal2-title-success-clean',
+                            htmlContainer: 'swal2-text-success-clean',
+                            confirmButton: 'my-success-button'
+                        }
+                    });
+                } catch (error) {
+                    logErrorToFirebase(error, 'openMatchModal_update');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Match Failed',
+                        text: `Failed to match donation: ${error.message}`,
+                        customClass: {
+                            popup: 'swal2-popup-error-clean',
+                            title: 'swal2-title-error-clean',
+                            htmlContainer: 'swal2-text-error-clean'
+                        }
+                    });
+                }
+            };
+
+            // Handle modal close
+            document.querySelector('#matchModal .closeBtn').onclick = () => {
+                modal.style.display = 'none';
+            };
+            window.addEventListener('click', (event) => {
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        } catch (error) {
+            logErrorToFirebase(error, 'openMatchModal');
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: `Error loading match options: ${error.message}`,
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean'
+                }
+            });
+        }
+    }
+
+    // Update sendEndorsementEmail for relief requests
+    async function sendEndorsementEmail(donation, endorsedGroup) {
+        const serviceID = 'service_mzpjk2a';
+        const templateID = 'template_4tks2la';
+
+        if (!endorsedGroup.email || !isValidEmail(endorsedGroup.email)) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Invalid Email',
+                text: 'The relief request’s email is invalid or missing.',
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean'
+                }
+            });
+            return;
+        }
+
+        let orgEmail = 'default@example.com';
+        let orgContact = 'N/A';
+        try {
+            const settingsSnapshot = await database.ref('settings/organization').once('value');
+            const settings = settingsSnapshot.val();
+            orgEmail = settings?.email || orgEmail;
+            orgContact = settings?.contactNumber || orgContact;
+        } catch (error) {
+            logErrorToFirebase(error, 'fetchOrganizationSettings');
+        }
+
         const templateParams = {
             to_email: endorsedGroup.email,
-            reply_to: 'jldelossantos1101@gmail.com', // Replace with your organization’s email
-            volunteer_group_name: endorsedGroup.name || 'Unknown Group',
+            reply_to: orgEmail,
+            volunteer_group_name: endorsedGroup.name || 'Unknown Organization',
             donor_name: donation.name || 'Unknown Donor',
-            donation_type: donation.type || 'N/A',
+            donation_type: Array.isArray(donation.category) ? donation.category.join(', ') : donation.category || 'N/A',
             donation_quantity: parseFloat(donation.valuation || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
             endorsement_date: new Date().toLocaleDateString('en-US'),
-            organization_email: 'jldelossantos1101@gmail.com', // Replace with your organization’s email
-            organization_contact_number: '123-456-7890', // Replace with your organization’s contact number
-            donor_full_address: donation.address || 'Not specified',
+            organization_email: orgEmail,
+            organization_contact_number: orgContact,
+            donor_full_address: donation.address?.formattedAddress || donation.address || 'Not specified',
             donor_contact_person: donation.contactPerson || 'Not specified',
             donor_contact_number: donation.number || 'Not specified'
         };
 
         Swal.fire({
-            title: 'Sending Endorsement...',
-            text: 'Please wait while we send the email to the volunteer group.',
+            title: 'Sending Match Confirmation...',
+            text: 'Please wait while we send the email to the relief organization.',
             allowOutsideClick: false,
             didOpen: () => {
                 Swal.showLoading();
@@ -2342,8 +2619,8 @@ document.addEventListener("DOMContentLoaded", () => {
             await emailjs.send(serviceID, templateID, templateParams);
             Swal.fire({
                 icon: 'success',
-                title: 'Endorsement Sent!',
-                text: `An email has been sent to ${endorsedGroup.email} confirming the endorsement of the donation from ${donation.name}.`,
+                title: 'Match Confirmation Sent!',
+                text: `An email has been sent to ${endorsedGroup.email} confirming the match of the donation from ${donation.name}.`,
                 timer: 3000,
                 showConfirmButton: false,
                 timerProgressBar: true,
@@ -2354,220 +2631,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
             });
         } catch (error) {
-            logErrorToFirebase(error, 'sendEndorsementEmail');
+            logErrorToFirebase(error, 'sendEndorsementEmail', { serviceID, templateID, templateParams });
             Swal.fire({
                 icon: 'error',
-                title: 'Endorsement Failed',
+                title: 'Email Failed',
                 text: `An error occurred: ${error.text || error.message || 'Unknown error'}. Please try again later.`,
-                customClass: {
-                    popup: 'swal2-popup-error-clean',
-                    title: 'swal2-title-error-clean',
-                    htmlContainer: 'swal2-text-error-clean'
-                }
-            });
-        }
-    }
-
-    async function openEndorseModal(firebaseKey) {
-        const donationToEndorse = allDonations.find(d => d.firebaseKey === firebaseKey);
-
-        if (!donationToEndorse) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Donation not found for endorsement.',
-                customClass: {
-                    popup: 'swal2-popup-error-clean',
-                    title: 'swal2-title-error-clean',
-                    htmlContainer: 'swal2-text-error-clean'
-                }
-            });
-            return;
-        }
-
-        try {
-            const activationsSnapshot = await firebase.database().ref('activations').orderByChild('status').equalTo('active').once('value');
-            const activations = activationsSnapshot.val();
-            const volunteerGroupsSnapshot = await firebase.database().ref('volunteerGroups').once('value');
-            const volunteerGroups = volunteerGroupsSnapshot.val() || {};
-
-            let selectOptions = '<option value="" disabled selected>-- Select an option --</option>';
-            const donationAddress = (donationToEndorse.address || '').toLowerCase().trim();
-            const donationCoords = donationToEndorse.coordinates || { lat: null, lng: null };
-
-            if (activations && volunteerGroups) {
-            for (const activationId in activations) {
-                const activation = activations[activationId];
-                if (activation.status !== 'active') continue;
-
-                let matchedGroup = null;
-                for (const groupId in volunteerGroups) {
-                    const group = volunteerGroups[groupId];
-                    const groupArea = (group.areaOfOperation || '').toLowerCase().trim();
-                    const groupCoords = group.coordinates || { lat: null, lng: null };
-
-                    // Match by address or proximity (within ~10km)
-                    let isMatch = donationAddress.includes(groupArea) || groupArea.includes(donationAddress);
-                    if (!isMatch && donationCoords.lat && groupCoords.lat) {
-                        const distance = getDistance(donationCoords.lat, donationCoords.lng, groupCoords.lat, groupCoords.lng);
-                        if (distance <= 10) isMatch = true; // 10km radius
-                    }
-
-                    if (group.organization && activation.organization &&
-                        group.organization.toLowerCase() === activation.organization.toLowerCase() &&
-                        isValidEmail(group.email) && isMatch) {
-                        matchedGroup = group;
-                        break;
-                    }
-                }
-
-                if (matchedGroup) {
-                    const orgName = activation.organization || 'Unknown';
-                    const area = activation.areaOfOperation || 'Not specified';
-                    selectOptions += `<option value="${orgName}" data-email="${matchedGroup.email}" data-activation-id="${activationId}">${orgName} (${area})</option>`;
-                }
-            }
-
-                if (selectOptions !== '<option value="" disabled selected>-- Select an option --</option>') {
-                    Swal.fire({
-                        title: 'Endorse Donation',
-                        html: `
-                            <p style="font-weight: 500; color: #333;">Select a volunteer group in the donation's area (${donationToEndorse.address}):</p>
-                            <select id="assignmentSelect" style="
-                                width: 100%;
-                                padding: 10px;
-                                border-radius: 8px;
-                                border: 1px solid #ccc;
-                                font-size: 14px;
-                                background: #fefefe;
-                                box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
-                            ">
-                                ${selectOptions}
-                            </select>
-                            <div id="assignmentDetails" style="
-                                margin-top: 15px;
-                                max-height: 200px;
-                                overflow-y: auto;
-                                text-align: left;
-                                background: #f9f9f9;
-                                padding: 10px;
-                                border-radius: 8px;
-                                box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-                            ">
-                                <p>Please select an option to view details.</p>
-                            </div>
-                        `,
-                        icon: 'info',
-                        showCancelButton: true,
-                        confirmButtonText: 'Endorse',
-                        cancelButtonText: 'Cancel',
-                        confirmButtonColor: '#1e88e5',
-                        cancelButtonColor: '#e0e0e0',
-                        reverseButtons: true,
-                        buttonsStyling: true,
-                        customClass: {
-                            popup: 'custom-swal-popup-large',
-                            title: 'swal-title-modern',
-                            content: 'swal-content-modern',
-                            confirmButton: 'swal-confirm-modern',
-                            cancelButton: 'swal-cancel-modern'
-                        },
-                        didOpen: () => {
-                            const select = document.getElementById('assignmentSelect');
-                            const details = document.getElementById('assignmentDetails');
-                            select.addEventListener('change', () => {
-                                const selectedOption = select.options[select.selectedIndex];
-                                if (selectedOption.value) {
-                                    const email = selectedOption.getAttribute('data-email');
-                                    const activationId = selectedOption.getAttribute('data-activation-id');
-                                    details.innerHTML = `
-                                        <p><strong>Organization:</strong> ${selectedOption.value}</p>
-                                        <p><strong>Email:</strong> ${email}</p>
-                                    `;
-                                } else {
-                                    details.innerHTML = '<p>Please select an option to view details.</p>';
-                                }
-                            });
-                        },
-                        preConfirm: () => {
-                            const select = document.getElementById('assignmentSelect');
-                            const selectedOption = select.options[select.selectedIndex];
-                            if (!selectedOption.value) {
-                                Swal.showValidationMessage('Please select a volunteer group.');
-                                return false;
-                            }
-                            return {
-                                organization: selectedOption.value,
-                                email: selectedOption.getAttribute('data-email'),
-                                activationId: selectedOption.getAttribute('data-activation-id'),
-                                firebaseKey: firebaseKey
-                            };
-                        }
-                    }).then(async (result) => {
-                        if (result.isConfirmed) {
-                            const { organization, email, activationId, firebaseKey } = result.value;
-                            const endorsedGroup = {
-                                name: organization,
-                                email: email
-                            };
-
-                            try {
-                                await database.ref(`donations/savedDonations/inkind/${firebaseKey}`).update({
-                                    endorsedTo: endorsedGroup.name,
-                                    endorsedEmail: endorsedGroup.email,
-                                    endorsementDate: new Date().toISOString(),
-                                    activationId: activationId
-                                });
-
-                                await sendEndorsementEmail(donationToEndorse, endorsedGroup);
-
-                                Swal.fire({
-                                    icon: 'success',
-                                    title: 'Endorsement Successful!',
-                                    text: `Donation endorsed to ${organization}.`,
-                                    showConfirmButton: true,
-                                    confirmButtonText: 'OK',
-                                    customClass: {
-                                        popup: 'swal2-popup-success-clean',
-                                        title: 'swal2-title-success-clean',
-                                        htmlContainer: 'swal2-text-success-clean',
-                                        confirmButton: 'my-success-button'
-                                    }
-                                });
-                            } catch (error) {
-                                logErrorToFirebase(error, 'openEndorseModal_update');
-                                Swal.fire({
-                                    icon: 'error',
-                                    title: 'Endorsement Failed',
-                                    text: `Failed to endorse donation: ${error.message}`,
-                                    customClass: {
-                                        popup: 'swal2-popup-error-clean',
-                                        title: 'swal2-title-error-clean',
-                                        htmlContainer: 'swal2-text-error-clean'
-                                    }
-                                });
-                            }
-                        }
-                    });
-                } else {
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'No Matching Volunteer Groups',
-                        text: `No active volunteer groups found in the donation's area (${donationToEndorse.address}).`,
-                        customClass: {
-                            popup: 'swal2-popup-warning-clean',
-                            title: 'swal2-title-warning-clean',
-                            htmlContainer: 'swal2-text-warning-clean'
-                        }
-                    });
-                }
-            }
-        } catch (error) {
-            logErrorToFirebase(error, 'openEndorseModal');
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: `Error loading endorsement options: ${error.message}`,
                 customClass: {
                     popup: 'swal2-popup-error-clean',
                     title: 'swal2-title-error-clean',
@@ -2598,8 +2666,7 @@ document.addEventListener("DOMContentLoaded", () => {
             document.getElementById("edit-number").value = donationToEdit.number;
             document.getElementById("edit-email").value = donationToEdit.email;
             document.getElementById("edit-category").value = donationToEdit.category || '';
-            document.getElementById("edit-assistance").value = donationToEdit.assistance;
-            document.getElementById("edit-valuation").value = donationToEdit.valuation;
+            document.getElementById("edit-assistance").value = Array.isArray(donationToEdit.assistance) ? donationToEdit.assistance.join(', ') : donationToEdit.assistance || '';            document.getElementById("edit-valuation").value = donationToEdit.valuation;
             document.getElementById("edit-additionalnotes").value = donationToEdit.additionalnotes;
             document.getElementById("edit-status").value = donationToEdit.status;
             document.getElementById("edit-staffIncharge").value = donationToEdit.staffIncharge;
@@ -2643,8 +2710,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 number: sanitizeInput(inputs.number.value),
                 email: sanitizeInput(inputs.email.value),
                 category: sanitizeInput(inputs.category.value),
-                assistance: sanitizeInput(inputs.assistance.value),
-                valuation: parseFloat(inputs.valuation.value) || 0,
+                assistance: inputs.assistance.value.split(',').map(item => sanitizeInput(item.trim())).filter(item => item !== ''),                valuation: parseFloat(inputs.valuation.value) || 0,
                 additionalnotes: sanitizeInput(inputs.additionalnotes.value),
                 status: inputs.status.value,
                 staffIncharge: sanitizeInput(inputs.staffIncharge.value),
