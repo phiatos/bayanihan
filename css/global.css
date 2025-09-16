@@ -127,29 +127,6 @@
 }
 
 /* =====================
-  VolunteerRequest Overview
-===================== */
-.nested-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 5px;
-  background-color: #f9f9f9;
-}
-.nested-table th, .nested-table td {
-  border: 1px solid #ccc;
-  padding: 5px;
-  text-align: left;
-}
-
-.highlighted-request {
-  background-color: var(--highlight-color);
-  transition: background-color 2s ease;
-}
-.highlighted-request.fade {
-  background-color: transparent;
-}
-
-/* =====================
   Card Styling for Logs
 ===================== */
 .requests-list-container {
