@@ -1,0 +1,82 @@
+<!-- volunteerRequestOverview.html -->
+
+<header>Reliefs Requests Overview</header>
+
+<!-- Summary Dashboard -->
+<div class="dashboard-cards">
+    <div class="card">
+        <div class="card-title">Total Donations</div>
+        <div class="card-value" id="total-requests"></div>
+    </div>
+    <div class="card">
+        <div class="card-title">Donations Needed</div>
+        <div class="card-value" id="total-volunteers"></div>
+    </div>
+    <div class="card">
+        <div class="card-title">Requests Completed</div>
+        <div class="card-value" id="requests-completed"></div>
+    </div>
+    <div class="card">
+        <div class="card-title">Requests Pending</div>
+        <div class="card-value" id="requests-pending"></div>
+    </div>
+    <div class="card">
+        <div class="card-title">Remaining Donations</div>
+        <div class="card-value" id="total-remaining"></div>
+    </div>
+    <div class="card">
+        <div class="card-title">In Progress</div>
+        <div class="card-value" id="requests-inprogress"></div>
+    </div>
+    <div class="card">
+        <div class="card-title">Assigned Volunteers</div>
+        <div class="card-value" id="total-assigned"></div>
+    </div>
+</div>
+
+<div id="previewModal" class="modal" style="display:none;">
+    <div class="modal-content">
+        <span id="closeModal" class="close">×</span>
+        <div id="modalContent"></div>
+    </div>
+</div>
+
+<!-- Filters / Search -->
+<div class="filters">
+    <input type="text" placeholder="Search by ABVN Location or Category" id="search-input">
+    <select id="status-filter">
+        <option value="">All Status</option>
+        <option value="Pending">Pending</option>
+        <option value="In Progress">In Progress</option>
+        <option value="Completed">Completed</option>
+        <option value="Incomplete">Incomplete</option>
+        <option value="Rejected">Rejected</option>
+    </select>
+
+    <select id="skills-filter">
+        <option value="">All Categories</option>
+        
+    </select>
+
+</div>
+
+<!-- Requests Table -->
+<div class="table-container">
+    <table>
+        <thead>
+            <tr>
+                <th>No.</th>
+                <th>ABVN Location</th> <!--address/pinloc-->
+                <th>Category</th> <!--address/pinloc-->
+                <th>Quantity Needed</th> <!--address/pinloc-->
+                <th>Quantity Donated</th> <!--Tentative-->
+                <th>Status</th> <!--Status-->       
+                <th>Urgency</th> <!--Tentative-->   
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="requests-table">
+            <!-- Rows will be populated dynamically from Firebase -->
+        </tbody>
+    </table>
+</div>
