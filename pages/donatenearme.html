@@ -7,9 +7,11 @@
   <link rel="stylesheet" href="../index.css" />
   <link rel="stylesheet" href="../css/donatenearme.css" />
   <link rel="stylesheet" href="../css/application.css" />
+  <link rel="stylesheet" href="../css/reliefsrequest.css" />
   <link rel="stylesheet" href="../css/global.css" />
   <link rel="icon" href="../assets/images/logox192.png" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" /> <!-- Added Boxicons -->
   <script src="../js/navbar.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
@@ -81,7 +83,7 @@
               </button>
             </div>
             <div class="form-group">
-              <label for="individualMobileNumber">Mobile Number:</span></label>
+              <label for="individualMobileNumber">Mobile Number:</label>
               <input type="tel" id="individualMobileNumber" name="individualMobileNumber" placeholder="Enter your mobile number (e.g., 09171234567)" required>
             </div>
             <div class="form-group">
@@ -178,7 +180,7 @@
               <option value="Hygiene Kits">Hygiene Kits</option>
               <option value="Drinking Water">Drinking Water</option>
               <option value="Rice Packs">Rice Packs</option>
-              <option value="Others">Other Essentials(Specify)</option>
+              <option value="Others">Other Essentials</option>
             </select>
           </div>
           <div class="form-group">
@@ -201,12 +203,72 @@
             <label for="staffIncharge">Staff-In Charge:</label>
             <input type="text" id="staffIncharge" name="staffIncharge" value="Not Applicable" disabled>
           </div>
+
+          <!-- Inserted Requested Items Section -->
+          <div class="form-container-2">
+            <div class="top-bar">
+              <span class="title">Requested Items</span>
+            </div>
+            <div class="fields" id="itemsContainer">
+              <div class="input-field">
+                <label for="itemName">Item Name</label>
+                <input 
+                  list="itemNameList" 
+                  id="itemName" 
+                  name="itemName" 
+                  placeholder="Select or type item" 
+                  disabled
+                />
+                <datalist id="itemNameList">
+                  <option value="Rice">
+                  <option value="Canned Goods">
+                  <option value="Water Bottles">
+                  <option value="Blankets">
+                  <option value="Medicine Kits">
+                  <option value="Hygiene Packs">
+                  <option value="Others">
+                </datalist>
+              </div>
+              <div class="input-field">
+                <label>Quantity</label>
+                <input type="number" id="quantity" placeholder="Enter Quantity" min="1" disabled />
+              </div>
+              <div class="input-field">
+                <label>Additional Notes</label>
+                <input type="text" id="notes" placeholder="Enter Notes" maxlength="50" disabled />
+              </div>
+              <button id="addItemBtn" type="button" disabled class="addItemBtn">
+                <i class='bx bx-plus-circle'></i> Add Item
+              </button>
+              <div class="table-responsive">
+                <div class="table-container">
+                  <table id="itemsTable">
+                    <thead>
+                      <tr>
+                        <th>Item Name</th>
+                        <th>Quantity</th>
+                        <th>Notes</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr id="noEntriesRow">
+                        <td colspan="4" style="text-align: center; padding: 20px; color: #888;">
+                          No items added yet. Click 'Add Item' to begin.
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div class="form-actions">
             <div class="form-group terms-conditions-container">
               <input type="checkbox" id="urgentNeedInKind" name="urgentNeedInKind">
               <label for="urgentNeedInKind">Mark as Urgent Need</label>
             </div>
-           
             <div class="form-group terms-conditions-container">
               <input type="checkbox" id="agreeToTerms" name="agreeToTerms" required>
               <label for="agreeToTerms">
