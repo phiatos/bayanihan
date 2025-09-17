@@ -1,38 +1,39 @@
-<!-- volunteerRequestOverview.html -->
+<!-- reliefrRequestOverview.html -->
 
 <header>Reliefs Requests Overview</header>
 
 <!-- Summary Dashboard -->
 <div class="dashboard-cards">
     <div class="card">
-        <div class="card-title">Total Donations</div>
-        <div class="card-value" id="total-requests"></div>
+        <div class="card-title">Total Relief Requests</div>
+        <div class="card-value" id="total-requests">0</div>
     </div>
     <div class="card">
-        <div class="card-title">Donations Needed</div>
-        <div class="card-value" id="total-volunteers"></div>
+        <div class="card-title">Total Donations Needed</div>
+        <div class="card-value" id="total-donations-needed">0</div>
     </div>
     <div class="card">
         <div class="card-title">Requests Completed</div>
-        <div class="card-value" id="requests-completed"></div>
+        <div class="card-value" id="requests-completed">0</div>
     </div>
     <div class="card">
         <div class="card-title">Requests Pending</div>
-        <div class="card-value" id="requests-pending"></div>
+        <div class="card-value" id="requests-pending">0</div>
     </div>
+    <!-- <div class="card">
+        <div class="card-title">Requests In Progress</div>
+        <div class="card-value" id="requests-inprogress">0</div>
+    </div> -->
     <div class="card">
-        <div class="card-title">Remaining Donations</div>
-        <div class="card-value" id="total-remaining"></div>
-    </div>
-    <div class="card">
-        <div class="card-title">In Progress</div>
-        <div class="card-value" id="requests-inprogress"></div>
+        <div class="card-title">Total Remaining Donations</div>
+        <div class="card-value" id="total-remaining">0</div>
     </div>
     <div class="card">
         <div class="card-title">Assigned Volunteers</div>
-        <div class="card-value" id="total-assigned"></div>
+        <div class="card-value" id="total-assigned">0</div>
     </div>
 </div>
+
 
 <div id="previewModal" class="modal" style="display:none;">
     <div class="modal-content">
@@ -66,12 +67,14 @@
         <thead>
             <tr>
                 <th>No.</th>
-                <th>ABVN Location</th> <!--address/pinloc-->
-                <th>Category</th> <!--address/pinloc-->
-                <th>Quantity Needed</th> <!--address/pinloc-->
-                <th>Quantity Donated</th> <!--Tentative-->
-                <th>Status</th> <!--Status-->       
-                <th>Urgency</th> <!--Tentative-->   
+                <th>Contact Person</th>
+                <th>Category</th>
+                <th>ABVN Location</th>
+                <th>Quantity Needed</th>
+                <th>Quantity Donated</th>
+                <th>Remaining</th>
+                <th>Status</th>
+                <th>Assigned Volunteers</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -80,3 +83,4 @@
         </tbody>
     </table>
 </div>
+
