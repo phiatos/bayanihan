@@ -251,16 +251,23 @@ function initSidebar() {
           user.role === "AB ADMIN" && user.firstName && user.lastName
             ? `${user.firstName} ${user.lastName}`
             : user.contactPerson || "";
+        userNameElement.textContent =
+          user.role === "AB ADMIN" && user.firstName && user.lastName
+            ? `${user.firstName} ${user.lastName}`
+            : user.contactPerson || "";
 
+    restrictMenuAccess(user.role, user.adminPosition || "");
     restrictMenuAccess(user.role, user.adminPosition || "");
   }
 
+  function restrictMenuAccess(role, adminPosition) {
   function restrictMenuAccess(role, adminPosition) {
     const menuItems = {
       activitylogs: document.querySelector(".menu-activitylogs"),
       adminmanagement: document.querySelector(".menu-adminmanagement"),
       dashboard: document.querySelector(".menu-dashboard"),
       communityboard: document.querySelector(".menu-communityboard"),
+      volunteergroupmanagement: document.querySelector(".menu-volunteergroupmanagement"),
       volunteergroupmanagement: document.querySelector(".menu-volunteergroupmanagement"),
       activation: document.querySelector(".menu-activation"),
       donationTracksheet: document.querySelector(".menu-donation-tracksheet"),
@@ -274,6 +281,7 @@ function initSidebar() {
       abvnApplications: document.querySelector(".menu-abvn-applications"),
       pendingABVN: document.querySelector(".menu-pending-abvn"),
       approvedABVN: document.querySelector(".menu-approved-abvn"),
+      volunteerApplications: document.querySelector(".menu-volunteer-applications"),
       volunteerApplications: document.querySelector(".menu-volunteer-applications"),
       pendingVolunteers: document.querySelector(".menu-pending-volunteers"),
       approvedVolunteers: document.querySelector(".menu-approved-volunteers"),
@@ -294,7 +302,7 @@ function initSidebar() {
 
     if (role === "ABVN") {
       document.querySelectorAll("p.title").forEach((title) => {
-        if (title.textContent.trim() === "Admin") title.style.display = "none";
+          if (title.textContent.trim() === "Admin") title.style.display = "none";
       });
 
       const allowedItems = [
@@ -312,19 +320,19 @@ function initSidebar() {
         menuItems.reportsSubmission,
       ];
       const restrictedItems = Object.values(menuItems).filter(
-        (i) => !allowedItems.includes(i)
+          (i) => !allowedItems.includes(i)
       );
 
       allowedItems.forEach((i) => i && (i.style.display = "block"));
       restrictedItems.forEach((i) => i && (i.style.display = "none"));
 
       ["rdanaMain", "reliefsRequest", "reportsSubmission"].forEach(
-        (parentKey) => {
-          if (!menuItems[parentKey] || menuItems[parentKey].style.display === "none") {
-            const parent = menuItems[parentKey.replace(/Main|Request|Submission/, "")];
-            if (parent) parent.style.display = "none";
+          (parentKey) => {
+              if (!menuItems[parentKey] || menuItems[parentKey].style.display === "none") {
+                  const parent = menuItems[parentKey.replace(/Main|Request|Submission/, "")];
+                  if (parent) parent.style.display = "none";
+              }
           }
-        }
       );
     } else if (role === "AB ADMIN") {
       Object.values(menuItems).forEach((i) => i && (i.style.display = "block"));
@@ -388,14 +396,51 @@ function initSidebar() {
       }
     });
   }
+      const a = e.target.closest(".menu a");
+      if (a && !a.getAttribute("title")) {
+        const label = a.querySelector(".text")?.textContent?.trim();
+        if (label) {
+          a.setAttribute("title", label);
+          a.setAttribute("aria-label", label);
+          a.dataset.tooltip = label;
+        }
+      }
+    });
+  }
 
+  function handleResponsiveSidebar() {
+    const sidebar = document.querySelector(".sidebar");
+    const logoutBtn = document.querySelector("#logout-btn");
+    if (!sidebar) return;
   function handleResponsiveSidebar() {
     const sidebar = document.querySelector(".sidebar");
     const logoutBtn = document.querySelector("#logout-btn");
     if (!sidebar) return;
 
     const mobileWidth = 768; // define breakpoint for mobile
+    const mobileWidth = 768; // define breakpoint for mobile
 
+    function updateSidebar() {
+      if (window.innerWidth <= mobileWidth) {
+        // auto-collapse for mobile
+        sidebar.classList.add("active");
+        if (logoutBtn) {
+          const logoutText = logoutBtn.querySelector(".text");
+          if (logoutText) logoutText.style.display = "none";
+        }
+        // hide all submenus
+        document
+          .querySelectorAll(".menu ul li.has-dropdown .sub-menu")
+          .forEach((sub) => (sub.style.display = "none"));
+      } else {
+        // expand for larger screens
+        sidebar.classList.remove("active");
+        if (logoutBtn) {
+          const logoutText = logoutBtn.querySelector(".text");
+          if (logoutText) logoutText.style.display = "inline";
+        }
+      }
+    }
     function updateSidebar() {
       if (window.innerWidth <= mobileWidth) {
         // auto-collapse for mobile
@@ -420,10 +465,17 @@ function initSidebar() {
 
     // initial check
     updateSidebar();
+    // initial check
+    updateSidebar();
 
     // update on resize
     window.addEventListener("resize", updateSidebar);
   }
+    // update on resize
+    window.addEventListener("resize", updateSidebar);
+  }
 
+  initSidebar();
+  handleResponsiveSidebar();
   initSidebar();
   handleResponsiveSidebar();

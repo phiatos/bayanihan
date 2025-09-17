@@ -203,6 +203,7 @@ let orgData = null;
 let isProcessing = false;
 let currentEditOrgKey = null;
 let adminPosition = null;
+let adminPosition = null;
 
 const tableBody = document.querySelector("#orgTable tbody");
 const entriesInfo = document.querySelector("#entriesInfo");
