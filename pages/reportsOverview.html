@@ -16,6 +16,88 @@
     </div>
 </div>
 
+<!-- Key Metrics Summary -->
+<div class="key-metrics">
+    <div class="metric-card" onclick="showMetricBreakdown('foodPacks')">
+        <div class="metric-title">Total Food Packs</div>
+        <div class="metric-value" id="total-food-packs"></div>
+        <div class="metric-change" id="food-packs-change"></div>
+        <canvas id="food-packs-chart"></canvas>
+    </div>
+    <div class="metric-card" onclick="showMetricBreakdown('volunteers')">
+        <div class="metric-title">Total Volunteers Mobilized</div>
+        <div class="metric-value" id="total-volunteers"></div>
+        <div class="metric-change" id="volunteers-change"></div>
+        <canvas id="volunteers-chart"></canvas>
+    </div>
+    <div class="metric-card" onclick="showMetricBreakdown('hotMeals')">
+        <div class="metric-title">Total Hot Meals</div>
+        <div class="metric-value" id="total-hot-meals"></div>
+        <div class="metric-change" id="hot-meals-change"></div>
+        <canvas id="hot-meals-chart"></canvas>
+    </div>
+    <div class="metric-card" onclick="showMetricBreakdown('water')">
+        <div class="metric-title">Total Liters of Water</div>
+        <div class="metric-value" id="total-water"></div>
+        <div class="metric-change" id="water-change"></div>
+        <canvas id="water-chart"></canvas>
+    </div>
+    <div class="metric-card" onclick="showMetricBreakdown('inKind')">
+        <div class="metric-title">Total In-Kind Donations</div>
+        <div class="metric-value" id="total-in-kind"></div>
+        <div class="metric-change" id="in-kind-change"></div>
+        <canvas id="in-kind-chart"></canvas>
+    </div>
+    <div class="metric-card" onclick="showMetricBreakdown('monetary')">
+        <div class="metric-title">Total Monetary Donations</div>
+        <div class="metric-value" id="total-monetary"></div>
+        <div class="metric-change" id="monetary-change"></div>
+        <canvas id="monetary-chart"></canvas>
+    </div>
+</div>
+
+<!-- ABVN Rankings -->
+<div class="abvn-rankings">
+    <h2>Top ABVN Groups by Number of Reports</h2>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Rank</th>
+                    <th>Volunteer Group</th>
+                    <th>Number of Reports</th>
+                </tr>
+            </thead>
+            <tbody id="abvn-rankings-table">
+                <!-- Rows will be populated dynamically -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ABVN Total Metrics -->
+<div class="abvn-total-metrics">
+    <h2>ABVN Total Metrics</h2>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Volunteer Group</th>
+                    <th>Food Packs</th>
+                    <th>Volunteers</th>
+                    <th>Hot Meals</th>
+                    <th>Liters of Water</th>
+                    <th>In-Kind Donations</th>
+                    <th>Monetary Donations</th>
+                </tr>
+            </thead>
+            <tbody id="abvn-total-metrics-table">
+                <!-- Rows will be populated dynamically -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
 <!-- Timeline Chart -->
 <div id="chartContainer">
     <canvas id="reportsChart"></canvas>
@@ -27,10 +109,18 @@
 </div>
 
 <!-- Preview Modal -->
-<div id="reportPreviewModal" class="modal" style="display:none;">
+<div id="reportPreviewModal" class="modal">
     <div class="modal-content">
         <span id="closeReportModal" class="close">×</span>
         <div id="reportModalContent"></div>
+    </div>
+</div>
+
+<!-- Metric Breakdown Modal -->
+<div id="metricBreakdownModal" class="modal">
+    <div class="modal-content">
+        <span id="closeMetricModal" class="close">×</span>
+        <div id="metricModalContent"></div>
     </div>
 </div>
 
@@ -41,6 +131,7 @@
         <option value="">All Status</option>
         <option value="approved">Approved</option>
         <option value="archived">Archived</option>
+        <option value="verification">Pending</option>
     </select>
     <select id="calamity-type-filter">
         <option value="">All Calamity Types</option>
