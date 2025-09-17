@@ -616,57 +616,57 @@ function initializeMap() {
 // Add weather data for all provinces with dynamic icons and rain notifications
 
 // ✅ Enhanced Rainfall Alert Generator
-function generateRainAlert(province, rainfall, pop) {
-    let warningLevel = "";
-    if (pop >= 30 || rainfall >= 20) {
-        if (rainfall >= 100 || pop >= 80) {
-            warningLevel = "🔴 Red Warning: Heavy Rain";
-        } else if (rainfall >= 50 || pop >= 60) {
-            warningLevel = "🟠 Orange Warning: Moderate Rain";
-        } else if (rainfall >= 20 || pop >= 30) {
-            warningLevel = "🟡 Yellow Warning: Light Rain";
-        }
-    }
+// function generateRainAlert(province, rainfall, pop) {
+//     let warningLevel = "";
+//     if (pop >= 30 || rainfall >= 20) {
+//         if (rainfall >= 100 || pop >= 80) {
+//             warningLevel = "🔴 Red Warning: Heavy Rain";
+//         } else if (rainfall >= 50 || pop >= 60) {
+//             warningLevel = "🟠 Orange Warning: Moderate Rain";
+//         } else if (rainfall >= 20 || pop >= 30) {
+//             warningLevel = "🟡 Yellow Warning: Light Rain";
+//         }
+//     }
 
-    if (warningLevel) {
-        const eventId = `rain_${province.name}_${Date.now()}`;
-        const time = new Date().toISOString();
-        const details = `Rainfall: ${rainfall} mm in last 3h, Chance of Rain: ${pop}% | Time: ${time}`;
-        const identifier = generateCalamityIdentifier("Rainfall Alert", province.name, time, "", rainfall);
+//     if (warningLevel) {
+//         const eventId = `rain_${province.name}_${Date.now()}`;
+//         const time = new Date().toISOString();
+//         const details = `Rainfall: ${rainfall} mm in last 3h, Chance of Rain: ${pop}% | Time: ${time}`;
+//         const identifier = generateCalamityIdentifier("Rainfall Alert", province.name, time, "", rainfall);
 
-        // Check for duplicates
-        calamityExists(eventId, "Rainfall Alert", province.name, time, "", rainfall).then(exists => {
-            if (!exists) {
-                // Save to calamities node
-                const calamityRef = database.ref("calamities").push();
-                calamityRef.set({
-                    type: "Rainfall Alert",
-                    location: province.name,
-                    rainfall: rainfall,
-                    time: time,
-                    details: details,
-                    coordinates: { lat: province.lat, lng: province.lng },
-                    eventId: eventId,
-                    identifier: identifier,
-                    timestamp: Date.now(),
-                    warningLevel: warningLevel,
-                    source: "OpenWeatherMap"
-                }).then(() => {
-                    console.log(`Saved new Rainfall Alert to calamities - Event ID: ${eventId}, Location: ${province.name}`);
-                    // Add marker for the calamity
-                    addCalamityMarker("Rainfall Alert", province.name, { lat: province.lat, lng: province.lng }, details, eventId);
-                }).catch(error => {
-                    console.error(`Error saving Rainfall Alert for ${province.name}:`, error);
-                });
+//         // Check for duplicates
+//         calamityExists(eventId, "Rainfall Alert", province.name, time, "", rainfall).then(exists => {
+//             if (!exists) {
+//                 // Save to calamities node
+//                 const calamityRef = database.ref("calamities").push();
+//                 calamityRef.set({
+//                     type: "Rainfall Alert",
+//                     location: province.name,
+//                     rainfall: rainfall,
+//                     time: time,
+//                     details: details,
+//                     coordinates: { lat: province.lat, lng: province.lng },
+//                     eventId: eventId,
+//                     identifier: identifier,
+//                     timestamp: Date.now(),
+//                     warningLevel: warningLevel,
+//                     source: "OpenWeatherMap"
+//                 }).then(() => {
+//                     console.log(`Saved new Rainfall Alert to calamities - Event ID: ${eventId}, Location: ${province.name}`);
+//                     // Add marker for the calamity
+//                     addCalamityMarker("Rainfall Alert", province.name, { lat: province.lat, lng: province.lng }, details, eventId);
+//                 }).catch(error => {
+//                     console.error(`Error saving Rainfall Alert for ${province.name}:`, error);
+//                 });
 
-                // Generate notification
-                generateLenlenAlert("Rainfall Alert", province.name, details, eventId, warningLevel, "OpenWeatherMap");
-            } else {
-                console.log(`Skipping duplicate Rainfall Alert - Event ID: ${eventId}, Identifier: ${identifier}`);
-            }
-        });
-    }
-}
+//                 // Generate notification
+//                 generateLenlenAlert("Rainfall Alert", province.name, details, eventId, warningLevel, "OpenWeatherMap");
+//             } else {
+//                 console.log(`Skipping duplicate Rainfall Alert - Event ID: ${eventId}, Identifier: ${identifier}`);
+//             }
+//         });
+//     }
+// }
 
 function addWeatherDataForProvinces() {
     if (!map) {
