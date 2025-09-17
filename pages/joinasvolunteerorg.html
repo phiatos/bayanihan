@@ -20,11 +20,6 @@
   <!-- Leaflet CSS and JS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-  <!-- Remove Google Maps loader and add direct initMap call if needed -->
-  <!-- Assuming map-loader.js is updated or removed; initMap will be called on DOMContentLoaded if necessary -->
-  <script type="module" src="../js/map-loader.js"></script>
-  <!-- Ensure map-loader.js calls window.initMap() after Leaflet loads -->
 </head>
 <body class="no-header-line">
   <!-- Header -->
@@ -266,16 +261,5 @@
   <script src="../js/inactivity-detector.js"></script> 
   <script src="https://www.google.com/recaptcha/api.js" async defer></script>
   <script type="module" src="../js/joinasvolunteerorg.js"></script>
-
-  <!-- Ensure initMap is called if map-loader.js doesn't handle it -->
-  <script>
-    if (typeof window.initMap === 'undefined') {
-      document.addEventListener('DOMContentLoaded', function() {
-        if (typeof initMap === 'function') {
-          initMap();
-        }
-      });
-    }
-  </script>
 </body>
 </html>

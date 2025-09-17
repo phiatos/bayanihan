@@ -1,3 +1,4 @@
+// adminmanagement
 import { renderPagination, updateEntriesInfo, getPaginatedData } from '../js/pagination.js';
 
 // const firebaseConfig = {

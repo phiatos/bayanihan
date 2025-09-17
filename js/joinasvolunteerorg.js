@@ -24,119 +24,6 @@ const database = firebase.database();
 const auth = firebase.auth();
 let map, marker, autocompleteInput;
 
-// Initialize Leaflet map
-window.initMap = function() {
-    // Initialize Leaflet map centered on Manila, Philippines
-    map = L.map('map').setView([14.5995, 120.9842], 10);
-
-    // Add OpenStreetMap tiles
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        maxZoom: 19
-    }).addTo(map);
-
-    // Initialize draggable marker
-    marker = L.marker([14.5995, 120.9842], {
-        draggable: true
-    }).addTo(map);
-
-    // Setup autocomplete using Nominatim
-    autocompleteInput = document.getElementById('location');
-    autocompleteInput.addEventListener('input', debounce(function() {
-        const query = autocompleteInput.value;
-        if (query.length < 3) return;
-
-        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=ph&limit=5`)
-            .then(response => response.json())
-            .then(data => {
-                const suggestions = data.map(place => ({
-                    label: place.display_name,
-                    lat: parseFloat(place.lat),
-                    lon: parseFloat(place.lon)
-                }));
-                showSuggestions(suggestions);
-            })
-            .catch(error => {
-                console.error('Error fetching autocomplete suggestions:', error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Autocomplete Error',
-                    text: 'Unable to fetch location suggestions.',
-                    confirmButtonText: 'OK'
-                });
-            });
-    }, 300));
-
-    // Handle marker dragend
-    marker.on('dragend', function(event) {
-        const position = marker.getLatLng();
-        document.getElementById('latitude').value = position.lat;
-        document.getElementById('longitude').value = position.lng;
-
-        // Reverse geocode using Nominatim
-        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${position.lat}&lon=${position.lng}`)
-            .then(response => response.json())
-            .then(data => {
-                if (data && data.display_name) {
-                    document.getElementById('formatted-address').value = data.display_name;
-                    document.getElementById('location').value = data.display_name;
-                    clearError(document.getElementById('location'));
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Geocoding Error',
-                        text: 'Unable to retrieve address for this location.',
-                        confirmButtonText: 'OK'
-                    });
-                }
-            })
-            .catch(error => {
-                console.error('Error during reverse geocoding:', error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Geocoding Error',
-                    text: 'Unable to retrieve address for this location.',
-                    confirmButtonText: 'OK'
-                });
-            });
-    });
-
-    // Handle map click
-    map.on('click', function(event) {
-        const latlng = event.latlng;
-        marker.setLatLng(latlng);
-        document.getElementById('latitude').value = latlng.lat;
-        document.getElementById('longitude').value = latlng.lng;
-
-        // Reverse geocode using Nominatim
-        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latlng.lat}&lon=${latlng.lng}`)
-            .then(response => response.json())
-            .then(data => {
-                if (data && data.display_name) {
-                    document.getElementById('formatted-address').value = data.display_name;
-                    document.getElementById('location').value = data.display_name;
-                    clearError(document.getElementById('location'));
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Geocoding Error',
-                        text: 'Unable to retrieve address for this location.',
-                        confirmButtonText: 'OK'
-                    });
-                }
-            })
-            .catch(error => {
-                console.error('Error during reverse geocoding:', error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Geocoding Error',
-                    text: 'Unable to retrieve address for this location.',
-                    confirmButtonText: 'OK'
-                });
-            });
-    });
-};
-
 // Autocomplete suggestions display
 function showSuggestions(suggestions) {
     const suggestionsContainer = document.createElement('div');
@@ -188,6 +75,143 @@ function debounce(func, wait) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Initialize Leaflet map
+    try {
+        // Prevent reinitialization
+        if (map) {
+            map.remove();
+        }
+
+        // Check if Leaflet is available
+        if (typeof L === 'undefined') {
+            throw new Error('Leaflet library failed to load');
+        }
+
+        // Initialize map
+        map = L.map('map').setView([14.5995, 120.9842], 10);
+
+        // Add OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 19
+        }).addTo(map);
+
+        // Initialize draggable marker
+        marker = L.marker([14.5995, 120.9842], {
+            draggable: true
+        }).addTo(map);
+
+        // Setup autocomplete using Nominatim
+        autocompleteInput = document.getElementById('location');
+        autocompleteInput.addEventListener('input', debounce(function() {
+            const query = autocompleteInput.value;
+            if (query.length < 3) return;
+
+            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=ph&limit=5`, {
+                headers: { 'User-Agent': 'BayanihanApp/1.0 (support@bayanihan.org)' }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    const suggestions = data.map(place => ({
+                        label: place.display_name,
+                        lat: parseFloat(place.lat),
+                        lon: parseFloat(place.lon)
+                    }));
+                    showSuggestions(suggestions);
+                })
+                .catch(error => {
+                    console.error('Error fetching autocomplete suggestions:', error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Autocomplete Error',
+                        text: 'Unable to fetch location suggestions.',
+                        confirmButtonText: 'OK'
+                    });
+                });
+        }, 300));
+
+        // Handle marker dragend
+        marker.on('dragend', function(event) {
+            const position = marker.getLatLng();
+            document.getElementById('latitude').value = position.lat;
+            document.getElementById('longitude').value = position.lng;
+
+            // Reverse geocode using Nominatim
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${position.lat}&lon=${position.lng}`, {
+                headers: { 'User-Agent': 'BayanihanApp/1.0 (support@bayanihan.org)' }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data && data.display_name) {
+                        document.getElementById('formatted-address').value = data.display_name;
+                        document.getElementById('location').value = data.display_name;
+                        clearError(document.getElementById('location'));
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Geocoding Error',
+                            text: 'Unable to retrieve address for this location.',
+                            confirmButtonText: 'OK'
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error during reverse geocoding:', error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Geocoding Error',
+                        text: 'Unable to retrieve address for this location.',
+                        confirmButtonText: 'OK'
+                    });
+                });
+        });
+
+        // Handle map click
+        map.on('click', function(event) {
+            const latlng = event.latlng;
+            marker.setLatLng(latlng);
+            document.getElementById('latitude').value = latlng.lat;
+            document.getElementById('longitude').value = latlng.lng;
+
+            // Reverse geocode using Nominatim
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latlng.lat}&lon=${latlng.lng}`, {
+                headers: { 'User-Agent': 'BayanihanApp/1.0 (support@bayanihan.org)' }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data && data.display_name) {
+                        document.getElementById('formatted-address').value = data.display_name;
+                        document.getElementById('location').value = data.display_name;
+                        clearError(document.getElementById('location'));
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Geocoding Error',
+                            text: 'Unable to retrieve address for this location.',
+                            confirmButtonText: 'OK'
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error during reverse geocoding:', error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Geocoding Error',
+                        text: 'Unable to retrieve address for this location.',
+                        confirmButtonText: 'OK'
+                    });
+                });
+        });
+    } catch (error) {
+        console.error('Failed to initialize Leaflet map:', error.message, error.stack);
+        Swal.fire({
+            icon: 'error',
+            title: 'Map Loading Error',
+            text: `Unable to load the map: ${error.message}. Please try refreshing the page.`,
+            confirmButtonText: 'OK'
+        });
+    }
+
     const volunteerOrgForm = document.getElementById('volunteer-org-form');
     const locationInput = document.getElementById('location');
     const latitudeInput = document.getElementById('latitude');
