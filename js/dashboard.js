@@ -495,7 +495,7 @@ window.initializeDashboard = function () {
                 
                  // --- TAB PERMISSION LOGIC ---
                 if (userRole !== "AB ADMIN") {
-                    document.querySelectorAll(".tab-btn[data-tab='volunteers'], .tab-btn[data-tab='activation'], .tab-btn[data-tab='reliefs-request']")
+                    document.querySelectorAll(".tab-btn[data-tab='volunteers'], .tab-btn[data-tab='activation'], .tab-btn[data-tab='reliefs-request'], .tab-btn[data-tab='reports']")
                         .forEach(tab => tab.style.display = "none");
                 }
 

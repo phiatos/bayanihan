@@ -1,3 +1,4 @@
+// approvedvg.js
 console.log = function () {};
 console.error = function () {};
 console.warn = function () {};
@@ -1166,80 +1167,47 @@ async function openEditModal(appKey) {
     pacInput.value = applicationToEdit.headquarters?.formattedAddress || '';
 
     // Ensure map is initialized and centered on existing coordinates if available
-    if (typeof google !== 'undefined' && applicationToEdit.headquarters?.latitude && applicationToEdit.headquarters?.longitude) {
-        const map = new google.maps.Map(document.getElementById('map'), {
-            center: {
-                lat: parseFloat(applicationToEdit.headquarters.latitude),
-                lng: parseFloat(applicationToEdit.headquarters.longitude)
-            },
-            zoom: 17,
-            mapTypeControl: false,
-        });
+    if (applicationToEdit.headquarters?.latitude && applicationToEdit.headquarters?.longitude) {
+        const map = L.map('map').setView([parseFloat(applicationToEdit.headquarters.latitude), parseFloat(applicationToEdit.headquarters.longitude)], 17);
 
-        const marker = new google.maps.Marker({
-            map: map,
-            position: {
-                lat: parseFloat(applicationToEdit.headquarters.latitude),
-                lng: parseFloat(applicationToEdit.headquarters.longitude)
-            },
-            anchorPoint: new google.maps.Point(0, -29)
-        });
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
 
-        const autocomplete = new google.maps.places.Autocomplete(pacInput, {
-            types: ['geocode'],
-            componentRestrictions: { country: 'ph' }
-        });
-        autocomplete.bindTo('bounds', map);
+        const marker = L.marker([parseFloat(applicationToEdit.headquarters.latitude), parseFloat(applicationToEdit.headquarters.longitude)]).addTo(map);
 
-        autocomplete.addListener('place_changed', () => {
-            marker.setVisible(false);
-            const place = autocomplete.getPlace();
+        const geocoder = L.Control.geocoder({
+            defaultMarkGeocode: false,
+            collapsed: false,
+            position: 'topright',
+            placeholder: 'Search for a location...',
+            errorMessage: 'Location not found.'
+        }).on('markgeocode', function(e) {
+            const { center, name } = e.geocode;
+            map.setView(center, 17);
+            marker.setLatLng(center);
+            editFormattedAddress.value = name || '';
+            editLatitude.value = center.lat;
+            editLongitude.value = center.lng;
+            pacInput.value = name || '';
+        }).addTo(map);
 
-            if (!place.geometry || !place.geometry.location) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Invalid Location',
-                    text: 'Please select a valid location from the suggestions.',
-                    confirmButtonText: 'OK',
-                    customClass: {
-                        popup: 'swal2-popup-error-clean',
-                        title: 'swal2-title-error-clean',
-                        htmlContainer: 'swal2-text-error-clean',
-                        confirmButton: 'my-error-button'
-                    }
-                });
-                return;
-            }
+        // Update the search input to work with Leaflet geocoder
+        geocoder.getContainer().querySelector('input').id = 'pac-input';
+        geocoder.getContainer().querySelector('input').value = pacInput.value;
 
-            if (place.geometry.viewport) {
-                map.fitBounds(place.geometry.viewport);
-            } else {
-                map.setCenter(place.geometry.location);
-                map.setZoom(17);
-            }
-
-            marker.setPosition(place.geometry.location);
-            marker.setVisible(true);
-
-            editFormattedAddress.value = place.formatted_address || '';
-            editLatitude.value = place.geometry.location.lat();
-            editLongitude.value = place.geometry.location.lng();
-        });
-
-        map.addListener('click', (event) => {
-            const geocoder = new google.maps.Geocoder();
-            const latlng = event.latLng;
-
-            marker.setPosition(latlng);
-            marker.setVisible(true);
-
-            geocoder.geocode({ location: latlng }, (results, status) => {
-                if (status === 'OK' && results[0]) {
-                    editFormattedAddress.value = results[0].formatted_address;
-                    editLatitude.value = latlng.lat();
-                    editLongitude.value = latlng.lng();
-                    pacInput.value = results[0].formatted_address;
-                } else {
+        map.on('click', function(e) {
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${e.latlng.lat}&lon=${e.latlng.lng}&zoom=18&addressdetails=1`)
+                .then(response => response.json())
+                .then(data => {
+                    const address = data.display_name || '';
+                    marker.setLatLng(e.latlng);
+                    editFormattedAddress.value = address;
+                    editLatitude.value = e.latlng.lat;
+                    editLongitude.value = e.latlng.lng;
+                    pacInput.value = address;
+                })
+                .catch(error => {
                     Swal.fire({
                         icon: 'error',
                         title: 'Geocoding Failed',
@@ -1252,8 +1220,8 @@ async function openEditModal(appKey) {
                             confirmButton: 'my-error-button'
                         }
                     });
-                }
-            });
+                });
+            map.setView(e.latlng, 17);
         });
     }
 

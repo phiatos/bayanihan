@@ -502,6 +502,11 @@ document.addEventListener("DOMContentLoaded", () => {
                                 color: '#333',
                                 padding: '1.5em',
                                 width: '360px',
+                                customClass: {
+                                    popup: 'custom-swal-popup-small',
+                                    title: 'custom-swal-title',
+                                    htmlContainer: 'custom-swal-content'
+                                },
                             });
 
                             const userRole = localStorage.getItem("userRole");
