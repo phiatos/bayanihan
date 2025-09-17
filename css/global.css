@@ -37,7 +37,15 @@
   --swal-error-text: #c62828;
   --swal-error-btn-bg: #c62828;
 
-  --highlight-color: rgba(20, 174, 187, 0.2); /* semi-transparent version of primary-color */
+  --highlight-color: rgba(20, 174, 187, 0.2); 
+
+  /* Status badge colors */
+  --status-pending: #f0ad4e;
+  --status-confirmed: #5cb85c;
+  --status-in-progress: #5bc0de;
+  --status-completed: #5cb85c;
+  --status-incomplete: #9370DB;
+  --status-rejected: #6c757d;
 }
 
 * {
@@ -87,6 +95,8 @@
   border-radius: 4px;
 }
 
+
+
 /* =====================
   Dashboard Tabs
 ===================== */
@@ -94,36 +104,58 @@
   display: flex;
   gap: 0.5rem;
   margin-bottom: 1.5rem;
+  background: var(--background, #ffffff);
+  padding: 0.5rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .tab-btn, .tab-button {
-  flex: 1 !important;
-  padding: 0.8rem 1.2rem !important;
+  flex: 1;
+  padding: 0.8rem 1.2rem;
   background: transparent;
   border: none;
   font-size: 1rem;
   font-weight: 600;
-  color: var(--gray);
+  color: var(--text, #4b5563);
   cursor: pointer;
-  transition: all 0.3s ease;
-  border-radius: 8px 8px 0 0 !important;
   position: relative;
+  transition: color 0.3s ease, background 0.3s ease;
+  border-radius: 8px;
+  overflow: hidden;
 }
 
 .tab-btn:hover, .tab-button:hover {
-  color: var(--primary-color) !important;
-  background: rgba(20, 174, 187, 0.08) !important;
+  color: var(--primary-color, #14AEBB);
+  background: rgba(37, 99, 235, 0.1);
 }
 
 .tab-btn.active, .tab-button.active {
-  color: var(--accent-color) !important;
-  background: rgba(250, 63, 153, 0.08) !important;
-  border-bottom: 3px solid var(--accent-color) !important;
+  color: var(--accent-color, #db2777);
+  background: rgba(219, 39, 119, 0.1);
+  position: relative;
+}
+
+.tab-btn.active::after, .tab-button.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: var(--accent-color, #db2777);
+  animation: tabSlide 0.3s ease forwards;
 }
 
 @keyframes tabSlide {
-  from { width: 0; left: 50%; }
-  to { width: 60%; left: 20%; }
+  from {
+    width: 0;
+    left: 50%;
+  }
+  to {
+    width: 100%;
+    left: 0;
+  }
 }
 
 /* =====================
@@ -223,17 +255,16 @@ background-color: #ffffff;
 }
 
 .items-list {
-  max-height: 200px; /* adjust to your preferred height */
-  overflow-y: auto;  /* enables vertical scrolling */
+  max-height: 200px;
+  overflow-y: auto; 
   margin: 0;
   padding: 8px 12px;
-  list-style-type: none; /* optional: remove bullets */
-  border: 1px solid #ddd; /* optional: adds a boundary */
+  list-style-type: none; 
+  border: 1px solid #ddd; 
   border-radius: 6px;
-  background: #fafafa; /* optional: light background */
+  background: #fafafa;
 }
 
-/* optional: style scrollbars (for modern browsers) */
 .items-list::-webkit-scrollbar {
   width: 6px;
 }
@@ -266,7 +297,7 @@ background-color: #ffffff;
   font-style: italic;
 }
 
-/* Card Footer */
+/* ---------------- Card Footer ---------------- */
 .card-footer {
   display: flex;
   justify-content: flex-end;
@@ -340,6 +371,96 @@ background-color: #ffffff;
 
 .request-actions button {
   flex: 0 0 auto; 
+}
+
+/* ---------------- Status badges ---------------- */
+.status-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.9em;
+  font-weight: 500;
+  text-align: center;
+  min-width: 80px;
+}
+
+.status, .status-badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-weight: bold;
+  color: var(--white);
+}
+
+.status-pending {
+  background-color: var(--status-pending);
+  color: var(--white);
+}
+
+.status-confirmed {
+  background-color: var(--status-confirmed);
+  color: var(--white) ;
+}
+
+.status.Pending { background-color: var(--status-pending); }
+.status.InProgress { background-color: var(--status-in-progress); }
+.status.Completed { background-color: var(--status-confirmed); }
+.status.Incomplete { background-color: var(--status-incomplete); } 
+.status.Rejected { background-color: var(--status-rejected); } 
+
+/*----------  Activation ----------------*/
+.grouped-section {
+  margin: 20px 0;
+  padding: 15px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+}
+
+.grouped-section h3 {
+  margin-top: 0;
+  color: #333;
+}
+
+.grouped-item {
+  margin-bottom: 10px;
+  padding: 10px;
+  border-left: 4px solid #007bff;
+  background-color: white;
+}
+
+.grouped-item h4 {
+  margin: 0 0 5px 0;
+  font-size: 16px;
+}
+
+.abvn-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.abvn-list li {
+  padding: 2px 0;
+  color: #666;
+}
+
+.modal-calamity-name-container select,
+.modal-calamity-name-container input {
+  width: 100%;
+  padding: 10px;
+  margin-top: 5px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+  color: #333;
+}
+
+.modal-calamity-name-container select:focus,
+.modal-calamity-name-container input:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 5px rgba(0, 123, 255, 0.3);
 }
 
 /*----------Custom Scrollbar for the Table Container----------------*/
@@ -1116,7 +1237,7 @@ td:has(.viewBtn, .expandBtn, .endorseNowBtn,
 .editBtn, .approveBtn, .registerBtn, 
 .saveSinglePdfBtn, .savePDFBtn,
 .actionBtn, .endorseBtn, .confirmBtn,
-.deleteBtn, .rejectBtn, .archiveBtn,
+.deleteBtn, .rejectBtn, .archiveBtn, #viewActivationHistory,
 .rescheduleBtn, .saveBtn, .action-button-endorse-button, 
 .action-button, .edit-addressPinBtn) {
   display: flex;
@@ -1131,7 +1252,7 @@ td:has(.viewBtn, .expandBtn, .endorseNowBtn,
 .editBtn, .approveBtn, .registerBtn,
 .saveSinglePdfBtn, .savePDFBtn,
 .actionBtn, .endorseBtn, .confirmBtn,
-.deleteBtn, .rejectBtn, .archiveBtn,
+.deleteBtn, .rejectBtn, .archiveBtn, #viewActivationHistory,
 .rescheduleBtn, .saveBtn, .action-button-endorse-button, 
 .action-button, .cancel-request-btn, .edit-request-btn,
 .pin-location-btn {
@@ -1152,7 +1273,7 @@ td:has(.viewBtn, .expandBtn, .endorseNowBtn,
 .viewBtn:hover, .expandBtn:hover, .endorseNowBtn:hover,
 .editBtn:hover, .approveBtn:hover, .registerBtn:hover,
 .saveSinglePdfBtn:hover, .savePDFBtn:hover,
-.rejectBtn:hover, .deleteBtn:hover, .archiveBtn:hover,
+.rejectBtn:hover, .deleteBtn:hover, .archiveBtn:hover, #viewActivationHistory:hover,
 .actionBtn:hover, .endorseBtn:hover, .confirmBtn:hover,
 .rescheduleBtn:hover, .cancel-request-btn:hover, 
 .edit-request-btn:hover, .pin-location-btn:hover {
@@ -1165,7 +1286,7 @@ td:has(.viewBtn, .expandBtn, .endorseNowBtn,
 .approveBtn i, .registerBtn i,
 .saveSinglePdfBtn i, .savePDFBtn i,
 .actionBtn i, .endorseBtn i, .confirmBtn i,
-.deleteBtn i, .rejectBtn i,
+.deleteBtn i, .rejectBtn i, #viewActivationHistory i,
 .archiveBtn i, .rescheduleBtn i,
 .saveBtn i, .expandBtn i,
 .action-button-endorse-button i, .action-button i,
@@ -1183,7 +1304,7 @@ td:has(.viewBtn, .expandBtn, .endorseNowBtn,
 .approveBtn, .registerBtn,
 .saveSinglePdfBtn, .savePDFBtn,
 .actionBtn, .endorseBtn, .confirmBtn,
-.deleteBtn, .rejectBtn,
+.deleteBtn, .rejectBtn, #viewActivationHistory i,
 .archiveBtn, .rescheduleBtn,
 .saveBtn, .expandBtn,
 .action-button-endorse-button, .action-button,
@@ -1291,7 +1412,7 @@ button[type="submit"]:hover,
   margin-right: 8px;
 }
 
-#viewArchived, .archiveBtn, .deleteBtn {
+#viewArchived, .archiveBtn, .deleteBtn, #viewActivationHistory {
   width: 45px;
   height: 45px;
   padding: 0;
@@ -1307,7 +1428,7 @@ button[type="submit"]:hover,
   background-color: var(--gray); 
 }
 
-#viewArchived:hover, .archiveBtn:hover, .deleteBtn:hover {
+#viewArchived:hover, .archiveBtn:hover, .deleteBtn:hover, #viewActivationHistory:hover {
   background-color: #7b7b7b; 
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);

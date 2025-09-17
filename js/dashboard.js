@@ -6,81 +6,109 @@ document.querySelectorAll(".tab-btn").forEach(btn => {
   btn.addEventListener("click", async () => {
     const tab = btn.dataset.tab;
 
-    // Remove .active from all tabs and add to the clicked tab
     document.querySelectorAll(".tab-btn").forEach(t => t.classList.remove("active"));
     btn.classList.add("active");
 
     if (tab === "volunteers") {
-      // Hide dashboard
-      dashboardContainer.style.display = "none";
+        // Hide dashboard
+        dashboardContainer.style.display = "none";
 
-      // Fetch volunteer overview HTML
-      const res = await fetch("../pages/volunteerRequestOverview.html");
-      const html = await res.text();
+        // Fetch volunteer overview HTML
+        const res = await fetch("../pages/volunteerRequestOverview.html");
+        const html = await res.text();
 
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(html, "text/html");
-      const bodyContent = doc.body.innerHTML;
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, "text/html");
+        const bodyContent = doc.body.innerHTML;
 
-      tabContent.innerHTML = bodyContent;
+        tabContent.innerHTML = bodyContent;
 
-      // Attach CSS (only once)
-      if (!document.querySelector('link[href="../css/volunteerRequest.css"]')) {
-        const link = document.createElement("link");
-        link.rel = "stylesheet";
-        link.href = "../css/volunteerRequest.css";
-        document.head.appendChild(link);
-      }
+        // Attach CSS (only once)
+        if (!document.querySelector('link[href="../css/volunteerRequest.css"]')) {
+            const link = document.createElement("link");
+            link.rel = "stylesheet";
+            link.href = "../css/volunteerRequest.css";
+            document.head.appendChild(link);
+        }
 
-      // Force reload volunteer JS every time
-      try {
-        const jsRes = await fetch("../js/volunteerRequestOverview.js");
-        const jsCode = await jsRes.text();
-        new Function(jsCode)();
-      } catch (err) {
-        console.error("Failed to load volunteerRequestOverview.js", err);
-      }
+        // Force reload volunteer JS every time
+        try {
+            const jsRes = await fetch("../js/volunteerRequestOverview.js");
+            const jsCode = await jsRes.text();
+            new Function(jsCode)();
+        } catch (err) {
+            console.error("Failed to load volunteerRequestOverview.js", err);
+        }
     } else if (tab === "activation") {
-      // Hide dashboard
-      dashboardContainer.style.display = "none";
-      tabContent.innerHTML = `<h2>Activation content goes here...</h2>`;
+        // Hide dashboard
+        dashboardContainer.style.display = "none";
 
+        // Fetch activation overview HTML
+        const res = await fetch("../pages/activationOverview.html");
+        const html = await res.text();
+
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, "text/html");
+        const bodyContent = doc.body.innerHTML;
+
+        // Cleanup previous tab content
+        if (typeof window.cleanupActivationOverview === 'function') {
+            window.cleanupActivationOverview();
+        }
+        tabContent.innerHTML = bodyContent;
+
+        // Attach CSS (only once)
+        if (!document.querySelector('link[href="../css/volunteerRequest.css"]')) {
+            const link = document.createElement("link");
+            link.rel = "stylesheet";
+            link.href = "../css/volunteerRequest.css";
+            document.head.appendChild(link);
+        }
+
+        // Force reload activation JS
+        try {
+            const jsRes = await fetch("../js/activationOverview.js");
+            const jsCode = await jsRes.text();
+            new Function(jsCode)();
+        } catch (err) {
+            console.error("Failed to load activationOverview.js", err);
+        }
     } else if (tab === "reliefs-request") {
-            // Hide dashboard
-      dashboardContainer.style.display = "none";
+        // Hide dashboard
+        dashboardContainer.style.display = "none";
 
-      // Fetch volunteer overview HTML
-      const res = await fetch("../pages/reliefRequestOverview.html");
-      const html = await res.text();
+            // Fetch volunteer overview HTML
+            const res = await fetch("../pages/reliefRequestOverview.html");
+            const html = await res.text();
 
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(html, "text/html");
-      const bodyContent = doc.body.innerHTML;
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, "text/html");
+            const bodyContent = doc.body.innerHTML;
 
-      tabContent.innerHTML = bodyContent;
+            tabContent.innerHTML = bodyContent;
 
-      // Attach CSS (only once)
-      if (!document.querySelector('link[href="../css/volunteerRequest.css"]')) {
-        const link = document.createElement("link");
-        link.rel = "stylesheet";
-        link.href = "../css/volunteerRequest.css";
-        document.head.appendChild(link);
-      }
+            // Attach CSS (only once)
+            if (!document.querySelector('link[href="../css/volunteerRequest.css"]')) {
+                const link = document.createElement("link");
+                link.rel = "stylesheet";
+                link.href = "../css/volunteerRequest.css";
+                document.head.appendChild(link);
+            }
 
-      // Force reload volunteer JS every time
-      try {
-        const jsRes = await fetch("../js/reliefRequestOverview.js");
-        const jsCode = await jsRes.text();
-        new Function(jsCode)();
-      } catch (err) {
-        console.error("Failed to load reliefRequestOverview.js", err);
-      }
-    } else {
-      // Default tab → show dashboard again
-      dashboardContainer.style.display = "block";
-      tabContent.innerHTML = "";
-    }
-  });
+            // Force reload volunteer JS every time
+            try {
+                const jsRes = await fetch("../js/reliefRequestOverview.js");
+                const jsCode = await jsRes.text();
+                new Function(jsCode)();
+            } catch (err) {
+                console.error("Failed to load reliefRequestOverview.js", err);
+            }
+        } else {
+        // Default tab → show dashboard again
+        dashboardContainer.style.display = "block";
+        tabContent.innerHTML = "";
+        }
+    });
 });
 
 // Auto-load Default tab
@@ -586,6 +614,31 @@ function initializeMap() {
     }
 }
 // Add weather data for all provinces with dynamic icons and rain notifications
+
+// ✅ Enhanced Rainfall Alert Generator
+function generateRainAlert(province, rainfall, pop) {
+  let warningLevel = "";
+
+  // POP = chance of precipitation (% from forecast API)
+  if (pop >= 30 || rainfall >= 20) {
+    if (rainfall >= 100 || pop >= 80) {
+      warningLevel = "🔴 Red Warning: Heavy Rain";
+    } else if (rainfall >= 50 || pop >= 60) {
+      warningLevel = "🟠 Orange Warning: Moderate Rain";
+    } else if (rainfall >= 20 || pop >= 30) {
+      warningLevel = "🟡 Yellow Warning: Light Rain";
+    }
+  }
+
+  if (warningLevel) {
+    const eventId = `rain_${province.name}_${Date.now()}`;
+    const details = `Rainfall: ${rainfall} mm in last 3h, Chance of Rain: ${pop}% | Time: ${new Date().toISOString()}`;
+
+    // Push into unified calamity notifications
+    generateLenlenAlert("Rainfall Alert", province.name, details, eventId, warningLevel, "OpenWeatherMap");
+  }
+}
+
 function addWeatherDataForProvinces() {
     if (!map) {
         console.error("Map not initialized, cannot add weather data for provinces.");
@@ -631,8 +684,11 @@ function addWeatherDataForProvinces() {
                 sunnyPercent = Math.max(0, 100 - cloudCover);
             }
 
-            // Generate alerts for high rainfall
-            if (userRole === "AB ADMIN" && rainfall > 0) {
+            // Generate rainfall alerts using new function
+generateRainAlert(province, rainfall, pop);
+
+      // Generate alerts for high rainfall (legacy fallback)
+            if (rainfall > 0) {
                 const eventId = `rain_${province.name}_${Date.now()}`;
                 const details = `Rainfall: ${rainfall} mm in last 3 hours, Time: ${new Date().toISOString()}`;
                 if (rainfall >= 100) {
@@ -1267,7 +1323,7 @@ async function addCalamityMarker(type, location, coordinates, details, eventId) 
             currentInfoWindow = marker;
             isInfoWindowClicked = true;
             showWeatherInfoWindow(coordinates.lat, coordinates.lng);
-            if (userRole === "AB ADMIN") {
+            if (true) {
                 const magnitudeMatch = details.match(/Magnitude: (\d+\.\d+)/);
                 const rainfallMatch = details.match(/Rainfall: (\d+\.?\d*) mm/);
                 const timeMatch = details.match(/Time: (.+)/);
@@ -1285,7 +1341,7 @@ async function addCalamityMarker(type, location, coordinates, details, eventId) 
             currentInfoWindow = null;
             markerDiv.style.animation = "pulse 2s infinite";
         });
-        if (userRole === "AB ADMIN") {
+        if (true) {
             const magnitudeMatch = details.match(/Magnitude: (\d+\.\d+)/);
             const rainfallMatch = details.match(/Rainfall: (\d+\.?\d*) mm/);
             const timeMatch = details.match(/Time: (.+)/);
@@ -1441,7 +1497,7 @@ const notifyAdmin = throttle(async (message, calamityType, location, details, ev
     console.log(`Saved new notification - Event ID: ${eventId}, Key: ${key}`);
 
     // Check for new calls for donation, relief requests, or RDANA submissions
-    if (userRole === "AB ADMIN") {
+    if (true) {
         await checkNewSubmissions("callfordonation", key, "Call for Donation", location, details, eventId);
         await checkNewSubmissions("reliefrequest", key, "Relief Request", location, details, eventId);
         await checkNewSubmissions("rdana", key, "RDANA Submission", location, details, eventId);
@@ -1687,7 +1743,7 @@ const isNotifVisibleToUser = (n) => {
     if (n.type === "calamity") return true;
 
     // Other types
-    if (userRole === "AB ADMIN") return true;
+    if (true) return true;
     return !!n.userUid && n.userUid === userUid;
 };
 

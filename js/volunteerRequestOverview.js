@@ -142,12 +142,11 @@ async function fetchRequests() {
         }
     });
 
-    await Promise.all(promises); // wait for all async pushes
+    await Promise.all(promises); 
     populateSkillsFilter();
     await renderTable();
     updateDashboard();
 }
-
 
 // Populate skills dropdown
 function populateSkillsFilter() {
@@ -160,38 +159,6 @@ function populateSkillsFilter() {
     });
 }
 
-// Determine correct status automatically
-// function getAutoStatus(req) {
-//     const today = new Date();
-//     const taskEnd = req.taskEndDate ? new Date(req.taskEndDate) : null;
-
-//     const volunteersNeeded = Number(req.volunteersNeeded || 0);
-//     const assigned = Number(req.assigned || 0);
-//     const status = req.status || "Pending";
-
-//     if (status === "Rejected") return "Rejected";
-//     if (status === "Completed") return "Completed";
-
-//     if (assigned >= volunteersNeeded && volunteersNeeded > 0) return "Completed";
-
-//     if (status === "Pending") {
-//         if (assigned > 0) return "In Progress"; // some volunteers assigned
-//         if (taskEnd && taskEnd < today && assigned < volunteersNeeded) return "Incomplete"; // past end date
-//         return "Pending";
-//     }
-
-//     if (status === "In Progress") {
-//         if (taskEnd && taskEnd < today && assigned < volunteersNeeded) return "Incomplete"; // not enough volunteers by end date
-//         return "In Progress";
-//     }
-
-//     if (status === "Incomplete") {
-//         if (assigned >= volunteersNeeded) return "Completed"; // now fully assigned
-//         return "Incomplete";
-//     }
-
-//     return "Pending";
-// }
 function getAutoStatus(req) {
     const today = new Date();
     const taskEnd = req.taskEndDate ? new Date(req.taskEndDate) : null;
