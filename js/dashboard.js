@@ -103,6 +103,36 @@ document.querySelectorAll(".tab-btn").forEach(btn => {
             } catch (err) {
                 console.error("Failed to load reliefRequestOverview.js", err);
             }
+        } else if (tab === "reports") {
+            // Hide dashboard
+            dashboardContainer.style.display = "none";
+
+            // Fetch reports overview HTML
+            const res = await fetch("../pages/reportsOverview.html");
+            const html = await res.text();
+
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, "text/html");
+            const bodyContent = doc.body.innerHTML;
+
+            tabContent.innerHTML = bodyContent;
+
+            // Attach CSS (only once)
+            if (!document.querySelector('link[href="../css/volunteerRequest.css"]')) {
+                const link = document.createElement("link");
+                link.rel = "stylesheet";
+                link.href = "../css/volunteerRequest.css";
+                document.head.appendChild(link);
+            }
+
+            // Force reload reports JS every time
+            try {
+                const jsRes = await fetch("../js/reportsOverview.js");
+                const jsCode = await jsRes.text();
+                new Function(jsCode)();
+            } catch (err) {
+                console.error("Failed to load reportsOverview.js", err);
+            }
         } else {
         // Default tab → show dashboard again
         dashboardContainer.style.display = "block";
@@ -360,16 +390,27 @@ function highlight(element) {
     setTimeout(() => element.style.color = '#FFF', 300);
 }
 // Firebase configuration
+// const firebaseConfig = {
+//     apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
+//     authDomain: "bayanihan-5ce7e.firebaseapp.com",
+//     databaseURL: "https://bayanihan-5ce7e-default-rtdb.asia-southeast1.firebasedatabase.app",
+//     projectId: "bayanihan-5ce7e",
+//     storageBucket: "bayanihan-5ce7e.appspot.com",
+//     messagingSenderId: "593123849917",
+//     appId: "1:593123849917:web:eb85a63a536eeff78ce9d4",
+//     measurementId: "G-ZTQ9VXXVV0",
+// };
 const firebaseConfig = {
-    apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
-    authDomain: "bayanihan-5ce7e.firebaseapp.com",
-    databaseURL: "https://bayanihan-5ce7e-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "bayanihan-5ce7e",
-    storageBucket: "bayanihan-5ce7e.appspot.com",
-    messagingSenderId: "593123849917",
-    appId: "1:593123849917:web:eb85a63a536eeff78ce9d4",
-    measurementId: "G-ZTQ9VXXVV0",
+  apiKey: "AIzaSyBkmXOJvnlBtzkjNyR6wyd9BgGM0BhN0L8",
+  authDomain: "bayanihan-new-472410.firebaseapp.com",
+  projectId: "bayanihan-new-472410",
+  storageBucket: "bayanihan-new-472410.firebasestorage.app",
+  messagingSenderId: "995982574131",
+  appId: "1:995982574131:web:3d45e358fad330c276d946",
+  measurementId: "G-CEVPTQZM9C",
+  databaseURL: "https://bayanihan-new-472410-default-rtdb.asia-southeast1.firebasedatabase.app/"
 };
+
 // Initialize Firebase only if not already initialized
 if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);

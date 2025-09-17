@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Test Google Map</title>
+    <style>
+      #map {
+        height: 400px;
+        width: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <h3>Google Maps API Test</h3>
+    <div id="map"></div>
+
+    <script>
+      function initMap() {
+        const center = { lat: 14.5995, lng: 120.9842 }; // Manila
+        const map = new google.maps.Map(document.getElementById("map"), {
+          zoom: 12,
+          center: center,
+        });
+      }
+    </script>
+
+    <script
+      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAAAu6BeQjIZ7H7beFbAsPWuKuORmh0wrk-A&callback=initMap"
+      async
+      defer
+    ></script>
+  </body>
+</html>
