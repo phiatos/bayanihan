@@ -16,9 +16,15 @@
 
   <script src="../js/navbar.js"></script> 
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <script src="https://unpkg.com/@googlemaps/js-api-loader@1.16.2/dist/index.min.js"></script>
+
+  <!-- Leaflet CSS and JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Remove Google Maps loader and add direct initMap call if needed -->
+  <!-- Assuming map-loader.js is updated or removed; initMap will be called on DOMContentLoaded if necessary -->
   <script type="module" src="../js/map-loader.js"></script>
-  <!-- <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAAAu6BeQjIZ7H7beFbAsPWuKuORmh0wrk&libraries=places,marker&callback=initMap"></script> -->
+  <!-- Ensure map-loader.js calls window.initMap() after Leaflet loads -->
 </head>
 <body class="no-header-line">
   <!-- Header -->
@@ -139,8 +145,8 @@
 
           <div class="form-group">
             <label for="location">Pin Your Location</label>
-            <input type="text" id="location" name="location" placeholder="Search for your location" required />
-            <div id="map" style="height: 400px; width: 100%; margin-top: 10px;"></div>
+            <input type="text" id="location" name="location" placeholder="Search for your location" />
+            <div id="map" style="height: 400px; width: 100%; margin-top: 10px; border: 1px solid #ccc; border-radius: 4px;"></div>
             <input type="hidden" id="latitude" name="latitude" />
             <input type="hidden" id="longitude" name="longitude" />
             <input type="hidden" id="formatted-address" name="formatted-address" />
@@ -184,7 +190,7 @@
         <ul>
           <li>Be a legally registered entity or a recognized community group.</li>
           <li>Provide accurate and complete information during the application process.</li>
-          <li>Agree to abide by Bayanihan’s code of conduct and operational guidelines.</li>
+          <li>Agree to abide by Bayanihan's code of conduct and operational guidelines.</li>
         </ul>
       </p>
         
@@ -192,7 +198,7 @@
         <p>Your application will be reviewed by the Bayanihan team. Submission does not guarantee approval. You agree to provide any additional documentation requested during the review process.</p>
         
         <h3>4. Data Usage</h3>
-        <p>By submitting this application, you consent to the collection, storage, and processing of your organization’s data as outlined in our <a href="#" id="openPrivacyFromTerms">Privacy Policy</a>.</p>
+        <p>By submitting this application, you consent to the collection, storage, and processing of your organization's data as outlined in our <a href="#" id="openPrivacyFromTerms">Privacy Policy</a>.</p>
         
         <h3>5. Responsibilities</h3>
         <p>Approved organizations must:
@@ -260,5 +266,16 @@
   <script src="../js/inactivity-detector.js"></script> 
   <script src="https://www.google.com/recaptcha/api.js" async defer></script>
   <script type="module" src="../js/joinasvolunteerorg.js"></script>
+
+  <!-- Ensure initMap is called if map-loader.js doesn't handle it -->
+  <script>
+    if (typeof window.initMap === 'undefined') {
+      document.addEventListener('DOMContentLoaded', function() {
+        if (typeof initMap === 'function') {
+          initMap();
+        }
+      });
+    }
+  </script>
 </body>
 </html>

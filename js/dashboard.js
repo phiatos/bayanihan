@@ -103,6 +103,36 @@ document.querySelectorAll(".tab-btn").forEach(btn => {
             } catch (err) {
                 console.error("Failed to load reliefRequestOverview.js", err);
             }
+        } else if (tab === "reports") {
+            // Hide dashboard
+            dashboardContainer.style.display = "none";
+
+            // Fetch reports overview HTML
+            const res = await fetch("../pages/reportsOverview.html");
+            const html = await res.text();
+
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, "text/html");
+            const bodyContent = doc.body.innerHTML;
+
+            tabContent.innerHTML = bodyContent;
+
+            // Attach CSS (only once)
+            if (!document.querySelector('link[href="../css/volunteerRequest.css"]')) {
+                const link = document.createElement("link");
+                link.rel = "stylesheet";
+                link.href = "../css/volunteerRequest.css";
+                document.head.appendChild(link);
+            }
+
+            // Force reload reports JS every time
+            try {
+                const jsRes = await fetch("../js/reportsOverview.js");
+                const jsCode = await jsRes.text();
+                new Function(jsCode)();
+            } catch (err) {
+                console.error("Failed to load reportsOverview.js", err);
+            }
         } else {
         // Default tab → show dashboard again
         dashboardContainer.style.display = "block";

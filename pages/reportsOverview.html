@@ -1,0 +1,75 @@
+<!--reportsOverview.html -->
+<header>Reports Overview</header>
+
+<div class="dashboard-cards">
+    <div class="card">
+        <div class="card-title">Total Reports</div>
+        <div class="card-value" id="total-reports"></div>
+    </div>
+    <div class="card">
+        <div class="card-title">Pending Reports</div>
+        <div class="card-value" id="pending-reports"></div>
+    </div>
+    <div class="card">
+        <div class="card-title">Approved Reports</div>
+        <div class="card-value" id="approved-reports"></div>
+    </div>
+</div>
+
+<!-- Timeline Chart -->
+<div id="chartContainer">
+    <canvas id="reportsChart"></canvas>
+</div>
+
+<!-- Grouped Reports Section -->
+<div id="grouped-reports" class="grouped-section">
+    <!-- Populated dynamically -->
+</div>
+
+<!-- Preview Modal -->
+<div id="reportPreviewModal" class="modal" style="display:none;">
+    <div class="modal-content">
+        <span id="closeReportModal" class="close">×</span>
+        <div id="reportModalContent"></div>
+    </div>
+</div>
+
+<!-- Filters / Search -->
+<div class="filters">
+    <input type="text" placeholder="Search by Report ID or Volunteer Group" id="report-search-input">
+    <select id="status-filter">
+        <option value="">All Status</option>
+        <option value="approved">Approved</option>
+        <option value="archived">Archived</option>
+    </select>
+    <select id="calamity-type-filter">
+        <option value="">All Calamity Types</option>
+        <!-- Populated dynamically -->
+    </select>
+    <select id="calamity-name-filter">
+        <option value="">All Calamity Names</option>
+        <!-- Populated dynamically -->
+    </select>
+</div>
+
+<!-- Reports Table -->
+<div class="table-container">
+    <table>
+        <thead>
+            <tr>
+                <th>No.</th>
+                <th>Report ID</th>
+                <th>Volunteer Group</th>
+                <th>Area of Operation</th>
+                <th>Calamity Type</th>
+                <th>Calamity Name</th>
+                <th>Date of Report</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="reports-table">
+            <!-- Rows will be populated dynamically from Firebase -->
+        </tbody>
+    </table>
+</div>

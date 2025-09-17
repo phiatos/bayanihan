@@ -1,13 +1,13 @@
-// joinasvolunteerorg.js
+// Firebase configuration
 const firebaseConfig = {
-    apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
-    authDomain: "bayanihan-5ce7e.firebaseapp.com",
-    databaseURL: "https://bayanihan-5ce7e-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "bayanihan-5ce7e",
-    storageBucket: "bayanihan-5ce7e.appspot.com",
-    messagingSenderId: "593123849917",
-    appId: "1:593123849917:web:eb85a63a536eeff78ce9d4",
-    measurementId: "G-ZTQ9VXXVV0",
+  apiKey: "AIzaSyBkmXOJvnlBtzkjNyR6wyd9BgGM0BhN0L8",
+  authDomain: "bayanihan-new-472410.firebaseapp.com",
+  projectId: "bayanihan-new-472410",
+  storageBucket: "bayanihan-new-472410.firebasestorage.app",
+  messagingSenderId: "995982574131",
+  appId: "1:995982574131:web:3d45e358fad330c276d946",
+  measurementId: "G-CEVPTQZM9C",
+  databaseURL: "https://bayanihan-new-472410-default-rtdb.asia-southeast1.firebasedatabase.app/"
 };
 
 // Clear error message from input field
@@ -22,96 +22,170 @@ function clearError(inputField) {
 firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
 const auth = firebase.auth();
-let map, marker, autocomplete;
+let map, marker, autocompleteInput;
 
-// Map initialization is now handled by map-loader.js, so remove the initMap function from here
-// window.initMap is defined in map-loader.js and will call this function
+// Initialize Leaflet map
 window.initMap = function() {
-    const mapOptions = {
-        center: { lat: 14.5995, lng: 120.9842 },
-        zoom: 10,
-    };
-    map = new google.maps.Map(document.getElementById('map'), mapOptions);
+    // Initialize Leaflet map centered on Manila, Philippines
+    map = L.map('map').setView([14.5995, 120.9842], 10);
 
-    autocomplete = new google.maps.places.Autocomplete(document.getElementById('location'), {
-        types: ['geocode'],
-        componentRestrictions: { country: 'ph' },
-    });
+    // Add OpenStreetMap tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 19
+    }).addTo(map);
 
-    marker = new google.maps.Marker({
-        map: map,
-        draggable: true,
-    });
+    // Initialize draggable marker
+    marker = L.marker([14.5995, 120.9842], {
+        draggable: true
+    }).addTo(map);
 
-    autocomplete.bindTo('bounds', map);
+    // Setup autocomplete using Nominatim
+    autocompleteInput = document.getElementById('location');
+    autocompleteInput.addEventListener('input', debounce(function() {
+        const query = autocompleteInput.value;
+        if (query.length < 3) return;
 
-    autocomplete.addListener('place_changed', () => {
-        const place = autocomplete.getPlace();
-        if (!place.geometry) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Invalid Location',
-                text: 'Please select a valid location from the suggestions.',
-                confirmButtonText: 'OK',
+        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=ph&limit=5`)
+            .then(response => response.json())
+            .then(data => {
+                const suggestions = data.map(place => ({
+                    label: place.display_name,
+                    lat: parseFloat(place.lat),
+                    lon: parseFloat(place.lon)
+                }));
+                showSuggestions(suggestions);
+            })
+            .catch(error => {
+                console.error('Error fetching autocomplete suggestions:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Autocomplete Error',
+                    text: 'Unable to fetch location suggestions.',
+                    confirmButtonText: 'OK'
+                });
             });
-            return;
-        }
+    }, 300));
 
-        map.setCenter(place.geometry.location);
-        map.setZoom(15);
-        marker.setPosition(place.geometry.location);
+    // Handle marker dragend
+    marker.on('dragend', function(event) {
+        const position = marker.getLatLng();
+        document.getElementById('latitude').value = position.lat;
+        document.getElementById('longitude').value = position.lng;
 
-        document.getElementById('latitude').value = place.geometry.location.lat();
-        document.getElementById('longitude').value = place.geometry.location.lng();
-        document.getElementById('formatted-address').value = place.formatted_address;
-
-        clearError(document.getElementById('location'));
-    });
-
-    marker.addListener('dragend', () => {
-        const position = marker.getPosition();
-        document.getElementById('latitude').value = position.lat();
-        document.getElementById('longitude').value = position.lng();
-
-        const geocoder = new google.maps.Geocoder();
-        geocoder.geocode({ location: position }, (results, status) => {
-            if (status === 'OK' && results[0]) {
-                document.getElementById('formatted-address').value = results[0].formatted_address;
-                document.getElementById('location').value = results[0].formatted_address;
-                clearError(document.getElementById('location'));
-            } else {
+        // Reverse geocode using Nominatim
+        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${position.lat}&lon=${position.lng}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data && data.display_name) {
+                    document.getElementById('formatted-address').value = data.display_name;
+                    document.getElementById('location').value = data.display_name;
+                    clearError(document.getElementById('location'));
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Geocoding Error',
+                        text: 'Unable to retrieve address for this location.',
+                        confirmButtonText: 'OK'
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error during reverse geocoding:', error);
                 Swal.fire({
                     icon: 'error',
                     title: 'Geocoding Error',
                     text: 'Unable to retrieve address for this location.',
-                    confirmButtonText: 'OK',
+                    confirmButtonText: 'OK'
                 });
-            }
-        });
+            });
     });
 
-    map.addListener('click', (event) => {
-        marker.setPosition(event.latLng);
-        document.getElementById('latitude').value = event.latLng.lat();
-        document.getElementById('longitude').value = event.latLng.lng();
+    // Handle map click
+    map.on('click', function(event) {
+        const latlng = event.latlng;
+        marker.setLatLng(latlng);
+        document.getElementById('latitude').value = latlng.lat;
+        document.getElementById('longitude').value = latlng.lng;
 
-        const geocoder = new google.maps.Geocoder();
-        geocoder.geocode({ location: event.latLng }, (results, status) => {
-            if (status === 'OK' && results[0]) {
-                document.getElementById('formatted-address').value = results[0].formatted_address;
-                document.getElementById('location').value = results[0].formatted_address;
-                clearError(document.getElementById('location'));
-            } else {
+        // Reverse geocode using Nominatim
+        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latlng.lat}&lon=${latlng.lng}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data && data.display_name) {
+                    document.getElementById('formatted-address').value = data.display_name;
+                    document.getElementById('location').value = data.display_name;
+                    clearError(document.getElementById('location'));
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Geocoding Error',
+                        text: 'Unable to retrieve address for this location.',
+                        confirmButtonText: 'OK'
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error during reverse geocoding:', error);
                 Swal.fire({
                     icon: 'error',
                     title: 'Geocoding Error',
                     text: 'Unable to retrieve address for this location.',
-                    confirmButtonText: 'OK',
+                    confirmButtonText: 'OK'
                 });
-            }
-        });
+            });
     });
 };
+
+// Autocomplete suggestions display
+function showSuggestions(suggestions) {
+    const suggestionsContainer = document.createElement('div');
+    suggestionsContainer.className = 'autocomplete-suggestions';
+    suggestionsContainer.style.position = 'absolute';
+    suggestionsContainer.style.background = 'white';
+    suggestionsContainer.style.border = '1px solid #ccc';
+    suggestionsContainer.style.maxHeight = '150px';
+    suggestionsContainer.style.overflowY = 'auto';
+    suggestionsContainer.style.zIndex = '1000';
+    suggestionsContainer.style.width = autocompleteInput.offsetWidth + 'px';
+
+    suggestions.forEach(suggestion => {
+        const div = document.createElement('div');
+        div.textContent = suggestion.label;
+        div.style.padding = '5px';
+        div.style.cursor = 'pointer';
+        div.addEventListener('click', () => {
+            autocompleteInput.value = suggestion.label;
+            map.setView([suggestion.lat, suggestion.lon], 15);
+            marker.setLatLng([suggestion.lat, suggestion.lon]);
+            document.getElementById('latitude').value = suggestion.lat;
+            document.getElementById('longitude').value = suggestion.lon;
+            document.getElementById('formatted-address').value = suggestion.label;
+            clearError(autocompleteInput);
+            suggestionsContainer.remove();
+        });
+        suggestionsContainer.appendChild(div);
+    });
+
+    // Remove previous suggestions
+    const existingContainer = document.querySelector('.autocomplete-suggestions');
+    if (existingContainer) existingContainer.remove();
+
+    autocompleteInput.parentNode.appendChild(suggestionsContainer);
+}
+
+// Debounce function to limit API calls
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
 
 document.addEventListener('DOMContentLoaded', () => {
     const volunteerOrgForm = document.getElementById('volunteer-org-form');
@@ -542,9 +616,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 longitudeInput.value = '';
                 formattedAddressInput.value = '';
                 locationInput.value = '';
-                marker.setPosition(null);
-                map.setCenter({ lat: 14.5995, lng: 120.9842 });
-                map.setZoom(10);
+                marker.setLatLng([14.5995, 120.9842]);
+                map.setView([14.5995, 120.9842], 10);
                 grecaptcha.reset();
                 agreeCheckbox.checked = false;
                 updateSubmitButtonState();
