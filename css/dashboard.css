@@ -913,3 +913,37 @@ header {
   background: #e13385;
   transform: translateY(-2px);
 }
+
+.search-and-sort-container {
+    display: flex;
+    align-items: center; /* This vertically centers the items */
+    gap: 15px; /* This adds space between the two items */
+}
+
+.search-container {
+    flex-grow: 1; /* Allows the search bar to take up available space */
+}
+
+/* Optional: You may need to add some specific styles to your input and dropdown for alignment */
+.search-input,
+.sort-dropdown {
+    height: 50px; /* Or a fixed height to make them visually aligned */
+}
+
+/* Other existing styles for your search and sort elements */
+.input-container {
+    position: relative;
+}
+
+.search-input {
+    width: 100%;
+    padding-right: 40px; /* Make space for the icon */
+}
+
+.sort-dropdown{
+  margin-bottom: 15px;
+  border-radius: 20px;
+  padding: 10px;
+  font-size: 15px;
+}
+
