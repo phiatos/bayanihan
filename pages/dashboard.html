@@ -174,19 +174,33 @@
                      <div class="metrics-title"><h2>Weather Map</h2></div>
 
                     <!-- Search Bar -->
-                    <div class="search-container">
-                        <div class="input-container">
-                            <input
-                                type="text"
-                                id="search-input"
-                                placeholder="Search by Location, Urgency, or Category"
-                                class="search-input"
-                            />
-                            <button class="search-icon">
-                                <i class='bx bx-search' style="font-size: 24px; color: #656079;"></i>
-                            </button>
+                    <div class="search-and-sort-container">
+                        <div class="search-container">
+                            <div class="input-container">
+                                <input
+                                    type="text"
+                                    id="search-input"
+                                    placeholder="Search by Location, Urgency, or Category"
+                                    class="search-input"
+                                />
+                                <button class="search-icon">
+                                    <i class='bx bx-search' style="font-size: 24px; color: #656079;"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="sort-container">
+                            <select id="sort-dropdown" class="sort-dropdown">
+                                <option value="default" selected>Sort by</option>
+                                <option value="all">All</option>
+                                <option value="calamityType">Calamities</option>
+                                <option value="hqs">ABVN HQs</option>
+                                <option value="activated">Activated ABVNs</option>
+                            </select>
                         </div>
                     </div>
+
+                    
 
                     <div class="map-container">
                         <div id="map" style="height: 100%; width: 100%;"></div>
