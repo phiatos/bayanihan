@@ -1,3 +1,4 @@
+// activation.js
 console.log = function () {};
 console.error = function () {};
 console.warn = function () {};
@@ -134,6 +135,7 @@ let currentPage = 1;
 const rowsPerPage = 5;
 let activationHistory = [];
 let historyCurrentPage = 1;
+let allCalamities = [];
 
 const tableBody = document.querySelector("#orgTable tbody");
 const searchInput = document.querySelector("#searchInput");
@@ -158,14 +160,12 @@ const mapSearchInput = document.getElementById("mapSearchInput");
 const modalStep1 = document.getElementById("modalStep1");
 const selectGroupDropdown = document.getElementById("selectGroupDropdown");
 const modalNextStepBtn = document.getElementById("modalNextStepBtn");
-
 const modalStep2 = document.getElementById("modalStep2");
 const selectedOrgName = document.getElementById("selectedOrgName");
 const modalAreaInput = document.getElementById("modalAreaInput");
 const modalLatitudeInput = document.getElementById("modalLatitudeInput");
 const modalLongitudeInput = document.getElementById("modalLongitudeInput");
 const modalCalamitySelect = document.getElementById("modalCalamitySelect");
-const modalCalamityNameInput = document.getElementById("modalCalamityNameInput");
 const modalActivateSubmitBtn = document.getElementById("modalActivateSubmitBtn");
 const modalPrevStepBtn = document.getElementById("modalPrevStepBtn");
 const pinLocationBtn = document.getElementById("pinLocationBtn");
@@ -223,8 +223,41 @@ function checkInactivity() {
     document.addEventListener(eventType, resetInactivityTimer);
 });
 
-function initMap() {
-    const defaultLocation = { lat: 14.5995, lng: 120.9842 };
+function populateCalamityDropdown() {
+    const calamitySelect = document.getElementById("modalCalamityNameSelect");
+    calamitySelect.innerHTML = '<option value="" disabled selected>-- Select Calamity Name --</option>';
+    allCalamities.forEach(calamity => {
+        const option = document.createElement("option");
+        option.value = calamity.id;
+        option.textContent = `${calamity.name} (${calamity.type})`;
+        calamitySelect.appendChild(option);
+    });
+    const addNewOption = document.createElement("option");
+    addNewOption.value = "add_new";
+    addNewOption.textContent = "Add New Calamity";
+    calamitySelect.appendChild(addNewOption);
+}
+
+document.getElementById("modalCalamityNameSelect").addEventListener("change", (e) => {
+    const selectedCalamityId = e.target.value;
+    const newCalamityInputContainer = document.getElementById("newCalamityInputContainer");
+    const newCalamityInput = document.getElementById("modalNewCalamityNameInput");
+
+    if (selectedCalamityId === "add_new") {
+        newCalamityInputContainer.style.display = "block";
+        newCalamityInput.value = "";
+        modalCalamitySelect.value = ""; // Reset calamity type
+    } else {
+        newCalamityInputContainer.style.display = "none";
+        const selectedCalamity = allCalamities.find(calamity => calamity.id === selectedCalamityId);
+        if (selectedCalamity) {
+            modalCalamitySelect.value = selectedCalamity.type; // Auto-select the associated type
+        }
+    }
+});
+
+function initMap(latitude = 14.5995, longitude = 120.9842, formattedAddress = null) {
+    const defaultLocation = { lat: latitude, lng: longitude };
 
     map = new google.maps.Map(document.getElementById("mapContainer"), {
         center: defaultLocation,
@@ -324,47 +357,69 @@ function initMap() {
     returnButton.addEventListener("click", returnToUserLocation);
     map.controls[google.maps.ControlPosition.TOP_RIGHT].push(returnButton);
 
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const userLocation = {
-                    lat: position.coords.latitude,
-                    lng: position.coords.longitude,
-                };
-                map.setCenter(userLocation);
-                map.setZoom(16);
-                clearMarkers();
-                const marker = new google.maps.Marker({
-                    position: userLocation,
-                    map: map,
-                    title: "You are here",
-                    icon: { url: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png" },
-                });
-                markers.push(marker);
+    // If a formattedAddress and coordinates are provided, set a marker
+    if (formattedAddress && latitude && longitude) {
+        map.setCenter(defaultLocation);
+        map.setZoom(16);
+        clearMarkers();
+        const marker = new google.maps.Marker({
+            position: defaultLocation,
+            map: map,
+            title: "Selected ABVN Location",
+        });
+        markers.push(marker);
+        const infowindow = new google.maps.InfoWindow({
+            content: `Selected ABVN Location<br>${formattedAddress}`,
+        });
+        marker.addListener("click", () => infowindow.open(map, marker));
+        infowindow.open(map, marker);
+        modalAreaInput.value = formattedAddress;
+        modalLatitudeInput.value = latitude;
+        modalLongitudeInput.value = longitude;
+    } else {
+        // Fall back to user's geolocation if no coordinates are provided
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const userLocation = {
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude,
+                    };
+                    map.setCenter(userLocation);
+                    map.setZoom(16);
+                    clearMarkers();
+                    const marker = new google.maps.Marker({
+                        position: userLocation,
+                        map: map,
+                        title: "You are here",
+                        icon: { url: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png" },
+                    });
+                    markers.push(marker);
 
-                geocoder.geocode({ location: userLocation }, (results, status) => {
-                    let infoContent = "You are here";
-                    if (status === "OK" && results[0]) {
-                        infoContent = `You are here<br>${results[0].formatted_address}`;
-                        modalAreaInput.value = results[0].formatted_address;
-                        modalLatitudeInput.value = userLocation.lat;
-                        modalLongitudeInput.value = userLocation.lng;
-                    }
-                    const infowindow = new google.maps.InfoWindow({ content: infoContent });
-                    marker.addListener("click", () => infowindow.open(map, marker));
-                    infowindow.open(map, marker);
-                });
-            },
-            (error) => {
-                console.error("Geolocation error:", error);
-                Swal.fire({
-                    icon: "error",
-                    title: "Location Error",
-                    text: getGeolocationErrorMessage(error),
-                });
-            },
-            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-        );
+                    geocoder.geocode({ location: userLocation }, (results, status) => {
+                        let infoContent = "You are here";
+                        if (status === "OK" && results[0]) {
+                            infoContent = `You are here<br>${results[0].formatted_address}`;
+                            modalAreaInput.value = results[0].formatted_address;
+                            modalLatitudeInput.value = userLocation.lat;
+                            modalLongitudeInput.value = userLocation.lng;
+                        }
+                        const infowindow = new google.maps.InfoWindow({ content: infoContent });
+                        marker.addListener("click", () => infowindow.open(map, marker));
+                        infowindow.open(map, marker);
+                    });
+                },
+                (error) => {
+                    console.error("Geolocation error:", error);
+                    Swal.fire({
+                        icon: "error",
+                        title: "Location Error",
+                        text: getGeolocationErrorMessage(error),
+                    });
+                },
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            );
+        }
     }
 }
 
@@ -438,7 +493,7 @@ async function notifyABVN(activationId, groupId, reliefAmount, reliefPurpose) {
             throw new Error("User not authenticated.");
         }
 
-        const group = allVolunteerGroups.find(g => g.no === parseInt(groupId));
+        const group = allVolunteerGroups.find(g => g.no === groupId);
         if (!group) {
             throw new Error(`Volunteer group not found for groupId: ${groupId}`);
         }
@@ -678,6 +733,7 @@ function listenForDataUpdates() {
         currentActiveActivations = [];
         if (fetchedActivations) {
             for (let key in fetchedActivations) {
+                if (key === "calamities" || key === "activationHistory") continue; // Skip calamities and activationHistory
                 const activation = fetchedActivations[key];
                 if (activation.status === 'active') {
                     const volunteerGroup = allVolunteerGroups.find(group => group.no === String(activation.groupId));
@@ -715,6 +771,36 @@ function listenForDataUpdates() {
             icon: 'error',
             title: 'Error',
             text: `Failed to load active activations: ${error.message}`
+        });
+    });
+
+    console.log("Setting up real-time listener for calamities...");
+    database.ref("activations/calamities").on("value", snapshot => {
+        console.log("Calamities snapshot received:", snapshot.val());
+        allCalamities = [];
+        const fetchedCalamities = snapshot.val();
+        if (fetchedCalamities) {
+            for (let key in fetchedCalamities) {
+                const calamityData = fetchedCalamities[key];
+                allCalamities.push({
+                    id: key,
+                    name: calamityData.name || "Unknown",
+                    type: calamityData.type || "Unknown",
+                    createdAt: calamityData.createdAt || "N/A"
+                });
+            }
+            allCalamities.sort((a, b) => a.name.localeCompare(b.name)); // Sort by name
+            console.log("Processed allCalamities:", allCalamities);
+        } else {
+            console.warn("No calamities data found.");
+        }
+        populateCalamityDropdown(); // Call to populate the dropdown
+    }, error => {
+        console.error("Error fetching calamities:", error.code, error.message);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: `Failed to load calamities: ${error.message}`
         });
     });
 
@@ -786,14 +872,18 @@ function renderTable(filteredData = currentActiveActivations) {
     const end = start + rowsPerPage;
     const pageData = filteredData.slice(start, end);
 
+    // Adjust currentPage if no data on current page but data exists
     if (pageData.length === 0 && filteredData.length > 0 && currentPage > 1) {
-        currentPage--;
-        renderTable(filteredData);
+        currentPage = Math.max(1, Math.ceil(filteredData.length / rowsPerPage));
+        renderTable(filteredData); // Re-render with adjusted page
         return;
     } else if (pageData.length === 0 && filteredData.length === 0) {
         const noDataRow = document.createElement("tr");
         noDataRow.innerHTML = `<td colspan="10" style="text-align: center;">No active group activations to display.</td>`;
         tableBody.appendChild(noDataRow);
+        entriesInfo.textContent = `Showing 0 to 0 of 0 entries`;
+        renderPagination(0); // Update pagination for empty data
+        return;
     }
 
     pageData.forEach((row, index) => {
@@ -812,14 +902,14 @@ function renderTable(filteredData = currentActiveActivations) {
             <td><span class="status-circle ${row.status === "active" ? "green" : "red"}"></span> ${row.status}</td>
             <td>
                 <button title="Endorse" class="endorseBtn" data-id="${row.id}" data-group-id="${row.groupId}"><i class='bx bx-mail-send'></i></button>
-                <button title="Archive" class="archiveBtn" data-activation-id="${row.id}" data-group-id="${row.groupId}"><i class="bx bx-x-circle"></i></button>
+                <button title="Deactivate" class="archiveBtn" data-activation-id="${row.id}" data-group-id="${row.groupId}"><i class='bx bx-power-off'></i></button>
             </td>
         `;
         tableBody.appendChild(tr);
     });
 
     entriesInfo.textContent = `Showing ${start + 1} to ${Math.min(end, filteredData.length)} of ${filteredData.length} entries`;
-    renderPagination(filteredData.length);
+    renderPagination(filteredData.length); // Always render pagination after table
 }
 
 function renderHistoryTable() {
@@ -898,14 +988,117 @@ function renderHistoryPagination(totalRows) {
     historyPaginationContainer.appendChild(createButton("Next", historyCurrentPage + 1, historyCurrentPage === totalPages));
 }
 
+function filterAndSort() {
+    let filtered = currentActiveActivations.filter(row => {
+        const query = searchInput.value.trim().toLowerCase();
+        return Object.values(row).some(val => {
+            if (typeof val === 'string' || typeof val === 'number') {
+                return val.toString().toLowerCase().includes(query);
+            }
+            return false;
+        });
+    });
+
+    if (sortSelect.value) {
+        filtered.sort((a, b) => {
+            if (sortSelect.value === 'organization') {
+                return a.organization.localeCompare(b.organization);
+            } else if (sortSelect.value === 'hq') {
+                return a.hq.localeCompare(b.hq);
+            } else if (sortSelect.value === 'status') {
+                const statusOrder = { 'active': 1, 'inactive': 2 };
+                return (statusOrder[a.status] || 999) - (statusOrder[b.status] || 999); // Fallback for unknown statuses
+            } else if (sortSelect.value === 'calamity') {
+                return a.calamityName.localeCompare(b.calamityName);
+            }
+            return 0;
+        });
+    } else {
+        filtered.sort((a, b) => {
+            const dateA = new Date(a.activationDate);
+            const dateB = new Date(b.activationDate);
+            return dateB - dateA;
+        });
+    }
+
+    // Adjust currentPage if it exceeds the number of pages
+    const totalPages = Math.ceil(filtered.length / rowsPerPage);
+    if (currentPage > totalPages && totalPages > 0) {
+        currentPage = totalPages;
+    } else if (totalPages === 0) {
+        currentPage = 1;
+    }
+
+    return filtered;
+}
+
+function renderPagination(totalRows) {
+    paginationContainer.innerHTML = "";
+    const totalPages = Math.ceil(totalRows / rowsPerPage);
+    const maxVisible = 5;
+
+    // If no data, clear pagination and return
+    if (totalPages === 0) {
+        paginationContainer.innerHTML = "";
+        return;
+    }
+
+    const createButton = (label, page = null, disabled = false, active = false) => {
+        const btn = document.createElement("button");
+        btn.textContent = label;
+        if (disabled) btn.disabled = true;
+        if (active) btn.classList.add("active-page");
+        if (page !== null) {
+            btn.addEventListener("click", () => {
+                currentPage = page;
+                renderTable(filterAndSort()); // Use filtered data
+            });
+        }
+        return btn;
+    };
+
+    // Add Previous button
+    paginationContainer.appendChild(createButton("Prev", currentPage - 1, currentPage === 1));
+
+    // Calculate visible page range
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+
+    if (endPage - startPage < maxVisible - 1) {
+        startPage = Math.max(1, endPage - maxVisible + 1);
+    }
+
+    // Add page number buttons
+    for (let i = startPage; i <= endPage; i++) {
+        paginationContainer.appendChild(createButton(i, i, false, i === currentPage));
+    }
+
+    // Add Next button
+    paginationContainer.appendChild(createButton("Next", currentPage + 1, currentPage === totalPages));
+}
+
 function handleSearch() {
-    const query = searchInput.value.trim().toLowerCase();
     currentPage = 1;
     renderTable(filterAndSort());
 }
 
 clearBtn.style.display = 'none';
-searchInput.addEventListener('input', handleSearch);
+searchInput.addEventListener('input', () => {
+    clearBtn.style.display = searchInput.value.trim() ? 'inline-block' : 'none';
+    handleSearch();
+});
+
+clearBtn.addEventListener('click', () => {
+    searchInput.value = '';
+    clearBtn.style.display = 'none';
+    currentPage = 1;
+    renderTable(filterAndSort());
+});
+
+sortSelect.addEventListener("change", () => {
+    currentPage = 1;
+    renderTable(filterAndSort());
+});
 
 function openAddActivationModal() {
     modalTitle.textContent = "Add New Activation";
@@ -932,7 +1125,10 @@ function resetModalStep2Fields() {
             return `<option value="${opt}">${opt}</option>`;
         })
         .join("");
-    modalCalamityNameInput.value = "";
+    document.getElementById("modalCalamityNameSelect").value = "";
+    document.getElementById("modalNewCalamityNameInput").value = "";
+    document.getElementById("newCalamityInputContainer").style.display = "none";
+    populateCalamityDropdown();
 }
 
 function showStep1() {
@@ -947,9 +1143,7 @@ function showStep1() {
 }
 
 function showStep2() {
-    console.log("showStep2 called, selectedGroupForActivation:", selectedGroupForActivation);
     if (!selectedGroupForActivation) {
-        console.log("No group selected, showing warning.");
         Swal.fire({
             icon: 'warning',
             title: 'No Group Selected',
@@ -957,10 +1151,18 @@ function showStep2() {
         });
         return;
     }
-    console.log("Transitioning to Step 2");
     modalStep1.classList.remove('active');
     modalStep2.classList.add('active');
     selectedOrgName.textContent = selectedGroupForActivation.organization;
+    // Prefill modalAreaInput with the selected group's hq if not already set
+    if (!modalAreaInput.value && selectedGroupForActivation.hq) {
+        modalAreaInput.value = selectedGroupForActivation.hq;
+        // Prefill latitude and longitude if available
+        if (selectedGroupForActivation.address && selectedGroupForActivation.address.latitude && selectedGroupForActivation.address.longitude) {
+            modalLatitudeInput.value = selectedGroupForActivation.address.latitude;
+            modalLongitudeInput.value = selectedGroupForActivation.address.longitude;
+        }
+    }
     modalCalamitySelect.innerHTML = calamityOptions
         .map((opt, index) => {
             if (index === 0) {
@@ -969,8 +1171,10 @@ function showStep2() {
             return `<option value="${opt}">${opt}</option>`;
         })
         .join("");
-    modalCalamityNameInput.value = "";
-    console.log("Step 2 displayed, selectedOrgName:", selectedOrgName.textContent);
+    document.getElementById("modalCalamityNameSelect").value = "";
+    document.getElementById("modalNewCalamityNameInput").value = "";
+    document.getElementById("newCalamityInputContainer").style.display = "none";
+    populateCalamityDropdown();
 }
 
 function closeActivationModal() {
@@ -981,7 +1185,15 @@ function closeActivationModal() {
 
 function openMapModal() {
     mapModal.style.display = "flex";
-    initMap();
+    if (selectedGroupForActivation && selectedGroupForActivation.address && selectedGroupForActivation.address.latitude && selectedGroupForActivation.address.longitude) {
+        initMap(
+            selectedGroupForActivation.address.latitude,
+            selectedGroupForActivation.address.longitude,
+            selectedGroupForActivation.hq
+        );
+    } else {
+        initMap(); 
+    }
 }
 
 function closeMapModal() {
@@ -1044,14 +1256,30 @@ document.addEventListener("DOMContentLoaded", () => {
         console.log("Selected group:", selectedGroupForActivation);
         modalNextStepBtn.disabled = !selectedGroupForActivation;
         console.log("Next button disabled state:", modalNextStepBtn.disabled);
+        // Prefill modalAreaInput with the selected group's hq (formattedAddress)
+        if (selectedGroupForActivation && selectedGroupForActivation.hq) {
+            modalAreaInput.value = selectedGroupForActivation.hq;
+            // Prefill latitude and longitude if available
+            if (selectedGroupForActivation.address && selectedGroupForActivation.address.latitude && selectedGroupForActivation.address.longitude) {
+                modalLatitudeInput.value = selectedGroupForActivation.address.latitude;
+                modalLongitudeInput.value = selectedGroupForActivation.address.longitude;
+            } else {
+                modalLatitudeInput.value = "";
+                modalLongitudeInput.value = "";
+            }
+        } else {
+            modalAreaInput.value = "";
+            modalLatitudeInput.value = "";
+            modalLongitudeInput.value = "";
+        }
     });
 
     modalNextStepBtn.addEventListener("click", () => {
         console.log("Next button clicked");
         showStep2();
     });
-    modalPrevStepBtn.addEventListener("click", showStep1);
 
+    modalPrevStepBtn.addEventListener("click", showStep1);
     pinLocationBtn.addEventListener("click", openMapModal);
 
     saveLocationBtn.addEventListener("click", () => {
@@ -1086,35 +1314,70 @@ async function getNextActivationNumber() {
 }
 
 modalActivateSubmitBtn.addEventListener("click", async () => {
-    console.log("modalActivateSubmitBtn clicked, selectedGroupForActivation:", selectedGroupForActivation);
-    console.log("allVolunteerGroups IDs:", allVolunteerGroups.map(g => g.no));
     if (!selectedGroupForActivation || !selectedGroupForActivation.no) {
-        console.error("No valid organization selected.");
         Swal.fire({ icon: 'error', title: 'Error', text: 'No organization selected for activation.' });
         return;
     }
 
     const areaOfOperation = modalAreaInput.value.trim();
     const calamityType = modalCalamitySelect.value;
-    const calamityName = modalCalamityNameInput.value.trim();
-    const latitude = modalLatitudeInput.value;
-    const longitude = modalLongitudeInput.value;
+    const calamitySelect = document.getElementById("modalCalamityNameSelect");
+    const selectedCalamityId = calamitySelect.value;
+    let calamityName = "";
+    let newCalamityId = null;
+
+    if (selectedCalamityId === "add_new") {
+        calamityName = document.getElementById("modalNewCalamityNameInput").value.trim();
+        if (!calamityName) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Missing Calamity Name',
+                text: 'Please enter a valid calamity name.',
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-warning-clean',
+                    title: 'swal2-title-warning-clean',
+                    htmlContainer: 'swal2-text-warning-clean',
+                    confirmButton: 'my-warning-button'
+                }
+            });
+            return;
+        }
+    } else {
+        const selectedCalamity = allCalamities.find(calamity => calamity.id === selectedCalamityId);
+        if (!selectedCalamity) {
+            Swal.fire({ 
+                icon: 'error',
+                title: 'Selected calamity is invalid.',
+                text: message,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
+                }
+            });
+            return;
+        }
+        calamityName = selectedCalamity.name;
+    }
+
+    const latitude = parseFloat(modalLatitudeInput.value);
+    const longitude = parseFloat(modalLongitudeInput.value);
     const activationDate = new Date().toISOString();
 
     if (!areaOfOperation || !calamityType || !calamityName) {
-        console.log("Missing fields:", { areaOfOperation, calamityType, calamityName });
         Swal.fire({ icon: 'warning', title: 'Missing Fields', text: 'Please supply all required fields.' });
         return;
     }
-    if (!latitude || !longitude) {
-        console.log("Missing location:", { latitude, longitude });
-        Swal.fire({ icon: 'warning', title: 'Missing Location', text: 'Please pin a location on the map.' });
+    if (isNaN(latitude) || isNaN(longitude)) {
+        Swal.fire({ icon: 'warning', title: 'Invalid Location', text: 'Please provide valid latitude and longitude values.' });
         return;
     }
 
     const user = firebase.auth().currentUser;
     if (!user) {
-        console.error("User not authenticated.");
         Swal.fire({ icon: 'error', title: 'Authentication Error', text: 'User not authenticated. Please refresh the page and try again.' });
         return;
     }
@@ -1124,7 +1387,6 @@ modalActivateSubmitBtn.addEventListener("click", async () => {
         .equalTo(selectedGroupForActivation.no);
 
     try {
-        console.log("Checking for existing activations with groupId:", selectedGroupForActivation.no);
         const snapshot = await existingActiveQuery.once("value");
         let alreadyActiveInAreaForCalamity = false;
 
@@ -1132,37 +1394,47 @@ modalActivateSubmitBtn.addEventListener("click", async () => {
             const activation = childSnapshot.val();
             if (activation.status === "active" &&
                 activation.areaOfOperation.toLowerCase() === areaOfOperation.toLowerCase() &&
-                activation.calamityType.toLowerCase() === calamityType.toLowerCase()) {
+                activation.calamityName.toLowerCase() === calamityName.toLowerCase()) {
                 alreadyActiveInAreaForCalamity = true;
                 return true;
             }
         });
 
         if (alreadyActiveInAreaForCalamity) {
-            console.log("Activation conflict detected:", { organization: selectedGroupForActivation.organization, calamityType, areaOfOperation });
             Swal.fire({
                 icon: 'warning',
                 title: 'Activation Conflict',
-                text: `${selectedGroupForActivation.organization} is already active for "${calamityType}" in "${areaOfOperation}". Please deactivate the existing operation first or choose a different area or calamity.`
+                text: `${selectedGroupForActivation.organization} is already active for "${calamityName}" in "${areaOfOperation}". Please deactivate the existing operation first or choose a different area or calamity.`
             });
             return;
         }
 
+        if (selectedCalamityId === "add_new") {
+            const newCalamityRef = database.ref("activations/calamities").push();
+            newCalamityId = newCalamityRef.key;
+            await newCalamityRef.set({
+                name: calamityName,
+                type: calamityType,
+                createdAt: new Date().toISOString()
+            });
+        }
+
         const nextNo = await getNextActivationNumber();
-        console.log("Next activation number:", nextNo);
 
         const newActivationRecord = {
             no: nextNo,
             groupId: String(selectedGroupForActivation.no),
             organization: selectedGroupForActivation.organization,
-            hq: selectedGroupForActivation.hq,
             areaOfOperation: areaOfOperation,
             calamityType: calamityType,
             calamityName: calamityName,
             status: "active",
             activationDate: activationDate,
-            latitude: parseFloat(latitude) || null,
-            longitude: parseFloat(longitude) || null,
+            address: {
+                formattedAddress: areaOfOperation, // Use areaOfOperation instead of hq
+                latitude: latitude,
+                longitude: longitude
+            },
             activationId: null
         };
 
@@ -1170,11 +1442,8 @@ modalActivateSubmitBtn.addEventListener("click", async () => {
         const activationId = newActivationRef.key;
         newActivationRecord.activationId = activationId;
 
-        console.log("Creating activation with ID:", activationId, "groupId:", newActivationRecord.groupId);
         await newActivationRef.set(newActivationRecord);
-        console.log("Activation created, notifying ABVN with groupId:", selectedGroupForActivation.no);
         await notifyABVNActivation(activationId, selectedGroupForActivation.no);
-        console.log("Added new activation record:", { ...newActivationRecord, activationId });
 
         Swal.fire({
             icon: 'success',
@@ -1193,7 +1462,6 @@ modalActivateSubmitBtn.addEventListener("click", async () => {
         currentPage = 1;
         renderTable();
     } catch (error) {
-        console.error("Error adding activation:", error.message);
         Swal.fire({
             icon: 'error',
             title: 'Error',
@@ -1301,6 +1569,12 @@ tableBody.addEventListener("click", e => {
         currentGroupId = groupId;
         openEndorseModal();
     } else if (btn.classList.contains("archiveBtn")) {
+        const activation = currentActiveActivations.find(a => a.id === activationId);
+        if (!activation) {
+            Swal.fire({ icon: 'error', title: 'Error', text: 'Activation not found.' });
+            return;
+        }
+
         if (!isAdminVerified) {
             verifySuperAdminPassword().then(verified => {
                 if (!verified) {
@@ -1309,7 +1583,7 @@ tableBody.addEventListener("click", e => {
                 }
                 Swal.fire({
                     title: 'Are you sure?',
-                    text: `Do you want to deactivate this specific operation for group ID ${groupId}?`,
+                    text: `Do you want to deactivate the operation for ${activation.organization} for ${activation.calamityName} in ${activation.areaOfOperation}?`,
                     icon: 'warning',
                     showCancelButton: true,
                     confirmButtonText: 'Yes, deactivate it!',
@@ -1391,7 +1665,7 @@ tableBody.addEventListener("click", e => {
         } else {
             Swal.fire({
                 title: 'Are you sure?',
-                text: `Do you want to deactivate this specific operation for group ID ${groupId}?`,
+                text: `Do you want to deactivate the operation for ${activation.organization} for ${activation.calamityName} in ${activation.areaOfOperation}?`,
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonText: 'Yes, deactivate it!',
@@ -1473,84 +1747,6 @@ tableBody.addEventListener("click", e => {
     } else {
         console.log("Clicked element does not match expected buttons:", btn);
     }
-});
-
-function renderPagination(totalRows) {
-    paginationContainer.innerHTML = "";
-    const totalPages = Math.ceil(totalRows / rowsPerPage);
-    const maxVisible = 5;
-
-    const createButton = (label, page = null, disabled = false, active = false) => {
-        const btn = document.createElement("button");
-        btn.textContent = label;
-        if (disabled) btn.disabled = true;
-        if (active) btn.classList.add("active-page");
-        if (page !== null) {
-            btn.addEventListener("click", () => {
-                currentPage = page;
-                renderTable(filterAndSort());
-            });
-        }
-        return btn;
-    };
-
-    if (totalPages === 0) return;
-
-    paginationContainer.appendChild(createButton("Prev", currentPage - 1, currentPage === 1));
-
-    let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
-    let endPage = Math.min(totalPages, startPage + maxVisible - 1);
-
-    if (endPage - startPage < maxVisible - 1) {
-        startPage = Math.max(1, endPage - maxVisible + 1);
-    }
-
-    for (let i = startPage; i <= endPage; i++) {
-        paginationContainer.appendChild(createButton(i, i, false, i === currentPage));
-    }
-
-    paginationContainer.appendChild(createButton("Next", currentPage + 1, currentPage === totalPages));
-}
-
-function filterAndSort() {
-    let filtered = currentActiveActivations.filter(row => {
-        const query = searchInput.value.trim().toLowerCase();
-        return Object.values(row).some(val => {
-            if (typeof val === 'string' || typeof val === 'number') {
-                return val.toString().toLowerCase().includes(query);
-            }
-            return false;
-        });
-    });
-
-    if (sortSelect.value) {
-        filtered.sort((a, b) => {
-            if (sortSelect.value === 'organization') {
-                return a.organization.localeCompare(b.organization);
-            } else if (sortSelect.value === 'hq') {
-                return a.hq.localeCompare(b.hq);
-            } else if (sortSelect.value === 'status') {
-                const statusOrder = { 'active': 1, 'inactive': 2 };
-                return statusOrder[a.status] - statusOrder[b.status];
-            } else if (sortSelect.value === 'calamity') {
-                return a.calamityName.localeCompare(b.calamityName);
-            }
-            return 0;
-        });
-    } else {
-        filtered.sort((a, b) => {
-            const dateA = new Date(a.activationDate);
-            const dateB = new Date(b.activationDate);
-            return dateB - dateA;
-        });
-    }
-
-    return filtered;
-}
-
-sortSelect.addEventListener("change", () => {
-    currentPage = 1;
-    renderTable(filterAndSort());
 });
 
 function cleanupActivationPage() {

@@ -1,0 +1,88 @@
+<!-- Summary Dashboard -->
+
+<header>Activation Requests Overview</header>
+
+<div class="dashboard-cards">
+    <div class="card">
+        <div class="card-title">Total Activations</div>
+        <div class="card-value" id="total-activations"></div>
+    </div>
+    <div class="card">
+        <div class="card-title">Active Missions</div>
+        <div class="card-value" id="active-missions"></div>
+    </div>
+    <div class="card">
+        <div class="card-title">Completed Missions</div>
+        <div class="card-value" id="completed-missions"></div>
+    </div>
+    <div class="card">
+        <div class="card-title">Deactivated Missions</div>
+        <div class="card-value" id="deactivated-missions"></div>
+    </div>
+</div>
+
+<!-- Timeline Chart -->
+<div id="chartContainer">
+    <canvas id="activationChart"></canvas>
+</div>
+
+<!-- Grouped Activations Section -->
+<div id="grouped-activations" class="grouped-section">
+    <!-- Populated dynamically -->
+</div>
+
+<!-- Preview Modal -->
+<div id="previewModal" class="modal" style="display:none;">
+    <div class="modal-content">
+        <span id="closeModal" class="close">×</span>
+        <div id="modalContent"></div>
+    </div>
+</div>
+
+<!-- Map Modal -->
+<div id="mapModal" class="modal" style="display:none;">
+    <div class="modal-content">
+        <span id="closeMapModal" class="close">×</span>
+        <h2>Location Map</h2>
+        <div id="mapContainer"></div>
+    </div>
+</div>
+
+<!-- Filters / Search -->
+<div class="filters">
+    <input type="text" placeholder="Search by Activation or ABVN" id="search-input">
+    <select id="status-filter">
+        <option value="">All Status</option>
+        <option value="active">Active</option>
+        <option value="inactive">Inactive</option>
+    </select>
+    <select id="mission-type-filter">
+        <option value="">All Mission Types</option>
+        <!-- Populated dynamically -->
+    </select>
+    <select id="calamity-name-filter">
+        <option value="">All Calamity Names</option>
+        <!-- Populated dynamically -->
+    </select>
+</div>
+
+<!-- Activation Table -->
+<div class="table-container">
+    <table>
+        <thead>
+            <tr>
+                <th>No.</th>
+                <th>Activation Name</th>
+                <th>ABVN Name</th>
+                <th>Mission Type</th>
+                <th>Activation Date</th>
+                <th>Activation Time</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="activation-table">
+            <!-- Rows will be populated dynamically from Firebase -->
+        </tbody>
+    </table>
+</div>

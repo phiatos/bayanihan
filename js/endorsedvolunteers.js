@@ -53,7 +53,7 @@ let permissions = { canView: false, canArchive: false, canRetrieve: false };
 
 // Variables for inactivity detection
 let inactivityTimeout;
-const INACTIVITY_TIME = 1800000; // 30 minutes in milliseconds
+const INACTIVITY_TIME = 1800000; 
 
 // Function to reset the inactivity timer
 function resetInactivityTimer() {
@@ -283,9 +283,9 @@ function exportToExcel() {
         return;
     }
     const dataForExport = filteredVolunteers.map((volunteer, i) => {
-        const endorsementDate = formatDate(volunteer.endorsementDate);
+        const endorsementDate = formatDate(volunteer.endorsedDetails?.endorsementDate);
         if (endorsementDate === 'N/A') {
-            console.warn(`Missing or invalid endorsementDate for volunteer ${volunteer.key}:`, volunteer.endorsementDate);
+            console.warn(`Missing or invalid endorsementDate for volunteer ${volunteer.key}:`, volunteer.endorsedDetails?.endorsementDate);
         }
         const dateTimeAvailability = volunteer.availability?.specificDateTimeSlots && Array.isArray(volunteer.availability.specificDateTimeSlots)
             ? volunteer.availability.specificDateTimeSlots
@@ -310,7 +310,8 @@ function exportToExcel() {
             "Endorsed To ABVN": volunteer.endorsedDetails?.endorsedToABVNName 
                 ? `${volunteer.endorsedDetails.endorsedToABVNName} (${volunteer.endorsedDetails.endorsedToABVNLocation})` 
                 : 'N/A',
-            "Endorsement Date": volunteer.endorsedDetails?.endorsementDate || 'N/A'
+            "Task Name": volunteer.endorsedDetails?.taskName || 'N/A',
+            "Endorsement Date": endorsementDate
         };
     });
     const ws = XLSX.utils.json_to_sheet(dataForExport);
@@ -385,13 +386,13 @@ function exportToPDF() {
         yOffset += 15;
         const head = [[
             "No.", "Full Name", "Email", "Mobile Number", "Age", "Social Media",
-            "Address", "Additional Info",
-            "Emergency Response", "Date and Time Availability", "Skills", "Endorsed To ABVN", "Endorsement Date"
+            "Address", "Additional Info", "Emergency Response", "Date and Time Availability",
+            "Skills", "Endorsed To ABVN", "Task Name", "Endorsement Date"
         ]];
         const body = filteredVolunteers.map((volunteer, i) => {
-            const endorsementDate = formatDate(volunteer.endorsementDate);
+            const endorsementDate = formatDate(volunteer.endorsedDetails?.endorsementDate);
             if (endorsementDate === 'N/A') {
-                console.warn(`Missing or invalid endorsementDate for volunteer ${volunteer.key}:`, volunteer.endorsementDate);
+                console.warn(`Missing or invalid endorsementDate for volunteer ${volunteer.key}:`, volunteer.endorsedDetails?.endorsementDate);
             }
             const dateTimeAvailability = volunteer.availability?.specificDateTimeSlots && Array.isArray(volunteer.availability.specificDateTimeSlots)
                 ? volunteer.availability.specificDateTimeSlots
@@ -416,7 +417,8 @@ function exportToPDF() {
                 volunteer.endorsedDetails?.endorsedToABVNName
                     ? `${volunteer.endorsedDetails.endorsedToABVNName} (${volunteer.endorsedDetails.endorsedToABVNLocation})`
                     : 'N/A',
-                volunteer.endorsedDetails?.endorsementDate || 'N/A'
+                volunteer.endorsedDetails?.taskName || 'N/A',
+                endorsementDate
             ];
         });
         doc.autoTable({
@@ -432,22 +434,23 @@ function exportToPDF() {
             styles: {
                 fontSize: 8,
                 cellPadding: 2,
-                overflow: 'linebreak' // Ensure text wraps within cells
+                overflow: 'linebreak'
             },
             columnStyles: {
-                0: { cellWidth: 10 },  // No. 
+                0: { cellWidth: 10 },  // No.
                 1: { cellWidth: 20 },  // Full Name
                 2: { cellWidth: 25 },  // Email
-                3: { cellWidth: 20 },  // Mobile Number 
-                4: { cellWidth: 10 },  // Age 
-                5: { cellWidth: 20 },  // Social Media 
-                6: { cellWidth: 30 },  // Address 
-                7: { cellWidth: 20 },  // Additional Info 
-                8: { cellWidth: 15 },  // Emergency Response 
-                9: { cellWidth: 25 },  // Date and Time Availability 
-                10: { cellWidth: 30 }, // Skills 
-                11: { cellWidth: 20 }, // Endorsed To ABVN 
-                12: { cellWidth: 20 }  // Endorsement Date
+                3: { cellWidth: 20 },  // Mobile Number
+                4: { cellWidth: 10 },  // Age
+                5: { cellWidth: 20 },  // Social Media
+                6: { cellWidth: 30 },  // Address
+                7: { cellWidth: 15 },  // Additional Info
+                8: { cellWidth: 15 },  // Emergency Response
+                9: { cellWidth: 20 },  // Date and Time Availability
+                10: { cellWidth: 25 }, // Skills
+                11: { cellWidth: 20 }, // Endorsed To ABVN
+                12: { cellWidth: 20 }, // Task Name
+                13: { cellWidth: 20 }  // Endorsement Date
             },
             didDrawPage: function(data) {
                 doc.setFontSize(8);
@@ -551,12 +554,11 @@ function saveSingleVolunteerPdf(volunteer) {
                 ? `${volunteer.endorsedDetails.endorsedToABVNName} (${volunteer.endorsedDetails.endorsedToABVNLocation})`
                 : 'N/A'
         );
-
+        y = addDetail("Task Name", volunteer.endorsedDetails?.taskName);
         const endorsementDate = formatDate(volunteer.endorsedDetails?.endorsementDate);
         if (endorsementDate === 'N/A') {
             console.warn(`Missing or invalid endorsementDate for volunteer ${volunteer.key}:`, volunteer.endorsedDetails?.endorsementDate);
         }
-
         y = addDetail("Endorsement Date", endorsementDate);
         doc.setFontSize(8);
         const footerY = doc.internal.pageSize.height - 10;
@@ -875,6 +877,162 @@ async function retrieveVolunteer(volunteer) {
     });
 }
 
+// function renderVolunteersTable() {
+//     volunteersContainer.innerHTML = '';
+
+//     if (paginatedVolunteers.length === 0) {
+//         volunteersContainer.innerHTML = '<tr><td colspan="16" style="text-align: center;">No endorsed volunteers found.</td></tr>';
+//         entriesInfoSpan.textContent = 'Showing 0 to 0 of 0 entries';
+//         paginationElement.innerHTML = '';
+//         return;
+//     }
+
+//     const startEntry = (currentPage - 1) * rowsPerPage + 1;
+//     const endEntry = Math.min(currentPage * rowsPerPage, filteredVolunteers.length);
+//     entriesInfoSpan.textContent = `Showing ${startEntry} to ${endEntry} of ${filteredVolunteers.length} entries`;
+
+//     paginatedVolunteers.forEach((volunteer, index) => {
+//         const row = volunteersContainer.insertRow();
+//         const rowNum = startEntry + index;
+
+//         const dateTimeAvailability = volunteer.availability?.specificDateTimeSlots && Array.isArray(volunteer.availability.specificDateTimeSlots)
+//             ? `<ol>${volunteer.availability.specificDateTimeSlots
+//                 .map((slot) => `<li>${slot.date || 'N/A'} at ${slot.time || 'N/A'}</li>`)
+//                 .join("")}</ol>`
+//             : "N/A";
+
+//         const skillsList = Array.isArray(volunteer.skills)
+//             ? `<ol>${volunteer.skills.map((skill) => `<li>${skill}</li>`).join("")}</ol>`
+//             : "None";
+
+//         row.innerHTML = `
+//             <td>${rowNum}</td>
+//             <td>${getFullName(volunteer)}</td>
+//             <td>${volunteer.email || 'N/A'}</td>
+//             <td>${volunteer.mobileNumber || 'N/A'}</td>
+//             <td>${volunteer.age || 'N/A'}</td>
+//             <td>${getSocialMediaLink(volunteer.socialMediaLink)}</td>
+//             <td>${volunteer.additionalInfo || '-'}</td>
+//             <td>${volunteer.emergencyResponse ? "Yes (24/7)" : "No"}</td>
+//             <td>${dateTimeAvailability}</td>
+//             <td>${volunteer.address?.formattedAddress || 'N/A'}</td>
+//             <td>${skillsList}</td>
+//             <td>${volunteer.endorsedDetails?.endorsedToABVNName 
+//                 ? `${volunteer.endorsedDetails.endorsedToABVNName} (${volunteer.endorsedDetails.endorsedToABVNLocation})` 
+//                 : 'N/A'}</td>
+//             <td>${volunteer.endorsedDetails?.taskName}</td>
+//             <td>${volunteer.endorsedDetails ? (volunteer.endorsedDetails.status || 'Pending') : 'Pending'}</td>
+//             <td>${formatDate(volunteer.endorsedDetails?.endorsementDate)}</td>
+//             <td>
+//                 <button title="View" class="viewBtn"><i class='bx bx-show-alt'></i></button>
+//                 ${permissions.canArchive ? `<button title="Archive" class="archiveBtn"><i class='bx bx-archive'></i></button>` : ''}
+//                 <button title="Save as PDF" class="saveSinglePdfBtn"><i class='bx bxs-file-pdf'></i></button>
+//                 ${permissions.canView && volunteer.endorsedDetails?.status !== "Confirmed" ? `<button title="Reject" class="rejectBtn" data-key="${volunteer.key}"><i class="bx bx-x-circle"></i></button>` : ''}
+//                 ${currentUserRole === "ABVN" && volunteer.endorsedDetails?.status !== "Confirmed" ? `<button title="Confirm" class="confirmBtn" data-key="${volunteer.key}"><i class='bx bx-check-circle'></i></button>` : ''}            </td>
+//         `;
+
+//         // View button
+//         row.querySelector('.viewBtn').onclick = () => showVolunteerDetails(volunteer);
+
+//         // Archive button
+//         if (permissions.canArchive) {
+//             const archiveBtn = row.querySelector('.archiveBtn');
+//             if (archiveBtn) archiveBtn.onclick = () => archiveVolunteer(volunteer);
+//         }
+
+//         // PDF button
+//         row.querySelector('.saveSinglePdfBtn').onclick = () => saveSingleVolunteerPdf(volunteer);
+
+//         // Reject button 
+//         const rejectBtn = row.querySelector('.rejectBtn');
+//         if (rejectBtn) {
+//             rejectBtn.addEventListener('click', async (e) => {
+//                 const key = e.currentTarget.dataset.key; // use currentTarget
+//                 const volunteerToReject = allEndorsedVolunteers.find(v => v.key === key);
+//                 if (!volunteerToReject) return;
+
+//                 try {
+//                     const result = await Swal.fire({
+//                         title: 'Reject Volunteer',
+//                         input: 'text',
+//                         inputLabel: 'Optional Rejection Reason',
+//                         inputPlaceholder: 'Enter reason (optional)',
+//                         inputAttributes: {
+//                             'aria-label': 'Enter notes here'
+//                         },
+//                         showCancelButton: true,
+//                         confirmButtonText: 'Confirm',
+//                         cancelButtonText: 'Cancel',
+//                         allowOutsideClick: false,
+//                         reverseButtons: true,
+//                         customClass: {
+//                             popup: 'custom-swal-popup-large',
+//                             title: 'custom-swal-title',
+//                             inputLabel: 'custom-swal-content',
+//                             confirmButton: 'custom-confirm-btn',
+//                             cancelButton: 'custom-cancel-btn'
+//                         }
+//                     });
+
+//                     // Only proceed if user clicked Confirm
+//                     if (result.isConfirmed) {
+//                         const reason = result.value || '';
+//                         await rejectVolunteer(volunteerToReject, reason);
+//                     }
+
+//                 } catch (error) {
+//                     console.error('Error handling volunteer rejection:', error);
+//                     Swal.fire('Error', 'Something went wrong. Please try again.', 'error');
+//                 }
+//             });
+//         }
+
+//         // Confirm button 
+//         const confirmBtn = row.querySelector('.confirmBtn');
+//         if (confirmBtn) {
+//             confirmBtn.addEventListener('click', async (e) => {
+//                 const key = e.currentTarget.dataset.key;
+//                 try {
+//                     const result = await Swal.fire({
+//                         title: 'Confirm Volunteer',
+//                         text: "Do you want to confirm this volunteer?",
+//                         icon: 'question',
+//                         showCancelButton: true,
+//                         confirmButtonText: 'Yes',
+//                         cancelButtonText: 'No',
+//                         reverseButtons: true,
+//                         focusCancel: true,
+//                         customClass: {
+//                         popup: 'custom-swal-popup-small',
+//                         title: 'custom-swal-title',
+//                         htmlContainer: 'custom-swal-content',
+//                         confirmButton: 'custom-confirm-btn',
+//                         cancelButton: 'custom-cancel-btn'
+//                         },
+//                     });
+//                     if (result.isConfirmed) {
+//                         await confirmVolunteer(key, currentUserId);
+//                     }
+//                 } catch (error) {
+//                     console.error("Error confirming volunteer:", error);
+//                     Swal.fire("Error", "Something went wrong. Please try again.", "error");
+//                 }
+//             });
+//         }
+
+
+//         });
+
+//         renderPagination();
+//     }
+
+// Add this helper function near other utility functions like getFullName
+function getStatusHtml(status) {
+    const statusClass = status === 'Confirmed' ? 'status-confirmed' : 'status-pending';
+    return `<span class="status-badge ${statusClass}">${status || 'Pending'}</span>`;
+}
+
+// Replace the renderVolunteersTable function
 function renderVolunteersTable() {
     volunteersContainer.innerHTML = '';
 
@@ -919,7 +1077,7 @@ function renderVolunteersTable() {
                 ? `${volunteer.endorsedDetails.endorsedToABVNName} (${volunteer.endorsedDetails.endorsedToABVNLocation})` 
                 : 'N/A'}</td>
             <td>${volunteer.endorsedDetails?.taskName}</td>
-            <td>${volunteer.endorsedDetails ? (volunteer.endorsedDetails.status || 'Pending') : 'Pending'}</td>
+            <td>${getStatusHtml(volunteer.endorsedDetails?.status)}</td>
             <td>${formatDate(volunteer.endorsedDetails?.endorsementDate)}</td>
             <td>
                 <button title="View" class="viewBtn"><i class='bx bx-show-alt'></i></button>
@@ -945,7 +1103,7 @@ function renderVolunteersTable() {
         const rejectBtn = row.querySelector('.rejectBtn');
         if (rejectBtn) {
             rejectBtn.addEventListener('click', async (e) => {
-                const key = e.currentTarget.dataset.key; // use currentTarget
+                const key = e.currentTarget.dataset.key;
                 const volunteerToReject = allEndorsedVolunteers.find(v => v.key === key);
                 if (!volunteerToReject) return;
 
@@ -972,7 +1130,6 @@ function renderVolunteersTable() {
                         }
                     });
 
-                    // Only proceed if user clicked Confirm
                     if (result.isConfirmed) {
                         const reason = result.value || '';
                         await rejectVolunteer(volunteerToReject, reason);
@@ -1017,12 +1174,10 @@ function renderVolunteersTable() {
                 }
             });
         }
+    });
 
-
-        });
-
-        renderPagination();
-    }
+    renderPagination();
+}
 
 async function confirmVolunteer(volunteerKey, userId) {
     try {
@@ -1213,7 +1368,7 @@ function applyFiltersAndSort() {
                         fieldValue = (volunteer.additionalInfo || '').toLowerCase();
                         break;
                     case 'Location':
-                        fieldValue = volunteer.address?.formattedAddress.toLowerCase();  // Or whatever Location field is
+                        fieldValue = volunteer.address?.formattedAddress.toLowerCase();
                         break;
                     case 'EndorsedToABVN':
                         fieldValue = `${volunteer.endorsedDetails?.endorsedToABVNName || ''} ${volunteer.endorsedDetails?.endorsedToABVNLocation || ''}`.toLowerCase();
@@ -1226,6 +1381,12 @@ function applyFiltersAndSort() {
                         break;
                     case 'Availability':
                         fieldValue = getAvailabilityString(volunteer);
+                        break;
+                    case 'Status':
+                        fieldValue = (volunteer.endorsedDetails?.status || 'Pending').toLowerCase();
+                        break;
+                    case 'TaskName':
+                        fieldValue = (volunteer.endorsedDetails?.taskName || '').toLowerCase();
                         break;
                     default:
                         return false;
@@ -1242,16 +1403,31 @@ function applyFiltersAndSort() {
                     (volunteer.socialMediaLink || '').toLowerCase().includes(searchTerm) ||
                     (volunteer.additionalInfo || '').toLowerCase().includes(searchTerm) ||
                     (volunteer.endorsedDetails?.endorsedToABVNName || '').toLowerCase().includes(searchTerm) ||
-                    (volunteer.endorsedToABVNLocation || '').toLowerCase().includes(searchTerm) ||
+                    (volunteer.endorsedDetails?.endorsedToABVNLocation || '').toLowerCase().includes(searchTerm) ||
                     getSkillsString(volunteer).includes(searchTerm) ||
-                    getAvailabilityString(volunteer).includes(searchTerm)
+                    getAvailabilityString(volunteer).includes(searchTerm) ||
+                    (volunteer.endorsedDetails?.status || 'Pending').toLowerCase().includes(searchTerm) ||
+                    (volunteer.endorsedDetails?.taskName || '').toLowerCase().includes(searchTerm)
                 );
             });
         }
     }
 
-    // Apply sorting
-    if (sortValue) {
+    // Apply default sorting by status (Pending first) when no sort is selected or sort is 'All'
+    if (!sortValue || sortValue === 'All-asc' || sortValue === 'All-desc') {
+        currentVolunteers.sort((a, b) => {
+            const statusA = (a.endorsedDetails?.status || 'Pending').toLowerCase();
+            const statusB = (b.endorsedDetails?.status || 'Pending').toLowerCase();
+            // Prioritize Pending over other statuses
+            if (statusA === 'pending' && statusB !== 'pending') return -1;
+            if (statusA !== 'pending' && statusB === 'pending') return 1;
+            // If statuses are the same, sort by name as secondary sort
+            const nameA = getFullName(a).toLowerCase();
+            const nameB = getFullName(b).toLowerCase();
+            return sortValue === 'All-desc' ? nameB.localeCompare(nameA) : nameA.localeCompare(nameB);
+        });
+    } else {
+        // Apply user-selected sorting
         const [sortBy, order] = sortValue.split('-');
         currentVolunteers.sort((a, b) => {
             let valA, valB;
@@ -1303,6 +1479,14 @@ function applyFiltersAndSort() {
                 case 'Availability':
                     valA = a.availability?.specificDateTimeSlots?.[0]?.date ? new Date(a.availability.specificDateTimeSlots[0].date).getTime() : Infinity;
                     valB = b.availability?.specificDateTimeSlots?.[0]?.date ? new Date(b.availability.specificDateTimeSlots[0].date).getTime() : Infinity;
+                    break;
+                case 'Status':
+                    valA = (a.endorsedDetails?.status || 'Pending').toLowerCase();
+                    valB = (b.endorsedDetails?.status || 'Pending').toLowerCase();
+                    break;
+                case 'TaskName':
+                    valA = (a.endorsedDetails?.taskName || '').toLowerCase();
+                    valB = (b.endorsedDetails?.taskName || '').toLowerCase();
                     break;
                 case 'All':
                 default:
