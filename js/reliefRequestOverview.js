@@ -161,7 +161,6 @@ function renderReliefTable(filteredRequests = allReliefRequests) {
             <td>${assignedVolunteers}</td>
             <td>
                 <button title="View Requests" class="viewBtn" data-id="${req.id}"><i class='bx bx-show-alt'></i></button>
-                <button class="match-btn" data-id="${req.id}">Match Donations</button>
             </td>
         `;
         tableBody.appendChild(row);

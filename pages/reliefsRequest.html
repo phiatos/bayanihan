@@ -219,12 +219,15 @@
 
 
 
-<!-- Map Modal (moved outside form for better control) -->
+<!-- Map Modal -->
 <div id="mapModal" class="modal" style="display: none;">
   <div class="modal-content">
     <span class="closeBtn">×</span>
     <h2 style="text-align: center;">Pin Drop-off Address</h2>
-    <input id="mapSearch" type="text" placeholder="Search location..." />
+    <div style="position: relative;">
+      <input id="mapSearch" type="text" placeholder="Search location..." style="width: 100%;" />
+      <div id="suggestions" style="position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #ccc; max-height: 200px; overflow-y: auto; z-index: 1000;"></div>
+    </div>
     <div id="map" style="width: 100%; height: 400px; margin-top:10px;"></div>
     <button id="confirmLocationBtn">Confirm Location</button>
   </div>
@@ -247,6 +250,10 @@
 
   <script src="../js/inactivity-detector.js"></script> 
   <script type="module" src="../js/reliefsrequest.js"></script>
-  <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAAAu6BeQjIZ7H7beFbAsPWuKuORmh0wrk&libraries=places,marker"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-geosearch@3.8.0/dist/geosearch.umd.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-geosearch@3.8.0/dist/geosearch.css" />
+
 </body>
 </html>

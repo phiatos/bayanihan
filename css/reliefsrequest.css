@@ -482,3 +482,10 @@ input:disabled::placeholder {
   display: block;
 }
 
+.suggestion-item {
+  padding: 8px;
+  cursor: pointer;
+}
+.suggestion-item:hover {
+  background-color: #f0f0f0;
+}

@@ -27,16 +27,6 @@ const notifyAdmin = async (message, calamityType, location, details, requestId, 
 
 document.addEventListener('DOMContentLoaded', () => {
     // Firebase configuration
-    // const firebaseConfig = {
-    //     apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
-    //     authDomain: "bayanihan-5ce7e.firebaseapp.com",
-    //     databaseURL: "https://bayanihan-5ce7e-default-rtdb.asia-southeast1.firebasedatabase.app",
-    //     projectId: "bayanihan-5ce7e",
-    //     storageBucket: "bayanihan-5ce7e.appspot.com",
-    //     messagingSenderId: "593123849917",
-    //     appId: "1:593123849917:web:eb85a63a536eeff78ce9d4",
-    //     measurementId: "G-ZTQ9VXXVV0",
-    // };
     const firebaseConfig = {
       apiKey: "AIzaSyBkmXOJvnlBtzkjNyR6wyd9BgGM0BhN0L8",
       authDomain: "bayanihan-new-472410.firebaseapp.com",
@@ -91,26 +81,26 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('form-main-content').querySelector('form').style.display = 'block';
 
     tabButtons.forEach(button => {
-        button.addEventListener('click', () => {
-            const tabName = button.dataset.tab;
+    button.addEventListener('click', () => {
+        const tabName = button.dataset.tab;
 
-            // Remove 'active' class from all buttons
-            tabButtons.forEach(btn => btn.classList.remove('active'));
+        // Remove 'active' class from all buttons
+        tabButtons.forEach(btn => btn.classList.remove('active'));
 
-            // Hide all tab contents
-            for (const key in tabContents) {
-                tabContents[key].style.display = 'none';
-            }
+        // Hide all tab contents
+        for (const key in tabContents) {
+            tabContents[key].style.display = 'none';
+        }
 
-            // Add 'active' class to the clicked button
-            button.classList.add('active');
+        // Add 'active' class to the clicked button
+        button.classList.add('active');
 
-            // Show the corresponding tab content
-            if (tabContents[tabName]) {
-                tabContents[tabName].style.display = 'block';
-            }
-        });
+        // Show the corresponding tab content
+        if (tabContents[tabName]) {
+            tabContents[tabName].style.display = 'block';
+        }
     });
+});
 
     function updateRequestCounter() {
   const requestsListContainer = document.querySelector('#my-requests-tab .requests-list-container');
@@ -121,9 +111,8 @@ document.addEventListener('DOMContentLoaded', () => {
   counter.textContent = `Total of ${count} Request${count !== 1 ? 's' : ''}`;
 }
 
-
-        const requestsListContainer = document.querySelector('.requests-list-container');
-// Function to fetch and display user's requests
+    const requestsListContainer = document.querySelector('.requests-list-container');
+    // Function to fetch and display user's requests
     function fetchUserRequests() {
     const user = auth.currentUser;
     if (user) {
@@ -167,7 +156,6 @@ document.addEventListener('DOMContentLoaded', () => {
              updateRequestCounter();
     }
 }
-
 
     // Call fetchUserRequests when the "My Requests" tab is clicked
     document.querySelector('button[data-tab="my-requests"]').addEventListener('click', fetchUserRequests);
@@ -229,7 +217,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         requestsListContainer.appendChild(card);
     }
-    
     
 // --- Helper function to update button and fields state ---
 function updateState() {
@@ -315,7 +302,6 @@ itemsTableBody.addEventListener('click', function(event) {
     }
 });
     // Verify DOM elements exist
-    // Enhanced DOM element verification for better debugging
     const elements = {
         'form-page-1': formPage1, 'form-page-2': formPage2, 'nextBtn': nextBtn, 'backBtn': backBtn,
         'itemsTable': itemsTable, 'itemsTableBody': itemsTableBody, 'previewContact': previewContact,
@@ -376,8 +362,6 @@ itemsTableBody.addEventListener('click', function(event) {
     ['mousemove', 'keydown', 'scroll', 'click'].forEach(eventType => {
         document.addEventListener(eventType, resetInactivityTimer);
     });
-
-    
 
     // Updated auth.onAuthStateChanged with role and activation checks
     auth.onAuthStateChanged(async user => {
@@ -440,17 +424,12 @@ itemsTableBody.addEventListener('click', function(event) {
             const currentUserRole = userData.role;
             volunteerOrganization = userData.organization || 'Admin';
 
-
-
             // Check if user is AB ADMIN
             if (currentUserRole === 'AB ADMIN') {
-
                 // Pre-fill form fields
                 contactPersonInput.value = userData.firstName + " " + userData.lastName || '';
                 contactNumberInput.value = userData.mobile || '';
                 emailInput.value = userData.email || '';
-
-                
             }
             // Check if user is ABVN
             else if (currentUserRole === 'ABVN') {
@@ -470,14 +449,10 @@ itemsTableBody.addEventListener('click', function(event) {
                     });
 
                     if (organizationHasActiveActivations) {
-
-
                         // Pre-fill form fields
                         contactPersonInput.value = userData.organization || '';
                         contactNumberInput.value = userData.mobile || '';
                         emailInput.value = userData.email || '';
-
-
                     } else {
                         Swal.fire({
                             icon: 'warning',
@@ -529,14 +504,6 @@ itemsTableBody.addEventListener('click', function(event) {
             });
         }
     });
-
-//     const nextBtn = document.getElementById("nextBtn");
-//   const backBtn = document.getElementById("backBtn");
-//   const formPage1 = document.getElementById("form-page-1");
-//   const formPage2 = document.getElementById("form-page-2");
-//   const submitBtn = document.getElementById("submitBtn"); // ✅ add submit button
-//   const previewContact = document.getElementById("previewContact");
-//   const previewItemsTable = document.getElementById("previewItemsTable");
 
   // --- Quantity Formatter ---
   function formatLargeNumber(numStr) {
@@ -714,138 +681,212 @@ itemsTableBody.addEventListener('click', function(event) {
     formPage1.style.display = "block";
   });
 
-// --- SUBMISSION LOGIC ---
-formPage2.addEventListener("submit", async (e) => {
-  e.preventDefault();
+  // --- SUBMISSION LOGIC ---
+  formPage2.addEventListener("submit", async (e) => {
+    e.preventDefault();
 
-  if (!userUid) {
-    Swal.fire({
-      icon: "error",
-      title: "Authentication Error",
-      text: "User not authenticated. Please log in again.",
-    }).then(() => {
-      window.location.href = "../pages/login.html";
-    });
-    return;
-  }
+    if (!userUid) {
+      Swal.fire({
+        icon: "error",
+        title: "Authentication Error",
+        text: "User not authenticated. Please log in again.",
+      }).then(() => {
+        window.location.href = "../pages/login.html";
+      });
+      return;
+    }
 
-  // Disable button + show loading text
-  submitBtn.disabled = true;
-  submitBtn.textContent = "Submitting...";
+    // Disable button + show loading text
+    const submitBtn = document.getElementById("submitBtn");
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Submitting...";
 
-  const contactPerson = document.getElementById("contactPerson").value.trim();
-  const contactNumber = document.getElementById("contactNumber").value.trim();
-  const email = document.getElementById("email").value.trim();
-  const formattedAddress = document.getElementById("address").value.trim();
-  const category = document.getElementById("category").value;
+    const contactPerson = document.getElementById("contactPerson").value.trim();
+    const contactNumber = document.getElementById("contactNumber").value.trim();
+    const email = document.getElementById("email").value.trim();
+    const formattedAddress = document.getElementById("address").value.trim();
+    const category = document.getElementById("category").value;
+    const latitude = document.getElementById("latitude").value || null;
+    const longitude = document.getElementById("longitude").value || null;
 
-  // ✅ Get hidden latitude & longitude
-  const latitude = document.getElementById("latitude").value || null;
-  const longitude = document.getElementById("longitude").value || null;
+    // Collect items from addedItems array
+    if (addedItems.length === 0) {
+      Swal.fire({
+        icon: "warning",
+        title: "No Items",
+        text: "Please add at least one item before submitting.",
+      });
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Submit";
+      return;
+    }
 
-  // Collect items from your addedItems array (ensure you defined it globally)
-  if (addedItems.length === 0) {
-    Swal.fire({
-      icon: "warning",
-      title: "No Items",
-      text: "Please add at least one item before submitting.",
-    });
-    submitBtn.disabled = false;
-    submitBtn.textContent = "Submit";
-    return;
-  }
+    const newRequest = {
+      contactPerson,
+      contactNumber,
+      email,
+      category,
+      volunteerOrganization,
+      userUid,
+      address: {
+        formattedAddress,
+        latitude,
+        longitude,
+      },
+      items: addedItems.map(item => ({
+        ...item,
+        quantity: Number(item.quantity)
+      })),
+      timestamp: firebase.database.ServerValue.TIMESTAMP,
+      donationDate: new Date().toISOString(),
+      status: "Pending"
+    };
 
-  const newRequest = {
-    contactPerson,
-    contactNumber,
-    email,
-    category,
-    volunteerOrganization,
-    userUid,
-    address: {   // ✅ group address details together
-      formattedAddress,
-      latitude,
-      longitude,
-    },
-    items: addedItems.map(item => ({
-      ...item,
-      quantity: Number(item.quantity)
-    })),
-    timestamp: firebase.database.ServerValue.TIMESTAMP,
-    donationDate: new Date().toISOString(),
-    status: "Pending"
-  };
+    // Sample data to populate the database
+    const sampleRequests = [
+      {
+        contactPerson: `${contactPerson} (Sample 1)`,
+        contactNumber: "09123456789",
+        email: `sample1@${email.split('@')[1]}`,
+        category: "Medical Supplies",
+        volunteerOrganization,
+        userUid,
+        address: {
+          formattedAddress: "123 Sample St, Quezon City, Metro Manila",
+          latitude: "14.6760",
+          longitude: "121.0437"
+        },
+        items: [
+          { name: "Bandages", quantity: 100, notes: "Sterile" },
+          { name: "Antiseptics", quantity: 50, notes: "Alcohol-based" }
+        ],
+        timestamp: firebase.database.ServerValue.TIMESTAMP,
+        donationDate: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
+        status: "Pending"
+      },
+      {
+        contactPerson: `${contactPerson} (Sample 2)`,
+        contactNumber: "09876543210",
+        email: `sample2@${email.split('@')[1]}`,
+        category: "Food Supplies",
+        volunteerOrganization,
+        userUid,
+        address: {
+          formattedAddress: "456 Relief Ave, Manila, Metro Manila",
+          latitude: "14.5995",
+          longitude: "120.9842"
+        },
+        items: [
+          { name: "Canned Goods", quantity: 200, notes: "Assorted" },
+          { name: "Rice", quantity: 50, notes: "50kg sacks" }
+        ],
+        timestamp: firebase.database.ServerValue.TIMESTAMP,
+        donationDate: new Date(Date.now() - 2 * 86400000).toISOString(), // 2 days ago
+        status: "Approved"
+      },
+      {
+        contactPerson: `${contactPerson} (Sample 3)`,
+        contactNumber: "09712345678",
+        email: `sample3@${email.split('@')[1]}`,
+        category: "Clothing",
+        volunteerOrganization,
+        userUid,
+        address: {
+          formattedAddress: "789 Aid Rd, Pasig City, Metro Manila",
+          latitude: "14.5764",
+          longitude: "121.0851"
+        },
+        items: [
+          { name: "Blankets", quantity: 75, notes: "Warm" },
+          { name: "Jackets", quantity: 30, notes: "Adult sizes" }
+        ],
+        timestamp: firebase.database.ServerValue.TIMESTAMP,
+        donationDate: new Date(Date.now() - 3 * 86400000).toISOString(), // 3 days ago
+        status: "Delivered"
+      }
+    ];
 
+    const requestRef = database.ref("requestRelief/requests").push();
+    const userRequestRef = database.ref(`users/${userUid}/requests/${requestRef.key}`);
 
-  const requestRef = database.ref("requestRelief/requests").push();
-  const userRequestRef = database.ref(`users/${userUid}/requests/${requestRef.key}`);
+    try {
+      // Submit the user's request
+      await Promise.all([
+        requestRef.set(newRequest),
+        userRequestRef.set(newRequest)
+      ]);
 
-  try {
-    await Promise.all([
-      requestRef.set(newRequest),
-      userRequestRef.set(newRequest)
-    ]);
+      // Notify admin for user's request
+      const message = `New relief request submitted by ${contactPerson} from ${volunteerOrganization} for ${category}.`;
+      await notifyAdmin(message, null, null, null, requestRef.key, contactPerson, volunteerOrganization);
 
-    // Notify admin
-    const message = `New relief request submitted by ${contactPerson} from ${volunteerOrganization} for ${category}.`;
-    await notifyAdmin(message, null, null, null, requestRef.key, contactPerson, volunteerOrganization);
+      // Submit sample requests
+      const samplePromises = sampleRequests.map(async (sampleRequest) => {
+        const sampleRequestRef = database.ref("requestRelief/requests").push();
+        const sampleUserRequestRef = database.ref(`users/${userUid}/requests/${sampleRequestRef.key}`);
+        await Promise.all([
+          sampleRequestRef.set(sampleRequest),
+          sampleUserRequestRef.set(sampleRequest)
+        ]);
+        const sampleMessage = `Sample relief request submitted by ${sampleRequest.contactPerson} from ${volunteerOrganization} for ${sampleRequest.category}.`;
+        await notifyAdmin(sampleMessage, null, null, null, sampleRequestRef.key, sampleRequest.contactPerson, volunteerOrganization);
+      });
 
-    Swal.fire({
-      icon: "success",
-      title: "Request Submitted",
-      text: "Your relief request has been successfully submitted!",
-      confirmButtonText: "OK"
-    }).then(() => {
-      formPage1.reset();
-      formPage2.reset();
-      addedItems.length = 0;
-      renderItemsTable();
-      formPage2.style.display = "none";
-      formPage1.style.display = "block";
-    });
-  } catch (error) {
-    Swal.fire({
-      icon: "error",
-      title: "Error",
-      text: "Failed to submit request: " + error.message,
-    });
-  } finally {
-    // Re-enable button
-    submitBtn.disabled = false;
-    submitBtn.textContent = "Submit";
-  }
-});
+      await Promise.all(samplePromises);
 
+      Swal.fire({
+        icon: "success",
+        title: "Request Submitted",
+        text: "Your relief request and sample data have been successfully submitted!",
+        confirmButtonText: "OK"
+      }).then(() => {
+        formPage1.reset();
+        formPage2.reset();
+        addedItems.length = 0;
+        itemsTableBody.innerHTML = '';
+        itemsTableBody.appendChild(noEntriesRow);
+        noEntriesRow.style.display = '';
+        formPage2.style.display = "none";
+        formPage1.style.display = "block";
+      });
+    } catch (error) {
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Failed to submit request: " + error.message,
+      });
+    } finally {
+      // Re-enable button
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Submit";
+    }
+  });
 
-// Event listeners for real-time validation
-document.getElementById('contactPerson').addEventListener('input', function () {
+  // Event listeners for real-time validation
+  document.getElementById('contactPerson').addEventListener('input', function () {
     this.value = this.value.replace(/[^a-zA-Z\s]/g, '');
     // Auto-capitalize the first letter of each word
     this.value = this.value.replace(/\b\w/g, char => char.toUpperCase());
-});
+  });
 
-document.getElementById('contactNumber').addEventListener('input', function () {
+  document.getElementById('contactNumber').addEventListener('input', function () {
     this.value = this.value.replace(/\D/g, ''); // remove non-digits
-});
+  });
 
+  // Validate on blur
+  contactNumberInput.addEventListener('blur', validateContactNumber);
 
-// Validate on blur
-contactNumberInput.addEventListener('blur', validateContactNumber);
-
-// Optional: prevent invalid input early
-contactNumberInput.addEventListener('input', function () {
+  // Optional: prevent invalid input early
+  contactNumberInput.addEventListener('input', function () {
     this.value = this.value.replace(/[^0-9]/g, '');
-});
+  });
 
-
-document.getElementById('email').addEventListener('input', function () {
+  document.getElementById('email').addEventListener('input', function () {
     this.value = this.value.replace(/\s/g, '');
+  });
 });
 
-
-});
-
-let map, marker, geocoder, autocomplete;
+let map, marker;
 
 // Modal elements
 const modal = document.getElementById('mapModal');
@@ -853,83 +894,124 @@ const pinBtn = document.getElementById('pinBtn');
 const closeBtn = document.querySelector('.closeBtn');
 const confirmBtn = document.getElementById('confirmLocationBtn');
 const addressInput = document.getElementById('address');
+const mapSearch = document.getElementById('mapSearch');
+const suggestionsContainer = document.getElementById('suggestions');
 
+// Initialize Leaflet map when pin button is clicked
 pinBtn.addEventListener('click', () => {
   modal.style.display = 'flex';
 
   if (!map) {
-    geocoder = new google.maps.Geocoder();
-    map = new google.maps.Map(document.getElementById('map'), {
-      center: { lat: 14.5995, lng: 120.9842 }, // Manila default
-      zoom: 13
-    });
+    // Initialize Leaflet map
+    map = L.map('map').setView([14.5995, 120.9842], 13); // Manila default
 
-    marker = new google.maps.Marker({
-      map: map,
-      draggable: true,
-    });
+    // Add OpenStreetMap tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
 
-    // Autocomplete search
-    autocomplete = new google.maps.places.Autocomplete(
-      document.getElementById('mapSearch')
-    );
-    autocomplete.bindTo('bounds', map);
+    // Add draggable marker
+    marker = L.marker([14.5995, 120.9842], { draggable: true }).addTo(map);
 
-    autocomplete.addListener('place_changed', () => {
-      const place = autocomplete.getPlace();
-      if (!place.geometry) return;
+    // Autocomplete search with suggestions
+    mapSearch.addEventListener('input', debounce(async () => {
+      const query = mapSearch.value;
+      suggestionsContainer.innerHTML = ''; // Clear previous suggestions
+      if (query.length < 3) return;
 
-      const location = place.geometry.location;
-      map.setCenter(location);
-      marker.setPosition(location);
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5`
+        );
+        const results = await response.json();
+        if (results.length > 0) {
+          results.forEach((result) => {
+            const suggestion = document.createElement('div');
+            suggestion.className = 'suggestion-item';
+            suggestion.textContent = result.display_name;
+            suggestion.addEventListener('click', () => {
+              map.setView([result.lat, result.lon], 13);
+              marker.setLatLng([result.lat, result.lon]);
+              document.getElementById('latitude').value = result.lat;
+              document.getElementById('longitude').value = result.lon;
+              mapSearch.value = result.display_name;
+              suggestionsContainer.innerHTML = ''; // Clear suggestions
+            });
+            suggestionsContainer.appendChild(suggestion);
+          });
+        }
+      } catch (error) {
+        console.error('Search error:', error);
+      }
+    }, 500));
 
-      // 👉 Save lat/lng
-      document.getElementById('latitude').value = location.lat();
-      document.getElementById('longitude').value = location.lng();
+    // Clear suggestions when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!suggestionsContainer.contains(e.target) && e.target !== mapSearch) {
+        suggestionsContainer.innerHTML = '';
+      }
     });
 
     // Click map to move marker
-    map.addListener('click', (e) => {
-      marker.setPosition(e.latLng);
-
-      // 👉 Save lat/lng
-      document.getElementById('latitude').value = e.latLng.lat();
-      document.getElementById('longitude').value = e.latLng.lng();
+    map.on('click', (e) => {
+      marker.setLatLng(e.latlng);
+      document.getElementById('latitude').value = e.latlng.lat;
+      document.getElementById('longitude').value = e.latlng.lng;
+      suggestionsContainer.innerHTML = ''; // Clear suggestions
     });
 
     // Drag marker to update lat/lng
-    marker.addListener('dragend', () => {
-      const position = marker.getPosition();
-      document.getElementById('latitude').value = position.lat();
-      document.getElementById('longitude').value = position.lng();
+    marker.on('dragend', () => {
+      const position = marker.getLatLng();
+      document.getElementById('latitude').value = position.lat;
+      document.getElementById('longitude').value = position.lng;
     });
   }
 });
 
-
+// Close modal
 closeBtn.addEventListener('click', () => {
   modal.style.display = 'none';
+  suggestionsContainer.innerHTML = ''; // Clear suggestions
 });
 
-confirmBtn.addEventListener('click', () => {
+// Confirm location and reverse geocode
+confirmBtn.addEventListener('click', async () => {
   if (marker) {
-    geocoder.geocode({ location: marker.getPosition() }, (results, status) => {
-      if (status === 'OK' && results[0]) {
-        addressInput.value = results[0].formatted_address;
+    const position = marker.getLatLng();
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${position.lat}&lon=${position.lng}`
+      );
+      const data = await response.json();
+      if (data.display_name) {
+        addressInput.value = data.display_name;
       }
-    });
+    } catch (error) {
+      console.error('Reverse geocoding error:', error);
+    }
   }
   modal.style.display = 'none';
+  suggestionsContainer.innerHTML = ''; // Clear suggestions
 });
 
 // Close modal if user clicks outside
 window.addEventListener('click', (event) => {
   if (event.target == modal) {
     modal.style.display = 'none';
+    suggestionsContainer.innerHTML = ''; // Clear suggestions
   }
 });
 
-
-
-
-
+// Debounce function to limit API calls
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}

@@ -124,15 +124,24 @@
         </div>
     </div>
 
+
     <!-- Map Modal with Search Bar -->
-    <div id="mapModal" class="map-modal">
-        <div class="modal-content">
-            <span class="closeBtn">×</span>
-            <h2>Select Area of Operation</h2>
-            <input type="text" class="search-bar" id="search-input" placeholder="Search for a location..." />
-            <div id="mapContainer"></div>
-        </div>
+<div id="mapModal" class="map-modal" style="display: none;">
+  <div class="modal-content">
+    <span class="closeBtn">×</span>
+    <h2>Select Area of Operation</h2>
+    <div style="position: relative;">
+      <input type="text" class="search-bar" id="search-input" placeholder="Search for a location..." style="width: 100%; box-sizing: border-box;">
+      <div id="suggestions" style="position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #ccc; max-height: 200px; overflow-y: auto; z-index: 1001;"></div>
     </div>
+    <div id="mapContainer" style="width: 100%; height: 400px; margin-top: 10px;"></div>
+    <button id="confirmLocationBtn" style="margin-top: 10px; padding: 8px; width: 100%; background: var(--primary-color); color: white; border: none; border-radius: 4px; cursor: pointer;">Confirm Location</button>
+  </div>
+</div>
+
+<!-- Hidden inputs for coordinates -->
+<input type="hidden" id="latitude">
+<input type="hidden" id="longitude">
 
     <script>
         fetch('../components/sidebar.html')
@@ -151,5 +160,7 @@
     
     <script src="../js/inactivity-detector.js"></script> 
     <script type="module" src="../js/reportssubmission.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 </body>
 </html>
