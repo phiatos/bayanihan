@@ -1,7 +1,4 @@
-if (typeof firebase === 'undefined') {
-    console.error("Firebase SDK not loaded. Please ensure Firebase scripts are included.");
-}
-
+// activationOverview.js
 // Firebase configuration
 // const firebaseConfig = {
 //     apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",

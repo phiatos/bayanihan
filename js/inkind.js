@@ -154,85 +154,63 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function initMap() {
-        const defaultLocation = { lat: 14.5995, lng: 120.9842 }; // Manila, Philippines
-        map = new google.maps.Map(document.getElementById("mapContainer"), {
-            center: defaultLocation,
-            zoom: 10,
-            mapTypeId: "roadmap",
-        });
+        const defaultLocation = [14.5995, 120.9842]; // Manila, Philippines
+        map = L.map('mapContainer').setView(defaultLocation, 10);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
 
         const searchInput = document.getElementById("search-input");
-        const autocomplete = new google.maps.places.Autocomplete(searchInput);
-        autocomplete.bindTo("bounds", map);
-
-        autocomplete.addListener("place_changed", () => {
-            const place = autocomplete.getPlace();
-            if (!place.geometry || !place.geometry.location) {
-                Swal.fire({
-                    icon: "error",
-                    title: "Location Not Found",
-                    text: "Please select a valid location from the dropdown.",
-                    customClass: {
-                        popup: 'swal2-popup-error-clean',
-                        title: 'swal2-title-error-clean',
-                        htmlContainer: 'swal2-text-error-clean'
-                    }
-                });
-                return;
-            }
-            map.setCenter(place.geometry.location);
-            map.setZoom(16);
+        
+        // Use Leaflet-Control-Geocoder for address search
+        const geocoder = L.Control.geocoder({
+            defaultMarkGeocode: false,
+            collapsed: false,
+            position: 'topright',
+            placeholder: 'Search for a location...',
+            errorMessage: 'Location not found.'
+        }).on('markgeocode', function(e) {
+            const { center, name, bbox } = e.geocode;
+            map.fitBounds(bbox || [[center.lat, center.lng], [center.lat, center.lng]]);
             clearMarkers();
-            const marker = new google.maps.Marker({
-                position: place.geometry.location,
-                map: map,
-                title: place.name,
-            });
+            const marker = L.marker(center).addTo(map)
+                .bindPopup(`<strong>${name}</strong><br>Lat: ${center.lat.toFixed(6)}, Lng: ${center.lng.toFixed(6)}`)
+                .openPopup();
             markers.push(marker);
             selectedCoordinates = {
-                lat: place.geometry.location.lat(),
-                lng: place.geometry.location.lng()
+                lat: center.lat,
+                lng: center.lng
             };
-            const infowindow = new google.maps.InfoWindow({
-                content: `<strong>${place.name}</strong><br>${place.formatted_address}<br>Lat: ${selectedCoordinates.lat.toFixed(6)}, Lng: ${selectedCoordinates.lng.toFixed(6)}`,
-            });
-            marker.addListener("click", () => {
-                infowindow.open(map, marker);
-            });
-            infowindow.open(map, marker);
             const addressInput = document.getElementById(getAddressInputId(currentPinButtonId));
             if (addressInput) {
-                addressInput.value = place.formatted_address;
+                addressInput.value = e.geocode.name;
             }
             const mapModal = document.getElementById('mapModal');
             if (mapModal) {
                 mapModal.style.display = 'none';
             }
-        });
+        }).addTo(map);
 
-        map.addListener("click", (event) => {
+        // Update the search input to work with Leaflet geocoder
+        geocoder.getContainer().querySelector('input').id = 'search-input';
+        geocoder.getContainer().querySelector('input').value = searchInput.value;
+
+        map.on('click', function(e) {
             clearMarkers();
-            const marker = new google.maps.Marker({
-                position: event.latLng,
-                map: map,
-                title: "Pinned Location",
-            });
+            const marker = L.marker(e.latlng).addTo(map);
             markers.push(marker);
             selectedCoordinates = {
-                lat: event.latLng.lat(),
-                lng: event.latLng.lng()
+                lat: e.latlng.lat,
+                lng: e.latlng.lng
             };
-            const geocoder = new google.maps.Geocoder();
-            geocoder.geocode({ location: event.latLng }, (results, status) => {
-                if (status === "OK" && results[0]) {
-                    const address = results[0].formatted_address;
-                    const infowindow = new google.maps.InfoWindow({
-                        content: `Pinned Location<br>${address}<br>Lat: ${selectedCoordinates.lat.toFixed(6)}, Lng: ${selectedCoordinates.lng.toFixed(6)}`,
-                    });
-                    marker.addListener("click", () => {
-                        infowindow.open(map, marker);
-                    });
-                    infowindow.open(map, marker);
+
+            // Reverse geocoding with Nominatim (OpenStreetMap)
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${e.latlng.lat}&lon=${e.latlng.lng}&zoom=18&addressdetails=1`)
+                .then(response => response.json())
+                .then(data => {
+                    const address = data.display_name || `Lat: ${e.latlng.lat.toFixed(6)}, Lng: ${e.latlng.lng.toFixed(6)}`;
+                    marker.bindPopup(`Pinned Location<br>${address}<br>Lat: ${e.latlng.lat.toFixed(6)}, Lng: ${e.latlng.lng.toFixed(6)}`).openPopup();
                     const addressInput = document.getElementById(getAddressInputId(currentPinButtonId));
                     if (addressInput) {
                         addressInput.value = address;
@@ -241,7 +219,8 @@ document.addEventListener("DOMContentLoaded", () => {
                     if (mapModal) {
                         mapModal.style.display = 'none';
                     }
-                } else {
+                })
+                .catch(error => {
                     Swal.fire({
                         icon: "error",
                         title: "Geocoding Error",
@@ -254,21 +233,19 @@ document.addEventListener("DOMContentLoaded", () => {
                     });
                     const addressInput = document.getElementById(getAddressInputId(currentPinButtonId));
                     if (addressInput) {
-                        addressInput.value = `Lat: ${selectedCoordinates.lat.toFixed(6)}, Lng: ${selectedCoordinates.lng.toFixed(6)}`;
+                        addressInput.value = `Lat: ${e.latlng.lat.toFixed(6)}, Lng: ${e.latlng.lng.toFixed(6)}`;
                     }
                     const mapModal = document.getElementById('mapModal');
                     if (mapModal) {
                         mapModal.style.display = 'none';
                     }
-                }
-            });
-            map.setCenter(event.latLng);
-            map.setZoom(16);
+                });
+            map.setView(e.latlng, 16);
         });
     }
 
     function clearMarkers() {
-        markers.forEach(marker => marker.setMap(null));
+        markers.forEach(marker => map.removeLayer(marker));
         markers = [];
     }
 
@@ -299,32 +276,32 @@ document.addEventListener("DOMContentLoaded", () => {
                 } else {
                     setTimeout(() => {
                         if (map) {
-                            google.maps.event.trigger(map, 'resize');
+                            map.invalidateSize();
                             const addressInput = document.getElementById(pinButtons[pinBtnId]);
                             if (addressInput && addressInput.value && !addressInput.value.startsWith('Lat:')) {
-                                const geocoder = new google.maps.Geocoder();
-                                geocoder.geocode({ 'address': addressInput.value }, (results, status) => {
-                                    if (status === 'OK' && results[0]) {
-                                        map.setCenter(results[0].geometry.location);
-                                        clearMarkers();
-                                        const marker = new google.maps.Marker({
-                                            map: map,
-                                            position: results[0].geometry.location,
-                                            title: addressInput.value,
-                                        });
-                                        markers.push(marker);
-                                        selectedCoordinates = {
-                                            lat: results[0].geometry.location.lat(),
-                                            lng: results[0].geometry.location.lng()
-                                        };
-                                    } else {
-                                        map.setCenter({ lat: 14.5995, lng: 120.9842 });
-                                        map.setZoom(10);
-                                    }
-                                });
+                                // Use Nominatim for geocoding existing address
+                                fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addressInput.value)}&limit=1`)
+                                    .then(response => response.json())
+                                    .then(data => {
+                                        if (data && data[0]) {
+                                            const lat = parseFloat(data[0].lat);
+                                            const lon = parseFloat(data[0].lon);
+                                            map.setView([lat, lon], 16);
+                                            clearMarkers();
+                                            const marker = L.marker([lat, lon]).addTo(map)
+                                                .bindPopup(addressInput.value)
+                                                .openPopup();
+                                            markers.push(marker);
+                                            selectedCoordinates = { lat, lng: lon };
+                                        } else {
+                                            map.setView([14.5995, 120.9842], 10);
+                                        }
+                                    })
+                                    .catch(error => {
+                                        map.setView([14.5995, 120.9842], 10);
+                                    });
                             } else {
-                                map.setCenter({ lat: 14.5995, lng: 120.9842 });
-                                map.setZoom(10);
+                                map.setView([14.5995, 120.9842], 10);
                             }
                         }
                     }, 100);
