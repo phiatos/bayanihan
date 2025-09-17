@@ -40,6 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     let submittedReports = [];
     let archivedReports = [];
+    let allVolunteerGroups = [];
     const submittedReportsContainer = document.getElementById("submittedReportsContainer");
     const paginationContainer = document.getElementById("pagination");
     const entriesInfo = document.getElementById("entriesInfo");
@@ -130,6 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Proceed with normal flow
             loadReportsFromFirebase();
+            loadVolunteerGroups(); // Add this line
             resetInactivityTimer();
         } catch (error) {
             console.error(`[${new Date().toISOString()}] Error checking user data:`, error);
@@ -264,6 +266,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 title: 'Error',
                 text: 'Failed to load reports: ' + error.message,
             });
+        });
+    }
+
+    function loadVolunteerGroups() {
+        database.ref("volunteerGroups").on("value", snapshot => {
+            allVolunteerGroups = [];
+            const fetchedGroups = snapshot.val();
+            if (fetchedGroups) {
+                for (let key in fetchedGroups) {
+                    const groupData = fetchedGroups[key];
+                    allVolunteerGroups.push({
+                        no: key,
+                        organization: groupData.organization || "Unknown",
+                    });
+                }
+            }
+        }, error => {
+            console.error("Error fetching volunteerGroups:", error.code, error.message);
         });
     }
 
@@ -457,28 +477,45 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             });
             tr.querySelector('.approveBtn').addEventListener('click', () => {
-                const userUid = report.userUid;
-                if (!userUid) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: 'User UID not found in report. Cannot approve.',
-                    });
-                    return;
-                }
-                database.ref(`users/${userUid}`).once('value')
-                    .then(snapshot => {
+                Swal.fire({
+                    title: 'Are you sure you want to approve this report?',
+                    text: 'This will approve the report and mark any associated activation as completed.',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Approve',
+                    cancelButtonText: 'Cancel',
+                    reverseButtons: true,
+                    focusCancel: true,
+                    allowOutsideClick: false,
+                    customClass: {
+                        popup: 'custom-swal-popup-small',
+                        title: 'custom-swal-title',
+                        htmlContainer: 'custom-swal-content',
+                        confirmButton: 'custom-confirm-btn',
+                        cancelButton: 'custom-cancel-btn',
+                    },
+                }).then((result) => {
+                    if (!result.isConfirmed) return;
+
+                    const userUid = report.userUid;
+                    if (!userUid) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'User UID not found in report. Cannot approve.',
+                        });
+                        return;
+                    }
+
+                    database.ref(`users/${userUid}`).once('value').then(snapshot => {
                         const userData = snapshot.val();
                         let volunteerGroupName = "Admin";
                         if (userData && userData.organization) {
                             volunteerGroupName = userData.organization;
-                            console.log(`Fetched VolunteerGroupName for user ${userUid}: ${volunteerGroupName}`);
-                        } else {
-                            console.warn(`No group found for user ${userUid}. Using default: [Unknown Org]`);
                         }
                         report["VolunteerGroupName"] = volunteerGroupName;
                         report["Status"] = "Approved";
-                        // Prepare notification for the report sender
+
                         const notification = {
                             message: `Your report (ID: ${report.ReportID || report.firebaseKey}) has been approved.`,
                             timestamp: new Date().toISOString(),
@@ -489,20 +526,57 @@ document.addEventListener('DOMContentLoaded', () => {
                             ReportID: report.ReportID || report.firebaseKey
                         };
 
-                        return Promise.all([
+                        const promises = [
                             database.ref(`reports/approved/${report.firebaseKey}`).set(report),
                             database.ref(`users/${userUid}/reports/${report.firebaseKey}`).set({ ...report, Status: "Approved" }),
                             database.ref(`reports/verification/${report.firebaseKey}`).remove(),
                             database.ref(`notifications`).push(notification)
-                        ]);
-                    })
-                    .then(() => {
+                        ];
+
+                        const group = allVolunteerGroups.find(g => g.organization === report.VolunteerGroupName);
+                        if (group) {
+                            const groupId = group.no;
+                            const activationsQuery = database.ref("activations")
+                                .orderByChild("groupId")
+                                .equalTo(groupId);
+                            promises.push(
+                                activationsQuery.once('value').then(snapshot => {
+                                    let matchingActivation = null;
+                                    if (snapshot.exists()) {
+                                        snapshot.forEach(child => {
+                                            const act = child.val();
+                                            if (act.status === 'active' &&
+                                                act.areaOfOperation?.toLowerCase() === (report.AreaOfOperation || '').toLowerCase() &&
+                                                act.calamityName?.toLowerCase() === (report.CalamityName || '').toLowerCase()) {
+                                                matchingActivation = { id: child.key, ...act };
+                                                return true;
+                                            }
+                                        });
+                                    }
+                                    if (matchingActivation) {
+                                        const completedActivation = {
+                                            ...matchingActivation,
+                                            status: "completed",
+                                            completionDate: new Date().toISOString()
+                                        };
+                                        delete completedActivation.id; // Remove temporary id field
+                                        return Promise.all([
+                                            database.ref(`activations/activationHistory`).push(completedActivation),
+                                            database.ref(`activations/${matchingActivation.id}`).remove()
+                                        ]);
+                                    }
+                                })
+                            );
+                        }
+
+                        return Promise.all(promises);
+                    }).then(() => {
                         submittedReports = submittedReports.filter(r => r.firebaseKey !== report.firebaseKey);
                         applySearchAndSort();
                         Swal.fire({
                             icon: 'success',
                             title: 'Report Approved',
-                            text: 'The report has been approved and the sender has been notified.',
+                            text: 'The report has been approved. Associated activation (if any) marked as completed.',
                             confirmButtonText: 'OK',
                             customClass: {
                                 popup: 'swal2-popup-success-clean',
@@ -511,13 +585,12 @@ document.addEventListener('DOMContentLoaded', () => {
                                 confirmButton: 'my-success-button'
                             }
                         });
-                    })
-                    .catch(error => {
-                        console.error("Error during report approval or notification:", error);
+                    }).catch(error => {
+                        console.error("Error during approval:", error);
                         Swal.fire({
                             icon: 'error',
                             title: 'Approval Failed',
-                            text: `Failed to approve report or send notification: ${error.message}`,
+                            text: `Failed to approve report: ${error.message}`,
                             timer: 1600,
                             showConfirmButton: false,
                             timerProgressBar: true,
@@ -529,6 +602,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             }
                         });
                     });
+                });
             });
             tr.querySelector('.rejectBtn').addEventListener('click', () => {
                 const userUid = report.userUid;
