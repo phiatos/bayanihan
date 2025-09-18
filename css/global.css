@@ -233,7 +233,7 @@ background-color: #ffffff;
 .status-Incomplete { background-color: #9370DB; }   /* Purple */
 .status-Rejected { background-color: #6c757d; }     /* Grey */
 .status-Submitted { background-color: #4059A5; }    /* Dark Blue */
-.status-Declined { background-color: #dc3545; }     /* Red */
+.status-Declined, .status-badge-cancelled { background-color: #dc3545; }     /* Red */
 
 /* Card Body Sections */
 .contact-info, .address-info, .items-info {
@@ -1027,7 +1027,7 @@ hr {
   border-radius: 4px;
 }
 
-.modal-content::-webkit-scrollbar-thumb:hover {
+.modal-content::-webkit-scrollbar-thumb:hover, .edit-btn:hover {
   background-color: var(--button-hover);
 }
 
