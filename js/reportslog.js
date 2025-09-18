@@ -1,7 +1,7 @@
 // reportslog.js
-console.log = function () {};
-console.error = function () {};
-console.warn = function () {};
+// console.log = function () {};
+// console.error = function () {};
+// console.warn = function () {};
 
 document.addEventListener('DOMContentLoaded', () => {
     // Firebase Configuration
