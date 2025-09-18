@@ -4,15 +4,25 @@ if (typeof firebase === 'undefined') {
 }
 
 // Firebase configuration and initialization
+// const firebaseConfig = {
+//     apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
+//     authDomain: "bayanihan-5ce7e.firebaseapp.com",
+//     databaseURL: "https://bayanihan-5ce7e-default-rtdb.asia-southeast1.firebasedatabase.app",
+//     projectId: "bayanihan-5ce7e",
+//     storageBucket: "bayanihan-5ce7e.appspot.com",
+//     messagingSenderId: "593123849917",
+//     appId: "1:593123849917:web:eb85a63a536eeff78ce9d4",
+//     measurementId: "G-ZTQ9VXXVV0"
+// };
 const firebaseConfig = {
-    apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
-    authDomain: "bayanihan-5ce7e.firebaseapp.com",
-    databaseURL: "https://bayanihan-5ce7e-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "bayanihan-5ce7e",
-    storageBucket: "bayanihan-5ce7e.appspot.com",
-    messagingSenderId: "593123849917",
-    appId: "1:593123849917:web:eb85a63a536eeff78ce9d4",
-    measurementId: "G-ZTQ9VXXVV0"
+  apiKey: "AIzaSyBkmXOJvnlBtzkjNyR6wyd9BgGM0BhN0L8",
+  authDomain: "bayanihan-new-472410.firebaseapp.com",
+  projectId: "bayanihan-new-472410",
+  storageBucket: "bayanihan-new-472410.firebasestorage.app",
+  messagingSenderId: "995982574131",
+  appId: "1:995982574131:web:3d45e358fad330c276d946",
+  measurementId: "G-CEVPTQZM9C",
+  databaseURL: "https://bayanihan-new-472410-default-rtdb.asia-southeast1.firebasedatabase.app/"
 };
 
 // Initialize Firebase only if it hasn't been initialized yet
@@ -128,15 +138,15 @@ const tableContainers = {
     foundation: document.getElementById('foundationTableContainer'),
 };
 
-document.querySelectorAll('.tab-button').forEach(button => {
-    button.addEventListener('click', () => {
-        console.log(`Tab button clicked: ${button.getAttribute('data-tab')}`);
-        document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
-        button.classList.add('active');
-        const tabType = button.getAttribute('data-tab');
-        updateArchivedTableData(tabType);
+    document.querySelectorAll('.tab-button').forEach(button => {
+        button.addEventListener('click', () => {
+            console.log(`Tab button clicked: ${button.getAttribute('data-tab')}`);
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+            const tabType = button.getAttribute('data-tab');
+            updateArchivedTableData(tabType);
+        });
     });
-});
 
 const searchInput = document.getElementById('searchInput');
 const sortSelect = document.getElementById('sortSelect');
@@ -280,18 +290,20 @@ function applyFiltersAndSort() {
 }
 
 // Event listeners for search input and sort select
-if (searchInput) {
-    searchInput.addEventListener('input', () => {
-        console.log('Search input changed:', searchInput.value);
-        applyFiltersAndSort();
-    });
-}
-if (sortSelect) {
-    sortSelect.addEventListener('change', () => {
-        console.log('Sort select changed:', sortSelect.value);
-        applyFiltersAndSort();
-    });
-}
+    if (searchInput) {
+        searchInput.addEventListener('input', () => {
+            console.log('Search input changed:', searchInput.value);
+            applyFiltersAndSort();
+            updateArchivedTableData(currentDonorType);
+        });
+    }
+    if (sortSelect) {
+        sortSelect.addEventListener('change', () => {
+            console.log('Sort select changed:', sortSelect.value);
+            applyFiltersAndSort();
+            updateArchivedTableData(currentDonorType);
+        });
+    }
 
 // Event listeners for donor type buttons
 Object.keys(donorTypeButtons).forEach(key => {
@@ -605,7 +617,7 @@ function loadArchivedDonationsFromFirebase() {
         if (archivedEntriesInfo) archivedEntriesInfo.textContent = 'Showing 0 to 0 of 0 entries';
         const archivedPaginationDiv = document.getElementById('archivedPagination');
         if (archivedPaginationDiv) archivedPaginationDiv.innerHTML = '';
-        return;
+        return; 
     }
 
     console.log('loadArchivedDonationsFromFirebase called.');

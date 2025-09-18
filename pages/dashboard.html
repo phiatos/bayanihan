@@ -18,6 +18,7 @@
     <!-- Activation -->
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ&libraries=places"></script>
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
     <title>Bayanihan | Angat Buhay DRRM </title>
     <style>
         #notifBadge {
@@ -46,6 +47,7 @@
                 <button class="tab-btn" data-tab="activation">Activation</button>
                 <button class="tab-btn" data-tab="volunteers">Volunteers</button>
                 <button class="tab-btn" data-tab="reliefs-request">Reliefs Request</button>
+                <button class="tab-btn" data-tab="reports">Reports</button>
             </div>
             <div id="tab-content"></div>
 
@@ -174,19 +176,33 @@
                      <div class="metrics-title"><h2>Weather Map</h2></div>
 
                     <!-- Search Bar -->
-                    <div class="search-container">
-                        <div class="input-container">
-                            <input
-                                type="text"
-                                id="search-input"
-                                placeholder="Search by Location, Urgency, or Category"
-                                class="search-input"
-                            />
-                            <button class="search-icon">
-                                <i class='bx bx-search' style="font-size: 24px; color: #656079;"></i>
-                            </button>
+                    <div class="search-and-sort-container">
+                        <div class="search-container">
+                            <div class="input-container">
+                                <input
+                                    type="text"
+                                    id="search-input"
+                                    placeholder="Search by Location, Urgency, or Category"
+                                    class="search-input"
+                                />
+                                <button class="search-icon">
+                                    <i class='bx bx-search' style="font-size: 24px; color: #656079;"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="sort-container">
+                            <select id="sort-dropdown" class="sort-dropdown">
+                                <option value="default" selected>Sort by</option>
+                                <option value="all">All</option>
+                                <option value="calamityType">Calamities</option>
+                                <option value="hqs">ABVN HQs</option>
+                                <option value="activated">Activated ABVNs</option>
+                            </select>
                         </div>
                     </div>
+
+                    
 
                     <div class="map-container">
                         <div id="map" style="height: 100%; width: 100%;"></div>

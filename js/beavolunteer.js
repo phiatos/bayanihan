@@ -1,18 +1,18 @@
 const firebaseConfig = {
-    apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
-    authDomain: "bayanihan-5ce7e.firebaseapp.com",
-    databaseURL: "https://bayanihan-5ce7e-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "bayanihan-5ce7e",
-    storageBucket: "bayanihan-5ce7e.appspot.com",
-    messagingSenderId: "593123849917",
-    appId: "1:593123849917:web:eb85a63a536eeff78ce9d4",
-    measurementId: "G-ZTQ9VXXVV0",
+  apiKey: "AIzaSyBkmXOJvnlBtzkjNyR6wyd9BgGM0BhN0L8",
+  authDomain: "bayanihan-new-472410.firebaseapp.com",
+  projectId: "bayanihan-new-472410",
+  storageBucket: "bayanihan-new-472410.firebasestorage.app",
+  messagingSenderId: "995982574131",
+  appId: "1:995982574131:web:3d45e358fad330c276d946",
+  measurementId: "G-CEVPTQZM9C",
+  databaseURL: "https://bayanihan-new-472410-default-rtdb.asia-southeast1.firebasedatabase.app/"
 };
 
 firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
 const auth = firebase.auth();
-let map, marker, autocomplete;
+let map, marker;
 
 document.addEventListener('DOMContentLoaded', () => {
     const volunteerForm = document.getElementById('volunteer-org-form');
@@ -33,93 +33,126 @@ document.addEventListener('DOMContentLoaded', () => {
     const otherCheckbox = document.getElementById('otherSkillCheckbox');
     const otherComments = document.getElementById('otherSkillComments');
 
-    // Map initialization is handled by map-loader.js, so define window.initMap here
-    window.initMap = function() {
-        const mapOptions = {
-            center: { lat: 14.5995, lng: 120.9842 }, // Default: Manila, Philippines
-            zoom: 10,
-        };
-        map = new google.maps.Map(document.getElementById('map'), mapOptions);
+    // Initialize Leaflet map
+    map = L.map('map').setView([14.5995, 120.9842], 10); // Default: Manila, Philippines
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
 
-        autocomplete = new google.maps.places.Autocomplete(locationInput, {
-            types: ['geocode'],
-            componentRestrictions: { country: 'ph' }, // Restrict to Philippines
-        });
+    marker = L.marker([14.5995, 120.9842], { draggable: true }).addTo(map);
 
-        marker = new google.maps.Marker({
-            map: map,
-            draggable: true,
-        });
+    // Autocomplete search using Nominatim
+    locationInput.addEventListener('input', debounce(async () => {
+        const query = locationInput.value.trim();
+        if (query.length < 3) return;
 
-        autocomplete.bindTo('bounds', map);
-
-        autocomplete.addListener('place_changed', () => {
-            const place = autocomplete.getPlace();
-            if (!place.geometry) {
+        try {
+            const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=ph&limit=5`);
+            const results = await response.json();
+            if (results.length > 0) {
+                const place = results[0];
+                const lat = parseFloat(place.lat);
+                const lon = parseFloat(place.lon);
+                map.setView([lat, lon], 15);
+                marker.setLatLng([lat, lon]);
+                latitudeInput.value = lat;
+                longitudeInput.value = lon;
+                formattedAddressInput.value = place.display_name;
+                locationInput.value = place.display_name;
+                clearError(locationInput);
+            } else {
                 Swal.fire({
                     icon: 'error',
                     title: 'Invalid Location',
-                    text: 'Please select a valid location from the suggestions.',
+                    text: 'Please select a valid location.',
                     confirmButtonText: 'OK',
                 });
-                return;
             }
-
-            map.setCenter(place.geometry.location);
-            map.setZoom(15);
-            marker.setPosition(place.geometry.location);
-
-            latitudeInput.value = place.geometry.location.lat();
-            longitudeInput.value = place.geometry.location.lng();
-            formattedAddressInput.value = place.formatted_address;
-
-            clearError(locationInput);
-        });
-
-        marker.addListener('dragend', () => {
-            const position = marker.getPosition();
-            latitudeInput.value = position.lat();
-            longitudeInput.value = position.lng();
-
-            const geocoder = new google.maps.Geocoder();
-            geocoder.geocode({ location: position }, (results, status) => {
-                if (status === 'OK' && results[0]) {
-                    formattedAddressInput.value = results[0].formatted_address;
-                    locationInput.value = results[0].formatted_address;
-                    clearError(locationInput);
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Geocoding Error',
-                        text: 'Unable to retrieve address for this location.',
-                        confirmButtonText: 'OK',
-                    });
-                }
+        } catch (error) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Search Error',
+                text: 'Unable to search for location.',
+                confirmButtonText: 'OK',
             });
-        });
+        }
+    }, 500));
 
-        map.addListener('click', (event) => {
-            marker.setPosition(event.latLng);
-            latitudeInput.value = event.latLng.lat();
-            longitudeInput.value = event.latLng.lng();
+    // Marker dragend event
+    marker.on('dragend', async () => {
+        const position = marker.getLatLng();
+        latitudeInput.value = position.lat;
+        longitudeInput.value = position.lng;
 
-            const geocoder = new google.maps.Geocoder();
-            geocoder.geocode({ location: event.latLng }, (results, status) => {
-                if (status === 'OK' && results[0]) {
-                    formattedAddressInput.value = results[0].formatted_address;
-                    locationInput.value = results[0].formatted_address;
-                    clearError(locationInput);
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Geocoding Error',
-                        text: 'Unable to retrieve address for this location.',
-                        confirmButtonText: 'OK',
-                    });
-                }
+        try {
+            const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${position.lat}&lon=${position.lng}`);
+            const result = await response.json();
+            if (result.display_name) {
+                formattedAddressInput.value = result.display_name;
+                locationInput.value = result.display_name;
+                clearError(locationInput);
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Geocoding Error',
+                    text: 'Unable to retrieve address for this location.',
+                    confirmButtonText: 'OK',
+                });
+            }
+        } catch (error) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Geocoding Error',
+                text: 'Unable to retrieve address for this location.',
+                confirmButtonText: 'OK',
             });
-        });
-    };
+        }
+    });
+
+    // Map click event
+    map.on('click', async (e) => {
+        const position = e.latlng;
+        marker.setLatLng(position);
+        latitudeInput.value = position.lat;
+        longitudeInput.value = position.lng;
+
+        try {
+            const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${position.lat}&lon=${position.lng}`);
+            const result = await response.json();
+            if (result.display_name) {
+                formattedAddressInput.value = result.display_name;
+                locationInput.value = result.display_name;
+                clearError(locationInput);
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Geocoding Error',
+                    text: 'Unable to retrieve address for this location.',
+                    confirmButtonText: 'OK',
+                });
+            }
+        } catch (error) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Geocoding Error',
+                text: 'Unable to retrieve address for this location.',
+                confirmButtonText: 'OK',
+            });
+        }
+    });
+
+    // Debounce function for search
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
 
     // Email validation
     function isValidEmail(email) {
@@ -304,10 +337,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     addAvailabilityButton.addEventListener('click', () => {
-    setTimeout(() => {
-        const newItem = availabilityInputsDiv.lastElementChild;
-        const dateInput = newItem.querySelector('.availability-date');
-        const timeInput = newItem.querySelector('.availability-time');
+        setTimeout(() => {
+            const newItem = availabilityInputsDiv.lastElementChild;
+            const dateInput = newItem.querySelector('.availability-date');
+            const timeInput = newItem.querySelector('.availability-time');
             if (dateInput) {
                 dateInput.addEventListener('input', () => {
                     clearError(dateInput);
@@ -959,9 +992,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 longitudeInput.value = '';
                 formattedAddressInput.value = '';
                 locationInput.value = '';
-                marker.setPosition(null);
-                map.setCenter({ lat: 14.5995, lng: 120.9842 });
-                map.setZoom(10);
+                marker.setLatLng([14.5995, 120.9842]);
+                map.setView([14.5995, 120.9842], 10);
                 grecaptcha.reset();
                 agreeCheckbox.checked = false;
                 updateSubmitButtonState();

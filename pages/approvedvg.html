@@ -1,3 +1,4 @@
+<!-- approvedvg.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -25,8 +26,12 @@
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
     
     <!-- Google Maps API Loader -->
-    <script src="https://unpkg.com/@googlemaps/js-api-loader@1.16.2/dist/index.min.js"></script>
-    <script type="module" src="../js/map-loader.js"></script>
+    <!-- <script src="https://unpkg.com/@googlemaps/js-api-loader@1.16.2/dist/index.min.js"></script>
+    <script type="module" src="../js/map-loader.js"></script> -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-control-geocoder@2.4.0/dist/Control.Geocoder.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder@2.4.0/dist/Control.Geocoder.css" />
 
     <title>Bayanihan | Angat Buhay DRRM</title>
     <style>
@@ -261,9 +266,29 @@
                 <div id="archivedPagination" class="pagination"></div>
             </div>
         </div>
-    </div>        
-
+    </div>   
+    
     <script>
+        fetch('../components/sidebar.html')
+        .then(response => response.text())
+        .then(data => {
+            document.querySelector('.sidebar-placeholder').innerHTML = data;
+            const sidebarScript = document.createElement('script');
+            sidebarScript.src = '../components/sidebar.js';
+            sidebarScript.onload = function() {};
+            document.querySelector('.sidebar-placeholder').appendChild(sidebarScript);
+        })
+        .catch(error => {
+            console.error('Error loading sidebar:', error);
+        });
+
+        function clearDInputs() {
+            document.getElementById('searchInput').value = '';
+            applySearchAndSort();
+        }
+    </script>
+
+    <!-- <script>
         fetch('../components/sidebar.html')
         .then(response => response.text())
         .then(data => {
@@ -372,7 +397,7 @@
                 });
             });
         };
-    </script>
+    </script> -->
     
     <script src="../js/inactivity-detector.js"></script> 
     <script type="module" src="../js/approvedvg.js"></script>

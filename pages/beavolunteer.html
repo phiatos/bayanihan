@@ -8,21 +8,19 @@
   <link rel="stylesheet" href="../css/application.css" />
   <link rel="stylesheet" href="../css/global.css" />
   <link rel="icon" href="../assets/images/logox192.png" />
-
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-
   <script src="../js/navbar.js"></script> 
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <script src="https://unpkg.com/@googlemaps/js-api-loader@1.16.2/dist/index.min.js"></script>
-  <script type="module" src="../js/map-loader.js"></script>
-  <!-- <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAAAu6BeQjIZ7H7beFbAsPWuKuORmh0wrk&libraries=places,marker"></script> -->
-  <script src="https://unpkg.com/@googlemaps/js-api-loader@1.16.2/dist/index.min.js"></script>
-  <script type="module" src="../js/map-loader.js"></script>
+  <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+  <script type="module" src="../js/beavolunteer.js"></script>
 </head>
 <body class="no-header-line">
-
   <header class="navbar">
     <div class="navbar-container">
       <div class="logo">
@@ -40,31 +38,25 @@
       </nav>
     </div>
   </header>
-
   <main id="page-content" class="abvn-registration">
     <div class="container">
       <h1 class="form-title">Join as a Volunteer</h1>
       <p class="form-subtitle">Help us respond faster to disasters by being a volunteer.</p>
-
       <form id="volunteer-org-form">
         <fieldset>
           <legend>Volunteer Information</legend>
-
           <div class="form-group">
             <label for="firstName">First Name</label>
             <input type="text" id="firstName" name="firstName" placeholder="e.g. Juan" required />
           </div>
-
           <div class="form-group">
             <label for="middleInitial">Middle Initial (Optional)</label>
             <input type="text" id="middleInitial" name="middleInitial" maxlength="1" placeholder="e.g. A" />
           </div>
-
           <div class="form-group">
             <label for="lastName">Last Name</label>
             <input type="text" id="lastName" name="lastName" placeholder="e.g. Dela Cruz" required />
           </div>
-
           <div class="form-group">
             <label for="nameExtension">Name Extension (e.g. Jr., Sr., III - Optional)</label>
             <input type="text" id="nameExtension" name="nameExtension" placeholder="e.g. Jr." />
@@ -73,26 +65,21 @@
             <label for="email">Email Address</label>
             <input type="email" id="email" name="email" placeholder="e.g. juan.delacruz@example.com" required />
           </div>
-
           <div class="form-group">
             <label for="mobileNumber">Mobile Number</label>
             <input type="tel" id="mobileNumber" name="mobileNumber" placeholder="e.g. 09171234567" pattern="[0-9]{11}" required />
           </div>
-
           <div class="form-group">
             <label for="age">Age</label>
             <input type="number" id="age" name="age" placeholder="e.g. Volunteers must be at least 18 years old" min="18" max="100" required/>
           </div>
-
           <div class="form-group">
             <label for="socialMedia">Social Media Link (e.g., Facebook Profile URL)</label>
             <input type="url" id="socialMedia" name="socialMedia" placeholder="e.g. https://facebook.com/yourprofile" required/>
           </div>
         </fieldset>
-
         <fieldset>
           <legend>Volunteer Location</legend>
-
           <div class="form-group">
             <label for="location">Pin Your Location</label>
             <input type="text" id="location" name="location" placeholder="Search for your location" required />
@@ -102,115 +89,105 @@
             <input type="hidden" id="formatted-address" name="formatted-address" />
           </div>
         </fieldset>
-
         <fieldset>
           <legend>Skills</legend>
-
-            <div class="skills-group">
-              <label>Disaster Response Skills</label>
-              <div>
-                <input type="checkbox" name="skills" value="First Aid & Basic Life Support"> First Aid & Basic Life Support
-              </div>
-              <div>
-                <input type="checkbox" name="skills" value="Search & Rescue"> Search & Rescue
-              </div>
-              <div>
-                <input type="checkbox" name="skills" value="Evacuation Assistance"> Evacuation Assistance
-              </div>
-              <div>
-                <input type="checkbox" name="skills" value="Relief Goods Distribution"> Relief Goods Distribution
-              </div>
-              <div>
-                <input type="checkbox" name="skills" value="On-the-ground responders"> On-the-ground responders
-              </div>
+          <div class="skills-group">
+            <label>Disaster Response Skills</label>
+            <div>
+              <input type="checkbox" name="skills" value="First Aid & Basic Life Support"> First Aid & Basic Life Support
             </div>
-
-            <div class="skills-group">
-              <label>Transportation & Logistics Skills</label>
-              <div>
-                <input type="checkbox" name="skills" value="Logistics & Supply Chain Management"> Logistics & Supply Chain Management
-              </div>
-              <div>
-                <input type="checkbox" name="skills" value="Transport Coordination"> Transport Coordination
-              </div>
-              <div>
-                <input type="checkbox" name="skills" value="Truck Driving"> Truck Driving
-              </div>
-              <div>
-                <input type="checkbox" name="skills" value="Bus Driving"> Bus Driving
-              </div>
-              <div>
-                <input type="checkbox" name="skills" value="Van or Shuttle Driving"> Van / Shuttle Driving
-              </div>
-              <div>
-                <input type="checkbox" name="skills" value="Motorcycle Delivery"> Motorcycle Delivery
-              </div>
-              <div>
-                <input type="checkbox" name="skills" value="Forklift Operation"> Forklift Operation
-              </div>
+            <div>
+              <input type="checkbox" name="skills" value="Search & Rescue"> Search & Rescue
             </div>
-
-            <div class="skills-group">
-              <label>Medical Skills</label>
-              <div>
-                <input type="checkbox" name="skills" value="General Medicine"> General Medicine
-              </div>
-              <div>
-                <input type="checkbox" name="skills" value="Pediatrics"> Pediatrics
-              </div>
-              <div>
-                <input type="checkbox" name="skills" value="Psychology / Mental Health"> Psychology / Mental Health
-              </div>
-              <div>
-                <input type="checkbox" name="skills" value="Nursing"> Nursing
-              </div>
-              <div>
-                <input type="checkbox" name="skills" value="Paramedic / Emergency Medical Technician"> Paramedic / EMT
-              </div>
-              <div>
-                <input type="checkbox" name="skills" value="Pharmacy"> Pharmacy
-              </div>
+            <div>
+              <input type="checkbox" name="skills" value="Evacuation Assistance"> Evacuation Assistance
             </div>
-
-            <div class="skills-group">
-              <label>Specialized Skills</label>
-              <div>
-                <input type="checkbox" name="skills" value="Engineering / Construction"> Engineering / Construction
-              </div>
-              <div>
-                <input type="checkbox" name="skills" value="Water, Sanitation & Hygiene"> Water, Sanitation & Hygiene
-              </div>
-              <div>
-                <input type="checkbox" name="skills" value="Agricultural Recovery"> Agricultural Recovery
-              </div>
-              <div>
-                <input type="checkbox" name="skills" value="Animal Rescue & Care"> Animal Rescue & Care
-              </div>
-              <div>
-                <input type="checkbox" name="skills" value="Information Technology"> Information Technology
-              </div>
+            <div>
+              <input type="checkbox" name="skills" value="Relief Goods Distribution"> Relief Goods Distribution
             </div>
-
-            <div class="skills-group">
-              <div>
-                <input type="checkbox" name="skills" value="Other" id="otherSkillCheckbox">
-                <span style="color: var(--primary-color); font-weight: 600;">Other (please specify)</span>
-              </div>
-              <textarea id="otherSkillComments" name="otherSkillComments" placeholder="Please specify your skills here." rows="4" style="display: none;"></textarea>
+            <div>
+              <input type="checkbox" name="skills" value="On-the-ground responders"> On-the-ground responders
             </div>
-
+          </div>
+          <div class="skills-group">
+            <label>Transportation & Logistics Skills</label>
+            <div>
+              <input type="checkbox" name="skills" value="Logistics & Supply Chain Management"> Logistics & Supply Chain Management
+            </div>
+            <div>
+              <input type="checkbox" name="skills" value="Transport Coordination"> Transport Coordination
+            </div>
+            <div>
+              <input type="checkbox" name="skills" value="Truck Driving"> Truck Driving
+            </div>
+            <div>
+              <input type="checkbox" name="skills" value="Bus Driving"> Bus Driving
+            </div>
+            <div>
+              <input type="checkbox" name="skills" value="Van or Shuttle Driving"> Van / Shuttle Driving
+            </div>
+            <div>
+              <input type="checkbox" name="skills" value="Motorcycle Delivery"> Motorcycle Delivery
+            </div>
+            <div>
+              <input type="checkbox" name="skills" value="Forklift Operation"> Forklift Operation
+            </div>
+          </div>
+          <div class="skills-group">
+            <label>Medical Skills</label>
+            <div>
+              <input type="checkbox" name="skills" value="General Medicine"> General Medicine
+            </div>
+            <div>
+              <input type="checkbox" name="skills" value="Pediatrics"> Pediatrics
+            </div>
+            <div>
+              <input type="checkbox" name="skills" value="Psychology / Mental Health"> Psychology / Mental Health
+            </div>
+            <div>
+              <input type="checkbox" name="skills" value="Nursing"> Nursing
+            </div>
+            <div>
+              <input type="checkbox" name="skills" value="Paramedic / Emergency Medical Technician"> Paramedic / EMT
+            </div>
+            <div>
+              <input type="checkbox" name="skills" value="Pharmacy"> Pharmacy
+            </div>
+          </div>
+          <div class="skills-group">
+            <label>Specialized Skills</label>
+            <div>
+              <input type="checkbox" name="skills" value="Engineering / Construction"> Engineering / Construction
+            </div>
+            <div>
+              <input type="checkbox" name="skills" value="Water, Sanitation & Hygiene"> Water, Sanitation & Hygiene
+            </div>
+            <div>
+              <input type="checkbox" name="skills" value="Agricultural Recovery"> Agricultural Recovery
+            </div>
+            <div>
+              <input type="checkbox" name="skills" value="Animal Rescue & Care"> Animal Rescue & Care
+            </div>
+            <div>
+              <input type="checkbox" name="skills" value="Information Technology"> Information Technology
+            </div>
+          </div>
+          <div class="skills-group">
+            <div>
+              <input type="checkbox" name="skills" value="Other" id="otherSkillCheckbox">
+              <span style="color: var(--primary-color); font-weight: 600;">Other (please specify)</span>
+            </div>
+            <textarea id="otherSkillComments" name="otherSkillComments" placeholder="Please specify your skills here." rows="4" style="display: none;"></textarea>
+          </div>
           <small>You may select up to 1–3 skills.</small>
         </fieldset>
-
         <fieldset>
           <legend>Availability</legend>
-              
           <div class="skills-group">
             <div>
               <input type="checkbox" id="emergencyResponseCheckbox" name="emergencyResponse">I am available for after-hours emergency response
             </div>
           </div>
-
           <div id="availability-inputs">
             <div class="availability-item form-group">
                 <label>Date:</label>
@@ -222,7 +199,6 @@
           </div>
           <button type="button" id="addAvailability">Add Another Date/Time</button>
         </fieldset>
-
         <div class="form-group terms-conditions-container">
           <input type="checkbox" id="agreeToTerms" name="agreeToTerms" required>
           <label for="agreeToTerms">
@@ -233,27 +209,21 @@
           </label>
         </div>
         <div id="agreementMessage" style="color: red; display: none;">Please agree to the Terms and Conditions and Privacy Policy to proceed.</div>
-        
         <div class="form-group submit-group">
           <div class="g-recaptcha" data-sitekey="6LeVTVkrAAAAAMPE8sdxhmnAjaETxWrtiEY4KWqC"></div>
         </div>
-
         <div class="form-group submit-group">
           <button type="submit" class="btn-primary">Submit Application</button>
         </div>
-
       </form>
     </div>
   </main>
-
   <div id="termsContent" style="display: none;">
     <div class="terms-container">
       <h2>Terms and Conditions</h2>
       <p><strong>Last Updated: July 11, 2025</strong></p>
-      
       <h3>1. Introduction</h3>
       <p>Welcome to Bayanihan, a platform connecting volunteer organizations with communities in need. By submitting an application to become an Accredited Bayanihan Volunteer Network (ABVN) member, you agree to comply with and be bound by the following Terms and Conditions.</p>
-      
       <h3>2. Eligibility</h3>
       <p>To apply, your organization must:
         <ul>
@@ -262,43 +232,33 @@
           <li>Agree to abide by Bayanihan’s code of conduct and operational guidelines.</li>
         </ul>
       </p>
-        
-        <h3>3. Application Process</h3>
-        <p>Your application will be reviewed by the Bayanihan team. Submission does not guarantee approval. You agree to provide any additional documentation requested during the review process.</p>
-        
-        <h3>4. Data Usage</h3>
-        <p>By submitting this application, you consent to the collection, storage, and processing of your organization’s data as outlined in our <a href="#" id="openPrivacyFromTerms">Privacy Policy</a>.</p>
-        
-        <h3>5. Responsibilities</h3>
-        <p>Approved organizations must:
-          <ul>
-            <li>Maintain accurate contact and operational information.</li>
-            <li>Comply with all applicable laws and regulations.</li>
-            <li>Notify Bayanihan of any changes to legal status or operations.</li>
-          </ul>
-        </p>
-        
-        <h3>6. Termination</h3>
-        <p>Bayanihan reserves the right to terminate your ABVN membership if you violate these terms or engage in activities that harm the platform or its community.</p>
-        
-        <h3>7. Changes to Terms</h3>
-        <p>We may update these Terms and Conditions from time to time. You will be notified of significant changes via email or through the platform.</p>
-        
-        <h3>8. Contact Us</h3>
-        <p>If you have any questions about these Terms and Conditions, please contact us at <a href="mailto:support@bayanihan.org">support@bayanihan.org</a>.</p>
+      <h3>3. Application Process</h3>
+      <p>Your application will be reviewed by the Bayanihan team. Submission does not guarantee approval. You agree to provide any additional documentation requested during the review process.</p>
+      <h3>4. Data Usage</h3>
+      <p>By submitting this application, you consent to the collection, storage, and processing of your organization’s data as outlined in our <a href="#" id="openPrivacyFromTerms">Privacy Policy</a>.</p>
+      <h3>5. Responsibilities</h3>
+      <p>Approved organizations must:
+        <ul>
+          <li>Maintain accurate contact and operational information.</li>
+          <li>Comply with all applicable laws and regulations.</li>
+          <li>Notify Bayanihan of any changes to legal status or operations.</li>
+        </ul>
+      </p>
+      <h3>6. Termination</h3>
+      <p>Bayanihan reserves the right to terminate your ABVN membership if you violate these terms or engage in activities that harm the platform or its community.</p>
+      <h3>7. Changes to Terms</h3>
+      <p>We may update these Terms and Conditions from time to time. You will be notified of significant changes via email or through the platform.</p>
+      <h3>8. Contact Us</h3>
+      <p>If you have any questions about these Terms and Conditions, please contact us at <a href="mailto:support@bayanihan.org">support@bayanihan.org</a>.</p>
     </div>
   </div>
-
   <div id="privacyContent" style="display: none;">
     <div class="terms-container">
       <h2>Privacy Policy</h2>
       <p><strong>Last Updated: July 11, 2025</strong></p>
-
       <p>This Privacy Policy describes Our policies and procedures on the collection, use and disclosure of Your information when You use the Service and tells You about Your privacy rights and how the law protects You.</p>
-
       <h3>1. Data Collection</h3>
       <p>We collect personal data such as your organization name, contact person, email, mobile number, social media links, and location details when you register as a volunteer organization. We also collect information about your organizational background, areas of expertise, and legal status.</p>
-      
       <h3>2. Use of Your Personal Data</h3>
       <p>The Company may use Personal Data for the following purposes:</p>
       <ul>
@@ -307,32 +267,23 @@
         <li>To contact You: To contact You by email, telephone calls, SMS, or other equivalent forms of electronic communication, such as a mobile application's push notifications regarding updates or informative communications related to the functionalities, products or contracted services, including the security updates, when necessary or reasonable for their implementation.</li>
         <li>To manage Your requests: To attend and manage Your requests to Us.</li>
       </ul>
-
       <h3>3. Sharing Your Personal Data</h3>
       <p>We may share Your personal information with service providers to monitor and analyze the use of our Service, or to contact You.</p>
-      
       <h3>4. Retention of Your Personal Data</h3>
       <p>The Company will retain Your Personal Data only for as long as is necessary for the purposes set out in this Privacy Policy. We will retain and use Your Personal Data to the extent necessary to comply with our legal obligations (for example, if we are required to retain your data to comply with applicable laws), resolve disputes, and enforce our legal agreements and policies.</p>
-
       <h3>5. Security of Your Personal Data</h3>
       <p>The security of Your Personal Data is important to Us, but remember that no method of transmission over the Internet, or method of electronic storage is 100% secure. While We strive to use commercially acceptable means to protect Your Personal Data, We cannot guarantee its absolute security.</p>
-
       <h3>6. Your Rights (Data Privacy Act of 2012, Philippines)</h3>
       <p>Under the Data Privacy Act of 2012, you have rights as a data subject, including the right to be informed, object, access, rectification, erasure or blocking, damages, and to lodge a complaint.</p>
-
       <h3>7. Changes to this Privacy Policy</h3>
       <p>We may update Our Privacy Policy from time to time. We will notify You of any changes by posting the new Privacy Policy on this page.</p>
     </div>
   </div>
-
   <footer class="footer">
     <div class="container">
       <p>© 2025 Bayanihan | Angat Pinas Inc. All rights reserved. | Powered by Appvance </p>
     </div>
   </footer>
-
-  <script src="../js/inactivity-detector.js"></script> 
-  <script src="https://www.google.com/recaptcha/api.js" async defer></script>
-  <script type="module" src="../js/beavolunteer.js"></script>
+  <script src="../js/inactivity-detector.js"></script>
 </body>
 </html>

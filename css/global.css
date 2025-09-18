@@ -227,13 +227,13 @@ background-color: #ffffff;
 }
 
 /* Status-specific colors */
-.status-Pending { background-color: #ffc107; }       /* Orange */
-.status-InProgress { background-color: #5bc0de; }   /* Blue */
-.status-Completed { background-color: #12c13b; }    /* Green */
+.status-Pending, .status-badge-pending { background-color: #ffc107; }       /* Orange */
+.status-InProgress, .status-badge-inprogress { background-color: #5bc0de; }   /* Blue */
+.status-Completed, .status-badge-completed { background-color: #12c13b; }    /* Green */
 .status-Incomplete { background-color: #9370DB; }   /* Purple */
 .status-Rejected { background-color: #6c757d; }     /* Grey */
 .status-Submitted { background-color: #4059A5; }    /* Dark Blue */
-.status-Declined { background-color: #dc3545; }     /* Red */
+.status-Declined, .status-badge-cancelled { background-color: #dc3545; }     /* Red */
 
 /* Card Body Sections */
 .contact-info, .address-info, .items-info {
@@ -1027,7 +1027,7 @@ hr {
   border-radius: 4px;
 }
 
-.modal-content::-webkit-scrollbar-thumb:hover {
+.modal-content::-webkit-scrollbar-thumb:hover, .edit-btn:hover {
   background-color: var(--button-hover);
 }
 
@@ -1412,7 +1412,7 @@ button[type="submit"]:hover,
   margin-right: 8px;
 }
 
-#viewArchived, .archiveBtn, .deleteBtn, #viewActivationHistory {
+#viewArchived, .archiveBtn, .deleteBtn, .matchBtn,  #viewActivationHistory{
   width: 45px;
   height: 45px;
   padding: 0;
@@ -1428,7 +1428,7 @@ button[type="submit"]:hover,
   background-color: var(--gray); 
 }
 
-#viewArchived:hover, .archiveBtn:hover, .deleteBtn:hover, #viewActivationHistory:hover {
+#viewArchived:hover, .archiveBtn:hover, .deleteBtn:hover, .matchBtn:hover, #viewActivationHistory:hover {
   background-color: #7b7b7b; 
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);

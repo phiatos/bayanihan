@@ -1,18 +1,29 @@
-console.log = function () {};
-console.error = function () {};
-console.warn = function () {};
+// reportslog.js
+// console.log = function () {};
+// console.error = function () {};
+// console.warn = function () {};
 
 document.addEventListener('DOMContentLoaded', () => {
     // Firebase Configuration
+    // const firebaseConfig = {
+    //     apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
+    //     authDomain: "bayanihan-5ce7e.firebaseapp.com",
+    //     databaseURL: "https://bayanihan-5ce7e-default-rtdb.asia-southeast1.firebasedatabase.app",
+    //     projectId: "bayanihan-5ce7e",
+    //     storageBucket: "bayanihan-5ce7e.appspot.com",
+    //     messagingSenderId: "593123849917",
+    //     appId: "1:593123849917:web:eb85a63a536eeff78ce9d4",
+    //     measurementId: "G-ZTQ9VXXVV0",
+    // };
     const firebaseConfig = {
-        apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
-        authDomain: "bayanihan-5ce7e.firebaseapp.com",
-        databaseURL: "https://bayanihan-5ce7e-default-rtdb.asia-southeast1.firebasedatabase.app",
-        projectId: "bayanihan-5ce7e",
-        storageBucket: "bayanihan-5ce7e.appspot.com",
-        messagingSenderId: "593123849917",
-        appId: "1:593123849917:web:eb85a63a536eeff78ce9d4",
-        measurementId: "G-ZTQ9VXXVV0",
+        apiKey: "AIzaSyBkmXOJvnlBtzkjNyR6wyd9BgGM0BhN0L8",
+        authDomain: "bayanihan-new-472410.firebaseapp.com",
+        projectId: "bayanihan-new-472410",
+        storageBucket: "bayanihan-new-472410.firebasestorage.app",
+        messagingSenderId: "995982574131",
+        appId: "1:995982574131:web:3d45e358fad330c276d946",
+        measurementId: "G-CEVPTQZM9C",
+        databaseURL: "https://bayanihan-new-472410-default-rtdb.asia-southeast1.firebasedatabase.app/"
     };
 
     let database, auth;
@@ -82,93 +93,66 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // User Role Check
-    let userRole = 'User'; // Default role
-    // auth.onAuthStateChanged(async (user) => {
-    //     if (!user) {
-    //         Swal.fire({
-    //             icon: 'error',
-    //             title: 'Authentication Required',
-    //             text: 'Please sign in to view the reports log.',
-    //         }).then(() => {
-    //             window.location.href = "../pages/login.html";
-    //         });
-    //         return;
-    //     }
-
-    //     try {
-    //         const idTokenResult = await user.getIdTokenResult();
-    //         userRole = idTokenResult.claims.role || 'User';
-    //         console.log("Authenticated user role:", userRole);
-    //     } catch (error) {
-    //         console.error("Error fetching user role:", error);
-    //         Swal.fire({
-    //             icon: 'warning',
-    //             title: 'Role Error',
-    //             text: 'Could not determine user role. Functionality might be limited.',
-    //         });
-    //     }
-
-    //     loadReportsFromFirebase(userRole);
-    // });
+    let userRole = 'User'; 
 
     // Verify Super Admin password
-async function verifySuperAdminPassword() {
-    const { value: password } = await Swal.fire({
-        title: 'Enter Admin Password',
-        input: 'password',
-        inputPlaceholder: 'Enter password here',
-        inputAttributes: {
-            autocapitalize: 'off',
-            autocorrect: 'off',
-            autocomplete: 'new-password'
-        },
-        showCancelButton: true,
-        confirmButtonText: 'Verify',
-        showLoaderOnConfirm: true,
-        reverseButtons: true,
-        focusCancel: true,
-        preConfirm: async (password) => {
-            try {
-                const user = auth.currentUser;
-                const credential = firebase.auth.EmailAuthProvider.credential(user.email, password);
-                await auth.signInWithCredential(credential);
-                return true;
-            } catch (error) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Verification Failed',
-                    text: 'Invalid admin password.',
-                    timer: 1600,
-                    showConfirmButton: false,
-                    timerProgressBar: true,
-                    allowOutsideClick: false,
-                    customClass: {
-                        popup: 'swal2-popup-error-clean',
-                        title: 'swal2-title-error-clean',
-                        htmlContainer: 'swal2-text-error-clean'
-                    }
-                });
-                return false;
+    async function verifySuperAdminPassword() {
+        const { value: password } = await Swal.fire({
+            title: 'Enter Admin Password',
+            input: 'password',
+            inputPlaceholder: 'Enter password here',
+            inputAttributes: {
+                autocapitalize: 'off',
+                autocorrect: 'off',
+                autocomplete: 'new-password'
+            },
+            showCancelButton: true,
+            confirmButtonText: 'Verify',
+            showLoaderOnConfirm: true,
+            reverseButtons: true,
+            focusCancel: true,
+            preConfirm: async (password) => {
+                try {
+                    const user = auth.currentUser;
+                    const credential = firebase.auth.EmailAuthProvider.credential(user.email, password);
+                    await auth.signInWithCredential(credential);
+                    return true;
+                } catch (error) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Verification Failed',
+                        text: 'Invalid admin password.',
+                        timer: 1600,
+                        showConfirmButton: false,
+                        timerProgressBar: true,
+                        allowOutsideClick: false,
+                        customClass: {
+                            popup: 'swal2-popup-error-clean',
+                            title: 'swal2-title-error-clean',
+                            htmlContainer: 'swal2-text-error-clean'
+                        }
+                    });
+                    return false;
+                }
+            },
+            allowOutsideClick: () => !Swal.isLoading(),
+            customClass: {
+                popup: 'custom-swal-popup',
+                title: 'custom-swal-title',
+                input: 'custom-swal-input',
+                confirmButton: 'custom-confirm-btn',
+                cancelButton: 'custom-cancel-btn'
             }
-        },
-        allowOutsideClick: () => !Swal.isLoading(),
-        customClass: {
-            popup: 'custom-swal-popup',
-            title: 'custom-swal-title',
-            input: 'custom-swal-input',
-            confirmButton: 'custom-confirm-btn',
-            cancelButton: 'custom-cancel-btn'
+        });
+        if (!password) {
+            isAdminVerified = false; // Set to false if canceled
+            searchInput.value = '';
+            return false;
         }
-    });
-    if (!password) {
-        isAdminVerified = false; // Set to false if canceled
+        isAdminVerified = true; // Set to true if verified
         searchInput.value = '';
-        return false;
+        return true; // Return true if verification succeeds
     }
-    isAdminVerified = true; // Set to true if verified
-    searchInput.value = '';
-    return true; // Return true if verification succeeds
-}
 
     auth.onAuthStateChanged(async (user) => {
         console.log(`[${new Date().toISOString()}] Auth state changed:`, user ? { uid: user.uid, email: user.email } : 'No user');

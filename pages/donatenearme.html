@@ -10,16 +10,17 @@
   <link rel="stylesheet" href="../css/reliefsrequest.css" />
   <link rel="stylesheet" href="../css/global.css" />
   <link rel="icon" href="../assets/images/logox192.png" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-  <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" /> <!-- Added Boxicons -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-geosearch@3.8.0/dist/geosearch.css" />
+  <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" />
   <script src="../js/navbar.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAAAu6BeQjIZ7H7beFbAsPWuKuORmh0wrk&libraries=places,marker"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-geosearch@3.8.0/dist/geosearch.umd.js"></script>
 </head>
 <body class="no-header-line">
   <header class="navbar">
@@ -463,7 +464,7 @@
         <ul>
           <li>Be a legally registered entity or a recognized community group.</li>
           <li>Provide accurate and complete information during the application process.</li>
-          <li>Agree to abide by Bayanihan’s code of conduct and operational guidelines.</li>
+          <li> Agree to abide by Bayanihan’s code of conduct and operational guidelines.</li>
         </ul>
       </p>
         
@@ -540,7 +541,7 @@
       <span class="closeBtn">&times;</span>
       <h2>Select Area of Operation</h2>
       <input type="text" class="search-bar" id="search-input" placeholder="Search for a location...">
-      <div id="mapContainer"></div>
+      <div id="mapContainer" style="height: 400px;"></div>
     </div>
   </div>
 

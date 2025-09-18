@@ -1,16 +1,27 @@
+//volunteergroupmanagement.js
 console.log = function () {};
 console.error = function () {};
 console.warn = function () {};
 
+// const firebaseConfig = {
+//     apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
+//     authDomain: "bayanihan-5ce7e.firebaseapp.com",
+//     databaseURL: "https://bayanihan-5ce7e-default-rtdb.asia-southeast1.firebasedatabase.app",
+//     projectId: "bayanihan-5ce7e",
+//     storageBucket: "bayanihan-5ce7e.appspot.com",
+//     messagingSenderId: "593123849917",
+//     appId: "1:593123849917:web:eb85a63a536eeff78ce9d4",
+//     measurementId: "G-ZTQ9VXXVV0"
+// };
 const firebaseConfig = {
-    apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
-    authDomain: "bayanihan-5ce7e.firebaseapp.com",
-    databaseURL: "https://bayanihan-5ce7e-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "bayanihan-5ce7e",
-    storageBucket: "bayanihan-5ce7e.appspot.com",
-    messagingSenderId: "593123849917",
-    appId: "1:593123849917:web:eb85a63a536eeff78ce9d4",
-    measurementId: "G-ZTQ9VXXVV0"
+  apiKey: "AIzaSyBkmXOJvnlBtzkjNyR6wyd9BgGM0BhN0L8",
+  authDomain: "bayanihan-new-472410.firebaseapp.com",
+  projectId: "bayanihan-new-472410",
+  storageBucket: "bayanihan-new-472410.firebasestorage.app",
+  messagingSenderId: "995982574131",
+  appId: "1:995982574131:web:3d45e358fad330c276d946",
+  measurementId: "G-CEVPTQZM9C",
+  databaseURL: "https://bayanihan-new-472410-default-rtdb.asia-southeast1.firebasedatabase.app/"
 };
 
 try {
@@ -344,7 +355,7 @@ function showPreviewModal(orgData) {
             <hr>
             <h2>Legal & Documents:</h2>
             <p><strong>Legal Status/Registration:</strong> ${orgData.legalStatusRegistration || 'N/A'}</p>
-            <p><strong>Required Documents:</strong> ${orgData.requiredDocumentsLink ? `<a href="${orgData.requiredDocumentsLink}" target="_blank" rel="noopener noreferrer">View Document</a>` : 'N/A'}</p>
+            <p><strong>Organization Documents:</strong> ${orgData.requiredDocumentsLink ? `<a href="${orgData.requiredDocumentsLink}" target="_blank" rel="noopener noreferrer">View Document</a>` : 'N/A'}</p>
             <hr>
             <h2>Dates:</h2>
             <p><strong>Application Date and Time:</strong> ${formattedAppDateTime}</p>
@@ -437,101 +448,108 @@ let map, marker, editMap, editMarker;
 
 function initializeMap() {
     const mapDiv = document.getElementById('map');
-    const philippinesBounds = {
-        north: 21.121, // Northernmost point
-        south: 4.643,  // Southernmost point
-        west: 116.929, // Westernmost point
-        east: 126.604  // Easternmost point
-    };
-    map = new google.maps.Map(mapDiv, {
-        center: { lat: 14.5995, lng: 120.9842 }, // Manila
+    const philippinesBounds = [
+        [4.643, 116.929], // Southwest corner
+        [21.121, 126.604]  // Northeast corner
+    ];
+
+    map = L.map(mapDiv, {
+        center: [14.5995, 120.9842], // Manila
         zoom: 6,
-        restriction: {
-            latLngBounds: philippinesBounds,
-            strictBounds: true
+        minZoom: 6,
+        maxZoom: 18,
+        maxBounds: philippinesBounds,
+        maxBoundsViscosity: 1.0
+    });
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    marker = L.marker([14.5995, 120.9842], { draggable: true }).addTo(map);
+
+    // Add Leaflet-Search control
+    const searchControl = new L.Control.Search({
+        url: 'https://nominatim.openstreetmap.org/search?format=json&q={s}&countrycodes=PH',
+        jsonpParam: 'json_callback',
+        propertyName: 'display_name',
+        propertyLoc: ['lat', 'lon'],
+        autoCollapse: true,
+        autoType: false,
+        minLength: 2,
+        marker: marker,
+        filterData: function(text, records) {
+            // Filter results to ensure they are within the Philippines
+            const filtered = {};
+            for (const key in records) {
+                const record = records[key];
+                const lat = parseFloat(record.lat);
+                const lon = parseFloat(record.lon);
+                if (lat >= 4.643 && lat <= 21.121 && lon >= 116.929 && lon <= 126.604) {
+                    filtered[key] = record;
+                }
+            }
+            return filtered;
         }
-    });
+    }).addTo(map);
 
-    const input = document.getElementById('formattedAddress');
-    const autocomplete = new google.maps.places.Autocomplete(input, {
-        bounds: philippinesBounds,
-        strictBounds: true,
-        componentRestrictions: { country: 'PH' }
-    });
-    autocomplete.bindTo('bounds', map);
-
-    marker = new google.maps.Marker({
-        map: map,
-        draggable: true
-    });
-
-    autocomplete.addListener('place_changed', () => {
-        const place = autocomplete.getPlace();
-        if (!place.geometry) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Invalid Address',
-                text: 'Please select a valid address within the Philippines.'
-            });
-            return;
-        }
-        if (!philippinesBounds.north >= place.geometry.location.lat() ||
-            place.geometry.location.lat() < philippinesBounds.south ||
-            philippinesBounds.east < place.geometry.location.lng() ||
-            place.geometry.location.lng() < philippinesBounds.west) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Invalid Location',
-                text: 'Selected location must be within the Philippines.'
-            });
-            return;
-        }
-
-        map.setCenter(place.geometry.location);
-        marker.setPosition(place.geometry.location);
-        document.getElementById('latitude').value = place.geometry.location.lat();
-        document.getElementById('longitude').value = place.geometry.location.lng();
-        input.value = place.formatted_address;
-    });
-
-    marker.addListener('dragend', () => {
-        const latlng = marker.getPosition();
-        if (!philippinesBounds.north >= latlng.lat() ||
-            latlng.lat() < philippinesBounds.south ||
-            philippinesBounds.east < latlng.lng() ||
-            latlng.lng() < philippinesBounds.west) {
+    searchControl.on('search:locationfound', function(e) {
+        const latlng = e.latlng;
+        if (!latlng || latlng.lat < 4.643 || latlng.lat > 21.121 || latlng.lng < 116.929 || latlng.lng > 126.604) {
             Swal.fire({
                 icon: 'error',
                 title: 'Invalid Location',
                 text: 'Selected location must be within the Philippines.'
             });
-            marker.setPosition(map.getCenter());
             return;
         }
-        const geocoder = new google.maps.Geocoder();
-        geocoder.geocode({ location: latlng }, (results, status) => {
-            if (status === 'OK' && results[0]) {
-                if (results[0].address_components.some(comp => comp.short_name === 'PH')) {
-                    input.value = results[0].formatted_address;
-                    document.getElementById('latitude').value = latlng.lat();
-                    document.getElementById('longitude').value = latlng.lng();
+        map.setView(latlng, 12);
+        marker.setLatLng(latlng);
+        document.getElementById('formattedAddress').value = e.text;
+        document.getElementById('latitude').value = latlng.lat;
+        document.getElementById('longitude').value = latlng.lng;
+    });
+
+    marker.on('dragend', function(e) {
+        const latlng = marker.getLatLng();
+        if (latlng.lat < 4.643 || latlng.lat > 21.121 || latlng.lng < 116.929 || latlng.lng > 126.604) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Invalid Location',
+                text: 'Selected location must be within the Philippines.'
+            });
+            marker.setLatLng(map.getCenter());
+            return;
+        }
+        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latlng.lat}&lon=${latlng.lng}&addressdetails=1&countrycodes=PH`)
+            .then(response => response.json())
+            .then(data => {
+                if (data && data.display_name && data.address.country_code === 'ph') {
+                    document.getElementById('formattedAddress').value = data.display_name;
+                    document.getElementById('latitude').value = latlng.lat;
+                    document.getElementById('longitude').value = latlng.lng;
                 } else {
                     Swal.fire({
                         icon: 'error',
                         title: 'Invalid Location',
                         text: 'Selected location must be within the Philippines.'
                     });
-                    marker.setPosition(map.getCenter());
+                    marker.setLatLng(map.getCenter());
                 }
-            }
-        });
+            })
+            .catch(() => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Geocoding Error',
+                    text: 'Unable to retrieve address. Please try again.'
+                });
+                marker.setLatLng(map.getCenter());
+            });
     });
 
-    map.addListener('click', (e) => {
-        if (!philippinesBounds.north >= e.latLng.lat() ||
-            e.latLng.lat() < philippinesBounds.south ||
-            philippinesBounds.east < e.latLng.lng() ||
-            e.latLng.lng() < philippinesBounds.west) {
+    map.on('click', function(e) {
+        const latlng = e.latlng;
+        if (latlng.lat < 4.643 || latlng.lat > 21.121 || latlng.lng < 116.929 || latlng.lng > 126.604) {
             Swal.fire({
                 icon: 'error',
                 title: 'Invalid Location',
@@ -539,125 +557,145 @@ function initializeMap() {
             });
             return;
         }
-        marker.setPosition(e.latLng);
-        const geocoder = new google.maps.Geocoder();
-        geocoder.geocode({ location: e.latLng }, (results, status) => {
-            if (status === 'OK' && results[0]) {
-                if (results[0].address_components.some(comp => comp.short_name === 'PH')) {
-                    input.value = results[0].formatted_address;
-                    document.getElementById('latitude').value = e.latLng.lat();
-                    document.getElementById('longitude').value = e.latLng.lng();
+        marker.setLatLng(latlng);
+        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latlng.lat}&lon=${latlng.lng}&addressdetails=1&countrycodes=PH`)
+            .then(response => response.json())
+            .then(data => {
+                if (data && data.display_name && data.address.country_code === 'ph') {
+                    document.getElementById('formattedAddress').value = data.display_name;
+                    document.getElementById('latitude').value = latlng.lat;
+                    document.getElementById('longitude').value = latlng.lng;
                 } else {
                     Swal.fire({
                         icon: 'error',
                         title: 'Invalid Location',
                         text: 'Selected location must be within the Philippines.'
                     });
-                    marker.setPosition(map.getCenter());
+                    marker.setLatLng(map.getCenter());
                 }
-            }
-        });
+            })
+            .catch(() => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Geocoding Error',
+                    text: 'Unable to retrieve address. Please try again.'
+                });
+                marker.setLatLng(map.getCenter());
+            });
     });
 }
 
 function initializeEditMap(lat = 14.5995, lng = 120.9842) {
     const editMapDiv = document.getElementById('editMap');
-    const philippinesBounds = {
-        north: 21.121,
-        south: 4.643,
-        west: 116.929,
-        east: 126.604
-    };
-    editMap = new google.maps.Map(editMapDiv, {
-        center: { lat: lat, lng: lng },
+    
+    // Destroy existing map if it exists
+    if (editMap) {
+        editMap.remove();
+        editMap = null;
+        editMarker = null;
+    }
+
+    const philippinesBounds = [
+        [4.643, 116.929], // Southwest corner
+        [21.121, 126.604]  // Northeast corner
+    ];
+
+    editMap = L.map(editMapDiv, {
+        center: [lat, lng],
         zoom: 6,
-        restriction: {
-            latLngBounds: philippinesBounds,
-            strictBounds: true
+        minZoom: 6,
+        maxZoom: 18,
+        maxBounds: philippinesBounds,
+        maxBoundsViscosity: 1.0
+    });
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(editMap);
+
+    editMarker = L.marker([lat, lng], { draggable: true }).addTo(editMap);
+
+    // Add Leaflet-Search control
+    const searchControl = new L.Control.Search({
+        url: 'https://nominatim.openstreetmap.org/search?format=json&q={s}&countrycodes=PH',
+        jsonpParam: 'json_callback',
+        propertyName: 'display_name',
+        propertyLoc: ['lat', 'lon'],
+        autoCollapse: true,
+        autoType: false,
+        minLength: 2,
+        marker: editMarker,
+        filterData: function(text, records) {
+            const filtered = {};
+            for (const key in records) {
+                const record = records[key];
+                const lat = parseFloat(record.lat);
+                const lon = parseFloat(record.lon);
+                if (lat >= 4.643 && lat <= 21.121 && lon >= 116.929 && lon <= 126.604) {
+                    filtered[key] = record;
+                }
+            }
+            return filtered;
         }
-    });
+    }).addTo(editMap);
 
-    const editInput = document.getElementById('editFormattedAddress');
-    const autocomplete = new google.maps.places.Autocomplete(editInput, {
-        bounds: philippinesBounds,
-        strictBounds: true,
-        componentRestrictions: { country: 'PH' }
-    });
-    autocomplete.bindTo('bounds', editMap);
-
-    editMarker = new google.maps.Marker({
-        map: editMap,
-        draggable: true,
-        position: { lat: lat, lng: lng }
-    });
-
-    autocomplete.addListener('place_changed', () => {
-        const place = autocomplete.getPlace();
-        if (!place.geometry) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Invalid Address',
-                text: 'Please select a valid address within the Philippines.'
-            });
-            return;
-        }
-        if (!philippinesBounds.north >= place.geometry.location.lat() ||
-            place.geometry.location.lat() < philippinesBounds.south ||
-            philippinesBounds.east < place.geometry.location.lng() ||
-            place.geometry.location.lng() < philippinesBounds.west) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Invalid Location',
-                text: 'Selected location must be within the Philippines.'
-            });
-            return;
-        }
-
-        editMap.setCenter(place.geometry.location);
-        editMarker.setPosition(place.geometry.location);
-        document.getElementById('editLatitude').value = place.geometry.location.lat();
-        document.getElementById('editLongitude').value = place.geometry.location.lng();
-        editInput.value = place.formatted_address;
-    });
-
-    editMarker.addListener('dragend', () => {
-        const latlng = editMarker.getPosition();
-        if (!philippinesBounds.north >= latlng.lat() ||
-            latlng.lat() < philippinesBounds.south ||
-            philippinesBounds.east < latlng.lng() ||
-            latlng.lng() < philippinesBounds.west) {
+    searchControl.on('search:locationfound', function(e) {
+        const latlng = e.latlng;
+        if (!latlng || latlng.lat < 4.643 || latlng.lat > 21.121 || latlng.lng < 116.929 || latlng.lng > 126.604) {
             Swal.fire({
                 icon: 'error',
                 title: 'Invalid Location',
                 text: 'Selected location must be within the Philippines.'
             });
-            editMarker.setPosition(editMap.getCenter());
             return;
         }
-        const geocoder = new google.maps.Geocoder();
-        geocoder.geocode({ location: latlng }, (results, status) => {
-            if (status === 'OK' && results[0]) {
-                if (results[0].address_components.some(comp => comp.short_name === 'PH')) {
-                    editInput.value = results[0].formatted_address;
-                    document.getElementById('editLatitude').value = latlng.lat();
-                    document.getElementById('editLongitude').value = latlng.lng();
+        editMap.setView(latlng, 12);
+        editMarker.setLatLng(latlng);
+        document.getElementById('editFormattedAddress').value = e.text;
+        document.getElementById('editLatitude').value = latlng.lat;
+        document.getElementById('editLongitude').value = latlng.lng;
+    });
+
+    editMarker.on('dragend', function(e) {
+        const latlng = editMarker.getLatLng();
+        if (latlng.lat < 4.643 || latlng.lat > 21.121 || latlng.lng < 116.929 || latlng.lng > 126.604) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Invalid Location',
+                text: 'Selected location must be within the Philippines.'
+            });
+            editMarker.setLatLng(editMap.getCenter());
+            return;
+        }
+        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latlng.lat}&lon=${latlng.lng}&addressdetails=1&countrycodes=PH`)
+            .then(response => response.json())
+            .then(data => {
+                if (data && data.display_name && data.address.country_code === 'ph') {
+                    document.getElementById('editFormattedAddress').value = data.display_name;
+                    document.getElementById('editLatitude').value = latlng.lat;
+                    document.getElementById('editLongitude').value = latlng.lng;
                 } else {
                     Swal.fire({
                         icon: 'error',
                         title: 'Invalid Location',
                         text: 'Selected location must be within the Philippines.'
                     });
-                    editMarker.setPosition(editMap.getCenter());
+                    editMarker.setLatLng(editMap.getCenter());
                 }
-            }
-        });
+            })
+            .catch(() => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Geocoding Error',
+                    text: 'Unable to retrieve address. Please try again.'
+                });
+                editMarker.setLatLng(editMap.getCenter());
+            });
     });
 
-    editMap.addListener('click', (e) => {
-        if (!philippinesBounds.north >= e.latLng.lat() ||
-            e.latLng.lat() < philippinesBounds.south ||
-            philippinesBounds.east < e.latLng.lng() ||
-            e.latLng.lng() < philippinesBounds.west) {
+    editMap.on('click', function(e) {
+        const latlng = e.latlng;
+        if (latlng.lat < 4.643 || latlng.lat > 21.121 || latlng.lng < 116.929 || latlng.lng > 126.604) {
             Swal.fire({
                 icon: 'error',
                 title: 'Invalid Location',
@@ -665,24 +703,31 @@ function initializeEditMap(lat = 14.5995, lng = 120.9842) {
             });
             return;
         }
-        editMarker.setPosition(e.latLng);
-        const geocoder = new google.maps.Geocoder();
-        geocoder.geocode({ location: e.latLng }, (results, status) => {
-            if (status === 'OK' && results[0]) {
-                if (results[0].address_components.some(comp => comp.short_name === 'PH')) {
-                    editInput.value = results[0].formatted_address;
-                    document.getElementById('editLatitude').value = e.latLng.lat();
-                    document.getElementById('editLongitude').value = e.latLng.lng();
+        editMarker.setLatLng(latlng);
+        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latlng.lat}&lon=${latlng.lng}&addressdetails=1&countrycodes=PH`)
+            .then(response => response.json())
+            .then(data => {
+                if (data && data.display_name && data.address.country_code === 'ph') {
+                    document.getElementById('editFormattedAddress').value = data.display_name;
+                    document.getElementById('editLatitude').value = latlng.lat;
+                    document.getElementById('editLongitude').value = latlng.lng;
                 } else {
                     Swal.fire({
                         icon: 'error',
                         title: 'Invalid Location',
                         text: 'Selected location must be within the Philippines.'
                     });
-                    editMarker.setPosition(editMap.getCenter());
+                    editMarker.setLatLng(editMap.getCenter());
                 }
-            }
-        });
+            })
+            .catch(() => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Geocoding Error',
+                    text: 'Unable to retrieve address. Please try again.'
+                });
+                editMarker.setLatLng(editMap.getCenter());
+            });
     });
 }
 
@@ -775,10 +820,13 @@ if (addOrgForm) {
         const approvedApplicationDate = document.getElementById('approvedApplicationDate').value.trim();
         const recaptchaResponse = document.getElementById('recaptchaResponse').value.trim();
 
+        const lat = parseFloat(latitude);
+        const lon = parseFloat(longitude);
         const appDateTime = new Date(applicationDateandTime);
         const approvedDate = new Date(approvedApplicationDate);
         const appDateOnly = new Date(appDateTime.getFullYear(), appDateTime.getMonth(), appDateTime.getDate());
         const approvedDateOnly = new Date(approvedDate.getFullYear(), approvedDate.getMonth(), approvedDate.getDate());
+
         if (appDateOnly > approvedDateOnly) {
             Swal.fire({
                 icon: 'error',
@@ -801,6 +849,23 @@ if (addOrgForm) {
                 icon: 'error',
                 title: 'Missing Fields',
                 text: 'Please fill in all required fields (Organization, Address, Latitude, Longitude, Contact Person, Email, Mobile Number, Application Date and Time, Approved Application Date).',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
+                }
+            });
+            return;
+        }
+
+        if (isNaN(lat) || isNaN(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Invalid Coordinates',
+                text: 'Please enter valid latitude (-90 to 90) and longitude (-180 to 180).',
                 showConfirmButton: true,
                 confirmButtonText: 'OK',
                 customClass: {
@@ -920,7 +985,7 @@ if (addOrgForm) {
                 <p><strong>Mission/Background:</strong> ${orgData.organizationalBackgroundMission}</p>
                 <p><strong>Areas of Expertise/Focus:</strong> ${orgData.areasOfExpertiseFocus}</p>
                 <p><strong>Legal Status/Registration:</strong> ${orgData.legalStatusRegistration}</p>
-                <p><strong>Required Documents:</strong> ${orgData.requiredDocumentsLink}</p>
+                <p><strong>Organization Documents:</strong> ${orgData.requiredDocumentsLink}</p>
                 <p><strong>Application Date and Time:</strong> ${orgData.applicationDateandTime}</p>
                 <p><strong>Approved Application Date:</strong> ${orgData.approvedApplicationDate}</p>
             `;
@@ -1238,10 +1303,13 @@ if (editOrgForm) {
         const updatedApprovedApplicationDate = document.getElementById('editApprovedApplicationDate').value.trim();
         const updatedRecaptchaResponse = document.getElementById('editRecaptchaResponse').value.trim();
 
+        const updatedLat = parseFloat(updatedLatitude);
+        const updatedLon = parseFloat(updatedLongitude);
         const appDateTime = new Date(updatedApplicationDateandTime);
         const approvedDate = new Date(updatedApprovedApplicationDate);
         const appDateOnly = new Date(appDateTime.getFullYear(), appDateTime.getMonth(), appDateTime.getDate());
         const approvedDateOnly = new Date(approvedDate.getFullYear(), approvedDate.getMonth(), approvedDate.getDate());
+
         if (appDateOnly > approvedDateOnly) {
             Swal.fire({
                 icon: 'error',
@@ -1264,6 +1332,23 @@ if (editOrgForm) {
                 icon: 'error',
                 title: 'Missing Fields',
                 text: 'Please fill in all required fields (Organization, Address, Latitude, Longitude, Contact Person, Email, Mobile Number, Application Date and Time, Approved Application Date).',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                customClass: {
+                    popup: 'swal2-popup-error-clean',
+                    title: 'swal2-title-error-clean',
+                    htmlContainer: 'swal2-text-error-clean',
+                    confirmButton: 'my-error-button'
+                }
+            });
+            return;
+        }
+
+        if (isNaN(updatedLat) || isNaN(updatedLon) || updatedLat < -90 || updatedLat > 90 || updatedLon < -180 || updatedLon > 180) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Invalid Coordinates',
+                text: 'Please enter valid latitude (-90 to 90) and longitude (-180 to 180).',
                 showConfirmButton: true,
                 confirmButtonText: 'OK',
                 customClass: {
