@@ -4,29 +4,44 @@ console.warn = function () {};
 
 let map;
 let markers = [];
-let autocompletes = {};
 let currentPinButtonId = null;
 let selectedCoordinates = { lat: null, lng: null };
-let addedItems = []; // Array to store items added to the table
+let addedItems = []; // Array to store items added to the table (add this if missing from your code)
 
 const MAX_VALUATION = 1000000000; // Maximum valuation for in-kind donations (PHP 1,000,000,000)
 const MAX_AMOUNT_DONATED = 1000000000; // Maximum amount for monetary donations (PHP 1,000,000,000)
 
 function initMap() {
-    const defaultLocation = { lat: 14.5995, lng: 120.9842 };
-    map = new google.maps.Map(document.getElementById("mapContainer"), {
-        center: defaultLocation,
-        zoom: 10,
-        mapTypeId: "roadmap",
+    const defaultLocation = [14.5995, 120.9842]; // Manila, Philippines
+    map = L.map('mapContainer').setView(defaultLocation, 10);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 19
+    }).addTo(map);
+
+    // Bind GeoSearch to the existing search-input field
+    const provider = new GeoSearch.OpenStreetMapProvider({
+        params: {
+            countrycodes: 'ph' // Restrict to Philippines
+        }
     });
+    const searchControl = new GeoSearch.GeoSearchControl({
+        provider: provider,
+        inputTag: 'search-input', // Bind to your existing input field
+        style: 'bar', // Use bar style for autocomplete dropdown
+        autoComplete: true,
+        autoCompleteDelay: 250,
+        showMarker: false, // We'll handle markers manually
+        retainZoomLevel: false,
+        placeholder: 'Search for a location...' // Optional: Customize placeholder
+    });
+    map.addControl(searchControl);
 
-    const searchInput = document.getElementById("search-input");
-    const autocomplete = new google.maps.places.Autocomplete(searchInput);
-    autocomplete.bindTo("bounds", map);
-
-    autocomplete.addListener("place_changed", () => {
-        const place = autocomplete.getPlace();
-        if (!place.geometry || !place.geometry.location) {
+    // Handle search result selection
+    map.on('geosearch/showlocation', (e) => {
+        const { location } = e;
+        if (!location || !location.raw || !location.raw.lat || !location.raw.lon) {
             Swal.fire({
                 icon: "error",
                 title: "Location Not Found",
@@ -34,29 +49,21 @@ function initMap() {
             });
             return;
         }
-        map.setCenter(place.geometry.location);
-        map.setZoom(16);
+        map.setView([location.raw.lat, location.raw.lon], 16);
         clearMarkers();
-        const marker = new google.maps.Marker({
-            position: place.geometry.location,
-            map: map,
-            title: place.name,
-        });
+        const marker = L.marker([location.raw.lat, location.raw.lon], {
+            title: location.raw.display_name
+        }).addTo(map);
         markers.push(marker);
         selectedCoordinates = {
-            lat: place.geometry.location.lat(),
-            lng: place.geometry.location.lng()
+            lat: parseFloat(location.raw.lat),
+            lng: parseFloat(location.raw.lon)
         };
-        const infowindow = new google.maps.InfoWindow({
-            content: `<strong>${place.name}</strong><br>${place.formatted_address}<br>Lat: ${selectedCoordinates.lat.toFixed(6)}, Lng: ${selectedCoordinates.lng.toFixed(6)}`,
-        });
-        marker.addListener("click", () => {
-            infowindow.open(map, marker);
-        });
-        infowindow.open(map, marker);
+        const popupContent = `<strong>${location.raw.name || location.raw.display_name}</strong><br>${location.raw.display_name}<br>Lat: ${selectedCoordinates.lat.toFixed(6)}, Lng: ${selectedCoordinates.lng.toFixed(6)}`;
+        marker.bindPopup(popupContent).openPopup();
         const addressInput = document.getElementById(getAddressInputId(currentPinButtonId));
         if (addressInput) {
-            addressInput.value = place.formatted_address;
+            addressInput.value = location.raw.display_name;
         }
         const mapModal = document.getElementById('mapModal');
         if (mapModal) {
@@ -64,108 +71,62 @@ function initMap() {
         }
     });
 
-    map.addListener("click", (event) => {
+    map.on('click', async (e) => {
         clearMarkers();
-        const marker = new google.maps.Marker({
-            position: event.latLng,
-            map: map,
-            title: "Pinned Location",
-        });
+        const marker = L.marker(e.latlng).addTo(map);
         markers.push(marker);
         selectedCoordinates = {
-            lat: event.latLng.lat(),
-            lng: event.latLng.lng()
+            lat: e.latlng.lat,
+            lng: e.latlng.lng
         };
-        const geocoder = new google.maps.Geocoder();
-        geocoder.geocode({ location: event.latLng }, (results, status) => {
-            if (status === "OK" && results[0]) {
-                const address = results[0].formatted_address;
-                const infowindow = new google.maps.InfoWindow({
-                    content: `Pinned Location<br>${address}<br>Lat: ${selectedCoordinates.lat.toFixed(6)}, Lng: ${selectedCoordinates.lng.toFixed(6)}`,
-                });
-                marker.addListener("click", () => {
-                    infowindow.open(map, marker);
-                });
-                infowindow.open(map, marker);
-                const addressInput = document.getElementById(getAddressInputId(currentPinButtonId));
-                if (addressInput) {
-                    addressInput.value = address;
-                }
-                const mapModal = document.getElementById('mapModal');
-                if (mapModal) {
-                    mapModal.classList.remove('show');
-                }
-            } else {
-                Swal.fire({
-                    icon: "error",
-                    title: "Geocoding Error",
-                    text: "Unable to retrieve address for the pinned location. Coordinates saved instead.",
-                });
-                const addressInput = document.getElementById(getAddressInputId(currentPinButtonId));
-                if (addressInput) {
-                    addressInput.value = `Lat: ${selectedCoordinates.lat.toFixed(6)}, Lng: ${selectedCoordinates.lng.toFixed(6)}`;
-                }
-                const mapModal = document.getElementById('mapModal');
-                if (mapModal) {
-                    mapModal.classList.remove('show');
-                }
+        try {
+            const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${e.latlng.lat}&lon=${e.latlng.lng}&zoom=18&addressdetails=1`);
+            const data = await response.json();
+            let address = data.display_name || `Lat: ${selectedCoordinates.lat.toFixed(6)}, Lng: ${selectedCoordinates.lng.toFixed(6)}`;
+            const popupContent = `Pinned Location<br>${address}<br>Lat: ${selectedCoordinates.lat.toFixed(6)}, Lng: ${selectedCoordinates.lng.toFixed(6)}`;
+            marker.bindPopup(popupContent).openPopup();
+            const addressInput = document.getElementById(getAddressInputId(currentPinButtonId));
+            if (addressInput) {
+                addressInput.value = address;
             }
-        });
-        map.setCenter(event.latLng);
-        map.setZoom(16);
-    });
-
-    const addressFields = [
-        'individualAddress',
-        'anonymousAddress',
-        'corporateAddress',
-        'foundationAddress'
-    ];
-    addressFields.forEach(fieldId => {
-        const input = document.getElementById(fieldId);
-        if (input) {
-            autocompletes[fieldId] = new google.maps.places.Autocomplete(input, {
-                types: ['(cities)'],
-                componentRestrictions: { country: 'ph' }
+            const mapModal = document.getElementById('mapModal');
+            if (mapModal) {
+                mapModal.classList.remove('show');
+            }
+        } catch (error) {
+            Swal.fire({
+                icon: "error",
+                title: "Geocoding Error",
+                text: "Unable to retrieve address for the pinned location. Coordinates saved instead.",
             });
-            autocompletes[fieldId].addListener('place_changed', () => {
-                const place = autocompletes[fieldId].getPlace();
-                if (place.geometry && place.geometry.location) {
-                    input.value = place.formatted_address;
-                    selectedCoordinates = {
-                        lat: place.geometry.location.lat(),
-                        lng: place.geometry.location.lng()
-                    };
-                }
-            });
+            const addressInput = document.getElementById(getAddressInputId(currentPinButtonId));
+            if (addressInput) {
+                addressInput.value = `Lat: ${selectedCoordinates.lat.toFixed(6)}, Lng: ${selectedCoordinates.lng.toFixed(6)}`;
+            }
+            const mapModal = document.getElementById('mapModal');
+            if (mapModal) {
+                mapModal.classList.remove('show');
+            }
         }
+        map.setView(e.latlng, 16);
     });
 
+    // Geolocation support (no changes needed)
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
             (position) => {
-                const userLocation = {
-                    lat: position.coords.latitude,
-                    lng: position.coords.longitude,
-                };
-                map.setCenter(userLocation);
-                map.setZoom(16);
-                const marker = new google.maps.Marker({
-                    position: userLocation,
-                    map: map,
-                    title: "You are here",
-                    icon: {
-                        url: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png",
-                    },
-                });
+                const userLocation = [position.coords.latitude, position.coords.longitude];
+                map.setView(userLocation, 16);
+                const marker = L.marker(userLocation, {
+                    icon: L.icon({
+                        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+                        iconSize: [25, 41],
+                        iconAnchor: [12, 41],
+                        popupAnchor: [1, -34]
+                    })
+                }).addTo(map);
                 markers.push(marker);
-                const infowindow = new google.maps.InfoWindow({
-                    content: "You are here",
-                });
-                marker.addListener("click", () => {
-                    infowindow.open(map, marker);
-                });
-                infowindow.open(map, marker);
+                marker.bindPopup('You are here').openPopup();
             },
             (error) => {
                 let errorMessage = "Unable to retrieve your location.";
@@ -202,7 +163,7 @@ function initMap() {
 }
 
 function clearMarkers() {
-    markers.forEach(marker => marker.setMap(null));
+    markers.forEach(marker => marker.remove());
     markers = [];
 }
 
@@ -786,34 +747,11 @@ document.addEventListener('DOMContentLoaded', () => {
             pinBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 currentPinButtonId = pinBtnId;
-                mapModal.classList.add('show');
+                document.getElementById('mapModal').classList.add('show');
                 if (!map) {
                     initMap();
                 } else {
-                    setTimeout(() => {
-                        if (map) {
-                            google.maps.event.trigger(map, 'resize');
-                            const addressInput = document.getElementById(pinButtons[pinBtnId]);
-                            if (addressInput && addressInput.value) {
-                                const geocoder = new google.maps.Geocoder();
-                                geocoder.geocode({ 'address': addressInput.value }, (results, status) => {
-                                    if (status === 'OK' && results[0]) {
-                                        map.setCenter(results[0].geometry.location);
-                                        clearMarkers();
-                                        const marker = new google.maps.Marker({
-                                            map: map,
-                                            position: results[0].geometry.location,
-                                            title: addressInput.value,
-                                        });
-                                        markers.push(marker);
-                                    }
-                                });
-                            } else {
-                                map.setCenter({ lat: 12.8797, lng: 121.7740 });
-                                map.setZoom(6);
-                            }
-                        }
-                    }, 100);
+                    map.invalidateSize();
                 }
             });
         }
