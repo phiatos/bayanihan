@@ -1308,7 +1308,7 @@ async function trackFloods() {
         const eventId = `flood_${province.name}_${roundedTimestamp}`;
         const exists = await calamityExists(eventId, "Flood Risk", province.name, time, '', rainfall);
         if (exists) {
-            console.log(`Skipping saving duplicate flood risk - Event ID: ${eventId}`);
+            console.log(`Skipping duplicate flood risk - Event ID: ${eventId}`);
             await addCalamityMarker("Flood Risk", province.name, { lat: province.lat, lng: province.lng }, details, eventId);
             return;
         }
@@ -1316,6 +1316,7 @@ async function trackFloods() {
         processedCalamities.add(eventId);
         processedCalamities.add(identifier);
         syncProcessedCalamities();
+        // Save to calamities node
         const calamityRef = database.ref("calamities").push();
         await calamityRef.set({
             type: "Flood Risk",
@@ -1328,8 +1329,12 @@ async function trackFloods() {
             identifier: identifier,
             timestamp: Date.now(),
         });
-        console.log(`Saved new flood risk - Event ID: ${eventId}, Location: ${province.name}, Identifier: ${identifier}`);
+        console.log(`Saved new flood risk to calamities - Event ID: ${eventId}, Location: ${province.name}`);
         await addCalamityMarker("Flood Risk", province.name, { lat: province.lat, lng: province.lng }, details, eventId);
+        // Trigger notification after saving to calamities
+        const warningLevel = rainfall >= 100 ? "Red Warning: Heavy Rain" :
+                           rainfall >= 50 ? "Orange Warning: Moderate Rain" : "Yellow Warning: Light Rain";
+        await generateLenlenAlert("Flood Risk", province.name, details, eventId, warningLevel, "OpenWeatherMap");
     }, 1000);
     provinces.forEach(province => addFloodMarker(province));
 }
@@ -2437,7 +2442,7 @@ function handleCalamityNotification(eventId) {
                   padding:8px 12px;border:none;border-radius:6px;
                   background:#2a9d8f;color:#fff;font-size:14px;font-weight:500;
                   cursor:pointer;transition:all 0.2s ease;">
-                  Show All ABVNs
+                  Show Nearest ABVNs
                 </button>
               </div>
             </div>
@@ -2459,13 +2464,13 @@ function handleCalamityNotification(eventId) {
         map.panTo([coordinates.lat, coordinates.lng]);
         map.setZoom(13);
 
-        // ✅ Attach the Show ABVNs click directly
+        // ✅ Attach the Show Nearest ABVNs click directly
         const attachButtonListener = () => {
           const btn = document.getElementById(`showAbvnBtn-${calKey}`);
           if (btn) {
-            console.log(`Attaching listener to Show ABVNs button for calamity ${calKey}`);
+            console.log(`Attaching listener to Show Nearest ABVNs button for calamity ${calKey}`);
             btn.addEventListener("click", async () => {
-              console.log(`Show ABVNs button clicked for calamity ${calKey}`);
+              console.log(`Show Nearest ABVNs button clicked for calamity ${calKey}`);
 
               try {
                 abvnMarkers.forEach(m => m.remove());
@@ -2473,7 +2478,6 @@ function handleCalamityNotification(eventId) {
 
                 const snapshot = await database.ref("volunteerGroups").once("value");
                 const volunteerGroups = snapshot.val() || {};
-                let abvnCount = 0;
                 let abvnData = [];
 
                 console.log(`Fetched ${Object.keys(volunteerGroups).length} volunteer groups`);
@@ -2513,18 +2517,17 @@ function handleCalamityNotification(eventId) {
                       lng: parseFloat(group.address.longitude)
                     };
                     const distance = haversineDistance(coordinates, abvnCoords).toFixed(1);
-                    abvnData.push({ group, distance, coords: abvnCoords });
+                    abvnData.push({ group, distance: parseFloat(distance), coords: abvnCoords, groupId });
 
                     const abvnMarker = L.marker([abvnCoords.lat, abvnCoords.lng], {
                       icon: abvnIcon,
                       title: `${group.organization} (${distance} km)`
                     }).addTo(map);
                     abvnMarkers.push(abvnMarker);
-                    abvnCount++;
 
-                    console.log(`Added marker for ${group.organization} at ${abvnCoords.lat}, ${abvnCoords.lng}`);
+                    console.log(`Added marker for ${group.organization} at ${abvnCoords.lat}, ${abvnCoords.lng} (distance: ${distance} km)`);
 
-                    // 🔹 On click, open Quick Activation modal
+                    // 🔹 Updated On Click: Handle already active with prompt
                     abvnMarker.on("click", async () => {
                       const actSnap = await database.ref("activations")
                         .orderByChild("groupId")
@@ -2534,16 +2537,40 @@ function handleCalamityNotification(eventId) {
                       const activeAct = Object.values(acts).find(a => a.status === "active");
 
                       if (activeAct) {
+                        // Show already active and prompt for another activation
                         Swal.fire({
-                          icon: "success",
-                          title: `${group.organization} already active`,
+                          icon: "info",
+                          title: `${group.organization} Already Active`,
                           html: `
-                            <b>Status:</b> Active<br>
-                            <b>Area:</b> ${activeAct.areaOfOperation}<br>
-                            <b>Activated:</b> ${new Date(activeAct.activationDate).toLocaleString()}
-                          `
+                            <div style="font-size:14px;color:#333;line-height:1.4;text-align:left;">
+                              <b>Status:</b> Active<br>
+                              <b>Area:</b> ${activeAct.areaOfOperation}<br>
+                              <b>Activated:</b> ${new Date(activeAct.activationDate).toLocaleString()}
+                            </div>
+                          `,
+                          text: "Do you want to add another activation?",
+                          showCancelButton: true,
+                          confirmButtonText: "Yes, Add Another",
+                          cancelButtonText: "No",
+                          confirmButtonColor: "#855ecd",
+                          cancelButtonColor: "#6c757d",
+                          customClass: {
+                            title: 'swal-title',
+                            htmlContainer: 'swal-html',
+                            confirmButton: 'swal-confirm',
+                            cancelButton: 'swal-cancel'
+                          }
+                        }).then((result) => {
+                          if (result.isConfirmed) {
+                            openQuickActivation(
+                              { ...group, id: groupId, coords: abvnCoords },
+                              calamity,
+                              abvnMarker
+                            );
+                          }
                         });
                       } else {
+                        // Directly open quick activation for inactive
                         openQuickActivation(
                           { ...group, id: groupId, coords: abvnCoords },
                           calamity,
@@ -2554,21 +2581,36 @@ function handleCalamityNotification(eventId) {
                   }
                 });
 
-                abvnData.sort((a, b) => a.distance - b.distance);
-                const nearestSuggestion = abvnData.length > 0 ? abvnData[0].group.organization : "No groups available";
-                const suggestionText = abvnData.length > 0
-                  ? `Suggestion: ${nearestSuggestion} is the nearest (${abvnData[0].distance} km).`
-                  : "No suggestions available";
-
-                Swal.fire({
-                  icon: "info",
-                  title: "All ABVNs Located",
-                  html: `Here are ${abvnCount} ABVN groups.<br><br>${suggestionText}`
-                });
-
-                if (abvnCount === 0) {
+                if (abvnData.length === 0) {
+                  console.log('No ABVN groups found');
                   map.panTo([coordinates.lat, coordinates.lng]);
                   map.setZoom(13);
+                  return;
+                }
+
+                // Sort by distance (ascending)
+                abvnData.sort((a, b) => a.distance - b.distance);
+                console.log('Sorted ABVN data:', abvnData.map(d => ({ org: d.group.organization, dist: d.distance })));
+
+                // Navigate to nearest: flyTo for smooth animation, zoom 12
+                const nearest = abvnData[0];
+                console.log(`Navigating to nearest ABVN: ${nearest.group.organization} at (${nearest.coords.lat}, ${nearest.coords.lng}), distance: ${nearest.distance} km`);
+
+                map.flyTo([nearest.coords.lat, nearest.coords.lng], 12, {
+                  duration: 1.5  // Smooth animation over 1.5 seconds
+                });
+
+                // Find the nearest marker and open its popup
+                const nearestMarker = abvnMarkers.find(m => 
+                  m.getLatLng().lat === nearest.coords.lat && m.getLatLng().lng === nearest.coords.lng
+                );
+                if (nearestMarker) {
+                  setTimeout(() => {
+                    nearestMarker.openPopup();
+                    console.log('Opened popup for nearest ABVN');
+                  }, 1600);  // Delay slightly longer than flyTo duration
+                } else {
+                  console.warn('Nearest marker not found');
                 }
 
               } catch (error) {
@@ -2581,7 +2623,7 @@ function handleCalamityNotification(eventId) {
               }
             });
           } else {
-            console.warn(`Show ABVNs button not found for calamity ${calKey}, retrying...`);
+            console.warn(`Show Nearest ABVNs button not found for calamity ${calKey}, retrying...`);
             setTimeout(attachButtonListener, 500); // Retry after 500ms
           }
         };

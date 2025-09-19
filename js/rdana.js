@@ -684,6 +684,23 @@ document.querySelectorAll("[id^='backBtn']").forEach(btn => {
         const ref = database.ref("rdana/submitted");
         await ref.push(submission);
 
+        // ✅ Notify admin after submission
+        try {
+          const message = `New RDANA report (${rdanaId}) submitted by ${currentUserGroupName || user.email || user.uid} on ${new Date().toLocaleString()}.`;
+          await notifyAdmin(
+            message,
+            reportData.profile?.disasterType || null,
+            [reportData.profile?.province, reportData.profile?.city, reportData.profile?.barangay].filter(Boolean).join(', ') || null,
+            reportData.profile?.summary || null,
+            rdanaId,
+            currentUserGroupName || user.displayName || user.email || user.uid,
+            currentUserGroupName || user.displayName || user.email || user.uid
+          );
+        } catch (notifyErr) {
+          console.error("notifyAdmin error (non-fatal):", notifyErr);
+        }
+
+
         Swal.fire({
           icon: "success",
           title: "Report Submitted",
