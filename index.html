@@ -6,33 +6,31 @@
   <link rel="stylesheet" href="./index.css" />
   <link rel="icon" href="./assets/images/logox192.png" />
   <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
-
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <!-- Firebase Compat SDK -->
   <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-
   <script src="./js/navbar.js"></script>
   <!-- SweetAlert2 -->
   <script defer src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <title> Bayanihan | Angat Buhay Disaster Relief Portal</title>
+  <!-- Leaflet JS -->
+  <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <title>Bayanihan | Angat Buhay Disaster Relief Portal</title>
 </head>
 <body class="no-header-line">
-
   <script defer src="./index.js"></script>
-  <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAAAu6BeQjIZ7H7beFbAsPWuKuORmh0wrk&libraries=places,marker"></script>
 
   <header class="navbar">
     <div class="navbar-container">
       <div class="logo">
         <img src="./assets/images/AB_logo.png" alt="Angat Buhay Logo" />
       </div>
-
-       <!-- Hamburger -->
+      <!-- Hamburger -->
       <button class="hamburger" aria-label="Toggle Menu">
         ☰
       </button>
-
       <nav>
         <ul class="nav-links">
           <li><a href="./index.html" class="active">Home</a></li>
@@ -46,14 +44,13 @@
     </div>
   </header>
 
-
   <!-- Hero Section -->
   <section class="hero">
     <div class="hero-image-wrapper">
       <img src="./assets/images/launchpage-bg.png" alt="Angat Buhay Background" />
       <div class="hero-text">
         <p>
-          <strong> Angat Pinas, Inc., </strong> commonly known as <strong>Angat Buhay</strong>, is a Filipino non-profit organization that aims to empower Filipinos to become communities of active citizens by mobilizing the largest volunteer network in implementing Bayanihan programs.
+          <strong>Angat Pinas, Inc.,</strong> commonly known as <strong>Angat Buhay</strong>, is a Filipino non-profit organization that aims to empower Filipinos to become communities of active citizens by mobilizing the largest volunteer network in implementing Bayanihan programs.
         </p>
       </div>
     </div>
@@ -68,8 +65,7 @@
       </p>
     </div>
 
-
-   <div class="map-controls">
+    <div class="map-controls">
       <label for="regionFilter">Select Region:</label>
       <select id="regionFilter">
         <option value="all">All</option>
@@ -84,55 +80,43 @@
     </div>
 
     <div class="metrics-container">
-    <p class="operation-updates">As of <span id="latest-update-date">Loading...</span></p>
-
-
+      <p class="operation-updates">As of <span id="latest-update-date">Loading...</span></p>
       <div class="row">
         <div class="metric-card" tabindex="0" data-description="Total number of Evacuees Assisted">
           <h3><i class='bx bxs-group' aria-hidden="true"></i> No. of Evacuees</h3>
           <p id="evacuees" aria-live="polite" aria-atomic="true">0</p>
         </div>
-
         <div class="metric-card" tabindex="0" data-description="Total number of food packs distributed to families">
           <h3><i class='bx bxs-box' aria-hidden="true"></i> No. of Food Packs</h3>
           <p id="food-packs" aria-live="polite" aria-atomic="true">0</p>
         </div>
-
         <div class="metric-card" tabindex="0" data-description="Total number of hot meals served">      
           <h3><i class='bx bxs-bowl-hot' aria-hidden="true"></i> No. of Hot Meals</h3>       
           <p id="hot-meals" aria-live="polite" aria-atomic="true">0</p>   
         </div>
-    
         <div class="metric-card" tabindex="0" data-description="Total liters of clean water provided">
           <h3><i class='bx bxs-droplet' aria-hidden="true"></i> Liters of Water</h3>         
           <p id="water-liters" aria-live="polite" aria-atomic="true">0</p>
         </div>
       </div>
-      
       <div class="row center-row">  
         <div class="metric-card" tabindex="0" data-description="Number of volunteers mobilized for the relief efforts">
           <h3><i class='bx bxs-group' aria-hidden="true"></i> Volunteers Mobilized</h3>
           <p id="volunteers" aria-live="polite" aria-atomic="true">0</p>      
         </div>
-                
         <div class="metric-card" tabindex="0" data-description="Total monetary donations raised in Philippine Pesos">   
           <h3><i class='bx bxs-bank' aria-hidden="true"></i> Monetary Donations</h3>   
           <p id="amount-raised" aria-live="polite" aria-atomic="true">₱0</p>      
         </div>
-                
         <div class="metric-card" tabindex="0" data-description="Total estimated value of in-kind donations received">            
           <h3><i class='bx bxs-package' aria-hidden="true"></i> In-Kind Donations</h3>
           <p id="inkind-donations" aria-live="polite" aria-atomic="true">₱0</p>       
         </div>
-
-        <!--Tentative Metric Card-->
         <div class="metric-card" tabindex="0" data-description="Tentative Metric Card Description">            
           <h3><i class='bx bxs-package' aria-hidden="true"></i> Tentative</h3>
           <p id="tentative" aria-live="polite" aria-atomic="true">N/A</p>       
         </div>
-
       </div>  
-            
     </div>
   </section>
 
@@ -142,17 +126,4 @@
       <p>© 2025 Bayanihan | Angat Pinas Inc. All rights reserved. | Powered by Appvance</p>
     </div>
   </footer>
-
-<script>
-  console.log = function () {};
-console.error = function () {};
-console.warn = function () {};
-  const hamburger = document.querySelector('.hamburger');
-  const navLinks = document.querySelector('.nav-links');
-
-  hamburger.addEventListener('click', () => {
-    navLinks.classList.toggle('show');
-  });
-</script>
-</body>
 </html>
