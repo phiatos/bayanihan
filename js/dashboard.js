@@ -1,4 +1,15 @@
 // dashboard.js
+
+// --- AUTO REMOVE OLD SORT DROPDOWNS (added) ---
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('select').forEach(s => {
+    if (s && s.id !== 'mapFilter' && !s.closest('#map-sort-filter')) {
+      s.remove();
+    }
+  });
+});
+// --- END AUTO REMOVE ---
+
 const tabContent = document.getElementById("tab-content");
 const dashboardContainer = document.getElementById("dashboard-container");
 
@@ -153,6 +164,8 @@ console.warn = function () {};
 
 let map, markers = [], geocoder, autocomplete, reportsListener, userRole, userEmail, userUid, currentInfoWindow, singleInfoWindow, isInfoWindowClicked = false;
 let calamityMarkers = [], calamityListener, notificationsListener;
+// NEW: For map sorting/filtering
+let hqMarkers = [], activatedMarkers = [], currentFilter = 'ALL';
 // Session lock to prevent multiple executions
 const SESSION_KEY = 'dashboard_initialized';
 const CALAMITY_TRACKING_KEY = 'calamity_tracking_lock';
@@ -434,6 +447,66 @@ const mapDiv = document.getElementById("map");
 if (notifDot && !notifDot.querySelector("#notifBadge")) {
     notifDot.appendChild(notifBadge);
 }
+// NEW: Map Sort Filter UI
+// ------------------------------------------------------------------
+// Single Map Sort Filter: creates one floating control, hides duplicate page selects,
+// supports: ALL, Calamities, ABVN HQs, Activated ABVNs, Weather
+// ------------------------------------------------------------------
+function createMapSortFilter() {
+    try {
+        if (!mapDiv) return;
+        // If we already added the floating filter, just sync value and return
+        const existing = document.getElementById('map-sort-filter');
+        if (existing) {
+            const sel = document.getElementById('mapFilter');
+            if (sel) sel.value = currentFilter || 'ALL';
+            return;
+        }
+
+        // Hide other page selects that seem to be map-sorts to avoid duplicates
+        const keywords = ['ALL','All','Calamities','ABVN HQs','Activated ABVNs','Weather'];
+        document.querySelectorAll('select').forEach(s => {
+            try {
+                const opts = Array.from(s.options).map(o => (o.value || o.text || o.textContent).toString().trim());
+                if (keywords.some(k => opts.includes(k))) {
+                    // hide duplicate controls (user requested removal)
+                    s.style.display = 'none';
+                }
+            } catch(e) {
+                // ignore
+            }
+        });
+
+        // Build floating container
+        const container = document.createElement('div');
+        container.id = 'map-sort-filter';
+        container.style.cssText = 'position:absolute;top:10px;left:10px;z-index:1000;background:#fff;padding:8px;border-radius:6px;box-shadow:0 2px 5px rgba(0,0,0,0.2);';
+        container.innerHTML = `
+            <label for="mapFilter" style="font-weight:600;margin-right:8px;">Map View:</label>
+            <select id="mapFilter" aria-label="Map View">
+                <option value="ALL">ALL</option>
+                <option value="Calamities">Calamities</option>
+                <option value="ABVN HQs">ABVN HQs</option>
+                <option value="Activated ABVNs">Activated ABVNs</option>
+                <option value="Weather">Weather</option>
+            </select>
+        `;
+        mapDiv.appendChild(container);
+
+        const filter = document.getElementById('mapFilter');
+        filter.value = currentFilter || 'ALL';
+
+        filter.addEventListener('change', (e) => {
+            let val = e.target.value;
+            if (val === 'All') val = 'ALL';
+            currentFilter = val;
+            applyMapFilter();
+        });
+    } catch (err) {
+        console.error('createMapSortFilter error:', err);
+    }
+}
+
 // Initialize dashboard with session lock
 window.initializeDashboard = function () {
     return new Promise((resolve, reject) => {
@@ -494,17 +567,21 @@ window.initializeDashboard = function () {
                     return reject("Map initialization failed");
                 }
 
+                // NEW: Create filter UI after map init
+                createMapSortFilter();
+
                 addWeatherDataForProvinces();
                 trackCalamities();
+                loadABVNHQs(); // NEW: Load HQ markers
+                loadActivatedABVNs(); // NEW: Load activated markers
                 setupAdminNotifications();
                 fetchReports();
                 fetchApprovedReports();
                 
                 if (userRole === "ABVN") {
-                    map.setOptions({
-                        disableDefaultUI: true,
-                        draggable: false,
-                    });
+                    map.options.zoomControl = false;
+                    map.options.scrollwheel = false;
+                    map.options.dragging = false;
                 }
 
                 cleanDuplicateCalamities();
@@ -525,6 +602,170 @@ window.initializeDashboard = function () {
         });
     });
 };
+
+// NEW: Function to load and add ABVN HQ markers
+async function loadABVNHQs() {
+    try {
+        const snapshot = await database.ref("volunteerGroups").once("value");
+        const groups = snapshot.val() || {};
+        hqMarkers.forEach(marker => marker.remove());
+        hqMarkers = [];
+        Object.entries(groups).forEach(([groupId, group]) => {
+            if (group.address?.latitude && group.address?.longitude) {
+                const coords = { lat: parseFloat(group.address.latitude), lng: parseFloat(group.address.longitude) };
+                const hqIcon = L.divIcon({
+                    html: `
+                        <svg width="40" height="50" viewBox="0 0 40 50" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M20 0 L28 15 L20 10 L12 15 Z" fill="#007bff" stroke="#ffffff" stroke-width="2"/>
+                            <circle cx="20" cy="20" r="12" fill="#007bff" stroke="#ffffff" stroke-width="2"/>
+                            <text x="20" y="22" font-size="16" text-anchor="middle" fill="#ffffff">HQ</text>
+                        </svg>
+                    `,
+                    className: 'custom-marker',
+                    iconSize: [40, 50],
+                    iconAnchor: [20, 50]
+                });
+                const marker = L.marker([coords.lat, coords.lng], { icon: hqIcon }).addTo(map);
+                hqMarkers.push(marker);
+
+                // HQ Info Popup
+                const hqInfo = `
+                    <div style="font-size: 14px;">
+                        <b>${group.organization || 'ABVN HQ'}</b><br>
+                        Address: ${group.address.formattedAddress || 'N/A'}<br>
+                        Contact: ${group.contact || 'N/A'}<br>
+                        Members: ${group.members || 0}
+                    </div>
+                `;
+                marker.bindPopup(hqInfo);
+                marker.on('click', () => {
+                    if (currentInfoWindow) currentInfoWindow.closePopup();
+                    marker.openPopup();
+                    currentInfoWindow = marker;
+                });
+            }
+        });
+        applyMapFilter(); // Apply current filter after loading
+    } catch (error) {
+        console.error("Error loading ABVN HQs:", error);
+    }
+}
+
+// NEW: Function to load and add Activated ABVN markers (with relief data)
+async function loadActivatedABVNs() {
+    try {
+        const snapshot = await database.ref("activations").orderByChild("status").equalTo("active").once("value");
+        const activations = snapshot.val() || {};
+        activatedMarkers.forEach(marker => marker.remove());
+        activatedMarkers = [];
+        Object.entries(activations).forEach(([actId, act]) => {
+            if (act.latitude && act.longitude) {
+                const coords = { lat: parseFloat(act.latitude), lng: parseFloat(act.longitude) };
+                const actIcon = L.divIcon({
+                    html: `
+                        <svg width="50" height="60" viewBox="0 0 50 60" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M25 0 L35 20 L25 15 L15 20 Z" fill="#28a745" stroke="#ffffff" stroke-width="2"/>
+                            <circle cx="25" cy="25" r="15" fill="#28a745" stroke="#ffffff" stroke-width="2"/>
+                            <text x="25" y="30" font-size="20" text-anchor="middle" fill="#ffffff">✓</text>
+                            <circle cx="25" cy="25" r="15" fill="none" stroke="#28a745" stroke-width="3" opacity="0.8">
+                                <animate attributeName="r" values="15;20;15" dur="2s" repeatCount="indefinite"/>
+                            </circle>
+                        </svg>
+                    `,
+                    className: 'custom-marker',
+                    iconSize: [50, 60],
+                    iconAnchor: [25, 60]
+                });
+                const marker = L.marker([coords.lat, coords.lng], { icon: actIcon }).addTo(map);
+                activatedMarkers.push(marker);
+
+                // Relief Operation Data Popup (calamity-like flow)
+                const reliefInfo = `
+                    <div style="font-family:'Segoe UI',sans-serif;width:260px;border-radius:12px;background:#fff;box-shadow:0 4px 14px rgba(0,0,0,0.25);overflow:hidden;">
+                        <div style="background:#28a745;color:#fff;padding:10px 14px;font-size:16px;font-weight:600;">
+                            ✅ Activated ABVN: ${act.organization || 'ABVN'}
+                        </div>
+                        <div style="padding:12px;color:#333;font-size:14px;line-height:1.4;">
+                            <b>📍 Area:</b> ${act.areaOfOperation || 'N/A'}<br>
+                            <b>Calamity:</b> ${act.calamityType || 'N/A'} - ${act.calamityName || 'N/A'}<br>
+                            <b>HQ:</b> ${act.hq || 'N/A'}<br>
+                            <b>Activated:</b> ${new Date(act.activationDate).toLocaleString()}
+                        </div>
+                        <div style="padding:10px;border-top:1px solid #eee;text-align:center;">
+                            <button id="deactivateBtn-${actId}" style="padding:8px 12px;border:none;border-radius:6px;background:#dc3545;color:#fff;font-size:14px;font-weight:500;cursor:pointer;transition:all 0.2s ease;">Deactivate</button>
+                        </div>
+                    </div>
+                `;
+                marker.bindPopup(reliefInfo);
+                marker.on('click', () => {
+                    if (currentInfoWindow) currentInfoWindow.closePopup();
+                    marker.openPopup();
+                    currentInfoWindow = marker;
+
+                    // Attach deactivate button listener
+                    setTimeout(() => {
+                        const btn = document.getElementById(`deactivateBtn-${actId}`);
+                        if (btn) {
+                            btn.addEventListener('click', async () => {
+                                if (confirm(`Deactivate ${act.organization}?`)) {
+                                    await database.ref(`activations/${actId}/status`).set('inactive');
+                                    marker.remove();
+                                    activatedMarkers = activatedMarkers.filter(m => m !== marker);
+                                    Swal.fire('Deactivated', 'ABVN deactivated successfully.', 'success');
+                                }
+                            });
+                        }
+                    }, 100);
+                });
+            }
+        });
+        applyMapFilter(); // Apply current filter after loading
+    } catch (error) {
+        console.error("Error loading activated ABVNs:", error);
+    }
+}
+
+// UPDATED: Apply filter to show/hide marker layers (now properly hides weather markers except for ALL)
+function applyMapFilter() {
+    try {
+        if (!map) return;
+        // Remove/hide all markers first
+        try { markers.forEach(m => m.remove()); } catch(e) {}
+        try { calamityMarkers.forEach(m => m.remove()); } catch(e) {}
+        try { hqMarkers.forEach(m => m.remove()); } catch(e) {}
+        try { activatedMarkers.forEach(m => m.remove()); } catch(e) {}
+
+        switch (currentFilter) {
+            case 'ALL':
+                try { markers.forEach(m => m.addTo(map)); } catch(e) {}
+                try { calamityMarkers.forEach(m => m.addTo(map)); } catch(e) {}
+                try { hqMarkers.forEach(m => m.addTo(map)); } catch(e) {}
+                try { activatedMarkers.forEach(m => m.addTo(map)); } catch(e) {}
+                break;
+            case 'Calamities':
+                try { calamityMarkers.forEach(m => m.addTo(map)); } catch(e) {}
+                break;
+            case 'ABVN HQs':
+                try { hqMarkers.forEach(m => m.addTo(map)); } catch(e) {}
+                break;
+            case 'Activated ABVNs':
+                try { activatedMarkers.forEach(m => m.addTo(map)); } catch(e) {}
+                break;
+            case 'Weather':
+                try { markers.forEach(m => m.addTo(map)); } catch(e) {}
+                break;
+            default:
+                try { markers.forEach(m => m.addTo(map)); } catch(e) {}
+                try { calamityMarkers.forEach(m => m.addTo(map)); } catch(e) {}
+                try { hqMarkers.forEach(m => m.addTo(map)); } catch(e) {}
+                try { activatedMarkers.forEach(m => m.addTo(map)); } catch(e) {}
+        }
+        console.log(`Applied filter: ${currentFilter}`);
+    } catch (err) {
+        console.error('applyMapFilter error:', err);
+    }
+}
+
 
 // Initialize processed sets from database
 async function initializeProcessedSets() {
@@ -568,37 +809,28 @@ function initializeMap() {
             });
             return;
         }
-        const defaultLocation = { lat: 14.5995, lng: 120.9842 };
-        if (!window.google || !window.google.maps) {
-            console.error("Google Maps API not loaded");
-            Swal.fire({
-                icon: "error",
-                title: "Map Error",
-                text: "Google Maps API failed to load. Check your API key or internet connection.",
-            });
-            return;
+        const defaultLocation = [14.5995, 120.9842];
+        if (map) {
+            map.remove();
         }
-        if (!map || mapDiv !== map.getDiv()) {
-            map = new google.maps.Map(mapDiv, {
-                center: defaultLocation,
-                zoom: 6,
-                minZoom: 5, // prevent zooming out too far
-                maxZoom: 18, // optional: prevents excessive zoom-in
-                mapTypeId: "roadmap",
-                restriction: {
-                    latLngBounds: {
-                        north: 21.1209,  // Batanes (North)
-                        south: 4.225,    // Tawi-Tawi (South)
-                        west: 116.93,    // Palawan (West)
-                        east: 126.60     // Philippine Sea (East)
-                    },
-                    strictBounds: true
-                }
-            });
+        map = L.map('map', {
+            center: defaultLocation,
+            zoom: 6,
+            minZoom: 5,
+            maxZoom: 18,
+            maxBounds: [
+                [4.225, 116.93],
+                [21.1209, 126.60]
+            ],
+            maxBoundsViscosity: 1.0
+        });
 
-            console.log("Map initialized successfully with Google Maps and locked to the Philippines");
-        }
-        geocoder = new google.maps.Geocoder();
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        console.log("Map initialized successfully with Leaflet and locked to the Philippines");
+
         if (!searchInput) {
             console.error("Search input not found");
             Swal.fire({
@@ -608,39 +840,61 @@ function initializeMap() {
             });
             return;
         }
-        autocomplete = new google.maps.places.Autocomplete(searchInput, {
-            componentRestrictions: { country: "PH" },
-            types: ["geocode"],
-        });
-        autocomplete.bindTo("bounds", map);
-        autocomplete.addListener("place_changed", () => {
-            const place = autocomplete.getPlace();
-            if (!place.geometry || !place.geometry.location) {
-                console.log("No valid location selected from autocomplete.");
-                Swal.fire({
-                    icon: "error",
-                    title: "Location Not Found",
-                    text: "Please select a valid location from the dropdown.",
-                });
-                return;
+
+        // Search on enter or button click
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                performSearch(searchInput.value);
             }
-            map.setCenter(place.geometry.location);
-            map.setZoom(12);
-            console.log("Map centered on:", place.geometry.location.toString());
         });
-        google.maps.event.trigger(map, "resize");
-        console.log("Map resize event triggered");
-        singleInfoWindow = new google.maps.InfoWindow();
-        map.addListener("click", (event) => {
-            showWeatherInfoWindow(event.latLng.lat(), event.latLng.lng());
+
+        const searchIcon = document.querySelector('.search-icon');
+        if (searchIcon) {
+            searchIcon.addEventListener('click', () => {
+                performSearch(searchInput.value);
+            });
+        }
+
+        // Map click listener
+        map.on('click', function(e) {
+            showWeatherInfoWindow(e.latlng.lat, e.latlng.lng);
         });
+
+        singleInfoWindow = L.popup();
         updateRainWarningOverlay();
     } catch (error) {
-        console.error("Failed to initialize Google Maps:", error);
+        console.error("Failed to initialize Leaflet Map:", error);
         Swal.fire({
             icon: "error",
             title: "Map Error",
-            text: "Failed to load the map. Check your internet connection or API key.",
+            text: "Failed to load the map. Check your internet connection.",
+        });
+    }
+}
+
+async function performSearch(query) {
+    if (!query) return;
+    try {
+        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=ph&limit=1`);
+        const data = await response.json();
+        if (data.length > 0) {
+            const result = data[0];
+            map.panTo([parseFloat(result.lat), parseFloat(result.lon)]);
+            map.setZoom(12);
+            console.log("Map centered on:", result.display_name);
+        } else {
+            Swal.fire({
+                icon: "error",
+                title: "Location Not Found",
+                text: "No results found for the search query.",
+            });
+        }
+    } catch (error) {
+        console.error("Search error:", error);
+        Swal.fire({
+            icon: "error",
+            title: "Search Error",
+            text: "Failed to perform search.",
         });
     }
 }
@@ -704,7 +958,7 @@ function addWeatherDataForProvinces() {
         console.error("Map not initialized, cannot add weather data for provinces.");
         return;
     }
-    markers.forEach(marker => marker.setMap(null));
+    markers.forEach(marker => marker.remove());
     markers = [];
     const addWeatherMarker = async (province) => {
         console.log(`Fetching weather for ${province.name}`);
@@ -745,7 +999,7 @@ function addWeatherDataForProvinces() {
             }
 
             // Generate rainfall alerts using new function
-generateRainAlert(province, rainfall, pop);
+// generateRainAlert(province, rainfall, pop);
 
       // Generate alerts for high rainfall (legacy fallback)
             if (rainfall > 0) {
@@ -775,15 +1029,16 @@ generateRainAlert(province, rainfall, pop);
                     <text x="20" y="22" font-size="20" text-anchor="middle" fill="#FFFFFF">${icon}</text>
                 </svg>
             `;
-            const marker = new google.maps.Marker({
-                position: { lat: province.lat, lng: province.lng },
-                map: map,
-                icon: {
-                    url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(markerSvg)}`,
-                    scaledSize: new google.maps.Size(40, 40),
-                },
-                title: province.name,
+            const markerIcon = L.divIcon({
+                html: markerSvg,
+                className: 'custom-marker',
+                iconSize: [40, 40],
+                iconAnchor: [20, 20]
             });
+            const marker = L.marker([province.lat, province.lng], {
+                icon: markerIcon,
+                title: province.name
+            }).addTo(map);
             markers.push(marker);
 
             // Original weather info display (no Chance of Rain)
@@ -798,21 +1053,22 @@ generateRainAlert(province, rainfall, pop);
                     Rainfall (3h): ${rainfall} mm
                 </div>
             `;
-            const infoWindow = new google.maps.InfoWindow({
-                content: weatherInfo,
+            const popup = L.popup({
+                content: weatherInfo
             });
-            marker.addListener("click", () => {
-                if (currentInfoWindow) singleInfoWindow.close();
+            marker.on("click", () => {
+                if (currentInfoWindow) singleInfoWindow.closePopup();
                 singleInfoWindow.setContent(weatherInfo);
-                singleInfoWindow.open(map, marker);
+                singleInfoWindow.setLatLng([province.lat, province.lng]);
+                singleInfoWindow.openOn(map);
                 currentInfoWindow = marker;
                 isInfoWindowClicked = true;
-                console.log(`Weather InfoWindow opened for ${province.name}`);
+                console.log(`Weather Popup opened for ${province.name}`);
             });
-            singleInfoWindow?.addListener("closeclick", () => {
+            singleInfoWindow.on("remove", () => {
                 isInfoWindowClicked = false;
                 currentInfoWindow = null;
-                console.log(`Weather InfoWindow closed for ${province.name}`);
+                console.log(`Weather Popup closed for ${province.name}`);
             });
         } catch (error) {
             console.error(`Error fetching weather data for ${province.name}:`, error);
@@ -822,19 +1078,21 @@ generateRainAlert(province, rainfall, pop);
                     <text x="20" y="22" font-size="20" text-anchor="middle" fill="#FFFFFF">☁️</text>
                 </svg>
             `;
-            const marker = new google.maps.Marker({
-                position: { lat: province.lat, lng: province.lng },
-                map: map,
-                icon: {
-                    url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(defaultMarkerSvg)}`,
-                    scaledSize: new google.maps.Size(40, 40),
-                },
-                title: `${province.name} (Data Unavailable)`,
+            const defaultIcon = L.divIcon({
+                html: defaultMarkerSvg,
+                className: 'custom-marker',
+                iconSize: [40, 40],
+                iconAnchor: [20, 20]
             });
+            const marker = L.marker([province.lat, province.lng], {
+                icon: defaultIcon,
+                title: `${province.name} (Data Unavailable)`
+            }).addTo(map);
             markers.push(marker);
         }
     };
     provinces.forEach(province => addWeatherMarker(province));
+    applyMapFilter(); // Apply filter after adding weather markers
 }
 // Track all calamities
 function trackCalamities() {
@@ -854,7 +1112,7 @@ function trackCalamities() {
     console.log("Starting calamity tracking at", new Date().toISOString());
     sessionStorage.setItem(CALAMITY_TRACKING_KEY, 'true');
     sessionStorage.setItem(SESSION_TIMESTAMP_KEY, currentTime.toString());
-    calamityMarkers.forEach(marker => marker.setMap(null));
+    calamityMarkers.forEach(marker => marker.remove());
     calamityMarkers = [];
     if (calamityListener) {
         calamityListener.off();
@@ -877,12 +1135,13 @@ async function loadExistingCalamities() {
             console.log("No existing calamities to load.");
             return;
         }
-        calamityMarkers.forEach(marker => marker.setMap(null));
+        calamityMarkers.forEach(marker => marker.remove());
         calamityMarkers = [];
         for (const calamity of Object.values(calamities)) {
             if (!calamity.coordinates) continue;
             await addCalamityMarker(calamity.type, calamity.location, calamity.coordinates, calamity.details, calamity.eventId);
         }
+        applyMapFilter(); // NEW: Apply filter after loading
         console.log("Loaded existing calamities and added markers.");
     } catch (error) {
         console.error("Error loading existing calamities:", error);
@@ -1020,6 +1279,7 @@ async function processEarthquakeData(data) {
         console.log(`Saved new earthquake - Event ID: ${eventId}, Location: ${place}, Identifier: ${identifier}`);
         await addCalamityMarker("Earthquake", place, { lat: coords[1], lng: coords[0] }, details, eventId);
     }
+    applyMapFilter(); // NEW: Re-apply filter after adding new markers
 }
 // Track floods
 async function trackFloods() {
@@ -1124,6 +1384,7 @@ async function trackTyphoons() {
         syncProcessedCalamities();
         await addCalamityMarker("Typhoon", typhoon.location, typhoon.coordinates, typhoon.details, eventId);
     }
+    applyMapFilter();
 }
 // Track volcanic eruptions
 async function trackVolcanicEruptions() {
@@ -1147,6 +1408,7 @@ async function trackVolcanicEruptions() {
         syncProcessedCalamities();
         await addCalamityMarker("Volcanic Eruption", eruption.location, eruption.coordinates, eruption.details, eventId);
     }
+    applyMapFilter();
 }
 // Track landslides
 async function trackLandslides() {
@@ -1227,6 +1489,7 @@ async function trackTsunamis() {
         syncProcessedCalamities();
         await addCalamityMarker("Tsunami", tsunami.location, tsunami.coordinates, tsunami.details, eventId);
     }
+    applyMapFilter();
 }
 // Check for duplicate notification
 async function hasRecentNotification(eventId, type, location, time, magnitude = '', rainfall = '') {
@@ -1271,15 +1534,14 @@ async function hasRecentNotification(eventId, type, location, time, magnitude = 
 }
 // Reverse geocode to get location name
 async function getLocationName(lat, lng) {
-    return new Promise((resolve) => {
-        geocoder.geocode({ location: { lat, lng } }, (results, status) => {
-            if (status === google.maps.GeocoderStatus.OK && results[0]) {
-                resolve(results[0].formatted_address);
-            } else {
-                resolve(`(${lat.toFixed(2)}, ${lng.toFixed(2)})`);
-            }
-        });
-    });
+    try {
+        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`);
+        const data = await response.json();
+        return data.display_name || `(${lat.toFixed(2)}, ${lng.toFixed(2)})`;
+    } catch (error) {
+        console.error("Reverse geocode error:", error);
+        return `(${lat.toFixed(2)}, ${lng.toFixed(2)})`;
+    }
 }
 // Calamity marker with fun design and interactivity
 async function addCalamityMarker(type, location, coordinates, details, eventId) {
@@ -1298,7 +1560,7 @@ async function addCalamityMarker(type, location, coordinates, details, eventId) 
     const twelveHoursInMs = 12 * 60 * 60 * 1000; // 43200000 ms
 
     // Remove all existing markers temporarily
-    calamityMarkers.forEach(({ marker }) => marker.setMap(null));
+    calamityMarkers.forEach(({ marker }) => marker.remove());
     calamityMarkers = [];
 
     // Add new marker only if recent (within 12 hours)
@@ -1332,21 +1594,22 @@ async function addCalamityMarker(type, location, coordinates, details, eventId) 
             }
         `;
         document.head.appendChild(style);
-        const marker = new google.maps.Marker({
-            position: { lat: offsetLat, lng: coordinates.lng },
-            map: map,
-            title: `${type} in ${location}`,
-            icon: {
-                url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
-                    <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="20" cy="20" r="18" fill="rgba(255, 255, 255, 0.7)" stroke="#000" stroke-width="2"/>
-                        <text x="20" y="22" font-size="20" text-anchor="middle" fill="#000000">${icons[type] || "⚠️"}</text>
-                    </svg>
-                `)}`,
-                scaledSize: new google.maps.Size(40, 40),
-            },
-            zIndex: 1000,
+        const markerSvg = `
+            <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="20" cy="20" r="18" fill="rgba(255, 255, 255, 0.7)" stroke="#000" stroke-width="2"/>
+                <text x="20" y="22" font-size="20" text-anchor="middle" fill="#000000">${icons[type] || "⚠️"}</text>
+            </svg>
+        `;
+        const markerIcon = L.divIcon({
+            html: markerSvg,
+            className: 'custom-marker',
+            iconSize: [40, 40],
+            iconAnchor: [20, 40]
         });
+        const marker = L.marker([offsetLat, coordinates.lng], {
+            icon: markerIcon,
+            title: `${type} in ${location}`
+        }).addTo(map);
         calamityMarkers.push({ marker, eventTime });
         const realLocation = await getLocationName(coordinates.lat, coordinates.lng);
         const infoWindowContent = `
@@ -1355,8 +1618,8 @@ async function addCalamityMarker(type, location, coordinates, details, eventId) 
                 ${details}
             </div>
         `;
-        const infoWindow = new google.maps.InfoWindow({
-            content: infoWindowContent,
+        const popup = L.popup({
+            content: infoWindowContent
         });
         markerDiv.addEventListener("mouseover", () => {
             markerDiv.style.transform = "scale(1.3)";
@@ -1364,7 +1627,7 @@ async function addCalamityMarker(type, location, coordinates, details, eventId) 
         markerDiv.addEventListener("mouseout", () => {
             markerDiv.style.transform = "scale(1)";
         });
-        marker.addListener("click", () => {
+        marker.on("click", () => {
             console.log(`Clicked marker for ${type} at ${location}`);
             markerDiv.style.animation = "none";
             markerDiv.style.animation = "bounce 0.5s ease";
@@ -1377,9 +1640,10 @@ async function addCalamityMarker(type, location, coordinates, details, eventId) 
                 }
             `;
             document.head.appendChild(bounceStyle);
-            if (currentInfoWindow) singleInfoWindow.close();
+            if (currentInfoWindow) singleInfoWindow.closePopup();
             singleInfoWindow.setContent(infoWindowContent);
-            singleInfoWindow.open(map, marker);
+            singleInfoWindow.setLatLng([offsetLat, coordinates.lng]);
+            singleInfoWindow.openOn(map);
             currentInfoWindow = marker;
             isInfoWindowClicked = true;
             showWeatherInfoWindow(coordinates.lat, coordinates.lng);
@@ -1396,7 +1660,7 @@ async function addCalamityMarker(type, location, coordinates, details, eventId) 
                 generateLenlenAlert(type, location, details, eventId, warningLevel);
             }
         });
-        singleInfoWindow?.addListener("closeclick", () => {
+        singleInfoWindow.on("remove", () => {
             isInfoWindowClicked = false;
             currentInfoWindow = null;
             markerDiv.style.animation = "pulse 2s infinite";
@@ -1422,6 +1686,7 @@ async function addCalamityMarker(type, location, coordinates, details, eventId) 
     } else {
         console.log(`Skipping ${type} marker for ${location} - older than 12 hours`);
     }
+    applyMapFilter(); // NEW: Re-apply filter after adding
 }
 // Show weather info window at clicked location
 async function showWeatherInfoWindow(lat, lng) {
@@ -1465,13 +1730,13 @@ async function showWeatherInfoWindow(lat, lng) {
                 Temperature: ${weatherData.main.temp}°C
             </div>
         `;
-        if (currentInfoWindow) singleInfoWindow.close();
+        if (currentInfoWindow) singleInfoWindow.closePopup();
         singleInfoWindow.setContent(weatherInfo);
-        singleInfoWindow.setPosition({ lat, lng });
-        singleInfoWindow.open(map);
+        singleInfoWindow.setLatLng([lat, lng]);
+        singleInfoWindow.openOn(map);
         currentInfoWindow = { getPosition: () => ({ lat, lng }) };
         isInfoWindowClicked = true;
-        singleInfoWindow.addListener("closeclick", () => {
+        singleInfoWindow.on("remove", () => {
             isInfoWindowClicked = false;
             currentInfoWindow = null;
         });
@@ -1997,7 +2262,7 @@ content += `<span class="timestamp">${timestamp.toLocaleString("en-US", {
                 }
             }
 
-            // Handle calamity notifications with map interaction
+// Handle calamity notifications with map interaction
 // ================= Quick Activation Modal =================
 const quickActivationHTML = `
 <div id="quickActivationModal" style="
@@ -2084,8 +2349,8 @@ function openQuickActivation(group, calamity, abvnMarker) {
     Swal.fire({ icon: "success", title: "Activated", text: `${group.organization} is now activated.` });
 
     if (abvnMarker) {
-      abvnMarker.setIcon({
-        url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+      abvnMarker.setIcon(L.divIcon({
+        html: `
           <svg width="40" height="50" viewBox="0 0 40 50" xmlns="http://www.w3.org/2000/svg">
             <g>
               <path d="M20 0 L28 15 L20 10 L12 15 Z" fill="#28a745" stroke="#ffffff" stroke-width="2"/>
@@ -2093,11 +2358,13 @@ function openQuickActivation(group, calamity, abvnMarker) {
               <text x="20" y="22" font-size="16" text-anchor="middle" fill="#ffffff" font-weight="bold">✓</text>
             </g>
           </svg>
-        `)}`,
-        scaledSize: new google.maps.Size(40, 50),
-        anchor: new google.maps.Point(20, 50)
-      });
+        `,
+        className: 'custom-marker',
+        iconSize: [40, 50],
+        iconAnchor: [20, 50]
+      }));
     }
+    loadActivatedABVNs(); // Reload activated markers after activation
   };
 }
 
@@ -2123,8 +2390,7 @@ function handleCalamityNotification(eventId) {
 
       // calamity marker
       if (!calamityMarkersMap[eventId]) {
-        const calamityIcon = {
-          url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+        const calamitySvg = `
             <svg width="50" height="60" viewBox="0 0 50 60" xmlns="http://www.w3.org/2000/svg">
               <defs>
                 <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
@@ -2141,21 +2407,21 @@ function handleCalamityNotification(eventId) {
                 </circle>
               </g>
             </svg>
-          `)}`,
-          scaledSize: new google.maps.Size(50, 60),
-          anchor: new google.maps.Point(25, 60)
-        };
-
-        const pinMarker = new google.maps.Marker({
-          position: coordinates,
-          map: map,
-          title: calamity.type || "Calamity",
-          icon: calamityIcon,
-          animation: google.maps.Animation.DROP
+          `;
+        const calamityIcon = L.divIcon({
+            html: calamitySvg,
+            className: 'custom-marker',
+            iconSize: [50, 60],
+            iconAnchor: [25, 60]
         });
+
+        const pinMarker = L.marker([coordinates.lat, coordinates.lng], {
+            icon: calamityIcon,
+            title: calamity.type || "Calamity"
+        }).addTo(map);
         calamityMarkersMap[eventId] = pinMarker;
 
-        const calamityInfo = new google.maps.InfoWindow({
+        const calamityPopup = L.popup({
           content: `
             <div style="font-family:'Segoe UI',sans-serif;width:260px;border-radius:12px;background:#fff;box-shadow:0 4px 14px rgba(0,0,0,0.25);overflow:hidden;">
               <div style="background:#e63946;color:#fff;padding:10px 14px;font-size:16px;font-weight:600;">
@@ -2178,28 +2444,31 @@ function handleCalamityNotification(eventId) {
           `
         });
 
-        if (currentInfoWindow) currentInfoWindow.close();
-        currentInfoWindow = calamityInfo;
-        currentInfoWindow.open(map, pinMarker);
+        if (currentInfoWindow) currentInfoWindow.closePopup();
+        currentInfoWindow = calamityPopup;
+        pinMarker.bindPopup(calamityPopup).openPopup();
 
-        pinMarker.addListener("click", () => {
-          if (currentInfoWindow) currentInfoWindow.close();
-          currentInfoWindow = calamityInfo;
-          currentInfoWindow.open(map, pinMarker);
+        pinMarker.on("click", () => {
+          if (currentInfoWindow) currentInfoWindow.closePopup();
+          currentInfoWindow = calamityPopup;
+          pinMarker.openPopup();
+          map.panTo([coordinates.lat, coordinates.lng]);
+          map.setZoom(13);
         });
 
-        map.panTo(coordinates);
+        map.panTo([coordinates.lat, coordinates.lng]);
         map.setZoom(13);
 
-        // ✅ Attach the Show ABVNs click after InfoWindow is ready
-        google.maps.event.addListener(calamityInfo, "domready", () => {
+        // ✅ Attach the Show ABVNs click directly
+        const attachButtonListener = () => {
           const btn = document.getElementById(`showAbvnBtn-${calKey}`);
           if (btn) {
+            console.log(`Attaching listener to Show ABVNs button for calamity ${calKey}`);
             btn.addEventListener("click", async () => {
-              console.log("Show ABVNs button clicked");
+              console.log(`Show ABVNs button clicked for calamity ${calKey}`);
 
               try {
-                abvnMarkers.forEach(m => m.setMap(null));
+                abvnMarkers.forEach(m => m.remove());
                 abvnMarkers = [];
 
                 const snapshot = await database.ref("volunteerGroups").once("value");
@@ -2207,8 +2476,9 @@ function handleCalamityNotification(eventId) {
                 let abvnCount = 0;
                 let abvnData = [];
 
-                const abvnIcon = {
-                  url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+                console.log(`Fetched ${Object.keys(volunteerGroups).length} volunteer groups`);
+
+                const abvnSvg = `
                     <svg width="40" height="50" viewBox="0 0 40 50" xmlns="http://www.w3.org/2000/svg">
                       <g>
                         <path d="M20 0 L28 15 L20 10 L12 15 Z" fill="#2a9d8f" stroke="#ffffff" stroke-width="2"/>
@@ -2216,10 +2486,13 @@ function handleCalamityNotification(eventId) {
                         <text x="20" y="22" font-size="16" text-anchor="middle" fill="#ffffff" font-weight="bold">👥</text>
                       </g>
                     </svg>
-                  `)}`,
-                  scaledSize: new google.maps.Size(40, 50),
-                  anchor: new google.maps.Point(20, 50)
-                };
+                  `;
+                const abvnIcon = L.divIcon({
+                    html: abvnSvg,
+                    className: 'custom-marker',
+                    iconSize: [40, 50],
+                    iconAnchor: [20, 50]
+                });
 
                 function haversineDistance(coord1, coord2) {
                   const toRad = (x) => (x * Math.PI) / 180;
@@ -2242,18 +2515,17 @@ function handleCalamityNotification(eventId) {
                     const distance = haversineDistance(coordinates, abvnCoords).toFixed(1);
                     abvnData.push({ group, distance, coords: abvnCoords });
 
-                    const abvnMarker = new google.maps.Marker({
-                      position: abvnCoords,
-                      map: map,
-                      title: `${group.organization} (${distance} km)`,
+                    const abvnMarker = L.marker([abvnCoords.lat, abvnCoords.lng], {
                       icon: abvnIcon,
-                      animation: google.maps.Animation.DROP
-                    });
+                      title: `${group.organization} (${distance} km)`
+                    }).addTo(map);
                     abvnMarkers.push(abvnMarker);
                     abvnCount++;
 
+                    console.log(`Added marker for ${group.organization} at ${abvnCoords.lat}, ${abvnCoords.lng}`);
+
                     // 🔹 On click, open Quick Activation modal
-                    abvnMarker.addListener("click", async () => {
+                    abvnMarker.on("click", async () => {
                       const actSnap = await database.ref("activations")
                         .orderByChild("groupId")
                         .equalTo(groupId)
@@ -2294,7 +2566,13 @@ function handleCalamityNotification(eventId) {
                   html: `Here are ${abvnCount} ABVN groups.<br><br>${suggestionText}`
                 });
 
+                if (abvnCount === 0) {
+                  map.panTo([coordinates.lat, coordinates.lng]);
+                  map.setZoom(13);
+                }
+
               } catch (error) {
+                console.error(`Error loading ABVNs: ${error.message}`);
                 Swal.fire({
                   icon: "error",
                   title: "Error",
@@ -2302,12 +2580,18 @@ function handleCalamityNotification(eventId) {
                 });
               }
             });
+          } else {
+            console.warn(`Show ABVNs button not found for calamity ${calKey}, retrying...`);
+            setTimeout(attachButtonListener, 500); // Retry after 500ms
           }
-        });
+        };
+
+        // Attach listener immediately after popup is set
+        setTimeout(attachButtonListener, 100); // Delay to ensure DOM is ready
       } else {
         // update existing calamity marker
-        calamityMarkersMap[eventId].setPosition(coordinates);
-        map.panTo(coordinates);
+        calamityMarkersMap[eventId].setLatLng([coordinates.lat, coordinates.lng]);
+        map.panTo([coordinates.lat, coordinates.lng]);
         map.setZoom(13);
       }
     })
@@ -2320,10 +2604,8 @@ function handleCalamityNotification(eventId) {
     });
 }
 
-
 // Example call
 handleCalamityNotification(notification.eventId);
-
 
 
         });
@@ -2382,506 +2664,494 @@ handleCalamityNotification(notification.eventId);
 }
 
 
-// Verify report in reportssubmission
-async function verifyReport(reportId) {
-    try {
-        const snapshot = await database.ref("reportssubmission").orderByChild("reportId").equalTo(reportId).once("value");
-        const report = snapshot.val();
-        if (report) {
-            console.log(`Report found with ID: ${reportId}`);
-            Swal.fire({
-                icon: "success",
-                title: "Report Found",
-                text: `Report with ID ${reportId} has been located and is available for verification.`,
-            });
-        } else {
-            console.log(`No report found with ID: ${reportId}`);
-            Swal.fire({
-                icon: "warning",
-                title: "Report Not Found",
-                text: `No report with ID ${reportId} exists in the submission list.`,
-            });
-        }
-    } catch (error) {
-        console.error("Error verifying report:", error);
-        Swal.fire({
-            icon: "error",
-            title: "Error",
-            text: "Failed to verify report. Please try again later.",
-        });
-    }
-}
-// Setup tab switching for notification drawer
-function setupTabSwitching() {
-    const tabCalamity = document.getElementById("tabCalamity");
-    const tabAdmin = document.getElementById("tabAdmin");
-    if (!tabCalamity || !tabAdmin) return;
-    tabCalamity.addEventListener("click", () => {
-        tabCalamity.classList.add("active");
-        tabAdmin.classList.remove("active");
-        calamityList.classList.remove("hidden");
-        adminList.classList.add("hidden");
-    });
-    tabAdmin.addEventListener("click", () => {
-        tabAdmin.classList.add("active");
-        tabCalamity.classList.remove("active");
-        adminList.classList.remove("hidden");
-        calamityList.classList.add("hidden");
-    });
-}
-// Fetch reports
-function fetchReports() {
-    if (reportsListener) {
-        reportsListener.off();
-        console.log("Removed existing reports listener");
-    }
-    reportsListener = database.ref("reports/approved").limitToLast(50);
-    reportsListener.on("value", snapshot => {
-        let totalFoodPacks = 0, totalHotMeals = 0, totalWaterLiters = 0, totalVolunteers = 0, totalMonetaryDonations = 0, totalInKindDonations = 0;
-        const reports = snapshot.val();
-        if (reports) {
-            const reportEntries = Object.entries(reports);
-            reportEntries.forEach(([key, report]) => {
-                if (userRole === "ABVN" && report.userUid !== userUid) return;
-                totalFoodPacks += parseFloat(report.NoOfFoodPacks || 0);
-                totalHotMeals += parseFloat(report.NoOfHotMeals || 0);
-                totalWaterLiters += parseFloat(report.LitersOfWater || 0);
-                totalVolunteers += parseFloat(report.NoOfVolunteersMobilized || 0);
-                totalMonetaryDonations += parseFloat(report.TotalMonetaryDonations || 0);
-                totalInKindDonations += parseFloat(report.TotalValueOfInKindDonations || 0);
-            });
-        }
-        animateNumber('food-packs', totalFoodPacks);
-        animateNumber('hot-meals', totalHotMeals);
-        animateNumber('water-liters', totalWaterLiters);
-        animateNumber('volunteers', totalVolunteers);
-        animateNumber('amount-raised', totalMonetaryDonations, 1000, 2);
-        animateNumber('inkind-donations', totalInKindDonations, 1000, 2);
-    }, error => {
-        console.error("Error fetching reports:", error);
-        Swal.fire({
-            icon: "error",
-            title: "Error",
-            text: "Failed to load reports.",
-        });
-    });
-}
+ // Verify report in reportssubmission
+ async function verifyReport(reportId) {
+     try {
+         const snapshot = await database.ref("reportssubmission").orderByChild("reportId").equalTo(reportId).once("value");
+         const report = snapshot.val();
+         if (report) {
+             console.log(`Report found with ID: ${reportId}`);
+             Swal.fire({
+                 icon: "success",
+                 title: "Report Found",
+                 text: `Report with ID ${reportId} has been located and is available for verification.`,
+             });
+         } else {
+             console.log(`No report found with ID: ${reportId}`);
+             Swal.fire({
+                 icon: "warning",
+                 title: "Report Not Found",
+                 text: `No report with ID ${reportId} exists in the submission list.`,
+             });
+         }
+     } catch (error) {
+         console.error("Error verifying report:", error);
+         Swal.fire({
+             icon: "error",
+             title: "Error",
+             text: "Failed to verify report. Please try again later.",
+         });
+     }
+ }
+ // Setup tab switching for notification drawer
+ function setupTabSwitching() {
+     const tabCalamity = document.getElementById("tabCalamity");
+     const tabAdmin = document.getElementById("tabAdmin");
+     if (!tabCalamity || !tabAdmin) return;
+     tabCalamity.addEventListener("click", () => {
+         tabCalamity.classList.add("active");
+         tabAdmin.classList.remove("active");
+         calamityList.classList.remove("hidden");
+         adminList.classList.add("hidden");
+     });
+     tabAdmin.addEventListener("click", () => {
+         tabAdmin.classList.add("active");
+         tabCalamity.classList.remove("active");
+         adminList.classList.remove("hidden");
+         calamityList.classList.add("hidden");
+     });
+ }
+ // Fetch reports
+ function fetchReports() {
+     if (reportsListener) {
+         reportsListener.off();
+         console.log("Removed existing reports listener");
+     }
+     reportsListener = database.ref("reports/approved").limitToLast(50);
+     reportsListener.on("value", snapshot => {
+         let totalFoodPacks = 0, totalHotMeals = 0, totalWaterLiters = 0, totalVolunteers = 0, totalMonetaryDonations = 0, totalInKindDonations = 0;
+         const reports = snapshot.val();
+         if (reports) {
+             const reportEntries = Object.entries(reports);
+             reportEntries.forEach(([key, report]) => {
+                 if (userRole === "ABVN" && report.userUid !== userUid) return;
+                 totalFoodPacks += parseFloat(report.NoOfFoodPacks || 0);
+                 totalHotMeals += parseFloat(report.NoOfHotMeals || 0);
+                 totalWaterLiters += parseFloat(report.LitersOfWater || 0);
+                 totalVolunteers += parseFloat(report.NoOfVolunteersMobilized || 0);
+                 totalMonetaryDonations += parseFloat(report.TotalMonetaryDonations || 0);
+                 totalInKindDonations += parseFloat(report.TotalValueOfInKindDonations || 0);
+             });
+         }
+         animateNumber('food-packs', totalFoodPacks);
+         animateNumber('hot-meals', totalHotMeals);
+         animateNumber('water-liters', totalWaterLiters);
+         animateNumber('volunteers', totalVolunteers);
+         animateNumber('amount-raised', totalMonetaryDonations, 1000, 2);
+         animateNumber('inkind-donations', totalInKindDonations, 1000, 2);
+     }, error => {
+         console.error("Error fetching reports:", error);
+         Swal.fire({
+             icon: "error",
+             title: "Error",
+             text: "Failed to load reports.",
+         });
+     });
+ }
 
-// Formatting functions
-function formatWithCommas(value) {
-    return value != null ? Number(value).toLocaleString() : "-";
-}
+ // Formatting functions
+ function formatWithCommas(value) {
+     return value != null ? Number(value).toLocaleString() : "-";
+ }
 
-function formatCompact(value) {
-    return value != null
-        ? new Intl.NumberFormat('en', {
-            notation: 'compact',
-            compactDisplay: 'short',
-        }).format(value)
-        : "-";
-}
+ function formatCompact(value) {
+     return value != null
+         ? new Intl.NumberFormat('en', {
+             notation: 'compact',
+             compactDisplay: 'short',
+         }).format(value)
+         : "-";
+ }
 
-function formatCurrency(value) {
-    return value != null
-        ? new Intl.NumberFormat('en-PH', {
-            style: 'currency',
-            currency: 'PHP',
-            minimumFractionDigits: 0,
-        }).format(value)
-        : "-";
-}
+ function formatCurrency(value) {
+     return value != null
+         ? new Intl.NumberFormat('en-PH', {
+             style: 'currency',
+             currency: 'PHP',
+             minimumFractionDigits: 0,
+         }).format(value)
+         : "-";
+ }
 
-// Function to fetch and render metrics
-async function fetchAndRenderAllMetrics(sectionName) {
-    const metricsTableBody = document.querySelector(`.${sectionName.toLowerCase().replace(/ /g, '-')}-metrics .metrics-table tbody`);
-    console.log(`[${new Date().toLocaleTimeString()}] Targeting ${sectionName} table body:`, metricsTableBody);
-    if (!metricsTableBody) {
-        console.error(`[${new Date().toLocaleTimeString()}] ${sectionName} table body not found`);
-        return;
-    }
+ // Function to fetch and render metrics
+ async function fetchAndRenderAllMetrics(sectionName) {
+     const metricsTableBody = document.querySelector(`.${sectionName.toLowerCase().replace(/ /g, '-')}-metrics .metrics-table tbody`);
+     console.log(`[${new Date().toLocaleTimeString()}] Targeting ${sectionName} table body:`, metricsTableBody);
+     if (!metricsTableBody) {
+         console.error(`[${new Date().toLocaleTimeString()}] ${sectionName} table body not found`);
+         return;
+     }
 
-    try {
-        metricsTableBody.innerHTML = '';
-        const snapshot = await database.ref("reports/approved").once("value");
-        const reports = snapshot.val();
-        console.log(`[${new Date().toLocaleTimeString()}] Fetched reports:`, reports);
-        if (!reports) {
-            metricsTableBody.innerHTML = "<tr><td colspan='7'>No data available</td></tr>";
-            return;
-        }
+     try {
+         metricsTableBody.innerHTML = '';
+         const snapshot = await database.ref("reports/approved").once("value");
+         const reports = snapshot.val();
+         console.log(`[${new Date().toLocaleTimeString()}] Fetched reports:`, reports);
+         if (!reports) {
+             metricsTableBody.innerHTML = "<tr><td colspan='7'>No data available</td></tr>";
+             return;
+         }
 
-        const processedReportIDs = new Set();
-        const allMetrics = {};
+         const processedReportIDs = new Set();
+         const allMetrics = {};
 
-        Object.entries(reports).forEach(([key, report]) => {
-            const reportID = report.ReportID || key;
-            if (processedReportIDs.has(reportID)) {
-                console.warn(`[${new Date().toLocaleTimeString()}] Duplicate ReportID: ${reportID}`);
-                return;
-            }
-            processedReportIDs.add(reportID);
+         Object.entries(reports).forEach(([key, report]) => {
+             const reportID = report.ReportID || key;
+             if (processedReportIDs.has(reportID)) {
+                 console.warn(`[${new Date().toLocaleTimeString()}] Duplicate ReportID: ${reportID}`);
+                 return;
+             }
+             processedReportIDs.add(reportID);
 
-            const volunteerGroup = report.organization || report.VolunteerGroupName || "Unknown";
-            if (!allMetrics[volunteerGroup]) {
-                allMetrics[volunteerGroup] = {
-                    foodPacks: 0,
-                    hotMeals: 0,
-                    waterLiters: 0,
-                    volunteers: 0,
-                    monetaryDonations: 0,
-                    inKindDonations: 0,
-                    inKindItems: new Set(),
-                };
-            }
-            allMetrics[volunteerGroup].foodPacks += parseFloat(report.NoOfFoodPacks || report.foodPacks || 0);
-            allMetrics[volunteerGroup].hotMeals += parseFloat(report.NoOfHotMeals || report.hotMeals || 0);
-            allMetrics[volunteerGroup].waterLiters += parseFloat(report.LitersOfWater || report.water || 0);
-            allMetrics[volunteerGroup].volunteers += parseFloat(report.NoOfVolunteersMobilized || report.volunteers || 0);
-            allMetrics[volunteerGroup].monetaryDonations += parseFloat(report.TotalMonetaryDonations || report.amountRaised || 0);
-            allMetrics[volunteerGroup].inKindDonations += parseFloat(report.TotalValueOfInKindDonations || report.inKindValue || 0);
-            if (report.inKindItems) {
-                report.inKindItems.split(',').forEach(item => allMetrics[volunteerGroup].inKindItems.add(item.trim()));
-            }
-        });
+             const volunteerGroup = report.organization || report.VolunteerGroupName || "Unknown";
+             if (!allMetrics[volunteerGroup]) {
+                 allMetrics[volunteerGroup] = {
+                     foodPacks: 0,
+                     hotMeals: 0,
+                     waterLiters: 0,
+                     volunteers: 0,
+                     monetaryDonations: 0,
+                     inKindDonations: 0,
+                     inKindItems: new Set(),
+                 };
+             }
+             allMetrics[volunteerGroup].foodPacks += parseFloat(report.NoOfFoodPacks || report.foodPacks || 0);
+             allMetrics[volunteerGroup].hotMeals += parseFloat(report.NoOfHotMeals || report.hotMeals || 0);
+             allMetrics[volunteerGroup].waterLiters += parseFloat(report.LitersOfWater || report.water || 0);
+             allMetrics[volunteerGroup].volunteers += parseFloat(report.NoOfVolunteersMobilized || report.volunteers || 0);
+             allMetrics[volunteerGroup].monetaryDonations += parseFloat(report.TotalMonetaryDonations || report.amountRaised || 0);
+             allMetrics[volunteerGroup].inKindDonations += parseFloat(report.TotalValueOfInKindDonations || report.inKindValue || 0);
+             if (report.inKindItems) {
+                 report.inKindItems.split(',').forEach(item => allMetrics[volunteerGroup].inKindItems.add(item.trim()));
+             }
+         });
 
-        Object.entries(allMetrics).forEach(([group, metrics]) => {
-            let inKindDisplay = metrics.inKindItems.size > 0
-                ? Array.from(metrics.inKindItems).join(', ')
-                : formatCurrency(metrics.inKindDonations) || '-';
+         Object.entries(allMetrics).forEach(([group, metrics]) => {
+             let inKindDisplay = metrics.inKindItems.size > 0
+                 ? Array.from(metrics.inKindItems).join(', ')
+                 : formatCurrency(metrics.inKindDonations) || '-';
 
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>${group}</td>
-                <td>${formatCompact(metrics.foodPacks)}</td>
-                <td>${formatCompact(metrics.hotMeals)}</td>
-                <td>${formatWithCommas(metrics.waterLiters)} L</td>
-                <td>${formatCompact(metrics.volunteers)}</td>
-                <td>${formatCurrency(metrics.monetaryDonations)}</td>
-                <td>${inKindDisplay}</td>
-            `;
-            metricsTableBody.appendChild(tr);
-        });
+             const tr = document.createElement('tr');
+             tr.innerHTML = `
+                 <td>${group}</td>
+                 <td>${formatCompact(metrics.foodPacks)}</td>
+                 <td>${formatCompact(metrics.hotMeals)}</td>
+                 <td>${formatWithCommas(metrics.waterLiters)} L</td>
+                 <td>${formatCompact(metrics.volunteers)}</td>
+                 <td>${formatCurrency(metrics.monetaryDonations)}</td>
+                 <td>${inKindDisplay}</td>
+             `;
+             metricsTableBody.appendChild(tr);
+         });
 
-        if (Object.keys(allMetrics).length === 0) {
-            metricsTableBody.innerHTML = "<tr><td colspan='7'>No data available</td></tr>";
-        }
-        console.log(`[${new Date().toLocaleTimeString()}] Metrics rendered for ${sectionName}:`, allMetrics);
-    } catch (error) {
-        console.error(`[${new Date().toLocaleTimeString()}] Error in ${sectionName} metrics:`, error);
-        metricsTableBody.innerHTML = "<tr><td colspan='7'>Error loading data</td></tr>";
-    }
-}
+         if (Object.keys(allMetrics).length === 0) {
+             metricsTableBody.innerHTML = "<tr><td colspan='7'>No data available</td></tr>";
+         }
+         console.log(`[${new Date().toLocaleTimeString()}] Metrics rendered for ${sectionName}:`, allMetrics);
+     } catch (error) {
+         console.error(`[${new Date().toLocaleTimeString()}] Error in ${sectionName} metrics:`, error);
+         metricsTableBody.innerHTML = "<tr><td colspan='7'>Error loading data</td></tr>";
+     }
+ }
 
-// Function to check user role and manage ABVN + Metrics visibility
-function checkUserRoleAndRender() {
-    firebase.auth().onAuthStateChanged((user) => {
-        console.log(`[${new Date().toLocaleTimeString()}] Auth state changed, user:`, user);
-        if (user) {
-            database.ref(`users/${user.uid}`).once("value").then((snapshot) => {
-                const userData = snapshot.val();
-                console.log(`[${new Date().toLocaleTimeString()}] User data:`, userData);
-                const isAdmin = userData?.role === "AB ADMIN"; 
-                console.log(`[${new Date().toLocaleTimeString()}] Is Admin:`, isAdmin);
+ // Function to check user role and manage ABVN + Metrics visibility
+ function checkUserRoleAndRender() {
+     firebase.auth().onAuthStateChanged((user) => {
+         console.log(`[${new Date().toLocaleTimeString()}] Auth state changed, user:`, user);
+         if (user) {
+             database.ref(`users/${user.uid}`).once("value").then((snapshot) => {
+                 const userData = snapshot.val();
+                 console.log(`[${new Date().toLocaleTimeString()}] User data:`, userData);
+                 const isAdmin = userData?.role === "AB ADMIN"; 
+                 console.log(`[${new Date().toLocaleTimeString()}] Is Admin:`, isAdmin);
 
-                // ===== ABVN section =====
-                const abvnMetricsDiv = document.querySelector('.abvn-metrics');
-                if (abvnMetricsDiv) {
-                    if (!isAdmin) {
-                        abvnMetricsDiv.remove();
-                        console.log(`[${new Date().toLocaleTimeString()}] ABVN removed for non-ADMIN`);
-                    } else {
-                        fetchAndRenderAllMetrics("ABVN").catch(err => console.error(`[${new Date().toLocaleTimeString()}] ABVN render failed:`, err));
-                        console.log(`[${new Date().toLocaleTimeString()}] ABVN rendering attempted for ADMIN`);
-                    }
-                }
+                 // ===== ABVN section =====
+                 const abvnMetricsDiv = document.querySelector('.abvn-metrics');
+                 if (abvnMetricsDiv) {
+                     if (!isAdmin) {
+                         abvnMetricsDiv.remove();
+                         console.log(`[${new Date().toLocaleTimeString()}] ABVN removed for non-ADMIN`);
+                     } else {
+                         fetchAndRenderAllMetrics("ABVN").catch(err => console.error(`[${new Date().toLocaleTimeString()}] ABVN render failed:`, err));
+                         console.log(`[${new Date().toLocaleTimeString()}] ABVN rendering attempted for ADMIN`);
+                     }
+                 }
 
-                // ===== Metrics Toggle section =====
-                const metricsToggleDiv = document.querySelector('.metrics-toggle');
-                if (metricsToggleDiv) {
-                    if (!isAdmin) {
-                        metricsToggleDiv.remove();
-                        console.log(`[${new Date().toLocaleTimeString()}] Metrics Toggle removed for non-ADMIN`);
-                    } else {
-                        metricsToggleDiv.style.display = "block";
-                        loadMetricsSettings(); // 👈 restore saved toggle states
-                        console.log(`[${new Date().toLocaleTimeString()}] Metrics Toggle visible for ADMIN`);
-                    }
-                }
+                 // ===== Metrics Toggle section =====
+                 const metricsToggleDiv = document.querySelector('.metrics-toggle');
+                 if (metricsToggleDiv) {
+                     if (!isAdmin) {
+                         metricsToggleDiv.remove();
+                         console.log(`[${new Date().toLocaleTimeString()}] Metrics Toggle removed for non-ADMIN`);
+                     } else {
+                         metricsToggleDiv.style.display = "block";
+                         loadMetricsSettings(); // 👈 restore saved toggle states
+                         console.log(`[${new Date().toLocaleTimeString()}] Metrics Toggle visible for ADMIN`);
+                     }
+                 }
 
-                // ===== Always-render sections =====
-                fetchAndRenderAllMetrics("PENDING APPROVALS").catch(err => console.error(err));
-                fetchAndRenderAllMetrics("RELIEF OPERATIONS").catch(err => console.error(err));
-                fetchAndRenderAllMetrics("RDANA").catch(err => console.error(err));
+                 // ===== Always-render sections =====
+                 fetchAndRenderAllMetrics("PENDING APPROVALS").catch(err => console.error(err));
+                 fetchAndRenderAllMetrics("RELIEF OPERATIONS").catch(err => console.error(err));
+                 fetchAndRenderAllMetrics("RDANA").catch(err => console.error(err));
 
-            }).catch(err => console.error(`[${new Date().toLocaleTimeString()}] User data fetch error:`, err));
-        } else {
-            console.log(`[${new Date().toLocaleTimeString()}] No user logged in`);
+             }).catch(err => console.error(`[${new Date().toLocaleTimeString()}] User data fetch error:`, err));
+         } else {
+             console.log(`[${new Date().toLocaleTimeString()}] No user logged in`);
 
-            const abvnMetricsDiv = document.querySelector('.abvn-metrics');
-            if (abvnMetricsDiv) abvnMetricsDiv.remove();
+             const abvnMetricsDiv = document.querySelector('.abvn-metrics');
+             if (abvnMetricsDiv) abvnMetricsDiv.remove();
 
-            const metricsToggleDiv = document.querySelector('.metrics-toggle');
-            if (metricsToggleDiv) metricsToggleDiv.remove();
+             const metricsToggleDiv = document.querySelector('.metrics-toggle');
+             if (metricsToggleDiv) metricsToggleDiv.remove();
 
-            fetchAndRenderAllMetrics("PENDING APPROVALS").catch(err => console.error(err));
-            fetchAndRenderAllMetrics("RELIEF OPERATIONS").catch(err => console.error(err));
-            fetchAndRenderAllMetrics("RDANA").catch(err => console.error(err));
-        }
-    });
-}
+             fetchAndRenderAllMetrics("PENDING APPROVALS").catch(err => console.error(err));
+             fetchAndRenderAllMetrics("RELIEF OPERATIONS").catch(err => console.error(err));
+             fetchAndRenderAllMetrics("RDANA").catch(err => console.error(err));
+         }
+     });
+ }
 
 
-// Initialize on page load
-document.addEventListener('DOMContentLoaded', () => {
-    if (database && firebase) {
-        console.log(`[${new Date().toLocaleTimeString()}] Initializing with database and firebase`);
-        checkUserRoleAndRender();
-    } else {
-        console.error(`[${new Date().toLocaleTimeString()}] Database or Firebase not initialized`);
-    }
-});
+ // Initialize on page load
+ document.addEventListener('DOMContentLoaded', () => {
+     if (database && firebase) {
+         console.log(`[${new Date().toLocaleTimeString()}] Initializing with database and firebase`);
+         checkUserRoleAndRender();
+     } else {
+         console.error(`[${new Date().toLocaleTimeString()}] Database or Firebase not initialized`);
+     }
+ });
 
-// Cleanup dashboard resources
-function cleanupDashboard() {
-    console.log("Cleaning up dashboard resources at", new Date().toISOString());
-    if (map) {
-        google.maps.event.clearInstanceListeners(map);
-        markers.forEach(marker => marker.setMap(null));
-        calamityMarkers.forEach(marker => marker.setMap(null));
-        markers = [];
-        calamityMarkers = [];
-        if (currentInfoWindow) singleInfoWindow.close();
-        currentInfoWindow = null;
-        singleInfoWindow = null;
-        map = null;
-    }
-    if (calamityListener) {
-        calamityListener.off();
-        calamityListener = null;
-    }
-    if (notificationsListener) {
-        notificationsListener.off();
-        notificationsListener = null;
-    }
-    if (reportsListener) {
-        reportsListener.off();
-        reportsListener = null;
-    }
-    sessionStorage.removeItem(SESSION_KEY);
-    sessionStorage.removeItem(CALAMITY_TRACKING_KEY);
-    sessionStorage.removeItem(SESSION_TIMESTAMP_KEY);
-    processedCalamities.clear();
-    processedNotifications.clear();
-    syncProcessedCalamities();
-    syncProcessedNotifications();
-    console.log("Dashboard cleanup completed.");
-}
-// Update rain warning overlay
-function updateRainWarningOverlay() {
-    const overlay = new google.maps.OverlayView();
-    overlay.onAdd = function () {
-        const layer = document.createElement("div");
-        layer.style.borderStyle = "none";
-        layer.style.borderWidth = "0px";
-        layer.style.position = "absolute";
-        const panes = this.getPanes();
-        panes.overlayLayer.appendChild(layer);
-    };
-    overlay.draw = function () {
-        const projection = this.getProjection();
-        const bounds = map.getBounds();
-        if (!bounds) return;
-        const ne = projection.fromLatLngToDivPixel(bounds.getNorthEast());
-        const sw = projection.fromLatLngToDivPixel(bounds.getSouthWest());
-        const overlay = this.getPanes().overlayLayer.firstChild;
-        if (overlay) {
-            overlay.style.left = sw.x + "px";
-            overlay.style.top = ne.y + "px";
-            overlay.style.width = (ne.x - sw.x) + "px";
-            overlay.style.height = (sw.y - ne.y) + "px";
-            overlay.style.backgroundColor = "rgba(255, 0, 0, 0.2)";
-            overlay.style.display = isInfoWindowClicked ? "block" : "none";
-        }
-    };
-    overlay.onRemove = function () {
-        const overlay = this.getPanes().overlayLayer.firstChild;
-        if (overlay) overlay.parentNode.removeChild(overlay);
-    };
-    overlay.setMap(map);
-}
-// Clean duplicate calamities
-async function cleanDuplicateCalamities() {
-    try {
-        const snapshot = await database.ref("calamities").once("value");
-        const calamities = snapshot.val();
-        if (!calamities) return;
-        const uniqueCalamities = new Map();
-        for (const [key, calamity] of Object.entries(calamities)) {
-            const identifier = calamity.identifier || generateCalamityIdentifier(calamity.type, calamity.location, calamity.time, calamity.magnitude, calamity.rainfall);
-            if (!uniqueCalamities.has(identifier) || (calamity.timestamp && calamity.timestamp > (uniqueCalamities.get(identifier)?.timestamp || 0))) {
-                uniqueCalamities.set(identifier, { key, ...calamity });
-            }
-        }
-        const updates = {};
-        Object.entries(calamities).forEach(([key, calamity]) => {
-            const identifier = calamity.identifier || generateCalamityIdentifier(calamity.type, calamity.location, calamity.time, calamity.magnitude, calamity.rainfall);
-            if (uniqueCalamities.get(identifier).key !== key) {
-                updates[`/calamities/${key}`] = null;
-            }
-        });
-        if (Object.keys(updates).length > 0) {
-            await database.ref().update(updates);
-            console.log("Removed duplicate calamities:", Object.keys(updates).length);
-        }
-    } catch (error) {
-        console.error("Error cleaning duplicate calamities:", error);
-    }
-}
-// Clean duplicate notifications
-async function cleanDuplicateNotifications() {
-    try {
-        const snapshot = await database.ref("notifications").once("value");
-        const notifications = snapshot.val();
-        if (!notifications) return;
-        const uniqueNotifications = new Map();
-        for (const [key, notification] of Object.entries(notifications)) {
-            const identifier = notification.identifier || generateCalamityIdentifier(notification.calamityType, notification.location, notification.time, notification.magnitude, notification.rainfall);
-            if (!uniqueNotifications.has(identifier) || (notification.timestamp && notification.timestamp > (uniqueNotifications.get(identifier)?.timestamp || 0))) {
-                uniqueNotifications.set(identifier, { key, ...notification });
-            }
-        }
-        const updates = {};
-        Object.entries(notifications).forEach(([key, notification]) => {
-            const identifier = notification.identifier || generateCalamityIdentifier(notification.calamityType, notification.location, notification.time, notification.magnitude, notification.rainfall);
-            if (uniqueNotifications.get(identifier).key !== key) {
-                updates[`/notifications/${key}`] = null;
-            }
-        });
-        if (Object.keys(updates).length > 0) {
-            await database.ref().update(updates);
-            console.log("Removed duplicate notifications:", Object.keys(updates).length);
-        }
-    } catch (error) {
-        console.error("Error cleaning duplicate notifications:", error);
-    }
-}
-// Clean old calamities (older than 30 days)
-async function cleanOldCalamities() {
-    try {
-        const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000); // 30 days in milliseconds
-        const snapshot = await database.ref("calamities").once("value");
-        const calamities = snapshot.val();
-        if (!calamities) return;
-        const updates = {};
-        Object.entries(calamities).forEach(([key, calamity]) => {
-            if (calamity.timestamp && calamity.timestamp < thirtyDaysAgo) {
-                updates[`/calamities/${key}`] = null;
-            }
-        });
-        if (Object.keys(updates).length > 0) {
-            await database.ref().update(updates);
-            console.log("Removed old calamities:", Object.keys(updates).length);
-        }
-    } catch (error) {
-        console.error("Error cleaning old calamities:", error);
-    }
-}
+ // Cleanup dashboard resources
+ function cleanupDashboard() {
+     console.log("Cleaning up dashboard resources at", new Date().toISOString());
+     if (map) {
+         map.off();
+         markers.forEach(marker => marker.remove());
+         calamityMarkers.forEach(marker => marker.remove());
+         hqMarkers.forEach(marker => marker.remove()); // NEW
+         activatedMarkers.forEach(marker => marker.remove()); // NEW
+         markers = [];
+         calamityMarkers = [];
+         hqMarkers = []; // NEW
+         activatedMarkers = []; // NEW
+         if (currentInfoWindow) singleInfoWindow.closePopup();
+         currentInfoWindow = null;
+         singleInfoWindow = null;
+         map.remove();
+         map = null;
+     }
+     if (calamityListener) {
+         calamityListener.off();
+         calamityListener = null;
+     }
+     if (notificationsListener) {
+         notificationsListener.off();
+         notificationsListener = null;
+     }
+     if (reportsListener) {
+         reportsListener.off();
+         reportsListener = null;
+     }
+     sessionStorage.removeItem(SESSION_KEY);
+     sessionStorage.removeItem(CALAMITY_TRACKING_KEY);
+     sessionStorage.removeItem(SESSION_TIMESTAMP_KEY);
+     processedCalamities.clear();
+     processedNotifications.clear();
+     syncProcessedCalamities();
+     syncProcessedNotifications();
+     console.log("Dashboard cleanup completed.");
+ }
+ // Update rain warning overlay
+ function updateRainWarningOverlay() {
+     const overlay = L.rectangle(map.getBounds(), {
+         color: 'rgba(255, 0, 0, 0.2)',
+         fillOpacity: 0.2,
+         weight: 0,
+         interactive: false
+     }).addTo(map);
+     overlay.setStyle({ display: isInfoWindowClicked ? 'block' : 'none' });
+ }
+ // Clean duplicate calamities
+ async function cleanDuplicateCalamities() {
+     try {
+         const snapshot = await database.ref("calamities").once("value");
+         const calamities = snapshot.val();
+         if (!calamities) return;
+         const uniqueCalamities = new Map();
+         for (const [key, calamity] of Object.entries(calamities)) {
+             const identifier = calamity.identifier || generateCalamityIdentifier(calamity.type, calamity.location, calamity.time, calamity.magnitude, calamity.rainfall);
+             if (!uniqueCalamities.has(identifier) || (calamity.timestamp && calamity.timestamp > (uniqueCalamities.get(identifier)?.timestamp || 0))) {
+                 uniqueCalamities.set(identifier, { key, ...calamity });
+             }
+         }
+         const updates = {};
+         Object.entries(calamities).forEach(([key, calamity]) => {
+             const identifier = calamity.identifier || generateCalamityIdentifier(calamity.type, calamity.location, calamity.time, calamity.magnitude, calamity.rainfall);
+             if (uniqueCalamities.get(identifier).key !== key) {
+                 updates[`/calamities/${key}`] = null;
+             }
+         });
+         if (Object.keys(updates).length > 0) {
+             await database.ref().update(updates);
+             console.log("Removed duplicate calamities:", Object.keys(updates).length);
+         }
+     } catch (error) {
+         console.error("Error cleaning duplicate calamities:", error);
+     }
+ }
+ // Clean duplicate notifications
+ async function cleanDuplicateNotifications() {
+     try {
+         const snapshot = await database.ref("notifications").once("value");
+         const notifications = snapshot.val();
+         if (!notifications) return;
+         const uniqueNotifications = new Map();
+         for (const [key, notification] of Object.entries(notifications)) {
+             const identifier = notification.identifier || generateCalamityIdentifier(notification.calamityType, notification.location, notification.time, notification.magnitude, notification.rainfall);
+             if (!uniqueNotifications.has(identifier) || (notification.timestamp && notification.timestamp > (uniqueNotifications.get(identifier)?.timestamp || 0))) {
+                 uniqueNotifications.set(identifier, { key, ...notification });
+             }
+         }
+         const updates = {};
+         Object.entries(notifications).forEach(([key, notification]) => {
+             const identifier = notification.identifier || generateCalamityIdentifier(notification.calamityType, notification.location, notification.time, notification.magnitude, notification.rainfall);
+             if (uniqueNotifications.get(identifier).key !== key) {
+                 updates[`/notifications/${key}`] = null;
+             }
+         });
+         if (Object.keys(updates).length > 0) {
+             await database.ref().update(updates);
+             console.log("Removed duplicate notifications:", Object.keys(updates).length);
+         }
+     } catch (error) {
+         console.error("Error cleaning duplicate notifications:", error);
+     }
+ }
+ // Clean old calamities (older than 30 days)
+ async function cleanOldCalamities() {
+     try {
+         const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000); // 30 days in milliseconds
+         const snapshot = await database.ref("calamities").once("value");
+         const calamities = snapshot.val();
+         if (!calamities) return;
+         const updates = {};
+         Object.entries(calamities).forEach(([key, calamity]) => {
+             if (calamity.timestamp && calamity.timestamp < thirtyDaysAgo) {
+                 updates[`/calamities/${key}`] = null;
+             }
+         });
+         if (Object.keys(updates).length > 0) {
+             await database.ref().update(updates);
+             console.log("Removed old calamities:", Object.keys(updates).length);
+         }
+     } catch (error) {
+         console.error("Error cleaning old calamities:", error);
+     }
+ }
 
-// Migrate legacy calamities (add missing eventId and identifier)
-async function migrateLegacyCalamities() {
-    try {
-        const snapshot = await database.ref("calamities").once("value");
-        const calamities = snapshot.val();
-        if (!calamities) return;
-        const updates = {};
-        Object.entries(calamities).forEach(([key, calamity]) => {
-            if (!calamity.eventId || !calamity.identifier) {
-                const eventId = calamity.eventId || key;
-                const identifier = calamity.identifier || generateCalamityIdentifier(calamity.type, calamity.location, calamity.time, calamity.magnitude, calamity.rainfall);
-                updates[`/calamities/${key}/eventId`] = eventId;
-                updates[`/calamities/${key}/identifier`] = identifier;
-                processedCalamities.add(eventId);
-                processedCalamities.add(identifier);
-            }
-        });
-        if (Object.keys(updates).length > 0) {
-            await database.ref().update(updates);
-            syncProcessedCalamities();
-            console.log("Migrated legacy calamities:", Object.keys(updates).length);
-        }
-    } catch (error) {
-        console.error("Error migrating legacy calamities:", error);
-    }
-}
-// Function to clean up expired calamity markers
-function cleanupExpiredMarkers() {
-    const currentTime = Date.now();
-    const twelveHoursInMs = 12 * 60 * 60 * 1000;
-    calamityMarkers = calamityMarkers.filter(({ marker, eventTime }) => {
-        if (currentTime - eventTime > twelveHoursInMs) {
-            marker.setMap(null); // Remove from map
-            console.log(`Removed expired marker for event at ${marker.getPosition()}`);
-            return false; // Filter out expired marker
-        }
-        return true; // Keep active marker
-    });
-}
+ // Migrate legacy calamities (add missing eventId and identifier)
+ async function migrateLegacyCalamities() {
+     try {
+         const snapshot = await database.ref("calamities").once("value");
+         const calamities = snapshot.val();
+         if (!calamities) return;
+         const updates = {};
+         Object.entries(calamities).forEach(([key, calamity]) => {
+             if (!calamity.eventId || !calamity.identifier) {
+                 const eventId = calamity.eventId || key;
+                 const identifier = calamity.identifier || generateCalamityIdentifier(calamity.type, calamity.location, calamity.time, calamity.magnitude, calamity.rainfall);
+                 updates[`/calamities/${key}/eventId`] = eventId;
+                 updates[`/calamities/${key}/identifier`] = identifier;
+                 processedCalamities.add(eventId);
+                 processedCalamities.add(identifier);
+             }
+         });
+         if (Object.keys(updates).length > 0) {
+             await database.ref().update(updates);
+             syncProcessedCalamities();
+             console.log("Migrated legacy calamities:", Object.keys(updates).length);
+         }
+     } catch (error) {
+         console.error("Error migrating legacy calamities:", error);
+     }
+ }
+ // Function to clean up expired calamity markers
+ function cleanupExpiredMarkers() {
+     const currentTime = Date.now();
+     const twelveHoursInMs = 12 * 60 * 60 * 1000;
+     calamityMarkers = calamityMarkers.filter(({ marker, eventTime }) => {
+         if (currentTime - eventTime > twelveHoursInMs) {
+             marker.remove(); // Remove from map
+             console.log(`Removed expired marker for event at ${marker.getLatLng()}`);
+             return false; // Filter out expired marker
+         }
+         return true; // Keep active marker
+     });
+ }
 
-// Start periodic cleanup (e.g., every hour)
+ // Start periodic cleanup (e.g., every hour)
 setInterval(cleanupExpiredMarkers, 60 * 60 * 1000); // Runs every hour
 
-// Initial cleanup on load
-cleanupExpiredMarkers();
-// Initialize dashboard when the page loads
-window.addEventListener("load", initializeDashboard);
+ // Initial cleanup on load
+ cleanupExpiredMarkers();
+ // Initialize dashboard when the page loads
+ window.addEventListener("load", initializeDashboard);
 
-// Add periodic refresh for calamity tracking to fix realtime updates
-setInterval(trackCalamities, 5 * 60 * 1000); // Refresh every 5 minutes
+ // Add periodic refresh for calamity tracking to fix realtime updates
+ setInterval(trackCalamities, 5 * 60 * 1000); // Refresh every 5 minutes
 
-// Haversine distance function
-function haversineDistance(coord1, coord2) {
-    const R = 6371; // Earth's radius in km
-    const dLat = (coord2.lat - coord1.lat) * Math.PI / 180;
-    const dLon = (coord2.lng - coord1.lng) * Math.PI / 180;
-    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-              Math.cos(coord1.lat * Math.PI / 180) * Math.cos(coord2.lat * Math.PI / 180) *
-              Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c; // Distance in km
-}
+ // NEW: Periodic refresh for ABVN data
+ setInterval(() => {
+     loadABVNHQs();
+     loadActivatedABVNs();
+ }, 5 * 60 * 1000); // Every 5 minutes
 
-// Function to find nearest ABVN group
-async function findNearestABVN(lat, lng) {
-    try {
-        const snapshot = await database.ref("activations").orderByChild("status").equalTo("active").once("value");
-        const activations = snapshot.val();
-        if (!activations) return null;
+ // Haversine distance function
+ function haversineDistance(coord1, coord2) {
+     const R = 6371; // Earth's radius in km
+     const dLat = (coord2.lat - coord1.lat) * Math.PI / 180;
+     const dLon = (coord2.lng - coord1.lng) * Math.PI / 180;
+     const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+               Math.cos(coord1.lat * Math.PI / 180) * Math.cos(coord2.lat * Math.PI / 180) *
+               Math.sin(dLon / 2) * Math.sin(dLon / 2);
+     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+     return R * c; // Distance in km
+ }
 
-        let nearest = null;
-        let minDist = Infinity;
+ // Function to find nearest ABVN group
+ async function findNearestABVN(lat, lng) {
+     try {
+         const snapshot = await database.ref("activations").orderByChild("status").equalTo("active").once("value");
+         const activations = snapshot.val();
+         if (!activations) return null;
 
-        Object.values(activations).forEach(act => {
-            if (act.latitude && act.longitude) {
-                const dist = haversineDistance({ lat, lng }, { lat: parseFloat(act.latitude), lng: parseFloat(act.longitude) });
-                if (dist < minDist) {
-                    minDist = dist;
-                    nearest = act;
-                }
-            }
-        });
+         let nearest = null;
+         let minDist = Infinity;
 
-        return nearest ? {
-            organization: nearest.organization,
-            distance: minDist.toFixed(2) + ' km',
-            areaOfOperation: nearest.areaOfOperation
-        } : null;
-    } catch (error) {
-        console.error("Error finding nearest ABVN:", error);
-        throw error;
-    }
-}
+         Object.values(activations).forEach(act => {
+             if (act.latitude && act.longitude) {
+                 const dist = haversineDistance({ lat, lng }, { lat: parseFloat(act.latitude), lng: parseFloat(act.longitude) });
+                 if (dist < minDist) {
+                     minDist = dist;
+                     nearest = act;
+                 }
+             }
+         });
 
-document.getElementById("saveMetrics").addEventListener("click", () => {
+         return nearest ? {
+             organization: nearest.organization,
+             distance: minDist.toFixed(2) + ' km',
+             areaOfOperation: nearest.areaOfOperation
+         } : null;
+     } catch (error) {
+         console.error("Error finding nearest ABVN:", error);
+         throw error;
+     }
+ }
+
+ document.getElementById("saveMetrics").addEventListener("click", () => {
   const settings = {};
   document.querySelectorAll("input[type=checkbox]").forEach(cb => {
     settings[cb.dataset.metric] = cb.checked;
@@ -2904,9 +3174,9 @@ document.getElementById("saveMetrics").addEventListener("click", () => {
       confirmButtonText: "Retry"
     });
   });
-});
+ });
 
-function loadMetricsSettings() {
+ function loadMetricsSettings() {
   database.ref("settings/metrics").once("value").then(snapshot => {
     const settings = snapshot.val();
     if (settings) {
@@ -2922,7 +3192,4 @@ function loadMetricsSettings() {
       });
     }
   }).catch(err => console.error("Error loading metrics:", err));
-}
-
-
-
+ }
