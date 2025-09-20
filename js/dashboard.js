@@ -2301,7 +2301,6 @@ const calamityMarkersMap = {};
 
 function handleCalamityNotification(eventId) {
   if (!eventId || calamityMarkersMap[eventId]) return;
-
   database.ref("calamities").orderByChild("eventId").equalTo(eventId).once("value")
     .then(calSnapshot => {
       const calData = calSnapshot.val();
@@ -2309,12 +2308,189 @@ function handleCalamityNotification(eventId) {
         console.log(`No calamity data found for eventId: ${eventId}`);
         return;
       }
-
       const calKey = Object.keys(calData)[0];
       const calamity = calData[calKey];
       const coordinates = calamity.coordinates || { lat: 14.5995, lng: 120.9842 };
-
-      // calamity marker
+      const popupContent = `
+            <div style="font-family:'Segoe UI',sans-serif;width:260px;border-radius:12px;background:#fff;box-shadow:0 4px 14px rgba(0,0,0,0.25);overflow:hidden;">
+              <div style="background:#e63946;color:#fff;padding:10px 14px;font-size:16px;font-weight:600;">
+                🚨 ${calamity.type || "Calamity"}
+              </div>
+              <div style="padding:12px;color:#333;font-size:14px;line-height:1.4;">
+                <b>📍 ${calamity.location || 'Unknown Location'}</b><br>
+                <b>Magnitude:</b> ${calamity.magnitude || "N/A"}<br>
+                <b>Time:</b> ${new Date(calamity.time || Date.now()).toLocaleString()}
+              </div>
+              <div style="padding:10px;border-top:1px solid #eee;text-align:center;">
+                <button id="showAbvnBtn-${calKey}" style="
+                  padding:8px 12px;border:none;border-radius:6px;
+                  background:#2a9d8f;color:#fff;font-size:14px;font-weight:500;
+                  cursor:pointer;transition:all 0.2s ease;">
+                  Show Nearest ABVNs
+                </button>
+              </div>
+            </div>
+          `;
+      const attachButtonListener = (retryCount = 0) => {
+        if (retryCount > 5) {
+          console.warn(`Failed to attach listener after 5 retries for calamity ${calKey}`);
+          return;
+        }
+        const btn = document.getElementById(`showAbvnBtn-${calKey}`);
+        if (btn) {
+          console.log(`Attaching listener to Show Nearest ABVNs button for calamity ${calKey}`);
+          btn.addEventListener("click", async () => {
+            console.log(`Show Nearest ABVNs button clicked for calamity ${calKey}`);
+            try {
+              const calSnap = await database.ref(`calamities/${calKey}`).once("value");
+              if (!calSnap.exists()) {
+                console.log(`No calamity data found for key: ${calKey}`);
+                return;
+              }
+              const calamity = calSnap.val();
+              const coordinates = calamity.coordinates || { lat: 14.5995, lng: 120.9842 };
+              abvnMarkers.forEach(m => m.remove());
+              abvnMarkers = [];
+              const snapshot = await database.ref("volunteerGroups").once("value");
+              const volunteerGroups = snapshot.val() || {};
+              let abvnData = [];
+              console.log(`Fetched ${Object.keys(volunteerGroups).length} volunteer groups`);
+              const abvnSvg = `
+                    <svg width="40" height="50" viewBox="0 0 40 50" xmlns="http://www.w3.org/2000/svg">
+                      <g>
+                        <path d="M20 0 L28 15 L20 10 L12 15 Z" fill="#2a9d8f" stroke="#ffffff" stroke-width="2"/>
+                        <circle cx="20" cy="20" r="12" fill="#2a9d8f" stroke="#ffffff" stroke-width="2"/>
+                        <text x="20" y="22" font-size="16" text-anchor="middle" fill="#ffffff" font-weight="bold">👥</text>
+                      </g>
+                    </svg>
+                  `;
+              const abvnIcon = L.divIcon({
+                  html: abvnSvg,
+                  className: 'custom-marker',
+                  iconSize: [40, 50],
+                  iconAnchor: [20, 50]
+              });
+              function haversineDistance(coord1, coord2) {
+                const toRad = (x) => (x * Math.PI) / 180;
+                const R = 6371;
+                const dLat = toRad(coord2.lat - coord1.lat);
+                const dLon = toRad(coord2.lng - coord1.lng);
+                const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                          Math.cos(toRad(coord1.lat)) * Math.cos(toRad(coord2.lat)) *
+                          Math.sin(dLon / 2) * Math.sin(dLon / 2);
+                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                return R * c;
+              }
+              Object.entries(volunteerGroups).forEach(([groupId, group]) => {
+                if (group.address?.latitude && group.address?.longitude) {
+                  const abvnCoords = {
+                    lat: parseFloat(group.address.latitude),
+                    lng: parseFloat(group.address.longitude)
+                  };
+                  const distance = haversineDistance(coordinates, abvnCoords).toFixed(1);
+                  abvnData.push({ group, distance: parseFloat(distance), coords: abvnCoords, groupId });
+                  const abvnMarker = L.marker([abvnCoords.lat, abvnCoords.lng], {
+                    icon: abvnIcon,
+                    title: `${group.organization} (${distance} km)`
+                  }).addTo(map);
+                  abvnMarkers.push(abvnMarker);
+                  console.log(`Added marker for ${group.organization} at ${abvnCoords.lat}, ${abvnCoords.lng} (distance: ${distance} km)`);
+                  abvnMarker.on("click", async () => {
+                    const actSnap = await database.ref("activations")
+                      .orderByChild("groupId")
+                      .equalTo(groupId)
+                      .once("value");
+                    const acts = actSnap.val() || {};
+                    const activeAct = Object.values(acts).find(a => a.status === "active");
+                    if (activeAct) {
+                      Swal.fire({
+                        icon: "info",
+                        title: `${group.organization} Active`,
+                        html: `
+                          <div style="font-size:14px;color:#333;line-height:1.4;text-align:left;">
+                            Area: ${activeAct.areaOfOperation}<br>
+                            Activated: ${new Date(activeAct.activationDate).toLocaleDateString()}
+                          </div>
+                        `,
+                        showCancelButton: true,
+                        confirmButtonText: "Add",
+                        cancelButtonText: "Close",
+                        confirmButtonColor: "#2a9d8f",
+                        cancelButtonColor: "#e63946",
+                        customClass: {
+                          title: 'swal-title',
+                          htmlContainer: 'swal-html',
+                          confirmButton: 'swal-confirm',
+                          cancelButton: 'swal-cancel'
+                        }
+                      }).then((result) => {
+                        if (result.isConfirmed) {
+                          openQuickActivation(
+                            { ...group, id: groupId, coords: abvnCoords },
+                            calamity,
+                            abvnMarker
+                          );
+                        }
+                      });
+                    } else {
+                      openQuickActivation(
+                        { ...group, id: groupId, coords: abvnCoords },
+                        calamity,
+                        abvnMarker
+                      );
+                    }
+                  });
+                }
+              });
+              if (abvnData.length === 0) {
+                console.log('No ABVN groups found');
+                map.panTo([coordinates.lat, coordinates.lng]);
+                map.setZoom(8);
+                return;
+              }
+              abvnData.sort((a, b) => a.distance - b.distance);
+              console.log('Sorted ABVN data:', abvnData.map(d => ({ org: d.group.organization, dist: d.distance })));
+              const nearest = abvnData[0];
+              console.log(`Navigating to show calamity and nearest ABVN: ${nearest.group.organization} at (${nearest.coords.lat}, ${nearest.coords.lng}), distance: ${nearest.distance} km`);
+              const bounds = L.latLngBounds([
+                [coordinates.lat, coordinates.lng],
+                [nearest.coords.lat, nearest.coords.lng]
+              ]);
+              map.fitBounds(bounds, {
+                animate: true,
+                duration: 1.5,
+                padding: [100, 100]
+              });
+              const nearestMarker = abvnMarkers.find(m =>
+                m.getLatLng().lat === nearest.coords.lat && m.getLatLng().lng === nearest.coords.lng
+              );
+              if (nearestMarker) {
+                setTimeout(() => {
+                  nearestMarker.openPopup();
+                  console.log('Opened popup for nearest ABVN');
+                }, 1600);
+              } else {
+                console.warn('Nearest marker not found');
+              }
+            } catch (error) {
+              console.error(`Error loading ABVNs: ${error.message}`);
+              Swal.fire({
+                icon: "error",
+                title: "Error",
+                text: `Failed to load volunteer group locations: ${error.message}`,
+                customClass: {
+                  title: 'swal-title',
+                  htmlContainer: 'swal-html',
+                  confirmButton: 'swal-confirm'
+                }
+              });
+            }
+          });
+        } else {
+          console.warn(`Show Nearest ABVNs button not found for calamity ${calKey}, retrying...`);
+          setTimeout(() => attachButtonListener(retryCount + 1), 500);
+        }
+      };
       if (!calamityMarkersMap[eventId]) {
         const calamitySvg = `
             <svg width="50" height="60" viewBox="0 0 50 60" xmlns="http://www.w3.org/2000/svg">
@@ -2339,225 +2515,30 @@ function handleCalamityNotification(eventId) {
             iconSize: [50, 60],
             iconAnchor: [25, 60]
         });
-
         const pinMarker = L.marker([coordinates.lat, coordinates.lng], {
             icon: calamityIcon,
             title: calamity.type || "Calamity"
         }).addTo(map);
         calamityMarkersMap[eventId] = pinMarker;
-
         const calamityPopup = L.popup({
-          content: `
-            <div style="font-family:'Segoe UI',sans-serif;width:260px;border-radius:12px;background:#fff;box-shadow:0 4px 14px rgba(0,0,0,0.25);overflow:hidden;">
-              <div style="background:#e63946;color:#fff;padding:10px 14px;font-size:16px;font-weight:600;">
-                🚨 ${calamity.type || "Calamity"}
-              </div>
-              <div style="padding:12px;color:#333;font-size:14px;line-height:1.4;">
-                <b>📍 ${calamity.location || 'Unknown Location'}</b><br>
-                <b>Magnitude:</b> ${calamity.magnitude || "N/A"}<br>
-                <b>Time:</b> ${new Date(calamity.time || Date.now()).toLocaleString()}
-              </div>
-              <div style="padding:10px;border-top:1px solid #eee;text-align:center;">
-                <button id="showAbvnBtn-${calKey}" style="
-                  padding:8px 12px;border:none;border-radius:6px;
-                  background:#2a9d8f;color:#fff;font-size:14px;font-weight:500;
-                  cursor:pointer;transition:all 0.2s ease;">
-                  Show Nearest ABVNs
-                </button>
-              </div>
-            </div>
-          `
+          content: popupContent
         });
-
-        if (currentInfoWindow) currentInfoWindow.closePopup();
-        currentInfoWindow = calamityPopup;
-        pinMarker.bindPopup(calamityPopup).openPopup();
-
+        pinMarker.bindPopup(calamityPopup);
+        pinMarker.on("popupopen", attachButtonListener);
         pinMarker.on("click", () => {
-          if (currentInfoWindow) currentInfoWindow.closePopup();
-          currentInfoWindow = calamityPopup;
-          pinMarker.openPopup();
           map.panTo([coordinates.lat, coordinates.lng]);
-          map.setZoom(13);
+          map.setZoom(8);
         });
-
+        pinMarker.openPopup();
         map.panTo([coordinates.lat, coordinates.lng]);
-        map.setZoom(13);
-
-        // ✅ Attach the Show Nearest ABVNs click directly
-        const attachButtonListener = () => {
-          const btn = document.getElementById(`showAbvnBtn-${calKey}`);
-          if (btn) {
-            console.log(`Attaching listener to Show Nearest ABVNs button for calamity ${calKey}`);
-            btn.addEventListener("click", async () => {
-              console.log(`Show Nearest ABVNs button clicked for calamity ${calKey}`);
-
-              try {
-                abvnMarkers.forEach(m => m.remove());
-                abvnMarkers = [];
-
-                const snapshot = await database.ref("volunteerGroups").once("value");
-                const volunteerGroups = snapshot.val() || {};
-                let abvnData = [];
-
-                console.log(`Fetched ${Object.keys(volunteerGroups).length} volunteer groups`);
-
-                const abvnSvg = `
-                    <svg width="40" height="50" viewBox="0 0 40 50" xmlns="http://www.w3.org/2000/svg">
-                      <g>
-                        <path d="M20 0 L28 15 L20 10 L12 15 Z" fill="#2a9d8f" stroke="#ffffff" stroke-width="2"/>
-                        <circle cx="20" cy="20" r="12" fill="#2a9d8f" stroke="#ffffff" stroke-width="2"/>
-                        <text x="20" y="22" font-size="16" text-anchor="middle" fill="#ffffff" font-weight="bold">👥</text>
-                      </g>
-                    </svg>
-                  `;
-                const abvnIcon = L.divIcon({
-                    html: abvnSvg,
-                    className: 'custom-marker',
-                    iconSize: [40, 50],
-                    iconAnchor: [20, 50]
-                });
-
-                function haversineDistance(coord1, coord2) {
-                  const toRad = (x) => (x * Math.PI) / 180;
-                  const R = 6371;
-                  const dLat = toRad(coord2.lat - coord1.lat);
-                  const dLon = toRad(coord2.lng - coord1.lng);
-                  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                            Math.cos(toRad(coord1.lat)) * Math.cos(toRad(coord2.lat)) *
-                            Math.sin(dLon / 2) * Math.sin(dLon / 2);
-                  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-                  return R * c;
-                }
-
-                Object.entries(volunteerGroups).forEach(([groupId, group]) => {
-                  if (group.address?.latitude && group.address?.longitude) {
-                    const abvnCoords = {
-                      lat: parseFloat(group.address.latitude),
-                      lng: parseFloat(group.address.longitude)
-                    };
-                    const distance = haversineDistance(coordinates, abvnCoords).toFixed(1);
-                    abvnData.push({ group, distance: parseFloat(distance), coords: abvnCoords, groupId });
-
-                    const abvnMarker = L.marker([abvnCoords.lat, abvnCoords.lng], {
-                      icon: abvnIcon,
-                      title: `${group.organization} (${distance} km)`
-                    }).addTo(map);
-                    abvnMarkers.push(abvnMarker);
-
-                    console.log(`Added marker for ${group.organization} at ${abvnCoords.lat}, ${abvnCoords.lng} (distance: ${distance} km)`);
-
-                    // 🔹 Updated On Click: Handle already active with prompt
-                    abvnMarker.on("click", async () => {
-                      const actSnap = await database.ref("activations")
-                        .orderByChild("groupId")
-                        .equalTo(groupId)
-                        .once("value");
-                      const acts = actSnap.val() || {};
-                      const activeAct = Object.values(acts).find(a => a.status === "active");
-
-                      if (activeAct) {
-                        // Show already active and prompt for another activation (cleaner UI)
-                        Swal.fire({
-  icon: "info",
-  title: `${group.organization} Active`,
-  html: `
-    <div style="font-size:14px;color:#333;line-height:1.4;text-align:left;">
-      Area: ${activeAct.areaOfOperation}<br>
-      Activated: ${new Date(activeAct.activationDate).toLocaleDateString()}
-    </div>
-  `,
-  showCancelButton: true,
-  confirmButtonText: "Add",
-  cancelButtonText: "Close",
-  confirmButtonColor: "#2a9d8f",
-  cancelButtonColor: "#e63946",
-  customClass: {
-    title: 'swal-title',
-    htmlContainer: 'swal-html',
-    confirmButton: 'swal-confirm',
-    cancelButton: 'swal-cancel'
-  }
-}).then((result) => {
-  if (result.isConfirmed) {
-    openQuickActivation(
-      { ...group, id: groupId, coords: abvnCoords },
-      calamity,
-      abvnMarker
-    );
-  }
-});
-                      } else {
-                        // Directly open quick activation for inactive
-                        openQuickActivation(
-                          { ...group, id: groupId, coords: abvnCoords },
-                          calamity,
-                          abvnMarker
-                        );
-                      }
-                    });
-                  }
-                });
-
-                if (abvnData.length === 0) {
-                  console.log('No ABVN groups found');
-                  map.panTo([coordinates.lat, coordinates.lng]);
-                  map.setZoom(13);
-                  return;
-                }
-
-                // Sort by distance (ascending)
-                abvnData.sort((a, b) => a.distance - b.distance);
-                console.log('Sorted ABVN data:', abvnData.map(d => ({ org: d.group.organization, dist: d.distance })));
-
-                // Navigate to nearest: flyTo for smooth animation, zoom 12
-                const nearest = abvnData[0];
-                console.log(`Navigating to nearest ABVN: ${nearest.group.organization} at (${nearest.coords.lat}, ${nearest.coords.lng}), distance: ${nearest.distance} km`);
-
-                map.flyTo([nearest.coords.lat, nearest.coords.lng], 12, {
-                  duration: 1.5  // Smooth animation over 1.5 seconds
-                });
-
-                // Find the nearest marker and open its popup
-                const nearestMarker = abvnMarkers.find(m => 
-                  m.getLatLng().lat === nearest.coords.lat && m.getLatLng().lng === nearest.coords.lng
-                );
-                if (nearestMarker) {
-                  setTimeout(() => {
-                    nearestMarker.openPopup();
-                    console.log('Opened popup for nearest ABVN');
-                  }, 1600);  // Delay slightly longer than flyTo duration
-                } else {
-                  console.warn('Nearest marker not found');
-                }
-
-              } catch (error) {
-                console.error(`Error loading ABVNs: ${error.message}`);
-                Swal.fire({
-                  icon: "error",
-                  title: "Error",
-                  text: `Failed to load volunteer group locations: ${error.message}`,
-                  customClass: {
-                    title: 'swal-title',
-                    htmlContainer: 'swal-html',
-                    confirmButton: 'swal-confirm'
-                  }
-                });
-              }
-            });
-          } else {
-            console.warn(`Show Nearest ABVNs button not found for calamity ${calKey}, retrying...`);
-            setTimeout(attachButtonListener, 500); // Retry after 500ms
-          }
-        };
-
-        // Attach listener immediately after popup is set
-        setTimeout(attachButtonListener, 100); // Delay to ensure DOM is ready
+        map.setZoom(8);
       } else {
-        // update existing calamity marker
-        calamityMarkersMap[eventId].setLatLng([coordinates.lat, coordinates.lng]);
+        const marker = calamityMarkersMap[eventId];
+        marker.setLatLng([coordinates.lat, coordinates.lng]);
+        marker.getPopup().setContent(popupContent);
+        marker.openPopup();
         map.panTo([coordinates.lat, coordinates.lng]);
-        map.setZoom(13);
+        map.setZoom(8);
       }
     })
     .catch(error => {
@@ -2573,7 +2554,6 @@ function handleCalamityNotification(eventId) {
       });
     });
 }
-
 // Example call
 handleCalamityNotification(notification.eventId);
 
