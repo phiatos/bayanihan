@@ -321,7 +321,10 @@ async function loadApprovedReports() {
 let currentPopup = null;
 
 async function addMarkersForActiveActivations() {
-  if (!map) return;
+  if (!map) {
+    console.error('Map not initialized');
+    return;
+  }
 
   if (activationsListenerQuery && activationsListenerCallback) {
     activationsListenerQuery.off("value", activationsListenerCallback);
@@ -334,17 +337,48 @@ async function addMarkersForActiveActivations() {
     markers = [];
 
     const activations = snapshot.val();
-    if (!activations) return;
+    if (!activations) {
+      console.log('No active activations found.');
+      return;
+    }
 
+    let coordinateCount = {}; // Track duplicate coordinates
     for (const [key, activation] of Object.entries(activations)) {
-      if (!activation.latitude || !activation.longitude) continue;
+      console.log('Attempting to process activation:', key, activation);
+      let lat, lng;
 
-      const lat = parseFloat(activation.latitude);
-      const lng = parseFloat(activation.longitude);
-      if (isNaN(lat) || isNaN(lng)) continue;
+      // Check if coordinates are at root level or nested under address
+      if (activation.latitude && activation.longitude) {
+        lat = parseFloat(activation.latitude);
+        lng = parseFloat(activation.longitude);
+      } else if (activation.address?.latitude && activation.address?.longitude) {
+        lat = parseFloat(activation.address.latitude);
+        lng = parseFloat(activation.address.longitude);
+      } else {
+        console.warn('Missing latitude or longitude for activation:', key);
+        continue;
+      }
 
-      const group = allVolunteerGroups.find(g => g.no === activation.groupId);
+      if (isNaN(lat) || isNaN(lng)) {
+        console.warn('Invalid coordinates for activation:', key, { lat, lng });
+        continue;
+      }
+
+      // Handle duplicate coordinates with increased offset
+      const coordKey = `${lat},${lng}`;
+      if (coordinateCount[coordKey]) {
+        const offset = (coordinateCount[coordKey] * 0.001); // Increased to 0.001 degrees (~100 meters)
+        lat += offset;
+        lng += offset;
+        console.log(`Offset applied for duplicate at ${coordKey}, new coords: [${lat}, ${lng}]`);
+        coordinateCount[coordKey]++;
+      } else {
+        coordinateCount[coordKey] = 1;
+      }
+
+      const group = allVolunteerGroups.find(g => g.id === activation.groupId);
       const organization = activation.organization || "unknown";
+      const formattedAddress = activation.address?.formattedAddress || activation.areaOfOperation || "Address not specified";
 
       const marker = L.marker([lat, lng], {
         title: activation.organization || "Organization Unknown"
@@ -425,6 +459,7 @@ async function addMarkersForActiveActivations() {
           hasApprovedReports = true;
         }
       } catch (error) {
+        console.error('Error loading RDANA or reports for activation:', key, error);
         needsAssessmentHtml = "<p>Error loading needs assessment.</p>";
         approvedReportsHtml = "<p>Error loading approved reports for this ABVN.</p>";
       }
@@ -444,7 +479,7 @@ async function addMarkersForActiveActivations() {
           <i class='bx bx-cloud-lightning'></i>
           <div class="info-text">
             <span class="label">Calamity</span>
-            <span class="value">${activation.calamityType || "Unknown"}${activation.typhoonName ? ` (${activation.typhoonName})` : ''}</span>
+            <span class="value">${activation.calamityType || "Unknown"}${activation.calamityName ? ` (${activation.calamityName})` : ''}</span>
           </div>
         </div>
         <div class="info-item">
@@ -452,6 +487,13 @@ async function addMarkersForActiveActivations() {
           <div class="info-text">
             <span class="label">ABVN Group</span>
             <span class="value">${group ? group.organization : 'Unknown'}</span>
+          </div>
+        </div>
+        <div class="info-item">
+          <i class='bx bx-location-plus'></i>
+          <div class="info-text">
+            <span class="label">Address</span>
+            <span class="value">${formattedAddress}</span>
           </div>
         </div>
       `;
@@ -604,10 +646,20 @@ async function addMarkersForActiveActivations() {
       });
 
       markers.push(marker);
+      console.log('Added marker for:', activation.organization, 'at', [lat, lng], 'with address:', formattedAddress);
+    }
+    console.log('Total markers added:', markers.length);
+    if (markers.length > 0) {
+      map.fitBounds(markers.map(m => m.getLatLng()), { padding: [50, 50] });
+      console.log('Map bounds adjusted to show all markers');
+    } else {
+      console.warn('No markers to display');
     }
   };
 
-  activationsListenerQuery.on("value", activationsListenerCallback);
+  activationsListenerQuery.on("value", activationsListenerCallback, error => {
+    console.error('Activation listener error:', error);
+  });
 }
 
 function fetchVolunteerGroups() {
