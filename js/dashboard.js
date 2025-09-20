@@ -1,5 +1,3 @@
-// dashboard.js
-
 // --- AUTO REMOVE OLD SORT DROPDOWNS (added) ---
 document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('select').forEach(s => {
@@ -165,7 +163,7 @@ console.warn = function () {};
 let map, markers = [], geocoder, autocomplete, reportsListener, userRole, userEmail, userUid, currentInfoWindow, singleInfoWindow, isInfoWindowClicked = false;
 let calamityMarkers = [], calamityListener, notificationsListener;
 // NEW: For map sorting/filtering
-let hqMarkers = [], activatedMarkers = [], currentFilter = 'ALL';
+let hqMarkers = [], activatedMarkers = [], currentFilter = 'Calamities'; // Changed default to 'Calamities' for cleaner view
 // Session lock to prevent multiple executions
 const SESSION_KEY = 'dashboard_initialized';
 const CALAMITY_TRACKING_KEY = 'calamity_tracking_lock';
@@ -204,12 +202,18 @@ function checkInactivity() {
         text: 'You\'ve been inactive for a while. Do you want to continue your session or log out?',
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33',
+        confirmButtonColor: '#2a9d8f',
+        cancelButtonColor: '#e63946',
         confirmButtonText: 'Stay Logged In',
         cancelButtonText: 'Log Out',
         allowOutsideClick: false,
-        reverseButtons: true
+        reverseButtons: true,
+        customClass: {
+          title: 'swal-title',
+          htmlContainer: 'swal-html',
+          confirmButton: 'swal-confirm',
+          cancelButton: 'swal-cancel'
+        }
     }).then((result) => {
         if (result.isConfirmed) {
             resetInactivityTimer();
@@ -459,23 +463,9 @@ function createMapSortFilter() {
         const existing = document.getElementById('map-sort-filter');
         if (existing) {
             const sel = document.getElementById('mapFilter');
-            if (sel) sel.value = currentFilter || 'ALL';
+            if (sel) sel.value = currentFilter || 'Calamities';
             return;
         }
-
-        // Hide other page selects that seem to be map-sorts to avoid duplicates
-        const keywords = ['ALL','All','Calamities','ABVN HQs','Activated ABVNs','Weather'];
-        document.querySelectorAll('select').forEach(s => {
-            try {
-                const opts = Array.from(s.options).map(o => (o.value || o.text || o.textContent).toString().trim());
-                if (keywords.some(k => opts.includes(k))) {
-                    // hide duplicate controls (user requested removal)
-                    s.style.display = 'none';
-                }
-            } catch(e) {
-                // ignore
-            }
-        });
 
         // Build floating container
         const container = document.createElement('div');
@@ -494,7 +484,7 @@ function createMapSortFilter() {
         mapDiv.appendChild(container);
 
         const filter = document.getElementById('mapFilter');
-        filter.value = currentFilter || 'ALL';
+        filter.value = currentFilter || 'Calamities';
 
         filter.addEventListener('change', (e) => {
             let val = e.target.value;
@@ -536,6 +526,11 @@ window.initializeDashboard = function () {
                     icon: "error",
                     title: "Authentication Required",
                     text: "Please sign in to access the dashboard.",
+                    customClass: {
+                      title: 'swal-title',
+                      htmlContainer: 'swal-html',
+                      confirmButton: 'swal-confirm'
+                    }
                 }).then(() => window.location.href = "../pages/login.html");
                 return reject("User not authenticated");
             }
@@ -548,6 +543,11 @@ window.initializeDashboard = function () {
                         icon: "error",
                         title: "User Data Missing",
                         text: "User role not found.",
+                        customClass: {
+                          title: 'swal-title',
+                          htmlContainer: 'swal-html',
+                          confirmButton: 'swal-confirm'
+                        }
                     }).then(() => window.location.href = "../pages/login.html");
                     return reject("User role not found");
                 }
@@ -596,6 +596,11 @@ window.initializeDashboard = function () {
                     icon: "error",
                     title: "Error",
                     text: "Failed to load user data.",
+                    customClass: {
+                      title: 'swal-title',
+                      htmlContainer: 'swal-html',
+                      confirmButton: 'swal-confirm'
+                    }
                 });
                 reject(error);
             });
@@ -755,10 +760,7 @@ function applyMapFilter() {
                 try { markers.forEach(m => m.addTo(map)); } catch(e) {}
                 break;
             default:
-                try { markers.forEach(m => m.addTo(map)); } catch(e) {}
                 try { calamityMarkers.forEach(m => m.addTo(map)); } catch(e) {}
-                try { hqMarkers.forEach(m => m.addTo(map)); } catch(e) {}
-                try { activatedMarkers.forEach(m => m.addTo(map)); } catch(e) {}
         }
         console.log(`Applied filter: ${currentFilter}`);
     } catch (err) {
@@ -806,6 +808,11 @@ function initializeMap() {
                 icon: "error",
                 title: "Map Error",
                 text: "Map container not found on the page.",
+                customClass: {
+                  title: 'swal-title',
+                  htmlContainer: 'swal-html',
+                  confirmButton: 'swal-confirm'
+                }
             });
             return;
         }
@@ -837,6 +844,11 @@ function initializeMap() {
                 icon: "error",
                 title: "Map Error",
                 text: "Search input not found on the page.",
+                customClass: {
+                  title: 'swal-title',
+                  htmlContainer: 'swal-html',
+                  confirmButton: 'swal-confirm'
+                }
             });
             return;
         }
@@ -868,6 +880,11 @@ function initializeMap() {
             icon: "error",
             title: "Map Error",
             text: "Failed to load the map. Check your internet connection.",
+            customClass: {
+              title: 'swal-title',
+              htmlContainer: 'swal-html',
+              confirmButton: 'swal-confirm'
+            }
         });
     }
 }
@@ -887,6 +904,11 @@ async function performSearch(query) {
                 icon: "error",
                 title: "Location Not Found",
                 text: "No results found for the search query.",
+                customClass: {
+                  title: 'swal-title',
+                  htmlContainer: 'swal-html',
+                  confirmButton: 'swal-confirm'
+                }
             });
         }
     } catch (error) {
@@ -895,64 +917,15 @@ async function performSearch(query) {
             icon: "error",
             title: "Search Error",
             text: "Failed to perform search.",
+            customClass: {
+              title: 'swal-title',
+              htmlContainer: 'swal-html',
+              confirmButton: 'swal-confirm'
+            }
         });
     }
 }
-// Add weather data for all provinces with dynamic icons and rain notifications
-
-// ✅ Enhanced Rainfall Alert Generator
-// function generateRainAlert(province, rainfall, pop) {
-//     let warningLevel = "";
-//     if (pop >= 30 || rainfall >= 20) {
-//         if (rainfall >= 100 || pop >= 80) {
-//             warningLevel = "🔴 Red Warning: Heavy Rain";
-//         } else if (rainfall >= 50 || pop >= 60) {
-//             warningLevel = "🟠 Orange Warning: Moderate Rain";
-//         } else if (rainfall >= 20 || pop >= 30) {
-//             warningLevel = "🟡 Yellow Warning: Light Rain";
-//         }
-//     }
-
-//     if (warningLevel) {
-//         const eventId = `rain_${province.name}_${Date.now()}`;
-//         const time = new Date().toISOString();
-//         const details = `Rainfall: ${rainfall} mm in last 3h, Chance of Rain: ${pop}% | Time: ${time}`;
-//         const identifier = generateCalamityIdentifier("Rainfall Alert", province.name, time, "", rainfall);
-
-//         // Check for duplicates
-//         calamityExists(eventId, "Rainfall Alert", province.name, time, "", rainfall).then(exists => {
-//             if (!exists) {
-//                 // Save to calamities node
-//                 const calamityRef = database.ref("calamities").push();
-//                 calamityRef.set({
-//                     type: "Rainfall Alert",
-//                     location: province.name,
-//                     rainfall: rainfall,
-//                     time: time,
-//                     details: details,
-//                     coordinates: { lat: province.lat, lng: province.lng },
-//                     eventId: eventId,
-//                     identifier: identifier,
-//                     timestamp: Date.now(),
-//                     warningLevel: warningLevel,
-//                     source: "OpenWeatherMap"
-//                 }).then(() => {
-//                     console.log(`Saved new Rainfall Alert to calamities - Event ID: ${eventId}, Location: ${province.name}`);
-//                     // Add marker for the calamity
-//                     addCalamityMarker("Rainfall Alert", province.name, { lat: province.lat, lng: province.lng }, details, eventId);
-//                 }).catch(error => {
-//                     console.error(`Error saving Rainfall Alert for ${province.name}:`, error);
-//                 });
-
-//                 // Generate notification
-//                 generateLenlenAlert("Rainfall Alert", province.name, details, eventId, warningLevel, "OpenWeatherMap");
-//             } else {
-//                 console.log(`Skipping duplicate Rainfall Alert - Event ID: ${eventId}, Identifier: ${identifier}`);
-//             }
-//         });
-//     }
-// }
-
+// Add weather data for all provinces with dynamic icons (no separate rainfall alerts here; merged into trackFloods)
 function addWeatherDataForProvinces() {
     if (!map) {
         console.error("Map not initialized, cannot add weather data for provinces.");
@@ -998,42 +971,26 @@ function addWeatherDataForProvinces() {
                 sunnyPercent = Math.max(0, 100 - cloudCover);
             }
 
-            // Generate rainfall alerts using new function
-// generateRainAlert(province, rainfall, pop);
-
-      // Generate alerts for high rainfall (legacy fallback)
-            if (rainfall > 0) {
-                const eventId = `rain_${province.name}_${Date.now()}`;
-                const details = `Rainfall: ${rainfall} mm in last 3 hours, Time: ${new Date().toISOString()}`;
-                if (rainfall >= 100) {
-                    generateLenlenAlert("Flood Risk", province.name, details, eventId, "Red Warning: Heavy Rain", "OpenWeatherMap");
-                } else if (rainfall >= 50) {
-                    generateLenlenAlert("Flood Risk", province.name, details, eventId, "Orange Warning: Moderate Rain", "OpenWeatherMap");
-                } else if (rainfall >= 20) {
-                    generateLenlenAlert("Flood Risk", province.name, details, eventId, "Yellow Warning: Light Rain", "OpenWeatherMap");
-                }
-            }
-
-            // Icon selection (stricter for rain)
+            // Icon selection (simplified: no rain icon unless significant)
             let icon = "☁️";
             if (condition.includes("clear")) {
                 icon = "☀️";
-            } else if (condition.includes("rain") || condition.includes("drizzle") || condition.includes("thunderstorm") || rainfall >= 2) {
-                icon = "🌧️";
             } else if (condition.includes("clouds") && cloudCover < 50) {
                 icon = "⛅";
+            } else if (rainfall >= 50) { // Only show rain icon for significant rainfall
+                icon = "🌧️";
             }
 
             const markerSvg = `
-                <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
-                    <text x="20" y="22" font-size="20" text-anchor="middle" fill="#FFFFFF">${icon}</text>
+                <svg width="30" height="30" viewBox="0 0 30 30" xmlns="http://www.w3.org/2000/svg"> <!-- Smaller for less clutter -->
+                    <text x="15" y="18" font-size="16" text-anchor="middle" fill="#FFFFFF">${icon}</text>
                 </svg>
             `;
             const markerIcon = L.divIcon({
                 html: markerSvg,
                 className: 'custom-marker',
-                iconSize: [40, 40],
-                iconAnchor: [20, 20]
+                iconSize: [30, 30],
+                iconAnchor: [15, 15]
             });
             const marker = L.marker([province.lat, province.lng], {
                 icon: markerIcon,
@@ -1041,7 +998,7 @@ function addWeatherDataForProvinces() {
             }).addTo(map);
             markers.push(marker);
 
-            // Original weather info display (no Chance of Rain)
+            // Weather info display
             const weatherInfo = `
                 <div style="font-size: 14px;">
                     <b>${province.name} Weather</b><br>
@@ -1073,16 +1030,16 @@ function addWeatherDataForProvinces() {
         } catch (error) {
             console.error(`Error fetching weather data for ${province.name}:`, error);
             const defaultMarkerSvg = `
-                <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="20" cy="20" r="15" fill="#ADD8E6" opacity="0.7"/>
-                    <text x="20" y="22" font-size="20" text-anchor="middle" fill="#FFFFFF">☁️</text>
+                <svg width="30" height="30" viewBox="0 0 30 30" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="15" cy="15" r="12" fill="#ADD8E6" opacity="0.7"/>
+                    <text x="15" y="18" font-size="16" text-anchor="middle" fill="#FFFFFF">☁️</text>
                 </svg>
             `;
             const defaultIcon = L.divIcon({
                 html: defaultMarkerSvg,
                 className: 'custom-marker',
-                iconSize: [40, 40],
-                iconAnchor: [20, 20]
+                iconSize: [30, 30],
+                iconAnchor: [15, 15]
             });
             const marker = L.marker([province.lat, province.lng], {
                 icon: defaultIcon,
@@ -1094,7 +1051,7 @@ function addWeatherDataForProvinces() {
     provinces.forEach(province => addWeatherMarker(province));
     applyMapFilter(); // Apply filter after adding weather markers
 }
-// Track all calamities
+// Track all calamities (removed trackFloods/trackLandslides calls; merged rainfall logic into trackFloods for conciseness)
 function trackCalamities() {
     if (!map) {
         console.error("Map not initialized, cannot track calamities.");
@@ -1119,11 +1076,10 @@ function trackCalamities() {
         calamityListener = null;
     }
     trackEarthquakes();
-    trackFloods();
+    trackFloods(); // Now handles all rainfall alerts (light/moderate/heavy) with higher threshold to minimize
     trackFire();
     trackTyphoons();
     trackVolcanicEruptions();
-    trackLandslides();
     trackTsunamis();
 }
 // Load existing calamities to display markers without re-tracking
@@ -1281,9 +1237,9 @@ async function processEarthquakeData(data) {
     }
     applyMapFilter(); // NEW: Re-apply filter after adding new markers
 }
-// Track floods
+// Track floods (merged rainfall alerts here; higher threshold to minimize alerts)
 async function trackFloods() {
-    const rainfallThreshold = 50;
+    const rainfallThreshold = 50; // Increased to minimize light rain alerts
     const addFloodMarker = throttle(async (province) => {
         const cacheKey = `flood_${province.name}`;
         let forecastData;
@@ -1304,7 +1260,7 @@ async function trackFloods() {
         if (rainfall < rainfallThreshold) return;
         const time = new Date(forecastData.list[0].dt * 1000).toISOString();
         const details = `Rainfall: ${rainfall} mm in last 3 hours, Time: ${time}`;
-        const roundedTimestamp = Math.floor(new Date(time).getTime() / (60 * 60 * 1000)) * (60 * 60 * 1000);
+        const roundedTimestamp = Math.floor(new Date(time).getTime() / (3600000)) * 3600000; // Round to hour
         const eventId = `flood_${province.name}_${roundedTimestamp}`;
         const exists = await calamityExists(eventId, "Flood Risk", province.name, time, '', rainfall);
         if (exists) {
@@ -1331,10 +1287,12 @@ async function trackFloods() {
         });
         console.log(`Saved new flood risk to calamities - Event ID: ${eventId}, Location: ${province.name}`);
         await addCalamityMarker("Flood Risk", province.name, { lat: province.lat, lng: province.lng }, details, eventId);
-        // Trigger notification after saving to calamities
+        // Trigger notification after saving to calamities (concise warning levels)
         const warningLevel = rainfall >= 100 ? "Red Warning: Heavy Rain" :
-                           rainfall >= 50 ? "Orange Warning: Moderate Rain" : "Yellow Warning: Light Rain";
-        await generateLenlenAlert("Flood Risk", province.name, details, eventId, warningLevel, "OpenWeatherMap");
+                           rainfall >= 50 ? "Orange Warning: Moderate Rain" : "";
+        if (warningLevel) { // Skip light rain to minimize
+            await generateLenlenAlert("Flood Risk", province.name, details, eventId, warningLevel, "OpenWeatherMap");
+        }
     }, 1000);
     provinces.forEach(province => addFloodMarker(province));
 }
@@ -1415,63 +1373,6 @@ async function trackVolcanicEruptions() {
     }
     applyMapFilter();
 }
-// Track landslides
-async function trackLandslides() {
-    const rainfallThreshold = 100;
-    const addLandslideMarker = throttle(async (province) => {
-        const calamityTrackingInitialized = sessionStorage.getItem(CALAMITY_TRACKING_KEY);
-        if (calamityTrackingInitialized) {
-            console.log("Landslide tracking already executed in this session for", province.name, "skipping.");
-            return;
-        }
-        const cacheKey = `landslide_${province.name}`;
-        let forecastData;
-        if (apiCache.has(cacheKey)) {
-            forecastData = apiCache.get(cacheKey);
-        } else {
-            try {
-                const response = await fetch(`https://api.openweathermap.org/data/2.5/forecast?lat=${province.lat}&lon=${province.lng}&appid=${WEATHER_API_KEY}&units=metric`);
-                if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-                forecastData = await response.json();
-                apiCache.set(cacheKey, forecastData);
-            } catch (error) {
-                console.error(`Error fetching landslide risk data for ${province.name}:`, error);
-                return;
-            }
-        }
-        const rainfall = forecastData.list[0].rain ? forecastData.list[0].rain["3h"] || 0 : 0;
-        if (rainfall < rainfallThreshold) return;
-        const time = new Date(forecastData.list[0].dt * 1000).toISOString();
-        const details = `Rainfall: ${rainfall} mm in last 3 hours, Time: ${time}`;
-        const roundedTimestamp = Math.floor(new Date(time).getTime() / (60 * 60 * 1000)) * (60 * 60 * 1000);
-        const eventId = `landslide_${province.name}_${roundedTimestamp}`;
-        const exists = await calamityExists(eventId, "Landslide Risk", province.name, time, '', rainfall);
-        if (exists) {
-            console.log(`Skipping saving duplicate landslide risk - Event ID: ${eventId}`);
-            await addCalamityMarker("Landslide Risk", province.name, { lat: province.lat, lng: province.lng }, details, eventId);
-            return;
-        }
-        const identifier = generateCalamityIdentifier("Landslide Risk", province.name, time, '', rainfall);
-        processedCalamities.add(eventId);
-        processedCalamities.add(identifier);
-        syncProcessedCalamities();
-        const calamityRef = database.ref("calamities").push();
-        await calamityRef.set({
-            type: "Landslide Risk",
-            location: province.name,
-            rainfall: rainfall,
-            time: time,
-            details: details,
-            coordinates: { lat: province.lat, lng: province.lng },
-            eventId: eventId,
-            identifier: identifier,
-            timestamp: Date.now(),
-        });
-        console.log(`Saved new landslide risk - Event ID: ${eventId}, Location: ${province.name}, Identifier: ${identifier}`);
-        await addCalamityMarker("Landslide Risk", province.name, { lat: province.lat, lng: province.lng }, details, eventId);
-    }, 1000);
-    provinces.forEach(province => addLandslideMarker(province));
-}
 // Track tsunamis
 async function trackTsunamis() {
     const calamityTrackingInitialized = sessionStorage.getItem(CALAMITY_TRACKING_KEY);
@@ -1548,7 +1449,7 @@ async function getLocationName(lat, lng) {
         return `(${lat.toFixed(2)}, ${lng.toFixed(2)})`;
     }
 }
-// Calamity marker with fun design and interactivity
+// Calamity marker with fun design and interactivity (simplified, no circulating animation)
 async function addCalamityMarker(type, location, coordinates, details, eventId) {
     const icons = {
         "Earthquake": "🌍",
@@ -1559,10 +1460,10 @@ async function addCalamityMarker(type, location, coordinates, details, eventId) 
         "Landslide Risk": "⛰️",
         "Tsunami": "🌊",
     };
-    const currentTime = Date.now(); // 06:52 PM PST, August 21, 2025 = 1724286320000 ms
+    const currentTime = Date.now();
     const timeMatch = details.match(/Time: (.+)/);
     const eventTime = timeMatch ? new Date(timeMatch[1]).getTime() : currentTime;
-    const twelveHoursInMs = 12 * 60 * 60 * 1000; // 43200000 ms
+    const twelveHoursInMs = 12 * 60 * 60 * 1000;
 
     // Remove all existing markers temporarily
     calamityMarkers.forEach(({ marker }) => marker.remove());
@@ -1751,6 +1652,11 @@ async function showWeatherInfoWindow(lat, lng) {
             icon: "error",
             title: "Weather Error",
             text: "Failed to load weather data. Please try again later.",
+            customClass: {
+              title: 'swal-title',
+              htmlContainer: 'swal-html',
+              confirmButton: 'swal-confirm'
+            }
         });
     }
 }
@@ -2028,7 +1934,7 @@ function setupAdminNotifications() {
  loadNotifications();
  } catch (error) {
  console.error("Error marking read:", error);
- Swal.fire({ icon: "error", title: "Error", text: "Failed to mark all as read." });
+ Swal.fire({ icon: "error", title: "Error", text: "Failed to mark all as read.", customClass: { title: 'swal-title', htmlContainer: 'swal-html', confirmButton: 'swal-confirm' } });
  }
  });
  }
@@ -2043,6 +1949,11 @@ function loadNotifications() {
             icon: "error",
             title: "Error",
             text: "Notification elements not found. Please check the dashboard setup.",
+            customClass: {
+              title: 'swal-title',
+              htmlContainer: 'swal-html',
+              confirmButton: 'swal-confirm'
+            }
         });
         return;
     }
@@ -2186,6 +2097,11 @@ content += `<span class="timestamp">${timestamp.toLocaleString("en-US", {
                     icon: "error",
                     title: "Error",
                     text: "Failed to mark notification as read.",
+                    customClass: {
+                      title: 'swal-title',
+                      htmlContainer: 'swal-html',
+                      confirmButton: 'swal-confirm'
+                    }
                 });
             });
 
@@ -2260,6 +2176,11 @@ content += `<span class="timestamp">${timestamp.toLocaleString("en-US", {
                             icon: "error",
                             title: "Navigation Error",
                             text: `Could not navigate to ${targetPage}. Please check if the page exists.`,
+                            customClass: {
+                              title: 'swal-title',
+                              htmlContainer: 'swal-html',
+                              confirmButton: 'swal-confirm'
+                            }
                         });
                     }
                 } else {
@@ -2351,7 +2272,7 @@ function openQuickActivation(group, calamity, abvnMarker) {
     });
 
     document.getElementById("quickActivationModal").style.display = "none";
-    Swal.fire({ icon: "success", title: "Activated", text: `${group.organization} is now activated.` });
+    Swal.fire({ icon: "success", title: "Activated", text: `${group.organization} is now activated.`, customClass: { title: 'swal-title', htmlContainer: 'swal-html', confirmButton: 'swal-confirm' } });
 
     if (abvnMarker) {
       abvnMarker.setIcon(L.divIcon({
@@ -2407,8 +2328,7 @@ function handleCalamityNotification(eventId) {
                 <circle cx="25" cy="25" r="15" fill="#e63946" stroke="#ffffff" stroke-width="2"/>
                 <text x="25" y="30" font-size="20" text-anchor="middle" fill="#ffffff" font-weight="bold">⚠</text>
                 <circle cx="25" cy="25" r="15" fill="none" stroke="#ff6b6b" stroke-width="3" opacity="0.8">
-                  <animate attributeName="r" values="15;20;15" dur="2s" repeatCount="indefinite"/>
-                  <animate attributeName="opacity" values="0.8;0.4;0.8" dur="2s" repeatCount="indefinite"/>
+                  <!-- Removed circulating animation -->
                 </circle>
               </g>
             </svg>
@@ -2537,38 +2457,36 @@ function handleCalamityNotification(eventId) {
                       const activeAct = Object.values(acts).find(a => a.status === "active");
 
                       if (activeAct) {
-                        // Show already active and prompt for another activation
+                        // Show already active and prompt for another activation (cleaner UI)
                         Swal.fire({
-                          icon: "info",
-                          title: `${group.organization} Already Active`,
-                          html: `
-                            <div style="font-size:14px;color:#333;line-height:1.4;text-align:left;">
-                              <b>Status:</b> Active<br>
-                              <b>Area:</b> ${activeAct.areaOfOperation}<br>
-                              <b>Activated:</b> ${new Date(activeAct.activationDate).toLocaleString()}
-                            </div>
-                          `,
-                          text: "Do you want to add another activation?",
-                          showCancelButton: true,
-                          confirmButtonText: "Yes, Add Another",
-                          cancelButtonText: "No",
-                          confirmButtonColor: "#855ecd",
-                          cancelButtonColor: "#6c757d",
-                          customClass: {
-                            title: 'swal-title',
-                            htmlContainer: 'swal-html',
-                            confirmButton: 'swal-confirm',
-                            cancelButton: 'swal-cancel'
-                          }
-                        }).then((result) => {
-                          if (result.isConfirmed) {
-                            openQuickActivation(
-                              { ...group, id: groupId, coords: abvnCoords },
-                              calamity,
-                              abvnMarker
-                            );
-                          }
-                        });
+  icon: "info",
+  title: `${group.organization} Active`,
+  html: `
+    <div style="font-size:14px;color:#333;line-height:1.4;text-align:left;">
+      Area: ${activeAct.areaOfOperation}<br>
+      Activated: ${new Date(activeAct.activationDate).toLocaleDateString()}
+    </div>
+  `,
+  showCancelButton: true,
+  confirmButtonText: "Add",
+  cancelButtonText: "Close",
+  confirmButtonColor: "#2a9d8f",
+  cancelButtonColor: "#e63946",
+  customClass: {
+    title: 'swal-title',
+    htmlContainer: 'swal-html',
+    confirmButton: 'swal-confirm',
+    cancelButton: 'swal-cancel'
+  }
+}).then((result) => {
+  if (result.isConfirmed) {
+    openQuickActivation(
+      { ...group, id: groupId, coords: abvnCoords },
+      calamity,
+      abvnMarker
+    );
+  }
+});
                       } else {
                         // Directly open quick activation for inactive
                         openQuickActivation(
@@ -2618,7 +2536,12 @@ function handleCalamityNotification(eventId) {
                 Swal.fire({
                   icon: "error",
                   title: "Error",
-                  text: `Failed to load volunteer group locations: ${error.message}`
+                  text: `Failed to load volunteer group locations: ${error.message}`,
+                  customClass: {
+                    title: 'swal-title',
+                    htmlContainer: 'swal-html',
+                    confirmButton: 'swal-confirm'
+                  }
                 });
               }
             });
@@ -2641,7 +2564,12 @@ function handleCalamityNotification(eventId) {
       Swal.fire({
         icon: "error",
         title: "Error",
-        text: `Failed to load calamity location: ${error.message}`
+        text: `Failed to load calamity location: ${error.message}`,
+        customClass: {
+          title: 'swal-title',
+          htmlContainer: 'swal-html',
+          confirmButton: 'swal-confirm'
+        }
       });
     });
 }
@@ -2682,6 +2610,11 @@ handleCalamityNotification(notification.eventId);
                     icon: "error",
                     title: "Error",
                     text: "Failed to delete notification.",
+                    customClass: {
+                      title: 'swal-title',
+                      htmlContainer: 'swal-html',
+                      confirmButton: 'swal-confirm'
+                    }
                 });
             });
         });
@@ -2701,6 +2634,11 @@ handleCalamityNotification(notification.eventId);
             icon: "error",
             title: "Error",
             text: "Failed to load notifications: " + error.message,
+            customClass: {
+              title: 'swal-title',
+              htmlContainer: 'swal-html',
+              confirmButton: 'swal-confirm'
+            }
         });
     });
 }
@@ -2717,6 +2655,11 @@ handleCalamityNotification(notification.eventId);
                  icon: "success",
                  title: "Report Found",
                  text: `Report with ID ${reportId} has been located and is available for verification.`,
+                 customClass: {
+                   title: 'swal-title',
+                   htmlContainer: 'swal-html',
+                   confirmButton: 'swal-confirm'
+                 }
              });
          } else {
              console.log(`No report found with ID: ${reportId}`);
@@ -2724,6 +2667,11 @@ handleCalamityNotification(notification.eventId);
                  icon: "warning",
                  title: "Report Not Found",
                  text: `No report with ID ${reportId} exists in the submission list.`,
+                 customClass: {
+                   title: 'swal-title',
+                   htmlContainer: 'swal-html',
+                   confirmButton: 'swal-confirm'
+                 }
              });
          }
      } catch (error) {
@@ -2732,6 +2680,11 @@ handleCalamityNotification(notification.eventId);
              icon: "error",
              title: "Error",
              text: "Failed to verify report. Please try again later.",
+             customClass: {
+               title: 'swal-title',
+               htmlContainer: 'swal-html',
+               confirmButton: 'swal-confirm'
+             }
          });
      }
  }
@@ -2787,6 +2740,11 @@ handleCalamityNotification(notification.eventId);
              icon: "error",
              title: "Error",
              text: "Failed to load reports.",
+             customClass: {
+               title: 'swal-title',
+               htmlContainer: 'swal-html',
+               confirmButton: 'swal-confirm'
+             }
          });
      });
  }
@@ -3206,14 +3164,24 @@ setInterval(cleanupExpiredMarkers, 60 * 60 * 1000); // Runs every hour
       icon: "success",
       confirmButtonText: "OK",
       timer: 2000,
-      showConfirmButton: false
+      showConfirmButton: false,
+      customClass: {
+        title: 'swal-title',
+        htmlContainer: 'swal-html',
+        confirmButton: 'swal-confirm'
+      }
     });
   }).catch(error => {
     Swal.fire({
       title: "Error",
       text: "Something went wrong: " + error.message,
       icon: "error",
-      confirmButtonText: "Retry"
+      confirmButtonText: "Retry",
+      customClass: {
+        title: 'swal-title',
+        htmlContainer: 'swal-html',
+        confirmButton: 'swal-confirm'
+      }
     });
   });
  });
