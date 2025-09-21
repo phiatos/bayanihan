@@ -664,8 +664,8 @@ async function loadActivatedABVNs() {
         activatedMarkers.forEach(marker => marker.remove());
         activatedMarkers = [];
         Object.entries(activations).forEach(([actId, act]) => {
-            if (act.latitude && act.longitude) {
-                const coords = { lat: parseFloat(act.latitude), lng: parseFloat(act.longitude) };
+            if (act.address && act.address.latitude && act.address.longitude) {
+                const coords = { lat: parseFloat(act.address.latitude), lng: parseFloat(act.address.longitude) };
                 const actIcon = L.divIcon({
                     html: `
                         <svg width="50" height="60" viewBox="0 0 50 60" xmlns="http://www.w3.org/2000/svg">
@@ -2190,18 +2190,24 @@ content += `<span class="timestamp">${timestamp.toLocaleString("en-US", {
 
 // Handle calamity notifications with map interaction
 // ================= Quick Activation Modal =================
+
 const quickActivationHTML = `
 <div id="quickActivationModal" style="
   display:none;position:fixed;top:0;left:0;width:100%;height:100%;
   background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
-  <div class="modal-content" style="background:#fff;padding:20px;width:420px;border-radius:8px;">
-    <h2 style="margin-bottom:12px;">Quick Activation</h2>
+  <div class="modal-content" style="background:#fff;padding:20px;width:480px;border-radius:10px;max-height:90%;overflow-y:auto;">
+    <h2 style="margin-bottom:16px;color:#e63946;">Quick Activation</h2>
 
     <label style="font-weight:600;">Area of Operations<span style="color:red">*</span></label>
-    <input type="text" id="qaArea" style="width:100%;padding:6px;margin:6px 0;">
+    <div style="display:flex;gap:6px;margin:6px 0;">
+      <input type="text" id="qaArea" style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;">
+      <button id="qaPinBtn" style="padding:8px 12px;background:#2a9d8f;color:#fff;border:none;border-radius:6px;cursor:pointer;">📍 Pin</button>
+    </div>
+    <input type="hidden" id="qaLat">
+    <input type="hidden" id="qaLng">
 
     <label style="font-weight:600;">Calamity Type<span style="color:red">*</span></label>
-    <select id="qaCalamityType" style="width:100%;padding:6px;margin:6px 0;">
+    <select id="qaCalamityType" style="width:100%;padding:8px;margin:6px 0;border:1px solid #ccc;border-radius:6px;">
       <option value="">-- Select Calamity Type --</option>
       <option value="Typhoon">Typhoon</option>
       <option value="Earthquake">Earthquake</option>
@@ -2212,15 +2218,35 @@ const quickActivationHTML = `
     </select>
 
     <label style="font-weight:600;">Calamity Name</label>
-    <input type="text" id="qaCalamityName" style="width:100%;padding:6px;margin:6px 0;">
+    <input type="text" id="qaCalamityName" style="width:100%;padding:8px;margin:6px 0;border:1px solid #ccc;border-radius:6px;">
 
     <div id="qaError" style="color:#e63946;font-size:13px;margin:6px 0;display:none;">
       Please fill in all required fields.
     </div>
 
     <div style="text-align:right;margin-top:14px;">
-      <button id="qaCancel" style="padding:6px 12px;margin-right:6px;">Cancel</button>
-      <button id="qaSave" style="padding:6px 12px;background:#2a9d8f;color:#fff;border:none;">Activate</button>
+      <button id="qaCancel" style="padding:8px 14px;margin-right:6px;border:1px solid #ccc;border-radius:6px;cursor:pointer;">Cancel</button>
+      <button id="qaSave" style="padding:8px 14px;background:#2a9d8f;color:#fff;border:none;border-radius:6px;cursor:pointer;">Activate</button>
+    </div>
+  </div>
+</div>
+
+<!-- Pin Location Modal -->
+<div id="qaPinModal" style="
+  display:none;position:fixed;top:0;left:0;width:100%;height:100%;
+  background:rgba(0,0,0,0.6);z-index:10000;align-items:center;justify-content:center;">
+  <div style="background:#fff;padding:16px;width:600px;height:520px;border-radius:10px;display:flex;flex-direction:column;">
+    <h3 style="margin-bottom:10px;color:#e63946;">Pin Location</h3>
+    <div style="position:relative;">
+      <input type="text" id="qaSearchLocation" placeholder="Search for a location..." style="padding:8px;margin-bottom:6px;border:1px solid #ccc;border-radius:6px;width:100%;box-sizing:border-box;">
+      <div id="qaSuggestions" style="position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid #ccc;border-top:none;border-radius:0 0 6px 6px;max-height:200px;overflow-y:auto;display:none;z-index:10001;">
+        <!-- Suggestions will be populated here -->
+      </div>
+    </div>
+    <div id="qaMap" style="flex:1;border:1px solid #ccc;border-radius:6px;"></div>
+    <div style="text-align:right;margin-top:10px;">
+      <button id="qaPinCancel" style="padding:8px 14px;margin-right:6px;border:1px solid #ccc;border-radius:6px;cursor:pointer;">Cancel</button>
+      <button id="qaPinSave" style="padding:8px 14px;background:#2a9d8f;color:#fff;border:none;border-radius:6px;cursor:pointer;">Save Location</button>
     </div>
   </div>
 </div>
@@ -2229,13 +2255,19 @@ if (!document.getElementById("quickActivationModal")) {
   document.body.insertAdjacentHTML("beforeend", quickActivationHTML);
 }
 
+let qaMap, qaMarker;
+
 function openQuickActivation(group, calamity, abvnMarker) {
   const areaInput = document.getElementById("qaArea");
   const typeSelect = document.getElementById("qaCalamityType");
   const nameInput = document.getElementById("qaCalamityName");
   const errorBox = document.getElementById("qaError");
+  const latInput = document.getElementById("qaLat");
+  const lngInput = document.getElementById("qaLng");
 
   areaInput.value = group.address?.formattedAddress || "";
+  latInput.value = group.coords?.lat || "";
+  lngInput.value = group.coords?.lng || "";
   typeSelect.value = calamity.type && [
     "Typhoon","Earthquake","Flood","Volcanic Eruption","Landslide","Tsunami"
   ].includes(calamity.type) ? calamity.type : "";
@@ -2248,6 +2280,39 @@ function openQuickActivation(group, calamity, abvnMarker) {
     document.getElementById("quickActivationModal").style.display = "none";
   };
 
+  // Pin Location Button
+  document.getElementById("qaPinBtn").onclick = () => {
+    document.getElementById("qaPinModal").style.display = "flex";
+    setTimeout(() => {
+      initQaMap(parseFloat(latInput.value) || 14.5995, parseFloat(lngInput.value) || 120.9842, areaInput.value);
+    }, 300);
+  };
+
+  document.getElementById("qaPinCancel").onclick = () => {
+    document.getElementById("qaPinModal").style.display = "none";
+    if (qaMap) {
+      qaMap.remove();
+      qaMap = null;
+    }
+    qaMarker = null;
+  };
+
+  document.getElementById("qaPinSave").onclick = () => {
+    if (qaMarker) {
+      const pos = qaMarker.getLatLng();
+      latInput.value = pos.lat;
+      lngInput.value = pos.lng;
+      areaInput.value = areaInput.value || `Lat: ${pos.lat.toFixed(4)}, Lng: ${pos.lng.toFixed(4)}`;
+    }
+    document.getElementById("qaPinModal").style.display = "none";
+    if (qaMap) {
+      qaMap.remove();
+      qaMap = null;
+    }
+    qaMarker = null;
+  };
+
+  // Save Activation
   document.getElementById("qaSave").onclick = async () => {
     const area = areaInput.value.trim();
     const ctype = typeSelect.value.trim();
@@ -2265,8 +2330,11 @@ function openQuickActivation(group, calamity, abvnMarker) {
       groupId: group.id,
       hq: group.address?.formattedAddress || "Not specified",
       areaOfOperation: area,
-      latitude: group.coords?.lat,
-      longitude: group.coords?.lng,
+      address: {
+        formattedAddress: area,
+        latitude: parseFloat(latInput.value) || group.coords?.lat,
+        longitude: parseFloat(lngInput.value) || group.coords?.lng
+      },
       organization: group.organization,
       status: "active"
     });
@@ -2274,25 +2342,364 @@ function openQuickActivation(group, calamity, abvnMarker) {
     document.getElementById("quickActivationModal").style.display = "none";
     Swal.fire({ icon: "success", title: "Activated", text: `${group.organization} is now activated.`, customClass: { title: 'swal-title', htmlContainer: 'swal-html', confirmButton: 'swal-confirm' } });
 
-    if (abvnMarker) {
-      abvnMarker.setIcon(L.divIcon({
-        html: `
-          <svg width="40" height="50" viewBox="0 0 40 50" xmlns="http://www.w3.org/2000/svg">
-            <g>
-              <path d="M20 0 L28 15 L20 10 L12 15 Z" fill="#28a745" stroke="#ffffff" stroke-width="2"/>
-              <circle cx="20" cy="20" r="12" fill="#28a745" stroke="#ffffff" stroke-width="2"/>
-              <text x="20" y="22" font-size="16" text-anchor="middle" fill="#ffffff" font-weight="bold">✓</text>
-            </g>
-          </svg>
-        `,
-        className: 'custom-marker',
-        iconSize: [40, 50],
-        iconAnchor: [20, 50]
-      }));
-    }
-    loadActivatedABVNs(); // Reload activated markers after activation
+    // Reload activated markers
+    loadActivatedABVNs();
   };
 }
+
+function initQaMap(latitude = 14.5995, longitude = 120.9842, formattedAddress = null) {
+  const defaultLocation = [latitude, longitude];
+  const philippinesBounds = [
+    [4.643, 116.929], // Southwest corner
+    [21.121, 126.604] // Northeast corner
+  ];
+
+  if (qaMap) {
+    qaMap.remove();
+  }
+  qaMap = L.map('qaMap', {
+    center: defaultLocation,
+    zoom: 12,
+    minZoom: 6,
+    maxZoom: 18,
+    maxBounds: philippinesBounds,
+    maxBoundsViscosity: 1.0
+  });
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+  }).addTo(qaMap);
+
+  qaMarker = L.marker(defaultLocation, { draggable: true }).addTo(qaMap);
+
+  const searchInput = document.getElementById("qaSearchLocation");
+  const suggestionsDiv = document.getElementById("qaSuggestions");
+  let debounceTimer;
+
+  // Autocomplete suggestions
+  searchInput.addEventListener('input', function() {
+    const query = searchInput.value.trim();
+    clearTimeout(debounceTimer);
+    suggestionsDiv.innerHTML = '';
+    suggestionsDiv.style.display = 'none';
+
+    if (query.length < 2) return;
+
+    debounceTimer = setTimeout(() => {
+      fetch(`https://nominatim.openstreetmap.org/search?format=json&countrycodes=PH&q=${encodeURIComponent(query)}&limit=5&addressdetails=1`)
+        .then(response => response.json())
+        .then(results => {
+          if (results.length > 0) {
+            suggestionsDiv.innerHTML = results.map(result => `
+              <div style="padding:8px;cursor:pointer;border-bottom:1px solid #eee;" onclick="selectQaSuggestion('${result.display_name}', ${result.lat}, ${result.lon}, [${result.boundingbox.join(',')}])">
+                ${result.display_name}
+              </div>
+            `).join('');
+            suggestionsDiv.style.display = 'block';
+          }
+        })
+        .catch(error => {
+          console.error('Autocomplete error:', error);
+        });
+    }, 300);
+  });
+
+  // Hide suggestions on outside click
+  document.addEventListener('click', function(e) {
+    if (!searchInput.contains(e.target) && !suggestionsDiv.contains(e.target)) {
+      suggestionsDiv.style.display = 'none';
+    }
+  });
+
+  // Enter key for search (fallback)
+  searchInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      const query = searchInput.value.trim();
+      if (!query) return;
+      performQaSearch(query);
+    }
+  });
+
+  // Drag end handler
+  function onQaMarkerDragEnd(e) {
+    const latlng = e.target.getLatLng();
+    if (latlng.lat < 4.643 || latlng.lat > 21.121 || latlng.lng < 116.929 || latlng.lng > 126.604) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Invalid Location',
+        text: 'Selected location must be within the Philippines.'
+      });
+      e.target.setLatLng(defaultLocation);
+      return;
+    }
+    fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latlng.lat}&lon=${latlng.lng}&addressdetails=1&countrycodes=PH`)
+      .then(response => response.json())
+      .then(data => {
+        if (data && data.display_name && data.address.country_code === 'ph') {
+          const areaInput = document.getElementById("qaArea");
+          areaInput.value = data.display_name;
+          document.getElementById("qaLat").value = latlng.lat;
+          document.getElementById("qaLng").value = latlng.lng;
+        } else {
+          Swal.fire({
+            icon: 'error',
+            title: 'Invalid Location',
+            text: 'Selected location must be within the Philippines.'
+          });
+          e.target.setLatLng(defaultLocation);
+        }
+      })
+      .catch(() => {
+        Swal.fire({
+          icon: 'error',
+          title: 'Geocoding Error',
+          text: 'Unable to retrieve address. Please try again.'
+        });
+        e.target.setLatLng(defaultLocation);
+      });
+  }
+  qaMarker.on("dragend", onQaMarkerDragEnd);
+
+  // Map click handler
+  qaMap.on('click', function(e) {
+    const latlng = e.latlng;
+    if (latlng.lat < 4.643 || latlng.lat > 21.121 || latlng.lng < 116.929 || latlng.lng > 126.604) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Invalid Location',
+        text: 'Selected location must be within the Philippines.'
+      });
+      return;
+    }
+    qaMarker.setLatLng(latlng);
+    fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latlng.lat}&lon=${latlng.lng}&addressdetails=1&countrycodes=PH`)
+      .then(response => response.json())
+      .then(data => {
+        if (data && data.display_name && data.address.country_code === 'ph') {
+          const areaInput = document.getElementById("qaArea");
+          areaInput.value = data.display_name;
+          document.getElementById("qaLat").value = latlng.lat;
+          document.getElementById("qaLng").value = latlng.lng;
+        } else {
+          Swal.fire({
+            icon: 'error',
+            title: 'Invalid Location',
+            text: 'Selected location must be within the Philippines.'
+          });
+          qaMarker.setLatLng(defaultLocation);
+        }
+      })
+      .catch(() => {
+        Swal.fire({
+          icon: 'error',
+          title: 'Geocoding Error',
+          text: 'Unable to retrieve address. Please try again.'
+        });
+        qaMarker.setLatLng(defaultLocation);
+      });
+    qaMap.setView(latlng, 16);
+  });
+
+  // My Location button
+  const returnButton = L.control({ position: 'topright' });
+  returnButton.onAdd = function() {
+    const div = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-bar-part');
+    div.innerHTML = '<button style="background-color: #007bff; color: white; padding: 5px 10px; border: none; border-radius: 3px; cursor: pointer; font-size: 12px; width: 100%;">My Location</button>';
+    div.firstChild.onclick = returnToQaUserLocation;
+    return div;
+  };
+  returnButton.addTo(qaMap);
+
+  // Set initial position if provided
+  if (formattedAddress && latitude && longitude) {
+    qaMap.setView(defaultLocation, 16);
+    qaMarker.setLatLng(defaultLocation);
+    const areaInput = document.getElementById("qaArea");
+    areaInput.value = formattedAddress;
+    document.getElementById("qaLat").value = latitude;
+    document.getElementById("qaLng").value = longitude;
+    L.popup()
+      .setLatLng(defaultLocation)
+      .setContent(`Selected Location<br>${formattedAddress}`)
+      .openOn(qaMap);
+  } else if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const userLocation = [position.coords.latitude, position.coords.longitude];
+        if (userLocation[0] < 4.643 || userLocation[0] > 21.121 || userLocation[1] < 116.929 || userLocation[1] > 126.604) {
+          Swal.fire({
+            icon: 'error',
+            title: 'Location Error',
+            text: 'Your location is outside the Philippines. Using default.'
+          });
+          return;
+        }
+        qaMap.setView(userLocation, 16);
+        qaMarker.setLatLng(userLocation);
+        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${userLocation[0]}&lon=${userLocation[1]}&addressdetails=1&countrycodes=PH`)
+          .then(response => response.json())
+          .then(data => {
+            if (data && data.display_name) {
+              const areaInput = document.getElementById("qaArea");
+              areaInput.value = data.display_name;
+              document.getElementById("qaLat").value = userLocation[0];
+              document.getElementById("qaLng").value = userLocation[1];
+              L.popup()
+                .setLatLng(userLocation)
+                .setContent(`You are here<br>${data.display_name}`)
+                .openOn(qaMap);
+            }
+          })
+          .catch(() => {
+            Swal.fire({
+              icon: 'error',
+              title: 'Geocoding Error',
+              text: 'Unable to retrieve address. Please try again.'
+            });
+          });
+      },
+      (error) => {
+        console.warn('Geolocation error:', error);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  }
+}
+
+// Global function for suggestion selection (since onclick in innerHTML)
+window.selectQaSuggestion = function(displayName, lat, lon, bbox) {
+  const latlng = { lat: parseFloat(lat), lng: parseFloat(lon) };
+  const bounds = [[parseFloat(bbox[0]), parseFloat(bbox[2])], [parseFloat(bbox[1]), parseFloat(bbox[3])]];
+  qaMap.fitBounds(bounds);
+  if (qaMarker) qaMap.removeLayer(qaMarker);
+  qaMarker = L.marker(latlng, { draggable: true }).addTo(qaMap);
+  const areaInput = document.getElementById("qaArea");
+  areaInput.value = displayName;
+  document.getElementById("qaLat").value = latlng.lat;
+  document.getElementById("qaLng").value = latlng.lng;
+  qaMarker.on("dragend", function(e) {
+    const pos = e.target.getLatLng();
+    document.getElementById("qaLat").value = pos.lat;
+    document.getElementById("qaLng").value = pos.lng;
+  });
+  document.getElementById("qaSuggestions").style.display = 'none';
+  document.getElementById("qaSearchLocation").value = displayName;
+};
+
+function performQaSearch(query) {
+  fetch(`https://nominatim.openstreetmap.org/search?format=json&countrycodes=PH&q=${encodeURIComponent(query)}&limit=1`)
+    .then(response => response.json())
+    .then(results => {
+      if (results.length > 0) {
+        const result = results[0];
+        const latlng = { lat: parseFloat(result.lat), lng: parseFloat(result.lon) };
+        const bbox = result.boundingbox;
+        if (latlng.lat < 4.643 || latlng.lat > 21.121 || latlng.lng < 116.929 || latlng.lng > 126.604) {
+          Swal.fire({
+            icon: 'error',
+            title: 'Invalid Location',
+            text: 'Selected location must be within the Philippines.'
+          });
+          return;
+        }
+        qaMap.fitBounds([[parseFloat(bbox[0]), parseFloat(bbox[2])], [parseFloat(bbox[1]), parseFloat(bbox[3])]]);
+        if (qaMarker) qaMap.removeLayer(qaMarker);
+        qaMarker = L.marker(latlng, { draggable: true }).addTo(qaMap);
+        const areaInput = document.getElementById("qaArea");
+        areaInput.value = result.display_name;
+        document.getElementById("qaLat").value = latlng.lat;
+        document.getElementById("qaLng").value = latlng.lng;
+        qaMarker.on("dragend", function(e) {
+          const pos = e.target.getLatLng();
+          document.getElementById("qaLat").value = pos.lat;
+          document.getElementById("qaLng").value = pos.lng;
+        });
+      } else {
+        Swal.fire({
+          icon: 'info',
+          title: 'No Results',
+          text: 'No location found for your search.'
+        });
+      }
+    })
+    .catch(error => {
+      console.error('Search error:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Search Error',
+        text: 'Unable to perform search. Please try again.'
+      });
+    });
+}
+
+function returnToQaUserLocation() {
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const userLocation = [position.coords.latitude, position.coords.longitude];
+        if (userLocation[0] < 4.643 || userLocation[0] > 21.121 || userLocation[1] < 116.929 || userLocation[1] > 126.604) {
+          Swal.fire({
+            icon: 'error',
+            title: 'Location Error',
+            text: 'Your location is outside the Philippines. Using default.'
+          });
+          return;
+        }
+        qaMap.setView(userLocation, 16);
+        if (qaMarker) qaMap.removeLayer(qaMarker);
+        qaMarker = L.marker(userLocation, { draggable: true }).addTo(qaMap);
+        qaMarker.on("dragend", function(e) {
+          const pos = e.target.getLatLng();
+          document.getElementById("qaLat").value = pos.lat;
+          document.getElementById("qaLng").value = pos.lng;
+        });
+        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${userLocation[0]}&lon=${userLocation[1]}&addressdetails=1&countrycodes=PH`)
+          .then(response => response.json())
+          .then(data => {
+            if (data && data.display_name) {
+              const areaInput = document.getElementById("qaArea");
+              areaInput.value = data.display_name;
+              document.getElementById("qaLat").value = userLocation[0];
+              document.getElementById("qaLng").value = userLocation[1];
+              L.popup()
+                .setLatLng(userLocation)
+                .setContent(`You are here<br>${data.display_name}`)
+                .openOn(qaMap);
+            }
+          })
+          .catch(() => {
+            Swal.fire({
+              icon: 'error',
+              title: 'Geocoding Error',
+              text: 'Unable to retrieve address. Please try again.'
+            });
+          });
+      },
+      (error) => {
+        Swal.fire({
+          icon: 'error',
+          title: 'Location Error',
+          text: getGeolocationErrorMessage(error)
+        });
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  }
+}
+
+function getGeolocationErrorMessage(error) {
+  switch (error.code) {
+    case error.PERMISSION_DENIED:
+      return "Location access denied. Please allow location access in your browser settings.";
+    case error.POSITION_UNAVAILABLE:
+      return "Location information is unavailable. Ensure your device has a working GPS or network connection.";
+    case error.TIMEOUT:
+      return "Location request timed out. Please try again.";
+    default:
+      return "Unable to retrieve your location.";
+  }
+}
+
 
 // ================= Calamity Handler =================
 let abvnMarkers = [];
