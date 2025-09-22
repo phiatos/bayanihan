@@ -1136,7 +1136,7 @@ function initializePageFunctions(userId) {
         });
     }
 
-    // Cache for ABVN data
+    // endorsement submission
     let abvnCache = null;
 
     function calculateDistance(lat1, lon1, lat2, lon2) {
