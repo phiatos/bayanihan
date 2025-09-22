@@ -608,6 +608,96 @@ window.initializeDashboard = function () {
     });
 };
 
+ // === NEW FUNCTION: loadCalamities ===
+async function loadCalamities() {
+    try {
+        const snapshot = await database.ref("calamities").once("value");
+        const calamities = snapshot.val() || {};
+        
+        // Clear old markers
+        calamityMarkers.forEach(marker => marker.remove());
+        calamityMarkers = [];
+
+        Object.entries(calamities).forEach(([id, calamity]) => {
+            if (calamity.coordinates?.lat && calamity.coordinates?.lng) {
+                const coords = { 
+                    lat: parseFloat(calamity.coordinates.lat), 
+                    lng: parseFloat(calamity.coordinates.lng) 
+                };
+
+                // Select icon per calamity type
+                let iconSvg = "";
+                switch ((calamity.type || "").toLowerCase()) {
+                    case "flood risk":
+                        iconSvg = `<svg width="40" height="50" viewBox="0 0 40 50">
+                            <circle cx="20" cy="25" r="12" fill="#007bff" stroke="#ffffff" stroke-width="2"/>
+                            <text x="20" y="29" font-size="14" text-anchor="middle" fill="#fff">🌊</text>
+                        </svg>`;
+                        break;
+                    case "volcanic eruption":
+                        iconSvg = `<svg width="40" height="50" viewBox="0 0 40 50">
+                            <circle cx="20" cy="25" r="12" fill="#e63946" stroke="#ffffff" stroke-width="2"/>
+                            <text x="20" y="29" font-size="14" text-anchor="middle" fill="#fff">🌋</text>
+                        </svg>`;
+                        break;
+                    case "house fire":
+                        iconSvg = `<svg width="40" height="50" viewBox="0 0 40 50">
+                            <circle cx="20" cy="25" r="12" fill="#ff6600" stroke="#ffffff" stroke-width="2"/>
+                            <text x="20" y="29" font-size="14" text-anchor="middle" fill="#fff">🔥</text>
+                        </svg>`;
+                        break;
+                    case "typhoon":
+                        iconSvg = `<svg width="40" height="50" viewBox="0 0 40 50">
+                            <circle cx="20" cy="25" r="12" fill="#28a745" stroke="#ffffff" stroke-width="2"/>
+                            <text x="20" y="29" font-size="14" text-anchor="middle" fill="#fff">🌪</text>
+                        </svg>`;
+                        break;
+                    case "earthquake":
+                        iconSvg = `<svg width="40" height="50" viewBox="0 0 40 50">
+                            <circle cx="20" cy="25" r="12" fill="#6f42c1" stroke="#ffffff" stroke-width="2"/>
+                            <text x="20" y="29" font-size="14" text-anchor="middle" fill="#fff">🌎</text>
+                        </svg>`;
+                        break;
+                    case "tsunami":
+                        iconSvg = `<svg width="40" height="50" viewBox="0 0 40 50">
+                            <circle cx="20" cy="25" r="12" fill="#004085" stroke="#ffffff" stroke-width="2"/>
+                            <text x="20" y="29" font-size="14" text-anchor="middle" fill="#fff">🌊</text>
+                        </svg>`;
+                        break;
+                    default:
+                        iconSvg = `<svg width="40" height="50" viewBox="0 0 40 50">
+                            <circle cx="20" cy="25" r="12" fill="#dc3545" stroke="#ffffff" stroke-width="2"/>
+                            <text x="20" y="29" font-size="14" text-anchor="middle" fill="#fff">⚠</text>
+                        </svg>`;
+                }
+
+                const calamityIcon = L.divIcon({
+                    html: iconSvg,
+                    className: 'custom-marker',
+                    iconSize: [40, 50],
+                    iconAnchor: [20, 50]
+                });
+
+                const marker = L.marker([coords.lat, coords.lng], { icon: calamityIcon }).addTo(map);
+                calamityMarkers.push(marker);
+
+                // Popup Info
+                const info = `
+                    <div style="font-size: 14px;">
+                        <b>${calamity.type || "Calamity"}</b><br>
+                        Location: ${calamity.location || "N/A"}<br>
+                        Details: ${calamity.details || "N/A"}<br>
+                        Time: ${calamity.time ? new Date(calamity.time).toLocaleString() : "N/A"}
+                    </div>
+                `;
+                marker.bindPopup(info);
+            }
+        });
+
+    } catch (error) {
+        console.error("Error loading calamities:", error);
+    }
+}
 // NEW: Function to load and add ABVN HQ markers
 async function loadABVNHQs() {
     try {
@@ -712,12 +802,69 @@ async function loadActivatedABVNs() {
                         const btn = document.getElementById(`deactivateBtn-${actId}`);
                         if (btn) {
                             btn.addEventListener('click', async () => {
-                                if (confirm(`Deactivate ${act.organization}?`)) {
-                                    await database.ref(`activations/${actId}/status`).set('inactive');
-                                    marker.remove();
-                                    activatedMarkers = activatedMarkers.filter(m => m !== marker);
-                                    Swal.fire('Deactivated', 'ABVN deactivated successfully.', 'success');
-                                }
+                                Swal.fire({
+                                    title: 'Are you sure?',
+                                    text: `Do you want to deactivate the operation for ${act.organization} for ${act.calamityName} in ${act.areaOfOperation}?`,
+                                    icon: 'warning',
+                                    showCancelButton: true,
+                                    confirmButtonText: 'Yes, deactivate it!',
+                                    cancelButtonText: 'No, keep it',
+                                    reverseButtons: true,
+                                    focusCancel: true,
+                                    allowOutsideClick: false,
+                                    customClass: {
+                                        popup: 'custom-swal-popup-large',
+                                        title: 'custom-swal-title',
+                                        htmlContainer: 'custom-swal-content',
+                                        confirmButton: 'custom-confirm-btn',
+                                        cancelButton: 'custom-cancel-btn'
+                                    }
+                                }).then(async (result) => {
+                                    if (result.isConfirmed) {
+                                        try {
+                                            // Copy to history
+                                            const activationRef = database.ref(`activations/${actId}`);
+                                            const snapshot = await activationRef.once('value');
+                                            const activationData = snapshot.val();
+
+                                            if (!activationData) {
+                                                throw new Error('Activation data not found.');
+                                            }
+
+                                            const deactivatedActivation = {
+                                                ...activationData,
+                                                status: "inactive",
+                                                deactivationDate: new Date().toISOString()
+                                            };
+
+                                            const historyRef = database.ref(`activations/activationHistory`).push();
+                                            await Promise.all([
+                                                historyRef.set(deactivatedActivation),
+                                                activationRef.remove()
+                                            ]);
+
+                                            marker.remove();
+                                            activatedMarkers = activatedMarkers.filter(m => m !== marker);
+
+                                            Swal.fire({
+                                                icon: 'success',
+                                                title: 'Deactivated!',
+                                                text: `The activation has been moved to activation history.`,
+                                                confirmButtonText: 'OK',
+                                                customClass: {
+                                                    popup: 'swal2-popup-success-clean',
+                                                    title: 'swal2-title-success-clean',
+                                                    htmlContainer: 'swal2-text-success-clean',
+                                                    confirmButton: 'my-success-button'
+                                                }
+                                            });
+
+                                        } catch (err) {
+                                            console.error("Error during deactivation:", err);
+                                            Swal.fire({ icon: 'error', title: 'Error', text: `Failed to deactivate: ${err.message}` });
+                                        }
+                                    }
+                                });
                             });
                         }
                     }, 100);
@@ -1247,14 +1394,12 @@ async function processEarthquakeData(data) {
 //  - If queue reaches 6 alerts before the hour, it flushes immediately.
 //  - Still saves each Flood Risk to /calamities node when detected.
 async function trackFloods() {
-    const YELLOW_THRESHOLD = 7.5;   // mm / 3h
-const ORANGE_THRESHOLD = 15;    // mm / 3h
-const RED_THRESHOLD = 30;       // mm / 3h
- // lower threshold so we collect relevant rain alerts (tweakable)
+    const YELLOW_THRESHOLD = 0.1;   // mm/3h, very low for testing
+    const ORANGE_THRESHOLD = 5;     // mm/3h
+    const RED_THRESHOLD = 15;       // mm/3h
     const MAX_ALERTS_PER_FLUSH = 10;
     const FLUSH_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
-    // sessionStorage-backed per-province last alert timestamp (ms)
     const LAST_ALERT_KEY = 'last_rain_alert_by_province';
     let lastAlertByProvince = {};
     try {
@@ -1263,57 +1408,33 @@ const RED_THRESHOLD = 30;       // mm / 3h
     } catch (e) {
         lastAlertByProvince = {};
     }
-
     function setLastAlert(provinceName, ts) {
         lastAlertByProvince[provinceName] = ts;
         try { sessionStorage.setItem(LAST_ALERT_KEY, JSON.stringify(lastAlertByProvince)); } catch(e) {}
     }
 
-    // In-memory queue for rain alerts
     const rainAlertQueue = [];
-
-    // Flush function - sends up to MAX_ALERTS_PER_FLUSH notifications from queue
     async function flushRainAlerts() {
         if (rainAlertQueue.length === 0) return;
-        // Send up to MAX_ALERTS_PER_FLUSH (FIFO)
         const toSend = rainAlertQueue.splice(0, MAX_ALERTS_PER_FLUSH);
         for (const item of toSend) {
             try {
-                // Save to notifications via existing notifyAdmin flow (generateLenlenAlert -> notifyAdmin)
-                const warningLevel = item.rainfall >= 100 ? "Red Warning: Heavy Rain" :
-                                     item.rainfall >= 50 ? "Orange Warning: Moderate Rain" :
+                const warningLevel = item.maxRainfall >= RED_THRESHOLD ? "Red Warning: Heavy Rain" :
+                                     item.maxRainfall >= ORANGE_THRESHOLD ? "Orange Warning: Moderate Rain" :
                                      "Yellow Warning: Light Rain";
-                // Ensure the calamity was already saved to /calamities when detected (we do that earlier)
                 await generateLenlenAlert("Flood Risk", item.province, item.details, item.eventId, warningLevel, "OpenWeatherMap");
-                // mark last alert time for province to avoid immediate repeats
                 setLastAlert(item.province, Date.now());
             } catch (err) {
                 console.error("Error flushing rain alert for", item.province, err);
             }
         }
     }
-
-    // Periodic flush timer (runs every hour)
-    let rainFlushTimer = null;
     if (!sessionStorage.getItem('rain_flush_timer_set')) {
-        rainFlushTimer = setInterval(() => {
-            flushRainAlerts().catch(err => console.error("Error flushing rain alerts on interval:", err));
-        }, FLUSH_INTERVAL_MS);
-        // mark in session so multiple inits don't create more timers
+        setInterval(() => flushRainAlerts().catch(err => console.error("Error flushing rain alerts on interval:", err)), FLUSH_INTERVAL_MS);
         try { sessionStorage.setItem('rain_flush_timer_set', 'true'); } catch(e) {}
     }
 
-    // Helper to queue alerts and trigger immediate flush when threshold reached
-    async function queueRainAlert(item) {
-        rainAlertQueue.push(item);
-        // If we reached max queued alerts, flush immediately
-        if (rainAlertQueue.length >= MAX_ALERTS_PER_FLUSH) {
-            await flushRainAlerts();
-        }
-    }
-
-    // For each province, fetch forecast and decide whether to save and queue
-    const addFloodMarker = throttle(async (province) => {
+    async function addFloodMarker(province) {
         const cacheKey = `flood_${province.name}`;
         let forecastData;
         if (apiCache.has(cacheKey)) {
@@ -1329,34 +1450,47 @@ const RED_THRESHOLD = 30;       // mm / 3h
                 return;
             }
         }
-        const rainfall = forecastData.list[0].rain ? forecastData.list[0].rain["3h"] || 0 : 0;
-        if (rainfall < rainfallThreshold) return;
+
+        // compute total and max rainfall for next 24h (8 slots)
+        let totalRain = 0;
+        let maxRain = 0;
+        const slots = Math.min(8, forecastData.list.length);
+        for (let i = 0; i < slots; i++) {
+            const r = forecastData.list[i].rain ? (forecastData.list[i].rain["3h"] || 0) : 0;
+            totalRain += r;
+            if (r > maxRain) maxRain = r;
+        }
+
+        // skip if all zero
+        if (maxRain < YELLOW_THRESHOLD && totalRain === 0) {
+            console.log(`No rain for ${province.name}`);
+            return;
+        }
 
         const time = new Date(forecastData.list[0].dt * 1000).toISOString();
-        const details = `Rainfall: ${rainfall} mm in last 3 hours, Time: ${time}`;
-        const roundedTimestamp = Math.floor(new Date(time).getTime() / (3600000)) * 3600000; // Round to hour
+        const details = `Expected Rainfall (24h): ${totalRain.toFixed(1)} mm, Max 3h: ${maxRain.toFixed(1)} mm, Time: ${time}`;
+        const roundedTimestamp = Math.floor(new Date(time).getTime() / 3600000) * 3600000;
         const eventId = `flood_${province.name}_${roundedTimestamp}`;
 
-        // Check for duplicate calamity by eventId/identifier
-        const exists = await calamityExists(eventId, "Flood Risk", province.name, time, '', rainfall);
+        const exists = await calamityExists(eventId, "Flood Risk", province.name, time, '', maxRain);
         if (exists) {
             console.log(`Skipping duplicate flood risk - Event ID: ${eventId}`);
             await addCalamityMarker("Flood Risk", province.name, { lat: province.lat, lng: province.lng }, details, eventId);
             return;
         }
 
-        const identifier = generateCalamityIdentifier("Flood Risk", province.name, time, '', rainfall);
+        const identifier = generateCalamityIdentifier("Flood Risk", province.name, time, '', maxRain);
         processedCalamities.add(eventId);
         processedCalamities.add(identifier);
         syncProcessedCalamities();
 
-        // Save to calamities node (persistent)
         try {
             const calamityRef = database.ref("calamities").push();
             await calamityRef.set({
                 type: "Flood Risk",
                 location: province.name,
-                rainfall: rainfall,
+                rainfall: totalRain,
+                maxRainfall: maxRain,
                 time: time,
                 details: details,
                 coordinates: { lat: province.lat, lng: province.lng },
@@ -1370,22 +1504,20 @@ const RED_THRESHOLD = 30;       // mm / 3h
             console.error("Failed to save calamity for", province.name, err);
         }
 
-        // Dedupe per-province: only queue if last alert for this province is older than 1 hour
+        // queue notification if more than 1h since last
         const lastTs = lastAlertByProvince[province.name] || 0;
-        const now = Date.now();
-        const ONE_HOUR = 60 * 60 * 1000;
-        if (now - lastTs < ONE_HOUR) {
-            console.log(`Already alerted for ${province.name} within the last hour. Skipping notification queue.`);
-            return;
+        if (Date.now() - lastTs > 60 * 60 * 1000) {
+            rainAlertQueue.push({ province: province.name, maxRainfall: maxRain, details, eventId });
         }
+    }
 
-        // Queue alert for batched notifications
-        await queueRainAlert({ province: province.name, rainfall, details, eventId });
-    }, 1000);
+    for (const province of provinces) {
+        addFloodMarker(province);
+    }
 
-    // Iterate all provinces
-    provinces.forEach(province => addFloodMarker(province));
+    await flushRainAlerts();
 }
+
 
 // Track house fires
 async function trackFire() {
