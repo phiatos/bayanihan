@@ -1232,8 +1232,81 @@ async function processEarthquakeData(data) {
     applyMapFilter(); // NEW: Re-apply filter after adding new markers
 }
 // Track floods (merged rainfall alerts here; higher threshold to minimize alerts)
+
+// Track floods (merged rainfall alerts here; improved batching + dedupe)
+// Behavior:
+//  - Collects flood/rain alerts from all provinces.
+//  - Deduplicates per-province so each province alerts at most once per hour.
+//  - Queues alerts and flushes them once per hour, sending at most 6 notifications per flush.
+//  - If queue reaches 6 alerts before the hour, it flushes immediately.
+//  - Still saves each Flood Risk to /calamities node when detected.
 async function trackFloods() {
-    const rainfallThreshold = 50; // Increased to minimize light rain alerts
+    const YELLOW_THRESHOLD = 7.5;   // mm / 3h
+const ORANGE_THRESHOLD = 15;    // mm / 3h
+const RED_THRESHOLD = 30;       // mm / 3h
+ // lower threshold so we collect relevant rain alerts (tweakable)
+    const MAX_ALERTS_PER_FLUSH = 10;
+    const FLUSH_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
+
+    // sessionStorage-backed per-province last alert timestamp (ms)
+    const LAST_ALERT_KEY = 'last_rain_alert_by_province';
+    let lastAlertByProvince = {};
+    try {
+        const raw = sessionStorage.getItem(LAST_ALERT_KEY);
+        lastAlertByProvince = raw ? JSON.parse(raw) : {};
+    } catch (e) {
+        lastAlertByProvince = {};
+    }
+
+    function setLastAlert(provinceName, ts) {
+        lastAlertByProvince[provinceName] = ts;
+        try { sessionStorage.setItem(LAST_ALERT_KEY, JSON.stringify(lastAlertByProvince)); } catch(e) {}
+    }
+
+    // In-memory queue for rain alerts
+    const rainAlertQueue = [];
+
+    // Flush function - sends up to MAX_ALERTS_PER_FLUSH notifications from queue
+    async function flushRainAlerts() {
+        if (rainAlertQueue.length === 0) return;
+        // Send up to MAX_ALERTS_PER_FLUSH (FIFO)
+        const toSend = rainAlertQueue.splice(0, MAX_ALERTS_PER_FLUSH);
+        for (const item of toSend) {
+            try {
+                // Save to notifications via existing notifyAdmin flow (generateLenlenAlert -> notifyAdmin)
+                const warningLevel = item.rainfall >= 100 ? "Red Warning: Heavy Rain" :
+                                     item.rainfall >= 50 ? "Orange Warning: Moderate Rain" :
+                                     "Yellow Warning: Light Rain";
+                // Ensure the calamity was already saved to /calamities when detected (we do that earlier)
+                await generateLenlenAlert("Flood Risk", item.province, item.details, item.eventId, warningLevel, "OpenWeatherMap");
+                // mark last alert time for province to avoid immediate repeats
+                setLastAlert(item.province, Date.now());
+            } catch (err) {
+                console.error("Error flushing rain alert for", item.province, err);
+            }
+        }
+    }
+
+    // Periodic flush timer (runs every hour)
+    let rainFlushTimer = null;
+    if (!sessionStorage.getItem('rain_flush_timer_set')) {
+        rainFlushTimer = setInterval(() => {
+            flushRainAlerts().catch(err => console.error("Error flushing rain alerts on interval:", err));
+        }, FLUSH_INTERVAL_MS);
+        // mark in session so multiple inits don't create more timers
+        try { sessionStorage.setItem('rain_flush_timer_set', 'true'); } catch(e) {}
+    }
+
+    // Helper to queue alerts and trigger immediate flush when threshold reached
+    async function queueRainAlert(item) {
+        rainAlertQueue.push(item);
+        // If we reached max queued alerts, flush immediately
+        if (rainAlertQueue.length >= MAX_ALERTS_PER_FLUSH) {
+            await flushRainAlerts();
+        }
+    }
+
+    // For each province, fetch forecast and decide whether to save and queue
     const addFloodMarker = throttle(async (province) => {
         const cacheKey = `flood_${province.name}`;
         let forecastData;
@@ -1252,44 +1325,62 @@ async function trackFloods() {
         }
         const rainfall = forecastData.list[0].rain ? forecastData.list[0].rain["3h"] || 0 : 0;
         if (rainfall < rainfallThreshold) return;
+
         const time = new Date(forecastData.list[0].dt * 1000).toISOString();
         const details = `Rainfall: ${rainfall} mm in last 3 hours, Time: ${time}`;
         const roundedTimestamp = Math.floor(new Date(time).getTime() / (3600000)) * 3600000; // Round to hour
         const eventId = `flood_${province.name}_${roundedTimestamp}`;
+
+        // Check for duplicate calamity by eventId/identifier
         const exists = await calamityExists(eventId, "Flood Risk", province.name, time, '', rainfall);
         if (exists) {
             console.log(`Skipping duplicate flood risk - Event ID: ${eventId}`);
             await addCalamityMarker("Flood Risk", province.name, { lat: province.lat, lng: province.lng }, details, eventId);
             return;
         }
+
         const identifier = generateCalamityIdentifier("Flood Risk", province.name, time, '', rainfall);
         processedCalamities.add(eventId);
         processedCalamities.add(identifier);
         syncProcessedCalamities();
-        // Save to calamities node
-        const calamityRef = database.ref("calamities").push();
-        await calamityRef.set({
-            type: "Flood Risk",
-            location: province.name,
-            rainfall: rainfall,
-            time: time,
-            details: details,
-            coordinates: { lat: province.lat, lng: province.lng },
-            eventId: eventId,
-            identifier: identifier,
-            timestamp: Date.now(),
-        });
-        console.log(`Saved new flood risk to calamities - Event ID: ${eventId}, Location: ${province.name}`);
-        await addCalamityMarker("Flood Risk", province.name, { lat: province.lat, lng: province.lng }, details, eventId);
-        // Trigger notification after saving to calamities (concise warning levels)
-        const warningLevel = rainfall >= 100 ? "Red Warning: Heavy Rain" :
-                           rainfall >= 50 ? "Orange Warning: Moderate Rain" : "";
-        if (warningLevel) { // Skip light rain to minimize
-            await generateLenlenAlert("Flood Risk", province.name, details, eventId, warningLevel, "OpenWeatherMap");
+
+        // Save to calamities node (persistent)
+        try {
+            const calamityRef = database.ref("calamities").push();
+            await calamityRef.set({
+                type: "Flood Risk",
+                location: province.name,
+                rainfall: rainfall,
+                time: time,
+                details: details,
+                coordinates: { lat: province.lat, lng: province.lng },
+                eventId: eventId,
+                identifier: identifier,
+                timestamp: Date.now(),
+            });
+            console.log(`Saved new flood risk to calamities - Event ID: ${eventId}, Location: ${province.name}`);
+            await addCalamityMarker("Flood Risk", province.name, { lat: province.lat, lng: province.lng }, details, eventId);
+        } catch (err) {
+            console.error("Failed to save calamity for", province.name, err);
         }
+
+        // Dedupe per-province: only queue if last alert for this province is older than 1 hour
+        const lastTs = lastAlertByProvince[province.name] || 0;
+        const now = Date.now();
+        const ONE_HOUR = 60 * 60 * 1000;
+        if (now - lastTs < ONE_HOUR) {
+            console.log(`Already alerted for ${province.name} within the last hour. Skipping notification queue.`);
+            return;
+        }
+
+        // Queue alert for batched notifications
+        await queueRainAlert({ province: province.name, rainfall, details, eventId });
     }, 1000);
+
+    // Iterate all provinces
     provinces.forEach(province => addFloodMarker(province));
 }
+
 // Track house fires
 async function trackFire() {
     const calamityTrackingInitialized = sessionStorage.getItem(CALAMITY_TRACKING_KEY);
