@@ -154,6 +154,12 @@ document.querySelectorAll(".tab-btn").forEach(btn => {
 document.querySelector(".tab-btn[data-tab='default']").click();
 
 // dashboard.js
+// Global variables
+// Place this at the very top of dashboard.js
+console.log = function () {};
+console.error = function () {};
+console.warn = function () {};
+
 let map, markers = [], geocoder, autocomplete, reportsListener, userRole, userEmail, userUid, currentInfoWindow, singleInfoWindow, isInfoWindowClicked = false;
 let calamityMarkers = [], calamityListener, notificationsListener;
 // NEW: For map sorting/filtering
