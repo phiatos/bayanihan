@@ -878,7 +878,7 @@ async function loadActivatedABVNs() {
 }
 
 // UPDATED: Apply filter to show/hide marker layers (now properly hides weather markers except for ALL)
-function applyMapFilter() {
+async function applyMapFilter() {
     try {
         if (!map) return;
         // Remove/hide all markers first
@@ -889,12 +889,14 @@ function applyMapFilter() {
 
         switch (currentFilter) {
             case 'ALL':
+                await loadCalamities(); // ✅ reload calamities
                 try { markers.forEach(m => m.addTo(map)); } catch(e) {}
                 try { calamityMarkers.forEach(m => m.addTo(map)); } catch(e) {}
                 try { hqMarkers.forEach(m => m.addTo(map)); } catch(e) {}
                 try { activatedMarkers.forEach(m => m.addTo(map)); } catch(e) {}
                 break;
             case 'Calamities':
+                await loadCalamities(); // ✅ reload calamities
                 try { calamityMarkers.forEach(m => m.addTo(map)); } catch(e) {}
                 break;
             case 'ABVN HQs':
@@ -907,6 +909,7 @@ function applyMapFilter() {
                 try { markers.forEach(m => m.addTo(map)); } catch(e) {}
                 break;
             default:
+                await loadCalamities(); // fallback
                 try { calamityMarkers.forEach(m => m.addTo(map)); } catch(e) {}
         }
         console.log(`Applied filter: ${currentFilter}`);
@@ -914,8 +917,6 @@ function applyMapFilter() {
         console.error('applyMapFilter error:', err);
     }
 }
-
-
 // Initialize processed sets from database
 async function initializeProcessedSets() {
     try {
