@@ -33,15 +33,26 @@ let regionProvinces = {
   mindanao: ["Zamboanga del Norte", "Zamboanga del Sur", "Zamboanga Sibugay", "Bukidnon", "Camiguin", "Lanao del Norte", "Misamis Occidental", "Misamis Oriental", "Compostela Valley", "Davao del Norte", "Davao del Sur", "Davao Oriental", "Davao Occidental", "North Cotabato", "Sarangani", "South Cotabato", "Sultan Kudarat", "Agusan del Norte", "Agusan del Sur", "Dinagat Islands", "Surigao del Norte", "Surigao del Sur", "Basilan", "Lanao del Sur", "Maguindanao", "Sulu", "Tawi-Tawi"]
 };
 
+// const firebaseConfig = {
+//   apiKey: "AIzaSyBkmXOJvnlBtzkjNyR6wyd9BgGM0BhN0L8",
+//   authDomain: "bayanihan-new-472410.firebaseapp.com",
+//   projectId: "bayanihan-new-472410",
+//   storageBucket: "bayanihan-new-472410.firebasestorage.app",
+//   messagingSenderId: "995982574131",
+//   appId: "1:995982574131:web:3d45e358fad330c276d946",
+//   measurementId: "G-CEVPTQZM9C",
+//   databaseURL: "https://bayanihan-new-472410-default-rtdb.asia-southeast1.firebasedatabase.app/"
+// };
+
 const firebaseConfig = {
-  apiKey: "AIzaSyBkmXOJvnlBtzkjNyR6wyd9BgGM0BhN0L8",
-  authDomain: "bayanihan-new-472410.firebaseapp.com",
-  projectId: "bayanihan-new-472410",
-  storageBucket: "bayanihan-new-472410.firebasestorage.app",
-  messagingSenderId: "995982574131",
-  appId: "1:995982574131:web:3d45e358fad330c276d946",
-  measurementId: "G-CEVPTQZM9C",
-  databaseURL: "https://bayanihan-new-472410-default-rtdb.asia-southeast1.firebasedatabase.app/"
+    apiKey: "AIzaSyDJxMv8GCaMvQT2QBW3CdzA3dV5X_T2KqQ",
+    authDomain: "bayanihan-5ce7e.firebaseapp.com",
+    databaseURL: "https://bayanihan-5ce7e-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "bayanihan-5ce7e",
+    storageBucket: "bayanihan-5ce7e.appspot.com",
+    messagingSenderId: "593123849917",
+    appId: "1:593123849917:web:eb85a63a536eeff78ce9d4",
+    measurementId: "G-ZTQ9VXXVV0",
 };
 
 firebase.initializeApp(firebaseConfig);
@@ -332,19 +343,19 @@ async function addMarkersForActiveActivations() {
 
   activationsListenerQuery = database.ref("activations").orderByChild("status").equalTo("active");
 
-  activationsListenerCallback = async snapshot => {
+  activationsListenerCallback = async (snapshot) => {
     markers.forEach(marker => marker.remove());
     markers = [];
 
     const activations = snapshot.val();
     if (!activations) {
-      console.log('No active activations found.');
+      console.log('No active activations found in the database.');
       return;
     }
 
     let coordinateCount = {}; // Track duplicate coordinates
     for (const [key, activation] of Object.entries(activations)) {
-      console.log('Attempting to process activation:', key, activation);
+      console.log('Attempting to process activation:', key, activation); // Check if this logs
       let lat, lng;
 
       // Check if coordinates are at root level or nested under address
@@ -355,7 +366,7 @@ async function addMarkersForActiveActivations() {
         lat = parseFloat(activation.address.latitude);
         lng = parseFloat(activation.address.longitude);
       } else {
-        console.warn('Missing latitude or longitude for activation:', key);
+        console.warn('Missing latitude or longitude for activation:', key, activation);
         continue;
       }
 
@@ -367,7 +378,7 @@ async function addMarkersForActiveActivations() {
       // Handle duplicate coordinates with increased offset
       const coordKey = `${lat},${lng}`;
       if (coordinateCount[coordKey]) {
-        const offset = (coordinateCount[coordKey] * 0.001); // Increased to 0.001 degrees (~100 meters)
+        const offset = (coordinateCount[coordKey] * 0.001); // ~100 meters
         lat += offset;
         lng += offset;
         console.log(`Offset applied for duplicate at ${coordKey}, new coords: [${lat}, ${lng}]`);
@@ -653,11 +664,11 @@ async function addMarkersForActiveActivations() {
       map.fitBounds(markers.map(m => m.getLatLng()), { padding: [50, 50] });
       console.log('Map bounds adjusted to show all markers');
     } else {
-      console.warn('No markers to display');
+      console.warn('No markers to display.');
     }
   };
 
-  activationsListenerQuery.on("value", activationsListenerCallback, error => {
+  activationsListenerQuery.on("value", activationsListenerCallback, (error) => {
     console.error('Activation listener error:', error);
   });
 }
